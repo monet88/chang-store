@@ -19,7 +19,7 @@ export const useInpainting = () => {
     
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+    const { getModelsForFeature } = useApi();
 
     const setupCanvases = useCallback(() => {
         // ... canvas setup logic

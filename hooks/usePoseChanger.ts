@@ -17,7 +17,7 @@ export const usePoseChanger = () => {
 
     const { addImage } = useImageGallery();
     const { t } = useLanguage();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+    const { getModelsForFeature } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Pose);
 
     const handleGenerate = async () => {

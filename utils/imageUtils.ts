@@ -44,13 +44,9 @@ export const getErrorMessage = (error: unknown, t: (key: string, options?: any) 
         const reason = rawMessage.substring('error.api.geminiFailed:'.length);
         return t('error.api.geminiFailed', { error: reason });
     }
-    if (rawMessage.startsWith('error.api.falFailed:')) {
-        const reason = rawMessage.substring('error.api.falFailed:'.length);
-        return t('error.api.falFailed', { error: reason });
-    }
-    if (rawMessage.startsWith('error.api.nanobananaFailed:')) {
-        const reason = rawMessage.substring('error.api.nanobananaFailed:'.length);
-        return t('error.api.nanobananaFailed', { error: reason });
+    if (rawMessage.startsWith('error.api.aivideoautoFailed:')) {
+        const reason = rawMessage.substring('error.api.aivideoautoFailed:'.length);
+        return t('error.api.aivideoautoFailed', { error: reason });
     }
     
     return t(rawMessage, { default: rawMessage });

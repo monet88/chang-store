@@ -16,8 +16,21 @@ import AspectRatioSelector from './AspectRatioSelector';
 const SwapFace: React.FC = () => {
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.SwapFace);
+    const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
+    const requireAivideoautoConfig = () => {
+        if (isAivideoautoModel && !aivideoautoAccessToken) {
+            setError(t('error.api.aivideoautoAuth'));
+            return false;
+        }
+        return true;
+    };
+    const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+        onStatusUpdate,
+        aivideoautoAccessToken,
+        aivideoautoImageModels,
+    });
 
     const [styleImage, setStyleImage] = useState<ImageFile | null>(null);
     const [faceImage, setFaceImage] = useState<ImageFile | null>(null);
@@ -60,6 +73,10 @@ const SwapFace: React.FC = () => {
             return;
         }
 
+        if (!requireAivideoautoConfig()) {
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
         setGeneratedImage(null);
@@ -69,11 +86,8 @@ const SwapFace: React.FC = () => {
                 generatedPrompt, 
                 faceImage, 
                 styleImage,
-                imageEditModel, {
-                falApiKey,
-                nanobananaApiKey,
-                onStatusUpdate: () => {},
-            },
+                imageEditModel,
+                buildImageServiceConfig(() => {}),
             aspectRatio
             );
             setGeneratedImage(result);

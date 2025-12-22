@@ -8,6 +8,7 @@ export const generateVideoSceneSuggestions = async (
   gender: string,
   requestText: string,
   promptTemplate: string,
+  model: string = 'gemini-2.5-pro',
 ): Promise<string[]> => {
   const ai = getGeminiClient();
   const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
@@ -21,7 +22,7 @@ export const generateVideoSceneSuggestions = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: model,
       contents: { parts: [imagePart, textPart] },
       config: {
         thinkingConfig: {
@@ -69,7 +70,7 @@ export const generateVideoSceneSuggestions = async (
   }
 };
 
-export const enhanceSceneDescription = async (baseDescription: string): Promise<string> => {
+export const enhanceSceneDescription = async (baseDescription: string, model: string = 'gemini-2.5-pro'): Promise<string> => {
   const ai = getGeminiClient();
   const prompt = `# ROLE
 You are a creative director and cinematic script doctor. Your specialty is transforming simple ideas into visually rich, evocative scenes.
@@ -92,7 +93,7 @@ Take the user's basic scene description and rewrite it into a single, vivid para
 `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-pro',
+    model: model,
     contents: prompt,
     config: {
       thinkingConfig: {
@@ -619,12 +620,14 @@ interface VideoContinuityParams {
     style: VideoStyle;
     image_mode: 'single' | 'multi' | 'brainstorm';
     images: (ImageFile | null)[];
+    model?: string;
 }
 interface VideoVariationParams {
     basePrompt: string;
     variationCount: number;
     duration: number;
     style: VideoStyle;
+    model?: string;
 }
 
 export const generateVideoContinuitySequence = async (params: VideoContinuityParams): Promise<Scene[]> => {
@@ -657,7 +660,7 @@ Return a valid JSON object with a single key "scenes", which is an array of stri
     const textPart: Part = { text: prompt };
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+        model: params.model || 'gemini-2.5-pro',
         contents: imageParts.length > 0 ? { parts: [...imageParts, textPart] } : textPart.text,
         config: {
             thinkingConfig: {
@@ -719,7 +722,7 @@ Return a valid JSON object with a single key "variations", which is an array of 
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+        model: params.model || 'gemini-2.5-pro',
         contents: prompt,
         config: {
             thinkingConfig: {

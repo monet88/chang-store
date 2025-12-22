@@ -21,7 +21,7 @@ export const useGRWMVideoGenerator = () => {
 
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey, aivideoautoAccessToken, aivideoautoVideoModels } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoVideoModels } = useApi();
 
     const processFiles = useCallback(async (files: FileList) => {
         // ... logic

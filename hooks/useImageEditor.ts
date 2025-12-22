@@ -38,7 +38,7 @@ export const useImageEditor = (initialImage: ImageFile | null, onClose: () => vo
 
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { imageEditModel, imageGenerateModel, falApiKey, nanobananaApiKey } = useApi();
+    const { imageEditModel, imageGenerateModel } = useApi();
     
     const currentImage = history[currentIndex] || null;
 

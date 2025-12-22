@@ -32,7 +32,7 @@ interface VideoResult {
 export const GRWMVideoGenerator: React.FC = () => {
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey, aivideoautoAccessToken, aivideoautoVideoModels } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoVideoModels } = useApi();
     const { videoGenerateModel } = getModelsForFeature(Feature.GRWMVideo);
 
     const [images, setImages] = useState<ImageItem[]>([]);
@@ -141,6 +141,11 @@ export const GRWMVideoGenerator: React.FC = () => {
             return;
         }
 
+        if (videoGenerateModel.startsWith('aivideoauto--') && !aivideoautoAccessToken) {
+            setError(t('error.api.aivideoautoAuth'));
+            return;
+        }
+
         setVideoResults(prev => ({
             ...prev,
             [imageItem.id]: { 
@@ -166,7 +171,7 @@ export const GRWMVideoGenerator: React.FC = () => {
             const downloadLink = await generateVideo(
                 promptText,
                 videoGenerateModel,
-                { falApiKey, nanobananaApiKey, aivideoautoAccessToken, onStatusUpdate: updateStatus, aivideoautoVideoModels },
+                { aivideoautoAccessToken, onStatusUpdate: updateStatus, aivideoautoVideoModels },
                 imageItem.file
             );
 

@@ -3,11 +3,11 @@ import { Part, Type } from "@google/genai";
 import { ImageFile, AnalyzedItem } from '../../types';
 import { getGeminiClient } from '../apiClient';
 
-export const generateText = async (prompt: string): Promise<string> => {
+export const generateText = async (prompt: string, model: string = 'gemini-2.5-pro'): Promise<string> => {
   const ai = getGeminiClient();
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: model,
       contents: prompt,
       config: {
         thinkingConfig: {
@@ -270,7 +270,7 @@ export const analyzeOutfit = async (image: ImageFile): Promise<AnalyzedItem[]> =
   }
 };
 
-export const generateStylePromptFromImage = async (image: ImageFile): Promise<string> => {
+export const generateStylePromptFromImage = async (image: ImageFile, model: string = 'gemini-2.5-pro'): Promise<string> => {
     const ai = getGeminiClient();
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
     const prompt = `# ROLE
@@ -285,11 +285,11 @@ You are an expert Art Director AI. Your task is to analyze a reference image and
 
 # OUTPUT FORMAT
 Return a single, comprehensive paragraph that synthesizes all the above points into a coherent and evocative prompt. Do not include markdown or titles.`;
-  
+
     const textPart: Part = { text: prompt };
-  
+
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: model,
       contents: { parts: [imagePart, textPart] },
       config: {
         thinkingConfig: {
@@ -312,7 +312,7 @@ Return a single, comprehensive paragraph that synthesizes all the above points i
     throw new Error('error.api.noTextDescription');
 };
 
-export const analyzeScene = async (image: ImageFile): Promise<string> => {
+export const analyzeScene = async (image: ImageFile, model: string = 'gemini-2.5-pro'): Promise<string> => {
   const ai = getGeminiClient();
   const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
   const prompt = `# ROLE
@@ -328,7 +328,7 @@ Generate a comprehensive yet factual description of what is seen in the image �
    - Describe textures, architecture, color palette, and light direction.
    - Note time-of-day mood (morning, dusk, overcast).
 2. **Subject / Character**
-   - Describe the person’s gender, age range, posture, body type, and expression.
+   - Describe the person's gender, age range, posture, body type, and expression.
    - Detail hairstyle, accessories, and gaze direction.
    - Keep language factual, not stylistic.
 3. **Outfit & Material**
@@ -339,16 +339,16 @@ Generate a comprehensive yet factual description of what is seen in the image �
    - Include reflections, rim highlights, or haze if present.
 5. **Emotional & Cinematic Tone**
    - Infer the mood (calm, confident, melancholic, professional…).
-   - Describe how the subject’s pose and lighting contribute to that feeling.
+   - Describe how the subject's pose and lighting contribute to that feeling.
 
 # OUTPUT FORMAT
 Return one clean paragraph in natural English — concise but complete.
 Do not include stylistic opinions or hypothetical scenes.`;
-  
+
   const textPart: Part = { text: prompt };
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-pro',
+    model: model,
     contents: { parts: [imagePart, textPart] },
     config: {
       thinkingConfig: {

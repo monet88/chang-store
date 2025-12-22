@@ -5,7 +5,7 @@ import { useImageGallery } from '../../contexts/ImageGalleryContext';
 import { listModels } from '../../services/aivideoautoService';
 import Spinner from '../Spinner';
 import { CloseIcon, CheckCircleIcon } from '../Icons';
-import { ImageEditModel, ImageGenerateModel, VideoGenerateModel } from '../../types';
+import { ImageEditModel, ImageGenerateModel, VideoGenerateModel, TextGenerateModel } from '../../types';
 
 const ServiceModelSelector: React.FC<{
     label: string;
@@ -17,8 +17,6 @@ const ServiceModelSelector: React.FC<{
 
     const parseModelId = (modelId: string): { service: string, model: string } => {
         if (modelId.startsWith('aivideoauto--')) return { service: 'aivideoauto', model: modelId };
-        if (modelId.startsWith('fal-ai/')) return { service: 'fal-ai', model: modelId };
-        if (modelId.startsWith('nanobanana/')) return { service: 'nanobanana', model: modelId };
         return { service: 'google', model: modelId };
     };
     
@@ -78,8 +76,6 @@ const ServiceModelSelector: React.FC<{
 
 export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ isOpen, onClose }) => {
     const {
-        falApiKey, setFalApiKey,
-        nanobananaApiKey, setNanobananaApiKey,
         googleApiKey, setGoogleApiKey,
         aivideoautoAccessToken, setAivideoautoAccessToken,
         aivideoautoImageModels, setAivideoautoImageModels,
@@ -87,20 +83,18 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         imageEditModel, setImageEditModel,
         imageGenerateModel, setImageGenerateModel,
         videoGenerateModel, setVideoGenerateModel,
-        imgbbApiKey, setImgbbApiKey,
+        textGenerateModel, setTextGenerateModel,
     } = useApi();
     const { images } = useImageGallery();
     
     // Local state for all settings
-    const [localFalKey, setLocalFalKey] = useState(falApiKey || '');
-    const [localNanoBananaKey, setLocalNanoBananaKey] = useState(nanobananaApiKey || '');
     const [localGoogleKey, setLocalGoogleKey] = useState(googleApiKey || '');
-    const [localImgbbKey, setLocalImgbbKey] = useState(imgbbApiKey || '');
     const [localAivideoautoKey, setLocalAivideoautoKey] = useState(aivideoautoAccessToken || '');
     
     const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
     const [localImageGenerateModel, setLocalImageGenerateModel] = useState(imageGenerateModel);
     const [localVideoGenerateModel, setLocalVideoGenerateModel] = useState(videoGenerateModel);
+    const [localTextGenerateModel, setLocalTextGenerateModel] = useState(textGenerateModel);
     
     const [isTestingAivideoauto, setIsTestingAivideoauto] = useState(false);
     const [aivideoautoError, setAivideoautoError] = useState<string | null>(null);
@@ -122,17 +116,15 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         });
         
         // Sync local state with context when modal opens
-        setLocalFalKey(falApiKey || '');
-        setLocalNanoBananaKey(nanobananaApiKey || '');
         setLocalGoogleKey(googleApiKey || '');
-        setLocalImgbbKey(imgbbApiKey || '');
         setLocalAivideoautoKey(aivideoautoAccessToken || '');
         setLocalImageEditModel(imageEditModel);
         setLocalImageGenerateModel(imageGenerateModel);
         setLocalVideoGenerateModel(videoGenerateModel);
+        setLocalTextGenerateModel(textGenerateModel);
 
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [isOpen, onClose, images, falApiKey, nanobananaApiKey, googleApiKey, imgbbApiKey, aivideoautoAccessToken, imageEditModel, imageGenerateModel, videoGenerateModel]);
+    }, [isOpen, onClose, images, googleApiKey, aivideoautoAccessToken, imageEditModel, imageGenerateModel, videoGenerateModel, textGenerateModel]);
     
     if (!isOpen) return null;
 
@@ -160,16 +152,14 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     };
     
     const handleSave = () => {
-        setFalApiKey(localFalKey);
-        setNanobananaApiKey(localNanoBananaKey);
         setGoogleApiKey(localGoogleKey);
-        setImgbbApiKey(localImgbbKey);
         // AIVideoAuto is saved on check
-        
+
         setImageEditModel(localImageEditModel);
         setImageGenerateModel(localImageGenerateModel);
         setVideoGenerateModel(localVideoGenerateModel);
-        
+        setTextGenerateModel(localTextGenerateModel);
+
         onClose();
     };
 
@@ -195,31 +185,46 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     
     const IMAGE_EDIT_SERVICES = [
         { id: 'google', name: 'Google' }, { id: 'aivideoauto', name: 'AIVideoAuto' },
-        { id: 'fal-ai', name: 'FAL' }, { id: 'nanobanana', name: 'NanoBanana' },
     ];
     const VIDEO_GENERATE_SERVICES = [
         { id: 'google', name: 'Google' }, { id: 'aivideoauto', name: 'AIVideoAuto' },
-        { id: 'fal-ai', name: 'FAL' }, { id: 'nanobanana', name: 'NanoBanana' },
+    ];
+    const TEXT_GENERATE_SERVICES = [
+        { id: 'google', name: 'Google' },
     ];
 
     const MODELS_BY_SERVICE = {
         imageEdit: {
-            'google': [{ id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' }],
-            'fal-ai': [{ id: 'fal-ai/bytedance/seedream/v4/edit', name: 'Seedream V4 Edit' }],
-            'nanobanana': [{ id: 'nanobanana/generate', name: 'Image to Image' }],
+            'google': [
+                { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image (Preview)' },
+                { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
+            ],
             'aivideoauto': aivideoautoImageModels.map(m => ({ id: `aivideoauto--${m.id_base}`, name: m.name })),
         },
         imageGenerate: {
-            'google': [{ id: 'imagen-4.0-generate-001', name: 'Imagen 4' }],
-            'fal-ai': [{ id: 'fal-ai/fast-sdxl', name: 'Fast SDXL' }],
-            'nanobanana': [{ id: 'nanobanana/generate', name: 'Text to Image' }],
+            'google': [
+                { id: 'imagen-4.0-ultra-generate-001', name: 'Imagen 4 Ultra' },
+                { id: 'imagen-4.0-generate-001', name: 'Imagen 4' },
+                { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast' },
+            ],
             'aivideoauto': aivideoautoImageModels.map(m => ({ id: `aivideoauto--${m.id_base}`, name: m.name })),
         },
         videoGenerate: {
-            'google': [{ id: 'veo-3.1-fast-generate-preview', name: 'Veo Fast' }],
-            'fal-ai': [{ id: 'fal-ai/fast-svd-lcm', name: 'Fast SVD LCM (Image-to-Video)' }],
-            'nanobanana': [{ id: 'nanobanana/generate-video', name: 'Image to Video' }],
+            'google': [
+                { id: 'veo-3.1-generate-preview', name: 'Veo 3.1' },
+                { id: 'veo-3.1-fast-generate-preview', name: 'Veo 3.1 Fast' },
+                { id: 'veo-3.0-generate-001', name: 'Veo 3' },
+                { id: 'veo-3.0-fast-generate-001', name: 'Veo 3 Fast' },
+            ],
             'aivideoauto': aivideoautoVideoModels.map(m => ({ id: `aivideoauto--${m.id_base}`, name: m.name })),
+        },
+        textGenerate: {
+            'google': [
+                { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro (Preview)' },
+                { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash (Preview)' },
+                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+                { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+            ],
         },
     };
 
@@ -248,6 +253,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                     <section>
                         <h3 className="text-lg font-semibold text-emerald-400 mb-4">Default Model Selection</h3>
                         <div className="space-y-4">
+                           <ServiceModelSelector label="Text Generation (Analysis/Prompts)" services={TEXT_GENERATE_SERVICES} modelsByService={MODELS_BY_SERVICE.textGenerate} selectedModel={localTextGenerateModel} onModelChange={setLocalTextGenerateModel} />
                            <ServiceModelSelector label="Image Editing / Variation" services={IMAGE_EDIT_SERVICES} modelsByService={MODELS_BY_SERVICE.imageEdit} selectedModel={localImageEditModel} onModelChange={setLocalImageEditModel} />
                            <ServiceModelSelector label="Image Generation (Text-to-Image)" services={IMAGE_EDIT_SERVICES} modelsByService={MODELS_BY_SERVICE.imageGenerate} selectedModel={localImageGenerateModel} onModelChange={setLocalImageGenerateModel} />
                            <ServiceModelSelector label="Video Generation" services={VIDEO_GENERATE_SERVICES} modelsByService={MODELS_BY_SERVICE.videoGenerate} selectedModel={localVideoGenerateModel} onModelChange={setLocalVideoGenerateModel} />
@@ -275,10 +281,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                                     )}
                                 </div>
                             </div>
-                            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                                <h4 className="font-semibold text-slate-200 mb-2">ImgBB API Key</h4>
-                                <input type="password" value={localImgbbKey} onChange={e => setLocalImgbbKey(e.target.value)} placeholder="Enter your ImgBB key" className="w-full bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm" />
-                            </div>
                              <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
                                 <h4 className="font-semibold text-slate-200 mb-2">AIVideoAuto API</h4>
                                 <p className="text-xs text-slate-400 mb-3">
@@ -291,14 +293,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                                     </button>
                                 </div>
                                 {aivideoautoError && <p className="text-red-400 text-xs mt-2">{`Error: ${aivideoautoError}`}</p>}
-                            </div>
-                            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                                <h4 className="font-semibold text-slate-200 mb-2">FAL API Key</h4>
-                                <input type="password" value={localFalKey} onChange={e => setLocalFalKey(e.target.value)} placeholder="fal-ai-key..." className="w-full bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm" />
-                            </div>
-                            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                                <h4 className="font-semibold text-slate-200 mb-2">NanoBanana API Key</h4>
-                                <input type="password" value={localNanoBananaKey} onChange={e => setLocalNanoBananaKey(e.target.value)} placeholder="nanobanana-api-key..." className="w-full bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm" />
                             </div>
                         </div>
                     </section>

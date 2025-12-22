@@ -75,3 +75,4 @@ export interface AIVideoAutoModel {
 export type ImageEditModel = string;
 export type ImageGenerateModel = string;
 export type VideoGenerateModel = string;
+export type TextGenerateModel = string;

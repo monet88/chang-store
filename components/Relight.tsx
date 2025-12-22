@@ -133,8 +133,21 @@ Your primary task is to relight the provided source image according to the speci
 const Relight: React.FC = () => {
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Relight);
+    const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
+    const requireAivideoautoConfig = () => {
+        if (isAivideoautoModel && !aivideoautoAccessToken) {
+            setError(t('error.api.aivideoautoAuth'));
+            return false;
+        }
+        return true;
+    };
+    const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+        onStatusUpdate,
+        aivideoautoAccessToken,
+        aivideoautoImageModels,
+    });
 
     const [image, setImage] = useState<ImageFile | null>(null);
     const [backlightDirection, setBacklightDirection] = useState<BacklightDirection>('Left');
@@ -156,12 +169,7 @@ const Relight: React.FC = () => {
             setError(t('relight.inputError'));
             return;
         }
-        if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-            setError(t('error.api.falAuth'));
-            return;
-        }
-        if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-            setError(t('error.api.nanobananaAuth'));
+        if (!requireAivideoautoConfig()) {
             return;
         }
 
@@ -172,7 +180,7 @@ const Relight: React.FC = () => {
         const prompt = generateRelightPrompt(backlightDirection, lightType, quality, customPrompt, light1Color, light2Color, light3Color);
         
         try {
-            const [result] = await editImage({ images: [image], prompt, numberOfImages: 1, aspectRatio }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage });
+            const [result] = await editImage({ images: [image], prompt, numberOfImages: 1, aspectRatio }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
             setGeneratedImage(result);
             addImage(result);
         } catch (err) {

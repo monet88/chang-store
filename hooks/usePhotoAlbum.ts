@@ -14,7 +14,7 @@ export const usePhotoAlbum = () => {
 
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+    const { getModelsForFeature } = useApi();
 
     const handleGenerate = async () => {
         // ... generation logic from component

@@ -15,8 +15,13 @@ import AspectRatioSelector from './AspectRatioSelector';
 
 const BackgroundReplacer: React.FC = () => {
   const { t } = useLanguage();
-  const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Background);
+  const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+    onStatusUpdate,
+    aivideoautoAccessToken,
+    aivideoautoImageModels,
+  });
 
   const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);
   const [backgroundImage, setBackgroundImage] = useState<ImageFile | null>(null);
@@ -103,12 +108,8 @@ const BackgroundReplacer: React.FC = () => {
       setError(t('background.backgroundError'));
       return;
     }
-    if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-      setError(t('error.api.falAuth'));
-      return;
-    }
-    if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-      setError(t('error.api.nanobananaAuth'));
+    if (imageEditModel.startsWith('aivideoauto--') && !aivideoautoAccessToken) {
+      setError(t('error.api.aivideoautoAuth'));
       return;
     }
 
@@ -191,7 +192,7 @@ const BackgroundReplacer: React.FC = () => {
         negativePrompt, 
         numberOfImages: 2,
         aspectRatio
-      }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage });
+      }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
       setGeneratedImages(results);
       results.forEach(addImage);
     } catch (err) {
@@ -209,7 +210,7 @@ const BackgroundReplacer: React.FC = () => {
         const result = await upscaleImage(
             imageToUpscale,
             imageEditModel,
-            { falApiKey, nanobananaApiKey, onStatusUpdate: () => {} }
+            buildImageServiceConfig(() => {})
         );
         setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
         addImage(result);

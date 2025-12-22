@@ -26,20 +26,28 @@ const Upscale: React.FC = () => {
   
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
-  const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Upscale);
+  const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
+  const requireAivideoautoConfig = () => {
+    if (isAivideoautoModel && !aivideoautoAccessToken) {
+      setError(t('error.api.aivideoautoAuth'));
+      return false;
+    }
+    return true;
+  };
+  const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+    onStatusUpdate,
+    aivideoautoAccessToken,
+    aivideoautoImageModels,
+  });
 
   const handleGenerate = async () => {
     if (!uploadedImage) {
       setError(t('upscale.inputError'));
       return;
     }
-    if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-      setError(t('error.api.falAuth'));
-      return;
-    }
-    if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-      setError(t('error.api.nanobananaAuth'));
+    if (!requireAivideoautoConfig()) {
       return;
     }
 
@@ -52,7 +60,7 @@ const Upscale: React.FC = () => {
       const result = await upscaleImage(
         uploadedImage,
         imageEditModel,
-        { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage }
+        buildImageServiceConfig(setLoadingMessage)
       );
       setGeneratedImage(result);
       addImage(result);
