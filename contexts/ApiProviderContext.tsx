@@ -1,12 +1,8 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { ImageEditModel, ImageGenerateModel, VideoGenerateModel, AIVideoAutoModel, Feature } from '../types';
+import { ImageEditModel, ImageGenerateModel, VideoGenerateModel, TextGenerateModel, AIVideoAutoModel, Feature } from '../types';
 import { setGeminiApiKey } from '../services/apiClient';
 
 interface ApiContextType {
-  falApiKey: string | null;
-  setFalApiKey: (key: string | null) => void;
-  nanobananaApiKey: string | null;
-  setNanobananaApiKey: (key: string | null) => void;
   googleApiKey: string | null;
   setGoogleApiKey: (key: string | null) => void;
   aivideoautoAccessToken: string | null;
@@ -21,33 +17,31 @@ interface ApiContextType {
   setImageGenerateModel: (model: ImageGenerateModel) => void;
   videoGenerateModel: VideoGenerateModel;
   setVideoGenerateModel: (model: VideoGenerateModel) => void;
-  imgbbApiKey: string | null;
-  setImgbbApiKey: (key: string | null) => void;
+  textGenerateModel: TextGenerateModel;
+  setTextGenerateModel: (model: TextGenerateModel) => void;
   getModelsForFeature: (feature: Feature) => {
     imageEditModel: ImageEditModel;
     imageGenerateModel: ImageGenerateModel;
     videoGenerateModel: VideoGenerateModel;
+    textGenerateModel: TextGenerateModel;
   };
 }
 
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
 
 export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [falApiKey, setFalApiKeyState] = useState<string | null>(null);
-  const [nanobananaApiKey, setNanobananaApiKeyState] = useState<string | null>(null);
   const [googleApiKey, setGoogleApiKeyState] = useState<string | null>(() => {
       return typeof localStorage !== 'undefined' ? localStorage.getItem('google_api_key') : null;
   });
   const [aivideoautoAccessToken, setAivideoautoAccessTokenState] = useState<string | null>(null);
-  
+
   const [aivideoautoImageModels, setAivideoautoImageModelsState] = useState<AIVideoAutoModel[]>([]);
   const [aivideoautoVideoModels, setAivideoautoVideoModelsState] = useState<AIVideoAutoModel[]>([]);
-
-  const [imgbbApiKey, setImgbbApiKeyState] = useState<string | null>(null);
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>('gemini-2.5-flash-image');
   const [imageGenerateModel, setImageGenerateModelState] = useState<ImageGenerateModel>('imagen-4.0-generate-001');
   const [videoGenerateModel, setVideoGenerateModelState] = useState<VideoGenerateModel>('');
+  const [textGenerateModel, setTextGenerateModelState] = useState<TextGenerateModel>('gemini-2.5-pro');
 
   // Initialize Gemini client with stored key on mount
   useEffect(() => {
@@ -55,14 +49,6 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           setGeminiApiKey(googleApiKey);
       }
   }, []);
-
-  const setFalApiKey = (key: string | null) => {
-    setFalApiKeyState(key);
-  };
-
-  const setNanobananaApiKey = (key: string | null) => {
-    setNanobananaApiKeyState(key);
-  };
 
   const setGoogleApiKey = (key: string | null) => {
     setGoogleApiKeyState(key);
@@ -95,9 +81,8 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const setVideoGenerateModel = (model: VideoGenerateModel) => {
     setVideoGenerateModelState(model);
   };
-  
-  const setImgbbApiKey = (key: string | null) => {
-    setImgbbApiKeyState(key);
+  const setTextGenerateModel = (model: TextGenerateModel) => {
+    setTextGenerateModelState(model);
   };
 
   const getModelsForFeature = (feature: Feature) => {
@@ -117,18 +102,17 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             // The service layer will then throw a user-friendly error about configuration.
         }
     }
-    
+
     return {
       imageEditModel: imageEditModel,
       imageGenerateModel: imageGenerateModel,
       videoGenerateModel: finalVideoModel,
+      textGenerateModel: textGenerateModel,
     };
   };
 
   return (
-    <ApiContext.Provider value={{ 
-        falApiKey, setFalApiKey, 
-        nanobananaApiKey, setNanobananaApiKey,
+    <ApiContext.Provider value={{
         googleApiKey, setGoogleApiKey,
         aivideoautoAccessToken, setAivideoautoAccessToken,
         aivideoautoImageModels, setAivideoautoImageModels,
@@ -136,7 +120,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         imageEditModel, setImageEditModel,
         imageGenerateModel, setImageGenerateModel,
         videoGenerateModel, setVideoGenerateModel,
-        imgbbApiKey, setImgbbApiKey,
+        textGenerateModel, setTextGenerateModel,
         getModelsForFeature,
     }}>
       {children}

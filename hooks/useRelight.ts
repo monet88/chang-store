@@ -14,7 +14,7 @@ export const useRelight = () => {
     
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+    const { getModelsForFeature } = useApi();
 
     const handleRelight = async () => {
         // ... logic from component

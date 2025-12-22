@@ -23,8 +23,21 @@ interface RedesignResult {
 const OutfitAnalysis: React.FC = () => {
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.OutfitAnalysis);
+    const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
+    const requireAivideoautoConfig = () => {
+        if (isAivideoautoModel && !aivideoautoAccessToken) {
+            setError(t('error.api.aivideoautoAuth'));
+            return false;
+        }
+        return true;
+    };
+    const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+        onStatusUpdate,
+        aivideoautoAccessToken,
+        aivideoautoImageModels,
+    });
 
     const [step, setStep] = useState(0); // 0: upload, 1: analysis, 2: redesign results
     const [uploadedImage, setUploadedImage] = useState<ImageFile | null>(null);
@@ -93,12 +106,7 @@ const OutfitAnalysis: React.FC = () => {
             setError(t('outfitAnalysis.styleSelectionError'));
             return;
         }
-        if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-            setError(t('error.api.falAuth'));
-            return;
-        }
-        if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-            setError(t('error.api.nanobananaAuth'));
+        if (!requireAivideoautoConfig()) {
             return;
         }
 
@@ -121,10 +129,10 @@ const OutfitAnalysis: React.FC = () => {
                     preset,
                     generationCount,
                     imageEditModel,
-                    { falApiKey, nanobananaApiKey, onStatusUpdate: (msg) => {
+                    buildImageServiceConfig((msg) => {
                         const baseMsg = t('outfitAnalysis.statusGeneratingStyle', { style: presetLabel, progress: 1, total: 1 });
                         setLoadingMessage(`${baseMsg} - ${msg}`);
-                    }},
+                    }),
                     aspectRatio
                 );
                 setRedesignResults([{ preset, critique, images: redesignedImages }]);
@@ -175,10 +183,10 @@ const OutfitAnalysis: React.FC = () => {
                     preset,
                     count,
                     imageEditModel,
-                    { falApiKey, nanobananaApiKey, onStatusUpdate: (msg) => {
+                    buildImageServiceConfig((msg) => {
                         const baseMsg = t('outfitAnalysis.statusGeneratingStyle', { style: presetLabel, progress: completedTasks, total: tasksToRun.length });
                         setLoadingMessage(`${baseMsg} - ${msg}`);
-                    }},
+                    }),
                     aspectRatio
                 );
                 allResults.push({ preset, critique, images: redesignedImages });
@@ -197,12 +205,7 @@ const OutfitAnalysis: React.FC = () => {
 
     const handleExtractItem = async (item: AnalyzedItem) => {
         if (!uploadedImage) return;
-        if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-            setError(t('error.api.falAuth'));
-            return;
-        }
-        if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-            setError(t('error.api.nanobananaAuth'));
+        if (!requireAivideoautoConfig()) {
             return;
         }
 
@@ -215,7 +218,7 @@ const OutfitAnalysis: React.FC = () => {
                 uploadedImage, 
                 itemToExtract,
                 imageEditModel,
-                { falApiKey, nanobananaApiKey, onStatusUpdate: () => {} }
+                buildImageServiceConfig(() => {})
             );
             addImage(extractedImage);
             setExtractionStatus(prev => ({...prev, [key]: 'done'}));

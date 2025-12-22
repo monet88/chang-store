@@ -73,7 +73,7 @@ const STYLE_PRESETS = {
 export const VideoGenerator: React.FC = () => {
     const { t, language } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey, aivideoautoAccessToken, aivideoautoVideoModels } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoVideoModels } = useApi();
     const { videoGenerateModel } = getModelsForFeature(Feature.Video);
     
     const [faceImage, setFaceImage] = useState<ImageFile | null>(null);
@@ -150,6 +150,10 @@ export const VideoGenerator: React.FC = () => {
             setError(t('videoAI.inputError'));
             return;
         }
+        if (videoGenerateModel.startsWith('aivideoauto--') && !aivideoautoAccessToken) {
+            setError(t('error.api.aivideoautoAuth'));
+            return;
+        }
         setIsLoading(true);
         setError(null);
         setGeneratedVideoUrl(null);
@@ -169,7 +173,7 @@ export const VideoGenerator: React.FC = () => {
             const downloadLink = await generateVideo(
                 enforcedPrompt,
                 videoGenerateModel,
-                { falApiKey, nanobananaApiKey, aivideoautoAccessToken, onStatusUpdate: setLoadingMessage, aivideoautoVideoModels },
+                { aivideoautoAccessToken, onStatusUpdate: setLoadingMessage, aivideoautoVideoModels },
                 faceImage
             );
 

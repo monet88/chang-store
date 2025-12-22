@@ -630,8 +630,13 @@ const getHandleForPoint = (point: Point, rect: Rect): CropInteractionType | null
 export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage }) => {
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    // FIX: Added nanobananaApiKey from useApi() hook to provide it to service calls.
-    const { imageEditModel, imageGenerateModel, falApiKey, nanobananaApiKey } = useApi();
+    // FIX: Ensure AIVideoAuto credentials are available for service calls.
+    const { imageEditModel, imageGenerateModel, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
+    const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+        onStatusUpdate,
+        aivideoautoAccessToken,
+        aivideoautoImageModels,
+    });
 
     const [view, setView] = useState<'launcher' | 'editor'>(initialImage ? 'editor' : 'launcher');
     const [history, setHistory] = useState<ImageFile[]>(initialImage ? [initialImage] : []);
@@ -896,8 +901,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
         let taskPrompt = Object.entries(params).reduce((p, [key, value]) => p.replace(new RegExp(`{{${key}}}`, 'g'), String(value)), taskPromptTemplate);
         
         try {
-            // FIX: Pass nanobananaApiKey to the config object.
-            const [result] = await editImage({ images: finalImages, prompt: taskPrompt, numberOfImages: 1 }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage });
+            // FIX: Ensure helper passes AIVideoAuto credentials to the service.
+            const [result] = await editImage({ images: finalImages, prompt: taskPrompt, numberOfImages: 1 }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
             addToHistory(result);
             handleDeselect();
         } catch (err) {
@@ -905,7 +910,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
         } finally {
             setIsLoading(false);
         }
-    }, [isLoading, currentImage, t, selectionPath, getCanvasAndImageMetrics, imageEditModel, falApiKey, nanobananaApiKey, addToHistory, handleDeselect]);
+    }, [isLoading, currentImage, t, selectionPath, getCanvasAndImageMetrics, imageEditModel, aivideoautoAccessToken, aivideoautoImageModels, addToHistory, handleDeselect]);
 
     const handleApplyBasicAdjustments = useCallback(async () => {
         if (!hasBasicAdjustments) return;
@@ -939,8 +944,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
             setError(null);
             setLoadingMessage('Generating new image...');
             try {
-                // FIX: Pass nanobananaApiKey to the config object.
-                const [result] = await generateImage(prompt, '1:1', 1, imageGenerateModel, { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage });
+                // FIX: Ensure helper passes AIVideoAuto credentials to the service.
+                const [result] = await generateImage(prompt, '1:1', 1, imageGenerateModel, buildImageServiceConfig(setLoadingMessage));
                 loadNewImage(result);
                 setView('editor');
             } catch (err) {
@@ -995,8 +1000,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
         setLoadingMessage(t('imageEditor.modal.rightPanel.applyingAccessory'));
 
         try {
-            // FIX: Pass nanobananaApiKey to the config object.
-            const [result] = await editImage({ images: finalImages, prompt, numberOfImages: 1 }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage });
+            // FIX: Ensure helper passes AIVideoAuto credentials to the service.
+            const [result] = await editImage({ images: finalImages, prompt, numberOfImages: 1 }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
             addToHistory(result);
             handleDeselect();
         } catch(err) {

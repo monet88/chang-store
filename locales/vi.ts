@@ -22,18 +22,7 @@ export const vi: Translation = {
     inpainting: 'Vẽ lại Vùng chọn',
     grwmVideo: 'Video GRWM',
   },
-  apiSwitcher: {
-    gemini: 'Gemini',
-    fal: 'FAL',
-    apiKey: 'Khóa API FAL',
-    apiKeyPlaceholder: 'Nhập khóa FAL của bạn...',
-    saved: 'Đã lưu!',
-    checkAndSave: 'Kiểm tra & Lưu Khóa',
-    checking: 'Đang kiểm tra...',
-    errorInvalidKey: 'Khóa API không hợp lệ. Vui lòng kiểm tra lại.',
-    errorConnection: 'Kiểm tra kết nối thất bại. Dịch vụ có thể đang gặp sự cố.',
-    errorNetwork: 'Đã xảy ra lỗi mạng. Vui lòng kiểm tra kết nối của bạn.',
-  },
+
   imageUploader: {
     removeAria: 'Xóa ảnh',
     drop: 'Thả ảnh vào đây',
@@ -100,23 +89,10 @@ export const vi: Translation = {
       analysisFailed: 'Phân tích trang phục thất bại: {{errorMessage}}',
       extractionFailed: 'Tách trang phục thất bại: {{errorMessage}}',
       geminiFailed: 'Gọi Gemini API thất bại. Lỗi: {{error}}',
-      falFailed: 'Gọi FAL API thất bại. Lỗi: {{error}}',
-      falAuth: 'Thiếu khóa API FAL. Vui lòng đặt nó trong bộ chuyển đổi API.',
-      falQueued: 'Tác vụ đang trong hàng chờ...',
-      falInProgress: 'Tác vụ đang được xử lý...',
-      nanobananaFailed: 'Không thể tạo ảnh từ NanoBanana API. Lỗi: {{error}}',
-      nanobananaAuth: 'Thiếu khóa API NanoBanana. Vui lòng đặt nó trong Cài đặt Ứng dụng.',
+      aivideoautoFailed: 'Gọi AIVideoAuto API thất bại. Lỗi: {{error}}',
+      aivideoautoAuth: 'Thiếu token AIVideoAuto. Vui lòng thêm trong phần Cài đặt.',
       textToImageNotSupported: 'Nhà cung cấp API đã chọn không hỗ trợ tạo ảnh từ văn bản.',
-      nb: {
-        unauthorized: 'Không hợp lệ: Khóa API NanoBanana không hợp lệ. Vui lòng kiểm tra khóa API của bạn trong Cài đặt.',
-        insufficientCredits: 'NanoBanana: Không đủ tín dụng. Vui lòng nạp thêm tiền vào tài khoản của bạn.',
-        notFound: 'Không tìm thấy điểm cuối API NanoBanana. Vui lòng liên hệ hỗ trợ.',
-        invalidParams: 'NanoBanana: Tham số yêu cầu không hợp lệ. Vui lòng kiểm tra đầu vào của bạn.',
-        rateLimit: 'NanoBanana: Vượt quá giới hạn tỷ lệ. Vui lòng thử lại sau.',
-        unavailable: 'Dịch vụ NanoBanana tạm thời không khả dụng. Vui lòng thử lại sau.',
-        serverError: 'Lỗi máy chủ NanoBanana. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.',
-        featureDisabled: 'NanoBanana: Tính năng này hiện đã bị tắt. Vui lòng liên hệ hỗ trợ.',
-      }
+
     },
   },
   gallery: {

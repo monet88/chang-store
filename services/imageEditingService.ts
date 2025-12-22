@@ -3,14 +3,10 @@ import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, VideoGenera
 import * as geminiImageService from './gemini/image';
 import * as geminiTextService from './gemini/text';
 import * as geminiVideoService from './gemini/video';
-import * as falService from './falService';
-import * as nanobananaService from './nanobananaService';
 import * as aivideoautoService from './aivideoautoService';
 import { getImageDimensions } from '../utils/imageUtils';
 
 interface ApiConfig {
-    falApiKey: string | null;
-    nanobananaApiKey: string | null;
     aivideoautoAccessToken?: string | null;
     onStatusUpdate: (message: string) => void;
     aivideoautoVideoModels?: AIVideoAutoModel[];
@@ -25,7 +21,7 @@ export const editImage = async (
     config: ApiConfig
 ): Promise<ImageFile[]> => {
     if (model.startsWith('aivideoauto--')) {
-        if (!config.aivideoautoAccessToken) throw new Error("AIVideoAuto Access Token is not configured.");
+        if (!config.aivideoautoAccessToken) throw new Error("error.api.aivideoautoAuth");
         const modelIdBase = model.split('--')[1];
         
         const aivideoautoModel = config.aivideoautoImageModels?.find(m => m.id_base === modelIdBase);
@@ -48,12 +44,6 @@ export const editImage = async (
         ));
         return results;
     }
-    if (model.startsWith('fal-ai/')) {
-        return falService.falEditImage(params, model, config);
-    }
-    if (model.startsWith('nanobanana/')) {
-        return nanobananaService.nanoBananaGenerate(params, model, config);
-    }
     return geminiImageService.editImage(params);
 };
 
@@ -68,13 +58,6 @@ export const generateImage = async (
         const params: EditImageParams = { images: [], prompt, numberOfImages, aspectRatio };
         return editImage(params, model, config);
     }
-    if (model.startsWith('fal-ai/')) {
-        return falService.falGenerateImage(prompt, aspectRatio, numberOfImages, model, config);
-    }
-    if (model.startsWith('nanobanana/')) {
-        const params: EditImageParams = { images: [], prompt, numberOfImages, aspectRatio };
-        return nanobananaService.nanoBananaGenerate(params, model, config);
-    }
     return geminiImageService.generateImageFromText(prompt, aspectRatio, numberOfImages, model);
 };
 
@@ -86,7 +69,7 @@ export const upscaleImage = async (
     const prompt = "Upscale this image to a high-resolution 2K format. Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.";
     const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
     
-    if (model.startsWith('fal-ai/') || model.startsWith('nanobanana/') || model.startsWith('aivideoauto--')) {
+    if (model.startsWith('aivideoauto--')) {
         const [result] = await editImage(params, model, config);
         return result;
     }
@@ -102,7 +85,7 @@ export const extractOutfitItem = async (
     const prompt = `From the provided image, precisely extract only the following clothing item: "${itemDescription}". Place the extracted item on a clean, neutral, white background. The output must be only the item itself, with no other parts of the original image or person visible. Ensure the item is fully visible and not cropped.`;
     const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
     
-    if (model.startsWith('fal-ai/') || model.startsWith('nanobanana/') || model.startsWith('aivideoauto--')) {
+    if (model.startsWith('aivideoauto--')) {
         const [result] = await editImage(params, model, config);
         return result;
     }
@@ -120,7 +103,7 @@ export const critiqueAndRedesignOutfit = async (
     const fullPrompt = geminiImageService.PRESET_PROMPTS[preset];
     const params: EditImageParams = { images: [image], prompt: fullPrompt, numberOfImages, aspectRatio };
 
-    if (model.startsWith('fal-ai/') || model.startsWith('nanobanana/') || model.startsWith('aivideoauto--')) {
+    if (model.startsWith('aivideoauto--')) {
         config.onStatusUpdate('Generating critique with Gemini...');
         const critiquePrompt = `You are a professional fashion stylist. Based on the provided image, generate ONLY the text critique part of the following instruction. DO NOT generate an image or mention that you will. ONLY provide the text. \n\nINSTRUCTION:\n${fullPrompt}`;
         const critique = await geminiTextService.generateText(critiquePrompt);
@@ -192,7 +175,7 @@ export const generateVideo = async (
     faceImage?: ImageFile | null
 ): Promise<string> => {
     if (model.startsWith('aivideoauto--')) {
-        if (!config.aivideoautoAccessToken) throw new Error("AIVideoAuto Access Token is not configured.");
+        if (!config.aivideoautoAccessToken) throw new Error("error.api.aivideoautoAuth");
         if (!faceImage) throw new Error("A reference image is mandatory for AIVideoAuto video generation.");
 
         const modelIdBase = model.split('--')[1];
@@ -211,13 +194,6 @@ export const generateVideo = async (
 
         config.onStatusUpdate('Task created. Polling for video status...');
         return await aivideoautoService.pollForVideo(config.aivideoautoAccessToken, videoId, config.onStatusUpdate);
-
-    } else if (model.startsWith('fal-ai/')) {
-        if (!faceImage) throw new Error("A reference image is mandatory for FAL video generation.");
-        return falService.falGenerateVideo(faceImage, model, config);
-    } else if (model.startsWith('nanobanana/')) {
-        if (!faceImage) throw new Error("A reference image is mandatory for NanoBanana video generation.");
-        return nanobananaService.nanoBananaGenerateVideo(faceImage, prompt, model, config);
     }
 
     if (!faceImage) throw new Error("A reference image is mandatory for Gemini video generation.");

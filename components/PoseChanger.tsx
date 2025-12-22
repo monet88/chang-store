@@ -56,8 +56,21 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
   
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
-  const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Pose);
+  const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
+  const requireAivideoautoConfig = () => {
+    if (isAivideoautoModel && !aivideoautoAccessToken) {
+      setError(t('error.api.aivideoautoAuth'));
+      return false;
+    }
+    return true;
+  };
+  const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+    onStatusUpdate,
+    aivideoautoAccessToken,
+    aivideoautoImageModels,
+  });
 
   const allPrompts = [...selectedLibraryPoses, ...(customPosePrompt.trim() ? [customPosePrompt.trim()] : [])];
   const totalPrompts = allPrompts.length;
@@ -98,12 +111,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
       setError(t('pose.subjectError'));
       return;
     }
-    if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-      setError(t('error.api.falAuth'));
-      return;
-    }
-    if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-      setError(t('error.api.nanobananaAuth'));
+    if (!requireAivideoautoConfig()) {
       return;
     }
 
@@ -140,7 +148,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
               negativePrompt, 
               numberOfImages: 1,
               aspectRatio
-            }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: (msg) => setGenerationStatus(prev => ({...prev, message: msg})) });
+            }, imageEditModel, buildImageServiceConfig((msg) => setGenerationStatus(prev => ({...prev, message: msg}))));
             setGeneratedImages([result]);
             addImage(result);
         } catch (err) {
@@ -155,6 +163,11 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
         const prompts = allPrompts;
         if (prompts.length === 0) {
             setError(t('pose.promptError'));
+            return;
+        }
+
+        if (!requireAivideoautoConfig()) {
+            setIsLoading(false);
             return;
         }
 
@@ -184,7 +197,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                   negativePrompt, 
                   numberOfImages: 1,
                   aspectRatio
-                }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: (msg) => setGenerationStatus(prev => ({...prev, message: `${t('pose.generatingStatusMultiple', { progress: prev.progress, total: prev.total })} - ${msg}`})) });
+                }, imageEditModel, buildImageServiceConfig((msg) => setGenerationStatus(prev => ({...prev, message: `${t('pose.generatingStatusMultiple', { progress: prev.progress, total: prev.total })} - ${msg}`}))));
                 results.push(result);
                 setGeneratedImages([...results]); // Update UI incrementally
                 addImage(result);
@@ -211,7 +224,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
         const result = await upscaleImage(
             imageToUpscale,
             imageEditModel,
-            { falApiKey, nanobananaApiKey, onStatusUpdate: () => {} }
+            buildImageServiceConfig(() => {})
         );
         setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
         addImage(result);

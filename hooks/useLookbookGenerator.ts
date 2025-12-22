@@ -81,8 +81,13 @@ export const useLookbookGenerator = () => {
 
     const { addImage } = useImageGallery();
     const { t } = useLanguage();
-    const { falApiKey, nanobananaApiKey, getModelsForFeature } = useApi();
+    const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Lookbook);
+    const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+        onStatusUpdate,
+        aivideoautoAccessToken,
+        aivideoautoImageModels,
+    });
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -119,12 +124,8 @@ export const useLookbookGenerator = () => {
           setError(t('lookbook.inputError'));
           return;
         }
-        if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-          setError(t('error.api.falAuth'));
-          return;
-        }
-        if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-          setError(t('error.api.nanobananaAuth'));
+        if (imageEditModel.startsWith('aivideoauto--') && !aivideoautoAccessToken) {
+          setError(t('error.api.aivideoautoAuth'));
           return;
         }
     
@@ -165,7 +166,7 @@ export const useLookbookGenerator = () => {
             prompt, 
             negativePrompt, 
             numberOfImages: 1 
-          }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage });
+          }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
           if (results.length > 0) {
             setGeneratedLookbook({ main: results[0], variations: [], closeups: [] });
             results.forEach(addImage);
@@ -186,7 +187,7 @@ export const useLookbookGenerator = () => {
             const result = await upscaleImage(
                 imageToUpscale,
                 imageEditModel,
-                { falApiKey, nanobananaApiKey, onStatusUpdate: () => {} }
+                buildImageServiceConfig(() => {})
             );
             
             setGeneratedLookbook(prev => {
@@ -229,7 +230,7 @@ export const useLookbookGenerator = () => {
                 prompt, 
                 negativePrompt: formState.negativePrompt, 
                 numberOfImages: variationCount 
-            }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage });
+            }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
             newVariations.forEach(addImage);
             setGeneratedLookbook(prev => prev ? { ...prev, variations: newVariations } : null);
         } catch (err) {

@@ -83,8 +83,21 @@ export const LookbookGenerator: React.FC = () => {
   
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
-  const { falApiKey, nanobananaApiKey, getModelsForFeature } = useApi();
+  const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Lookbook);
+  const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
+  const requireAivideoautoConfig = () => {
+    if (isAivideoautoModel && !aivideoautoAccessToken) {
+      setError(t('error.api.aivideoautoAuth'));
+      return false;
+    }
+    return true;
+  };
+  const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+    onStatusUpdate,
+    aivideoautoAccessToken,
+    aivideoautoImageModels,
+  });
 
   const MANNEQUIN_BACKGROUND_STYLES: { key: MannequinBackgroundStyleKey; label: string }[] = (
     Object.keys(t('lookbook.mannequinBackgroundStyles', { returnObjects: true })) as MannequinBackgroundStyleKey[]
@@ -129,12 +142,7 @@ export const LookbookGenerator: React.FC = () => {
       setError(t('lookbook.inputError'));
       return;
     }
-    if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-      setError(t('error.api.falAuth'));
-      return;
-    }
-    if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-      setError(t('error.api.nanobananaAuth'));
+    if (!requireAivideoautoConfig()) {
       return;
     }
 
@@ -431,7 +439,7 @@ Absolute priorities:
         negativePrompt, 
         numberOfImages: 1,
         aspectRatio,
-      }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage });
+      }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
       if (results.length > 0) {
         setGeneratedLookbook({ main: results[0], variations: [], closeups: [] });
         results.forEach(addImage);
@@ -452,7 +460,7 @@ Absolute priorities:
         const result = await upscaleImage(
             imageToUpscale,
             imageEditModel,
-            { falApiKey, nanobananaApiKey, onStatusUpdate: () => {} }
+            buildImageServiceConfig(() => {})
         );
         
         setGeneratedLookbook(prev => {
@@ -482,12 +490,7 @@ Absolute priorities:
         setError(t('lookbook.variationError'));
         return;
     }
-    if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-      setError(t('error.api.falAuth'));
-      return;
-    }
-    if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-      setError(t('error.api.nanobananaAuth'));
+    if (!requireAivideoautoConfig()) {
       return;
     }
 
@@ -516,7 +519,7 @@ Absolute priorities:
             negativePrompt, 
             numberOfImages: variationCount,
             aspectRatio,
-        }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage });
+        }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
         newVariations.forEach(addImage);
         setGeneratedLookbook(prev => prev ? { ...prev, variations: newVariations } : null);
     } catch (err) {
@@ -532,12 +535,7 @@ Absolute priorities:
         setError(t('lookbook.closeUpError'));
         return;
     }
-    if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-      setError(t('error.api.falAuth'));
-      return;
-    }
-    if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-      setError(t('error.api.nanobananaAuth'));
+    if (!requireAivideoautoConfig()) {
       return;
     }
 
@@ -567,7 +565,7 @@ Absolute priorities:
                 aspectRatio: '1:1' as AspectRatio,
                 negativePrompt: combinedNegativePrompt, 
                 numberOfImages: 1 
-            }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: (msg) => setLoadingMessage(`${t('lookbook.generatingCloseUpStatus', { progress: index + 1, total: 3 })} - ${msg}`) });
+            }, imageEditModel, buildImageServiceConfig((msg) => setLoadingMessage(`${t('lookbook.generatingCloseUpStatus', { progress: index + 1, total: 3 })} - ${msg}`)));
             
             results.push(result);
             setGeneratedLookbook(prev => prev ? { ...prev, closeups: [...results] } : null);

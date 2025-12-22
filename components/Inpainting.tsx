@@ -16,8 +16,13 @@ type Tool = 'rectangle' | 'brush' | 'eraser';
 const Inpainting: React.FC = () => {
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Inpainting);
+    const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+        onStatusUpdate,
+        aivideoautoAccessToken,
+        aivideoautoImageModels,
+    });
 
     const [image, setImage] = useState<ImageFile | null>(null);
     const [prompt, setPrompt] = useState('');
@@ -316,6 +321,11 @@ const Inpainting: React.FC = () => {
             return;
         }
 
+        if (imageEditModel.startsWith('aivideoauto--') && !aivideoautoAccessToken) {
+            setError(t('error.api.aivideoautoAuth'));
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
         
@@ -330,7 +340,7 @@ const Inpainting: React.FC = () => {
             const [result] = await editImage(
                 { images: [image, maskImage], prompt: finalPrompt, numberOfImages: 1, aspectRatio },
                 imageEditModel,
-                { falApiKey, nanobananaApiKey, onStatusUpdate: () => {} }
+                buildImageServiceConfig(() => {})
             );
             setResultImage(result);
             addImage(result);

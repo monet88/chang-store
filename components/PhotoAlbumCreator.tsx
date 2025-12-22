@@ -21,8 +21,21 @@ interface GeneratedAlbumImage extends ImageFile {
 export const PhotoAlbumCreator: React.FC = () => {
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.PhotoAlbum);
+    const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
+    const requireAivideoautoConfig = () => {
+        if (isAivideoautoModel && !aivideoautoAccessToken) {
+            setError(t('error.api.aivideoautoAuth'));
+            return false;
+        }
+        return true;
+    };
+    const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+        onStatusUpdate,
+        aivideoautoAccessToken,
+        aivideoautoImageModels,
+    });
 
     const [mode, setMode] = useState<GenerationMode>('fullModel');
     const [originalPhoto, setOriginalPhoto] = useState<ImageFile | null>(null);
@@ -70,12 +83,7 @@ export const PhotoAlbumCreator: React.FC = () => {
             setError(t('photoAlbum.error.noPose'));
             return;
         }
-        if (imageEditModel.startsWith('fal-ai/') && !falApiKey) {
-            setError(t('error.api.falAuth'));
-            return;
-        }
-        if (imageEditModel.startsWith('nanobanana/') && !nanobananaApiKey) {
-            setError(t('error.api.nanobananaAuth'));
+        if (!requireAivideoautoConfig()) {
             return;
         }
 
@@ -137,7 +145,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
             `.trim();
 
             try {
-                const [result] = await editImage({ images: imagesForApi, prompt, numberOfImages: 1, aspectRatio }, imageEditModel, { falApiKey, nanobananaApiKey, onStatusUpdate: setGenerationStatus });
+                const [result] = await editImage({ images: imagesForApi, prompt, numberOfImages: 1, aspectRatio }, imageEditModel, buildImageServiceConfig(setGenerationStatus));
                 newImages.push({ ...result, pose });
                 setGeneratedImages([...newImages]);
                 addImage(result);

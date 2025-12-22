@@ -54,24 +54,24 @@ const VirtualTryOn: React.FC = () => {
   
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
-  const { falApiKey, nanobananaApiKey, getModelsForFeature } = useApi();
+  const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.TryOn);
+  const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+    onStatusUpdate,
+    aivideoautoAccessToken,
+    aivideoautoImageModels,
+  });
   
   const validClothingItems = clothingItems.filter(item => item.image !== null);
-  const isFalSelected = imageEditModel.startsWith('fal-ai/');
-  const isNanoBananaSelected = imageEditModel.startsWith('nanobanana/');
+  const requiresAivideoauto = imageEditModel.startsWith('aivideoauto--');
 
   const handleGenerateImage = async () => {
     if (!subjectImage || validClothingItems.length === 0) {
       setError(t('virtualTryOn.inputError'));
       return;
     }
-    if (isFalSelected && !falApiKey) {
-      setError(t('error.api.falAuth'));
-      return;
-    }
-    if (isNanoBananaSelected && !nanobananaApiKey) {
-      setError(t('error.api.nanobananaAuth'));
+    if (requiresAivideoauto && !aivideoautoAccessToken) {
+      setError(t('error.api.aivideoautoAuth'));
       return;
     }
 
@@ -152,7 +152,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
       const results = await editImage(
         { images: imagesForApi, prompt, numberOfImages: numImages, aspectRatio },
         imageEditModel,
-        { falApiKey, nanobananaApiKey, onStatusUpdate: setLoadingMessage }
+        buildImageServiceConfig(setLoadingMessage)
       );
       setGeneratedImages(results);
       results.forEach(addImage);
@@ -173,7 +173,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
         const result = await upscaleImage(
             imageToUpscale,
             imageEditModel,
-            { falApiKey, nanobananaApiKey, onStatusUpdate: () => {} }
+            buildImageServiceConfig(() => {})
         );
         setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
         addImage(result);

@@ -17,7 +17,7 @@ export const useOutfitAnalysis = () => {
 
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, falApiKey, nanobananaApiKey } = useApi();
+    const { getModelsForFeature } = useApi();
 
     const handleUpload = async (file: ImageFile | null) => {
         // ... logic
