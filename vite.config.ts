@@ -18,6 +18,28 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      build: {
+        // Manual chunks to optimize bundle splitting
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              // Vendor chunks - separate large dependencies
+              'vendor-react': ['react', 'react-dom'],
+              'vendor-genai': ['@google/genai'],
+              'vendor-axios': ['axios'],
+            }
+          }
+        },
+        // Target modern browsers for smaller output
+        target: 'es2020',
+        // Enable minification optimizations
+        minify: 'esbuild',
+      },
+      esbuild: {
+        // Drop console.log in production, keep console.error for debugging
+        drop: mode === 'production' ? ['debugger'] : [],
+        pure: mode === 'production' ? ['console.log', 'console.debug', 'console.info'] : [],
       }
     };
 });

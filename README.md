@@ -1,6 +1,6 @@
 # Chang-Store
 
-AI-powered virtual fashion studio built with React + TypeScript (Vite). It combines virtual try-on, lookbook generation, intelligent editing tools, and AI video creation in a single SPA.
+AI-powered virtual fashion studio built with React + TypeScript (Vite). It combines virtual try-on, lookbook generation, intelligent editing tools, and AI video creation in a single SPA. Now available as a **Windows desktop application** via Tauri!
 
 ## Features
 - Virtual Try-On: blend a model photo with a garment image
@@ -15,54 +15,109 @@ AI-powered virtual fashion studio built with React + TypeScript (Vite). It combi
 
 ## Tech Stack
 - React 19 + TypeScript, Vite 6
+- **Tauri 2** for desktop app (Windows .exe/.msi)
 - Context API for language, API keys, gallery, and viewer state
 - Axios for HTTP plus Google Gemini client; optional AIVideoAuto integration for specialized features
 - Utility-first styling via className strings (Tailwind-like)
 
 ## Prerequisites
 - Node.js 18.17+ and npm
+- **Rust toolchain** (for desktop build) - install via [rustup.rs](https://rustup.rs/)
 
 ## Setup
-1) npm install
-2) Create .env.local with GEMINI_API_KEY=your_key (exposed as process.env.API_KEY via vite.config.ts)
-3) npm run dev (dev server on http://localhost:3000)
-   - You can also paste keys in the Settings modal; they persist in localStorage
+
+### Web Development
+```bash
+npm install
+npm run dev  # dev server on http://localhost:3000
+```
+
+### Desktop Development (Tauri)
+```bash
+npm install
+npm run tauri:dev  # launches desktop app with hot reload
+```
+
+### Environment Variables
+Create `.env.local` with:
+```
+GEMINI_API_KEY=your_key
+```
+Or paste keys in the Settings modal; they persist in localStorage.
 
 ## Scripts
-- npm run dev    # start Vite dev server with HMR (port 3000)
-- npm run build  # production build to dist/
-- npm run preview # serve the built app locally
-- npm run lint   # ESLint across .ts/.tsx
-- npm run test   # Vitest in node/watch mode
-- npm run test:ui # Vitest UI (browser runner)
 
-## Environment Variables
-| Name | Required | Purpose |
-| ---- | -------- | ------- |
-| GEMINI_API_KEY | Yes | Google Gemini key for image/video generation |
+### Web
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Vite dev server with HMR (port 3000) |
+| `npm run build` | Production build to `dist/` |
+| `npm run preview` | Serve the built app locally |
+| `npm run lint` | ESLint across .ts/.tsx |
+| `npm run test` | Vitest in run mode |
+| `npm run test:ui` | Vitest UI (browser runner) |
 
-Optional at runtime (entered via Settings UI): AIVideoAuto access token/model metadata.
+### Desktop (Tauri)
+| Command | Description |
+|---------|-------------|
+| `npm run tauri:dev` | Launch desktop app with hot reload |
+| `npm run tauri:build` | Build production installers (.exe, .msi) |
+| `npm run tauri:icon` | Generate app icons from source image |
+
+## Desktop App Features
+
+When running as a desktop app via Tauri, additional native features are available:
+
+- **File System Access**: Save generated images directly to local folders
+- **System Tray**: Minimize to tray, quick access menu
+- **Desktop Notifications**: Get notified when generation completes
+- **Native Dialogs**: Open/Save file dialogs
+
+### Building Desktop Installers
+
+```bash
+npm run tauri:build
+```
+
+Output location:
+- `src-tauri/target/release/bundle/nsis/` → NSIS installer (.exe)
+- `src-tauri/target/release/bundle/msi/` → MSI installer
+
+### Custom App Icon
+
+Replace `src-tauri/app-icon.png` with your 1024x1024 PNG logo, then:
+```bash
+npm run tauri:icon
+```
 
 ## Project Structure
-- App.tsx -> provider stack (LanguageProvider -> ApiProvider -> ImageGalleryProvider -> ImageViewerProvider) and feature switching
-- components/ -> feature UIs (VirtualTryOn, LookbookGenerator, BackgroundReplacer, PoseChanger, SwapFace, PhotoAlbumCreator, OutfitAnalysis, Relight, Upscale, ImageEditor, VideoGenerator, VideoContinuity, GRWMVideoGenerator, Inpainting) plus shared UI (Header, Tabs, GalleryButton/Modal, SettingsModal, modals)
-- contexts/ -> global state for API keys/models, language, gallery, viewer
-- services/ -> AI integrations (gemini, aivideoautoService, imageEditingService, apiClient)
-- hooks/ -> feature-specific hooks
-- locales/ -> i18n strings (en, vi)
-- text/ -> static copy
-- types.ts -> shared enums and types
-- vite.config.ts -> Vite config, @/ alias, env injection, server host/port 3000
+- `App.tsx` -> provider stack (LanguageProvider -> ApiProvider -> ImageGalleryProvider -> ImageViewerProvider) and feature switching
+- `components/` -> feature UIs (VirtualTryOn, LookbookGenerator, BackgroundReplacer, PoseChanger, SwapFace, PhotoAlbumCreator, OutfitAnalysis, Relight, Upscale, ImageEditor, VideoGenerator, VideoContinuity, GRWMVideoGenerator, Inpainting) plus shared UI (Header, Tabs, GalleryButton/Modal, SettingsModal, modals)
+- `contexts/` -> global state for API keys/models, language, gallery, viewer
+- `services/` -> AI integrations (gemini, aivideoautoService, imageEditingService, apiClient, **tauriService**)
+- `hooks/` -> feature-specific hooks
+- `locales/` -> i18n strings (en, vi)
+- `types.ts` -> shared enums and types
+- `src-tauri/` -> Tauri desktop app (Rust backend, config, icons)
+- `vite.config.ts` -> Vite config, @/ alias, env injection, server host/port 3000
 
 ## How to use
 1) Open the app and click the settings gear to add your keys (Gemini required; others optional)
 2) Pick a feature from the left tabs; each tool shows the required inputs (uploads, prompts, poses, aspect ratio)
-3) Generated items are saved to the gallery (localStorage). Open the gallery to download or send an item into the Image Editor for further tweaks
+3) Generated items are saved to the gallery. In desktop mode, you can also save directly to local files.
 
-## Testing & Linting
-- Type check via Vite build; automated tests run with `npm run test` (Vitest, jsdom, RTL).
-- Lint with `npm run lint`; auto-fix with `npm run lint -- --fix`.
-- Tests use `setupTests.ts` to register `@testing-library/jest-dom` matchers.
+## Testing & Coverage
+
+```bash
+npm run test           # Run all tests
+npm run test -- --coverage  # With coverage report
+```
+
+Current coverage:
+- **407 tests** across 14 test files
+- Contexts: 97.65% | Services: 86.97% | Hooks: 66.66%
+
+Tests use `setupTests.ts` to register `@testing-library/jest-dom` matchers.
 
 ## Documentation
 
@@ -76,8 +131,7 @@ Detailed documentation is available in `docs/`:
 | [System Architecture](docs/system-architecture.md) | Architecture diagrams, data flow, API integrations |
 
 ## Known Limitations
-- Automated tests are only scaffolded; feature coverage still needed
 - API keys live in the client; avoid production secrets
-- Generated assets are stored in browser localStorage, which is size-limited and browser-specific
+- Web mode: Generated assets stored in browser localStorage (size-limited)
+- Desktop mode: Full file system access available
 - No React error boundary; failures surface per feature UI
-- Local storage persistence is currently disabled (no-op stubs)
