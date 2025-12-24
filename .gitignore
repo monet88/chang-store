@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 .context/
+
+# Test coverage
+coverage/
+
+# Claude context cache
+.claude/context/
+
+# Tauri build artifacts
+src-tauri/target/
