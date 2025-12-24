@@ -1,31 +1,44 @@
 
 
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, lazy, Suspense } from 'react';
 import Header from './components/Header';
-import VirtualTryOn from './components/VirtualTryOn';
-import { LookbookGenerator } from './components/LookbookGenerator';
-import BackgroundReplacer from './components/BackgroundReplacer';
-import PoseChanger from './components/PoseChanger';
-import SwapFace from './components/SwapFace';
-import { PhotoAlbumCreator } from './components/PhotoAlbumCreator';
-import OutfitAnalysis from './components/OutfitAnalysis';
 import { Feature, ImageFile } from './types';
 import { ImageGalleryProvider } from './contexts/ImageGalleryContext';
 import GalleryButton from './components/GalleryButton';
-import GalleryModal from './components/modals/GalleryModal';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ApiProvider } from './contexts/ApiProviderContext';
-import Relight from './components/Relight';
-import Upscale from './components/Upscale';
-import { ImageEditor } from './components/ImageEditor';
-import PoseLibraryModal from './components/modals/PoseLibraryModal';
-import { VideoGenerator } from './components/VideoGenerator';
-import { SettingsModal } from './components/modals/SettingsModal';
-import VideoContinuity from './components/VideoContinuity';
-import Inpainting from './components/Inpainting';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
-import { GRWMVideoGenerator } from './components/GRWMVideoGenerator';
+import Spinner from './components/Spinner';
+
+// --- Lazy-loaded feature components for code splitting ---
+// These components are loaded on-demand to reduce initial bundle size
+const VirtualTryOn = lazy(() => import('./components/VirtualTryOn'));
+const LookbookGenerator = lazy(() => import('./components/LookbookGenerator').then(m => ({ default: m.LookbookGenerator })));
+const BackgroundReplacer = lazy(() => import('./components/BackgroundReplacer'));
+const PoseChanger = lazy(() => import('./components/PoseChanger'));
+const SwapFace = lazy(() => import('./components/SwapFace'));
+const PhotoAlbumCreator = lazy(() => import('./components/PhotoAlbumCreator').then(m => ({ default: m.PhotoAlbumCreator })));
+const OutfitAnalysis = lazy(() => import('./components/OutfitAnalysis'));
+const Relight = lazy(() => import('./components/Relight'));
+const Upscale = lazy(() => import('./components/Upscale'));
+const ImageEditor = lazy(() => import('./components/ImageEditor').then(m => ({ default: m.ImageEditor })));
+const VideoGenerator = lazy(() => import('./components/VideoGenerator').then(m => ({ default: m.VideoGenerator })));
+const VideoContinuity = lazy(() => import('./components/VideoContinuity'));
+const Inpainting = lazy(() => import('./components/Inpainting'));
+const GRWMVideoGenerator = lazy(() => import('./components/GRWMVideoGenerator').then(m => ({ default: m.GRWMVideoGenerator })));
+
+// --- Lazy-loaded modal components ---
+const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
+const PoseLibraryModal = lazy(() => import('./components/modals/PoseLibraryModal'));
+const SettingsModal = lazy(() => import('./components/modals/SettingsModal').then(m => ({ default: m.SettingsModal })));
+
+/** Loading fallback component for lazy-loaded features */
+const FeatureLoadingFallback: React.FC = () => (
+  <div className="flex items-center justify-center h-full">
+    <Spinner />
+  </div>
+);
 
 const AppContent: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<Feature>(Feature.TryOn);
@@ -36,74 +49,114 @@ const AppContent: React.FC = () => {
   const [isPoseLibraryOpen, setIsPoseLibraryOpen] = useState(false);
   const [poseConfirmCallback, setPoseConfirmCallback] = useState<{ fn: (poses: string[]) => void } | null>(null);
   const [initialSelectedPoses, setInitialSelectedPoses] = useState<string[]>([]);
-  
-  const handleOpenEditor = (image: ImageFile) => {
+
+  // --- Memoized callbacks to prevent unnecessary re-renders ---
+  const handleOpenEditor = useCallback((image: ImageFile) => {
     setImageToEdit(image);
     setActiveFeature(Feature.ImageEditor);
-    setIsGalleryOpen(false); 
-  };
-  
-  const handleOpenPoseLibrary = (onConfirm: (poses: string[]) => void, initialPoses: string[]) => {
+    setIsGalleryOpen(false);
+  }, []);
+
+  const handleOpenPoseLibrary = useCallback((onConfirm: (poses: string[]) => void, initialPoses: string[]) => {
     setPoseConfirmCallback({ fn: onConfirm });
     setInitialSelectedPoses(initialPoses);
     setIsPoseLibraryOpen(true);
-  };
+  }, []);
 
-  const handlePoseLibraryConfirm = (poses: string[]) => {
+  const handlePoseLibraryConfirm = useCallback((poses: string[]) => {
     poseConfirmCallback?.fn(poses);
     setIsPoseLibraryOpen(false);
+  }, [poseConfirmCallback]);
+
+  const handleOpenSettings = useCallback(() => setIsSettingsOpen(true), []);
+  const handleCloseSettings = useCallback(() => setIsSettingsOpen(false), []);
+  const handleOpenGallery = useCallback(() => setIsGalleryOpen(true), []);
+  const handleCloseGallery = useCallback(() => setIsGalleryOpen(false), []);
+  const handleClosePoseLibrary = useCallback(() => setIsPoseLibraryOpen(false), []);
+  const handleCloseEditor = useCallback(() => {
+    setActiveFeature(Feature.TryOn);
+    setImageToEdit(null);
+  }, []);
+
+  /** Renders the active feature component based on current selection */
+  const renderActiveFeature = () => {
+    switch (activeFeature) {
+      case Feature.TryOn:
+        return <VirtualTryOn />;
+      case Feature.Lookbook:
+        return <LookbookGenerator />;
+      case Feature.Background:
+        return <BackgroundReplacer />;
+      case Feature.Pose:
+        return <PoseChanger onOpenPoseLibrary={handleOpenPoseLibrary} />;
+      case Feature.SwapFace:
+        return <SwapFace />;
+      case Feature.PhotoAlbum:
+        return <PhotoAlbumCreator />;
+      case Feature.OutfitAnalysis:
+        return <OutfitAnalysis />;
+      case Feature.Relight:
+        return <Relight />;
+      case Feature.Upscale:
+        return <Upscale />;
+      case Feature.Video:
+        return <VideoGenerator />;
+      case Feature.VideoContinuity:
+        return <VideoContinuity />;
+      case Feature.GRWMVideo:
+        return <GRWMVideoGenerator />;
+      case Feature.Inpainting:
+        return <Inpainting />;
+      case Feature.ImageEditor:
+        return null; // ImageEditor is rendered separately as a modal
+      default:
+        return <VirtualTryOn />;
+    }
   };
 
   return (
     <>
-      <div className="flex min-h-screen bg-transparent">
-        <Header activeFeature={activeFeature} setActiveFeature={setActiveFeature} onOpenSettings={() => setIsSettingsOpen(true)} />
-        <div className="flex-1 flex flex-col ml-72"> 
-          <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="relative bg-slate-900/70 backdrop-blur-2xl p-6 sm:p-8 rounded-2xl shadow-2xl shadow-black/20 border border-slate-800 min-h-full">
-              <div style={{ display: activeFeature === Feature.TryOn ? 'block' : 'none' }}><VirtualTryOn /></div>
-              <div style={{ display: activeFeature === Feature.Lookbook ? 'block' : 'none' }}><LookbookGenerator /></div>
-              <div style={{ display: activeFeature === Feature.Background ? 'block' : 'none' }}><BackgroundReplacer /></div>
-              <div style={{ display: activeFeature === Feature.Pose ? 'block' : 'none' }}><PoseChanger onOpenPoseLibrary={handleOpenPoseLibrary} /></div>
-              <div style={{ display: activeFeature === Feature.SwapFace ? 'block' : 'none' }}><SwapFace /></div>
-              <div style={{ display: activeFeature === Feature.PhotoAlbum ? 'block' : 'none' }}><PhotoAlbumCreator /></div>
-              <div style={{ display: activeFeature === Feature.OutfitAnalysis ? 'block' : 'none' }}><OutfitAnalysis /></div>
-              <div style={{ display: activeFeature === Feature.Relight ? 'block' : 'none' }}><Relight /></div>
-              <div style={{ display: activeFeature === Feature.Upscale ? 'block' : 'none' }}><Upscale /></div>
-              <div style={{ display: activeFeature === Feature.Video ? 'block' : 'none' }}><VideoGenerator /></div>
-              <div style={{ display: activeFeature === Feature.VideoContinuity ? 'block' : 'none' }}><VideoContinuity /></div>
-              <div style={{ display: activeFeature === Feature.GRWMVideo ? 'block' : 'none' }}><GRWMVideoGenerator /></div>
-              <div style={{ display: activeFeature === Feature.Inpainting ? 'block' : 'none' }}><Inpainting /></div>
+      <div className="flex h-screen bg-transparent overflow-hidden">
+        <Header activeFeature={activeFeature} setActiveFeature={setActiveFeature} onOpenSettings={handleOpenSettings} />
+        <div className="flex-1 flex flex-col ml-72 h-screen overflow-hidden">
+          <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-4 overflow-hidden">
+            <div className="relative bg-slate-900/70 backdrop-blur-2xl p-4 sm:p-6 rounded-2xl shadow-2xl shadow-black/20 border border-slate-800 h-full overflow-hidden">
+              <Suspense fallback={<FeatureLoadingFallback />}>
+                {renderActiveFeature()}
+              </Suspense>
             </div>
           </main>
-          <footer className="text-center py-6 text-slate-500 text-sm flex-shrink-0">
+          <footer className="text-center py-2 text-slate-500 text-xs flex-shrink-0">
             <p>Powered by Gemini. All images are generated by AI.</p>
           </footer>
         </div>
 
-        <GalleryButton onClick={() => setIsGalleryOpen(true)} />
-        {isGalleryOpen && <GalleryModal onClose={() => setIsGalleryOpen(false)} onEditImage={handleOpenEditor} />}
-        {isSettingsOpen && <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />}
+        <GalleryButton onClick={handleOpenGallery} />
+
+        {/* Lazy-loaded modals wrapped in Suspense */}
+        <Suspense fallback={null}>
+          {isGalleryOpen && <GalleryModal onClose={handleCloseGallery} onEditImage={handleOpenEditor} />}
+          {isSettingsOpen && <SettingsModal isOpen={isSettingsOpen} onClose={handleCloseSettings} />}
+        </Suspense>
       </div>
 
-      {isPoseLibraryOpen && (
-        <PoseLibraryModal
-          isOpen={isPoseLibraryOpen}
-          onClose={() => setIsPoseLibraryOpen(false)}
-          onConfirm={handlePoseLibraryConfirm}
-          initialSelectedPoses={initialSelectedPoses}
-        />
-      )}
+      <Suspense fallback={null}>
+        {isPoseLibraryOpen && (
+          <PoseLibraryModal
+            isOpen={isPoseLibraryOpen}
+            onClose={handleClosePoseLibrary}
+            onConfirm={handlePoseLibraryConfirm}
+            initialSelectedPoses={initialSelectedPoses}
+          />
+        )}
 
-      {activeFeature === Feature.ImageEditor && (
-        <ImageEditor
-          onClose={() => {
-            setActiveFeature(Feature.TryOn);
-            setImageToEdit(null);
-          }}
-          initialImage={imageToEdit}
-        />
-      )}
+        {activeFeature === Feature.ImageEditor && (
+          <ImageEditor
+            onClose={handleCloseEditor}
+            initialImage={imageToEdit}
+          />
+        )}
+      </Suspense>
     </>
   );
 };
