@@ -201,17 +201,18 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div className="flex flex-col gap-8">
-        <h2 className="text-2xl font-bold text-center">{t('virtualTryOn.title')}</h2>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full overflow-hidden">
+      {/* Left panel - scrollable input section */}
+      <div className="flex flex-col gap-4 overflow-y-auto pr-2 max-h-full">
+        <h2 className="text-xl font-bold text-center flex-shrink-0">{t('virtualTryOn.title')}</h2>
         
-        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-800">
-            <h3 className="text-lg font-semibold text-center text-emerald-400 mb-4">{t('virtualTryOn.step1')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-800">
+            <h3 className="text-base font-semibold text-center text-emerald-400 mb-3">{t('virtualTryOn.step1')}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Tooltip content={t('tooltips.tryOnSubject')} position="right" className="w-full">
                     <ImageUploader image={subjectImage} id="subject-upload" title={t('virtualTryOn.subjectImageTitle')} onImageUpload={(file) => { setSubjectImage(file); if (file) addImage(file); }} />
                 </Tooltip>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
                     {clothingItems.map((item, index) => (
                         <div key={item.id} className="relative group">
                             <Tooltip content={t('tooltips.tryOnClothing')} position="left">
@@ -229,38 +230,38 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
             </div>
         </div>
         
-        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-800">
-            <h3 className="text-lg font-semibold text-center text-emerald-400 mb-4">{t('virtualTryOn.step2')}</h3>
-            <div className="space-y-6">
+        <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-800">
+            <h3 className="text-base font-semibold text-center text-emerald-400 mb-3">{t('virtualTryOn.step2')}</h3>
+            <div className="space-y-3">
                 <Tooltip content={t('tooltips.tryOnBackground')} position="bottom" className="w-full">
-                    <label htmlFor="background-prompt" className="block text-sm font-medium text-center text-slate-300 mb-2">{t('virtualTryOn.backgroundPromptLabel')}</label>
+                    <label htmlFor="background-prompt" className="block text-xs font-medium text-center text-slate-300 mb-1">{t('virtualTryOn.backgroundPromptLabel')}</label>
                     <textarea
                         id="background-prompt"
                         value={backgroundPrompt}
                         onChange={(e) => setBackgroundPrompt(e.target.value)}
                         placeholder={t('virtualTryOn.backgroundPromptPlaceholder')}
-                        rows={2}
-                        className="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                        rows={1}
+                        className="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors resize-none"
                     />
-                    <p className="text-xs text-slate-500 mt-1 text-center">{t('virtualTryOn.backgroundPromptDescription')}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 text-center">{t('virtualTryOn.backgroundPromptDescription')}</p>
                 </Tooltip>
                 <Tooltip content={t('tooltips.tryOnInstructions')} position="bottom" className="w-full">
-                    <label htmlFor="extra-prompt" className="block text-sm font-medium text-center text-slate-300 mb-2">{t('virtualTryOn.extraPromptLabel')}</label>
+                    <label htmlFor="extra-prompt" className="block text-xs font-medium text-center text-slate-300 mb-1">{t('virtualTryOn.extraPromptLabel')}</label>
                     <textarea
                         id="extra-prompt"
                         value={extraPrompt}
                         onChange={(e) => setExtraPrompt(e.target.value)}
                         placeholder={t('virtualTryOn.extraPromptPlaceholder')}
-                        rows={2}
-                        className="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                        rows={1}
+                        className="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors resize-none"
                     />
-                    <p className="text-xs text-slate-500 mt-1 text-center">{t('virtualTryOn.extraPromptDescription')}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 text-center">{t('virtualTryOn.extraPromptDescription')}</p>
                 </Tooltip>
-                <div className="space-y-4">
+                <div className="space-y-3">
                     <AspectRatioSelector aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
                     <Tooltip content={t('tooltips.tryOnImageCount')} position="top">
-                        <label htmlFor="num-images-slider" className="block text-sm font-medium text-center text-slate-300 mb-2">{t('virtualTryOn.numberOfImages')}</label>
-                        <div className="flex items-center gap-4 max-w-xs mx-auto">
+                        <label htmlFor="num-images-slider" className="block text-xs font-medium text-center text-slate-300 mb-1">{t('virtualTryOn.numberOfImages')}</label>
+                        <div className="flex items-center gap-3 max-w-xs mx-auto">
                             <input
                                 id="num-images-slider"
                                 type="range"
@@ -271,7 +272,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
                                 onChange={(e) => setNumImages(Number(e.target.value))}
                                 className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
                             />
-                            <span className="bg-emerald-600 text-white text-sm font-bold rounded-full h-8 w-8 flex-shrink-0 flex items-center justify-center">
+                            <span className="bg-emerald-600 text-white text-xs font-bold rounded-full h-6 w-6 flex-shrink-0 flex items-center justify-center">
                                 {numImages}
                             </span>
                         </div>
@@ -281,27 +282,29 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
         </div>
 
 
-        <div className="text-center">
-            <h3 className="text-lg font-semibold text-emerald-400 mb-4">{t('virtualTryOn.step3')}</h3>
+        {/* Step 3: Generate button - compact */}
+        <div className="text-center flex-shrink-0 pb-2">
+            <h3 className="text-base font-semibold text-emerald-400 mb-2">{t('virtualTryOn.step3')}</h3>
             <Tooltip content={t('tooltips.tryOnGenerate')} position="top">
-              <button onClick={handleGenerateImage} disabled={isLoading || anyUpscaling || !subjectImage || validClothingItems.length === 0} className="bg-emerald-600 text-white font-bold py-3 px-8 rounded-full hover:bg-emerald-500 disabled:bg-slate-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-105">
+              <button onClick={handleGenerateImage} disabled={isLoading || anyUpscaling || !subjectImage || validClothingItems.length === 0} className="bg-emerald-600 text-white font-bold py-2 px-6 rounded-full hover:bg-emerald-500 disabled:bg-slate-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-105 text-sm">
                 {isLoading ? <Spinner /> : t('virtualTryOn.generateButton')}
               </button>
             </Tooltip>
         </div>
       </div>
 
-      <div className="sticky top-8 h-full">
-        <div className="relative w-full h-full bg-slate-900/50 rounded-2xl border border-slate-800 p-4 flex flex-col">
+      {/* Right panel - result display */}
+      <div className="h-full min-h-0">
+        <div className="relative w-full h-full bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col overflow-hidden">
           {isLoading ? (
-             <div className="flex flex-col h-full gap-4">
-                <h3 className="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500 animate-pulse">
+             <div className="flex flex-col h-full gap-3">
+                <h3 className="text-lg font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500 animate-pulse flex-shrink-0">
                     {loadingMessage || t('virtualTryOn.generatingStatus')}
                 </h3>
-                <div className={`grid ${getGridColsClass(numImages)} gap-4 w-full`}>
+                <div className={`grid ${getGridColsClass(numImages)} gap-3 w-full flex-1 min-h-0`}>
                     {Array.from({ length: numImages }).map((_, index) => (
                         <div key={index} className="aspect-[4/5] bg-slate-800/50 rounded-lg flex items-center justify-center animate-pulse">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div>
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-400"></div>
                         </div>
                     ))}
                 </div>
@@ -311,11 +314,11 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
                 <ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} />
             </div>
           ) : generatedImages.length > 0 ? (
-            <div className="flex flex-col h-full gap-4">
-                <h3 className="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500">
+            <div className="flex flex-col h-full gap-3 overflow-hidden">
+                <h3 className="text-lg font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500 flex-shrink-0">
                     {t('generatedImage.outputTitle')}
                 </h3>
-                <div className={`grid ${getGridColsClass(generatedImages.length)} gap-4 w-full`}>
+                <div className={`grid ${getGridColsClass(generatedImages.length)} gap-3 w-full flex-1 min-h-0 overflow-y-auto`}>
                     {generatedImages.map((image, index) => (
                         <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
                             <HoverableImage
@@ -331,13 +334,13 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
                 </div>
             </div>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center p-4">
-              <div className="text-center text-slate-600 pointer-events-none max-w-sm w-full p-8 bg-slate-900/30 rounded-2xl border border-slate-700/50">
-                  <ImageIcon className="mx-auto h-20 w-20 text-slate-700" />
-                  <h3 className="mt-6 text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500">
+            <div className="absolute inset-0 flex items-center justify-center p-3">
+              <div className="text-center text-slate-600 pointer-events-none max-w-xs w-full p-6 bg-slate-900/30 rounded-2xl border border-slate-700/50">
+                  <ImageIcon className="mx-auto h-14 w-14 text-slate-700" />
+                  <h3 className="mt-4 text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500">
                       {t('common.outputPanelTitle')}
                   </h3>
-                  <p className="mt-2 text-sm text-slate-500">
+                  <p className="mt-1 text-xs text-slate-500">
                       {t('virtualTryOn.outputPanelDescription')}
                   </p>
               </div>

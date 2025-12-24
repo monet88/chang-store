@@ -11,7 +11,6 @@ import { getActiveApiKey } from '../services/apiClient';
 import ImageUploader from './ImageUploader';
 import Spinner, { ErrorDisplay } from './Spinner';
 import { getErrorMessage } from '../utils/imageUtils';
-import _ from 'lodash';
 import { FilmIcon, MagicWandIcon, DownloadIcon } from './Icons';
 
 

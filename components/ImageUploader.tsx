@@ -98,9 +98,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
   return (
     <>
       <div className="w-full">
-        <label htmlFor={id} className="block text-sm font-medium text-slate-300 mb-2">{title}</label>
-        <div 
-          className={`relative aspect-square w-full bg-slate-800/50 rounded-lg border-2 border-dashed transition-colors duration-300 flex items-center justify-center overflow-hidden ${
+        <label htmlFor={id} className="block text-xs font-medium text-slate-300 mb-1">{title}</label>
+        <div
+          className={`relative aspect-[4/3] w-full bg-slate-800/50 rounded-lg border-2 border-dashed transition-colors duration-300 flex items-center justify-center overflow-hidden ${
             isDragging ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-700'
           } ${!image ? 'hover:border-emerald-500' : ''}`}
           onDragOver={handleDragOver}
@@ -128,25 +128,25 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
               </button>
             </>
           ) : (
-            <div className="text-center text-slate-400 p-4 flex flex-col items-stretch justify-center h-full w-full">
-              <div 
-                className="flex-grow flex flex-col items-center justify-center cursor-pointer" 
+            <div className="text-center text-slate-400 p-2 flex flex-col items-stretch justify-center h-full w-full">
+              <div
+                className="flex-grow flex flex-col items-center justify-center cursor-pointer"
                 onClick={() => inputRef.current?.click()}
               >
-                <CloudUploadIcon className="mx-auto h-10 w-10" />
-                <p className="mt-2 text-sm">{isDragging ? t('imageUploader.drop') : t('imageUploader.upload')}</p>
-                <p className="text-xs">{t('imageUploader.fileTypes')}</p>
+                <CloudUploadIcon className="mx-auto h-8 w-8" />
+                <p className="mt-1 text-xs">{isDragging ? t('imageUploader.drop') : t('imageUploader.upload')}</p>
+                <p className="text-xs opacity-70">{t('imageUploader.fileTypes')}</p>
               </div>
-              <div className="mt-4 w-full border-t border-slate-700/50 pt-4 flex justify-center">
-                  <button 
+              <div className="mt-2 w-full border-t border-slate-700/50 pt-2 flex justify-center">
+                  <button
                       type="button"
                       onClick={(e) => {
                           e.stopPropagation();
                           setIsGallerySelectionOpen(true);
                       }}
-                      className="flex items-center gap-2 text-sm bg-slate-700/80 text-slate-200 font-semibold py-2 px-4 rounded-lg hover:bg-slate-700 transition-colors duration-200"
+                      className="flex items-center gap-1.5 text-xs bg-slate-700/80 text-slate-200 font-semibold py-1.5 px-3 rounded-lg hover:bg-slate-700 transition-colors duration-200"
                   >
-                      <GalleryIcon className="w-5 h-5" />
+                      <GalleryIcon className="w-4 h-4" />
                       <span>{t('imageUploader.selectFromGallery')}</span>
                   </button>
               </div>

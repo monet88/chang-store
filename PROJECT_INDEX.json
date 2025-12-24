@@ -1,0 +1,122 @@
+{
+  "name": "Chang-Store",
+  "generated": "2025-12-23",
+  "type": "react-spa",
+  "description": "AI-powered virtual fashion studio",
+  "stack": {
+    "framework": "React 19",
+    "language": "TypeScript",
+    "bundler": "Vite",
+    "testing": "Vitest"
+  },
+  "entryPoints": {
+    "cli": null,
+    "api": null,
+    "web": "index.tsx",
+    "main": "App.tsx"
+  },
+  "directories": {
+    "components": {
+      "path": "components/",
+      "count": 42,
+      "subdirs": ["modals/"]
+    },
+    "hooks": {
+      "path": "hooks/",
+      "count": 13
+    },
+    "contexts": {
+      "path": "contexts/",
+      "count": 4
+    },
+    "services": {
+      "path": "services/",
+      "count": 7,
+      "subdirs": ["gemini/"]
+    },
+    "locales": {
+      "path": "locales/",
+      "count": 2
+    },
+    "utils": {
+      "path": "utils/",
+      "count": 2
+    },
+    "docs": {
+      "path": "docs/",
+      "count": 9
+    }
+  },
+  "features": [
+    "try-on",
+    "lookbook",
+    "background",
+    "pose",
+    "swap-face",
+    "photo-album",
+    "outfit-analysis",
+    "relight",
+    "upscale",
+    "image-editor",
+    "video",
+    "video-continuity",
+    "inpainting",
+    "grwm-video"
+  ],
+  "externalApis": [
+    {
+      "name": "Google Gemini",
+      "sdk": "@google/genai",
+      "auth": "GEMINI_API_KEY or Settings"
+    },
+    {
+      "name": "AIVideoAuto",
+      "url": "api.gommo.net/ai",
+      "auth": "access_token in Settings"
+    }
+  ],
+  "keyFiles": {
+    "App.tsx": "Provider stack + feature router",
+    "types.ts": "Shared types: Feature, ImageFile, AspectRatio",
+    "services/imageEditingService.ts": "Unified facade - routes to Gemini or AIVideoAuto",
+    "services/apiClient.ts": "Gemini client singleton",
+    "contexts/ApiProviderContext.tsx": "API keys, model selection"
+  },
+  "dependencies": {
+    "production": {
+      "react": "^19.1.1",
+      "react-dom": "^19.1.1",
+      "@google/genai": "^1.17.0",
+      "axios": "^1.7.2",
+      "lodash": "^4.17.21"
+    },
+    "dev": {
+      "vite": "^6.2.0",
+      "typescript": "~5.8.2",
+      "vitest": "^4.0.13",
+      "eslint": "^9.15.0"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest --run --passWithNoTests",
+    "lint": "eslint . --ext .ts,.tsx"
+  },
+  "architecturePattern": "Component → Hook → Service → External API",
+  "providerStack": [
+    "LanguageProvider",
+    "ApiProvider",
+    "ImageGalleryProvider",
+    "ImageViewerProvider"
+  ],
+  "notes": {
+    "localStorage": "disabled (stubbed)",
+    "imageStorage": "in-memory session only",
+    "upscaleTarget": "2K resolution",
+    "videoPolling": {
+      "gemini": "indefinite",
+      "aivideoauto": "10min max"
+    }
+  }
+}
