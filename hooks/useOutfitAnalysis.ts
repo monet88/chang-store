@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ImageFile, AnalyzedItem, Feature } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryProvider';
+import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '../services/imageEditingService';
 import { analyzeOutfit } from '../services/gemini/text';

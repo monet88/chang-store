@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Feature, ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryProvider';
+import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { recreateImageWithFace } from '../services/imageEditingService';
 import { generateStylePromptFromImage } from '../services/gemini/text';
