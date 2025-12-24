@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Feature, ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryProvider';
+import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { generateVideo } from '../services/imageEditingService';
 // FIX: `analyzeScene` is in the `text` service, not `video`.
