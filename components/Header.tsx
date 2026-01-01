@@ -40,7 +40,7 @@ const Header: React.FC<HeaderProps> = ({ activeFeature, setActiveFeature, onOpen
       <div className="flex-shrink-0 text-center mb-4">
         <div className="flex items-center justify-center gap-2">
             <GalleryIcon className="w-8 h-8 text-emerald-400" />
-            <h1 className="text-2xl font-bold tracking-tight text-emerald-400">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-emerald-400">
                 {t('header.title')}
             </h1>
             <Tooltip content={t('tooltips.headerSettings')} position="bottom">
