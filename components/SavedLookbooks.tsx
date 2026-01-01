@@ -24,7 +24,7 @@ const SavedLookbooks: React.FC = () => {
     if (savedSets.length === 0) {
         return (
             <div>
-                <h2 className="text-2xl font-bold text-center mb-1">Saved Lookbooks</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-center mb-1">Saved Lookbooks</h2>
                 <p className="text-slate-400 text-center mb-6">You haven't saved any lookbooks yet.</p>
                 <p className="text-slate-500 text-center">Generated lookbooks can be saved from the 'Lookbook Generation' tab.</p>
             </div>
@@ -33,7 +33,7 @@ const SavedLookbooks: React.FC = () => {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold text-center mb-1">Saved Lookbooks</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-center mb-1">Saved Lookbooks</h2>
             <p className="text-slate-400 text-center mb-6">Review and download your saved collections.</p>
             <div className="space-y-12">
                 {savedSets.map(set => (

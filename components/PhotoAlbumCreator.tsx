@@ -164,7 +164,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
         return (
             <div className="animate-fade-in">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold">{t('photoAlbum.outputTitle')}</h2>
+                    <h2 className="text-xl md:text-2xl font-bold">{t('photoAlbum.outputTitle')}</h2>
                     <button onClick={handleStartOver} className="flex items-center gap-2 text-sm bg-zinc-700/80 text-zinc-200 font-semibold py-2 px-4 rounded-lg hover:bg-zinc-700 transition-colors duration-200">
                         <ReloadIcon className="w-4 h-4" />
                         <span>{t('photoAlbum.startOver')}</span>
@@ -188,7 +188,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
             {/* Left Column: Inputs */}
             <div className="flex flex-col gap-6">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-1">{t('photoAlbum.title')}</h2>
+                    <h2 className="text-xl md:text-2xl font-bold mb-1">{t('photoAlbum.title')}</h2>
                     <p className="text-zinc-400">{t('photoAlbum.description')}</p>
                 </div>
 

@@ -227,7 +227,7 @@ const BackgroundReplacer: React.FC = () => {
       {/* --- Left Column: Inputs & Controls --- */}
       <div className="flex flex-col gap-6">
         <div>
-          <h2 className="text-2xl font-bold text-center mb-1">{t('background.title')}</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-1">{t('background.title')}</h2>
           <p className="text-zinc-400 text-center">{t('background.description')}</p>
         </div>
         

@@ -105,7 +105,7 @@ const SwapFace: React.FC = () => {
             {/* Left Column: Inputs */}
             <div className="flex flex-col gap-6">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-1">{t('tabs.swapFace')}</h2>
+                    <h2 className="text-xl md:text-2xl font-bold mb-1">{t('tabs.swapFace')}</h2>
                     <p className="text-zinc-400 max-w-xl mx-auto">{t('swapFace.description')}</p>
                 </div>
                 

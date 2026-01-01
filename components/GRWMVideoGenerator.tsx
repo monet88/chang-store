@@ -234,7 +234,7 @@ export const GRWMVideoGenerator: React.FC = () => {
     return (
         <div className="flex flex-col gap-8">
             <div className="text-center">
-                <h2 className="text-2xl font-bold mb-1">{t('grwmVideo.title')}</h2>
+                <h2 className="text-xl md:text-2xl font-bold mb-1">{t('grwmVideo.title')}</h2>
                 <p className="text-zinc-400 max-w-2xl mx-auto">{t('grwmVideo.description')}</p>
             </div>
             

@@ -258,7 +258,7 @@ const OutfitAnalysis: React.FC = () => {
     if (step === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] animate-fade-in">
-                <h2 className="text-2xl font-bold text-center mb-2">{t('outfitAnalysis.uploadTitle')}</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-center mb-2">{t('outfitAnalysis.uploadTitle')}</h2>
                 <p className="text-zinc-400 text-center mb-8 max-w-lg">{t('outfitAnalysis.uploadDescription')}</p>
                 {isLoading ? (
                     <div className="text-center"><Spinner /><p className="mt-4 text-zinc-400">{loadingMessage}</p></div>
@@ -280,7 +280,7 @@ const OutfitAnalysis: React.FC = () => {
     if (step === 1) {
         return (
             <div className="animate-fade-in">
-                 <h2 className="text-2xl font-bold text-center mb-8">{t('outfitAnalysis.analysisTitle')}</h2>
+                 <h2 className="text-xl md:text-2xl font-bold text-center mb-8">{t('outfitAnalysis.analysisTitle')}</h2>
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                     <div className="sticky top-8">
                         {uploadedImage && <HoverableImage image={uploadedImage} altText={t('outfitAnalysis.uploadedAlt')} />}
@@ -400,7 +400,7 @@ const OutfitAnalysis: React.FC = () => {
     if (step === 2) {
         return (
             <div className="animate-fade-in">
-                <h2 className="text-2xl font-bold text-center mb-8">{t('outfitAnalysis.redesignTitle')}</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-center mb-8">{t('outfitAnalysis.redesignTitle')}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                         <div className="sticky top-8">
