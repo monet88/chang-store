@@ -651,7 +651,7 @@ Absolute priorities:
         </div>
 
         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
-            <h3 className="text-base font-semibold text-center text-amber-400">{t('lookbook.fabricTextureTitle')}</h3>
+            <h3 className="text-base md:text-lg font-semibold text-center text-amber-400">{t('lookbook.fabricTextureTitle')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <Tooltip content={t('tooltips.lookbookFabricTexture')} position="right">
                   <ImageUploader 
