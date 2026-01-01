@@ -1,6 +1,6 @@
 # Chang-Store: Code Standards
 
-**Last Updated:** 2025-12-22
+**Last Updated:** 2026-01-01
 
 ## 1. React/TypeScript Conventions
 
@@ -260,3 +260,10 @@ const { t } = useLanguage();
 - Component tests: React Testing Library
 - Service mocks: vi.mock()
 - Test file location: Co-located or `__tests__/` directory
+- Coverage goals: 80%+ for services, 90%+ for contexts
+
+## 9. Desktop Development (Tauri)
+
+- Native calls should be abstracted in `services/tauriService.ts`
+- Use `isTauri()` utility to gate native-only logic
+- Prefer `@tauri-apps/plugin-*` for common tasks (fs, shell, notification)

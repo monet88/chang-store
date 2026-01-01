@@ -1,6 +1,6 @@
 # Chang-Store: System Architecture
 
-**Last Updated:** 2025-12-22
+**Last Updated:** 2026-01-01
 
 ## 1. High-Level Architecture
 

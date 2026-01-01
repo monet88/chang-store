@@ -114,8 +114,9 @@ npm run test -- --coverage  # With coverage report
 ```
 
 Current coverage:
-- **407 tests** across 14 test files
+- **407 tests** across 132 test suites
 - Contexts: 97.65% | Services: 86.97% | Hooks: 66.66%
+- All tests passing with Vitest.
 
 Tests use `setupTests.ts` to register `@testing-library/jest-dom` matchers.
 

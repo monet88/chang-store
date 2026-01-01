@@ -1,11 +1,11 @@
 # Chang-Store: Project Overview and PDR
 
-**Version:** 1.0.0
-**Last Updated:** 2025-12-22
+**Version:** 1.1.0
+**Last Updated:** 2026-01-01
 
 ## 1. Vision Statement
 
-Chang-Store is an AI-powered fashion and image editing web application that empowers users to visualize, create, and transform fashion content through generative AI. The platform bridges the gap between imagination and visualization for fashion enthusiasts, content creators, and e-commerce businesses.
+Chang-Store is an AI-powered virtual fashion studio that empowers users to visualize, create, and transform fashion content through generative AI. Now available as both a web application and a native **Tauri-powered desktop application**, the platform bridges the gap between imagination and visualization for fashion enthusiasts, content creators, and e-commerce businesses.
 
 ## 2. Target Users
 
@@ -56,11 +56,12 @@ Chang-Store is an AI-powered fashion and image editing web application that empo
 | Layer | Technology |
 |-------|------------|
 | Framework | React 19.1.1 |
+| Desktop Wrapper | Tauri 2.0 (Rust) |
 | Language | TypeScript 5.8 |
 | Build Tool | Vite 6.2 |
 | AI SDK | @google/genai ^1.17.0 |
 | HTTP Client | axios ^1.7.2 |
-| Testing | Vitest ^4.0.13 |
+| Testing | Vitest ^4.0.13 (407 tests, 132 suites) |
 | Linting | ESLint ^9.15.0 |
 
 ### 5.2 External API Dependencies
