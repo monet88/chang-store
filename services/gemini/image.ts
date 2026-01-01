@@ -1,18 +1,19 @@
 
 import { Part, Modality, Type } from "@google/genai";
-import { ImageFile, ImageAspectRatio, ImageResolution } from '../../types';
+import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel } from '../../types';
 import { getGeminiClient } from '../apiClient';
 
 export interface EditImageParams {
   images: ImageFile[];
   prompt: string;
+  model?: ImageEditModel;
   aspectRatio?: ImageAspectRatio;
   resolution?: ImageResolution;
   negativePrompt?: string;
   numberOfImages?: number;
 }
 
-export const editImage = async ({ images, prompt, aspectRatio, resolution, negativePrompt, numberOfImages = 1 }: EditImageParams): Promise<ImageFile[]> => {
+export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-image', aspectRatio, resolution, negativePrompt, numberOfImages = 1 }: EditImageParams): Promise<ImageFile[]> => {
   const ai = getGeminiClient();
   try {
     const imageParts: Part[] = images.map(image => ({
@@ -41,7 +42,7 @@ export const editImage = async ({ images, prompt, aspectRatio, resolution, negat
         }
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
+            model: model,
             contents: { parts: [...imageParts, textPart] },
             config: {
                 responseModalities: [Modality.IMAGE],
