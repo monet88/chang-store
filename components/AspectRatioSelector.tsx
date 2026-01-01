@@ -1,12 +1,13 @@
 import React from 'react';
-import { AspectRatio } from '../types';
+import { IMAGE_ASPECT_RATIOS, ImageAspectRatio } from '../types';
 
 interface AspectRatioSelectorProps {
-  aspectRatio: AspectRatio;
-  setAspectRatio: (ratio: AspectRatio) => void;
+  aspectRatio: ImageAspectRatio;
+  setAspectRatio: (ratio: ImageAspectRatio) => void;
 }
 
-const RATIOS: AspectRatio[] = ['Default', '1:1', '9:16', '16:9', '4:3', '3:4'];
+/** All selectable ratios including Default */
+const RATIOS: ImageAspectRatio[] = ['Default', ...IMAGE_ASPECT_RATIOS];
 
 const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = ({ aspectRatio, setAspectRatio }) => {
   return (
