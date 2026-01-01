@@ -1,17 +1,18 @@
 
 import { Part, Modality, Type } from "@google/genai";
-import { ImageFile, AspectRatio } from '../../types';
+import { ImageFile, ImageAspectRatio, ImageResolution } from '../../types';
 import { getGeminiClient } from '../apiClient';
 
 export interface EditImageParams {
   images: ImageFile[];
   prompt: string;
-  aspectRatio?: AspectRatio;
+  aspectRatio?: ImageAspectRatio;
+  resolution?: ImageResolution;
   negativePrompt?: string;
   numberOfImages?: number;
 }
 
-export const editImage = async ({ images, prompt, aspectRatio, negativePrompt, numberOfImages = 1 }: EditImageParams): Promise<ImageFile[]> => {
+export const editImage = async ({ images, prompt, aspectRatio, resolution, negativePrompt, numberOfImages = 1 }: EditImageParams): Promise<ImageFile[]> => {
   const ai = getGeminiClient();
   try {
     const imageParts: Part[] = images.map(image => ({
@@ -23,24 +24,28 @@ export const editImage = async ({ images, prompt, aspectRatio, negativePrompt, n
 
     let finalPrompt = prompt;
 
-    if (aspectRatio && aspectRatio !== 'Default') {
-      finalPrompt += ` The output image must have a strict aspect ratio of ${aspectRatio}.`;
-    }
-
     if (negativePrompt?.trim()) {
       finalPrompt += ` Negative prompt: strictly avoid including ${negativePrompt.trim()}.`;
     }
-    
-    finalPrompt += " Ensure the final image is of very high, photorealistic quality (2K resolution).";
 
     const textPart: Part = { text: finalPrompt };
 
     const generateSingleImage = async (): Promise<ImageFile> => {
+        // Build imageConfig if aspectRatio or resolution specified
+        const imageConfig: { aspectRatio?: string; imageSize?: string } = {};
+        if (aspectRatio && aspectRatio !== 'Default') {
+            imageConfig.aspectRatio = aspectRatio;
+        }
+        if (resolution) {
+            imageConfig.imageSize = resolution;
+        }
+
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: { parts: [...imageParts, textPart] },
             config: {
                 responseModalities: [Modality.IMAGE],
+                ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
             },
         });
         
@@ -101,7 +106,7 @@ export const editImage = async ({ images, prompt, aspectRatio, negativePrompt, n
   }
 };
 
-export const generateImageFromText = async (prompt: string, aspectRatio: AspectRatio = '1:1', numberOfImages: number = 1, model: string = 'imagen-4.0-generate-001'): Promise<ImageFile[]> => {
+export const generateImageFromText = async (prompt: string, aspectRatio: ImageAspectRatio = '1:1', numberOfImages: number = 1, model: string = 'imagen-4.0-generate-001'): Promise<ImageFile[]> => {
     const ai = getGeminiClient();
     try {
         const response = await ai.models.generateImages({
@@ -272,23 +277,28 @@ export const critiqueAndRedesignOutfit = async (
   preset: RedesignPreset,
   numberOfImages: number = 1,
   model: string = 'gemini-2.5-flash-image',
-  aspectRatio: AspectRatio = 'Default'
+  aspectRatio: ImageAspectRatio = 'Default'
 ): Promise<{ critique: string; redesignedImages: ImageFile[] }> => {
   const ai = getGeminiClient();
   try {
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
     let prompt = PRESET_PROMPTS[preset];
-    if (aspectRatio && aspectRatio !== 'Default') {
-        prompt += `\n**Aspect Ratio**: The output image must have a strict aspect ratio of ${aspectRatio}.`;
-    }
+
     const textPart: Part = { text: prompt };
 
     const generateSingleRedesign = async (): Promise<{ critique: string; image: ImageFile }> => {
+        // Build imageConfig if aspectRatio specified
+        const imageConfig: { aspectRatio?: string } = {};
+        if (aspectRatio && aspectRatio !== 'Default') {
+            imageConfig.aspectRatio = aspectRatio;
+        }
+
         const response = await ai.models.generateContent({
             model: model,
             contents: { parts: [imagePart, textPart] },
             config: {
                 responseModalities: [Modality.IMAGE, Modality.TEXT],
+                ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
             },
         });
 

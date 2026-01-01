@@ -294,7 +294,7 @@ describe('services/gemini/image.ts', () => {
       expect(mockGenerateContent).toHaveBeenCalledTimes(3);
     });
 
-    it('should append aspect ratio to prompt when provided', async () => {
+    it('should use imageConfig for aspect ratio when provided', async () => {
       // Arrange
       mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
       const params: EditImageParams = {
@@ -308,10 +308,8 @@ describe('services/gemini/image.ts', () => {
 
       // Assert
       const callArgs = mockGenerateContent.mock.calls[0][0];
-      const textPart = callArgs.contents.parts.find(
-        (p: { text?: string }) => p.text
-      );
-      expect(textPart.text).toContain('aspect ratio of 16:9');
+      expect(callArgs.config.imageConfig).toBeDefined();
+      expect(callArgs.config.imageConfig.aspectRatio).toBe('16:9');
     });
 
     it('should append negative prompt when provided', async () => {
@@ -901,7 +899,7 @@ describe('services/gemini/image.ts', () => {
       }
     });
 
-    it('should append aspect ratio to prompt when provided', async () => {
+    it('should use imageConfig for aspect ratio when provided', async () => {
       // Arrange
       mockGenerateContent.mockResolvedValueOnce(
         createTextAndImageResponse('Good outfit')
@@ -918,10 +916,8 @@ describe('services/gemini/image.ts', () => {
 
       // Assert
       const callArgs = mockGenerateContent.mock.calls[0][0];
-      const textPart = callArgs.contents.parts.find(
-        (p: { text?: string }) => p.text
-      );
-      expect(textPart.text).toContain('aspect ratio of 9:16');
+      expect(callArgs.config.imageConfig).toBeDefined();
+      expect(callArgs.config.imageConfig.aspectRatio).toBe('9:16');
     });
 
     it('should use custom model when provided', async () => {

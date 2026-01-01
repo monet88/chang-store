@@ -20,7 +20,28 @@ export interface ImageFile {
   mimeType: string;
 }
 
-export type AspectRatio = 'Default' | '1:1' | '9:16' | '16:9' | '4:3' | '3:4';
+// ============================================
+// IMAGE GENERATION OPTIONS (Single Source of Truth)
+// ============================================
+
+/** Supported aspect ratios for image generation */
+export const IMAGE_ASPECT_RATIOS = ['1:1', '3:4', '4:3', '9:16', '16:9'] as const;
+
+/** Supported resolutions for image generation (Gemini 3 Pro) */
+export const IMAGE_RESOLUTIONS = ['1K', '2K', '4K'] as const;
+
+/** Aspect ratio type - 'Default' = keep original ratio */
+export type ImageAspectRatio = typeof IMAGE_ASPECT_RATIOS[number] | 'Default';
+
+/** Resolution type for image output quality */
+export type ImageResolution = typeof IMAGE_RESOLUTIONS[number];
+
+/** Default values */
+export const DEFAULT_IMAGE_ASPECT_RATIO: ImageAspectRatio = 'Default';
+export const DEFAULT_IMAGE_RESOLUTION: ImageResolution = '1K';
+
+// Backward compatible alias (use ImageAspectRatio for new code)
+export type AspectRatio = ImageAspectRatio;
 
 export interface AnalyzedItem {
   item: string;
