@@ -205,7 +205,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full overflow-hidden">
       {/* Left panel - scrollable input section */}
       <div className="flex flex-col gap-4 overflow-y-auto pr-2 max-h-full">
-        <h2 className="text-xl font-bold text-center flex-shrink-0">{t('virtualTryOn.title')}</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-center flex-shrink-0">{t('virtualTryOn.title')}</h2>
         
         <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-800">
             <h3 className="text-base font-semibold text-center text-emerald-400 mb-3">{t('virtualTryOn.step1')}</h3>

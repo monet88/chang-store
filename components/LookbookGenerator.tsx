@@ -608,7 +608,7 @@ Absolute priorities:
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-center text-center gap-4">
           <div>
-            <h2 className="text-2xl font-bold mb-1">{t('lookbook.title')}</h2>
+            <h2 className="text-xl md:text-2xl font-bold mb-1">{t('lookbook.title')}</h2>
             <p className="text-zinc-400">{t('lookbook.description')}</p>
           </div>
           <button onClick={handleClearForm} className="text-xs text-zinc-400 hover:text-white bg-zinc-700/50 hover:bg-zinc-700 px-3 py-1.5 rounded-md transition-colors">Clear</button>

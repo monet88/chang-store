@@ -275,7 +275,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
       {/* Left Column: Controls */}
       <div className="flex flex-col gap-6">
-        <h2 className="text-2xl font-bold text-center">{t('pose.title')}</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-center">{t('pose.title')}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ImageUploader image={subjectImage} id="pose-subject-upload" title={t('pose.subjectUploadTitle')} onImageUpload={(file) => { setSubjectImage(file); if (file) addImage(file); }} />

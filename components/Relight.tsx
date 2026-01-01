@@ -204,7 +204,7 @@ const Relight: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <div className="flex flex-col gap-6">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-1">{t('relight.title')}</h2>
+                    <h2 className="text-xl md:text-2xl font-bold mb-1">{t('relight.title')}</h2>
                     <p className="text-zinc-400">{t('relight.description')}</p>
                 </div>
                 

@@ -559,7 +559,7 @@ const ImageSelectionModal: React.FC<{
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex flex-col p-4 animate-fade-in" onClick={onClose} role="dialog" aria-modal="true">
             <div className="flex justify-between items-center p-4 text-white w-full max-w-7xl mx-auto flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                <h2 className="text-2xl font-bold">{t('imageSelectionModal.title')} ({images.length})</h2>
+                <h2 className="text-xl md:text-2xl font-bold">{t('imageSelectionModal.title')} ({images.length})</h2>
                 <button onClick={onClose} className="p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors" aria-label={t('gallery.closeAria')}>
                     <CloseIcon className="w-8 h-8" />
                 </button>
@@ -1235,7 +1235,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
         return (
             <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in" onClick={onClose}>
                 <div className="bg-zinc-800 p-8 rounded-2xl shadow-2xl border border-zinc-700 text-center w-full max-w-md" onClick={e => e.stopPropagation()}>
-                    <h2 className="text-2xl font-bold text-white mb-2">{t('imageEditor.openOrCreate.title')}</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-white mb-2">{t('imageEditor.openOrCreate.title')}</h2>
                     <p className="text-zinc-400 mb-8">{t('imageEditor.openOrCreate.description')}</p>
                     <div className="space-y-4">
                         <button onClick={() => changeImageFileInputRef.current?.click()} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors">
