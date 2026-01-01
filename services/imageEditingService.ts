@@ -44,7 +44,7 @@ export const editImage = async (
         ));
         return results;
     }
-    return geminiImageService.editImage(params);
+    return geminiImageService.editImage({ ...params, model });
 };
 
 export const generateImage = async (
