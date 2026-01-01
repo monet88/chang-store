@@ -243,7 +243,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" role="dialog" aria-modal="true" onClick={onClose}>
             <div className="bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-700 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
-                    <h2 className="text-xl font-bold text-white">Application Settings</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-white">Application Settings</h2>
                     <button onClick={onClose} className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
                         <CloseIcon className="w-6 h-6" />
                     </button>

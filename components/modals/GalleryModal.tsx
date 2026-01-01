@@ -43,7 +43,7 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose, onEditImage }) => 
         >
             <div className="flex justify-between items-center p-4 text-white w-full max-w-7xl mx-auto flex-shrink-0">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-bold">{t('gallery.title')} ({images.length})</h2>
+                    <h2 className="text-xl md:text-2xl font-bold">{t('gallery.title')} ({images.length})</h2>
                     {images.length > 0 && (
                         <button
                             onClick={handleClearAll}
