@@ -7,13 +7,13 @@ import ImageUploader from './ImageUploader';
 import Spinner, { ErrorDisplay } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
-import { Feature, ImageFile, AspectRatio } from '../types';
+import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import Tooltip from './Tooltip';
-import AspectRatioSelector from './AspectRatioSelector';
+import ImageOptionsPanel from './ImageOptionsPanel';
 
 // --- Helper Icons ---
 const PlusIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -51,6 +51,7 @@ const VirtualTryOn: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<ImageFile[]>([]);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+  const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
   
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
@@ -258,7 +259,11 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
                     <p className="text-xs text-slate-500 mt-0.5 text-center">{t('virtualTryOn.extraPromptDescription')}</p>
                 </Tooltip>
                 <div className="space-y-3">
-                    <AspectRatioSelector aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+                    <ImageOptionsPanel
+                      aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                      resolution={resolution} setResolution={setResolution}
+                      model={imageEditModel}
+                    />
                     <Tooltip content={t('tooltips.tryOnImageCount')} position="top">
                         <label htmlFor="num-images-slider" className="block text-xs font-medium text-center text-slate-300 mb-1">{t('virtualTryOn.numberOfImages')}</label>
                         <div className="flex items-center gap-3 max-w-xs mx-auto">

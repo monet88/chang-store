@@ -3,7 +3,7 @@
 
 
 import React, { useState } from 'react';
-import { Feature, ImageFile, AspectRatio } from '../types';
+import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -14,7 +14,7 @@ import Spinner, { ErrorDisplay } from './Spinner';
 import HoverableImage from './HoverableImage';
 import ImageUploader from './ImageUploader';
 import { GalleryIcon } from './Icons';
-import AspectRatioSelector from './AspectRatioSelector';
+import ImageOptionsPanel from './ImageOptionsPanel';
 
 
 // --- Main Component ---
@@ -158,6 +158,7 @@ const Relight: React.FC = () => {
     const [light2Color, setLight2Color] = useState<LightColor>('natural');
     const [light3Color, setLight3Color] = useState<LightColor>('natural');
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+    const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
     const [generatedImage, setGeneratedImage] = useState<ImageFile | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -249,7 +250,11 @@ const Relight: React.FC = () => {
                         <label className="block text-sm font-medium text-zinc-300 mb-2">{t('relight.additionalPrompt')}</label>
                         <input type="text" value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} placeholder={t('relight.additionalPromptPlaceholder')} className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-2 text-zinc-200" />
                     </div>
-                     <AspectRatioSelector aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+                     <ImageOptionsPanel
+                       aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                       resolution={resolution} setResolution={setResolution}
+                       model={imageEditModel}
+                     />
                 </div>
 
                 <div className="text-center">

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Feature, ImageFile, AspectRatio } from '../types';
+import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -9,7 +9,7 @@ import ImageUploader from './ImageUploader';
 import Spinner, { ErrorDisplay } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { BrushIcon, EraserIcon, MarqueeIcon, VisibleIcon, HiddenIcon } from './Icons';
-import AspectRatioSelector from './AspectRatioSelector';
+import ImageOptionsPanel from './ImageOptionsPanel';
 
 type Tool = 'rectangle' | 'brush' | 'eraser';
 
@@ -41,6 +41,7 @@ const Inpainting: React.FC = () => {
     const [maskPreviewOpacity, setMaskPreviewOpacity] = useState(0.5);
     const [isMaskVisible, setIsMaskVisible] = useState(true);
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+    const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
     const imageCanvasRef = useRef<HTMLCanvasElement>(null);
     const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -452,7 +453,11 @@ const Inpainting: React.FC = () => {
                 </div>
                 
                  <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-                    <AspectRatioSelector aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+                    <ImageOptionsPanel
+                      aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                      resolution={resolution} setResolution={setResolution}
+                      model={imageEditModel}
+                    />
                 </div>
 
                 <div className="text-center">

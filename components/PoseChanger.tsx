@@ -5,12 +5,12 @@ import Spinner, { ErrorDisplay, ProgressBar } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generatePoseDescription } from '../services/gemini/text';
-import { Feature, ImageFile, PoseCollection, AspectRatio } from '../types';
+import { Feature, ImageFile, PoseCollection, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import AspectRatioSelector from './AspectRatioSelector';
+import ImageOptionsPanel from './ImageOptionsPanel';
 
 const ImageIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
@@ -53,6 +53,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
   const [negativePrompt, setNegativePrompt] = useState('');
   const [cameraView, setCameraView] = useState<string>('fullBody');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+  const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
   
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
@@ -361,7 +362,11 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                     </div>
                 </div>
             </div>
-            <AspectRatioSelector aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+            <ImageOptionsPanel
+              aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+              resolution={resolution} setResolution={setResolution}
+              model={imageEditModel}
+            />
         </div>
 
 

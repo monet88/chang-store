@@ -5,7 +5,7 @@ import Spinner, { ErrorDisplay } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generateClothingDescription } from '../services/gemini/text';
-import { Feature, ImageFile, AspectRatio } from '../types';
+import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -13,7 +13,7 @@ import { en } from '../locales/en';
 import { getErrorMessage } from '../utils/imageUtils';
 import { AddIcon, DeleteIcon, GalleryIcon, MagicWandIcon } from './Icons';
 import Tooltip from './Tooltip';
-import AspectRatioSelector from './AspectRatioSelector';
+import ImageOptionsPanel from './ImageOptionsPanel';
 import { BOXED_PROMPT, FOLDED_PROMPT, MANNEQUIN_BACKGROUND_PROMPTS, LookbookStyle, GarmentType, FoldedPresentationType, MannequinBackgroundStyleKey } from './LookbookGenerator.prompts';
 
 
@@ -80,6 +80,7 @@ export const LookbookGenerator: React.FC = () => {
   const [variationCount, setVariationCount] = useState<number>(2);
   const [activeOutputTab, setActiveOutputTab] = useState<'main' | 'variations' | 'closeup'>('main');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+  const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
   
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
@@ -818,8 +819,12 @@ Absolute priorities:
                     </div>
                 </div>
             )}
-             <div className="pt-4 border-t border-zinc-700/50 animate-fade-in">
-                <AspectRatioSelector aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+             <div className="pt-4 border-t border-zinc-700/50 animate-fade-in space-y-3">
+                <ImageOptionsPanel
+                  aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                  resolution={resolution} setResolution={setResolution}
+                  model={imageEditModel}
+                />
             </div>
         </div>
 

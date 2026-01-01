@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Feature, ImageFile, AspectRatio } from '../types';
+import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -10,7 +10,7 @@ import HoverableImage from './HoverableImage';
 import { getErrorMessage } from '../utils/imageUtils';
 // FIX: Added ReloadIcon to the import from './Icons'
 import { GalleryIcon, ReloadIcon } from './Icons';
-import AspectRatioSelector from './AspectRatioSelector';
+import ImageOptionsPanel from './ImageOptionsPanel';
 
 type GenerationMode = 'fullModel' | 'faceAndOutfit';
 
@@ -43,6 +43,7 @@ export const PhotoAlbumCreator: React.FC = () => {
     const [outfitImage, setOutfitImage] = useState<ImageFile | null>(null);
     
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('9:16');
+    const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
     const [cameraView, setCameraView] = useState<string>('fullBody');
     const [frame, setFrame] = useState('none');
     const [background, setBackground] = useState('none');
@@ -210,7 +211,11 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
                     <h3 className="text-lg font-semibold text-center text-amber-400">{t('photoAlbum.addons')}</h3>
                     
-                    <AspectRatioSelector aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+                    <ImageOptionsPanel
+                      aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                      resolution={resolution} setResolution={setResolution}
+                      model={imageEditModel}
+                    />
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>

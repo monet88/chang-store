@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Feature, ImageFile, AspectRatio } from '../types';
+import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -11,7 +11,7 @@ import ImageUploader from './ImageUploader';
 import Spinner, { ErrorDisplay } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { GalleryIcon, MagicWandIcon } from './Icons';
-import AspectRatioSelector from './AspectRatioSelector';
+import ImageOptionsPanel from './ImageOptionsPanel';
 
 const SwapFace: React.FC = () => {
     const { t } = useLanguage();
@@ -37,6 +37,7 @@ const SwapFace: React.FC = () => {
     const [generatedPrompt, setGeneratedPrompt] = useState('');
     const [generatedImage, setGeneratedImage] = useState<ImageFile | null>(null);
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+    const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
     
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -144,7 +145,11 @@ const SwapFace: React.FC = () => {
                             className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500"
                         />
                     </div>
-                    <AspectRatioSelector aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+                    <ImageOptionsPanel
+                      aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                      resolution={resolution} setResolution={setResolution}
+                      model={imageEditModel}
+                    />
                 </div>
                 
                 <div className="text-center">
