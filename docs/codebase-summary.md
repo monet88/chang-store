@@ -1,20 +1,22 @@
 # Chang-Store: Codebase Summary
 
-**Last Updated:** 2025-12-22
+**Last Updated:** 2026-01-01
 
 ## 1. Directory Structure
 
 ```
 Chang-Store/
-├── components/           # React UI components (45 files)
+├── components/           # React UI components (30+ files)
 │   ├── modals/          # Modal dialogs (6 files)
 │   └── [Feature].tsx    # Feature components
 ├── contexts/            # React Context providers (4 files)
 ├── hooks/               # Custom hooks per feature (13 files)
 ├── services/            # API service layer (8 files)
-│   └── gemini/          # Gemini-specific services
+│   ├── gemini/          # Gemini-specific services
+│   └── tauriService.ts  # Desktop native features bridge
 ├── locales/             # i18n translations (2 files)
 ├── utils/               # Utility functions (2 files)
+├── src-tauri/           # Tauri desktop app (Rust backend)
 ├── App.tsx              # Root component with provider stack
 ├── index.tsx            # Entry point
 └── types.ts             # Shared TypeScript definitions
@@ -54,6 +56,7 @@ Chang-Store/
 | `services/gemini/text.ts` | Gemini text generation |
 | `services/gemini/video.ts` | Gemini video generation (Veo) |
 | `services/aivideoautoService.ts` | AIVideoAuto API integration |
+| `services/tauriService.ts` | Tauri desktop native features bridge |
 
 ### 2.5 Feature Components
 
