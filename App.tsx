@@ -10,6 +10,8 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { ApiProvider } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
 import Spinner from './components/Spinner';
+import MobileMenuButton from './components/MobileMenuButton';
+import MobileOverlay from './components/MobileOverlay';
 
 // --- Lazy-loaded feature components for code splitting ---
 // These components are loaded on-demand to reduce initial bundle size
@@ -82,6 +84,12 @@ const AppContent: React.FC = () => {
   const handleToggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
   const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
+  // Auto-close sidebar when feature is selected on mobile
+  const handleSetActiveFeature = useCallback((feature: Feature) => {
+    setActiveFeature(feature);
+    setIsSidebarOpen(false);
+  }, []);
+
   /** Renders the active feature component based on current selection */
   const renderActiveFeature = () => {
     switch (activeFeature) {
@@ -121,8 +129,16 @@ const AppContent: React.FC = () => {
   return (
     <>
       <div className="flex h-screen bg-transparent overflow-hidden">
-        <Header activeFeature={activeFeature} setActiveFeature={setActiveFeature} onOpenSettings={handleOpenSettings} />
-        <div className="flex-1 flex flex-col ml-72 h-screen overflow-hidden">
+        <Header
+          activeFeature={activeFeature}
+          setActiveFeature={handleSetActiveFeature}
+          onOpenSettings={handleOpenSettings}
+          isOpen={isSidebarOpen}
+          onClose={handleCloseSidebar}
+        />
+        <MobileMenuButton onClick={handleToggleSidebar} />
+        <MobileOverlay isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
+        <div className="flex-1 flex flex-col lg:ml-72 h-screen overflow-hidden">
           <main className="flex-1 w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 overflow-hidden">
             <div className="relative bg-slate-900/70 backdrop-blur-2xl p-4 sm:p-6 rounded-2xl shadow-2xl shadow-black/20 border border-slate-800 h-full overflow-y-auto">
               <Suspense fallback={<FeatureLoadingFallback />}>
