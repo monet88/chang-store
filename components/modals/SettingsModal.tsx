@@ -251,7 +251,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
 
                 <div className="p-6 space-y-6 overflow-y-auto">
                     <section>
-                        <h3 className="text-lg font-semibold text-emerald-400 mb-4">Default Model Selection</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-emerald-400 mb-4">Default Model Selection</h3>
                         <div className="space-y-4">
                            <ServiceModelSelector label="Text Generation (Analysis/Prompts)" services={TEXT_GENERATE_SERVICES} modelsByService={MODELS_BY_SERVICE.textGenerate} selectedModel={localTextGenerateModel} onModelChange={setLocalTextGenerateModel} />
                            <ServiceModelSelector label="Image Editing / Variation" services={IMAGE_EDIT_SERVICES} modelsByService={MODELS_BY_SERVICE.imageEdit} selectedModel={localImageEditModel} onModelChange={setLocalImageEditModel} />
@@ -261,7 +261,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                     </section>
                 
                     <section>
-                        <h3 className="text-lg font-semibold text-emerald-400 mb-4">API Keys</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-emerald-400 mb-4">API Keys</h3>
                         <div className="space-y-4">
                             <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
                                 <h4 className="font-semibold text-slate-200 mb-2">Google Gemini API Key</h4>
@@ -298,7 +298,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                     </section>
 
                     <section>
-                        <h3 className="text-lg font-semibold text-emerald-400 mb-4">Application Data</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-emerald-400 mb-4">Application Data</h3>
                         <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
                             <p className="text-sm text-slate-300 mb-2">Local browser storage usage:</p>
                             <div className="w-full bg-slate-700 rounded-full h-4 overflow-hidden">

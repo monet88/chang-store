@@ -209,7 +209,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                 </div>
                 
                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
-                    <h3 className="text-lg font-semibold text-center text-amber-400">{t('photoAlbum.addons')}</h3>
+                    <h3 className="text-base md:text-lg font-semibold text-center text-amber-400">{t('photoAlbum.addons')}</h3>
                     
                     <ImageOptionsPanel
                       aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
@@ -293,7 +293,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                     ) : (
                          <div className="text-center text-zinc-500 pointer-events-none">
                             <GalleryIcon className="mx-auto h-16 w-16" />
-                            <h3 className="mt-4 text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
+                            <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
                         </div>
                     )}
                  </div>

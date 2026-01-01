@@ -303,7 +303,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
         <div className="relative w-full h-full bg-slate-900/50 rounded-2xl border border-slate-800 p-3 flex flex-col overflow-hidden">
           {isLoading ? (
              <div className="flex flex-col h-full gap-3">
-                <h3 className="text-lg font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500 animate-pulse flex-shrink-0">
+                <h3 className="text-base md:text-lg font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500 animate-pulse flex-shrink-0">
                     {loadingMessage || t('virtualTryOn.generatingStatus')}
                 </h3>
                 <div className={`grid ${getGridColsClass(numImages)} gap-3 w-full flex-1 min-h-0`}>
@@ -320,7 +320,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
             </div>
           ) : generatedImages.length > 0 ? (
             <div className="flex flex-col h-full gap-3 overflow-hidden">
-                <h3 className="text-lg font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500 flex-shrink-0">
+                <h3 className="text-base md:text-lg font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500 flex-shrink-0">
                     {t('generatedImage.outputTitle')}
                 </h3>
                 <div className={`grid ${getGridColsClass(generatedImages.length)} gap-3 w-full flex-1 min-h-0 overflow-y-auto`}>
@@ -342,7 +342,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
             <div className="absolute inset-0 flex items-center justify-center p-3">
               <div className="text-center text-slate-600 pointer-events-none max-w-xs w-full p-6 bg-slate-900/30 rounded-2xl border border-slate-700/50">
                   <ImageIcon className="mx-auto h-14 w-14 text-slate-700" />
-                  <h3 className="mt-4 text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500">
+                  <h3 className="mt-4 text-base md:text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-500">
                       {t('common.outputPanelTitle')}
                   </h3>
                   <p className="mt-1 text-xs text-slate-500">

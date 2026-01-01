@@ -325,7 +325,7 @@ const OutfitAnalysis: React.FC = () => {
                         {error && <div className="text-center text-red-400 p-2 text-sm">{error}</div>}
                         
                         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-6">
-                            <h3 className="text-lg font-semibold text-center text-amber-400">{t('outfitAnalysis.redesignTitle')}</h3>
+                            <h3 className="text-base md:text-lg font-semibold text-center text-amber-400">{t('outfitAnalysis.redesignTitle')}</h3>
                             
                             <div>
                                 <label className="block text-sm font-medium text-zinc-300 mb-2 text-center">{t('outfitAnalysis.selectStyles')}</label>
@@ -404,7 +404,7 @@ const OutfitAnalysis: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                         <div className="sticky top-8">
-                            <h3 className="text-lg font-semibold text-center mb-2 text-zinc-400">{t('outfitAnalysis.originalOutfit')}</h3>
+                            <h3 className="text-base md:text-lg font-semibold text-center mb-2 text-zinc-400">{t('outfitAnalysis.originalOutfit')}</h3>
                             {uploadedImage && <HoverableImage image={uploadedImage} altText={t('outfitAnalysis.uploadedAlt')} />}
                         </div>
                     </div>
@@ -433,7 +433,7 @@ const OutfitAnalysis: React.FC = () => {
                                     })}
                                 </div>
                                 <div className="mt-6 bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
-                                    <h4 className="text-lg font-bold mb-2 text-amber-400">{t('outfitAnalysis.critiqueTitle')}</h4>
+                                    <h4 className="text-base md:text-lg font-semibold mb-2 text-amber-400">{t('outfitAnalysis.critiqueTitle')}</h4>
                                     <p className="text-zinc-300 text-sm whitespace-pre-wrap leading-relaxed">{result.critique}</p>
                                 </div>
                             </div>

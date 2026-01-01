@@ -143,7 +143,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                         </div>
                     </div>
                     <aside className="w-full lg:w-64 xl:w-72 flex-shrink-0 bg-slate-900/50 border border-slate-700 rounded-lg p-4 overflow-y-auto max-h-48 lg:max-h-full">
-                        <h3 className="text-lg font-semibold text-emerald-400 mb-3">{t('poseModal.poseDescription')}</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-emerald-400 mb-3">{t('poseModal.poseDescription')}</h3>
                         {currentPose ? (
                              <div>
                                 <h4 className="text-base font-semibold text-white mb-2">{currentPose.title}</h4>

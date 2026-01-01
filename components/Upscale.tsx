@@ -116,7 +116,7 @@ const Upscale: React.FC = () => {
                 </div>
             </div>
           ) : (
-            <div className="text-center text-zinc-500 pointer-events-none"><ImageIcon className="mx-auto h-16 w-16" /><h3 className="mt-4 text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3><p className="mt-1 text-sm">{t('upscale.outputPanelDescription')}</p></div>
+            <div className="text-center text-zinc-500 pointer-events-none"><ImageIcon className="mx-auto h-16 w-16" /><h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3><p className="mt-1 text-sm">{t('upscale.outputPanelDescription')}</p></div>
           )}
         </div>
       </div>

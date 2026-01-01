@@ -615,7 +615,7 @@ Absolute priorities:
         </div>
 
         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-            <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('lookbook.uploadTitle')}</h3>
+            <h3 className="text-base md:text-lg font-semibold text-center text-amber-400 mb-4">{t('lookbook.uploadTitle')}</h3>
             <div className="grid grid-cols-2 gap-4">
                 {clothingImages.map((item, index) => (
                     <div key={item.id} className="relative group">
@@ -956,7 +956,7 @@ Absolute priorities:
             ) : (
                 <div className="text-center text-zinc-500 pointer-events-none p-8">
                     <GalleryIcon className="mx-auto h-16 w-16" />
-                    <h3 className="mt-4 text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
+                    <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
                     <p className="mt-1 text-sm">{t('lookbook.outputPanelDescription')}</p>
                 </div>
             )}

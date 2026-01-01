@@ -497,7 +497,7 @@ const Inpainting: React.FC = () => {
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="text-center text-zinc-500 p-4">
                                 <BrushIcon className="mx-auto h-16 w-16" />
-                                <h3 className="mt-4 text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
+                                <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
                                 <p className="mt-1 text-sm max-w-xs mx-auto">{t('inpainting.selectionInstruction')}</p>
                             </div>
                         </div>

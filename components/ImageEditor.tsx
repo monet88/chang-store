@@ -1264,7 +1264,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
             <header className="h-16 flex-shrink-0 bg-zinc-900/80 backdrop-blur-sm border-b border-zinc-700 flex items-center justify-between px-4">
                 <div className="flex items-center gap-4">
                     <button onClick={onClose} className="text-zinc-300 hover:text-white"><CloseIcon className="w-6 h-6" /></button>
-                    <h2 className="text-lg font-semibold text-white">{t('imageEditor.modal.title')}</h2>
+                    <h2 className="text-base md:text-lg font-semibold text-white">{t('imageEditor.modal.title')}</h2>
                     <button onClick={handleUndo} disabled={currentIndex <= 0} className="p-2 text-zinc-400 rounded-full hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed" title="Undo"><UndoIcon className="h-5 w-5" /></button>
                     <button onClick={handleRedo} disabled={currentIndex >= history.length - 1} className="p-2 text-zinc-400 rounded-full hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed" title="Redo"><RedoIcon className="h-5 w-5" /></button>
                 </div>
