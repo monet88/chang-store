@@ -45,6 +45,7 @@ const AppContent: React.FC = () => {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [imageToEdit, setImageToEdit] = useState<ImageFile | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [isPoseLibraryOpen, setIsPoseLibraryOpen] = useState(false);
   const [poseConfirmCallback, setPoseConfirmCallback] = useState<{ fn: (poses: string[]) => void } | null>(null);
@@ -77,6 +78,9 @@ const AppContent: React.FC = () => {
     setActiveFeature(Feature.TryOn);
     setImageToEdit(null);
   }, []);
+
+  const handleToggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
+  const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
   /** Renders the active feature component based on current selection */
   const renderActiveFeature = () => {
