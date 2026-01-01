@@ -302,7 +302,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
         </div>
         
         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-          <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('pose.orTitle')}</h3>
+          <h3 className="text-base md:text-lg font-semibold text-center text-amber-400 mb-4">{t('pose.orTitle')}</h3>
           <div className="flex flex-col gap-4">
             <div>
               <label htmlFor="pose-prompt" className="block text-sm font-medium text-zinc-300 mb-2">{t('pose.customPoseLabel')}</label>
@@ -413,7 +413,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
           ) : (
             <div className="text-center text-zinc-500 pointer-events-none">
               <ImageIcon className="mx-auto h-16 w-16" />
-              <h3 className="mt-4 text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
+              <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
               <p className="mt-1 text-sm">{t('common.outputPanelDescription')}</p>
             </div>
           )}

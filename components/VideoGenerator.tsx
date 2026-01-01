@@ -240,7 +240,7 @@ export const VideoGenerator: React.FC = () => {
                 </div>
 
                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
-                    <h3 className="text-lg font-semibold text-center text-amber-400">{t('videoAI.step1')}</h3>
+                    <h3 className="text-base md:text-lg font-semibold text-center text-amber-400">{t('videoAI.step1')}</h3>
                     <div className="grid grid-cols-2 gap-4 items-center">
                         <ImageUploader image={faceImage} onImageUpload={(file) => {setFaceImage(file); if(file) addImage(file)}} title={t('videoAI.faceImageTitle')} id="video-face-upload" />
                         <div>
@@ -254,7 +254,7 @@ export const VideoGenerator: React.FC = () => {
                 </div>
 
                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
-                     <h3 className="text-lg font-semibold text-center text-amber-400">{t('videoAI.step2')}</h3>
+                     <h3 className="text-base md:text-lg font-semibold text-center text-amber-400">{t('videoAI.step2')}</h3>
                     <div>
                         <label htmlFor="scene-desc" className="block text-sm font-medium text-zinc-300 mb-2">{t('videoAI.sceneDescriptionLabel')}</label>
                         <textarea id="scene-desc" value={sceneDescription} onChange={e => setSceneDescription(e.target.value)} rows={5} placeholder={t('videoAI.sceneDescriptionPlaceholder')} className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-2 text-zinc-200" />
@@ -334,7 +334,7 @@ export const VideoGenerator: React.FC = () => {
                     ) : (
                         <div className="text-center text-zinc-500 pointer-events-none p-4">
                             <FilmIcon className="mx-auto h-16 w-16" />
-                            <h3 className="mt-4 text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
+                            <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
                             <p className="mt-1 text-sm">{t('videoAI.outputPanelDescription')}</p>
                         </div>
                     )}

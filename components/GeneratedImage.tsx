@@ -42,7 +42,7 @@ const GeneratedImage: React.FC<GeneratedImageProps> = ({
             </div>
             <div className="flex-shrink-0 bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4">
                 <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold text-emerald-400">{t('generatedImage.refineLabel')}</h3>
+                    <h3 className="text-base md:text-lg font-semibold text-emerald-400">{t('generatedImage.refineLabel')}</h3>
                     <div className="flex items-center gap-2">
                         <button onClick={onUndo} disabled={!canUndo} aria-label={t('generatedImage.undoAria')} className="p-2 rounded-full bg-slate-700 text-white hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                             <UndoIcon className="w-5 h-5" />
