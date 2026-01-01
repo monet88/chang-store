@@ -12,12 +12,31 @@ interface HeaderProps {
   activeFeature: Feature;
   setActiveFeature: (feature: Feature) => void;
   onOpenSettings: () => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeFeature, setActiveFeature, onOpenSettings }) => {
+const Header: React.FC<HeaderProps> = ({ activeFeature, setActiveFeature, onOpenSettings, isOpen, onClose }) => {
   const { t } = useLanguage();
   return (
-    <aside className="fixed top-0 left-0 z-30 h-screen w-72 flex flex-col p-4 bg-slate-950/80 backdrop-blur-2xl border-r border-slate-800 shadow-2xl">
+    <aside className={`
+      fixed top-0 left-0 z-30 h-screen w-72 flex flex-col p-4
+      bg-slate-950/80 backdrop-blur-2xl border-r border-slate-800 shadow-2xl
+      transition-transform duration-300 ease-in-out
+      ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+      lg:translate-x-0
+    `}>
+      {/* Close button for mobile */}
+      <button
+        onClick={onClose}
+        className="lg:hidden absolute top-4 right-4 p-1 text-slate-400 hover:text-white transition-colors"
+        aria-label="Close menu"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
       <div className="flex-shrink-0 text-center mb-4">
         <div className="flex items-center justify-center gap-2">
             <GalleryIcon className="w-8 h-8 text-emerald-400" />
