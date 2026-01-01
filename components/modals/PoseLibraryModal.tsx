@@ -89,7 +89,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[60] flex flex-col p-4 sm:p-6 lg:p-8 animate-fade-in" role="dialog" aria-modal="true">
             <header className="flex-shrink-0 flex items-center justify-between pb-4 border-b border-slate-700">
                 <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white">{t('poseModal.title')}</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-white">{t('poseModal.title')}</h2>
                     <p className="text-sm text-slate-400">{t('poseModal.description')}</p>
                 </div>
                 <button
