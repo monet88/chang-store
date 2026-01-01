@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ImageFile, AnalyzedItem, Feature, AspectRatio } from '../types';
+import { ImageFile, AnalyzedItem, Feature, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '../services/imageEditingService';
 import { analyzeOutfit } from '../services/gemini/text';
 import type { RedesignPreset } from '../services/gemini/image';
@@ -12,7 +12,7 @@ import Spinner from './Spinner';
 import HoverableImage from './HoverableImage';
 import { getErrorMessage } from '../utils/imageUtils';
 import { BackIcon, CloseIcon, LayoutIcon, ReloadIcon, VisibleIcon } from './Icons';
-import AspectRatioSelector from './AspectRatioSelector';
+import ImageOptionsPanel from './ImageOptionsPanel';
 
 interface RedesignResult {
     preset: RedesignPreset;
@@ -47,6 +47,7 @@ const OutfitAnalysis: React.FC = () => {
     const [selectedPresets, setSelectedPresets] = useState<RedesignPreset[]>([]);
     const [generationCount, setGenerationCount] = useState(1);
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+    const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
     
     const [isLoading, setIsLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
@@ -376,7 +377,11 @@ const OutfitAnalysis: React.FC = () => {
                                 </div>
                             </div>
 
-                            <AspectRatioSelector aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+                            <ImageOptionsPanel
+                              aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                              resolution={resolution} setResolution={setResolution}
+                              model={imageEditModel}
+                            />
                             
                             <div className="pt-4 border-t border-zinc-700/50">
                                 <button onClick={handleGenerateRedesigns} disabled={isLoading || selectedPresets.length === 0} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-6 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105 flex items-center justify-center">

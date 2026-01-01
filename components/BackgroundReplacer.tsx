@@ -5,13 +5,13 @@ import Spinner, { ErrorDisplay } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generateImageDescription } from '../services/gemini/text';
-import { Feature, ImageFile, AspectRatio } from '../types';
+import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { GalleryIcon, MagicWandIcon } from './Icons';
-import AspectRatioSelector from './AspectRatioSelector';
+import ImageOptionsPanel from './ImageOptionsPanel';
 
 const BackgroundReplacer: React.FC = () => {
   const { t } = useLanguage();
@@ -36,6 +36,7 @@ const BackgroundReplacer: React.FC = () => {
   const [negativePrompt, setNegativePrompt] = useState('');
   const [cameraView, setCameraView] = useState<string>('fullBody');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+  const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
   const { addImage } = useImageGallery();
   
   const PREDEFINED_BG_KEYS = ['studioMirrorChair', 'sofaMirrorCurtain', 'curvedSofaCurtain'];
@@ -316,7 +317,11 @@ const BackgroundReplacer: React.FC = () => {
                     ))}
                 </div>
             </div>
-             <AspectRatioSelector aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+             <ImageOptionsPanel
+               aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+               resolution={resolution} setResolution={setResolution}
+               model={imageEditModel}
+             />
         </div>
 
         <div className="text-center pt-2">

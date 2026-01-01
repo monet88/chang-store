@@ -119,7 +119,7 @@ const AppContent: React.FC = () => {
       <div className="flex h-screen bg-transparent overflow-hidden">
         <Header activeFeature={activeFeature} setActiveFeature={setActiveFeature} onOpenSettings={handleOpenSettings} />
         <div className="flex-1 flex flex-col ml-72 h-screen overflow-hidden">
-          <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-4 overflow-hidden">
+          <main className="flex-1 w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 overflow-hidden">
             <div className="relative bg-slate-900/70 backdrop-blur-2xl p-4 sm:p-6 rounded-2xl shadow-2xl shadow-black/20 border border-slate-800 h-full overflow-y-auto">
               <Suspense fallback={<FeatureLoadingFallback />}>
                 {renderActiveFeature()}
