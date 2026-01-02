@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { recreateImageWithFace } from '../services/imageEditingService';
 import { generateStylePromptFromImage } from '../services/gemini/text';
@@ -15,7 +14,6 @@ import ImageOptionsPanel from './ImageOptionsPanel';
 
 const SwapFace: React.FC = () => {
     const { t } = useLanguage();
-    const { addImage } = useImageGallery();
     const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.SwapFace);
     const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
@@ -93,7 +91,6 @@ const SwapFace: React.FC = () => {
                 resolution
             );
             setGeneratedImage(result);
-            addImage(result);
         } catch (err) {
             setError(getErrorMessage(err, t));
         } finally {
@@ -113,13 +110,13 @@ const SwapFace: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <ImageUploader
                         image={styleImage}
-                        onImageUpload={(file) => { setStyleImage(file); if (file) addImage(file); }}
+                        onImageUpload={setStyleImage}
                         title={t('swapFace.styleImageTitle')}
                         id="recreation-style-upload"
                     />
                     <ImageUploader
                         image={faceImage}
-                        onImageUpload={(file) => { setFaceImage(file); if (file) addImage(file); }}
+                        onImageUpload={setFaceImage}
                         title={t('swapFace.faceImageTitle')}
                         id="recreation-face-upload"
                     />

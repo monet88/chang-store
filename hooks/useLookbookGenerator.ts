@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import { Feature, ImageFile, AspectRatio } from '../types';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -79,7 +78,6 @@ export const useLookbookGenerator = () => {
     const [variationCount, setVariationCount] = useState<number>(2);
     const [activeOutputTab, setActiveOutputTab] = useState<'main' | 'variations' | 'closeup'>('main');
 
-    const { addImage } = useImageGallery();
     const { t } = useLanguage();
     const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Lookbook);
@@ -169,7 +167,6 @@ export const useLookbookGenerator = () => {
           }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
           if (results.length > 0) {
             setGeneratedLookbook({ main: results[0], variations: [], closeups: [] });
-            results.forEach(addImage);
             setActiveOutputTab('main');
           }
         } catch (err) {
@@ -204,7 +201,6 @@ export const useLookbookGenerator = () => {
                 }
                 return newState;
             });
-            addImage(result);
         } catch (err) {
           setError(getErrorMessage(err, t));
         } finally {
@@ -231,7 +227,6 @@ export const useLookbookGenerator = () => {
                 negativePrompt: formState.negativePrompt, 
                 numberOfImages: variationCount 
             }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
-            newVariations.forEach(addImage);
             setGeneratedLookbook(prev => prev ? { ...prev, variations: newVariations } : null);
         } catch (err) {
           setError(getErrorMessage(err, t));

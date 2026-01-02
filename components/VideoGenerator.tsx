@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Feature, ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { analyzeScene } from '../services/gemini/text';
 import { enforceVisualPreservation, fuseStyleForCompactPrompt, generateVideoSceneSuggestions, enhanceSceneDescription } from '../services/gemini/video';
 import { generateVideo } from '../services/imageEditingService';
@@ -71,7 +70,6 @@ const STYLE_PRESETS = {
 
 export const VideoGenerator: React.FC = () => {
     const { t, language } = useLanguage();
-    const { addImage } = useImageGallery();
     const { getModelsForFeature, aivideoautoAccessToken, aivideoautoVideoModels } = useApi();
     const { videoGenerateModel } = getModelsForFeature(Feature.Video);
 
@@ -242,7 +240,7 @@ export const VideoGenerator: React.FC = () => {
                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
                     <h3 className="text-base md:text-lg font-semibold text-center text-amber-400">{t('videoAI.step1')}</h3>
                     <div className="grid grid-cols-2 gap-4 items-center">
-                        <ImageUploader image={faceImage} onImageUpload={(file) => { setFaceImage(file); if (file) addImage(file) }} title={t('videoAI.faceImageTitle')} id="video-face-upload" />
+                        <ImageUploader image={faceImage} onImageUpload={setFaceImage} title={t('videoAI.faceImageTitle')} id="video-face-upload" />
                         <div>
                             <label className="block text-sm font-medium text-zinc-300 mb-2">{t('videoAI.gender')}</label>
                             <div className="flex gap-2">

@@ -112,7 +112,6 @@ const SimpleImageUploader: React.FC<{
     title: string;
 }> = ({ image, onUpload, title }) => {
     const inputRef = useRef<HTMLInputElement>(null);
-    const { addImage } = useImageGallery();
 
     const processFile = (file: File) => {
         if (file && file.type.startsWith('image/')) {
@@ -121,7 +120,6 @@ const SimpleImageUploader: React.FC<{
                 const base64String = (reader.result as string).split(',')[1];
                 const newImage = { base64: base64String, mimeType: file.type };
                 onUpload(newImage);
-                addImage(newImage);
             };
             reader.readAsDataURL(file);
         }
@@ -1218,7 +1216,6 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
                 const base64String = (reader.result as string).split(',')[1];
                 const newImage = { base64: base64String, mimeType: file.type };
                 loadNewImage(newImage);
-                addImage(newImage);
                 setView('editor');
             };
             reader.readAsDataURL(file);

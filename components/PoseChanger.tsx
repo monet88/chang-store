@@ -6,7 +6,6 @@ import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generatePoseDescription } from '../services/gemini/text';
 import { Feature, ImageFile, PoseCollection, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -55,7 +54,6 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
-  const { addImage } = useImageGallery();
   const { t } = useLanguage();
   const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Pose);
@@ -152,7 +150,6 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
           resolution,
         }, imageEditModel, buildImageServiceConfig((msg) => setGenerationStatus(prev => ({ ...prev, message: msg }))));
         setGeneratedImages([result]);
-        addImage(result);
       } catch (err) {
         setError(getErrorMessage(err, t));
       } finally {
@@ -203,7 +200,6 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
           }, imageEditModel, buildImageServiceConfig((msg) => setGenerationStatus(prev => ({ ...prev, message: `${t('pose.generatingStatusMultiple', { progress: prev.progress, total: prev.total })} - ${msg}` }))));
           results.push(result);
           setGeneratedImages([...results]); // Update UI incrementally
-          addImage(result);
         } catch (err) {
           const errorMessage = t('pose.batchError', {
             index: index + 1,
@@ -230,7 +226,6 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
         buildImageServiceConfig(() => { })
       );
       setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
-      addImage(result);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -241,7 +236,6 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
   const handlePoseReferenceUpload = (file: ImageFile | null) => {
     setPoseReferenceImage(file);
     if (file) {
-      addImage(file);
       setSelectedLibraryPoses([]); // Clear library selection
     }
   }
@@ -280,7 +274,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
           <h2 className="text-xl md:text-2xl font-bold text-center">{t('pose.title')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ImageUploader image={subjectImage} id="pose-subject-upload" title={t('pose.subjectUploadTitle')} onImageUpload={(file) => { setSubjectImage(file); if (file) addImage(file); }} />
+            <ImageUploader image={subjectImage} id="pose-subject-upload" title={t('pose.subjectUploadTitle')} onImageUpload={setSubjectImage} />
             <div>
               <ImageUploader image={poseReferenceImage} id="pose-reference-upload" title={t('pose.referenceUploadTitle')} onImageUpload={handlePoseReferenceUpload} />
               <div className="text-center mt-2">

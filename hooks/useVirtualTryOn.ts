@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Feature, ImageFile } from '../types';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -24,8 +23,7 @@ export const useVirtualTryOn = () => {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<ImageFile[]>([]);
-  
-  const { addImage } = useImageGallery();
+
   const { t } = useLanguage();
   const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.TryOn);
@@ -68,7 +66,6 @@ export const useVirtualTryOn = () => {
         buildImageServiceConfig(setLoadingMessage)
       );
       setGeneratedImages(results);
-      results.forEach(addImage);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -89,7 +86,6 @@ export const useVirtualTryOn = () => {
             buildImageServiceConfig(() => {})
         );
         setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
-        addImage(result);
     } catch (err) {
         setError(getErrorMessage(err, t));
     } finally {
@@ -99,7 +95,6 @@ export const useVirtualTryOn = () => {
 
   const handleClothingUpload = (file: ImageFile | null, id: number) => {
     setClothingItems(items => items.map(item => item.id === id ? { ...item, image: file } : item));
-    if(file) addImage(file);
   };
   const addClothingUploader = () => setClothingItems(prev => [...prev, { id: Date.now(), image: null }]);
   const removeClothingUploader = (id: number) => setClothingItems(prev => prev.filter(item => item.id !== id));

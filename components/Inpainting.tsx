@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -15,7 +14,6 @@ type Tool = 'rectangle' | 'brush' | 'eraser';
 
 const Inpainting: React.FC = () => {
     const { t } = useLanguage();
-    const { addImage } = useImageGallery();
     const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Inpainting);
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
@@ -344,7 +342,6 @@ const Inpainting: React.FC = () => {
                 buildImageServiceConfig(() => { })
             );
             setResultImage(result);
-            addImage(result);
             if (!isMaskEmpty) {
                 setLastMask(activeMaskDataUrl);
             }
@@ -368,7 +365,6 @@ const Inpainting: React.FC = () => {
                         image={image}
                         onImageUpload={(file) => {
                             setImage(file);
-                            if (file) addImage(file);
                             handleClearMask();
                         }}
                         title={t('inpainting.uploadTitle')}

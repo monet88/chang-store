@@ -6,7 +6,6 @@ import Spinner, { ErrorDisplay } from './Spinner';
 import ImageComparator from './ImageComparator';
 import { upscaleImage } from '../services/imageEditingService';
 import { Feature, ImageFile } from '../types';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -24,7 +23,6 @@ const Upscale: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const { addImage } = useImageGallery();
   const { t } = useLanguage();
   const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Upscale);
@@ -63,7 +61,6 @@ const Upscale: React.FC = () => {
         buildImageServiceConfig(setLoadingMessage)
       );
       setGeneratedImage(result);
-      addImage(result);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -85,7 +82,7 @@ const Upscale: React.FC = () => {
             image={uploadedImage}
             id="upscale-upload"
             title={t('upscale.uploadTitle')}
-            onImageUpload={(file) => { setUploadedImage(file); if (file) addImage(file); }}
+            onImageUpload={setUploadedImage}
           />
         </div>
 

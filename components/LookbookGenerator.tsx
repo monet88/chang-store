@@ -6,7 +6,6 @@ import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generateClothingDescription } from '../services/gemini/text';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { en } from '../locales/en';
@@ -82,7 +81,6 @@ export const LookbookGenerator: React.FC = () => {
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
     const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
-    const { addImage } = useImageGallery();
     const { t } = useLanguage();
     const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Lookbook);
@@ -110,7 +108,6 @@ export const LookbookGenerator: React.FC = () => {
     const handleClothingUpload = (file: ImageFile | null, id: number) => {
         const newClothingImages = clothingImages.map(item => item.id === id ? { ...item, image: file } : item);
         updateForm({ clothingImages: newClothingImages });
-        if (file) addImage(file);
     };
     const addClothingUploader = () => updateForm({ clothingImages: [...clothingImages, { id: Date.now(), image: null }] });
     const removeClothingUploader = (id: number) => updateForm({ clothingImages: clothingImages.filter(item => item.id !== id) });
@@ -444,7 +441,6 @@ Absolute priorities:
             }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
             if (results.length > 0) {
                 setGeneratedLookbook({ main: results[0], variations: [], closeups: [] });
-                results.forEach(addImage);
                 setActiveOutputTab('main');
             }
         } catch (err) {
@@ -479,7 +475,6 @@ Absolute priorities:
                 }
                 return newState;
             });
-            addImage(result);
         } catch (err) {
             setError(getErrorMessage(err, t));
         } finally {
@@ -523,7 +518,6 @@ Absolute priorities:
                 aspectRatio,
                 resolution,
             }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
-            newVariations.forEach(addImage);
             setGeneratedLookbook(prev => prev ? { ...prev, variations: newVariations } : null);
         } catch (err) {
             setError(getErrorMessage(err, t));
@@ -572,7 +566,6 @@ Absolute priorities:
 
                 results.push(result);
                 setGeneratedLookbook(prev => prev ? { ...prev, closeups: [...results] } : null);
-                addImage(result);
             }
         } catch (err) {
             setError(getErrorMessage(err, t));
@@ -659,7 +652,7 @@ Absolute priorities:
                                 image={fabricTextureImage}
                                 id="fabric-texture-upload"
                                 title={t('lookbook.fabricTextureUploadTitle')}
-                                onImageUpload={(file) => { updateForm({ fabricTextureImage: file }); if (file) addImage(file); }}
+                                onImageUpload={(file) => { updateForm({ fabricTextureImage: file }); }}
                             />
                         </Tooltip>
                         <Tooltip content={t('tooltips.lookbookFabricDescription')} position="left" className="w-full">

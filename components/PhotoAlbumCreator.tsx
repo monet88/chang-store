@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
 import ImageUploader from './ImageUploader';
@@ -20,7 +19,6 @@ interface GeneratedAlbumImage extends ImageFile {
 
 export const PhotoAlbumCreator: React.FC = () => {
     const { t } = useLanguage();
-    const { addImage } = useImageGallery();
     const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.PhotoAlbum);
     const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
@@ -149,7 +147,6 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                 const [result] = await editImage({ images: imagesForApi, prompt, numberOfImages: 1, aspectRatio, resolution }, imageEditModel, buildImageServiceConfig(setGenerationStatus));
                 newImages.push({ ...result, pose });
                 setGeneratedImages([...newImages]);
-                addImage(result);
             } catch (err) {
                 setError(t('photoAlbum.error.generationFailed', { pose, error: getErrorMessage(err, t) }));
                 setIsLoading(false);
@@ -199,11 +196,11 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                     </div>
 
                     {mode === 'fullModel' ? (
-                        <ImageUploader image={originalPhoto} onImageUpload={(f) => { setOriginalPhoto(f); if (f) addImage(f); }} title={t('photoAlbum.originalPhoto')} id="pa-original" />
+                        <ImageUploader image={originalPhoto} onImageUpload={setOriginalPhoto} title={t('photoAlbum.originalPhoto')} id="pa-original" />
                     ) : (
                         <div className="grid grid-cols-2 gap-4">
-                            <ImageUploader image={faceImage} onImageUpload={(f) => { setFaceImage(f); if (f) addImage(f); }} title={t('photoAlbum.faceImage')} id="pa-face" />
-                            <ImageUploader image={outfitImage} onImageUpload={(f) => { setOutfitImage(f); if (f) addImage(f); }} title={t('photoAlbum.outfitImage')} id="pa-outfit" />
+                            <ImageUploader image={faceImage} onImageUpload={setFaceImage} title={t('photoAlbum.faceImage')} id="pa-face" />
+                            <ImageUploader image={outfitImage} onImageUpload={setOutfitImage} title={t('photoAlbum.outfitImage')} id="pa-outfit" />
                         </div>
                     )}
                 </div>
