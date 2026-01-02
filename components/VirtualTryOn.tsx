@@ -187,7 +187,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
       {/* Left panel - scrollable input section */}
       <div className="flex flex-col gap-6">
         <h2 className="text-xl md:text-2xl font-bold text-center flex-shrink-0">{t('virtualTryOn.title')}</h2>
@@ -201,7 +201,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
             <div className="flex flex-col gap-3">
               {clothingItems.map((item, index) => (
                 <div key={item.id} className="relative group">
-                  <Tooltip content={t('tooltips.tryOnClothing')} position="left">
+                  <Tooltip content={t('tooltips.tryOnClothing')} position="top">
                     <ImageUploader image={item.image} id={`clothing-${item.id}`} title={t('virtualTryOn.clothingItemTitle', { index: index + 1 })} onImageUpload={(file) => handleClothingUpload(file, item.id)} />
                   </Tooltip>
                   {clothingItems.length > 1 && <button onClick={() => removeClothingUploader(item.id)} className="absolute -top-2 -right-2 z-10 p-1 bg-red-600 rounded-full text-white hover:bg-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><DeleteIcon className="w-4 h-4" /></button>}
@@ -308,7 +308,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
               <h3 className="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 flex-shrink-0">
                 {t('generatedImage.outputTitle')}
               </h3>
-              <div className={`grid ${getGridColsClass(generatedImages.length)} gap-4 w-full flex-1 min-h-0 overflow-y-auto pr-2`}>
+              <div className={`grid ${getGridColsClass(generatedImages.length)} gap-4 w-full flex-1 min-h-0 ${generatedImages.length > 2 ? 'overflow-y-auto pr-2' : 'overflow-hidden'}`}>
                 {generatedImages.map((image, index) => (
                   <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
                     <HoverableImage

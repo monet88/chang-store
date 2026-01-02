@@ -106,10 +106,10 @@ export const PhotoAlbumCreator: React.FC = () => {
             let imageRolesPrompt = '';
             if (mode === 'fullModel' && originalPhoto) {
                 imagesForApi.push(originalPhoto);
-                imageRolesPrompt = "**Image Role**: The provided image ('Source Image') contains the model, their outfit, and potentially a background. Your task is to extract the model and their clothing, then place them in a new scene.";
+                imageRolesPrompt = "**Image Role**: The provided image ('Source Image') contains the model, their outfit, footwear, and potentially a background. Your task is to extract the model, their clothing, and footwear, then place them in a new scene.";
             } else if (mode === 'faceAndOutfit' && faceImage && outfitImage) {
                 imagesForApi.push(faceImage, outfitImage);
-                imageRolesPrompt = "**Image Roles**:\n- **Image 1 ('Face Reference')**: Provides the model's face, hair, and skin tone. This is the source of truth for identity.\n- **Image 2 ('Outfit Image')**: Provides the clothing to be worn by the model.";
+                imageRolesPrompt = "**Image Roles**:\n- **Image 1 ('Face Reference')**: Provides the model's face, hair, and skin tone. This is the source of truth for identity.\n- **Image 2 ('Outfit Image')**: Provides the clothing and footwear to be worn by the model.";
             }
 
             const framingInstruction = cameraView !== 'default'
@@ -125,8 +125,8 @@ ${imageRolesPrompt}
 ## 2. CRITICAL RULES (MUST FOLLOW)
 - **Identity Preservation**: Flawlessly preserve the person’s facial features, hairstyle, and skin tone from the reference image. The resemblance must be perfect.
 - **Outfit Application**:
-    - If using 'Face Reference' and 'Outfit Image', dress the model in the complete outfit from the 'Outfit Image'. Preserve the outfit's design, color, texture, and fit with 100% accuracy.
-    - If using a single 'Source Image', use the outfit the model is already wearing.
+    - If using 'Face Reference' and 'Outfit Image', dress the model in the complete outfit and footwear from the 'Outfit Image'. Preserve the outfit and footwear design, color, texture, and fit with 100% accuracy.
+    - If using a single 'Source Image', use the outfit and footwear the model is already wearing. Ensure the footwear matches the original image exactly.
 - **New Pose**: The model's new pose MUST be: "${pose}".
 - **Model Details**:
     - **Hair Style**: ${HAIR_STYLES[hairStyle]}
@@ -184,7 +184,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
             {/* Left Column: Inputs */}
             <div className="flex flex-col gap-6">
                 <div className="text-center">

@@ -25,7 +25,7 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useState<Language>('vi');
 
   const t = useCallback((key: string, options?: { [key: string]: string | number } | { returnObjects: true }): any => {
     const langDict = translations[language];

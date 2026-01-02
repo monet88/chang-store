@@ -604,7 +604,7 @@ Absolute priorities:
     const validClothingImages = clothingImages.filter(item => item.image !== null);
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
             {/* --- Left Column: Inputs & Controls --- */}
             <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-center text-center gap-4">
@@ -620,7 +620,7 @@ Absolute priorities:
                     <div className="grid grid-cols-2 gap-4">
                         {clothingImages.map((item, index) => (
                             <div key={item.id} className="relative group">
-                                <Tooltip content={t('tooltips.lookbookClothing')} position="bottom">
+                                <Tooltip content={t('tooltips.lookbookClothing')} position="top">
                                     <ImageUploader
                                         image={item.image}
                                         id={`clothing-${item.id}`}
@@ -866,7 +866,7 @@ Absolute priorities:
                             </div>
 
                             {/* Tab Content */}
-                            <div className="flex-grow relative overflow-y-auto">
+                            <div className={`flex-grow relative ${activeOutputTab === 'main' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                                 {activeOutputTab === 'main' && (
                                     <div className="animate-fade-in">
                                         <HoverableImage

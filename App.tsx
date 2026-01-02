@@ -139,8 +139,8 @@ const AppContent: React.FC = () => {
         <MobileMenuButton onClick={handleToggleSidebar} />
         <MobileOverlay isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
         <div className="flex-1 flex flex-col ml-0 lg:ml-72 h-screen overflow-hidden">
-          <main className="flex-1 w-full max-w-[1920px] mx-auto px-1 sm:px-4 lg:px-8 py-2 sm:py-4 overflow-x-hidden">
-            <div className="relative bg-slate-900/70 backdrop-blur-2xl p-3 sm:p-6 rounded-2xl shadow-2xl shadow-black/20 border border-slate-800 h-full overflow-y-auto overflow-x-hidden">
+          <main className="flex-1 w-full max-w-[1920px] mx-auto px-1 sm:px-4 lg:px-8 py-2 sm:py-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
+            <div className="relative bg-slate-900/70 backdrop-blur-2xl p-3 sm:p-6 rounded-2xl shadow-2xl shadow-black/20 border border-slate-800 min-h-full overflow-x-hidden">
               <Suspense fallback={<FeatureLoadingFallback />}>
                 {renderActiveFeature()}
               </Suspense>
