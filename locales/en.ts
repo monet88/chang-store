@@ -48,6 +48,14 @@ export const en = {
     upscale: 'Upscale',
     download: 'Download',
     edit: 'Edit',
+    saveToGallery: 'Save to Gallery',
+    savedToGallery: 'Saved',
+    saveAllToGallery: 'Save All',
+  },
+  toast: {
+    imageSaved: 'Image saved to Gallery',
+    imagesSaved: '{{count}} images saved to Gallery',
+    alreadySaved: 'Image already in Gallery',
   },
   common: {
     generationFailed: 'Generation Failed',

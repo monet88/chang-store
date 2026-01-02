@@ -50,6 +50,14 @@ export const vi: Translation = {
     upscale: 'Nâng cấp',
     download: 'Tải xuống',
     edit: 'Chỉnh sửa',
+    saveToGallery: 'Lưu vào Gallery',
+    savedToGallery: 'Đã lưu',
+    saveAllToGallery: 'Lưu tất cả',
+  },
+  toast: {
+    imageSaved: 'Đã lưu ảnh vào Gallery',
+    imagesSaved: 'Đã lưu {{count}} ảnh vào Gallery',
+    alreadySaved: 'Ảnh đã có trong Gallery',
   },
   common: {
     generationFailed: 'Tạo ảnh thất bại',
