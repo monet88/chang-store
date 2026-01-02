@@ -16,7 +16,7 @@ const QualitySelector: React.FC<QualitySelectorProps> = ({ quality, setQuality }
                   key={q}
                   onClick={() => setQuality(q)}
                   className={`px-4 py-1.5 text-sm font-semibold rounded-md capitalize transition-colors duration-200 ${
-                      quality === q ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
+                      quality === q ? 'bg-amber-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
                   }`}
               >
                   {q}

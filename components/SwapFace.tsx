@@ -38,7 +38,7 @@ const SwapFace: React.FC = () => {
     const [generatedImage, setGeneratedImage] = useState<ImageFile | null>(null);
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
     const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
-    
+
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -84,12 +84,13 @@ const SwapFace: React.FC = () => {
 
         try {
             const result = await recreateImageWithFace(
-                generatedPrompt, 
-                faceImage, 
+                generatedPrompt,
+                faceImage,
                 styleImage,
                 imageEditModel,
-                buildImageServiceConfig(() => {}),
-            aspectRatio
+                buildImageServiceConfig(() => { }),
+                aspectRatio,
+                resolution
             );
             setGeneratedImage(result);
             addImage(result);
@@ -101,31 +102,31 @@ const SwapFace: React.FC = () => {
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
             {/* Left Column: Inputs */}
             <div className="flex flex-col gap-6">
                 <div className="text-center">
                     <h2 className="text-xl md:text-2xl font-bold mb-1">{t('tabs.swapFace')}</h2>
                     <p className="text-zinc-400 max-w-xl mx-auto">{t('swapFace.description')}</p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <ImageUploader 
-                        image={styleImage} 
-                        onImageUpload={(file) => { setStyleImage(file); if (file) addImage(file); }} 
-                        title={t('swapFace.styleImageTitle')} 
+                    <ImageUploader
+                        image={styleImage}
+                        onImageUpload={(file) => { setStyleImage(file); if (file) addImage(file); }}
+                        title={t('swapFace.styleImageTitle')}
                         id="recreation-style-upload"
                     />
-                    <ImageUploader 
-                        image={faceImage} 
-                        onImageUpload={(file) => { setFaceImage(file); if (file) addImage(file); }} 
-                        title={t('swapFace.faceImageTitle')} 
+                    <ImageUploader
+                        image={faceImage}
+                        onImageUpload={(file) => { setFaceImage(file); if (file) addImage(file); }}
+                        title={t('swapFace.faceImageTitle')}
                         id="recreation-face-upload"
                     />
                 </div>
 
                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
-                    <button 
+                    <button
                         onClick={handleAnalyzeStyle}
                         disabled={!styleImage || isAnalyzing}
                         className="w-full flex items-center justify-center gap-2 bg-zinc-700/80 text-zinc-200 font-semibold py-2.5 px-4 rounded-lg hover:bg-zinc-700 transition-colors duration-200 disabled:opacity-50"
@@ -146,16 +147,16 @@ const SwapFace: React.FC = () => {
                         />
                     </div>
                     <ImageOptionsPanel
-                      aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
-                      resolution={resolution} setResolution={setResolution}
-                      model={imageEditModel}
+                        aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                        resolution={resolution} setResolution={setResolution}
+                        model={imageEditModel}
                     />
                 </div>
-                
+
                 <div className="text-center">
-                    <button 
-                        onClick={handleGenerate} 
-                        disabled={isLoading || !generatedPrompt.trim() || !faceImage} 
+                    <button
+                        onClick={handleGenerate}
+                        disabled={isLoading || !generatedPrompt.trim() || !faceImage}
                         className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105"
                     >
                         {isLoading ? <Spinner /> : t('swapFace.generateButton')}
@@ -164,8 +165,8 @@ const SwapFace: React.FC = () => {
             </div>
 
             {/* Right Column: Output */}
-            <div className="sticky top-8">
-                <div className="relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-4 min-h-[50vh] lg:min-h-0 lg:aspect-[4/5]">
+            <div className="lg:sticky lg:top-8">
+                <div className="relative w-full min-h-[400px] lg:min-h-0 lg:aspect-[4/5] bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-2 sm:p-4">
                     {isLoading ? (
                         <div className="text-center">
                             <Spinner />
@@ -176,9 +177,9 @@ const SwapFace: React.FC = () => {
                             <ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} />
                         </div>
                     ) : generatedImage ? (
-                        <HoverableImage 
-                            image={generatedImage} 
-                            altText="Generated recreation image" 
+                        <HoverableImage
+                            image={generatedImage}
+                            altText="Generated recreation image"
                             onRegenerate={handleGenerate}
                             isGenerating={isLoading}
                         />

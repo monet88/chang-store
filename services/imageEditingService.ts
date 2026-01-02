@@ -1,5 +1,5 @@
 
-import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, VideoGenerateModel, AIVideoAutoModel } from '../types';
+import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, VideoGenerateModel, AIVideoAutoModel, ImageResolution } from '../types';
 import * as geminiImageService from './gemini/image';
 import * as geminiTextService from './gemini/text';
 import * as geminiVideoService from './gemini/video';
@@ -98,21 +98,22 @@ export const critiqueAndRedesignOutfit = async (
   numberOfImages: number = 1,
   model: ImageEditModel,
   config: ApiConfig,
-  aspectRatio: AspectRatio = 'Default'
+  aspectRatio: AspectRatio = 'Default',
+  resolution?: ImageResolution
 ): Promise<{ critique: string; redesignedImages: ImageFile[] }> => {
     const fullPrompt = geminiImageService.PRESET_PROMPTS[preset];
-    const params: EditImageParams = { images: [image], prompt: fullPrompt, numberOfImages, aspectRatio };
+    const params: EditImageParams = { images: [image], prompt: fullPrompt, numberOfImages, aspectRatio, resolution };
 
     if (model.startsWith('aivideoauto--')) {
         config.onStatusUpdate('Generating critique with Gemini...');
         const critiquePrompt = `You are a professional fashion stylist. Based on the provided image, generate ONLY the text critique part of the following instruction. DO NOT generate an image or mention that you will. ONLY provide the text. \n\nINSTRUCTION:\n${fullPrompt}`;
         const critique = await geminiTextService.generateText(critiquePrompt);
-        
+
         const redesignedImages = await editImage(params, model, config);
         return { critique, redesignedImages };
     }
-    
-    return geminiImageService.critiqueAndRedesignOutfit(image, preset, numberOfImages, model, aspectRatio);
+
+    return geminiImageService.critiqueAndRedesignOutfit(image, preset, numberOfImages, model, aspectRatio, resolution);
 };
 
 export const recreateImageWithFace = async (
@@ -121,7 +122,8 @@ export const recreateImageWithFace = async (
     styleImage: ImageFile,
     model: ImageEditModel,
     config: ApiConfig,
-    aspectRatio?: AspectRatio
+    aspectRatio?: AspectRatio,
+    resolution?: ImageResolution
 ): Promise<ImageFile> => {
     const finalPrompt = `
 # INSTRUCTION: IMAGE RECREATION WITH NEW SUBJECT
@@ -146,10 +148,10 @@ export const recreateImageWithFace = async (
             '4:3': 4 / 3,
             '3:4': 3 / 4,
         };
-        
+
         let closestRatioKey: AspectRatio = 'Default';
         let minDiff = Infinity;
-        
+
         for (const key in ratios) {
             const diff = Math.abs(ratio - ratios[key]);
             if (diff < minDiff) {
@@ -157,13 +159,13 @@ export const recreateImageWithFace = async (
                 closestRatioKey = key as AspectRatio;
             }
         }
-        
+
         if (minDiff < 0.1) {
             finalAspectRatio = closestRatioKey;
         }
     }
-    
-    const [result] = await editImage({ images: [faceImage], prompt: finalPrompt, numberOfImages: 1, aspectRatio: finalAspectRatio }, model, config);
+
+    const [result] = await editImage({ images: [faceImage], prompt: finalPrompt, numberOfImages: 1, aspectRatio: finalAspectRatio, resolution }, model, config);
     if (!result) throw new Error('Image recreation failed to produce a result.');
     return result;
 };

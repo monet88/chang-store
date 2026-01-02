@@ -110,7 +110,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                                 onClick={() => handleCollectionChange(collection.title)}
                                 className={`w-full text-left p-3 rounded-lg text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${
                                     activeCollectionTitle === collection.title
-                                        ? 'bg-emerald-600 text-white'
+                                        ? 'bg-amber-600 text-white'
                                         : 'text-slate-300 hover:bg-slate-700/50'
                                 }`}
                             >
@@ -133,7 +133,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                                     onClick={() => togglePoseSelection(currentPose.label)}
                                     className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 font-bold py-2 px-6 rounded-full transition-all duration-200 text-sm shadow-lg ${
                                         selectedPoses.includes(currentPose.label)
-                                        ? 'bg-emerald-500 text-slate-900'
+                                        ? 'bg-amber-500 text-slate-900'
                                         : 'bg-slate-800/80 text-white hover:bg-slate-700'
                                     }`}
                                 >
@@ -143,7 +143,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                         </div>
                     </div>
                     <aside className="w-full lg:w-64 xl:w-72 flex-shrink-0 bg-slate-900/50 border border-slate-700 rounded-lg p-4 overflow-y-auto max-h-48 lg:max-h-full">
-                        <h3 className="text-base md:text-lg font-semibold text-emerald-400 mb-3">{t('poseModal.poseDescription')}</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-amber-400 mb-3">{t('poseModal.poseDescription')}</h3>
                         {currentPose ? (
                              <div>
                                 <h4 className="text-base font-semibold text-white mb-2">{currentPose.title}</h4>
@@ -166,13 +166,13 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                                     key={pose.imageUrl}
                                     onClick={() => setCurrentPoseIndex(index)}
                                     className={`relative w-20 h-28 rounded-md overflow-hidden flex-shrink-0 transition-all duration-200 group ring-2 ${
-                                        currentPoseIndex === index ? 'ring-emerald-400 scale-105' : 'ring-transparent hover:ring-emerald-500/50'
+                                        currentPoseIndex === index ? 'ring-amber-400 scale-105' : 'ring-transparent hover:ring-amber-500/50'
                                     }`}
                                 >
                                     <img src={pose.imageUrl} alt={pose.title} className="w-full h-full object-cover"/>
                                     <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
                                     {isSelected && (
-                                        <div className="absolute top-1 right-1 text-emerald-500 bg-slate-900/60 rounded-full">
+                                        <div className="absolute top-1 right-1 text-amber-500 bg-slate-900/60 rounded-full">
                                             <CheckCircleIcon className="w-5 h-5" />
                                         </div>
                                     )}
@@ -185,7 +185,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                     <span className="text-white font-medium">{t('poseModal.posesSelectedCount', { count: selectedPoses.length })}</span>
                     <button
                         onClick={() => onConfirm(selectedPoses)}
-                        className="bg-emerald-600 text-white font-bold py-2.5 px-8 rounded-full hover:bg-emerald-500 transition-opacity"
+                        className="bg-amber-600 text-white font-bold py-2.5 px-8 rounded-full hover:bg-amber-500 transition-opacity"
                     >
                         {t('poseModal.confirmButton')}
                     </button>

@@ -82,7 +82,7 @@ Your primary task is to relight the provided source image according to the speci
     } else {
         const lightCount = type === '1 Light' ? 1 : type === '2 Lights' ? 2 : 3;
         prompt += `- **Light Type**: Studio Lighting (${lightCount} Light Setup).\n`;
-        
+
         const lightPositions = {
             Left: ['the left', 'the right', 'above'],
             Center: ['directly in front', 'the left', 'the right'],
@@ -95,7 +95,7 @@ Your primary task is to relight the provided source image according to the speci
   - **Position**: Placed from **${positions[0]}** of the subject.
   - **Color & Quality**: This light should cast ${getLightColorDescription(light1Color)}
 `;
-        
+
         if (lightCount > 1) {
             prompt += `
 - **Light 2 (Fill/Rim Light)**:
@@ -103,9 +103,9 @@ Your primary task is to relight the provided source image according to the speci
   - **Color & Quality**: This light should cast ${getLightColorDescription(light2Color)}
 `;
         }
-        
+
         if (lightCount > 2) {
-             prompt += `
+            prompt += `
 - **Light 3 (Accent/Hair Light)**:
   - **Position**: Placed from **${positions[2]}**, slightly behind the subject.
   - **Color & Quality**: This light should cast ${getLightColorDescription(light3Color)}
@@ -179,9 +179,9 @@ const Relight: React.FC = () => {
         setError(null);
 
         const prompt = generateRelightPrompt(backlightDirection, lightType, quality, customPrompt, light1Color, light2Color, light3Color);
-        
+
         try {
-            const [result] = await editImage({ images: [image], prompt, numberOfImages: 1, aspectRatio }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
+            const [result] = await editImage({ images: [image], prompt, numberOfImages: 1, aspectRatio, resolution }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
             setGeneratedImage(result);
             addImage(result);
         } catch (err) {
@@ -190,9 +190,9 @@ const Relight: React.FC = () => {
             setIsLoading(false);
         }
     };
-    
+
     const lightCount = lightType === '1 Light' ? 1 : lightType === '2 Lights' ? 2 : lightType === '3 Lights' ? 3 : 0;
-    
+
     const lightTypeTranslations = {
         'Natural': t('relight.natural'),
         '1 Light': t('relight.oneLight'),
@@ -201,15 +201,15 @@ const Relight: React.FC = () => {
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
             <div className="flex flex-col gap-6">
                 <div className="text-center">
                     <h2 className="text-xl md:text-2xl font-bold mb-1">{t('relight.title')}</h2>
                     <p className="text-zinc-400">{t('relight.description')}</p>
                 </div>
-                
+
                 <div className="w-full max-w-sm mx-auto">
-                    <ImageUploader image={image} onImageUpload={(file) => { setImage(file); if(file) addImage(file); }} title={t('relight.uploadTitle')} id="relight-upload" />
+                    <ImageUploader image={image} onImageUpload={(file) => { setImage(file); if (file) addImage(file); }} title={t('relight.uploadTitle')} id="relight-upload" />
                 </div>
 
                 <div className="space-y-6 bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
@@ -222,21 +222,21 @@ const Relight: React.FC = () => {
                         </div>
                     </div>
                     {lightType !== 'Natural' &&
-                    <div className="animate-fade-in space-y-4">
-                         <div>
-                            <label className="block text-sm font-medium text-zinc-300 text-center mb-2">{t('relight.backlightDirection')}</label>
-                            <div className="flex justify-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
-                                {(['Left', 'Center', 'Right'] as BacklightDirection[]).map(dir => (
-                                    <button key={dir} onClick={() => setBacklightDirection(dir)} className={`px-4 py-1.5 text-sm font-semibold rounded-md ${backlightDirection === dir ? 'bg-amber-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600/80 text-zinc-300'}`}>{t(`relight.${dir.toLowerCase()}`)}</button>
-                                ))}
+                        <div className="animate-fade-in space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-300 text-center mb-2">{t('relight.backlightDirection')}</label>
+                                <div className="flex justify-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
+                                    {(['Left', 'Center', 'Right'] as BacklightDirection[]).map(dir => (
+                                        <button key={dir} onClick={() => setBacklightDirection(dir)} className={`px-4 py-1.5 text-sm font-semibold rounded-md ${backlightDirection === dir ? 'bg-amber-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600/80 text-zinc-300'}`}>{t(`relight.${dir.toLowerCase()}`)}</button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {lightCount >= 1 && <div><label className="block text-xs text-zinc-400 mb-1">Light 1</label><div className="flex gap-1">{COLORS.map(c => <button key={c.name} onClick={() => setLight1Color(c.name)} className={`w-6 h-6 rounded-full border-2 ${light1Color === c.name ? 'border-white' : 'border-transparent'}`} style={{ backgroundColor: c.hex }} />)}</div></div>}
+                                {lightCount >= 2 && <div><label className="block text-xs text-zinc-400 mb-1">Light 2</label><div className="flex gap-1">{COLORS.map(c => <button key={c.name} onClick={() => setLight2Color(c.name)} className={`w-6 h-6 rounded-full border-2 ${light2Color === c.name ? 'border-white' : 'border-transparent'}`} style={{ backgroundColor: c.hex }} />)}</div></div>}
+                                {lightCount >= 3 && <div><label className="block text-xs text-zinc-400 mb-1">Light 3</label><div className="flex gap-1">{COLORS.map(c => <button key={c.name} onClick={() => setLight3Color(c.name)} className={`w-6 h-6 rounded-full border-2 ${light3Color === c.name ? 'border-white' : 'border-transparent'}`} style={{ backgroundColor: c.hex }} />)}</div></div>}
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            {lightCount >= 1 && <div><label className="block text-xs text-zinc-400 mb-1">Light 1</label><div className="flex gap-1">{COLORS.map(c => <button key={c.name} onClick={() => setLight1Color(c.name)} className={`w-6 h-6 rounded-full border-2 ${light1Color === c.name ? 'border-white' : 'border-transparent'}`} style={{backgroundColor: c.hex}} />)}</div></div>}
-                            {lightCount >= 2 && <div><label className="block text-xs text-zinc-400 mb-1">Light 2</label><div className="flex gap-1">{COLORS.map(c => <button key={c.name} onClick={() => setLight2Color(c.name)} className={`w-6 h-6 rounded-full border-2 ${light2Color === c.name ? 'border-white' : 'border-transparent'}`} style={{backgroundColor: c.hex}} />)}</div></div>}
-                            {lightCount >= 3 && <div><label className="block text-xs text-zinc-400 mb-1">Light 3</label><div className="flex gap-1">{COLORS.map(c => <button key={c.name} onClick={() => setLight3Color(c.name)} className={`w-6 h-6 rounded-full border-2 ${light3Color === c.name ? 'border-white' : 'border-transparent'}`} style={{backgroundColor: c.hex}} />)}</div></div>}
-                        </div>
-                    </div>
                     }
                     <div>
                         <label className="block text-sm font-medium text-zinc-300 text-center mb-2">{t('relight.quality')}</label>
@@ -250,11 +250,11 @@ const Relight: React.FC = () => {
                         <label className="block text-sm font-medium text-zinc-300 mb-2">{t('relight.additionalPrompt')}</label>
                         <input type="text" value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} placeholder={t('relight.additionalPromptPlaceholder')} className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-2 text-zinc-200" />
                     </div>
-                     <ImageOptionsPanel
-                       aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
-                       resolution={resolution} setResolution={setResolution}
-                       model={imageEditModel}
-                     />
+                    <ImageOptionsPanel
+                        aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                        resolution={resolution} setResolution={setResolution}
+                        model={imageEditModel}
+                    />
                 </div>
 
                 <div className="text-center">
@@ -263,9 +263,9 @@ const Relight: React.FC = () => {
                     </button>
                 </div>
             </div>
-            
-            <div className="sticky top-8">
-                 <div className="relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-4 min-h-[50vh] lg:min-h-0 lg:aspect-[4/5]">
+
+            <div className="lg:sticky lg:top-8">
+                <div className="relative w-full min-h-[400px] lg:min-h-0 lg:aspect-[4/5] bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-2 sm:p-4">
                     {isLoading ? (
                         <div className="text-center"><Spinner /><p className="mt-4 text-zinc-400">{loadingMessage}</p></div>
                     ) : error ? (

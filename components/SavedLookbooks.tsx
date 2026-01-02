@@ -40,7 +40,7 @@ const SavedLookbooks: React.FC = () => {
                     <div key={set.id} className="bg-slate-800/60 p-6 rounded-xl border border-slate-700">
                         <div className="flex justify-between items-center mb-4">
                             <div>
-                                <h3 className="text-base md:text-lg font-semibold text-emerald-400">Lookbook Collection</h3>
+                                <h3 className="text-base md:text-lg font-semibold text-amber-400">Lookbook Collection</h3>
                                 <p className="text-sm text-slate-400">
                                     Saved on: {new Date(set.createdAt).toLocaleString()}
                                 </p>

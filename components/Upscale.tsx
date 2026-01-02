@@ -23,7 +23,7 @@ const Upscale: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
-  
+
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
   const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
@@ -73,47 +73,47 @@ const Upscale: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
       <div className="flex flex-col gap-8">
         <div className="text-center">
-            <h2 className="text-xl md:text-2xl font-bold mb-1">{t('upscale.title')}</h2>
-            <p className="text-zinc-400">{t('upscale.description')}</p>
+          <h2 className="text-xl md:text-2xl font-bold mb-1">{t('upscale.title')}</h2>
+          <p className="text-zinc-400">{t('upscale.description')}</p>
         </div>
-        
+
         <div className="w-full max-w-sm mx-auto">
-          <ImageUploader 
-            image={uploadedImage} 
-            id="upscale-upload" 
-            title={t('upscale.uploadTitle')} 
-            onImageUpload={(file) => { setUploadedImage(file); if (file) addImage(file); }} 
+          <ImageUploader
+            image={uploadedImage}
+            id="upscale-upload"
+            title={t('upscale.uploadTitle')}
+            onImageUpload={(file) => { setUploadedImage(file); if (file) addImage(file); }}
           />
         </div>
-        
+
         <div className="text-center">
-            <button 
-                onClick={handleGenerate} 
-                disabled={isLoading || !uploadedImage} 
-                className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105"
-            >
-              {isLoading ? <Spinner /> : (generatedImage ? t('upscale.generateAgainButton') : t('upscale.generateButton'))}
-            </button>
+          <button
+            onClick={handleGenerate}
+            disabled={isLoading || !uploadedImage}
+            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105"
+          >
+            {isLoading ? <Spinner /> : (generatedImage ? t('upscale.generateAgainButton') : t('upscale.generateButton'))}
+          </button>
         </div>
       </div>
 
-      <div className="sticky top-8">
-        <div className="relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-4 min-h-[50vh] lg:min-h-0 lg:aspect-[4/5]">
+      <div className="lg:sticky lg:top-8">
+        <div className="relative w-full min-h-[400px] lg:min-h-0 lg:aspect-[4/5] bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-2 sm:p-4">
           {isLoading ? (
             <div className="text-center"><Spinner /><p className="mt-4 text-zinc-400">{loadingMessage}</p></div>
           ) : error ? (
             <div className="p-4">
-                <ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} />
+              <ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} />
             </div>
           ) : generatedImage && uploadedImage ? (
             <div className="w-full h-full flex flex-col gap-4">
-                <h3 className="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">{t('upscale.comparisonTitle')}</h3>
-                <div className="flex-grow relative">
-                    <ImageComparator before={uploadedImage} after={generatedImage} />
-                </div>
+              <h3 className="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">{t('upscale.comparisonTitle')}</h3>
+              <div className="flex-grow relative">
+                <ImageComparator before={uploadedImage} after={generatedImage} />
+              </div>
             </div>
           ) : (
             <div className="text-center text-zinc-500 pointer-events-none"><ImageIcon className="mx-auto h-16 w-16" /><h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3><p className="mt-1 text-sm">{t('upscale.outputPanelDescription')}</p></div>

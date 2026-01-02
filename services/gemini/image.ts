@@ -278,7 +278,8 @@ export const critiqueAndRedesignOutfit = async (
   preset: RedesignPreset,
   numberOfImages: number = 1,
   model: string = 'gemini-2.5-flash-image',
-  aspectRatio: ImageAspectRatio = 'Default'
+  aspectRatio: ImageAspectRatio = 'Default',
+  resolution?: ImageResolution
 ): Promise<{ critique: string; redesignedImages: ImageFile[] }> => {
   const ai = getGeminiClient();
   try {
@@ -288,10 +289,13 @@ export const critiqueAndRedesignOutfit = async (
     const textPart: Part = { text: prompt };
 
     const generateSingleRedesign = async (): Promise<{ critique: string; image: ImageFile }> => {
-        // Build imageConfig if aspectRatio specified
-        const imageConfig: { aspectRatio?: string } = {};
+        // Build imageConfig if aspectRatio or resolution specified
+        const imageConfig: { aspectRatio?: string; imageSize?: string } = {};
         if (aspectRatio && aspectRatio !== 'Default') {
             imageConfig.aspectRatio = aspectRatio;
+        }
+        if (resolution) {
+            imageConfig.imageSize = resolution;
         }
 
         const response = await ai.models.generateContent({

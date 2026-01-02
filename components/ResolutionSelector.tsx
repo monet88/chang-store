@@ -31,7 +31,7 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = ({ resolution, set
       <div className="flex items-center gap-2 flex-wrap justify-center">
         <span className="text-slate-300 font-medium">Quality:</span>
         <div className="flex gap-2 bg-slate-800/50 p-1.5 rounded-lg">
-          <span className="px-3 py-1.5 text-sm font-semibold rounded-md bg-emerald-600 text-white">
+          <span className="px-3 py-1.5 text-sm font-semibold rounded-md bg-amber-600 text-white">
             1K
           </span>
           <span className="px-3 py-1.5 text-xs text-slate-500 italic">
@@ -51,7 +51,7 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = ({ resolution, set
                   key={res}
                   onClick={() => setResolution(res)}
                   className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                      resolution === res ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
+                      resolution === res ? 'bg-amber-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
                   }`}
               >
                   {res}

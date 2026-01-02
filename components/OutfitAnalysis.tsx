@@ -43,12 +43,12 @@ const OutfitAnalysis: React.FC = () => {
     const [uploadedImage, setUploadedImage] = useState<ImageFile | null>(null);
     const [analysisResults, setAnalysisResults] = useState<AnalyzedItem[]>([]);
     const [redesignResults, setRedesignResults] = useState<RedesignResult[]>([]);
-    
+
     const [selectedPresets, setSelectedPresets] = useState<RedesignPreset[]>([]);
     const [generationCount, setGenerationCount] = useState(1);
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
     const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
-    
+
     const [isLoading, setIsLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -86,7 +86,7 @@ const OutfitAnalysis: React.FC = () => {
         }
         setUploadedImage(file);
         addImage(file);
-        
+
         setIsLoading(true);
         setLoadingMessage(t('outfitAnalysis.statusAnalyzing'));
         setError(null);
@@ -100,7 +100,7 @@ const OutfitAnalysis: React.FC = () => {
             setIsLoading(false);
         }
     };
-    
+
     const handleGenerateRedesigns = async () => {
         if (!uploadedImage) return;
         if (selectedPresets.length === 0) {
@@ -134,7 +134,8 @@ const OutfitAnalysis: React.FC = () => {
                         const baseMsg = t('outfitAnalysis.statusGeneratingStyle', { style: presetLabel, progress: 1, total: 1 });
                         setLoadingMessage(`${baseMsg} - ${msg}`);
                     }),
-                    aspectRatio
+                    aspectRatio,
+                    resolution
                 );
                 setRedesignResults([{ preset, critique, images: redesignedImages }]);
                 redesignedImages.forEach(addImage);
@@ -159,7 +160,7 @@ const OutfitAnalysis: React.FC = () => {
         } else {
             generationTasks = selectedPresets.slice(0, generationCount);
         }
-        
+
         const taskCounts = generationTasks.reduce((acc, preset) => {
             acc[preset] = (acc[preset] || 0) + 1;
             return acc;
@@ -188,7 +189,8 @@ const OutfitAnalysis: React.FC = () => {
                         const baseMsg = t('outfitAnalysis.statusGeneratingStyle', { style: presetLabel, progress: completedTasks, total: tasksToRun.length });
                         setLoadingMessage(`${baseMsg} - ${msg}`);
                     }),
-                    aspectRatio
+                    aspectRatio,
+                    resolution
                 );
                 allResults.push({ preset, critique, images: redesignedImages });
                 redesignedImages.forEach(addImage);
@@ -211,22 +213,22 @@ const OutfitAnalysis: React.FC = () => {
         }
 
         const key = item.item;
-        setExtractionStatus(prev => ({...prev, [key]: 'loading'}));
+        setExtractionStatus(prev => ({ ...prev, [key]: 'loading' }));
         setError(null);
         try {
             const itemToExtract = `${item.item} - ${item.description}`;
             const extractedImage = await extractOutfitItem(
-                uploadedImage, 
+                uploadedImage,
                 itemToExtract,
                 imageEditModel,
-                buildImageServiceConfig(() => {})
+                buildImageServiceConfig(() => { })
             );
             addImage(extractedImage);
-            setExtractionStatus(prev => ({...prev, [key]: 'done'}));
+            setExtractionStatus(prev => ({ ...prev, [key]: 'done' }));
         } catch (err) {
             setError(getErrorMessage(err, t));
             setExtractionStatus(prev => {
-                const newStatus = {...prev};
+                const newStatus = { ...prev };
                 delete newStatus[key];
                 return newStatus;
             });
@@ -234,9 +236,9 @@ const OutfitAnalysis: React.FC = () => {
     }
 
     const handleTogglePreset = (preset: RedesignPreset) => {
-        setSelectedPresets(prev => 
-            prev.includes(preset) 
-                ? prev.filter(p => p !== preset) 
+        setSelectedPresets(prev =>
+            prev.includes(preset)
+                ? prev.filter(p => p !== preset)
                 : [...prev, preset]
         );
     };
@@ -248,13 +250,13 @@ const OutfitAnalysis: React.FC = () => {
                 <BackIcon className="w-4 h-4" />
                 <span>{t('outfitAnalysis.prevStep')}</span>
             </button>
-             <button onClick={handleStartOver} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors">
+            <button onClick={handleStartOver} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors">
                 <ReloadIcon className="w-4 h-4" />
                 <span>{t('outfitAnalysis.startOver')}</span>
             </button>
         </div>
     );
-    
+
     if (step === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] animate-fade-in">
@@ -276,13 +278,13 @@ const OutfitAnalysis: React.FC = () => {
             </div>
         );
     }
-    
+
     if (step === 1) {
         return (
             <div className="animate-fade-in">
-                 <h2 className="text-xl md:text-2xl font-bold text-center mb-8">{t('outfitAnalysis.analysisTitle')}</h2>
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                    <div className="sticky top-8">
+                <h2 className="text-xl md:text-2xl font-bold text-center mb-8">{t('outfitAnalysis.analysisTitle')}</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
+                    <div className="lg:sticky lg:top-8">
                         {uploadedImage && <HoverableImage image={uploadedImage} altText={t('outfitAnalysis.uploadedAlt')} />}
                     </div>
                     <div className="flex flex-col gap-6">
@@ -323,10 +325,10 @@ const OutfitAnalysis: React.FC = () => {
                             </table>
                         </div>
                         {error && <div className="text-center text-red-400 p-2 text-sm">{error}</div>}
-                        
+
                         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-6">
                             <h3 className="text-base md:text-lg font-semibold text-center text-amber-400">{t('outfitAnalysis.redesignTitle')}</h3>
-                            
+
                             <div>
                                 <label className="block text-sm font-medium text-zinc-300 mb-2 text-center">{t('outfitAnalysis.selectStyles')}</label>
                                 <div className="grid grid-cols-2 gap-3">
@@ -350,7 +352,7 @@ const OutfitAnalysis: React.FC = () => {
                                             <div key={preset} className="bg-zinc-700 text-zinc-200 text-xs font-semibold pl-3 pr-2 py-1.5 rounded-full flex items-center gap-2">
                                                 <span>{PRESETS.find(p => p.key === preset)?.label}</span>
                                                 <button onClick={() => handleTogglePreset(preset)} className="text-zinc-400 hover:text-white bg-zinc-600/50 hover:bg-zinc-500/50 rounded-full p-0.5" aria-label={t('outfitAnalysis.removeStyleAria', { style: PRESETS.find(p => p.key === preset)?.label })}>
-                                                   <CloseIcon className="w-3 h-3" />
+                                                    <CloseIcon className="w-3 h-3" />
                                                 </button>
                                             </div>
                                         ))}
@@ -378,11 +380,11 @@ const OutfitAnalysis: React.FC = () => {
                             </div>
 
                             <ImageOptionsPanel
-                              aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
-                              resolution={resolution} setResolution={setResolution}
-                              model={imageEditModel}
+                                aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                                resolution={resolution} setResolution={setResolution}
+                                model={imageEditModel}
                             />
-                            
+
                             <div className="pt-4 border-t border-zinc-700/50">
                                 <button onClick={handleGenerateRedesigns} disabled={isLoading || selectedPresets.length === 0} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-6 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105 flex items-center justify-center">
                                     {isLoading ? <Spinner /> : <span>{t('outfitAnalysis.generateRedesigns')}</span>}
@@ -391,19 +393,19 @@ const OutfitAnalysis: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                 </div>
-                 {renderNavigation()}
+                </div>
+                {renderNavigation()}
             </div>
         )
     }
-    
+
     if (step === 2) {
         return (
             <div className="animate-fade-in">
                 <h2 className="text-xl md:text-2xl font-bold text-center mb-8">{t('outfitAnalysis.redesignTitle')}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
                     <div>
-                        <div className="sticky top-8">
+                        <div className="lg:sticky lg:top-8">
                             <h3 className="text-base md:text-lg font-semibold text-center mb-2 text-zinc-400">{t('outfitAnalysis.originalOutfit')}</h3>
                             {uploadedImage && <HoverableImage image={uploadedImage} altText={t('outfitAnalysis.uploadedAlt')} />}
                         </div>
@@ -420,9 +422,9 @@ const OutfitAnalysis: React.FC = () => {
                                         const altText = t('outfitAnalysis.redesignedAlt', { style: presetLabel });
                                         return (
                                             <div key={index} className="flex flex-col bg-zinc-800 rounded-lg overflow-hidden border border-zinc-700 shadow-md">
-                                                <HoverableImage 
-                                                    image={image} 
-                                                    altText={altText} 
+                                                <HoverableImage
+                                                    image={image}
+                                                    altText={altText}
                                                     containerClassName="relative group aspect-square w-full bg-zinc-900"
                                                 />
                                                 <div className="p-3 bg-zinc-900 text-center border-t border-zinc-700/50">
