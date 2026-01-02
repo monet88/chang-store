@@ -9,6 +9,7 @@ import GalleryButton from './components/GalleryButton';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ApiProvider } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
+import { ToastProvider } from './components/Toast';
 import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
 import MobileOverlay from './components/MobileOverlay';
@@ -184,13 +185,15 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <LanguageProvider>
-      <ApiProvider>
-        <ImageGalleryProvider>
-          <ImageViewerProvider>
-            <AppContent />
-          </ImageViewerProvider>
-        </ImageGalleryProvider>
-      </ApiProvider>
+      <ToastProvider>
+        <ApiProvider>
+          <ImageGalleryProvider>
+            <ImageViewerProvider>
+              <AppContent />
+            </ImageViewerProvider>
+          </ImageGalleryProvider>
+        </ApiProvider>
+      </ToastProvider>
     </LanguageProvider>
   );
 };
