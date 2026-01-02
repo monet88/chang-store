@@ -39,29 +39,29 @@ const Header: React.FC<HeaderProps> = ({ activeFeature, setActiveFeature, onOpen
 
       <div className="flex-shrink-0 text-center mb-4">
         <div className="flex items-center justify-center gap-2">
-            <GalleryIcon className="w-8 h-8 text-emerald-400" />
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-emerald-400">
-                {t('header.title')}
-            </h1>
-            <Tooltip content={t('tooltips.headerSettings')} position="bottom">
-              <button onClick={onOpenSettings} className="text-slate-400 hover:text-white transition-colors" aria-label="Open settings">
-                <EditorIcon className="w-6 h-6" />
-              </button>
-            </Tooltip>
+          <GalleryIcon className="w-8 h-8 text-amber-400" />
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-amber-400">
+            {t('header.title')}
+          </h1>
         </div>
         <p className="text-xs text-slate-400 mt-2 px-4">
-            {t('header.description')}
+          {t('header.description')}
         </p>
       </div>
-      
+
       <nav className="flex-grow overflow-y-auto pr-2 -mr-2 min-h-0">
         <Tabs activeFeature={activeFeature} setActiveFeature={setActiveFeature} />
       </nav>
 
       <div className="flex-shrink-0 mt-4 pt-3 border-t border-slate-800">
-          <div className="flex items-center justify-center">
-              <LanguageSwitcher />
-          </div>
+        <div className="flex items-center justify-between px-2">
+          <LanguageSwitcher />
+          <Tooltip content={t('tooltips.headerSettings')} position="top">
+            <button onClick={onOpenSettings} className="p-2 text-slate-400 hover:text-white transition-colors bg-slate-900/50 rounded-lg border border-slate-800" aria-label="Open settings">
+              <EditorIcon className="w-5 h-5" />
+            </button>
+          </Tooltip>
+        </div>
       </div>
     </aside>
   );

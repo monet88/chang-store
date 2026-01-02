@@ -1,7 +1,7 @@
 # Project Index: Chang-Store
 
-**Generated:** 2025-12-23
-**Type:** AI-powered virtual fashion studio (React SPA)
+**Generated:** 2026-01-02
+**Type:** AI-powered virtual fashion studio (React SPA + Tauri desktop)
 
 ---
 
@@ -12,7 +12,7 @@ Chang-Store/
 ├── App.tsx                  # Main app entry, provider stack
 ├── index.tsx                # React root
 ├── types.ts                 # Shared types (Feature, ImageFile, AspectRatio)
-├── components/              # UI components (42 files)
+├── components/              # UI components (39 files)
 │   ├── [Feature]*.tsx       # Feature components (14)
 │   └── modals/              # Modal dialogs (5)
 ├── hooks/                   # Business logic hooks (13 files)
@@ -41,7 +41,7 @@ Chang-Store/
 
 ## 📦 Core Modules
 
-### Components (42 total)
+### Components (39 total)
 
 **Feature Components (14):**
 - `VirtualTryOn.tsx` - AI try-on feature
@@ -59,9 +59,9 @@ Chang-Store/
 - `Inpainting.tsx` - Inpainting
 - `GRWMVideoGenerator.tsx` - Get Ready With Me videos
 
-**Shared Components:** Header, ImageUploader, Tabs, Spinner, Tooltip, Icons, etc.
+**Shared Components:** Header, ImageUploader, ImageOptionsPanel, Tabs, Spinner, Tooltip, Icons, AspectRatioSelector, ResolutionSelector, QualitySelector, etc.
 
-**Modals:** GalleryModal, SettingsModal, PoseLibraryModal, ImageSelectionModal, FeatureSettingsModal
+**Modals:** GalleryModal, SettingsModal, PoseLibraryModal, ImageSelectionModal, ImageEditorModal
 
 ---
 
@@ -103,7 +103,7 @@ LanguageProvider → ApiProvider → ImageGalleryProvider → ImageViewerProvide
 
 ---
 
-### Services (7 files)
+### Services (8 files)
 
 | Service | Purpose |
 |---------|---------|
@@ -111,6 +111,7 @@ LanguageProvider → ApiProvider → ImageGalleryProvider → ImageViewerProvide
 | `apiClient.ts` | Gemini client singleton |
 | `geminiService.ts` | Legacy Gemini wrapper |
 | `aivideoautoService.ts` | AIVideoAuto API client |
+| `tauriService.ts` | Tauri desktop API bridge |
 | `gemini/image.ts` | Gemini image operations |
 | `gemini/text.ts` | Gemini text generation |
 | `gemini/video.ts` | Gemini video generation |
@@ -157,7 +158,12 @@ enum Feature {
 }
 
 interface ImageFile { base64: string; mimeType: string; }
-type AspectRatio = 'Default' | '1:1' | '9:16' | '16:9' | '4:3' | '3:4';
+
+// Image generation options (types.ts)
+const IMAGE_ASPECT_RATIOS = ['1:1', '3:4', '4:3', '9:16', '16:9'] as const;
+const IMAGE_RESOLUTIONS = ['1K', '2K', '4K'] as const;
+type ImageAspectRatio = typeof IMAGE_ASPECT_RATIOS[number] | 'Default';
+type ImageResolution = typeof IMAGE_RESOLUTIONS[number];
 type Quality = 'standard' | 'high';
 ```
 
@@ -170,6 +176,7 @@ type Quality = 'standard' | 'high';
 | `react` | ^19.1.1 | UI framework |
 | `react-dom` | ^19.1.1 | React DOM |
 | `@google/genai` | ^1.17.0 | Gemini AI SDK |
+| `@tauri-apps/api` | ^2.9.1 | Tauri desktop API |
 | `axios` | ^1.7.2 | HTTP client |
 | `vite` | ^6.2.0 | Build tool |
 | `typescript` | ~5.8.2 | Type checking |
@@ -202,15 +209,16 @@ Component (UI) → Hook (Logic) → Service (API Facade) → External APIs
 
 | Category | Count |
 |----------|-------|
-| Components | 42 |
+| Components | 39 |
 | Hooks | 13 |
 | Contexts | 4 |
-| Services | 7 |
+| Services | 8 |
 | Locales | 2 |
 | Utils | 2 |
-| Docs | 9 |
+| Docs | 8 |
+| Tests | 12 |
 
-**Total Source Files:** ~79 TypeScript files
+**Total Source Files:** ~88 TypeScript files
 
 ---
 

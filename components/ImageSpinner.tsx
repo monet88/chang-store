@@ -155,7 +155,7 @@ const ImageSpinner: React.FC<ImageSpinnerProps> = ({ images, autoplayIntervalMs 
             step={1}
             value={currentIndex}
             onChange={handleScrub}
-            className="h-2 w-full cursor-pointer rounded-full bg-slate-700 accent-emerald-400"
+            className="h-2 w-full cursor-pointer rounded-full bg-slate-700 accent-amber-400"
             aria-label="Scrub through frames"
           />
           <div className="flex items-center justify-between">

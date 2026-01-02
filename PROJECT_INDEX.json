@@ -1,13 +1,14 @@
 {
   "name": "Chang-Store",
-  "generated": "2025-12-23",
-  "type": "react-spa",
+  "generated": "2026-01-02",
+  "type": "react-spa-tauri",
   "description": "AI-powered virtual fashion studio",
   "stack": {
     "framework": "React 19",
     "language": "TypeScript",
     "bundler": "Vite",
-    "testing": "Vitest"
+    "testing": "Vitest",
+    "desktop": "Tauri 2"
   },
   "entryPoints": {
     "cli": null,
@@ -18,7 +19,7 @@
   "directories": {
     "components": {
       "path": "components/",
-      "count": 42,
+      "count": 39,
       "subdirs": ["modals/"]
     },
     "hooks": {
@@ -31,7 +32,7 @@
     },
     "services": {
       "path": "services/",
-      "count": 7,
+      "count": 8,
       "subdirs": ["gemini/"]
     },
     "locales": {
@@ -44,7 +45,13 @@
     },
     "docs": {
       "path": "docs/",
-      "count": 9
+      "count": 8,
+      "subdirs": ["api/", "research/"]
+    },
+    "tests": {
+      "path": "__tests__/",
+      "count": 12,
+      "subdirs": ["contexts/", "hooks/", "services/", "utils/"]
     }
   },
   "features": [
@@ -77,9 +84,10 @@
   ],
   "keyFiles": {
     "App.tsx": "Provider stack + feature router",
-    "types.ts": "Shared types: Feature, ImageFile, AspectRatio",
+    "types.ts": "Shared types: Feature, ImageFile, ImageAspectRatio, ImageResolution",
     "services/imageEditingService.ts": "Unified facade - routes to Gemini or AIVideoAuto",
     "services/apiClient.ts": "Gemini client singleton",
+    "services/tauriService.ts": "Tauri desktop API bridge",
     "contexts/ApiProviderContext.tsx": "API keys, model selection"
   },
   "dependencies": {
@@ -87,6 +95,7 @@
       "react": "^19.1.1",
       "react-dom": "^19.1.1",
       "@google/genai": "^1.17.0",
+      "@tauri-apps/api": "^2.9.1",
       "axios": "^1.7.2",
       "lodash": "^4.17.21"
     },
@@ -94,16 +103,19 @@
       "vite": "^6.2.0",
       "typescript": "~5.8.2",
       "vitest": "^4.0.13",
-      "eslint": "^9.15.0"
+      "eslint": "^9.15.0",
+      "@tauri-apps/cli": "^2.9.6"
     }
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "test": "vitest --run --passWithNoTests",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
-  "architecturePattern": "Component → Hook → Service → External API",
+  "architecturePattern": "Component -> Hook -> Service -> External API",
   "providerStack": [
     "LanguageProvider",
     "ApiProvider",
@@ -117,6 +129,10 @@
     "videoPolling": {
       "gemini": "indefinite",
       "aivideoauto": "10min max"
+    },
+    "imageOptions": {
+      "aspectRatios": ["1:1", "3:4", "4:3", "9:16", "16:9", "Default"],
+      "resolutions": ["1K", "2K", "4K"]
     }
   }
 }
