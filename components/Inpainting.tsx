@@ -29,7 +29,7 @@ const Inpainting: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [resultImage, setResultImage] = useState<ImageFile | null>(null);
-    
+
     const [activeTool, setActiveTool] = useState<Tool>('rectangle');
     const [brushSize, setBrushSize] = useState(40);
     const [brushOpacity, setBrushOpacity] = useState(1);
@@ -72,7 +72,7 @@ const Inpainting: React.FC = () => {
         const maskCanvas = maskCanvasRef.current;
         const drawingCtx = drawingCanvas?.getContext('2d');
         if (!drawingCtx || !drawingCanvas) return;
-        
+
         drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
 
         if (!isMaskVisible) return;
@@ -90,7 +90,7 @@ const Inpainting: React.FC = () => {
                     tempCtx.globalCompositeOperation = 'source-in';
                     tempCtx.fillStyle = maskColor;
                     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                    
+
                     const metrics = getCanvasMetrics();
                     if (metrics) {
                         drawingCtx.globalAlpha = maskPreviewOpacity;
@@ -100,19 +100,19 @@ const Inpainting: React.FC = () => {
                 }
             }
         }
-        
+
         // Draw rectangle selection overlay
         if (selectionRect) {
             drawingCtx.strokeStyle = maskColor;
             drawingCtx.lineWidth = 2;
             drawingCtx.setLineDash([6, 4]);
             drawingCtx.strokeRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
-            
+
             const r = parseInt(maskColor.slice(1, 3), 16);
             const g = parseInt(maskColor.slice(3, 5), 16);
             const b = parseInt(maskColor.slice(5, 7), 16);
             drawingCtx.fillStyle = `rgba(${r}, ${g}, ${b}, ${maskPreviewOpacity * 0.4})`;
-            
+
             drawingCtx.fillRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
             drawingCtx.setLineDash([]);
         }
@@ -126,7 +126,7 @@ const Inpainting: React.FC = () => {
         const metrics = getCanvasMetrics();
         if (!metrics) return;
         const { iw, ih, cw, ch, dx, dy, dw, dh } = metrics;
-        
+
         [imageCanvasRef, drawingCanvasRef, cursorCanvasRef].forEach(ref => {
             if (ref.current) {
                 ref.current.width = cw;
@@ -138,13 +138,13 @@ const Inpainting: React.FC = () => {
             maskCanvasRef.current.width = iw;
             maskCanvasRef.current.height = ih;
         }
-        
+
         const imageCtx = imageCanvasRef.current?.getContext('2d');
         if (imageCtx) {
             imageCtx.clearRect(0, 0, cw, ch);
             imageCtx.drawImage(imageRef.current, dx, dy, dw, dh);
         }
-        
+
         redrawOverlays();
     }, [getCanvasMetrics, redrawOverlays]);
 
@@ -198,11 +198,11 @@ const Inpainting: React.FC = () => {
     const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const pos = getPointOnCanvas(e);
         if (!pos) return;
-        
+
         setIsDrawing(true);
         lastPointRef.current = { x: pos.canvasX, y: pos.canvasY };
         setResultImage(null);
-        
+
         if (activeTool === 'rectangle') {
             handleClearMask();
             setSelectionRect({ x: pos.canvasX, y: pos.canvasY, width: 0, height: 0 });
@@ -227,10 +227,10 @@ const Inpainting: React.FC = () => {
                 cursorCtx.stroke();
             }
         }
-        
+
         if (!isDrawing) return;
         if (!pos || !lastPointRef.current) return;
-        
+
         if (activeTool === 'rectangle') {
             const startX = lastPointRef.current.x;
             const startY = lastPointRef.current.y;
@@ -273,7 +273,7 @@ const Inpainting: React.FC = () => {
                 maskCtx.globalAlpha = 1;
             }
             maskCtx.stroke();
-            
+
             lastPointRef.current = { x: pos.canvasX, y: pos.canvasY };
             redrawOverlays();
         }
@@ -289,7 +289,7 @@ const Inpainting: React.FC = () => {
                 const rectY = (selectionRect.y - metrics.dy) / metrics.scale;
                 const rectWidth = selectionRect.width / metrics.scale;
                 const rectHeight = selectionRect.height / metrics.scale;
-                
+
                 maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
                 maskCtx.fillStyle = 'white';
                 maskCtx.fillRect(rectX, rectY, rectWidth, rectHeight);
@@ -298,7 +298,7 @@ const Inpainting: React.FC = () => {
         setIsDrawing(false);
         lastPointRef.current = null;
     };
-    
+
     const handleMouseLeave = () => {
         setIsDrawing(false);
         lastPointRef.current = null;
@@ -311,7 +311,7 @@ const Inpainting: React.FC = () => {
     const handleGenerate = async () => {
         if (!image) { setError(t('inpainting.error.noImage')); return; }
         if (!prompt.trim()) { setError(t('inpainting.error.noPrompt')); return; }
-        
+
         const maskCanvas = maskCanvasRef.current;
         const isMaskEmpty = !maskCanvas?.getContext('2d')?.getImageData(0, 0, maskCanvas.width, maskCanvas.height).data.some(channel => channel !== 0);
 
@@ -329,7 +329,7 @@ const Inpainting: React.FC = () => {
 
         setIsLoading(true);
         setError(null);
-        
+
         const finalPrompt = `# INSTRUCTION: MASKED IMAGE INPAINTING\n\n## IMAGE ROLES:\n- **Image 1 (Source):** The original image.\n- **Image 2 (Mask):** A black and white mask. The **white area** indicates the *only* region to be edited.\n\n## USER REQUEST:\nApply the following edit only inside the white area of the mask: "${prompt}"\n\n## CRITICAL RULES:\n1.  **Strict Boundaries:** All modifications MUST be confined to the white region of the mask.\n2.  **Seamless Blending:** The edited region must blend perfectly with the surrounding unchanged (black) area. Match lighting, texture, shadows, and perspective for a natural transition.\n3.  **Contextual Awareness:** The changes made within the mask should make sense in the context of the rest of the image.\n4.  **Preserve Unmasked Area:** The black region of the mask must remain 100% identical to the original source image.\n\n## OUTPUT:\nReturn ONLY the final edited, high-resolution (2K) image.`;
 
         const maskImage: ImageFile = {
@@ -339,9 +339,9 @@ const Inpainting: React.FC = () => {
 
         try {
             const [result] = await editImage(
-                { images: [image, maskImage], prompt: finalPrompt, numberOfImages: 1, aspectRatio },
+                { images: [image, maskImage], prompt: finalPrompt, numberOfImages: 1, aspectRatio, resolution },
                 imageEditModel,
-                buildImageServiceConfig(() => {})
+                buildImageServiceConfig(() => { })
             );
             setResultImage(result);
             addImage(result);
@@ -354,9 +354,9 @@ const Inpainting: React.FC = () => {
             setIsLoading(false);
         }
     };
-    
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
             <div className="flex flex-col gap-6">
                 <div className="text-center">
                     <h2 className="text-xl md:text-2xl font-bold mb-1">{t('inpainting.title')}</h2>
@@ -364,15 +364,15 @@ const Inpainting: React.FC = () => {
                 </div>
 
                 <div className="w-full max-w-sm mx-auto">
-                    <ImageUploader 
-                        image={image} 
-                        onImageUpload={(file) => { 
-                            setImage(file); 
-                            if(file) addImage(file);
+                    <ImageUploader
+                        image={image}
+                        onImageUpload={(file) => {
+                            setImage(file);
+                            if (file) addImage(file);
                             handleClearMask();
-                        }} 
-                        title={t('inpainting.uploadTitle')} 
-                        id="inpainting-upload" 
+                        }}
+                        title={t('inpainting.uploadTitle')}
+                        id="inpainting-upload"
                     />
                 </div>
 
@@ -403,7 +403,7 @@ const Inpainting: React.FC = () => {
                                 value={maskColor}
                                 onChange={(e) => setMaskColor(e.target.value)}
                                 className="w-8 h-8 p-0 border-none rounded cursor-pointer bg-transparent appearance-none"
-                                style={{'WebkitAppearance': 'none'} as React.CSSProperties}
+                                style={{ 'WebkitAppearance': 'none' } as React.CSSProperties}
                             />
                         </div>
                         <div className="flex items-center gap-2 flex-grow w-full sm:w-auto">
@@ -419,12 +419,12 @@ const Inpainting: React.FC = () => {
                                 className="w-full"
                             />
                         </div>
-                         <button onClick={() => setIsMaskVisible(!isMaskVisible)} className="p-2 rounded-md text-zinc-400 hover:bg-zinc-700" title={t('inpainting.toggleMaskVisibility')}>
+                        <button onClick={() => setIsMaskVisible(!isMaskVisible)} className="p-2 rounded-md text-zinc-400 hover:bg-zinc-700" title={t('inpainting.toggleMaskVisibility')}>
                             {isMaskVisible ? <VisibleIcon className="w-5 h-5" /> : <HiddenIcon className="w-5 h-5" />}
                         </button>
                     </div>
 
-                     {(activeTool === 'brush' || activeTool === 'eraser') && (
+                    {(activeTool === 'brush' || activeTool === 'eraser') && (
                         <div className="space-y-3 pt-4 border-t border-zinc-700/50 animate-fade-in">
                             <div>
                                 <label className="text-sm text-zinc-300">{t('inpainting.brushSize')}: {brushSize}px</label>
@@ -451,18 +451,18 @@ const Inpainting: React.FC = () => {
                         className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500"
                     />
                 </div>
-                
-                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+
+                <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
                     <ImageOptionsPanel
-                      aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
-                      resolution={resolution} setResolution={setResolution}
-                      model={imageEditModel}
+                        aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                        resolution={resolution} setResolution={setResolution}
+                        model={imageEditModel}
                     />
                 </div>
 
                 <div className="text-center">
-                    <button 
-                        onClick={handleGenerate} 
+                    <button
+                        onClick={handleGenerate}
                         disabled={isLoading || !image}
                         className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30"
                     >
@@ -471,20 +471,20 @@ const Inpainting: React.FC = () => {
                 </div>
             </div>
 
-            <div className="sticky top-8">
-                <div className={`relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-4 min-h-[50vh] lg:h-auto lg:aspect-[4/5] ${(activeTool === 'brush' || activeTool === 'eraser') && image ? 'cursor-none' : ''}`}>
+            <div className="lg:sticky lg:top-8">
+                <div className={`relative w-full min-h-[400px] lg:h-auto lg:aspect-[4/5] bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-2 sm:p-4 ${(activeTool === 'brush' || activeTool === 'eraser') && image ? 'cursor-none' : ''}`}>
                     <canvas ref={maskCanvasRef} className="hidden" />
                     <div className={`absolute inset-0 ${resultImage && !isDrawing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                         <canvas ref={imageCanvasRef} className="absolute inset-0 w-full h-full" />
-                         <canvas 
-                            ref={drawingCanvasRef} 
+                        <canvas ref={imageCanvasRef} className="absolute inset-0 w-full h-full" />
+                        <canvas
+                            ref={drawingCanvasRef}
                             className={`absolute inset-0 w-full h-full z-10 ${image && activeTool !== 'rectangle' ? '' : 'cursor-crosshair'}`}
                             onMouseDown={handleMouseDown}
                             onMouseMove={handleMouseMove}
                             onMouseUp={handleMouseUp}
                             onMouseLeave={handleMouseLeave}
-                         />
-                         <canvas ref={cursorCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-20" />
+                        />
+                        <canvas ref={cursorCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-20" />
                     </div>
 
                     {resultImage && !isDrawing && (
@@ -492,7 +492,7 @@ const Inpainting: React.FC = () => {
                             <HoverableImage image={resultImage} altText="Inpainting result" onRegenerate={handleGenerate} isGenerating={isLoading} />
                         </div>
                     )}
-                    
+
                     {!image && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="text-center text-zinc-500 p-4">
@@ -502,14 +502,14 @@ const Inpainting: React.FC = () => {
                             </div>
                         </div>
                     )}
-                    
+
                     {isLoading && (
                         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center text-center animate-fade-in z-30 rounded-2xl">
                             <Spinner />
                             <p className="mt-4 text-zinc-300 font-semibold">{t('inpainting.generatingStatus')}</p>
                         </div>
                     )}
-                    
+
                     {error && !isLoading && (
                         <div className="absolute inset-0 p-4 w-full h-full flex items-center justify-center bg-black/70 z-30 rounded-2xl">
                             <ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} />

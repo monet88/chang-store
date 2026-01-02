@@ -19,7 +19,7 @@ const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = ({ aspectRatio, 
                   key={ratio}
                   onClick={() => setAspectRatio(ratio)}
                   className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                      aspectRatio === ratio ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
+                      aspectRatio === ratio ? 'bg-amber-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
                   }`}
               >
                   {ratio}

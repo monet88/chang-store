@@ -251,7 +251,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
 
                 <div className="p-6 space-y-6 overflow-y-auto">
                     <section>
-                        <h3 className="text-base md:text-lg font-semibold text-emerald-400 mb-4">Default Model Selection</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-amber-400 mb-4">Default Model Selection</h3>
                         <div className="space-y-4">
                            <ServiceModelSelector label="Text Generation (Analysis/Prompts)" services={TEXT_GENERATE_SERVICES} modelsByService={MODELS_BY_SERVICE.textGenerate} selectedModel={localTextGenerateModel} onModelChange={setLocalTextGenerateModel} />
                            <ServiceModelSelector label="Image Editing / Variation" services={IMAGE_EDIT_SERVICES} modelsByService={MODELS_BY_SERVICE.imageEdit} selectedModel={localImageEditModel} onModelChange={setLocalImageEditModel} />
@@ -261,7 +261,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                     </section>
                 
                     <section>
-                        <h3 className="text-base md:text-lg font-semibold text-emerald-400 mb-4">API Keys</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-amber-400 mb-4">API Keys</h3>
                         <div className="space-y-4">
                             <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
                                 <h4 className="font-semibold text-slate-200 mb-2">Google Gemini API Key</h4>
@@ -284,11 +284,11 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                              <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
                                 <h4 className="font-semibold text-slate-200 mb-2">AIVideoAuto API</h4>
                                 <p className="text-xs text-slate-400 mb-3">
-                                    Get your access token from: <a href="https://aivideoauto.com/pages/account/apikeys" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">aivideoauto.com</a>
+                                    Get your access token from: <a href="https://aivideoauto.com/pages/account/apikeys" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">aivideoauto.com</a>
                                 </p>
                                 <div className="flex items-center gap-2">
                                     <input type="password" value={localAivideoautoKey} onChange={e => setLocalAivideoautoKey(e.target.value)} placeholder="Enter your AIVideoAuto Access Token" className="flex-grow bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm" />
-                                    <button onClick={handleAivideoautoKeyCheckAndSave} disabled={isTestingAivideoauto || !localAivideoautoKey.trim()} className="bg-emerald-600 text-white font-semibold px-4 py-2 rounded-md text-sm w-40 text-center disabled:bg-slate-600">
+                                    <button onClick={handleAivideoautoKeyCheckAndSave} disabled={isTestingAivideoauto || !localAivideoautoKey.trim()} className="bg-amber-600 text-white font-semibold px-4 py-2 rounded-md text-sm w-40 text-center disabled:bg-slate-600">
                                         {isTestingAivideoauto ? <Spinner /> : aivideoautoSaveSuccess ? 'Saved!' : 'Check & Save Key'}
                                     </button>
                                 </div>
@@ -298,7 +298,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                     </section>
 
                     <section>
-                        <h3 className="text-base md:text-lg font-semibold text-emerald-400 mb-4">Application Data</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-amber-400 mb-4">Application Data</h3>
                         <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
                             <p className="text-sm text-slate-300 mb-2">Local browser storage usage:</p>
                             <div className="w-full bg-slate-700 rounded-full h-4 overflow-hidden">
@@ -319,7 +319,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                 <footer className="flex justify-end p-4 border-t border-slate-700 flex-shrink-0">
                     <div className="flex gap-4">
                         <button onClick={onClose} className="bg-slate-700 text-white font-semibold py-2 px-5 rounded-lg text-sm hover:bg-slate-600 transition-colors">Cancel</button>
-                        <button onClick={handleSave} className="bg-emerald-600 text-white font-semibold py-2 px-5 rounded-lg text-sm hover:bg-emerald-500 transition-colors">Save</button>
+                        <button onClick={handleSave} className="bg-amber-600 text-white font-semibold py-2 px-5 rounded-lg text-sm hover:bg-amber-500 transition-colors">Save</button>
                     </div>
                 </footer>
             </div>

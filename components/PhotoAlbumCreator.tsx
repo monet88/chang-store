@@ -41,7 +41,7 @@ export const PhotoAlbumCreator: React.FC = () => {
     const [originalPhoto, setOriginalPhoto] = useState<ImageFile | null>(null);
     const [faceImage, setFaceImage] = useState<ImageFile | null>(null);
     const [outfitImage, setOutfitImage] = useState<ImageFile | null>(null);
-    
+
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('9:16');
     const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
     const [cameraView, setCameraView] = useState<string>('fullBody');
@@ -146,7 +146,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
             `.trim();
 
             try {
-                const [result] = await editImage({ images: imagesForApi, prompt, numberOfImages: 1, aspectRatio }, imageEditModel, buildImageServiceConfig(setGenerationStatus));
+                const [result] = await editImage({ images: imagesForApi, prompt, numberOfImages: 1, aspectRatio, resolution }, imageEditModel, buildImageServiceConfig(setGenerationStatus));
                 newImages.push({ ...result, pose });
                 setGeneratedImages([...newImages]);
                 addImage(result);
@@ -182,9 +182,9 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
             </div>
         );
     }
-    
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
             {/* Left Column: Inputs */}
             <div className="flex flex-col gap-6">
                 <div className="text-center">
@@ -199,24 +199,24 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                     </div>
 
                     {mode === 'fullModel' ? (
-                        <ImageUploader image={originalPhoto} onImageUpload={(f) => {setOriginalPhoto(f); if(f) addImage(f);}} title={t('photoAlbum.originalPhoto')} id="pa-original"/>
+                        <ImageUploader image={originalPhoto} onImageUpload={(f) => { setOriginalPhoto(f); if (f) addImage(f); }} title={t('photoAlbum.originalPhoto')} id="pa-original" />
                     ) : (
                         <div className="grid grid-cols-2 gap-4">
-                            <ImageUploader image={faceImage} onImageUpload={(f) => {setFaceImage(f); if(f) addImage(f);}} title={t('photoAlbum.faceImage')} id="pa-face"/>
-                            <ImageUploader image={outfitImage} onImageUpload={(f) => {setOutfitImage(f); if(f) addImage(f);}} title={t('photoAlbum.outfitImage')} id="pa-outfit"/>
+                            <ImageUploader image={faceImage} onImageUpload={(f) => { setFaceImage(f); if (f) addImage(f); }} title={t('photoAlbum.faceImage')} id="pa-face" />
+                            <ImageUploader image={outfitImage} onImageUpload={(f) => { setOutfitImage(f); if (f) addImage(f); }} title={t('photoAlbum.outfitImage')} id="pa-outfit" />
                         </div>
                     )}
                 </div>
-                
+
                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
                     <h3 className="text-base md:text-lg font-semibold text-center text-amber-400">{t('photoAlbum.addons')}</h3>
-                    
+
                     <ImageOptionsPanel
-                      aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
-                      resolution={resolution} setResolution={setResolution}
-                      model={imageEditModel}
+                        aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                        resolution={resolution} setResolution={setResolution}
+                        model={imageEditModel}
                     />
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.chooseHair')}</label>
@@ -232,7 +232,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                                 {Object.entries(SKIN_TONES).map(([key, value]) => <option key={key} value={key}>{String(value)}</option>)}
                             </select>
                         </div>
-                         <div>
+                        <div>
                             <label className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.chooseFrame')}</label>
                             <select value={frame} onChange={e => setFrame(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm">
                                 {/* FIX: Cast value to string to resolve ReactNode type error. */}
@@ -250,7 +250,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
 
                     <div>
                         <label className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.additionalNotes')}</label>
-                        <input type="text" value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} placeholder={t('photoAlbum.additionalNotesPlaceholder')} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm"/>
+                        <input type="text" value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} placeholder={t('photoAlbum.additionalNotesPlaceholder')} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm" />
                     </div>
                 </div>
 
@@ -263,23 +263,23 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                     <div className="max-h-48 overflow-y-auto space-y-2 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
                         {POSES.map(pose => (
                             <label key={pose} className="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" checked={selectedPoses.includes(pose)} onChange={() => setSelectedPoses(prev => prev.includes(pose) ? prev.filter(p => p !== pose) : [...prev, pose])} className="w-4 h-4 rounded text-amber-500 bg-zinc-700 border-zinc-600 focus:ring-amber-500"/>
+                                <input type="checkbox" checked={selectedPoses.includes(pose)} onChange={() => setSelectedPoses(prev => prev.includes(pose) ? prev.filter(p => p !== pose) : [...prev, pose])} className="w-4 h-4 rounded text-amber-500 bg-zinc-700 border-zinc-600 focus:ring-amber-500" />
                                 <span className="text-sm text-zinc-300">{pose}</span>
                             </label>
                         ))}
                     </div>
                     <p className="text-xs text-zinc-400 mt-2">{selectedPoses.length} selected</p>
                 </div>
-                
+
                 <div className="text-center">
                     <button onClick={handleGenerate} disabled={isLoading} className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105">
-                        {isLoading ? <Spinner /> : t('photoAlbum.generateButton', {count: selectedPoses.length})}
+                        {isLoading ? <Spinner /> : t('photoAlbum.generateButton', { count: selectedPoses.length })}
                     </button>
                 </div>
             </div>
             {/* Right Column: Output */}
-            <div className="sticky top-8">
-                 <div className="relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-4 min-h-[50vh] lg:min-h-0 lg:aspect-[4/5]">
+            <div className="lg:sticky lg:top-8">
+                <div className="relative w-full min-h-[400px] lg:min-h-0 lg:aspect-[4/5] bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-2 sm:p-4">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center gap-4 text-center">
                             <Spinner />
@@ -291,12 +291,12 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                             <ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} />
                         </div>
                     ) : (
-                         <div className="text-center text-zinc-500 pointer-events-none">
+                        <div className="text-center text-zinc-500 pointer-events-none">
                             <GalleryIcon className="mx-auto h-16 w-16" />
                             <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
                         </div>
                     )}
-                 </div>
+                </div>
             </div>
         </div>
     );

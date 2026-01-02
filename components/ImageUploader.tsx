@@ -24,7 +24,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
 
   useEffect(() => {
     if (!image && inputRef.current) {
-        inputRef.current.value = "";
+      inputRef.current.value = "";
     }
   }, [image]);
 
@@ -40,12 +40,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
         const reader = new FileReader();
         reader.onloadend = () => {
           if (typeof reader.result === 'string') {
-              const base64String = reader.result.split(',')[1];
-              onImageUpload({ base64: base64String, mimeType: file.type });
+            const base64String = reader.result.split(',')[1];
+            onImageUpload({ base64: base64String, mimeType: file.type });
           }
         };
         reader.onerror = (err) => {
-            console.error("FileReader error on fallback:", err);
+          console.error("FileReader error on fallback:", err);
         };
         reader.readAsDataURL(file);
       }
@@ -58,12 +58,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
       processFile(file);
     }
   };
-  
+
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
     onImageUpload(null);
-    if(inputRef.current) {
-        inputRef.current.value = "";
+    if (inputRef.current) {
+      inputRef.current.value = "";
     }
   };
 
@@ -100,9 +100,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
       <div className="w-full">
         <label htmlFor={id} className="block text-xs font-medium text-slate-300 mb-1">{title}</label>
         <div
-          className={`relative aspect-[4/3] w-full bg-slate-800/50 rounded-lg border-2 border-dashed transition-colors duration-300 flex items-center justify-center overflow-hidden ${
-            isDragging ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-700'
-          } ${!image ? 'hover:border-emerald-500' : ''}`}
+          className={`relative aspect-[4/3] w-full bg-slate-800/50 rounded-lg border-2 border-dashed transition-colors duration-300 flex items-center justify-center overflow-hidden ${isDragging ? 'border-amber-500 bg-amber-500/10' : 'border-slate-700'
+            } ${!image ? 'hover:border-amber-500' : ''}`}
           onDragOver={handleDragOver}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
@@ -119,12 +118,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
           {preview ? (
             <>
               <img src={preview} alt="Preview" className="object-contain h-full w-full" />
-              <button 
+              <button
                 onClick={handleClear}
                 className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full text-white hover:bg-red-500/80 transition-all duration-200"
                 aria-label={t('imageUploader.removeAria')}
               >
-                  <DeleteIcon className="w-5 h-5" />
+                <DeleteIcon className="w-5 h-5" />
               </button>
             </>
           ) : (
@@ -138,17 +137,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
                 <p className="text-xs opacity-70">{t('imageUploader.fileTypes')}</p>
               </div>
               <div className="mt-2 w-full border-t border-slate-700/50 pt-2 flex justify-center">
-                  <button
-                      type="button"
-                      onClick={(e) => {
-                          e.stopPropagation();
-                          setIsGallerySelectionOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 text-xs bg-slate-700/80 text-slate-200 font-semibold py-1.5 px-3 rounded-lg hover:bg-slate-700 transition-colors duration-200"
-                  >
-                      <GalleryIcon className="w-4 h-4" />
-                      <span>{t('imageUploader.selectFromGallery')}</span>
-                  </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsGallerySelectionOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 text-xs bg-slate-700/80 text-slate-200 font-semibold py-1.5 px-3 rounded-lg hover:bg-slate-700 transition-colors duration-200"
+                >
+                  <GalleryIcon className="w-4 h-4" />
+                  <span>{t('imageUploader.selectFromGallery')}</span>
+                </button>
               </div>
             </div>
           )}
@@ -156,12 +155,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
       </div>
       {isGallerySelectionOpen && (
         <ImageSelectionModal
-            isOpen={isGallerySelectionOpen}
-            onClose={() => setIsGallerySelectionOpen(false)}
-            onSelect={(selectedImage) => {
-                onImageUpload(selectedImage);
-                setIsGallerySelectionOpen(false);
-            }}
+          isOpen={isGallerySelectionOpen}
+          onClose={() => setIsGallerySelectionOpen(false)}
+          onSelect={(selectedImage) => {
+            onImageUpload(selectedImage);
+            setIsGallerySelectionOpen(false);
+          }}
         />
       )}
     </>
