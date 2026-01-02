@@ -22,7 +22,7 @@ describe('LanguageContext', () => {
   describe('useLanguage hook', () => {
     it('throws error when used outside LanguageProvider', () => {
       // Suppress console.error for expected error
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
       expect(() => {
         renderHook(() => useLanguage());
@@ -211,6 +211,20 @@ describe('LanguageContext', () => {
       });
 
       expect(result.current.language).toBe('en');
+    });
+
+    it('allows setting language to vi and returns correct translations', () => {
+      const { result } = renderHook(() => useLanguage(), { wrapper });
+
+      // Switch to Vietnamese
+      act(() => {
+        result.current.setLanguage('vi');
+      });
+
+      expect(result.current.language).toBe('vi');
+      // Verify a known Vietnamese translation from vi.ts
+      // In vi.ts: header: { title: 'Fashion Expert', ... }
+      expect(result.current.t('header.title')).toBe('Fashion Expert');
     });
   });
 

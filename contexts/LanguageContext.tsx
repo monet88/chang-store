@@ -1,18 +1,19 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 import { en, Translation } from '../locales/en';
+import { vi } from '../locales/vi';
 
-export type Language = 'en';
+export type Language = 'en' | 'vi';
 
 const get = (obj: any, path: string): any => {
-    try {
-        return path.split('.').reduce((acc, part) => acc && acc[part], obj);
-    } catch (e) {
-        return undefined;
-    }
+  try {
+    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+  } catch (e) {
+    return undefined;
+  }
 };
 
-const translations = { en };
+const translations = { en, vi };
 
 interface LanguageContextType {
   language: Language;
@@ -31,9 +32,9 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     const translationValue = get(langDict, key);
 
     if (options && 'returnObjects' in options && options.returnObjects) {
-        return translationValue || [];
+      return translationValue || [];
     }
-    
+
     let translation = translationValue || key;
     if (typeof translation !== 'string') return translation;
 
