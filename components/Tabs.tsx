@@ -33,11 +33,10 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
         <button
           key={tab.id}
           onClick={() => setActiveFeature(tab.id)}
-          className={`w-full text-left px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-emerald-500 whitespace-nowrap ${
-            activeFeature === tab.id
-              ? 'bg-emerald-600 text-white'
+          className={`w-full text-left px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-amber-500 whitespace-nowrap ${activeFeature === tab.id
+              ? 'bg-amber-600 text-white'
               : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
-          }`}
+            }`}
         >
           {tab.label}
         </button>

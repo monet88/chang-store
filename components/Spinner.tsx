@@ -5,7 +5,7 @@ import { CloseIcon, ErrorIcon } from './Icons';
 const Spinner: React.FC = () => {
   return (
     <div className="flex justify-center items-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400"></div>
     </div>
   );
 };
@@ -17,7 +17,7 @@ export const ProgressBar: React.FC<{ progress: number; total: number }> = ({ pro
         <div className="text-right text-xs font-semibold text-slate-400 mb-1">{percentage}%</div>
         <div className="w-full bg-slate-700 rounded-full h-2">
             <div 
-            className="bg-gradient-to-r from-emerald-500 to-green-500 h-2 rounded-full transition-all duration-300 ease-linear" 
+            className="bg-gradient-to-r from-amber-500 to-green-500 h-2 rounded-full transition-all duration-300 ease-linear" 
             style={{ width: `${percentage}%` }}
             ></div>
         </div>

@@ -119,7 +119,7 @@ const HoverableImage: React.FC<HoverableImageProps> = ({
                                 className="p-2.5 bg-slate-700/80 rounded-full text-white hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 aria-label={t('imageActions.regenerate')}
                             >
-                                {isGenerating ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-400"></div> : <RegenerateIcon className="w-5 h-5" />}
+                                {isGenerating ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-400"></div> : <RegenerateIcon className="w-5 h-5" />}
                             </button>
                         )}
                         {onUpscale && (
@@ -129,13 +129,13 @@ const HoverableImage: React.FC<HoverableImageProps> = ({
                                 className="p-2.5 bg-slate-700/80 rounded-full text-white hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 aria-label={t('imageActions.upscale')}
                             >
-                                {isUpscaling ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-400"></div> : <CloudUploadIcon className="w-5 h-5" />}
+                                {isUpscaling ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-400"></div> : <CloudUploadIcon className="w-5 h-5" />}
                             </button>
                         )}
                          <a
                             href={imageUrl}
                             download={downloadFileName}
-                            className="p-2.5 bg-emerald-600 rounded-full text-white hover:bg-emerald-500 transition-colors"
+                            className="p-2.5 bg-amber-600 rounded-full text-white hover:bg-amber-500 transition-colors"
                             aria-label={t('imageActions.download')}
                         >
                             <DownloadIcon className="w-5 h-5" />
