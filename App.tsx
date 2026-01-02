@@ -9,6 +9,7 @@ import GalleryButton from './components/GalleryButton';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ApiProvider } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
+import { GoogleDriveProvider } from './contexts/GoogleDriveContext';
 import { ToastProvider } from './components/Toast';
 import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
@@ -187,11 +188,13 @@ const App: React.FC = () => {
     <LanguageProvider>
       <ToastProvider>
         <ApiProvider>
-          <ImageGalleryProvider>
+          <GoogleDriveProvider>
+            <ImageGalleryProvider>
             <ImageViewerProvider>
               <AppContent />
             </ImageViewerProvider>
-          </ImageGalleryProvider>
+            </ImageGalleryProvider>
+          </GoogleDriveProvider>
         </ApiProvider>
       </ToastProvider>
     </LanguageProvider>
