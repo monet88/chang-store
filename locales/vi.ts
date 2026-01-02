@@ -948,4 +948,27 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       noImages: 'Vui lòng tải lên ít nhất một ảnh để tạo video.',
     },
   },
+  /** Cài đặt và thông báo trạng thái đồng bộ Google Drive */
+  googleDrive: {
+    title: 'Google Drive',
+    description: 'Đồng bộ ảnh thư viện của bạn lên Google Drive để sao lưu và truy cập từ nhiều thiết bị.',
+    connect: 'Kết nối Google Drive',
+    connecting: 'Đang kết nối...',
+    disconnect: 'Ngắt kết nối',
+    privacyNote: 'Chúng tôi chỉ truy cập các tệp do ứng dụng này tạo trong Drive của bạn.',
+    lastSynced: 'Lần đồng bộ cuối',
+    never: 'Chưa bao giờ',
+    justNow: 'Vừa xong',
+    minutesAgo: '{{count}} phút trước',
+    hoursAgo: '{{count}} giờ trước',
+    status: {
+      idle: 'Sẵn sàng đồng bộ',
+      syncing: 'Đang đồng bộ...',
+      synced: 'Đã đồng bộ',
+      error: 'Đồng bộ thất bại',
+    },
+    syncNow: 'Đồng bộ ngay',
+    autoSync: 'Tự động đồng bộ',
+    autoSyncDescription: 'Tự động đồng bộ ảnh khi thêm vào thư viện.',
+  },
 };

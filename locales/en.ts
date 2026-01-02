@@ -944,4 +944,27 @@ Do not include any other text or markdown.
       noImages: 'Please upload at least one image to generate videos.',
     },
   },
+  /** Google Drive sync settings and status messages */
+  googleDrive: {
+    title: 'Google Drive',
+    description: 'Sync your gallery images to Google Drive for backup and access across devices.',
+    connect: 'Connect to Google Drive',
+    connecting: 'Connecting...',
+    disconnect: 'Disconnect',
+    privacyNote: 'We only access the files created by this app in your Drive.',
+    lastSynced: 'Last synced',
+    never: 'Never',
+    justNow: 'Just now',
+    minutesAgo: '{{count}} minutes ago',
+    hoursAgo: '{{count}} hours ago',
+    status: {
+      idle: 'Ready to sync',
+      syncing: 'Syncing...',
+      synced: 'Synced',
+      error: 'Sync failed',
+    },
+    syncNow: 'Sync Now',
+    autoSync: 'Auto-sync',
+    autoSyncDescription: 'Automatically sync images when they are added to the gallery.',
+  },
 };
