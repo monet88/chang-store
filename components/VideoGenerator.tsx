@@ -232,7 +232,7 @@ export const VideoGenerator: React.FC = () => {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
             <div className="flex flex-col gap-6">
                 <div className="text-center">
                     <h2 className="text-xl md:text-2xl font-bold mb-1">{t('videoAI.title')}</h2>

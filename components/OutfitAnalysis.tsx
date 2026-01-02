@@ -283,7 +283,7 @@ const OutfitAnalysis: React.FC = () => {
         return (
             <div className="animate-fade-in">
                 <h2 className="text-xl md:text-2xl font-bold text-center mb-8">{t('outfitAnalysis.analysisTitle')}</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
                     <div className="lg:sticky lg:top-8">
                         {uploadedImage && <HoverableImage image={uploadedImage} altText={t('outfitAnalysis.uploadedAlt')} />}
                     </div>
@@ -403,7 +403,7 @@ const OutfitAnalysis: React.FC = () => {
         return (
             <div className="animate-fade-in">
                 <h2 className="text-xl md:text-2xl font-bold text-center mb-8">{t('outfitAnalysis.redesignTitle')}</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
                     <div>
                         <div className="lg:sticky lg:top-8">
                             <h3 className="text-base md:text-lg font-semibold text-center mb-2 text-zinc-400">{t('outfitAnalysis.originalOutfit')}</h3>

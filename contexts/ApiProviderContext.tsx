@@ -38,10 +38,10 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [aivideoautoImageModels, setAivideoautoImageModelsState] = useState<AIVideoAutoModel[]>([]);
   const [aivideoautoVideoModels, setAivideoautoVideoModelsState] = useState<AIVideoAutoModel[]>([]);
 
-  const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>('gemini-2.5-flash-image');
+  const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>('gemini-3-pro-image-preview');
   const [imageGenerateModel, setImageGenerateModelState] = useState<ImageGenerateModel>('imagen-4.0-generate-001');
   const [videoGenerateModel, setVideoGenerateModelState] = useState<VideoGenerateModel>('');
-  const [textGenerateModel, setTextGenerateModelState] = useState<TextGenerateModel>('gemini-2.5-pro');
+  const [textGenerateModel, setTextGenerateModelState] = useState<TextGenerateModel>('gemini-3-flash-preview');
 
   // Initialize Gemini client with stored key on mount
   useEffect(() => {
