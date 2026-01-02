@@ -1,8 +1,10 @@
 import React from 'react';
 import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useImageGallery } from '../contexts/ImageGalleryContext';
+import { useToast } from './Toast';
 import Spinner from './Spinner';
-import { CloudUploadIcon, DeleteIcon, DownloadIcon, EditorIcon, FullscreenIcon, RegenerateIcon } from './Icons';
+import { CloudUploadIcon, DeleteIcon, DownloadIcon, EditorIcon, FullscreenIcon, GalleryIcon, RegenerateIcon } from './Icons';
 import { useImageViewer } from '../contexts/ImageViewerContext';
 
 interface HoverableImageProps {
@@ -19,10 +21,10 @@ interface HoverableImageProps {
     containerClassName?: string;
 }
 
-const HoverableImage: React.FC<HoverableImageProps> = ({ 
-    image, 
-    altText, 
-    downloadFileName = 'generated-image.png', 
+const HoverableImage: React.FC<HoverableImageProps> = ({
+    image,
+    altText,
+    downloadFileName = 'generated-image.png',
     onRegenerate,
     onUpscale,
     onDelete,
@@ -30,11 +32,24 @@ const HoverableImage: React.FC<HoverableImageProps> = ({
     onClick,
     isGenerating,
     isUpscaling,
-    containerClassName 
+    containerClassName
 }) => {
     const { openImageViewer } = useImageViewer();
     const { t } = useLanguage();
+    const { addImage, images } = useImageGallery();
+    const { showToast } = useToast();
     const imageUrl = `data:${image.mimeType};base64,${image.base64}`;
+
+    /** Check if image is already saved to gallery */
+    const isSavedToGallery = images.some(img => img.base64 === image.base64);
+
+    /** Handle save to gallery click */
+    const handleSaveToGallery = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isSavedToGallery) return;
+        addImage(image);
+        showToast(t('toast.imageSaved'));
+    };
 
     const defaultClassName = "relative group w-full bg-slate-900 rounded-lg overflow-hidden border border-slate-700 shadow-md aspect-[4/5]";
 
@@ -81,8 +96,22 @@ const HoverableImage: React.FC<HoverableImageProps> = ({
                 )}
 
                 <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-4 z-20 pointer-events-none">
-                    {/* Top right icon */}
+                    {/* Top right icons */}
                     <div className="flex justify-end gap-2 pointer-events-auto">
+                         {/* Save to Gallery button */}
+                         <button
+                            onClick={handleSaveToGallery}
+                            disabled={isSavedToGallery}
+                            className={`p-2 rounded-full transition-colors ${
+                                isSavedToGallery
+                                    ? 'bg-green-600/70 text-white cursor-default'
+                                    : 'bg-slate-900/50 text-white hover:bg-amber-600/80'
+                            }`}
+                            aria-label={isSavedToGallery ? t('imageActions.savedToGallery') : t('imageActions.saveToGallery')}
+                            title={isSavedToGallery ? t('imageActions.savedToGallery') : t('imageActions.saveToGallery')}
+                        >
+                            <GalleryIcon className="w-5 h-5" />
+                        </button>
                          {onEdit && (
                             <button 
                                 onClick={handleEditClick}
