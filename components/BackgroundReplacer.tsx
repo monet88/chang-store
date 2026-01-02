@@ -6,7 +6,6 @@ import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generateImageDescription } from '../services/gemini/text';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -37,7 +36,6 @@ const BackgroundReplacer: React.FC = () => {
   const [cameraView, setCameraView] = useState<string>('fullBody');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
-  const { addImage } = useImageGallery();
 
   const PREDEFINED_BG_KEYS = ['studioMirrorChair', 'sofaMirrorCurtain', 'curvedSofaCurtain'];
   const allBackgroundLabels = t('photoAlbum.backgroundLabels', { returnObjects: true });
@@ -69,13 +67,11 @@ const BackgroundReplacer: React.FC = () => {
 
   const handleSubjectUpload = (file: ImageFile | null) => {
     setSubjectImage(file);
-    if (file) addImage(file);
   };
 
   const handleBackgroundUpload = (file: ImageFile | null) => {
     setBackgroundImage(file);
     if (file) {
-      addImage(file);
       setPromptText('');
       setSelectedPredefinedKey('custom');
     }
@@ -196,7 +192,6 @@ const BackgroundReplacer: React.FC = () => {
         resolution,
       }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
       setGeneratedImages(results);
-      results.forEach(addImage);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -215,7 +210,6 @@ const BackgroundReplacer: React.FC = () => {
         buildImageServiceConfig(() => { })
       );
       setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
-      addImage(result);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {

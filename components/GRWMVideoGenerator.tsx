@@ -3,7 +3,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Feature, ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { generateVideo } from '../services/imageEditingService';
 // FIX: Corrected import path for gemini services
@@ -31,7 +30,6 @@ interface VideoResult {
 // --- Main Component ---
 export const GRWMVideoGenerator: React.FC = () => {
     const { t } = useLanguage();
-    const { addImage } = useImageGallery();
     const { getModelsForFeature, aivideoautoAccessToken, aivideoautoVideoModels } = useApi();
     const { videoGenerateModel } = getModelsForFeature(Feature.GRWMVideo);
 
@@ -54,14 +52,13 @@ export const GRWMVideoGenerator: React.FC = () => {
                     const croppedAndCompressed = await cropAndCompressImage(file, 9 / 16);
                     const id = `${Date.now()}-${Math.random()}`;
                     newImageItems.push({ id, file: croppedAndCompressed });
-                    addImage(croppedAndCompressed);
                 } catch (err) {
                     console.error('Failed to process file:', file.name, err);
                 }
             }
         }
         setImages(prev => [...prev, ...newImageItems]);
-    }, [addImage]);
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {

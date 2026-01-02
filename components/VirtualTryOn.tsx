@@ -8,14 +8,12 @@ import Spinner, { ErrorDisplay } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { AddIcon, DeleteIcon, GalleryIcon } from './Icons';
 import Tooltip from './Tooltip';
 import ImageOptionsPanel from './ImageOptionsPanel';
-
 
 // --- Type Definitions ---
 interface ClothingItem {
@@ -38,7 +36,6 @@ const VirtualTryOn: React.FC = () => {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
-  const { addImage } = useImageGallery();
   const { t } = useLanguage();
   const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.TryOn);
@@ -141,7 +138,6 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
         buildImageServiceConfig(setLoadingMessage)
       );
       setGeneratedImages(results);
-      results.forEach(addImage);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -162,7 +158,6 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
         buildImageServiceConfig(() => { })
       );
       setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
-      addImage(result);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -172,7 +167,6 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
 
   const handleClothingUpload = (file: ImageFile | null, id: number) => {
     setClothingItems(items => items.map(item => item.id === id ? { ...item, image: file } : item));
-    if (file) addImage(file);
   };
   const addClothingUploader = () => setClothingItems(prev => [...prev, { id: Date.now(), image: null }]);
   const removeClothingUploader = (id: number) => setClothingItems(prev => prev.filter(item => item.id !== id));
@@ -196,7 +190,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
           <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('virtualTryOn.step1')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Tooltip content={t('tooltips.tryOnSubject')} position="right" className="w-full">
-              <ImageUploader image={subjectImage} id="subject-upload" title={t('virtualTryOn.subjectImageTitle')} onImageUpload={(file) => { setSubjectImage(file); if (file) addImage(file); }} />
+              <ImageUploader image={subjectImage} id="subject-upload" title={t('virtualTryOn.subjectImageTitle')} onImageUpload={setSubjectImage} />
             </Tooltip>
             <div className="flex flex-col gap-3">
               {clothingItems.map((item, index) => (

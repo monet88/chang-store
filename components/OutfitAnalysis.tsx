@@ -4,7 +4,6 @@ import { ImageFile, AnalyzedItem, Feature, AspectRatio, ImageResolution, DEFAULT
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '../services/imageEditingService';
 import { analyzeOutfit } from '../services/gemini/text';
 import type { RedesignPreset } from '../services/gemini/image';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import ImageUploader from './ImageUploader';
@@ -22,7 +21,6 @@ interface RedesignResult {
 
 const OutfitAnalysis: React.FC = () => {
     const { t } = useLanguage();
-    const { addImage } = useImageGallery();
     const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.OutfitAnalysis);
     const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
@@ -85,7 +83,6 @@ const OutfitAnalysis: React.FC = () => {
             return;
         }
         setUploadedImage(file);
-        addImage(file);
 
         setIsLoading(true);
         setLoadingMessage(t('outfitAnalysis.statusAnalyzing'));
@@ -138,7 +135,6 @@ const OutfitAnalysis: React.FC = () => {
                     resolution
                 );
                 setRedesignResults([{ preset, critique, images: redesignedImages }]);
-                redesignedImages.forEach(addImage);
                 setStep(2);
             } catch (err) {
                 setError(getErrorMessage(err, t));
@@ -193,7 +189,6 @@ const OutfitAnalysis: React.FC = () => {
                     resolution
                 );
                 allResults.push({ preset, critique, images: redesignedImages });
-                redesignedImages.forEach(addImage);
             } catch (err) {
                 setError(getErrorMessage(err, t));
                 setIsLoading(false);
@@ -223,7 +218,6 @@ const OutfitAnalysis: React.FC = () => {
                 imageEditModel,
                 buildImageServiceConfig(() => { })
             );
-            addImage(extractedImage);
             setExtractionStatus(prev => ({ ...prev, [key]: 'done' }));
         } catch (err) {
             setError(getErrorMessage(err, t));

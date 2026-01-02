@@ -5,7 +5,6 @@
 import React, { useState } from 'react';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -132,7 +131,6 @@ Your primary task is to relight the provided source image according to the speci
 
 const Relight: React.FC = () => {
     const { t } = useLanguage();
-    const { addImage } = useImageGallery();
     const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Relight);
     const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
@@ -183,7 +181,6 @@ const Relight: React.FC = () => {
         try {
             const [result] = await editImage({ images: [image], prompt, numberOfImages: 1, aspectRatio, resolution }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
             setGeneratedImage(result);
-            addImage(result);
         } catch (err) {
             setError(getErrorMessage(err, t));
         } finally {
@@ -209,7 +206,7 @@ const Relight: React.FC = () => {
                 </div>
 
                 <div className="w-full max-w-sm mx-auto">
-                    <ImageUploader image={image} onImageUpload={(file) => { setImage(file); if (file) addImage(file); }} title={t('relight.uploadTitle')} id="relight-upload" />
+                    <ImageUploader image={image} onImageUpload={setImage} title={t('relight.uploadTitle')} id="relight-upload" />
                 </div>
 
                 <div className="space-y-6 bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
