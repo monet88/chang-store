@@ -6,6 +6,7 @@ import { listModels } from '../../services/aivideoautoService';
 import Spinner from '../Spinner';
 import { CloseIcon, CheckCircleIcon } from '../Icons';
 import { ImageEditModel, ImageGenerateModel, VideoGenerateModel, TextGenerateModel } from '../../types';
+import { GoogleDriveSettings } from '../GoogleDriveSettings';
 
 const ServiceModelSelector: React.FC<{
     label: string;
@@ -295,6 +296,11 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                                 {aivideoautoError && <p className="text-red-400 text-xs mt-2">{`Error: ${aivideoautoError}`}</p>}
                             </div>
                         </div>
+                    </section>
+
+                    <section>
+                        <h3 className="text-base md:text-lg font-semibold text-amber-400 mb-4">Cloud Sync</h3>
+                        <GoogleDriveSettings />
                     </section>
 
                     <section>
