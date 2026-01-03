@@ -3,6 +3,15 @@ import { Part, Modality, Type } from "@google/genai";
 import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel } from '../../types';
 import { getGeminiClient } from '../apiClient';
 
+/**
+ * Check if model supports imageSize parameter.
+ * Only Gemini 3 and Imagen 4 models support imageSize.
+ * Gemini 2.5 flash-image only supports aspectRatio.
+ */
+const supportsImageSize = (model: string): boolean => {
+    return model.includes('gemini-3') || model.includes('imagen-4');
+};
+
 export interface EditImageParams {
   images: ImageFile[];
   prompt: string;
@@ -32,12 +41,12 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
     const textPart: Part = { text: finalPrompt };
 
     const generateSingleImage = async (): Promise<ImageFile> => {
-        // Build imageConfig if aspectRatio or resolution specified
+        // Build imageConfig - only include imageSize for models that support it
         const imageConfig: { aspectRatio?: string; imageSize?: string } = {};
         if (aspectRatio && aspectRatio !== 'Default') {
             imageConfig.aspectRatio = aspectRatio;
         }
-        if (resolution) {
+        if (resolution && supportsImageSize(model)) {
             imageConfig.imageSize = resolution;
         }
 
@@ -289,12 +298,12 @@ export const critiqueAndRedesignOutfit = async (
     const textPart: Part = { text: prompt };
 
     const generateSingleRedesign = async (): Promise<{ critique: string; image: ImageFile }> => {
-        // Build imageConfig if aspectRatio or resolution specified
+        // Build imageConfig - only include imageSize for models that support it
         const imageConfig: { aspectRatio?: string; imageSize?: string } = {};
         if (aspectRatio && aspectRatio !== 'Default') {
             imageConfig.aspectRatio = aspectRatio;
         }
-        if (resolution) {
+        if (resolution && supportsImageSize(model)) {
             imageConfig.imageSize = resolution;
         }
 
