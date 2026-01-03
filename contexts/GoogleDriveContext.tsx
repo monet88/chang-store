@@ -3,6 +3,7 @@
  *
  * Provides Google Drive authentication state and methods using Google Identity Services (GIS).
  * Manages OAuth2 token lifecycle, user info fetching, and sign-in/sign-out flows.
+ * Implements automatic token refresh before expiry.
  *
  * @see https://developers.google.com/identity/oauth2/web/guides/use-token-model
  */
@@ -53,6 +54,9 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 /** Google OAuth user info endpoint */
 const USER_INFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
 
+/** Time before expiry to trigger refresh (5 minutes in ms) */
+const REFRESH_BUFFER_MS = 5 * 60 * 1000;
+
 // ============================================================================
 // Context
 // ============================================================================
@@ -70,10 +74,15 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [tokenExpiresAt, setTokenExpiresAt] = useState<number | null>(null);
 
   // --- Refs ---
   /** GIS token client instance */
   const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(null);
+  /** Token refresh timer */
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  /** Flag to indicate silent refresh (no popup) */
+  const isSilentRefreshRef = useRef(false);
 
   // --- User Info Fetching ---
   /**
@@ -109,33 +118,49 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
   const handleTokenResponse = useCallback(async (response: google.accounts.oauth2.TokenResponse) => {
     // Check for error in response
     if (response.error) {
-      setAuthError(response.error_description || response.error);
+      // Silent refresh failures shouldn't show errors to user
+      if (!isSilentRefreshRef.current) {
+        setAuthError(response.error_description || response.error);
+      }
       setIsAuthenticating(false);
+      isSilentRefreshRef.current = false;
       return;
     }
 
     // Validate scope was granted
     if (!google.accounts.oauth2.hasGrantedAllScopes(response, DRIVE_SCOPE)) {
-      setAuthError('Drive permission was not granted');
+      if (!isSilentRefreshRef.current) {
+        setAuthError('Drive permission was not granted');
+      }
       setIsAuthenticating(false);
+      isSilentRefreshRef.current = false;
       return;
     }
 
-    // Store token
+    // Store token and calculate expiry
     const token = response.access_token;
-    setAccessToken(token);
+    const expiresIn = response.expires_in;
+    const expiryTime = Date.now() + expiresIn * 1000;
 
-    // Fetch user info
-    const userInfo = await fetchUserInfo(token);
-    if (userInfo) {
-      setUser(userInfo);
-      setIsConnected(true);
-      setAuthError(null);
+    setAccessToken(token);
+    setTokenExpiresAt(expiryTime);
+
+    // Only fetch user info on initial sign-in, not on refresh
+    if (!isSilentRefreshRef.current) {
+      const userInfo = await fetchUserInfo(token);
+      if (userInfo) {
+        setUser(userInfo);
+        setIsConnected(true);
+        setAuthError(null);
+      } else {
+        setAuthError('Failed to get user information');
+      }
     } else {
-      setAuthError('Failed to get user information');
+      console.log('[GoogleDrive] Token refreshed silently');
     }
 
     setIsAuthenticating(false);
+    isSilentRefreshRef.current = false;
   }, [fetchUserInfo]);
 
   // --- Error Response Handler ---
@@ -145,14 +170,17 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
   const handleErrorResponse = useCallback((error: google.accounts.oauth2.ErrorResponse) => {
     console.error('[GoogleDrive] Auth error:', error);
 
-    // User cancelled the popup
+    // User cancelled the popup or silent refresh failed
     if (error.type === 'popup_closed') {
-      setAuthError(null); // Not an error, just cancelled
-    } else {
+      if (!isSilentRefreshRef.current) {
+        setAuthError(null); // Not an error, just cancelled
+      }
+    } else if (!isSilentRefreshRef.current) {
       setAuthError(error.message || 'Authentication failed');
     }
 
     setIsAuthenticating(false);
+    isSilentRefreshRef.current = false;
   }, []);
 
   // --- Initialize GIS Token Client ---
@@ -184,6 +212,49 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
     initTokenClient();
   }, [handleTokenResponse, handleErrorResponse]);
 
+  // --- Schedule Token Refresh ---
+  useEffect(() => {
+    // Clear any existing timer
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    // Only schedule if connected and have expiry time
+    if (!isConnected || !tokenExpiresAt || !tokenClientRef.current) {
+      return;
+    }
+
+    // Calculate time until refresh (5 min before expiry)
+    const timeUntilRefresh = tokenExpiresAt - Date.now() - REFRESH_BUFFER_MS;
+
+    if (timeUntilRefresh <= 0) {
+      // Token already expired or about to expire, refresh now
+      console.log('[GoogleDrive] Token expired, refreshing immediately');
+      isSilentRefreshRef.current = true;
+      tokenClientRef.current.requestAccessToken({ prompt: '' });
+      return;
+    }
+
+    // Schedule silent refresh
+    console.log(`[GoogleDrive] Token refresh scheduled in ${Math.round(timeUntilRefresh / 1000 / 60)} minutes`);
+    refreshTimerRef.current = setTimeout(() => {
+      if (tokenClientRef.current) {
+        console.log('[GoogleDrive] Refreshing token silently...');
+        isSilentRefreshRef.current = true;
+        tokenClientRef.current.requestAccessToken({ prompt: '' });
+      }
+    }, timeUntilRefresh);
+
+    // Cleanup on unmount or deps change
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, [isConnected, tokenExpiresAt]);
+
   // --- Sign In ---
   const signIn = useCallback(() => {
     // Check if client ID is configured
@@ -200,6 +271,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     setIsAuthenticating(true);
     setAuthError(null);
+    isSilentRefreshRef.current = false;
 
     // Request access token (opens popup)
     tokenClientRef.current.requestAccessToken({ prompt: 'consent' });
@@ -207,6 +279,12 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   // --- Sign Out ---
   const signOut = useCallback(() => {
+    // Clear refresh timer
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
     // Revoke token if we have one
     if (accessToken) {
       google.accounts.oauth2.revoke(accessToken, () => {
@@ -216,6 +294,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     // Clear state
     setAccessToken(null);
+    setTokenExpiresAt(null);
     setUser(null);
     setIsConnected(false);
     setAuthError(null);
