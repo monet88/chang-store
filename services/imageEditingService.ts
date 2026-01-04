@@ -33,6 +33,14 @@ export const editImage = async (
             '1:1': '1_1', '9:16': '9_16', '16:9': '16_9', '4:3': '4_3', '3:4': '3_4',
         };
         const ratio = params.aspectRatio ? ratioMap[params.aspectRatio] : undefined;
+
+        // Debug logging: Track aspect ratio mapping for AIVideoAuto
+        console.log('🔄 AIVideoAuto Aspect Ratio Mapping:', {
+            inputAspectRatio: params.aspectRatio,
+            mappedRatio: ratio,
+            model: aivideoautoModel.model,
+            modelIdBase: modelIdBase
+        });
         
         const results = await Promise.all(Array.from({ length: params.numberOfImages || 1 }).map(() => 
             aivideoautoService.createImage(config.aivideoautoAccessToken!, {

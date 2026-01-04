@@ -50,6 +50,15 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
             imageConfig.imageSize = resolution;
         }
 
+        // Debug logging: Track aspect ratio configuration
+        console.log('📐 Gemini Image Config:', {
+            model,
+            aspectRatio,
+            resolution,
+            imageConfig,
+            supportsImageSize: supportsImageSize(model)
+        });
+
         const response = await ai.models.generateContent({
             model: model,
             contents: { parts: [...imageParts, textPart] },

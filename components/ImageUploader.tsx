@@ -1,7 +1,7 @@
 
 
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
@@ -16,7 +16,7 @@ interface ImageUploaderProps {
   id: string;
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, title, id }) => {
+const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImageUpload, title, id }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isGallerySelectionOpen, setIsGallerySelectionOpen] = useState(false);
   const { t } = useLanguage();
@@ -28,9 +28,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
     }
   }, [image]);
 
-  const preview = image ? `data:${image.mimeType};base64,${image.base64}` : null;
+  // Memoize preview calculation - prevents re-computation on every render
+  const preview = useMemo(
+    () => (image ? `data:${image.mimeType};base64,${image.base64}` : null),
+    [image?.base64, image?.mimeType]
+  );
 
-  const processFile = async (file: File) => {
+  // Memoize processFile - prevents re-creation on every render
+  const processFile = useCallback(async (file: File) => {
     if (file && file.type.startsWith('image/')) {
       try {
         const compressedImage = await compressImage(file);
@@ -50,38 +55,38 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
         reader.readAsDataURL(file);
       }
     }
-  };
+  }, [onImageUpload]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       processFile(file);
     }
-  };
+  }, [processFile]);
 
-  const handleClear = (e: React.MouseEvent) => {
+  const handleClear = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onImageUpload(null);
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-  };
+  }, [onImageUpload]);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-  };
+  }, []);
 
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
-  };
+  }, []);
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
@@ -93,7 +98,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
         inputRef.current.files = dataTransfer.files;
       }
     }
-  };
+  }, [processFile]);
 
   return (
     <>
@@ -165,6 +170,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ image, onImageUpload, tit
       )}
     </>
   );
-};
+});
+
+// Add displayName for debugging
+ImageUploader.displayName = 'ImageUploader';
 
 export default ImageUploader;
