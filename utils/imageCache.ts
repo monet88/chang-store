@@ -11,6 +11,30 @@ interface CacheConfig {
 }
 
 /**
+ * Cache metrics for monitoring
+ */
+export interface CacheMetrics {
+  /** Current number of images in cache */
+  itemCount: number;
+  /** Total size in bytes */
+  totalBytes: number;
+  /** Total size in megabytes (numeric for calculations) */
+  totalMB: number;
+  /** Formatted total size in MB (string for display) */
+  totalMBFormatted: string;
+  /** Maximum allowed items */
+  maxItems: number;
+  /** Maximum allowed size in megabytes (numeric) */
+  maxMB: number;
+  /** Formatted max size in MB (string for display) */
+  maxMBFormatted: string;
+  /** Cache utilization percentage (numeric) */
+  utilizationPercent: number;
+  /** Formatted utilization percentage (string for display) */
+  utilizationPercentFormatted: string;
+}
+
+/**
  * Default cache configuration
  * 50 images OR 100MB, whichever reached first
  */
@@ -107,16 +131,23 @@ export class ImageLRUCache<T extends ImageFile = ImageFile> {
 
   /**
    * Get cache metrics for monitoring
-   * @returns Metrics object with itemCount, totalBytes, totalMB
+   * @returns Metrics object with both numeric and formatted values
    */
-  getMetrics() {
+  getMetrics(): CacheMetrics {
+    const totalMB = this.currentBytes / (1024 * 1024);
+    const maxMB = this.config.maxBytes / (1024 * 1024);
+    const utilizationPercent = (this.currentBytes / this.config.maxBytes) * 100;
+
     return {
       itemCount: this.items.length,
       totalBytes: this.currentBytes,
-      totalMB: (this.currentBytes / (1024 * 1024)).toFixed(2),
+      totalMB,
+      totalMBFormatted: totalMB.toFixed(2),
       maxItems: this.config.maxItems,
-      maxMB: (this.config.maxBytes / (1024 * 1024)).toFixed(2),
-      utilizationPercent: ((this.currentBytes / this.config.maxBytes) * 100).toFixed(1)
+      maxMB,
+      maxMBFormatted: maxMB.toFixed(2),
+      utilizationPercent,
+      utilizationPercentFormatted: utilizationPercent.toFixed(1)
     };
   }
 
