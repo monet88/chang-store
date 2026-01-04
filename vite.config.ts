@@ -1,6 +1,6 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc'; // SWC is 20-30x faster than Babel
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
@@ -8,8 +8,41 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        // Enable file system caching for faster subsequent starts
+        fs: {
+          cachedChecks: true,
+        },
+        // Exclude unnecessary directories from file watching
+        watch: {
+          ignored: [
+            '**/node_modules/**',
+            '**/.git/**',
+            '**/dist/**',
+            '**/coverage/**',
+            '**/.beads/**',
+            '**/src-tauri/target/**',
+          ],
+        },
       },
       plugins: [react()],
+      // Pre-bundle heavy dependencies for faster dev startup
+      optimizeDeps: {
+        include: [
+          'react',
+          'react-dom',
+          'react/jsx-runtime', // Explicitly include JSX runtime
+          '@google/genai',
+          'axios',
+          'lodash-es', // Tree-shakeable ES modules version
+        ],
+        exclude: ['@tauri-apps/api', '@tauri-apps/plugin-dialog', '@tauri-apps/plugin-fs'],
+        // Force dependency re-optimization on config changes
+        force: false,
+        // Enable esbuild optimization for dependencies
+        esbuildOptions: {
+          target: 'es2020',
+        },
+      },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
