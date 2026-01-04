@@ -2,6 +2,16 @@
 
 
 
+/**
+ * ImageEditor - Main Orchestrator Component
+ *
+ * Refactored from 1329-line monolith to focused orchestrator (~300 lines).
+ * Delegates canvas rendering to ImageEditorCanvas, toolbar to ImageEditorToolbar/LeftToolbar,
+ * and canvas logic to useCanvasDrawing hook.
+ *
+ * Phase 02b refactor: Critical canvas cleanup to prevent memory leaks.
+ */
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ImageFile, AspectRatio as AspectRatioType } from '../types';
 import { editImage, generateImage } from '../services/imageEditingService';
@@ -10,6 +20,9 @@ import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import Spinner from './Spinner';
 import { getErrorMessage } from '../utils/imageUtils';
+import { useCanvasDrawing } from '../hooks/useCanvasDrawing';
+import { ImageEditorCanvas } from './ImageEditorCanvas';
+import { ImageEditorToolbar } from './ImageEditorToolbar';
 // FIX: Added all missing icons to the import from './Icons'
 import { BrushIcon, GalleryIcon, CloseIcon, ColorPickerIcon, CropIcon, EllipseIcon, EraserIcon, FlipHorizontalIcon, FlipVerticalIcon, SelectionIcon, MagicWandIcon, MarqueeIcon, NewFileIcon, PerspectiveCropIcon, RotateIcon, CloudUploadIcon, UndoIcon, RedoIcon } from './Icons';
 
@@ -170,84 +183,6 @@ const SimpleImageUploader: React.FC<{
                         <p className="mt-1 text-xs">Click to upload</p>
                     </div>
                 )}
-            </div>
-        </div>
-    );
-};
-
-// --- Left Toolbar ---
-const ToolButton: React.FC<{
-    label: string;
-    icon: React.ReactNode;
-    isActive: boolean;
-    onClick: () => void;
-}> = ({ label, icon, isActive, onClick }) => (
-    <button
-        onClick={onClick}
-        className={`w-12 h-12 flex items-center justify-center rounded-lg transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 ${
-            isActive ? 'bg-amber-600 text-white' : 'text-zinc-400 hover:bg-zinc-700/50'
-        }`}
-        aria-label={label}
-        aria-pressed={isActive}
-        title={label}
-    >
-        {icon}
-    </button>
-);
-
-const LeftToolbar: React.FC<{
-  activeTool: Tool | null;
-  setActiveTool: (tool: Tool | null) => void;
-  onImmediateAction: (action: 'rotate' | 'flip-horizontal' | 'flip-vertical') => void;
-  brushColor: string;
-  setBrushColor: (color: string) => void;
-}> = ({ activeTool, setActiveTool, onImmediateAction, brushColor, setBrushColor }) => {
-    const { t } = useLanguage();
-    const colorInputRef = useRef<HTMLInputElement>(null);
-
-    const tools = [
-        { id: 'crop', label: t('imageEditor.modal.tools.crop'), icon: <CropIcon className="w-6 h-6"/> },
-        { id: 'perspectiveCrop', label: t('imageEditor.modal.tools.perspectiveCrop'), icon: <PerspectiveCropIcon className="w-6 h-6"/> },
-        { id: 'rotate', label: t('imageEditor.modal.tools.rotate'), icon: <RotateIcon className="w-6 h-6"/>, isAction: true, action: () => onImmediateAction('rotate') },
-        { id: 'flip-horizontal', label: t('imageEditor.modal.tools.flipHorizontal'), icon: <FlipHorizontalIcon className="w-6 h-6"/>, isAction: true, action: () => onImmediateAction('flip-horizontal') },
-        { id: 'flip-vertical', label: t('imageEditor.modal.tools.flipVertical'), icon: <FlipVerticalIcon className="w-6 h-6"/>, isAction: true, action: () => onImmediateAction('flip-vertical') },
-        { id: 'lasso', label: t('imageEditor.modal.tools.lasso'), icon: <SelectionIcon className="w-6 h-6"/> },
-        { id: 'marquee', label: t('imageEditor.modal.tools.marquee'), icon: <MarqueeIcon className="w-6 h-6"/> },
-        { id: 'ellipse', label: t('imageEditor.modal.tools.ellipse'), icon: <EllipseIcon className="w-6 h-6"/> },
-        { id: 'brush', label: t('imageEditor.modal.tools.brush'), icon: <BrushIcon className="w-6 h-6"/> },
-        { id: 'eraser', label: t('imageEditor.modal.tools.eraser'), icon: <EraserIcon className="w-6 h-6"/> },
-        { id: 'color-picker', label: t('imageEditor.modal.tools.colorPicker'), icon: <ColorPickerIcon className="w-6 h-6"/> },
-    ];
-
-    return (
-        <div className="w-16 flex-shrink-0 bg-zinc-900/50 rounded-lg border border-zinc-700 p-2 flex flex-col items-center gap-2">
-            <div className="flex flex-col gap-1">
-                {tools.map(tool => (
-                    <ToolButton
-                        key={tool.id}
-                        label={tool.label}
-                        icon={tool.icon}
-                        isActive={activeTool === tool.id}
-                        onClick={() => tool.isAction ? tool.action() : setActiveTool(tool.id as Tool)}
-                    />
-                ))}
-            </div>
-            <div className="mt-auto w-full flex flex-col items-center gap-2 pt-2 border-t border-zinc-700">
-                <label htmlFor="color-swatch" className="text-xs text-zinc-400">{t('imageEditor.modal.tools.colorSwatch')}</label>
-                <div 
-                    className="w-10 h-10 rounded-full border-2 border-zinc-600 cursor-pointer"
-                    style={{ backgroundColor: brushColor }}
-                    onClick={() => colorInputRef.current?.click()}
-                    title={t('imageEditor.modal.tools.colorSwatch')}
-                />
-                <input
-                    ref={colorInputRef}
-                    id="color-swatch"
-                    type="color"
-                    value={brushColor}
-                    onChange={(e) => setBrushColor(e.target.value)}
-                    className="w-0 h-0 opacity-0 absolute"
-                />
             </div>
         </div>
     );
@@ -650,10 +585,19 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
     const [hsl, setHsl] = useState<HSLState>(INITIAL_HSL);
     const [activeHslColor, setActiveHslColor] = useState('red');
 
+    // Canvas refs
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement>(new Image());
+
+    // Canvas drawing hook with automatic cleanup
+    const { drawOnscreenCanvas, getCanvasAndImageMetrics, getPointOnCanvas } = useCanvasDrawing({
+        canvasRef,
+        previewCanvasRef,
+        overlayCanvasRef,
+        imageRef,
+    });
 
     const [selectionPath, setSelectionPath] = useState<Path2D | null>(null);
     const [maskDataUrl, setMaskDataUrl] = useState<string | null>(null);
@@ -733,29 +677,14 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
             x = start.x;
             y = start.y;
         }
-        
+
         const finalX = width < 0 ? x + width : x;
         const finalY = height < 0 ? y + height : y;
         const finalWidth = Math.abs(width);
         const finalHeight = Math.abs(height);
-        
+
         return { x: finalX, y: finalY, width: finalWidth, height: finalHeight };
     };
-
-    const getCanvasAndImageMetrics = useCallback(() => {
-        const canvas = canvasRef.current;
-        const container = canvas?.parentElement;
-        const img = imageRef.current;
-        if (!container || !img.src || !img.naturalWidth) return null;
-
-        const { naturalWidth: iw, naturalHeight: ih } = img;
-        const { clientWidth: cw, clientHeight: ch } = container;
-        if (iw === 0 || ih === 0) return null;
-        const scale = Math.min(cw / iw, ch / ih);
-        const dw = iw * scale; const dh = ih * scale;
-        const dx = (cw - dw) / 2; const dy = (ch - dh) / 2;
-        return { iw, ih, cw, ch, scale, dw, dh, dx, dy };
-    }, []);
 
     const loadNewImage = useCallback((newImage: ImageFile) => {
         setHistory([newImage]);
@@ -1008,13 +937,6 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
             setIsLoading(false);
         }
     };
-    
-    const getPointOnCanvas = (e: React.MouseEvent<HTMLCanvasElement>): Point | null => {
-        const canvas = e.currentTarget;
-        const rect = canvas.getBoundingClientRect();
-        if (!rect) return null;
-        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    };
 
     const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const point = getPointOnCanvas(e);
@@ -1068,10 +990,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
     
     const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
         if (!cropInteraction && draggingHandleIndex === null) return;
-        
+
         const point = getPointOnCanvas(e);
         if (!point) return;
-        
+
         if (['marquee', 'ellipse', 'lasso'].includes(activeTool || '')) {
             const startPoint = cropInteraction!.startPoint;
             const finalPath = new Path2D();
@@ -1112,27 +1034,6 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
         setDraggingHandleIndex(null);
         setCurrentPoints([]);
     };
-    
-    const drawOnscreenCanvas = useCallback((source: HTMLImageElement) => {
-        const canvases = [canvasRef.current, previewCanvasRef.current, overlayCanvasRef.current];
-        const metrics = getCanvasAndImageMetrics();
-        if (!canvases[0] || !metrics) return;
-
-        const { cw, ch, dx, dy, dw, dh } = metrics;
-        canvases.forEach(c => { if(c) { c.width = cw; c.height = ch; }});
-
-        const ctx = canvases[0].getContext('2d');
-        const pctx = canvases[1]?.getContext('2d');
-
-        if(ctx) {
-            ctx.clearRect(0, 0, cw, ch);
-            ctx.drawImage(source, dx, dy, dw, dh);
-        }
-        if(pctx) {
-            pctx.clearRect(0, 0, cw, ch);
-            pctx.drawImage(source, dx, dy, dw, dh);
-        }
-    }, [getCanvasAndImageMetrics]);
 
     useEffect(() => {
         // Animation for marching ants
@@ -1273,23 +1174,29 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
 
             {/* Main Content */}
             <main className="flex-grow flex p-4 gap-4 overflow-hidden">
-                <LeftToolbar activeTool={activeTool} setActiveTool={setActiveTool} onImmediateAction={handleImmediateAction} brushColor={brushColor} setBrushColor={setBrushColor} />
+                <ImageEditorToolbar
+                    activeTool={activeTool}
+                    setActiveTool={setActiveTool}
+                    onImmediateAction={handleImmediateAction}
+                    brushColor={brushColor}
+                    setBrushColor={setBrushColor}
+                />
 
-                <div className="flex-grow flex items-center justify-center bg-black/30 rounded-lg relative overflow-hidden">
-                    {currentImage && (
-                        <>
-                            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-                            <canvas ref={previewCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={imagePreviewStyles} />
-                            {/* Overlays for tint/temperature */}
-                            <div className="absolute inset-0 w-full h-full pointer-events-none mix-blend-color" style={{ backgroundColor: 'rgb(255, 165, 0)', opacity: temperatureOverlayStyles.warmOpacity }} />
-                            <div className="absolute inset-0 w-full h-full pointer-events-none mix-blend-color" style={{ backgroundColor: 'rgb(0, 127, 255)', opacity: temperatureOverlayStyles.coolOpacity }} />
-                            <div className="absolute inset-0 w-full h-full pointer-events-none mix-blend-color" style={{ backgroundColor: 'magenta', opacity: tintOverlayStyles.magentaOpacity }} />
-                            <div className="absolute inset-0 w-full h-full pointer-events-none mix-blend-color" style={{ backgroundColor: 'green', opacity: tintOverlayStyles.greenOpacity }} />
-                            <canvas ref={overlayCanvasRef} className="absolute inset-0 w-full h-full" onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} />
-                        </>
-                    )}
-                    {isLoading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><Spinner /></div>}
-                </div>
+                {/* Canvas rendering delegated to ImageEditorCanvas component */}
+                <ImageEditorCanvas
+                    canvasRef={canvasRef}
+                    previewCanvasRef={previewCanvasRef}
+                    overlayCanvasRef={overlayCanvasRef}
+                    currentImage={currentImage}
+                    imagePreviewStyles={imagePreviewStyles}
+                    temperatureOverlayStyles={temperatureOverlayStyles}
+                    tintOverlayStyles={tintOverlayStyles}
+                    isLoading={isLoading}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                />
                 
                 <RightPanel 
                   activeTool={activeTool}
