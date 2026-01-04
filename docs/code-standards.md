@@ -1,6 +1,6 @@
 # Chang-Store: Code Standards
 
-**Last Updated:** 2026-01-01
+**Last Updated:** 2026-01-04
 
 ## 1. React/TypeScript Conventions
 
@@ -262,7 +262,87 @@ const { t } = useLanguage();
 - Test file location: Co-located or `__tests__/` directory
 - Coverage goals: 80%+ for services, 90%+ for contexts
 
-## 9. Desktop Development (Tauri)
+## 9. Performance Optimization Patterns
+
+### 9.1 Component Memoization
+
+Use `React.memo` for components that re-render frequently with same props:
+
+```typescript
+const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImageUpload, title, id }) => {
+  // Component logic
+});
+
+ImageUploader.displayName = 'ImageUploader';
+```
+
+### 9.2 Hook Optimization
+
+Combine `useMemo` and `useCallback` to prevent unnecessary re-renders:
+
+```typescript
+// Memoize expensive calculations
+const preview = useMemo(
+  () => (image ? `data:${image.mimeType};base64,${image.base64}` : null),
+  [image?.base64, image?.mimeType]
+);
+
+// Memoize event handlers
+const handleClick = useCallback(() => {
+  onAction(data);
+}, [onAction, data]);
+```
+
+### 9.3 Debounced localStorage
+
+For form auto-save, use debounced writes to prevent UI lag:
+
+```typescript
+import debounce from 'lodash-es/debounce';
+
+const debouncedSave = useMemo(
+  () => debounce((state) => {
+    localStorage.setItem(key, JSON.stringify(state));
+  }, 1000),
+  []
+);
+
+useEffect(() => {
+  debouncedSave(formState);
+  return () => debouncedSave.cancel(); // Cleanup
+}, [formState, debouncedSave]);
+```
+
+### 9.4 Lazy Loading
+
+Use `React.lazy` with unique `key` props for code splitting:
+
+```typescript
+const HeavyComponent = lazy(() => import('./HeavyComponent'));
+
+// In render
+<Suspense fallback={<Spinner />}>
+  <HeavyComponent key="unique-key" />
+</Suspense>
+```
+
+### 9.5 Tree-Shakeable Imports
+
+Use `lodash-es` for tree-shaking support:
+
+```typescript
+// ✅ Good: Tree-shakeable
+import debounce from 'lodash-es/debounce';
+
+// ❌ Bad: Imports entire library
+import { debounce } from 'lodash';
+```
+
+**See:** [`docs/performance-optimization.md`](./performance-optimization.md) for detailed performance patterns and metrics.
+
+---
+
+## 10. Desktop Development (Tauri)
 
 - Native calls should be abstracted in `services/tauriService.ts`
 - Use `isTauri()` utility to gate native-only logic

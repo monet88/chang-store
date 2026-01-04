@@ -1,6 +1,6 @@
 # Chang-Store Documentation Index
 
-**Generated:** 2026-01-02
+**Generated:** 2026-01-04
 
 ## Quick Navigation
 
@@ -21,6 +21,7 @@
 | [system-architecture.md](./system-architecture.md) | Layer diagrams, component relationships, data flow |
 | [codebase-summary.md](./codebase-summary.md) | Directory structure, key files, module purposes |
 | [code-standards.md](./code-standards.md) | Coding conventions, patterns, naming rules |
+| [performance-optimization.md](./performance-optimization.md) | Performance patterns, metrics, optimization guide |
 
 ### Design
 
@@ -56,10 +57,11 @@ Located in `docs/research/`:
 
 | Category | Count |
 |----------|-------|
-| Core docs | 5 |
+| Core docs | 6 |
 | API docs | 2 |
 | Research | 1 |
-| **Total** | **8** |
+| Plans | 2 |
+| **Total** | **11** |
 
 ---
 
@@ -67,17 +69,20 @@ Located in `docs/research/`:
 
 ```
 docs/
-├── INDEX.md                 # This file
-├── system-architecture.md   # Architecture diagrams
-├── codebase-summary.md      # Structure overview
-├── code-standards.md        # Coding conventions
-├── design-guidelines.md     # UI/UX standards
-├── project-overview-pdr.md  # Product requirements
+├── INDEX.md                     # This file
+├── system-architecture.md       # Architecture diagrams
+├── codebase-summary.md          # Structure overview
+├── code-standards.md            # Coding conventions
+├── performance-optimization.md  # Performance patterns & metrics
+├── design-guidelines.md         # UI/UX standards
+├── project-overview-pdr.md      # Product requirements
 ├── api/
-│   ├── gemini-3.md          # Gemini 3 reference
-│   └── image-generation.md  # Image API patterns
+│   ├── gemini-3.md              # Gemini 3 reference
+│   └── image-generation.md      # Image API patterns
+├── plans/
+│   └── 2026-01-02-*.md          # Feature implementation plans
 └── research/
-    └── 2026-01-01-*.md      # Research notes
+    └── 2026-01-01-*.md          # Research notes
 ```
 
 ---
@@ -97,4 +102,5 @@ docs/
 ### For Feature Development
 1. [system-architecture.md](./system-architecture.md) - understand layers
 2. [design-guidelines.md](./design-guidelines.md) - UI standards
-3. [api/](./api/) - backend integration patterns
+3. [performance-optimization.md](./performance-optimization.md) - optimization patterns
+4. [api/](./api/) - backend integration patterns
