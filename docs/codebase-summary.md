@@ -75,7 +75,9 @@ Chang-Store/
 | `OutfitAnalysis.tsx` | `useOutfitAnalysis` | Style critique + redesign |
 | `Relight.tsx` | `useRelight` | Lighting adjustment |
 | `Upscale.tsx` | - | Image resolution enhancement |
-| `ImageEditor.tsx` | `useImageEditor` | Canvas-based editor |
+| `ImageEditor.tsx` | `useImageEditor` | Canvas-based editor (orchestrator) |
+| `ImageEditorCanvas.tsx` | - | Canvas rendering layers (memoized) |
+| `ImageEditorToolbar.tsx` | - | Editing toolbar UI (memoized) |
 | `Inpainting.tsx` | `useInpainting` | Mask-based region editing |
 | `VideoGenerator.tsx` | `useVideoGenerator` | Text/image to video |
 | `GRWMVideoGenerator.tsx` | `useGRWMVideoGenerator` | GRWM video creation |
@@ -123,12 +125,12 @@ Feature Component
 
 | Directory | File Count | Primary Extension |
 |-----------|------------|-------------------|
-| `components/` | ~45 | `.tsx` |
-| `hooks/` | 13 | `.ts` |
+| `components/` | ~47 | `.tsx` |
+| `hooks/` | 14 | `.ts` |
 | `services/` | 8 | `.ts` |
 | `contexts/` | 4 | `.tsx` |
 | `locales/` | 2 | `.ts` |
 | `utils/` | 3 | `.ts` |
 
-**Total Source Files:** ~108 (excluding node_modules, tests)
-**Estimated Token Count:** ~200k tokens
+**Total Source Files:** ~111 (excluding node_modules, tests)
+**Estimated Token Count:** ~205k tokens

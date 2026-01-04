@@ -474,6 +474,122 @@ import { debounce } from 'lodash';
 
 **See:** [`docs/performance-optimization.md`](./performance-optimization.md) for detailed performance patterns and metrics.
 
+### 10.6 Canvas Resource Cleanup
+
+Canvas operations create resources (images, animation frames) that must be cleaned up to prevent memory leaks:
+
+```typescript
+// useCanvasDrawing.ts - Hook managing canvas resources
+export const useCanvasDrawing = ({ canvasRef, imageRef, overlayCanvasRef }: Props) => {
+  const marchingAntsOffset = useRef(0);
+  const marchingAntsAnimationId = useRef<number | null>(null);
+
+  // Animation loop with cleanup
+  const startMarchingAnts = useCallback(() => {
+    const animate = () => {
+      marchingAntsOffset.current = (marchingAntsOffset.current + 1) % 8;
+      drawOverlay(); // Redraw overlay with animated dash offset
+      marchingAntsAnimationId.current = requestAnimationFrame(animate);
+    };
+    marchingAntsAnimationId.current = requestAnimationFrame(animate);
+  }, [drawOverlay]);
+
+  // CRITICAL: Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Cancel animation frames
+      if (marchingAntsAnimationId.current !== null) {
+        cancelAnimationFrame(marchingAntsAnimationId.current);
+      }
+
+      // Clear canvas contexts
+      const canvas = canvasRef.current;
+      const previewCanvas = previewCanvasRef.current;
+      const overlayCanvas = overlayCanvasRef.current;
+
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx?.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      // ... repeat for other canvases
+    };
+  }, [canvasRef, previewCanvasRef, overlayCanvasRef]);
+
+  return { drawCanvas, drawOverlay, calculateMetrics };
+};
+```
+
+**Example: ImageEditor Split Pattern**
+
+Complex canvas editors should be split into three memoized components:
+
+```typescript
+// ImageEditor.tsx - Orchestrator (state, logic, coordination)
+export const ImageEditor: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const [tool, setTool] = useState<Tool>('crop');
+  const [currentImage, setCurrentImage] = useState<ImageFile | null>(null);
+
+  // Canvas logic delegated to hook
+  const { drawCanvas, drawOverlay, metrics } = useCanvasDrawing({
+    canvasRef,
+    overlayCanvasRef,
+    imageRef,
+  });
+
+  return (
+    <div className="grid grid-cols-[auto_1fr_auto]">
+      <ImageEditorToolbar tool={tool} onToolChange={setTool} onAction={handleAction} />
+      <ImageEditorCanvas
+        canvasRef={canvasRef}
+        overlayCanvasRef={overlayCanvasRef}
+        currentImage={currentImage}
+      />
+      <ImageEditorControls {...controlsProps} />
+    </div>
+  );
+};
+
+// ImageEditorCanvas.tsx - Memoized canvas rendering layer
+export const ImageEditorCanvas = React.memo<ImageEditorCanvasProps>(({
+  canvasRef,
+  overlayCanvasRef,
+  currentImage,
+}) => {
+  return (
+    <div className="relative">
+      <canvas ref={canvasRef} />
+      <canvas ref={overlayCanvasRef} className="absolute inset-0 pointer-events-none" />
+    </div>
+  );
+});
+
+// ImageEditorToolbar.tsx - Memoized toolbar UI
+export const ImageEditorToolbar = React.memo<ToolbarProps>(({
+  tool,
+  onToolChange,
+  onAction,
+}) => {
+  const handleRotate = useCallback(() => onAction('rotate'), [onAction]);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button onClick={() => onToolChange('crop')}>Crop</button>
+      <button onClick={handleRotate}>Rotate</button>
+    </div>
+  );
+});
+```
+
+**Benefits:**
+- Canvas rendering separated from orchestration logic
+- Toolbar changes don't re-render canvas
+- Canvas updates don't re-render toolbar
+- Hook centralizes cleanup logic
+- Memory leaks prevented via cleanup effects
+
 ---
 
 ## 11. Desktop Development (Tauri)
