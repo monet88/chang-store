@@ -117,10 +117,10 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.imageEditModel).toBe('gemini-2.5-flash-image');
+      expect(result.current.imageEditModel).toBe('gemini-3-pro-image-preview');
       expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
       expect(result.current.videoGenerateModel).toBe('');
-      expect(result.current.textGenerateModel).toBe('gemini-2.5-pro');
+      expect(result.current.textGenerateModel).toBe('gemini-3-flash-preview');
     });
 
     it('has null for API keys initially', () => {
@@ -320,10 +320,10 @@ describe('ApiProviderContext', () => {
 
         const models = result.current.getModelsForFeature(Feature.TryOn);
 
-        expect(models.imageEditModel).toBe('gemini-2.5-flash-image');
+        expect(models.imageEditModel).toBe('gemini-3-pro-image-preview');
         expect(models.imageGenerateModel).toBe('imagen-4.0-generate-001');
         expect(models.videoGenerateModel).toBe('');
-        expect(models.textGenerateModel).toBe('gemini-2.5-pro');
+        expect(models.textGenerateModel).toBe('gemini-3-flash-preview');
       });
 
       it('returns unchanged models for Background feature', () => {

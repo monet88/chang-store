@@ -10,10 +10,11 @@
  * - Hook usage outside provider throws error
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React, { ReactNode } from 'react';
 import { ImageGalleryProvider, useImageGallery } from '@/contexts/ImageGalleryContext';
+import { GoogleDriveProvider } from '@/contexts/GoogleDriveContext';
 import { ImageFile } from '@/types';
 
 // -----------------------------------------------------------------------------
@@ -23,10 +24,15 @@ import { ImageFile } from '@/types';
 /**
  * Wrapper component that provides ImageGalleryProvider context.
  * Required for testing hooks that depend on the provider.
+ * Includes GoogleDriveProvider since ImageGalleryContext depends on it.
  */
 const createWrapper = () => {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return <ImageGalleryProvider>{children}</ImageGalleryProvider>;
+    return (
+      <GoogleDriveProvider>
+        <ImageGalleryProvider>{children}</ImageGalleryProvider>
+      </GoogleDriveProvider>
+    );
   };
 };
 
@@ -45,6 +51,21 @@ const createMockImage = (id: string | number, mimeType = 'image/png'): ImageFile
 // -----------------------------------------------------------------------------
 
 describe('ImageGalleryContext', () => {
+  /**
+   * Reset imageCache singleton before each test for isolation.
+   * imageCache is a module-level singleton that persists across tests,
+   * causing state accumulation if not cleared.
+   */
+  beforeEach(() => {
+    // Clear the singleton imageCache by accessing internal state
+    const { result } = renderHook(() => useImageGallery(), {
+      wrapper: createWrapper(),
+    });
+    act(() => {
+      result.current.clearImages();
+    });
+  });
+
   describe('useImageGallery hook', () => {
     it('throws error when used outside ImageGalleryProvider', () => {
       // Suppress console.error for cleaner test output
@@ -83,7 +104,8 @@ describe('ImageGalleryContext', () => {
       });
 
       expect(result.current.images).toHaveLength(1);
-      expect(result.current.images[0]).toEqual(mockImage);
+      // Use toMatchObject to ignore metadata fields (createdAt, feature)
+      expect(result.current.images[0]).toMatchObject(mockImage);
     });
 
     it('adds images to the front of the array (newest first)', () => {
@@ -100,8 +122,8 @@ describe('ImageGalleryContext', () => {
       });
 
       expect(result.current.images).toHaveLength(2);
-      expect(result.current.images[0]).toEqual(image2); // newest first
-      expect(result.current.images[1]).toEqual(image1);
+      expect(result.current.images[0]).toMatchObject(image2); // newest first
+      expect(result.current.images[1]).toMatchObject(image1);
     });
 
     it('does not add duplicate image with same base64', () => {
@@ -225,7 +247,7 @@ describe('ImageGalleryContext', () => {
       });
 
       expect(result.current.images).toHaveLength(1);
-      expect(result.current.images[0]).toEqual(image2);
+      expect(result.current.images[0]).toMatchObject(image2);
     });
 
     it('does nothing when deleting non-existent base64', () => {
@@ -244,7 +266,7 @@ describe('ImageGalleryContext', () => {
       });
 
       expect(result.current.images).toHaveLength(1);
-      expect(result.current.images[0]).toEqual(mockImage);
+      expect(result.current.images[0]).toMatchObject(mockImage);
     });
 
     it('deletes from empty array without error', () => {

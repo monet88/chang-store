@@ -218,21 +218,19 @@ describe('useLookbookGenerator', () => {
     });
 
     /**
-     * Test: Form changes are persisted to localStorage
+     * Test: localStorage is disabled by design (no persistence)
+     * See CLAUDE.md: "Local storage persistence is disabled"
      */
-    it('should persist form changes to localStorage', async () => {
+    it('should NOT persist form changes to localStorage (disabled by design)', async () => {
       const { result } = renderHook(() => useLookbookGenerator());
 
       act(() => {
         result.current.updateForm({ clothingDescription: 'New desc' });
       });
 
+      // Verify localStorage is NOT called (feature disabled)
       await waitFor(() => {
-        expect(mockLocalStorage.setItem).toHaveBeenCalled();
-        const savedData = JSON.parse(
-          mockLocalStorage.setItem.mock.calls[mockLocalStorage.setItem.mock.calls.length - 1][1]
-        );
-        expect(savedData.clothingDescription).toBe('New desc');
+        expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
       });
     });
 

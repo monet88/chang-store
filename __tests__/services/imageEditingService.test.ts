@@ -134,7 +134,10 @@ describe('editImage', () => {
       const result = await editImage(params, 'gemini-2.5-flash-image', DEFAULT_CONFIG);
 
       // Assert
-      expect(geminiImageService.editImage).toHaveBeenCalledWith(params);
+      expect(geminiImageService.editImage).toHaveBeenCalledWith({
+        ...params,
+        model: 'gemini-2.5-flash-image'
+      });
       expect(aivideoautoService.createImage).not.toHaveBeenCalled();
       expect(result).toEqual(mockResult);
     });
@@ -503,7 +506,8 @@ describe('critiqueAndRedesignOutfit', () => {
       'casual',
       1,
       'gemini-2.5-flash-image',
-      'Default'
+      'Default',
+      undefined // resolution parameter (optional)
     );
     expect(result).toEqual(mockResult);
   });
