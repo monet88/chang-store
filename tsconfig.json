@@ -9,7 +9,7 @@
       "DOM",
       "DOM.Iterable"
     ],
-    "skipLibCheck": true,
+    "skipLibCheck": true, // Skip type checking of declaration files (faster)
     "types": [
       "node"
     ],
@@ -24,6 +24,10 @@
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+
+    // Performance optimizations
+    "incremental": true, // Enable incremental compilation (faster rebuilds)
+    "assumeChangesOnlyAffectDirectDependencies": true // Faster type checking
   }
 }
