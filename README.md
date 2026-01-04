@@ -92,10 +92,11 @@ npm run tauri:icon
 
 ## Project Structure
 - `App.tsx` -> provider stack (LanguageProvider -> ApiProvider -> ImageGalleryProvider -> ImageViewerProvider) and feature switching
-- `components/` -> feature UIs (VirtualTryOn, LookbookGenerator, BackgroundReplacer, PoseChanger, SwapFace, PhotoAlbumCreator, OutfitAnalysis, Relight, Upscale, ImageEditor, VideoGenerator, VideoContinuity, GRWMVideoGenerator, Inpainting) plus shared UI (Header, Tabs, GalleryButton/Modal, SettingsModal, modals)
+- `components/` -> feature UIs (VirtualTryOn, **LookbookGenerator** [orchestrator], **LookbookForm**, **LookbookOutput**, BackgroundReplacer, PoseChanger, SwapFace, PhotoAlbumCreator, OutfitAnalysis, Relight, Upscale, ImageEditor, VideoGenerator, VideoContinuity, GRWMVideoGenerator, Inpainting) plus shared UI (Header, Tabs, GalleryButton/Modal, SettingsModal, modals)
 - `contexts/` -> global state for API keys/models, language, gallery, viewer
 - `services/` -> AI integrations (gemini, aivideoautoService, imageEditingService, apiClient, **tauriService**)
 - `hooks/` -> feature-specific hooks
+- `utils/` -> utility functions (**lookbookPromptBuilder.ts** - pure prompt generation, imageUtils.ts, storage.ts)
 - `locales/` -> i18n strings (en, vi)
 - `types.ts` -> shared enums and types
 - `src-tauri/` -> Tauri desktop app (Rust backend, config, icons)

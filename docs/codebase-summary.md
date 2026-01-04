@@ -1,6 +1,6 @@
 # Chang-Store: Codebase Summary
 
-**Last Updated:** 2026-01-01
+**Last Updated:** 2026-01-04
 
 ## 1. Directory Structure
 
@@ -15,7 +15,8 @@ Chang-Store/
 │   ├── gemini/          # Gemini-specific services
 │   └── tauriService.ts  # Desktop native features bridge
 ├── locales/             # i18n translations (2 files)
-├── utils/               # Utility functions (2 files)
+├── utils/               # Utility functions (3 files)
+│   └── lookbookPromptBuilder.ts  # Pure prompt generation functions
 ├── src-tauri/           # Tauri desktop app (Rust backend)
 ├── App.tsx              # Root component with provider stack
 ├── index.tsx            # Entry point
@@ -57,13 +58,16 @@ Chang-Store/
 | `services/gemini/video.ts` | Gemini video generation (Veo) |
 | `services/aivideoautoService.ts` | AIVideoAuto API integration |
 | `services/tauriService.ts` | Tauri desktop native features bridge |
+| `utils/lookbookPromptBuilder.ts` | Pure functions for lookbook prompt generation |
 
 ### 2.5 Feature Components
 
 | Component | Hook | Description |
 |-----------|------|-------------|
 | `VirtualTryOn.tsx` | `useVirtualTryOn` | Garment overlay on person |
-| `LookbookGenerator.tsx` | `useLookbookGenerator` | 360-spin lookbook creation |
+| `LookbookGenerator.tsx` | - | Orchestrator for lookbook creation (delegates to form/output) |
+| `LookbookForm.tsx` | - | Input UI for lookbook generator (memoized) |
+| `LookbookOutput.tsx` | - | Output display with tabs (main/variations/closeup) |
 | `BackgroundReplacer.tsx` | `useBackgroundReplacer` | AI background replacement |
 | `PoseChanger.tsx` | `usePoseChanger` | Model pose transformation |
 | `SwapFace.tsx` | `useSwapFace` | Face swap between images |
@@ -124,7 +128,7 @@ Feature Component
 | `services/` | 8 | `.ts` |
 | `contexts/` | 4 | `.tsx` |
 | `locales/` | 2 | `.ts` |
-| `utils/` | 2 | `.ts` |
+| `utils/` | 3 | `.ts` |
 
 **Total Source Files:** ~108 (excluding node_modules, tests)
 **Estimated Token Count:** ~200k tokens

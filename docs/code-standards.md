@@ -226,9 +226,84 @@ interface ApiConfig {
 }
 ```
 
-## 7. i18n Pattern
+## 7. Pure Functions Pattern
 
-### 7.1 Translation Keys
+### 7.1 Prompt Builders (DRY)
+
+Extract complex prompt generation logic into pure functions in `utils/`:
+
+```typescript
+// utils/lookbookPromptBuilder.ts
+
+/**
+ * Form state interface - single source of truth
+ */
+export interface LookbookFormState {
+  clothingImages: Array<{ id: number; image: ImageFile | null }>;
+  fabricTextureImage: ImageFile | null;
+  lookbookStyle: LookbookStyle;
+  garmentType: GarmentType;
+  // ...other fields
+}
+
+/**
+ * Build main lookbook prompt
+ * Pure function - deterministic output, no side effects
+ */
+export const buildLookbookPrompt = (
+  formState: LookbookFormState,
+  images: ImageFile[],
+  fabricTextureImage: ImageFile | null
+): string => {
+  const { lookbookStyle, garmentType } = formState;
+
+  let prompt = '';
+  // Prompt construction logic...
+
+  switch (lookbookStyle) {
+    case 'flat lay':
+      prompt += buildFlatLayPrompt(garmentType);
+      break;
+    // ...other cases
+  }
+
+  return prompt;
+};
+
+// Private helper functions
+const buildFlatLayPrompt = (garmentType: GarmentType): string => {
+  // Style-specific prompt logic
+};
+```
+
+**Benefits:**
+- **Testable:** Pure functions are easy to unit test
+- **Reusable:** Can be used across components/hooks
+- **DRY:** Single source of truth for form state interface
+- **Maintainable:** Logic separated from UI concerns
+
+### 7.2 Interface as Contract
+
+Use a shared interface exported from the builder as the contract between components:
+
+```typescript
+// LookbookForm.tsx imports and uses the interface
+import { LookbookFormState } from '../utils/lookbookPromptBuilder';
+
+interface LookbookFormProps {
+  formState: LookbookFormState;
+  onFormChange: (updates: Partial<LookbookFormState>) => void;
+}
+
+// LookbookGenerator.tsx uses the same interface
+const [formState, setFormState] = useState<LookbookFormState>(initialFormState);
+```
+
+This ensures **consistency** and prevents drift between components.
+
+## 8. i18n Pattern
+
+### 8.1 Translation Keys
 
 ```typescript
 // locales/en.ts
@@ -247,14 +322,14 @@ export const en = {
 };
 ```
 
-### 7.2 Usage
+### 8.2 Usage
 
 ```typescript
 const { t } = useLanguage();
 <h1>{t('virtualTryOn.title')}</h1>
 ```
 
-## 8. Testing Conventions
+## 9. Testing Conventions
 
 - Framework: Vitest
 - Component tests: React Testing Library
@@ -262,9 +337,9 @@ const { t } = useLanguage();
 - Test file location: Co-located or `__tests__/` directory
 - Coverage goals: 80%+ for services, 90%+ for contexts
 
-## 9. Performance Optimization Patterns
+## 10. Performance Optimization Patterns
 
-### 9.1 Component Memoization
+### 10.1 Component Memoization
 
 Use `React.memo` for components that re-render frequently with same props:
 
@@ -276,7 +351,64 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
 ImageUploader.displayName = 'ImageUploader';
 ```
 
-### 9.2 Hook Optimization
+**Example: LookbookForm/Output Split Pattern**
+
+When a parent component has independent form and output sections, split them and memoize each:
+
+```typescript
+// LookbookForm.tsx - Memoized form component
+export const LookbookForm = React.memo<LookbookFormProps>(({
+  formState,
+  onFormChange,
+  onGenerate,
+  // ...other props
+}) => {
+  // Memoized event handlers
+  const handleStyleChange = useCallback((style: LookbookStyle) => {
+    onFormChange({ lookbookStyle: style });
+  }, [onFormChange]);
+
+  return (/* form UI */);
+});
+
+LookbookForm.displayName = 'LookbookForm';
+
+// LookbookOutput.tsx - Memoized output component
+export const LookbookOutput = React.memo<LookbookOutputProps>(({
+  lookbook,
+  onUpscale,
+  // ...other props
+}) => {
+  return (/* output UI */);
+});
+
+LookbookOutput.displayName = 'LookbookOutput';
+
+// LookbookGenerator.tsx - Orchestrator (thin coordinator)
+export const LookbookGenerator: React.FC = () => {
+  const [formState, setFormState] = useState<LookbookFormState>(initialFormState);
+  const [generatedLookbook, setGeneratedLookbook] = useState<LookbookSet | null>(null);
+
+  const updateForm = useCallback((updates: Partial<LookbookFormState>) => {
+    setFormState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  return (
+    <div className="grid grid-cols-2 gap-8">
+      <LookbookForm formState={formState} onFormChange={updateForm} onGenerate={handleGenerate} />
+      <LookbookOutput lookbook={generatedLookbook} onUpscale={handleUpscale} />
+    </div>
+  );
+};
+```
+
+**Benefits:**
+- Form changes don't re-render output component
+- Output updates don't re-render form component
+- Clear separation of concerns (SoC)
+- Easier testing and maintenance
+
+### 10.2 Hook Optimization
 
 Combine `useMemo` and `useCallback` to prevent unnecessary re-renders:
 
@@ -287,13 +419,15 @@ const preview = useMemo(
   [image?.base64, image?.mimeType]
 );
 
-// Memoize event handlers
+// Memoize event handlers passed to memoized children
 const handleClick = useCallback(() => {
   onAction(data);
 }, [onAction, data]);
 ```
 
-### 9.3 Debounced localStorage
+**Critical:** When using `React.memo`, all props must be stable (memoized with `useCallback`/`useMemo`) to prevent memo bypasses.
+
+### 10.3 Debounced localStorage
 
 For form auto-save, use debounced writes to prevent UI lag:
 
@@ -313,7 +447,7 @@ useEffect(() => {
 }, [formState, debouncedSave]);
 ```
 
-### 9.4 Lazy Loading
+### 10.4 Lazy Loading
 
 Use `React.lazy` with unique `key` props for code splitting:
 
@@ -326,7 +460,7 @@ const HeavyComponent = lazy(() => import('./HeavyComponent'));
 </Suspense>
 ```
 
-### 9.5 Tree-Shakeable Imports
+### 10.5 Tree-Shakeable Imports
 
 Use `lodash-es` for tree-shaking support:
 
@@ -342,7 +476,7 @@ import { debounce } from 'lodash';
 
 ---
 
-## 10. Desktop Development (Tauri)
+## 11. Desktop Development (Tauri)
 
 - Native calls should be abstracted in `services/tauriService.ts`
 - Use `isTauri()` utility to gate native-only logic
