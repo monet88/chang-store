@@ -17,6 +17,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { ImageFile } from '../types';
+import { ImageLRUCache } from '../utils/imageCache';
 import { useGoogleDrive } from './GoogleDriveContext';
 import {
   useGoogleDriveSync,
@@ -52,6 +53,10 @@ interface ImageGalleryContextType {
   forceSync: () => Promise<void>;
   /** Clear sync error */
   clearSyncError: () => void;
+
+  // --- LRU Cache metrics ---
+  /** Get cache metrics for monitoring/debugging */
+  getCacheMetrics: () => ReturnType<ImageLRUCache['getMetrics']>;
 }
 
 // ============================================================================
@@ -60,6 +65,14 @@ interface ImageGalleryContextType {
 
 /** Maximum images in gallery */
 const GALLERY_SIZE_LIMIT = 20;
+
+/**
+ * LRU Cache instance (singleton pattern)
+ * Persists across component re-renders
+ * Limits: 50 images OR 100MB
+ * Generic type ensures type safety with GalleryImageFile
+ */
+const imageCache = new ImageLRUCache<GalleryImageFile>();
 
 // ============================================================================
 // Context
@@ -136,21 +149,27 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   // --- Add Image ---
   const addImage = useCallback((image: ImageFile, feature?: string) => {
+    // Create gallery image with metadata
+    const galleryImage: GalleryImageFile = {
+      ...image,
+      feature: feature || 'unknown',
+      createdAt: new Date(),
+    };
+
     setImages((prevImages) => {
       // Deduplicate by base64
       if (prevImages.some((img) => img.base64 === image.base64)) {
         return prevImages;
       }
 
-      // Create gallery image with metadata
-      const galleryImage: GalleryImageFile = {
-        ...image,
-        feature: feature || 'unknown',
-        createdAt: new Date(),
-      };
+      // Add to LRU cache (handles eviction automatically)
+      imageCache.add(galleryImage);
 
-      const newImages = [galleryImage, ...prevImages];
-      return newImages.slice(0, GALLERY_SIZE_LIMIT);
+      // Get cached images (evicted if needed) - type-safe now
+      const cachedImages = imageCache.getAll();
+
+      // Apply gallery size limit on top of cache limit
+      return cachedImages.slice(0, GALLERY_SIZE_LIMIT);
     });
 
     // Queue upload outside setImages to use fresh connection state
@@ -161,7 +180,14 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   // --- Delete Image ---
   const deleteImage = useCallback((base64: string) => {
-    setImages((prevImages) => prevImages.filter((img) => img.base64 !== base64));
+    setImages((prevImages) => {
+      const filteredImages = prevImages.filter((img) => img.base64 !== base64);
+
+      // Use efficient remove() instead of clear+rebuild (O(n) vs O(n²))
+      imageCache.remove(base64);
+
+      return filteredImages;
+    });
 
     // Queue delete using ref for fresh connection state
     if (isConnectedRef.current) {
@@ -176,6 +202,10 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (isConnectedRef.current) {
         currentImages.forEach((img) => queueDelete(img.base64));
       }
+
+      // Clear cache
+      imageCache.clear();
+
       return [];
     });
   }, [queueDelete]);
@@ -184,6 +214,11 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
   const clearSyncError = useCallback(() => {
     clearError();
   }, [clearError]);
+
+  // --- Get Cache Metrics ---
+  const getCacheMetrics = useCallback(() => {
+    return imageCache.getMetrics();
+  }, []);
 
   // --- Context Value ---
   // Note: Intentionally not using useMemo - callbacks are already memoized
@@ -199,6 +234,7 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
     isLoadingFromDrive,
     forceSync,
     clearSyncError,
+    getCacheMetrics,
   };
 
   return (
