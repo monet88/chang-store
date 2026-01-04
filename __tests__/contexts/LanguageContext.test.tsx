@@ -9,14 +9,30 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 
 /**
  * Wrapper component that provides LanguageContext to hooks
+ * Sets explicit 'en' language for test stability (default in app is 'vi')
  */
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
+const wrapper = ({ children }: { children: ReactNode }) => {
+  const Wrapper = () => {
+    const { setLanguage } = useLanguage();
+
+    // Set to English for tests
+    React.useEffect(() => {
+      setLanguage('en');
+    }, [setLanguage]);
+
+    return <>{children}</>;
+  };
+
+  return (
+    <LanguageProvider>
+      <Wrapper />
+    </LanguageProvider>
+  );
+};
 
 describe('LanguageContext', () => {
   describe('useLanguage hook', () => {
