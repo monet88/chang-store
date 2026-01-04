@@ -12,17 +12,17 @@ export const AddIcon: React.FC<IconProps> = (props) => (
   </svg>
 );
 
+// Arrow left for back navigation
 export const BackIcon: React.FC<IconProps> = (props) => (
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-<path strokeLinecap="round" strokeLinejoin="round" d="M9 15l-6-6m0 0l6-6m-6 6h13.5a5.5 5.5 0 010 11H10" />
-</svg>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+  </svg>
 );
 
-// FIX: Added BrushIcon
+// Paintbrush icon for drawing/inpainting
 export const BrushIcon: React.FC<IconProps> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-1.007 1.11-1.227l.956-.348a1.125 1.125 0 011.37.364l1.118 1.118a1.125 1.125 0 01.364 1.37l-.349.956a1.125 1.125 0 01-1.226 1.11c-.542-.09-1.007-.56-1.227-1.11l-1.118-1.118a1.125 1.125 0 01-.364-1.37zM12 5.25a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75H12.75a.75.75 0 01-.75-.75V5.25z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 10.5a8.25 8.25 0 0115 0v.611a4.5 4.5 0 01-4.5 4.5H6.75a4.5 4.5 0 01-4.5-4.5V10.5zM3.75 16.875c0-.931.387-1.78.995-2.386A4.478 4.478 0 016.75 13.5h10.5a4.478 4.478 0 012.255.989c.608.606.995 1.455.995 2.386m-15 0a3 3 0 013-3h9a3 3 0 013 3m-15 0a3 3 0 003 3h9a3 3 0 003-3m-15 0h15" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
   </svg>
 );
 
@@ -52,18 +52,17 @@ export const CloudIcon: React.FC<IconProps> = (props) => (
   </svg>
 );
 
+// Cloud with arrow up for upload
 export const CloudUploadIcon: React.FC<IconProps> = (props) => (
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-<path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-</svg>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+  </svg>
 );
 
-// FIX: Added ColorPickerIcon
+// Eyedropper icon for color picking
 export const ColorPickerIcon: React.FC<IconProps> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 16.837a.375.375 0 01-.28.368l-1.5.375a.375.375 0 01-.43-.43l.375-1.5a.375.375 0 01.368-.28L15.5 11.25l1.25 1.25-4 4.087z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12.11 9.423a2.934 2.934 0 014.15-4.15l.042.042a.75.75 0 001.06-1.06l-1.042-1.042a4.436 4.436 0 00-6.273 6.273l-1.042-1.042a.75.75 0 00-1.06 1.06l.042.042zM4.125 12a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zM6 6.375a.75.75 0 001.5 0v-1.5a.75.75 0 00-1.5 0v1.5zm3.375-1.5a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zM15 12.375a.75.75 0 001.5 0v-1.5a.75.75 0 00-1.5 0v1.5zm-3.375-1.5a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zM6.75 15a.75.75 0 001.5 0v-1.5a.75.75 0 00-1.5 0v1.5zm3.375-1.5a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zM15 18.375a.75.75 0 001.5 0v-1.5a.75.75 0 00-1.5 0v1.5z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10.875 18a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11.25l1.5 1.5.75-.75V8.758l2.276-.61a3 3 0 10-3.675-3.675l-.61 2.277H12l-.75.75 1.5 1.5M15 11.25l-8.47 8.47c-.34.34-.8.53-1.28.53s-.94.19-1.28.53l-.97.97-.75-.75.97-.97c.34-.34.53-.8.53-1.28s.19-.94.53-1.28l8.47-8.47M15 11.25L12 14.25" />
   </svg>
 );
 
@@ -96,16 +95,17 @@ export const DownloadIcon: React.FC<IconProps> = (props) => (
 </svg>
 );
 
+// Adjustment sliders icon for editor/settings
 export const EditorIcon: React.FC<IconProps> = (props) => (
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" {...props}>
-<path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
-</svg>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+  </svg>
 );
 
-// FIX: Added EllipseIcon
+// Ellipse shape icon
 export const EllipseIcon: React.FC<IconProps> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <ellipse cx="12" cy="12" rx="10" ry="6" />
+    <ellipse cx="12" cy="12" rx="10" ry="6" stroke="currentColor" fill="none" />
   </svg>
 );
 
@@ -115,10 +115,10 @@ export const EllipsisIcon: React.FC<IconProps> = (props) => (
 </svg>
 );
 
-// FIX: Added EraserIcon
+// Eraser icon for removing drawn areas
 export const EraserIcon: React.FC<IconProps> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18v-8.25A2.25 2.25 0 0018 7.5H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25z" />
   </svg>
 );
 
@@ -128,33 +128,32 @@ export const ErrorIcon: React.FC<IconProps> = (props) => (
 </svg>
 );
 
-// FIX: Added FilmIcon
+// Film strip icon for video/movie
 export const FilmIcon: React.FC<IconProps> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A18.75 18.75 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a1.5 1.5 0 01-.687-1.379V17.08c.245.03.49.051.737.076a7.48 7.48 0 004.283-1.426.5.5 0 00.32-.45v-1.74a.5.5 0 00-.32-.45A7.48 7.48 0 007.5 10.5c-.247.025-.492.046-.737.076V4.743a1.5 1.5 0 01.687-1.379A18.75 18.75 0 0112 1.5c2.786 0 5.433.608 7.812 1.7a1.5 1.5 0 01.687 1.379v12.339a1.5 1.5 0 01-.687 1.379A18.75 18.75 0 0112 22.5c-1.32.0-2.61-.138-3.84-.403z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0118 18.375M20.625 4.5H3.375m17.25 0c.621 0 1.125.504 1.125 1.125M20.625 4.5h-1.5C18.504 4.5 18 5.004 18 5.625m3.75 0v1.5c0 .621-.504 1.125-1.125 1.125M3.375 4.5c-.621 0-1.125.504-1.125 1.125M3.375 4.5h1.5C5.496 4.5 6 5.004 6 5.625m-3.75 0v1.5c0 .621.504 1.125 1.125 1.125m0 0h1.5m-1.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m1.5-3.75C5.496 8.25 6 7.746 6 7.125v-1.5M4.875 8.25C5.496 8.25 6 8.754 6 9.375v1.5m0-5.25v5.25m0-5.25C6 5.004 6.504 4.5 7.125 4.5h9.75c.621 0 1.125.504 1.125 1.125m1.125 2.625h1.5m-1.5 0A1.125 1.125 0 0118 7.125v-1.5m1.125 2.625c-.621 0-1.125.504-1.125 1.125v1.5m2.625-2.625c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125M18 5.625v5.25M7.125 12h9.75m-9.75 0A1.125 1.125 0 016 10.875M7.125 12C6.504 12 6 12.504 6 13.125m0-2.25C6 11.496 5.496 12 4.875 12M18 10.875c0 .621-.504 1.125-1.125 1.125M18 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m-12 5.25v-5.25m0 5.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125m-12 0v-1.5c0-.621-.504-1.125-1.125-1.125M18 18.375v-5.25m0 5.25v-1.5c0-.621.504-1.125 1.125-1.125M18 13.125v1.5c0 .621.504 1.125 1.125 1.125M18 13.125c0-.621.504-1.125 1.125-1.125M6 13.125v1.5c0 .621-.504 1.125-1.125 1.125M6 13.125C6 12.504 5.496 12 4.875 12m-1.5 0h1.5m-1.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M19.125 12h1.5m0 0c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h1.5m14.25 0h1.5" />
   </svg>
 );
 
-// FIX: Added FlipHorizontalIcon
+// Flip horizontal icon - arrows pointing left/right from center line
 export const FlipHorizontalIcon: React.FC<IconProps> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h18" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3L21 7.5m0 0L16.5 12M21 7.5H3" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12l4.5-4.5M3 12l4.5 4.5M21 12l-4.5-4.5M21 12l-4.5 4.5" />
   </svg>
 );
 
-// FIX: Added FlipVerticalIcon
+// Flip vertical icon - arrows pointing up/down from center line
 export const FlipVerticalIcon: React.FC<IconProps> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v18" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M21 16.5L16.5 21m0 0L12 16.5m4.5 4.5V3" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h18M12 3l-4.5 4.5M12 3l4.5 4.5M12 21l-4.5-4.5M12 21l4.5-4.5" />
   </svg>
 );
 
+// Arrow right for forward navigation
 export const ForwardIcon: React.FC<IconProps> = (props) => (
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-<path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H6.5a5.5 5.5 0 000 11H10" />
-</svg>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+  </svg>
 );
 
 export const FullscreenIcon: React.FC<IconProps> = (props) => (
@@ -187,12 +186,11 @@ export const InfoIcon: React.FC<IconProps> = (props) => (
 </svg>
 );
 
+// Layers icon for compositing/layering
 export const LayerComposerIcon: React.FC<IconProps> = (props) => (
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-<path strokeLinecap="round" strokeLinejoin="round" d="M12 1.25l-10 5 10 5 10-5-10-5z" />
-<path strokeLinecap="round" strokeLinejoin="round" d="M2 11.25l10 5 10-5" />
-<path strokeLinecap="round" strokeLinejoin="round" d="M2 16.25l10 5 10-5" />
-</svg>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3" />
+  </svg>
 );
 
 // FIX: Added LayoutIcon

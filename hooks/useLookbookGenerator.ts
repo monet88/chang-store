@@ -1,7 +1,8 @@
 
 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import debounce from 'lodash-es/debounce';
 import { Feature, ImageFile, AspectRatio } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -87,11 +88,29 @@ export const useLookbookGenerator = () => {
         aivideoautoImageModels,
     });
 
+    // Debounced localStorage save - prevents 200ms typing lag
+    const debouncedSave = useMemo(
+        () => debounce((state: LookbookFormState) => {
+            if (typeof window !== 'undefined') {
+                try {
+                    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(state));
+                } catch (error) {
+                    console.error('Failed to save draft to localStorage:', error);
+                    // Silently fail - draft saving is non-critical
+                }
+            }
+        }, 1000), // 1 second debounce - balance between UX and data safety
+        []
+    );
+
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(formState));
-        }
-    }, [formState]);
+        debouncedSave(formState);
+
+        // Cleanup: cancel pending debounced calls on unmount
+        return () => {
+            debouncedSave.cancel();
+        };
+    }, [formState, debouncedSave]);
 
     const updateForm = (updates: Partial<LookbookFormState>) => {
         setFormState(prev => ({...prev, ...updates}));

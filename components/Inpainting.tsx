@@ -315,10 +315,8 @@ const Inpainting: React.FC = () => {
 
         let activeMaskDataUrl = isMaskEmpty ? lastMask : maskCanvas?.toDataURL('image/png');
 
-        if (!activeMaskDataUrl) {
-            setError(t('inpainting.error.noSelection'));
-            return;
-        }
+        // Brush mask is now optional - if no mask is provided, the entire image will be processed
+        // This allows for global edits without needing to select a specific region
 
         if (imageEditModel.startsWith('aivideoauto--') && !aivideoautoAccessToken) {
             setError(t('error.api.aivideoautoAuth'));
@@ -328,21 +326,41 @@ const Inpainting: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
-        const finalPrompt = `# INSTRUCTION: MASKED IMAGE INPAINTING\n\n## IMAGE ROLES:\n- **Image 1 (Source):** The original image.\n- **Image 2 (Mask):** A black and white mask. The **white area** indicates the *only* region to be edited.\n\n## USER REQUEST:\nApply the following edit only inside the white area of the mask: "${prompt}"\n\n## CRITICAL RULES:\n1.  **Strict Boundaries:** All modifications MUST be confined to the white region of the mask.\n2.  **Seamless Blending:** The edited region must blend perfectly with the surrounding unchanged (black) area. Match lighting, texture, shadows, and perspective for a natural transition.\n3.  **Contextual Awareness:** The changes made within the mask should make sense in the context of the rest of the image.\n4.  **Preserve Unmasked Area:** The black region of the mask must remain 100% identical to the original source image.\n\n## OUTPUT:\nReturn ONLY the final edited, high-resolution (2K) image.`;
+        // Build prompt based on whether mask is provided
+        let finalPrompt: string;
+        const maskImages: ImageFile[] = [];
 
-        const maskImage: ImageFile = {
-            base64: activeMaskDataUrl.split(',')[1],
-            mimeType: 'image/png'
-        };
+        if (activeMaskDataUrl) {
+            // With mask: Apply inpainting instructions
+            finalPrompt = `# INSTRUCTION: MASKED IMAGE INPAINTING\n\n## IMAGE ROLES:\n- **Image 1 (Source):** The original image.\n- **Image 2 (Mask):** A black and white mask. The **white area** indicates the *only* region to be edited.\n\n## USER REQUEST:\nApply the following edit only inside the white area of the mask: "${prompt}"\n\n## CRITICAL RULES:\n1.  **Strict Boundaries:** All modifications MUST be confined to the white region of the mask.\n2.  **Seamless Blending:** The edited region must blend perfectly with the surrounding unchanged (black) area. Match lighting, texture, shadows, and perspective for a natural transition.\n3.  **Contextual Awareness:** The changes made within the mask should make sense in the context of the rest of the image.\n4.  **Preserve Unmasked Area:** The black region of the mask must remain 100% identical to the original source image.\n\n## OUTPUT:\nReturn ONLY the final edited, high-resolution (2K) image.`;
+
+            const maskImage: ImageFile = {
+                base64: activeMaskDataUrl.split(',')[1],
+                mimeType: 'image/png'
+            };
+            maskImages.push(maskImage);
+        } else {
+            // Without mask: Global image editing
+            finalPrompt = `# INSTRUCTION: IMAGE EDITING\n\n## USER REQUEST:\nApply the following edit to the entire image: "${prompt}"\n\n## RULES:\n1.  **Preserve Context:** Maintain the overall composition and context of the original image.\n2.  **Natural Appearance:** Ensure all edits look natural and seamless.\n3.  **High Quality:** Return a high-resolution (2K) result.\n\n## OUTPUT:\nReturn ONLY the final edited image.`;
+        }
 
         try {
+            // Debug logging: Check aspect ratio being sent
+            console.log('🎨 Inpainting Request:', {
+                aspectRatio,
+                resolution,
+                model: imageEditModel,
+                hasMask: !!activeMaskDataUrl,
+                imageCount: activeMaskDataUrl ? [image, ...maskImages].length : 1
+            });
+
             const [result] = await editImage(
-                { images: [image, maskImage], prompt: finalPrompt, numberOfImages: 1, aspectRatio, resolution },
+                { images: activeMaskDataUrl ? [image, ...maskImages] : [image], prompt: finalPrompt, numberOfImages: 1, aspectRatio, resolution },
                 imageEditModel,
                 buildImageServiceConfig(() => { })
             );
             setResultImage(result);
-            if (!isMaskEmpty) {
+            if (!isMaskEmpty && activeMaskDataUrl) {
                 setLastMask(activeMaskDataUrl);
             }
         } catch (err) {

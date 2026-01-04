@@ -96,35 +96,35 @@ const AppContent: React.FC = () => {
   const renderActiveFeature = () => {
     switch (activeFeature) {
       case Feature.TryOn:
-        return <VirtualTryOn />;
+        return <VirtualTryOn key="try-on" />;
       case Feature.Lookbook:
-        return <LookbookGenerator />;
+        return <LookbookGenerator key="lookbook" />;
       case Feature.Background:
-        return <BackgroundReplacer />;
+        return <BackgroundReplacer key="background" />;
       case Feature.Pose:
-        return <PoseChanger onOpenPoseLibrary={handleOpenPoseLibrary} />;
+        return <PoseChanger key="pose" onOpenPoseLibrary={handleOpenPoseLibrary} />;
       case Feature.SwapFace:
-        return <SwapFace />;
+        return <SwapFace key="swap-face" />;
       case Feature.PhotoAlbum:
-        return <PhotoAlbumCreator />;
+        return <PhotoAlbumCreator key="photo-album" />;
       case Feature.OutfitAnalysis:
-        return <OutfitAnalysis />;
+        return <OutfitAnalysis key="outfit-analysis" />;
       case Feature.Relight:
-        return <Relight />;
+        return <Relight key="relight" />;
       case Feature.Upscale:
-        return <Upscale />;
+        return <Upscale key="upscale" />;
       case Feature.Video:
-        return <VideoGenerator />;
+        return <VideoGenerator key="video" />;
       case Feature.VideoContinuity:
-        return <VideoContinuity />;
+        return <VideoContinuity key="video-continuity" />;
       case Feature.GRWMVideo:
-        return <GRWMVideoGenerator />;
+        return <GRWMVideoGenerator key="grwm-video" />;
       case Feature.Inpainting:
-        return <Inpainting />;
+        return <Inpainting key="inpainting" />;
       case Feature.ImageEditor:
         return null; // ImageEditor is rendered separately as a modal
       default:
-        return <VirtualTryOn />;
+        return <VirtualTryOn key="try-on" />;
     }
   };
 
