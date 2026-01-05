@@ -5,10 +5,11 @@
  * Memoized to prevent re-renders when output changes.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ImageFile, AspectRatio, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import ImageUploader from './ImageUploader';
+import MultiImageUploader from './MultiImageUploader';
 import Tooltip from './Tooltip';
 import Spinner from './Spinner';
 import ImageOptionsPanel from './ImageOptionsPanel';
@@ -68,6 +69,8 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
   mannequinBackgroundStyles
 }) => {
   const { t } = useLanguage();
+  // Local state for upload mode toggle
+  const [useMultiUpload, setUseMultiUpload] = useState(false);
 
   const {
     clothingImages,
@@ -88,6 +91,17 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
     );
     onFormChange({ clothingImages: newClothingImages });
   }, [clothingImages, onFormChange]);
+
+  /**
+   * Handle multi-upload: convert ImageFile[] to ClothingItem[]
+   */
+  const handleMultiClothingUpload = useCallback((files: ImageFile[]) => {
+    const newClothingImages = files.map(file => ({
+      id: Date.now() + Math.random(),
+      image: file
+    }));
+    onFormChange({ clothingImages: newClothingImages });
+  }, [onFormChange]);
 
   const addClothingUploader = useCallback(() => {
     onFormChange({
@@ -163,41 +177,64 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
 
       {/* Clothing Images Section */}
       <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-        <h3 className="text-base md:text-lg font-semibold text-center text-amber-400 mb-4">
-          {t('lookbook.uploadTitle')}
-        </h3>
-        <div className="grid grid-cols-2 gap-4">
-          {clothingImages.map((item, index) => (
-            <div key={item.id} className="relative group">
-              <Tooltip content={t('tooltips.lookbookClothing')} position="top">
-                <ImageUploader
-                  image={item.image}
-                  id={`clothing-${item.id}`}
-                  title={t('lookbook.clothingItemTitle', { index: index + 1 })}
-                  onImageUpload={(file) => handleClothingUpload(file, item.id)}
-                />
-              </Tooltip>
-              {clothingImages.length > 1 && (
-                <button
-                  onClick={() => removeClothingUploader(item.id)}
-                  className="absolute -top-2 -right-2 z-10 p-1 bg-red-600 rounded-full text-white hover:bg-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Remove view"
-                >
-                  <DeleteIcon className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-        <Tooltip content={t('tooltips.lookbookAddView')} position="bottom" className="w-full">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-base md:text-lg font-semibold text-amber-400">
+            {t('lookbook.uploadTitle')}
+          </h3>
+          {/* Toggle button for upload mode */}
           <button
-            onClick={addClothingUploader}
-            className="w-full mt-4 bg-zinc-700/80 text-zinc-200 font-semibold py-2.5 px-4 rounded-lg hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center gap-2"
+            onClick={() => setUseMultiUpload(!useMultiUpload)}
+            className="text-xs text-zinc-400 hover:text-amber-400 bg-zinc-700/50 hover:bg-zinc-700 px-3 py-1.5 rounded-md transition-colors"
           >
-            <AddIcon className="w-5 h-5" />
-            <span>{t('lookbook.addView')}</span>
+            {useMultiUpload ? 'Single Upload' : 'Multi Upload'}
           </button>
-        </Tooltip>
+        </div>
+
+        {useMultiUpload ? (
+          /* Multi-upload mode */
+          <MultiImageUploader
+            images={clothingImages.filter(item => item.image !== null).map(item => item.image!)}
+            onImagesUpload={handleMultiClothingUpload}
+            title=""
+            id="clothing-multi-upload"
+          />
+        ) : (
+          /* Single upload mode (original grid) */
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              {clothingImages.map((item, index) => (
+                <div key={item.id} className="relative group">
+                  <Tooltip content={t('tooltips.lookbookClothing')} position="top">
+                    <ImageUploader
+                      image={item.image}
+                      id={`clothing-${item.id}`}
+                      title={t('lookbook.clothingItemTitle', { index: index + 1 })}
+                      onImageUpload={(file) => handleClothingUpload(file, item.id)}
+                    />
+                  </Tooltip>
+                  {clothingImages.length > 1 && (
+                    <button
+                      onClick={() => removeClothingUploader(item.id)}
+                      className="absolute -top-2 -right-2 z-10 p-1 bg-red-600 rounded-full text-white hover:bg-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Remove view"
+                    >
+                      <DeleteIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <Tooltip content={t('tooltips.lookbookAddView')} position="bottom" className="w-full">
+              <button
+                onClick={addClothingUploader}
+                className="w-full mt-4 bg-zinc-700/80 text-zinc-200 font-semibold py-2.5 px-4 rounded-lg hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <AddIcon className="w-5 h-5" />
+                <span>{t('lookbook.addView')}</span>
+              </button>
+            </Tooltip>
+          </>
+        )}
       </div>
 
       {/* Fabric Texture Section */}

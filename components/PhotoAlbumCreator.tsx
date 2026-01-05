@@ -157,29 +157,6 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
         setIsLoading(false);
     };
 
-    if (generatedImages.length > 0 && !isLoading) {
-        return (
-            <div className="animate-fade-in">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl md:text-2xl font-bold">{t('photoAlbum.outputTitle')}</h2>
-                    <button onClick={handleStartOver} className="flex items-center gap-2 text-sm bg-zinc-700/80 text-zinc-200 font-semibold py-2 px-4 rounded-lg hover:bg-zinc-700 transition-colors duration-200">
-                        <ReloadIcon className="w-4 h-4" />
-                        <span>{t('photoAlbum.startOver')}</span>
-                    </button>
-                </div>
-                {error && <div className="mb-4"><ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} /></div>}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {generatedImages.map((image, index) => (
-                        <div key={index}>
-                            <HoverableImage image={image} altText={image.pose} />
-                            <p className="text-xs text-zinc-400 mt-2 text-center truncate" title={image.pose}>{image.pose}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
             {/* Left Column: Inputs */}
@@ -276,21 +253,51 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
             </div>
             {/* Right Column: Output */}
             <div className="lg:sticky lg:top-8">
-                <div className="relative w-full min-h-[400px] lg:min-h-0 lg:aspect-[4/5] bg-zinc-900/50 rounded-2xl border border-zinc-800 flex items-center justify-center p-2 sm:p-4">
-                    {isLoading ? (
-                        <div className="flex flex-col items-center justify-center gap-4 text-center">
+                <div className="relative w-full min-h-[400px] bg-zinc-900/50 rounded-2xl border border-zinc-800 p-4">
+                    {/* Header with Start Over button */}
+                    {generatedImages.length > 0 && (
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-base font-semibold text-zinc-300">{t('photoAlbum.outputTitle')}</h3>
+                            <button onClick={handleStartOver} className="flex items-center gap-1.5 text-xs bg-zinc-700/80 text-zinc-200 font-medium py-1.5 px-3 rounded-lg hover:bg-zinc-700 transition-colors">
+                                <ReloadIcon className="w-3.5 h-3.5" />
+                                <span>{t('photoAlbum.startOver')}</span>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Loading state */}
+                    {isLoading && (
+                        <div className="flex flex-col items-center justify-center gap-4 text-center py-8">
                             <Spinner />
-                            <p className="text-zinc-400">{generationStatus}</p>
+                            <p className="text-zinc-400 text-sm">{generationStatus}</p>
                             <ProgressBar progress={generationProgress.progress} total={generationProgress.total} />
                         </div>
-                    ) : error ? (
-                        <div className="p-4 w-full">
+                    )}
+
+                    {/* Error state */}
+                    {error && !isLoading && (
+                        <div className="mb-4">
                             <ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} />
                         </div>
-                    ) : (
-                        <div className="text-center text-zinc-500 pointer-events-none">
+                    )}
+
+                    {/* Generated images grid - 2 columns */}
+                    {generatedImages.length > 0 && (
+                        <div className="grid grid-cols-2 gap-3">
+                            {generatedImages.map((image, index) => (
+                                <div key={index}>
+                                    <HoverableImage image={image} altText={image.pose} />
+                                    <p className="text-xs text-zinc-400 mt-1.5 text-center truncate" title={image.pose}>{image.pose}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Placeholder when no images */}
+                    {generatedImages.length === 0 && !isLoading && !error && (
+                        <div className="flex flex-col items-center justify-center text-zinc-500 py-16">
                             <GalleryIcon className="mx-auto h-16 w-16" />
-                            <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
+                            <h3 className="mt-4 text-base font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
                         </div>
                     )}
                 </div>

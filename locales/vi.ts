@@ -10,8 +10,6 @@ export const vi: Translation = {
     lookbook: 'Lookbook AI',
     background: 'Nền',
     pose: 'Tạo dáng AI',
-    // FIX: Updated `tabs.swapFace` to be consistent with the feature's functionality.
-    swapFace: 'Tái tạo Ảnh',
     photoAlbum: 'Album Ảnh',
     outfitAnalysis: 'Thiết kế lại',
     relight: 'Chỉnh sáng',
@@ -19,7 +17,7 @@ export const vi: Translation = {
     videoAI: 'Video AI',
     videoContinuity: 'Video liên tục',
     imageEditor: 'Trình chỉnh sửa ảnh',
-    inpainting: 'Vẽ lại Vùng chọn',
+    aiEditor: 'AI Editor',
     grwmVideo: 'Video GRWM',
   },
 
@@ -65,6 +63,11 @@ export const vi: Translation = {
     outputPanelDescription: 'Tải ảnh lên và thiết lập các tùy chọn để bắt đầu.',
     negativePromptLabel: 'Prompt phủ định (Tùy chọn)',
     negativePromptHelp: 'Mô tả những gì bạn muốn tránh trong ảnh (ví dụ: văn bản, logo, các chi thừa).',
+    image: 'Ảnh',
+    selectMultipleImages: 'Chọn nhiều ảnh cùng lúc',
+    selectMultipleImagesMax: 'Chọn nhiều ảnh ({{count}}/{{max}})',
+    imagesSelected: 'Đã chọn {{count}} ảnh',
+    imagesCount: '{{count}}/{{max}} ảnh',
   },
   cameraView: {
     label: 'Góc máy & Khung hình',
@@ -873,6 +876,19 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     maskColor: 'Màu Vùng chọn',
     maskPreviewOpacity: 'Độ mờ Xem trước',
     toggleMaskVisibility: 'Ẩn/Hiện Vùng chọn',
+  },
+  aiEditor: {
+    title: 'AI Editor',
+    description: 'Chỉnh sửa ảnh bằng AI với tham chiếu nhiều ảnh. Dùng @img1, @img2 để tham chiếu ảnh đã tải.',
+    uploadTitle: 'Tải ảnh lên',
+    promptLabel: 'Mô tả chỉnh sửa',
+    promptPlaceholder: 'Mô tả chỉnh sửa. Dùng @img1, @img2 để tham chiếu ảnh. Ví dụ: "Đổi màu outfit ở @img1 giống với @img2"',
+    generateButton: 'Tạo ảnh',
+    generatingStatus: 'Đang tạo ảnh...',
+    error: {
+      noImages: 'Vui lòng tải lên ít nhất một ảnh.',
+      noPrompt: 'Vui lòng nhập mô tả chỉnh sửa.',
+    },
   },
   tooltips: {
     headerSettings: 'Mở cài đặt ứng dụng cho khóa API và lựa chọn mô hình.',
