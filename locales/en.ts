@@ -10,7 +10,6 @@ export const en = {
     lookbook: 'Lookbook AI',
     background: 'Backgrounds',
     pose: 'Pose AI',
-    swapFace: 'Image Recreation',
     photoAlbum: 'Photo Album',
     outfitAnalysis: 'Redesign',
     relight: 'Relight',
@@ -18,7 +17,7 @@ export const en = {
     videoAI: 'Video AI',
     videoContinuity: 'Video Continuity',
     imageEditor: 'Image Editor',
-    inpainting: 'Inpainting',
+    aiEditor: 'AI Editor',
     grwmVideo: 'GRWM Video',
   },
   imageUploader: {
@@ -63,6 +62,11 @@ export const en = {
     outputPanelDescription: 'Upload your images and set your options to begin.',
     negativePromptLabel: 'Negative Prompt (Optional)',
     negativePromptHelp: 'Describe what you want to avoid in the image (e.g., text, logos, extra limbs).',
+    image: 'Image',
+    selectMultipleImages: 'Select multiple images at once',
+    selectMultipleImagesMax: 'Select multiple images ({{count}}/{{max}})',
+    imagesSelected: '{{count}} image(s) selected',
+    imagesCount: '{{count}}/{{max}} images',
   },
   cameraView: {
     label: 'Camera Angle & Framing',
@@ -869,6 +873,19 @@ Do not include any other text or markdown.
     maskColor: 'Mask Color',
     maskPreviewOpacity: 'Preview Opacity',
     toggleMaskVisibility: 'Toggle Mask Visibility',
+  },
+  aiEditor: {
+    title: 'AI Editor',
+    description: 'Edit images using AI with multi-image references. Use @img1, @img2 to reference uploaded images.',
+    uploadTitle: 'Upload Images',
+    promptLabel: 'Editing Prompt',
+    promptPlaceholder: 'Describe your edit. Use @img1, @img2 to reference images. Example: "Change the outfit color in @img1 to match @img2"',
+    generateButton: 'Generate',
+    generatingStatus: 'Generating edited image...',
+    error: {
+      noImages: 'Please upload at least one image.',
+      noPrompt: 'Please enter an editing prompt.',
+    },
   },
   tooltips: {
     headerSettings: 'Open application settings for API keys and model selection.',
