@@ -5,3 +5,8 @@
 @source "../**/*.tsx";
 @source "../**/*.ts";
 @source "../index.html";
+
+/* Global compact UI - scale down to 75% */
+html {
+  font-size: 12px !important;
+}
