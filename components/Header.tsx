@@ -19,7 +19,9 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ activeFeature, setActiveFeature, onOpenSettings, isOpen, onClose }) => {
   const { t } = useLanguage();
   return (
-    <aside className={`
+    <aside
+      style={{ zoom: 1.3333 }}
+      className={`
       fixed top-0 left-0 z-30 h-screen w-72 flex flex-col p-4
       bg-slate-950/80 backdrop-blur-2xl border-r border-slate-800 shadow-2xl
       transition-transform duration-300 ease-in-out

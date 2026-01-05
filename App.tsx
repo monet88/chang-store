@@ -21,7 +21,6 @@ const VirtualTryOn = lazy(() => import('./components/VirtualTryOn'));
 const LookbookGenerator = lazy(() => import('./components/LookbookGenerator').then(m => ({ default: m.LookbookGenerator })));
 const BackgroundReplacer = lazy(() => import('./components/BackgroundReplacer'));
 const PoseChanger = lazy(() => import('./components/PoseChanger'));
-const SwapFace = lazy(() => import('./components/SwapFace'));
 const PhotoAlbumCreator = lazy(() => import('./components/PhotoAlbumCreator').then(m => ({ default: m.PhotoAlbumCreator })));
 const OutfitAnalysis = lazy(() => import('./components/OutfitAnalysis'));
 const Relight = lazy(() => import('./components/Relight'));
@@ -29,7 +28,7 @@ const Upscale = lazy(() => import('./components/Upscale'));
 const ImageEditor = lazy(() => import('./components/ImageEditor').then(m => ({ default: m.ImageEditor })));
 const VideoGenerator = lazy(() => import('./components/VideoGenerator').then(m => ({ default: m.VideoGenerator })));
 const VideoContinuity = lazy(() => import('./components/VideoContinuity'));
-const Inpainting = lazy(() => import('./components/Inpainting'));
+const AIEditor = lazy(() => import('./components/AIEditor'));
 const GRWMVideoGenerator = lazy(() => import('./components/GRWMVideoGenerator').then(m => ({ default: m.GRWMVideoGenerator })));
 
 // --- Lazy-loaded modal components ---
@@ -103,8 +102,6 @@ const AppContent: React.FC = () => {
         return <BackgroundReplacer key="background" />;
       case Feature.Pose:
         return <PoseChanger key="pose" onOpenPoseLibrary={handleOpenPoseLibrary} />;
-      case Feature.SwapFace:
-        return <SwapFace key="swap-face" />;
       case Feature.PhotoAlbum:
         return <PhotoAlbumCreator key="photo-album" />;
       case Feature.OutfitAnalysis:
@@ -119,8 +116,8 @@ const AppContent: React.FC = () => {
         return <VideoContinuity key="video-continuity" />;
       case Feature.GRWMVideo:
         return <GRWMVideoGenerator key="grwm-video" />;
-      case Feature.Inpainting:
-        return <Inpainting key="inpainting" />;
+      case Feature.AIEditor:
+        return <AIEditor key="ai-editor" />;
       case Feature.ImageEditor:
         return null; // ImageEditor is rendered separately as a modal
       default:
@@ -130,7 +127,7 @@ const AppContent: React.FC = () => {
 
   return (
     <>
-      <div className="flex w-full h-screen bg-transparent overflow-hidden">
+      <div className="flex w-full min-h-screen bg-transparent">
         <Header
           activeFeature={activeFeature}
           setActiveFeature={handleSetActiveFeature}
@@ -140,9 +137,9 @@ const AppContent: React.FC = () => {
         />
         <MobileMenuButton onClick={handleToggleSidebar} />
         <MobileOverlay isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
-        <div className="flex-1 flex flex-col ml-0 lg:ml-72 h-screen overflow-hidden">
-          <main className="flex-1 w-full max-w-[1920px] mx-auto px-1 sm:px-4 lg:px-8 py-2 sm:py-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
-            <div className="relative bg-slate-900/70 backdrop-blur-2xl p-3 sm:p-6 rounded-2xl shadow-2xl shadow-black/20 border border-slate-800 min-h-full overflow-x-hidden">
+        <div className="flex-1 flex flex-col ml-0 lg:ml-72 min-h-screen">
+          <main className="flex-1 w-full max-w-[1920px] mx-auto px-1 sm:px-4 lg:px-8 py-2 sm:py-4">
+            <div className="relative min-h-full overflow-x-hidden">
               <Suspense fallback={<FeatureLoadingFallback />}>
                 {renderActiveFeature()}
               </Suspense>
