@@ -3,7 +3,6 @@ export enum Feature {
   Lookbook = 'lookbook',
   Background = 'background',
   Pose = 'pose',
-  SwapFace = 'swap-face',
   PhotoAlbum = 'photo-album',
   OutfitAnalysis = 'outfit-analysis',
   Relight = 'relight',
@@ -11,7 +10,7 @@ export enum Feature {
   ImageEditor = 'image-editor',
   Video = 'video',
   VideoContinuity = 'video-continuity',
-  Inpainting = 'inpainting',
+  AIEditor = 'ai-editor',
   GRWMVideo = 'grwm-video',
 }
 

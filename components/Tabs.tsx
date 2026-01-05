@@ -15,7 +15,6 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
     { id: Feature.Lookbook, label: t('tabs.lookbook') },
     { id: Feature.Background, label: t('tabs.background') },
     { id: Feature.Pose, label: t('tabs.pose') },
-    { id: Feature.SwapFace, label: t('tabs.swapFace') },
     { id: Feature.PhotoAlbum, label: t('tabs.photoAlbum') },
     { id: Feature.OutfitAnalysis, label: t('tabs.outfitAnalysis') },
     { id: Feature.Relight, label: t('tabs.relight') },
@@ -24,7 +23,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
     { id: Feature.VideoContinuity, label: t('tabs.videoContinuity') },
     { id: Feature.GRWMVideo, label: t('tabs.grwmVideo') },
     { id: Feature.ImageEditor, label: t('tabs.imageEditor') },
-    { id: Feature.Inpainting, label: t('tabs.inpainting') },
+    { id: Feature.AIEditor, label: t('tabs.aiEditor') },
   ];
 
   return (
