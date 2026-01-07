@@ -954,6 +954,7 @@ Do not include any other text or markdown.
     pending: 'Pending',
     failed: 'Failed',
     retry: 'Retry',
+    samePrompt: 'Same prompt',
     remove: 'Remove',
     status: {
       pending: 'Pending',

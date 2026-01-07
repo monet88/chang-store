@@ -9,7 +9,7 @@
  * - Retry failed items, save to gallery, download as ZIP
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useWatermarkRemover } from '../hooks/useWatermarkRemover';
@@ -77,13 +77,19 @@ const StatusBadge: React.FC<{ status: WatermarkBatchItem['status']; error?: stri
 const BatchItemCard: React.FC<{
   item: WatermarkBatchItem;
   index: number;
-  onRetry: () => void;
+  onRetry: (promptId?: string) => void;
   onRemove: () => void;
   onSave: () => void;
   onDownload: () => void;
   isProcessing: boolean;
 }> = ({ item, index, onRetry, onRemove, onSave, onDownload, isProcessing }) => {
   const { t } = useLanguage();
+  const [retryPromptId, setRetryPromptId] = useState('');
+
+  const handleRetry = () => {
+    onRetry(retryPromptId || undefined);
+    setRetryPromptId('');
+  };
 
   return (
     <div className="bg-zinc-800/50 rounded-lg border border-zinc-700 p-3 flex flex-col gap-3">
@@ -139,50 +145,68 @@ const BatchItemCard: React.FC<{
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-2">
-        {/* Retry button (only for error state) */}
+      <div className="flex flex-col gap-2">
+        {/* Retry with prompt selector (only for error state) */}
         {item.status === 'error' && (
-          <button
-            onClick={onRetry}
-            disabled={isProcessing}
-            className="p-1.5 bg-amber-600/80 hover:bg-amber-500 rounded text-white transition-colors disabled:opacity-50"
-            title={t('watermarkRemover.retry')}
-          >
-            <RegenerateIcon className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <select
+              value={retryPromptId}
+              onChange={(e) => setRetryPromptId(e.target.value)}
+              disabled={isProcessing}
+              className="flex-1 bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
+            >
+              <option value="">{t('watermarkRemover.samePrompt')}</option>
+              {WATERMARK_PROMPTS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {t(`watermarkRemover.${p.labelKey}`)}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleRetry}
+              disabled={isProcessing}
+              className="p-1.5 bg-amber-600/80 hover:bg-amber-500 rounded text-white transition-colors disabled:opacity-50"
+              title={t('watermarkRemover.retry')}
+            >
+              <RegenerateIcon className="w-4 h-4" />
+            </button>
+          </div>
         )}
 
-        {/* Save to gallery (only for completed) */}
-        {item.status === 'completed' && item.result && (
-          <button
-            onClick={onSave}
-            className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors"
-            title={t('imageActions.saveToGallery')}
-          >
-            <GalleryIcon className="w-4 h-4" />
-          </button>
-        )}
+        {/* Action buttons row */}
+        <div className="flex items-center justify-end gap-2">
+          {/* Save to gallery (only for completed) */}
+          {item.status === 'completed' && item.result && (
+            <button
+              onClick={onSave}
+              className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors"
+              title={t('imageActions.saveToGallery')}
+            >
+              <GalleryIcon className="w-4 h-4" />
+            </button>
+          )}
 
-        {/* Download (only for completed) */}
-        {item.status === 'completed' && item.result && (
-          <button
-            onClick={onDownload}
-            className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors"
-            title={t('imageActions.download')}
-          >
-            <DownloadIcon className="w-4 h-4" />
-          </button>
-        )}
+          {/* Download (only for completed) */}
+          {item.status === 'completed' && item.result && (
+            <button
+              onClick={onDownload}
+              className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors"
+              title={t('imageActions.download')}
+            >
+              <DownloadIcon className="w-4 h-4" />
+            </button>
+          )}
 
-        {/* Remove button */}
-        <button
-          onClick={onRemove}
-          disabled={isProcessing && item.status === 'processing'}
-          className="p-1.5 bg-red-600/70 hover:bg-red-500 rounded text-white transition-colors disabled:opacity-50"
-          title={t('watermarkRemover.remove')}
-        >
-          <DeleteIcon className="w-4 h-4" />
-        </button>
+          {/* Remove button */}
+          <button
+            onClick={onRemove}
+            disabled={isProcessing && item.status === 'processing'}
+            className="p-1.5 bg-red-600/70 hover:bg-red-500 rounded text-white transition-colors disabled:opacity-50"
+            title={t('watermarkRemover.remove')}
+          >
+            <DeleteIcon className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -455,7 +479,7 @@ const WatermarkRemover: React.FC = () => {
                   key={item.id}
                   item={item}
                   index={index}
-                  onRetry={() => retryItem(item.id)}
+                  onRetry={(promptId) => retryItem(item.id, promptId)}
                   onRemove={() => removeImage(item.id)}
                   onSave={() => handleSaveItem(item.id)}
                   onDownload={() => handleDownloadItem(item.id)}
