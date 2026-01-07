@@ -104,7 +104,7 @@ const BatchItemCard: React.FC<{
       {/* Images: Original → Result */}
       <div className="grid grid-cols-2 gap-2">
         {/* Original image */}
-        <div className="relative aspect-square bg-zinc-900 rounded-lg overflow-hidden border border-zinc-700">
+        <div className="relative aspect-[3/4] bg-zinc-900 rounded-lg overflow-hidden border border-zinc-700">
           <img
             src={`data:${item.original.mimeType};base64,${item.original.base64}`}
             alt={t('watermarkRemover.originalAlt', { index: index + 1 })}
@@ -116,7 +116,7 @@ const BatchItemCard: React.FC<{
         </div>
 
         {/* Result image or placeholder */}
-        <div className="relative aspect-square bg-zinc-900 rounded-lg overflow-hidden border border-zinc-700">
+        <div className="relative aspect-[3/4] bg-zinc-900 rounded-lg overflow-hidden border border-zinc-700">
           {item.status === 'processing' ? (
             <div className="w-full h-full flex items-center justify-center">
               <Spinner />
