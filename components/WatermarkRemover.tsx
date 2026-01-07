@@ -272,7 +272,7 @@ const WatermarkRemover: React.FC = () => {
   }, [items, downloadItem]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
       {/* Left Panel: Inputs */}
       <div className="flex flex-col gap-6">
         {/* Upload Section */}
@@ -461,8 +461,8 @@ const WatermarkRemover: React.FC = () => {
       </div>
 
       {/* Right Panel: Results Grid */}
-      <div className="lg:sticky lg:top-8 lg:self-start">
-        <section className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4 min-h-[400px]">
+      <div className="flex flex-col">
+        <section className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4 min-h-[400px] flex-1 flex flex-col">
           <h3 className="text-md font-medium text-white mb-4">
             {t('watermarkRemover.resultsTitle')}
           </h3>
