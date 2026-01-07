@@ -25,6 +25,7 @@
     "@tauri-apps/plugin-notification": "^2.3.3",
     "@tauri-apps/plugin-shell": "^2.3.3",
     "axios": "^1.7.2",
+    "jszip": "^3.10.1",
     "lodash-es": "^4.17.22",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"

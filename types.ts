@@ -9,7 +9,6 @@ export enum Feature {
   Upscale = 'upscale',
   ImageEditor = 'image-editor',
   Video = 'video',
-  VideoContinuity = 'video-continuity',
   AIEditor = 'ai-editor',
   GRWMVideo = 'grwm-video',
 }
@@ -28,6 +27,10 @@ export const IMAGE_ASPECT_RATIOS = ['1:1', '3:4', '4:3', '9:16', '16:9'] as cons
 
 /** Supported resolutions for image generation (Gemini 3 Pro) */
 export const IMAGE_RESOLUTIONS = ['1K', '2K', '4K'] as const;
+
+/** Supported upscale quality options */
+export const UPSCALE_QUALITIES = ['2K', '4K'] as const;
+export type UpscaleQuality = typeof UPSCALE_QUALITIES[number];
 
 /** Aspect ratio type - 'Default' = keep original ratio */
 export type ImageAspectRatio = typeof IMAGE_ASPECT_RATIOS[number] | 'Default';
@@ -96,3 +99,44 @@ export type ImageEditModel = string;
 export type ImageGenerateModel = string;
 export type VideoGenerateModel = string;
 export type TextGenerateModel = string;
+
+// ============================================
+// WATERMARK REMOVER TYPES
+// ============================================
+
+/** Processing status for a single batch item */
+export type WatermarkItemStatus = 'pending' | 'processing' | 'completed' | 'error';
+
+/**
+ * Single item in watermark removal batch
+ * Tracks individual image processing state and results
+ */
+export interface WatermarkBatchItem {
+  /** Unique identifier for this item */
+  id: string;
+  /** Original image before processing */
+  original: ImageFile;
+  /** Processed result image (set after successful processing) */
+  result?: ImageFile;
+  /** Current processing status */
+  status: WatermarkItemStatus;
+  /** Error message if status is 'error' */
+  error?: string;
+  /** Retry count for failed items */
+  retryCount: number;
+}
+
+/**
+ * Configuration for watermark removal processing
+ * Controls model selection, prompts, and batch processing behavior
+ */
+export interface WatermarkConfig {
+  /** AI model to use for processing */
+  model: string;
+  /** Selected predefined prompt ID */
+  promptId: string;
+  /** Custom prompt text (used when promptId is 'custom') */
+  customPrompt: string;
+  /** Number of concurrent processing jobs (1-5) */
+  concurrency: number;
+}
