@@ -9,8 +9,9 @@ import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUT
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { GalleryIcon, MagicWandIcon } from './Icons';
+import { MagicWandIcon } from './Icons';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import ResultPlaceholder from './shared/ResultPlaceholder';
 
 const BackgroundReplacer: React.FC = () => {
   const { t } = useLanguage();
@@ -370,13 +371,7 @@ const BackgroundReplacer: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="flex-grow flex items-center justify-center p-4">
-              <div className="text-center text-zinc-500 pointer-events-none">
-                <GalleryIcon className="mx-auto h-16 w-16" />
-                <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
-                <p className="mt-1 text-sm">{t('common.outputPanelDescription')}</p>
-              </div>
-            </div>
+            <ResultPlaceholder description={t('background.outputPanelDescription')} />
           )}
         </div>
       </div>

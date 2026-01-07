@@ -20,7 +20,7 @@ import MentionTextarea from './MentionTextarea';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import HoverableImage from './HoverableImage';
 import Spinner, { ErrorDisplay } from './Spinner';
-import { GalleryIcon } from './Icons';
+import ResultPlaceholder from './shared/ResultPlaceholder';
 
 /** Regex to extract @img mentions from prompt */
 const MENTION_REGEX = /@img(\d+)/g;
@@ -251,12 +251,7 @@ Return the final edited image.`;
 
           {/* Placeholder */}
           {!isLoading && !resultImage && !error && (
-            <div className="text-center text-zinc-500">
-              <GalleryIcon className="mx-auto h-16 w-16" />
-              <h3 className="mt-4 text-base font-semibold text-zinc-400">
-                {t('common.outputPanelTitle')}
-              </h3>
-            </div>
+            <ResultPlaceholder description={t('aiEditor.outputPanelDescription')} />
           )}
 
           {/* Error display */}

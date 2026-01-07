@@ -1,5 +1,5 @@
 
-import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, VideoGenerateModel, AIVideoAutoModel, ImageResolution } from '../types';
+import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, VideoGenerateModel, AIVideoAutoModel, ImageResolution, UpscaleQuality } from '../types';
 import * as geminiImageService from './gemini/image';
 import * as geminiTextService from './gemini/text';
 import * as geminiVideoService from './gemini/video';
@@ -72,16 +72,18 @@ export const generateImage = async (
 export const upscaleImage = async (
     image: ImageFile,
     model: ImageEditModel,
-    config: ApiConfig
+    config: ApiConfig,
+    quality: UpscaleQuality = '2K'
 ): Promise<ImageFile> => {
-    const prompt = "Upscale this image to a high-resolution 2K format. Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.";
+    const resolution = quality === '4K' ? '4096' : '2048';
+    const prompt = `Upscale this image to a high-resolution ${quality} format (${resolution}px). Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.`;
     const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
     
     if (model.startsWith('aivideoauto--')) {
         const [result] = await editImage(params, model, config);
         return result;
     }
-    return geminiImageService.upscaleImage(image);
+    return geminiImageService.upscaleImage(image, quality);
 };
 
 export const extractOutfitItem = async (

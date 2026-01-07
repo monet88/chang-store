@@ -11,6 +11,7 @@ export enum Feature {
   Video = 'video',
   AIEditor = 'ai-editor',
   GRWMVideo = 'grwm-video',
+  WatermarkRemover = 'watermark-remover',
 }
 
 export interface ImageFile {

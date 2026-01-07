@@ -27,9 +27,9 @@ const Relight = lazy(() => import('./components/Relight'));
 const Upscale = lazy(() => import('./components/Upscale'));
 const ImageEditor = lazy(() => import('./components/ImageEditor').then(m => ({ default: m.ImageEditor })));
 const VideoGenerator = lazy(() => import('./components/VideoGenerator').then(m => ({ default: m.VideoGenerator })));
-const VideoContinuity = lazy(() => import('./components/VideoContinuity'));
 const AIEditor = lazy(() => import('./components/AIEditor'));
 const GRWMVideoGenerator = lazy(() => import('./components/GRWMVideoGenerator').then(m => ({ default: m.GRWMVideoGenerator })));
+const WatermarkRemover = lazy(() => import('./components/WatermarkRemover'));
 
 // --- Lazy-loaded modal components ---
 const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
@@ -112,12 +112,12 @@ const AppContent: React.FC = () => {
         return <Upscale key="upscale" />;
       case Feature.Video:
         return <VideoGenerator key="video" />;
-      case Feature.VideoContinuity:
-        return <VideoContinuity key="video-continuity" />;
       case Feature.GRWMVideo:
         return <GRWMVideoGenerator key="grwm-video" />;
-      case Feature.AIEditor:
+case Feature.AIEditor:
         return <AIEditor key="ai-editor" />;
+      case Feature.WatermarkRemover:
+        return <WatermarkRemover key="watermark-remover" />;
       case Feature.ImageEditor:
         return null; // ImageEditor is rendered separately as a modal
       default:
