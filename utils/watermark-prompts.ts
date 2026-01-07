@@ -11,11 +11,11 @@
 
 /** Available models for watermark removal */
 export const WATERMARK_MODELS = [
-  'gemini-2.5-flash-image',
-  'imagen-4.0-generate-001',
+  { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
+  { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image' },
 ] as const;
 
-export type WatermarkModel = typeof WATERMARK_MODELS[number];
+export type WatermarkModel = typeof WATERMARK_MODELS[number]['id'];
 
 /** Default model for watermark removal */
 export const DEFAULT_WATERMARK_MODEL: WatermarkModel = 'gemini-2.5-flash-image';
