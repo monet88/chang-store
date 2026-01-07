@@ -957,6 +957,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     pending: 'Đang chờ',
     failed: 'Thất bại',
     retry: 'Thử lại',
+    samePrompt: 'Giữ nguyên prompt',
     remove: 'Xóa',
     status: {
       pending: 'Đang chờ',
