@@ -146,8 +146,8 @@ const BatchItemCard: React.FC<{
 
       {/* Actions */}
       <div className="flex flex-col gap-2">
-        {/* Retry with prompt selector (only for error state) */}
-        {item.status === 'error' && (
+        {/* Retry/Regenerate with prompt selector (for error and completed) */}
+        {(item.status === 'error' || item.status === 'completed') && (
           <div className="flex items-center gap-1">
             <select
               value={retryPromptId}
