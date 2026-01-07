@@ -108,7 +108,7 @@ const BatchItemCard: React.FC<{
           <img
             src={`data:${item.original.mimeType};base64,${item.original.base64}`}
             alt={t('watermarkRemover.originalAlt', { index: index + 1 })}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
           <div className="absolute bottom-1 left-1 bg-black/70 text-zinc-400 text-xs px-1.5 py-0.5 rounded">
             {t('watermarkRemover.original')}
@@ -126,7 +126,7 @@ const BatchItemCard: React.FC<{
               <img
                 src={`data:${item.result.mimeType};base64,${item.result.base64}`}
                 alt={t('watermarkRemover.resultAlt', { index: index + 1 })}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
               <div className="absolute bottom-1 left-1 bg-black/70 text-green-400 text-xs px-1.5 py-0.5 rounded">
                 {t('watermarkRemover.result')}
