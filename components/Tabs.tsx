@@ -21,6 +21,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
     { id: Feature.Upscale, label: t('tabs.upscale') },
     { id: Feature.Video, label: t('tabs.videoAI') },
     { id: Feature.GRWMVideo, label: t('tabs.grwmVideo') },
+    { id: Feature.WatermarkRemover, label: t('tabs.watermarkRemover') },
     { id: Feature.ImageEditor, label: t('tabs.imageEditor') },
     { id: Feature.AIEditor, label: t('tabs.aiEditor') },
   ];
