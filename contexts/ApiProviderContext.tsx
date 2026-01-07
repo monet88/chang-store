@@ -86,7 +86,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const getModelsForFeature = (feature: Feature) => {
-    const isVideoFeature = [Feature.Video, Feature.GRWMVideo, Feature.VideoContinuity].includes(feature);
+    const isVideoFeature = [Feature.Video, Feature.GRWMVideo].includes(feature);
 
     let finalVideoModel = videoGenerateModel;
 

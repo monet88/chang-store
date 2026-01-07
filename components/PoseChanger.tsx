@@ -10,6 +10,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import ResultPlaceholder from './shared/ResultPlaceholder';
 
 const ImageIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
@@ -407,11 +408,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                 </div>
               </div>
             ) : (
-              <div className="text-center text-zinc-500 pointer-events-none">
-                <ImageIcon className="mx-auto h-16 w-16" />
-                <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
-                <p className="mt-1 text-sm">{t('common.outputPanelDescription')}</p>
-              </div>
+              <ResultPlaceholder description={t('pose.outputPanelDescription')} />
             )}
           </div>
         </div>

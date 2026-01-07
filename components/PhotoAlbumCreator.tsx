@@ -7,9 +7,9 @@ import ImageUploader from './ImageUploader';
 import Spinner, { ErrorDisplay, ProgressBar } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { getErrorMessage } from '../utils/imageUtils';
-// FIX: Added ReloadIcon to the import from './Icons'
-import { GalleryIcon, ReloadIcon } from './Icons';
+import { ReloadIcon } from './Icons';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import ResultPlaceholder from './shared/ResultPlaceholder';
 
 type GenerationMode = 'fullModel' | 'faceAndOutfit';
 
@@ -253,7 +253,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
             </div>
             {/* Right Column: Output */}
             <div className="lg:sticky lg:top-8">
-                <div className="relative w-full min-h-[400px] bg-zinc-900/50 rounded-2xl border border-zinc-800 p-4">
+                <div className={`relative w-full min-h-[50vh] lg:min-h-0 lg:aspect-[4/5] bg-zinc-900/50 rounded-2xl border border-zinc-800 p-4 flex flex-col ${generatedImages.length === 0 && !isLoading && !error ? 'items-center justify-center' : ''}`}>
                     {/* Header with Start Over button */}
                     {generatedImages.length > 0 && (
                         <div className="flex justify-between items-center mb-4">
@@ -295,10 +295,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
 
                     {/* Placeholder when no images */}
                     {generatedImages.length === 0 && !isLoading && !error && (
-                        <div className="flex flex-col items-center justify-center text-zinc-500 py-16">
-                            <GalleryIcon className="mx-auto h-16 w-16" />
-                            <h3 className="mt-4 text-base font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
-                        </div>
+                        <ResultPlaceholder description={t('photoAlbum.outputPanelDescription')} />
                     )}
                 </div>
             </div>

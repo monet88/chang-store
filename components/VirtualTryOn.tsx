@@ -11,8 +11,9 @@ import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUT
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { AddIcon, DeleteIcon, GalleryIcon } from './Icons';
+import { AddIcon, DeleteIcon } from './Icons';
 import Tooltip from './Tooltip';
+import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
 
 // --- Type Definitions ---
@@ -318,17 +319,7 @@ ${promptStructure.strictNegativeConstraints.map(rule => `- ${rule}`).join('\n')}
               </div>
             </div>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center p-4">
-              <div className="text-center text-zinc-500 pointer-events-none">
-                <GalleryIcon className="mx-auto h-16 w-16" />
-                <h3 className="mt-4 text-lg font-semibold text-zinc-400">
-                  {t('common.outputPanelTitle')}
-                </h3>
-                <p className="mt-1 text-sm">
-                  {t('virtualTryOn.outputPanelDescription')}
-                </p>
-              </div>
-            </div>
+            <ResultPlaceholder description={t('virtualTryOn.outputPanelDescription')} />
           )}
         </div>
       </div>

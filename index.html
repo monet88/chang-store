@@ -173,7 +173,7 @@
     }
 
     /* Custom Styles for Range Input */
-    input[type="range"] {
+    input[type="range"]:not(.comparator-slider) {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
@@ -186,11 +186,11 @@
       transition: opacity .2s;
     }
 
-    input[type="range"]:hover {
+    input[type="range"]:not(.comparator-slider):hover {
       opacity: 1;
     }
 
-    input[type="range"]::-webkit-slider-thumb {
+    input[type="range"]:not(.comparator-slider)::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
       width: 18px;
@@ -203,7 +203,7 @@
       /* slate-100 */
     }
 
-    input[type="range"]::-moz-range-thumb {
+    input[type="range"]:not(.comparator-slider)::-moz-range-thumb {
       width: 18px;
       height: 18px;
       background: #F59E0B;

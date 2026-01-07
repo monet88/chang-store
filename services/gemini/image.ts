@@ -1,6 +1,6 @@
 
 import { Part, Modality, Type } from "@google/genai";
-import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel } from '../../types';
+import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel, UpscaleQuality } from '../../types';
 import { getGeminiClient } from '../apiClient';
 
 /**
@@ -154,11 +154,12 @@ export const generateImageFromText = async (prompt: string, aspectRatio: ImageAs
     }
 };
 
-export const upscaleImage = async (image: ImageFile): Promise<ImageFile> => {
+export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '2K'): Promise<ImageFile> => {
   const ai = getGeminiClient();
+  const resolution = quality === '4K' ? '4096' : '2048';
   try {
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
-    const textPart: Part = { text: "Upscale this image to a high-resolution 2K format. Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original." };
+    const textPart: Part = { text: `Upscale this image to a high-resolution ${quality} format (${resolution}px). Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.` };
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',

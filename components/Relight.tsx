@@ -12,7 +12,7 @@ import { getErrorMessage } from '../utils/imageUtils';
 import Spinner, { ErrorDisplay } from './Spinner';
 import HoverableImage from './HoverableImage';
 import ImageUploader from './ImageUploader';
-import { GalleryIcon } from './Icons';
+import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
 
 
@@ -270,10 +270,7 @@ const Relight: React.FC = () => {
                     ) : generatedImage ? (
                         <HoverableImage image={generatedImage} altText="Relit image" onRegenerate={handleRelight} isGenerating={isLoading} />
                     ) : (
-                        <div className="text-center text-zinc-500 pointer-events-none p-4">
-                            <GalleryIcon className="mx-auto h-16 w-16" />
-                            <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
-                        </div>
+                        <ResultPlaceholder description={t('relight.outputPanelDescription')} />
                     )}
                 </div>
             </div>

@@ -10,7 +10,8 @@ import { getActiveApiKey } from '../services/apiClient';
 import ImageUploader from './ImageUploader';
 import Spinner, { ErrorDisplay } from './Spinner';
 import { getErrorMessage } from '../utils/imageUtils';
-import { FilmIcon, MagicWandIcon, DownloadIcon } from './Icons';
+import { MagicWandIcon, DownloadIcon } from './Icons';
+import ResultPlaceholder from './shared/ResultPlaceholder';
 
 
 type VideoStyle = 'cinematic' | 'lookbook' | 'advertising' | 'storytelling' | 'kids_animation' | 'documentary';
@@ -330,11 +331,7 @@ export const VideoGenerator: React.FC = () => {
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center text-zinc-500 pointer-events-none p-4">
-                            <FilmIcon className="mx-auto h-16 w-16" />
-                            <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">{t('common.outputPanelTitle')}</h3>
-                            <p className="mt-1 text-sm">{t('videoAI.outputPanelDescription')}</p>
-                        </div>
+                        <ResultPlaceholder description={t('videoAI.outputPanelDescription')} />
                     )}
                 </div>
             </div>

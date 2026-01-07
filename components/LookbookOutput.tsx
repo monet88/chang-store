@@ -11,7 +11,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import HoverableImage from './HoverableImage';
 import Spinner, { ErrorDisplay } from './Spinner';
 import Tooltip from './Tooltip';
-import { GalleryIcon } from './Icons';
+import ResultPlaceholder from './shared/ResultPlaceholder';
 
 /**
  * Lookbook set interface
@@ -75,8 +75,8 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
     onVariationCountChange(Number(e.target.value));
   }, [onVariationCountChange]);
 
-  const outputContainerClasses = `relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-2 sm:p-4 min-h-[50vh] lg:min-h-0 lg:h-full ${
-    lookbook ? '' : 'flex items-center justify-center'
+  const outputContainerClasses = `relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-2 sm:p-4 min-h-[50vh] lg:min-h-0 lg:aspect-[4/5] flex flex-col ${
+    lookbook ? '' : 'items-center justify-center'
   }`;
 
   const outputTabs: { id: OutputTab; label: string }[] = [
@@ -121,13 +121,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
     return (
       <div className="sticky top-8">
         <div className={outputContainerClasses}>
-          <div className="text-center text-zinc-500 pointer-events-none p-8">
-            <GalleryIcon className="mx-auto h-16 w-16" />
-            <h3 className="mt-4 text-base md:text-lg font-semibold text-zinc-400">
-              {t('common.outputPanelTitle')}
-            </h3>
-            <p className="mt-1 text-sm">{t('lookbook.outputPanelDescription')}</p>
-          </div>
+          <ResultPlaceholder description={t('lookbook.outputPanelDescription')} />
         </div>
       </div>
     );
