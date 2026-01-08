@@ -461,8 +461,8 @@ const WatermarkRemover: React.FC = () => {
       </div>
 
       {/* Right Panel: Results Grid */}
-      <div className="flex flex-col">
-        <section className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4 min-h-[400px] flex-1 flex flex-col">
+      <div>
+        <section className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
           <h3 className="text-md font-medium text-white mb-4">
             {t('watermarkRemover.resultsTitle')}
           </h3>
@@ -473,7 +473,7 @@ const WatermarkRemover: React.FC = () => {
               description={t('watermarkRemover.outputPanelDescription')}
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[calc(100vh-180px)] overflow-y-auto pr-1">
               {items.map((item, index) => (
                 <BatchItemCard
                   key={item.id}
