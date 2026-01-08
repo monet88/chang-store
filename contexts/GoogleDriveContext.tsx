@@ -155,10 +155,18 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
         setUser(userInfo);
         setIsConnected(true);
         setAuthError(null);
+        // Persist connection state for auto re-auth on page refresh
+        localStorage.setItem('gdrive_connected', 'true');
       } else {
         setAuthError('Failed to get user information');
       }
     } else {
+      // Silent refresh succeeded - restore user info
+      const userInfo = await fetchUserInfo(token);
+      if (userInfo) {
+        setUser(userInfo);
+        setIsConnected(true);
+      }
       console.log('[GoogleDrive] Token refreshed silently');
     }
 
@@ -196,6 +204,9 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
       return;
     }
 
+    // Check if user was previously connected (persisted flag)
+    const wasConnected = localStorage.getItem('gdrive_connected') === 'true';
+
     // Wait for GIS library to load
     const initTokenClient = () => {
       if (typeof google === 'undefined' || !google.accounts?.oauth2) {
@@ -210,6 +221,13 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
         callback: handleTokenResponse,
         error_callback: handleErrorResponse
       });
+
+      // Auto re-authenticate silently if user was previously connected
+      if (wasConnected && tokenClientRef.current) {
+        console.log('[GoogleDrive] Attempting silent re-authentication...');
+        isSilentRefreshRef.current = true;
+        tokenClientRef.current.requestAccessToken({ prompt: '' });
+      }
     };
 
     initTokenClient();
@@ -294,6 +312,9 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
         console.log('[GoogleDrive] Token revoked');
       });
     }
+
+    // Clear persisted connection state
+    localStorage.removeItem('gdrive_connected');
 
     // Clear state
     setAccessToken(null);
