@@ -48,8 +48,8 @@ interface GoogleDriveContextType {
 // Constants
 // ============================================================================
 
-/** Google Drive API scope for app-created files only */
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+/** OAuth scopes: openid for auth, profile/email for user info, drive.file for storage */
+const SCOPES = 'openid profile email https://www.googleapis.com/auth/drive.file';
 
 /** Google OAuth user info endpoint */
 const USER_INFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
@@ -128,7 +128,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
 
     // Validate scope was granted
-    if (!google.accounts.oauth2.hasGrantedAllScopes(response, DRIVE_SCOPE)) {
+    if (!google.accounts.oauth2.hasGrantedAllScopes(response, SCOPES)) {
       if (!isSilentRefreshRef.current) {
         setAuthError('Drive permission was not granted');
       }
@@ -203,7 +203,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
 
       tokenClientRef.current = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
-        scope: DRIVE_SCOPE,
+        scope: SCOPES,
         callback: handleTokenResponse,
         error_callback: handleErrorResponse
       });
