@@ -1,147 +1,114 @@
-# Repository Guidelines
+# PROJECT KNOWLEDGE BASE
 
-## Project Structure & Module Organization
-- This is a Vite + React + TypeScript SPA. Entry points are `index.html`, `index.tsx`, and `App.tsx` in the repo root.
-- UI components live in `components/`; shared logic in `hooks/`, global state in `contexts/`, and cross-cutting helpers in `utils/`.
-- API and external integrations belong in `services/`. Text, copy, and localization assets live in `text/` and `locales/`.
+**Generated:** 2026-01-08 | **Commit:** b066e51 | **Branch:** main
 
-## Build, Test, and Development Commands
-- Install dependencies: `npm install`
-- Run dev server (default on `http://localhost:5173`): `npm run dev`
-- Production build: `npm run build`
-- Preview built app locally: `npm run preview`
-- No test runner is configured yet; add one (e.g., Vitest) before introducing automated tests.
+## OVERVIEW
 
-## Coding Style & Naming Conventions
-- Use TypeScript with JSX (`.tsx`) and 2-space indentation.
-- Name React components with PascalCase (e.g., `ProductGrid.tsx`) and hooks with `use`-prefix in `hooks/` (e.g., `useCart.ts`).
-- Keep components presentational in `components/` and move side-effectful or reusable logic into `hooks/`, `contexts/`, or `services/`.
-- Use the `@/` alias for root-relative imports instead of long `../` chains.
+AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with Tauri 2 desktop support. Dual AI backends: Google Gemini, AIVideoAuto.
 
-## Testing Guidelines
-- When adding tests, prefer a modern TS-friendly runner (e.g., Vitest + React Testing Library).
-- Place tests next to the code under test using `*.test.ts` / `*.test.tsx` naming.
-- Aim to cover critical flows (API calls in `services/`, shared hooks, and complex components) before edge cases.
+## STRUCTURE
 
-## Commit & Pull Request Guidelines
-- Follow a lightweight Conventional Commits style, as in existing history: `feat: Set up project structure and dependencies`.
-- Use short, present-tense summaries (e.g., `feat: add cart sidebar`, `fix: handle empty catalog`).
-- For PRs, include: purpose, key changes, any breaking behavior, and manual test steps or screenshots for UI changes.
-
-## Security & Configuration
-- Store secrets (e.g., `GEMINI_API_KEY`) in `.env.local` only; never commit them.
-- Ensure new configuration flags and environment variables are documented in `README.md` or inline docs.
-
-## Landing the Plane (Session Completion)
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-
-
-<!-- BEGIN BEADS INTEGRATION -->
-## Issue Tracking with bd (beads)
-
-**IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
-
-### Why bd?
-
-- Dependency-aware: Track blockers and relationships between issues
-- Git-friendly: Auto-syncs to JSONL for version control
-- Agent-optimized: JSON output, ready work detection, discovered-from links
-- Prevents duplicate tracking systems and confusion
-
-### Quick Start
-
-**Check for ready work:**
-
-```bash
-bd ready --json
+```
+./
+├── App.tsx, index.tsx      # Entry points (non-standard: root, not /src/)
+├── types.ts                # Shared types: ImageFile, Feature, AspectRatio
+├── components/             # 49 UI components (feature + shared + modals)
+├── hooks/                  # 15 feature hooks (ALL business logic here)
+├── contexts/               # 5 providers: Language, Api, Gallery, Viewer
+├── services/               # API facade: Gemini, AIVideoAuto, Tauri
+├── utils/                  # imageUtils.ts (active), storage.ts (disabled)
+├── locales/                # i18n: en.ts (source), vi.ts
+├── src-tauri/              # Rust desktop backend (Tauri 2)
+├── docs/                   # Technical documentation
+└── plans/                  # Planning + reports
 ```
 
-**Create new issues:**
+## WHERE TO LOOK
 
-```bash
-bd create "Issue title" --description="Detailed context" -t bug|feature|task -p 0-4 --json
-bd create "Issue title" --description="What this issue is about" -p 1 --deps discovered-from:bd-123 --json
+| Task | Location | Notes |
+|------|----------|-------|
+| Add new feature | `hooks/useFeatureName.ts` → `components/FeatureName.tsx` | Hook-first pattern |
+| Fix API issue | `services/imageEditingService.ts` | Routes to Gemini or AIVideoAuto |
+| Add translation | `locales/en.ts` (source) → `vi.ts` | Type-safe i18n |
+| Desktop functionality | `services/tauriService.ts` → `src-tauri/src/lib.rs` | IPC bridge |
+| Global state | `contexts/` | Provider stack order matters |
+| Image utilities | `utils/imageUtils.ts` | Conversion, error handling |
+
+## ARCHITECTURE
+
+```
+Component (UI) → Hook (Logic) → Service (API Facade) → External APIs
 ```
 
-**Claim and update:**
+**Provider Stack (order matters):**
+```
+LanguageProvider → ApiProvider → ImageGalleryProvider → ImageViewerProvider → App
+```
+
+**Model Routing:**
+```typescript
+"aivideoauto--*" → AIVideoAuto backend
+"gemini-*"       → Gemini backend
+```
+
+## CONVENTIONS
+
+| Area | Convention |
+|------|------------|
+| Imports | `@/` alias → root (non-standard: not /src/) |
+| Components | PascalCase, thin UI layer |
+| Hooks | `use*` prefix, ALL logic here |
+| Services | Facade pattern, singleton clients |
+| Tests | `*.test.ts(x)` colocated, Vitest |
+| Commits | Conventional: `feat:`, `fix:`, `refactor:` |
+
+## ANTI-PATTERNS (THIS PROJECT)
+
+- **NEVER** end session without `git push` (work stranded locally)
+- **NEVER** commit `.env` or API keys
+- **NEVER** use markdown TODOs - use `bd` (beads) for issues
+- **NEVER** put logic in components - extract to hooks
+- **DO NOT** use `storage.ts` - persistence disabled
+- **Video features** MUST use AIVideoAuto backend
+- **Canvas operations** MUST cleanup in useEffect return
+
+## UNIQUE STYLES
+
+- Code at ROOT not `/src/` - `@/*` points to `./`
+- Tailwind 4 (not v3)
+- Feature switching via switch-case, not router
+- Lazy loading via `React.lazy()` for features
+- In-memory gallery (session only, no persistence)
+
+## COMMANDS
 
 ```bash
+npm run dev        # Dev server @ localhost:3000
+npm run build      # Production build
+npm run test       # Vitest (~400 tests, 97% context coverage)
+npm run lint       # ESLint
+npm run tauri:dev  # Desktop dev
+npm run tauri:build # Desktop release
+```
+
+## ISSUE TRACKING (bd)
+
+```bash
+bd ready --json              # Unblocked issues
+bd create "Title" -p 1 --json # Create issue
 bd update bd-42 --status in_progress --json
-bd update bd-42 --priority 1 --json
+bd close bd-42 --reason "Done" --json
 ```
 
-**Complete work:**
+## NOTES
 
-```bash
-bd close bd-42 --reason "Completed" --json
-```
+- Large files need refactoring: `ImageEditor.tsx` (1235 lines), `locales/*.ts` (~1000), `services/gemini/video.ts` (759)
+- NO CI/CD configured - desktop-focused
+- Upscale targets 2K resolution
+- Video polling: Gemini (indefinite), AIVideoAuto (10min max)
 
-### Issue Types
+## SUB-DOCUMENTATION
 
-- `bug` - Something broken
-- `feature` - New functionality
-- `task` - Work item (tests, docs, refactoring)
-- `epic` - Large feature with subtasks
-- `chore` - Maintenance (dependencies, tooling)
-
-### Priorities
-
-- `0` - Critical (security, data loss, broken builds)
-- `1` - High (major features, important bugs)
-- `2` - Medium (default, nice-to-have)
-- `3` - Low (polish, optimization)
-- `4` - Backlog (future ideas)
-
-### Workflow for AI Agents
-
-1. **Check ready work**: `bd ready` shows unblocked issues
-2. **Claim your task**: `bd update <id> --status in_progress`
-3. **Work on it**: Implement, test, document
-4. **Discover new work?** Create linked issue:
-   - `bd create "Found bug" --description="Details about what was found" -p 1 --deps discovered-from:<parent-id>`
-5. **Complete**: `bd close <id> --reason "Done"`
-
-### Auto-Sync
-
-bd automatically syncs with git:
-
-- Exports to `.beads/issues.jsonl` after changes (5s debounce)
-- Imports from JSONL when newer (e.g., after `git pull`)
-- No manual export/import needed!
-
-### Important Rules
-
-- ✅ Use bd for ALL task tracking
-- ✅ Always use `--json` flag for programmatic use
-- ✅ Link discovered work with `discovered-from` dependencies
-- ✅ Check `bd ready` before asking "what should I work on?"
-- ❌ Do NOT create markdown TODO lists
-- ❌ Do NOT use external issue trackers
-- ❌ Do NOT duplicate tracking systems
-
-For more details, see README.md and docs/QUICKSTART.md.
-
-<!-- END BEADS INTEGRATION -->
+- `components/AGENTS.md` - UI patterns, modals, shared components
+- `services/AGENTS.md` - API facade, Gemini/AIVideoAuto routing
+- `src-tauri/AGENTS.md` - Rust backend, IPC commands
