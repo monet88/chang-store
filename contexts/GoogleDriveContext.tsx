@@ -60,6 +60,64 @@ const USER_INFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
 /** Time before expiry to trigger refresh (5 minutes in ms) */
 const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
+/** LocalStorage keys for persisting session */
+const STORAGE_KEYS = {
+  CONNECTED: 'gdrive_connected',
+  TOKEN: 'gdrive_access_token',
+  EXPIRES_AT: 'gdrive_token_expires_at',
+  USER: 'gdrive_user'
+} as const;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/** Saves session data to localStorage */
+const saveSession = (token: string, expiresAt: number, user: GoogleUser) => {
+  localStorage.setItem(STORAGE_KEYS.CONNECTED, 'true');
+  localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+  localStorage.setItem(STORAGE_KEYS.EXPIRES_AT, expiresAt.toString());
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+};
+
+/** Clears session data from localStorage */
+const clearSession = () => {
+  localStorage.removeItem(STORAGE_KEYS.CONNECTED);
+  localStorage.removeItem(STORAGE_KEYS.TOKEN);
+  localStorage.removeItem(STORAGE_KEYS.EXPIRES_AT);
+  localStorage.removeItem(STORAGE_KEYS.USER);
+};
+
+/** Loads session data from localStorage, returns null if expired or invalid */
+const loadSession = (): { token: string; expiresAt: number; user: GoogleUser } | null => {
+  try {
+    const connected = localStorage.getItem(STORAGE_KEYS.CONNECTED);
+    const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+    const expiresAtStr = localStorage.getItem(STORAGE_KEYS.EXPIRES_AT);
+    const userStr = localStorage.getItem(STORAGE_KEYS.USER);
+
+    if (!connected || !token || !expiresAtStr || !userStr) {
+      return null;
+    }
+
+    const expiresAt = parseInt(expiresAtStr, 10);
+
+    // Check if token is still valid (with buffer)
+    if (Date.now() >= expiresAt - REFRESH_BUFFER_MS) {
+      console.log('[GoogleDrive] Stored token expired, clearing session');
+      clearSession();
+      return null;
+    }
+
+    const user = JSON.parse(userStr) as GoogleUser;
+    return { token, expiresAt, user };
+  } catch (err) {
+    console.error('[GoogleDrive] Failed to load session:', err);
+    clearSession();
+    return null;
+  }
+};
+
 // ============================================================================
 // Context
 // ============================================================================
@@ -86,6 +144,8 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   /** Flag to indicate silent refresh (no popup) */
   const isSilentRefreshRef = useRef(false);
+  /** Flag to prevent double initialization */
+  const isInitializedRef = useRef(false);
 
   // --- User Info Fetching ---
   /**
@@ -148,26 +208,19 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
     setAccessToken(token);
     setTokenExpiresAt(expiryTime);
 
-    // Only fetch user info on initial sign-in, not on refresh
-    if (!isSilentRefreshRef.current) {
-      const userInfo = await fetchUserInfo(token);
-      if (userInfo) {
-        setUser(userInfo);
-        setIsConnected(true);
-        setAuthError(null);
-        // Persist connection state for auto re-auth on page refresh
-        localStorage.setItem('gdrive_connected', 'true');
-      } else {
+    // Fetch user info and persist session
+    const userInfo = await fetchUserInfo(token);
+    if (userInfo) {
+      setUser(userInfo);
+      setIsConnected(true);
+      setAuthError(null);
+      // Persist full session for page refresh (no re-auth needed while token valid)
+      saveSession(token, expiryTime, userInfo);
+      console.log('[GoogleDrive] Session saved, token expires in', Math.round(expiresIn / 60), 'minutes');
+    } else {
+      if (!isSilentRefreshRef.current) {
         setAuthError('Failed to get user information');
       }
-    } else {
-      // Silent refresh succeeded - restore user info
-      const userInfo = await fetchUserInfo(token);
-      if (userInfo) {
-        setUser(userInfo);
-        setIsConnected(true);
-      }
-      console.log('[GoogleDrive] Token refreshed silently');
     }
 
     setIsAuthenticating(false);
@@ -194,6 +247,22 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
     isSilentRefreshRef.current = false;
   }, []);
 
+  // --- Restore Session on Mount ---
+  useEffect(() => {
+    if (isInitializedRef.current) return;
+    isInitializedRef.current = true;
+
+    // Try to restore session from localStorage
+    const savedSession = loadSession();
+    if (savedSession) {
+      console.log('[GoogleDrive] Restoring session from localStorage');
+      setAccessToken(savedSession.token);
+      setTokenExpiresAt(savedSession.expiresAt);
+      setUser(savedSession.user);
+      setIsConnected(true);
+    }
+  }, []);
+
   // --- Initialize GIS Token Client ---
   useEffect(() => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -203,9 +272,6 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
       console.warn('[GoogleDrive] GOOGLE_CLIENT_ID not configured');
       return;
     }
-
-    // Check if user was previously connected (persisted flag)
-    const wasConnected = localStorage.getItem('gdrive_connected') === 'true';
 
     // Wait for GIS library to load
     const initTokenClient = () => {
@@ -221,13 +287,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
         callback: handleTokenResponse,
         error_callback: handleErrorResponse
       });
-
-      // Auto re-authenticate silently if user was previously connected
-      if (wasConnected && tokenClientRef.current) {
-        console.log('[GoogleDrive] Attempting silent re-authentication...');
-        isSilentRefreshRef.current = true;
-        tokenClientRef.current.requestAccessToken({ prompt: '' });
-      }
+      // Note: No auto re-auth here - session is restored from localStorage
     };
 
     initTokenClient();
@@ -313,8 +373,8 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
       });
     }
 
-    // Clear persisted connection state
-    localStorage.removeItem('gdrive_connected');
+    // Clear persisted session
+    clearSession();
 
     // Clear state
     setAccessToken(null);
