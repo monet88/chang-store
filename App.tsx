@@ -137,7 +137,7 @@ case Feature.AIEditor:
         />
         <MobileMenuButton onClick={handleToggleSidebar} />
         <MobileOverlay isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
-        <div className="flex-1 flex flex-col ml-0 lg:ml-72 min-h-screen">
+        <div className="flex-1 flex flex-col ml-0 lg:ml-96 min-h-screen">
           <main className="flex-1 w-full max-w-[1920px] mx-auto px-1 sm:px-4 lg:px-8 py-2 sm:py-4">
             <div className="relative min-h-full overflow-x-hidden">
               <Suspense fallback={<FeatureLoadingFallback />}>
