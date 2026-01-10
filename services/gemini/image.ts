@@ -156,16 +156,16 @@ export const generateImageFromText = async (prompt: string, aspectRatio: ImageAs
 
 export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '2K'): Promise<ImageFile> => {
   const ai = getGeminiClient();
-  const resolution = quality === '4K' ? '4096' : '2048';
   try {
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
-    const textPart: Part = { text: `Upscale this image to a high-resolution ${quality} format (${resolution}px). Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.` };
+    const textPart: Part = { text: `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview',
       contents: { parts: [imagePart, textPart] },
       config: {
         responseModalities: [Modality.IMAGE],
+        imageConfig: { imageSize: quality }, // "2K" or "4K" - Gemini 3 format
       },
     });
 

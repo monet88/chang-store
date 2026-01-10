@@ -20,30 +20,22 @@ const ImageComparator: React.FC<ImageComparatorProps> = ({ before, after }) => {
       <div className="comparator-image-wrapper">
         <img src={beforeUrl} alt={t('imageComparator.beforeAlt')} />
         <div className="comparator-label before">{t('imageComparator.before')}</div>
-        <a
-          href={beforeUrl}
-          download="original-image.png"
-          className="absolute top-2 left-2 z-20 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
-          aria-label={t('imageActions.download')}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <DownloadIcon className="w-5 h-5" />
-        </a>
       </div>
       
       <div className="comparator-image-wrapper" style={{ clipPath: `inset(0 ${100 - sliderVal}% 0 0)` }}>
         <img src={afterUrl} alt={t('imageComparator.afterAlt')} />
         <div className="comparator-label after">{t('imageComparator.after')}</div>
-        <a
-          href={afterUrl}
-          download="upscaled-image.png"
-          className="absolute top-2 right-2 z-20 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
-          aria-label={t('imageActions.download')}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <DownloadIcon className="w-5 h-5" />
-        </a>
       </div>
+
+      <a
+        href={afterUrl}
+        download="upscaled-image.png"
+        className="absolute top-2 right-2 z-20 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+        aria-label={t('imageActions.download')}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DownloadIcon className="w-5 h-5" />
+      </a>
 
       <div className="comparator-handle" style={{ left: `${sliderVal}%` }} />
       
