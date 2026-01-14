@@ -14,5 +14,7 @@
       "Bash(bd ready)",
       "Bash(bd stats)"
     ]
-  }
+  },
+  "outputStyle": "God Mode (Level 5)",
+  "spinnerTipsEnabled": false
 }
