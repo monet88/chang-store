@@ -27,6 +27,12 @@ dist-ssr
 # Test coverage
 coverage/
 
+# Temporary test scripts
+test-chat-service.ts
+test-chat-service.mjs
+test-*.ts
+test-*.mjs
+
 # Claude context cache
 .claude/context/
 
