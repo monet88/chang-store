@@ -7,7 +7,7 @@ import { Feature, ImageFile, AspectRatio } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { editImage, upscaleImage, createImageChatSession, ImageChatSession, RefinementHistoryItem } from '../services/imageEditingService';
 import { generateClothingDescription } from '../services/gemini/text';
 
 // This would contain the large prompt strings
@@ -68,6 +68,11 @@ export const useLookbookGenerator = () => {
 
     const [generatedLookbook, setGeneratedLookbook] = useState<LookbookSet | null>(null);
     const [upscalingStates, setUpscalingStates] = useState<Record<string, boolean>>({});
+
+    // Refinement state for iterative image editing
+    const [chatSession, setChatSession] = useState<ImageChatSession | null>(null);
+    const [refinementHistory, setRefinementHistory] = useState<RefinementHistoryItem[]>([]);
+    const [isRefining, setIsRefining] = useState(false);
 
     const [isLoading, setIsLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
@@ -178,15 +183,20 @@ export const useLookbookGenerator = () => {
         // ... (The large switch statement for stylePrompt generation)
         
         try {
-          const results = await editImage({ 
-            images: imagesForApi, 
-            prompt, 
-            negativePrompt, 
-            numberOfImages: 1 
+          const results = await editImage({
+            images: imagesForApi,
+            prompt,
+            negativePrompt,
+            numberOfImages: 1
           }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
           if (results.length > 0) {
             setGeneratedLookbook({ main: results[0], variations: [], closeups: [] });
             setActiveOutputTab('main');
+
+            // Create new chat session for image refinement
+            const session = createImageChatSession(imageEditModel);
+            setChatSession(session);
+            setRefinementHistory([]);
           }
         } catch (err) {
           setError(getErrorMessage(err, t));
@@ -280,6 +290,48 @@ export const useLookbookGenerator = () => {
         }
     };
 
+    const handleRefineImage = async (prompt: string) => {
+        if (!chatSession || !generatedLookbook) {
+            setError(t('lookbook.refineError'));
+            return;
+        }
+
+        setIsRefining(true);
+        setError(null);
+
+        try {
+            const refinedImage = await chatSession.sendRefinement(
+                prompt,
+                generatedLookbook.main
+            );
+
+            // Update lookbook with refined image
+            setGeneratedLookbook(prev => prev ? {
+                ...prev,
+                main: refinedImage,
+                // Clear variations/closeups as they're based on old image
+                variations: [],
+                closeups: []
+            } : null);
+
+            // Update history from session
+            setRefinementHistory(chatSession.getHistory());
+
+        } catch (err) {
+            setError(getErrorMessage(err, t));
+        } finally {
+            setIsRefining(false);
+        }
+    };
+
+    const handleResetRefinement = () => {
+        if (chatSession) {
+            chatSession.reset();
+            setChatSession(null);
+            setRefinementHistory([]);
+        }
+    };
+
     return {
         formState,
         updateForm,
@@ -301,6 +353,12 @@ export const useLookbookGenerator = () => {
         handleUpscale,
         handleGenerateVariations,
         handleGenerateCloseUp,
+        // Refinement exports
+        chatSession,
+        refinementHistory,
+        isRefining,
+        handleRefineImage,
+        handleResetRefinement,
         // ... other handlers and state values
     }
 }
