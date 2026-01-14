@@ -35,3 +35,4 @@ src-tauri/target/
 
 # bv (beads viewer) local config and caches
 .bv/
+.osgrep

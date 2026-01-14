@@ -150,7 +150,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
           </div>
 
           {/* Tab Content */}
-          <div className={`flex-grow relative ${activeTab === 'main' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+          <div className={`flex-grow relative ${activeTab === 'main' ? 'overflow-visible' : 'overflow-y-auto'}`}>
             {/* Main Tab */}
             {activeTab === 'main' && (
               <div className="animate-fade-in">
