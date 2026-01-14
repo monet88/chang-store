@@ -158,7 +158,7 @@ const BatchItemCard: React.FC<{
               <option value="">{t('watermarkRemover.samePrompt')}</option>
               {WATERMARK_PROMPTS.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {t(`watermarkRemover.${p.labelKey}`)}
+                  {t(p.labelKey)}
                 </option>
               ))}
             </select>

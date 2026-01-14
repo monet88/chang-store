@@ -19,12 +19,12 @@ const ImageComparator: React.FC<ImageComparatorProps> = ({ before, after }) => {
     <div className="comparator-container">
       <div className="comparator-image-wrapper">
         <img src={beforeUrl} alt={t('imageComparator.beforeAlt')} />
-        <div className="comparator-label before">{t('imageComparator.before')}</div>
+        {sliderVal < 95 && <div className="comparator-label before">{t('imageComparator.before')}</div>}
       </div>
       
       <div className="comparator-image-wrapper" style={{ clipPath: `inset(0 ${100 - sliderVal}% 0 0)` }}>
         <img src={afterUrl} alt={t('imageComparator.afterAlt')} />
-        <div className="comparator-label after">{t('imageComparator.after')}</div>
+        {sliderVal > 5 && <div className="comparator-label after">{t('imageComparator.after')}</div>}
       </div>
 
       <a
