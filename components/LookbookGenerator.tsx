@@ -7,15 +7,16 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { editImage, upscaleImage, RefinementHistoryItem } from '../services/imageEditingService';
 import { generateClothingDescription } from '../services/gemini/text';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { MannequinBackgroundStyleKey } from './LookbookGenerator.prompts';
-import { LookbookForm, LookbookFormState, ClothingItem } from './LookbookForm';
+import { LookbookForm, ClothingItem } from './LookbookForm';
 import { LookbookOutput, LookbookSet } from './LookbookOutput';
+import { useLookbookGenerator, LookbookFormState } from '../hooks/useLookbookGenerator';
 import {
   buildLookbookPrompt,
   buildVariationPrompt,
@@ -57,6 +58,14 @@ export const LookbookGenerator: React.FC = () => {
 
   // Hooks
   const { t } = useLanguage();
+
+  // Refinement handlers from hook
+  const {
+    refinementHistory,
+    isRefining,
+    handleRefineImage,
+    handleResetRefinement,
+  } = useLookbookGenerator();
   const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Lookbook);
 
@@ -265,6 +274,7 @@ export const LookbookGenerator: React.FC = () => {
     }
   }, [generatedLookbook, formState.negativePrompt, imageEditModel, requireAivideoautoConfig, buildImageServiceConfig, t]);
 
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
       {/* Left Column: Form */}
@@ -304,6 +314,10 @@ export const LookbookGenerator: React.FC = () => {
           onClearError={() => setError(null)}
           variationCount={variationCount}
           onVariationCountChange={setVariationCount}
+          refinementHistory={refinementHistory}
+          isRefining={isRefining}
+          onRefineImage={handleRefineImage}
+          onResetRefinement={handleResetRefinement}
         />
       </div>
     </div>
