@@ -193,10 +193,10 @@ export const generateVideo = async (
         const modelIdBase = model.split('--')[1];
         const aivideoautoModel = config.aivideoautoVideoModels?.find(m => m.id_base === modelIdBase);
         if (!aivideoautoModel) throw new Error(`Invalid AIVideoAuto model ID: ${modelIdBase}. Models not loaded.`);
-        
+
         config.onStatusUpdate('Uploading reference image...');
         const uploaded = await aivideoautoService.uploadImage(config.aivideoautoAccessToken, faceImage);
-        
+
         config.onStatusUpdate('Creating video task...');
         const videoId = await aivideoautoService.createVideoTask(config.aivideoautoAccessToken, {
             model: aivideoautoModel.model,
@@ -211,3 +211,7 @@ export const generateVideo = async (
     if (!faceImage) throw new Error("A reference image is mandatory for Gemini video generation.");
     return geminiVideoService.generateVideo(faceImage, prompt, config.onStatusUpdate, model);
 };
+
+// Export chat service for image refinement
+export { createImageChatSession, type ImageChatSession, type RefinementHistoryItem } from './gemini/chat';
+
