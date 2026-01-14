@@ -12,6 +12,8 @@ import HoverableImage from './HoverableImage';
 import Spinner, { ErrorDisplay } from './Spinner';
 import Tooltip from './Tooltip';
 import ResultPlaceholder from './shared/ResultPlaceholder';
+import RefinementInput from './shared/RefinementInput';
+import { RefinementHistoryItem } from '../services/imageEditingService';
 
 /**
  * Lookbook set interface
@@ -46,6 +48,10 @@ interface LookbookOutputProps {
   onClearError: () => void;
   variationCount: number;
   onVariationCountChange: (count: number) => void;
+  refinementHistory: RefinementHistoryItem[];
+  isRefining: boolean;
+  onRefineImage: (prompt: string) => void;
+  onResetRefinement: () => void;
 }
 
 /**
@@ -67,7 +73,11 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
   error,
   onClearError,
   variationCount,
-  onVariationCountChange
+  onVariationCountChange,
+  refinementHistory,
+  isRefining,
+  onRefineImage,
+  onResetRefinement
 }) => {
   const { t } = useLanguage();
 
@@ -159,6 +169,13 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                   altText={t('lookbook.tabGeneratedImage')}
                   onUpscale={() => onUpscale(lookbook.main, 'main')}
                   isUpscaling={upscalingStates['main']}
+                />
+                <RefinementInput
+                  onRefine={onRefineImage}
+                  onReset={onResetRefinement}
+                  history={refinementHistory}
+                  isRefining={isRefining}
+                  disabled={!lookbook?.main}
                 />
               </div>
             )}
