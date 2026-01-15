@@ -41,6 +41,9 @@ export const en = {
     redoAria: 'Redo refinement',
     refinePlaceholder: 'e.g., "Change the background to a beach"',
     refineButton: 'Refine',
+    refiningStatus: 'Refining image...',
+    refineHistory: 'History',
+    refineReset: 'Reset to Original',
   },
   imageActions: {
     regenerate: 'Regenerate',
@@ -67,6 +70,9 @@ export const en = {
     selectMultipleImagesMax: 'Select multiple images ({{count}}/{{max}})',
     imagesSelected: '{{count}} image(s) selected',
     imagesCount: '{{count}}/{{max}} images',
+    justNow: 'just now',
+    minutesAgo: '{{count}}m ago',
+    hoursAgo: '{{count}}h ago',
   },
   cameraView: {
     label: 'Camera Angle & Framing',
@@ -140,6 +146,7 @@ export const en = {
   lookbook: {
     descriptionError: 'Please upload a clothing image first to generate a description.',
     inputError: 'Please upload at least one clothing image.',
+    refineError: 'Cannot refine without a generated image',
     generatingStatus: 'Generating lookbook image...',
     generatingStatusHelp: 'This may take a minute. High-quality results are worth the wait!',
     title: 'Lookbook AI',
@@ -873,6 +880,7 @@ Do not include any other text or markdown.
     lookbookNegativePrompt: 'Tell the AI what to avoid. E.g., "no wrinkles, no logos, unrealistic lighting".',
     lookbookStyle: 'Choose the visual style for the final product photo.',
     lookbookGenerate: 'Start generating the main lookbook image based on your inputs.',
+    lookbookRefinement: 'Describe changes to refine the generated image. The AI remembers previous refinements.',
     lookbookVariations: 'Create a few alternative shots of the main image with minor variations in angle or lighting.',
     lookbookCloseups: 'Generate detailed close-up shots of key areas like the collar, sleeves, and fabric texture.',
     backgroundSubject: 'Upload the main photo containing the person or object you want to keep.',
