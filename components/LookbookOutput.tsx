@@ -49,6 +49,10 @@ interface LookbookOutputProps {
   variationCount: number;
   onVariationCountChange: (count: number) => void;
   refinementHistory: RefinementHistoryItem[];
+  refinementVersions: Array<{ image: ImageFile; prompt: string; timestamp: number }>;
+  selectedVersionIndex: number;
+  originalImage: ImageFile | null;
+  onSelectVersion: (index: number) => void;
   isRefining: boolean;
   onRefineImage: (prompt: string) => void;
   onResetRefinement: () => void;
@@ -75,6 +79,10 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
   variationCount,
   onVariationCountChange,
   refinementHistory,
+  refinementVersions,
+  selectedVersionIndex,
+  originalImage,
+  onSelectVersion,
   isRefining,
   onRefineImage,
   onResetRefinement
@@ -85,7 +93,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
     onVariationCountChange(Number(e.target.value));
   }, [onVariationCountChange]);
 
-  const outputContainerClasses = `relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-2 sm:p-4 min-h-[50vh] lg:min-h-0 lg:aspect-[4/5] flex flex-col ${
+  const outputContainerClasses = `relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-2 sm:p-4 min-h-[50vh] flex flex-col ${
     lookbook ? '' : 'items-center justify-center'
   }`;
 
@@ -143,33 +151,38 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
       <div className={outputContainerClasses}>
         <div className="flex flex-col h-full gap-4">
           {/* Tabs */}
-          <div className="flex-shrink-0 flex justify-center border-b border-zinc-700">
-            {outputTabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                className={`px-4 py-2 text-sm font-semibold transition-colors ${
-                  activeTab === tab.id
-                    ? 'text-amber-400 border-b-2 border-amber-400'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex-shrink-0 flex justify-center border-b border-zinc-800 pb-2">
+            <div className="flex p-1 bg-zinc-900/80 rounded-xl border border-zinc-800">
+              {outputTabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    activeTab === tab.id
+                      ? 'bg-zinc-800 text-white shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Tab Content */}
           <div className={`flex-grow relative ${activeTab === 'main' ? 'overflow-visible' : 'overflow-y-auto'}`}>
             {/* Main Tab */}
             {activeTab === 'main' && (
-              <div className="animate-fade-in">
-                <HoverableImage
-                  image={lookbook.main}
-                  altText={t('lookbook.tabGeneratedImage')}
-                  onUpscale={() => onUpscale(lookbook.main, 'main')}
-                  isUpscaling={upscalingStates['main']}
-                />
+              <div className="animate-fade-in flex flex-col gap-4">
+                <div className="relative w-full aspect-[4/5] max-h-[70vh] mx-auto">
+                  <HoverableImage
+                    image={lookbook.main}
+                    altText={t('lookbook.tabGeneratedImage')}
+                    onUpscale={() => onUpscale(lookbook.main, 'main')}
+                    isUpscaling={upscalingStates['main']}
+                    containerClassName="w-full h-full rounded-xl overflow-hidden shadow-2xl border border-zinc-800"
+                  />
+                </div>
                 <RefinementInput
                   onRefine={onRefineImage}
                   onReset={onResetRefinement}
@@ -177,6 +190,62 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                   isRefining={isRefining}
                   disabled={!lookbook?.main}
                 />
+                
+                {/* Version History Picker */}
+                {refinementVersions.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs text-zinc-400 font-medium">{t('generatedImage.versionHistory')}</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                      {/* Original version */}
+                      <button
+                        onClick={() => onSelectVersion(-1)}
+                        className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                          selectedVersionIndex === -1 
+                            ? 'border-amber-500 ring-2 ring-amber-500/30' 
+                            : 'border-zinc-700 hover:border-zinc-500'
+                        }`}
+                        title={t('generatedImage.originalVersion')}
+                      >
+                        {originalImage && (
+                          <img
+                            src={`data:${originalImage.mimeType};base64,${originalImage.base64}`}
+                            alt="Original"
+                            className="w-full h-full object-cover opacity-50"
+                          />
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                          <span className="text-[10px] text-white font-medium">Original</span>
+                        </div>
+                      </button>
+                      
+                      {/* Refined versions */}
+                      {refinementVersions.map((version, index) => (
+                        <button
+                          key={version.timestamp}
+                          onClick={() => onSelectVersion(index)}
+                          className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all group ${
+                            selectedVersionIndex === index 
+                              ? 'border-amber-500 ring-2 ring-amber-500/30' 
+                              : 'border-zinc-700 hover:border-zinc-500'
+                          }`}
+                          title={version.prompt}
+                        >
+                          <img
+                            src={`data:${version.image.mimeType};base64,${version.image.base64}`}
+                            alt={`Version ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1">
+                            <span className="text-[10px] text-white font-medium">v{index + 1}</span>
+                          </div>
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-1">
+                            <span className="text-[8px] text-white text-center line-clamp-3">{version.prompt}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

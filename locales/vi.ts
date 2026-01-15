@@ -45,6 +45,8 @@ export const vi: Translation = {
     refiningStatus: 'Đang tinh chỉnh ảnh...',
     refineHistory: 'Lịch sử',
     refineReset: 'Đặt lại về Ảnh gốc',
+    versionHistory: 'Lịch sử phiên bản',
+    originalVersion: 'Ảnh gốc trước khi tinh chỉnh',
   },
   imageActions: {
     regenerate: 'Tạo lại',
