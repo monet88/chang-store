@@ -42,6 +42,9 @@ export const vi: Translation = {
     redoAria: 'Làm lại tinh chỉnh',
     refinePlaceholder: 'ví dụ: "Thay nền thành bãi biển"',
     refineButton: 'Tinh chỉnh',
+    refiningStatus: 'Đang tinh chỉnh ảnh...',
+    refineHistory: 'Lịch sử',
+    refineReset: 'Đặt lại về Ảnh gốc',
   },
   imageActions: {
     regenerate: 'Tạo lại',
@@ -68,6 +71,9 @@ export const vi: Translation = {
     selectMultipleImagesMax: 'Chọn nhiều ảnh ({{count}}/{{max}})',
     imagesSelected: 'Đã chọn {{count}} ảnh',
     imagesCount: '{{count}}/{{max}} ảnh',
+    justNow: 'vừa xong',
+    minutesAgo: '{{count}} phút trước',
+    hoursAgo: '{{count}} giờ trước',
   },
   cameraView: {
     label: 'Góc máy & Khung hình',
@@ -142,6 +148,7 @@ export const vi: Translation = {
   lookbook: {
     descriptionError: 'Vui lòng tải lên ảnh quần áo trước để tạo mô tả.',
     inputError: 'Vui lòng tải lên ít nhất một ảnh quần áo.',
+    refineError: 'Không thể chỉnh sửa khi chưa có ảnh',
     generatingStatus: 'Đang tạo ảnh lookbook...',
     generatingStatusHelp: 'Việc này có thể mất một phút. Kết quả chất lượng cao rất đáng để chờ đợi!',
     title: 'Lookbook AI',
@@ -876,6 +883,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     lookbookNegativePrompt: 'Nói cho AI biết những gì cần tránh. Ví dụ: "không có nếp nhăn, không có logo, ánh sáng phi thực tế".',
     lookbookStyle: 'Chọn phong cách hình ảnh cho ảnh sản phẩm cuối cùng.',
     lookbookGenerate: 'Bắt đầu tạo ảnh lookbook chính dựa trên đầu vào của bạn.',
+    lookbookRefinement: 'Mô tả các thay đổi để tinh chỉnh ảnh. AI sẽ nhớ các chỉnh sửa trước đó.',
     lookbookVariations: 'Tạo một vài ảnh thay thế của ảnh chính với các biến thể nhỏ về góc độ hoặc ánh sáng.',
     lookbookCloseups: 'Tạo các ảnh chụp cận cảnh chi tiết của các khu vực quan trọng như cổ áo, tay áo và họa tiết vải.',
     backgroundSubject: 'Tải lên ảnh chính chứa người hoặc vật bạn muốn giữ lại.',

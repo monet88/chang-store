@@ -2,7 +2,7 @@ import React, { useState, useRef, KeyboardEvent, ChangeEvent } from 'react';
 import { RefinementHistoryItem } from '../../services/imageEditingService';
 import Spinner from '../Spinner';
 import Tooltip from '../Tooltip';
-import { ChevronDownIcon, ChevronUpIcon, HistoryIcon, RefreshIcon } from '../Icons';
+import { ChevronDownIcon, ChevronUpIcon, HistoryIcon, RefreshIcon, MagicWandIcon } from '../Icons';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface RefinementInputProps {
@@ -71,57 +71,64 @@ export const RefinementInput: React.FC<RefinementInputProps> = ({
   };
 
   return (
-    <div className="w-full space-y-3">
+    <div className="w-full space-y-3 mt-4">
       {/* Input Area */}
       <div className="flex flex-col gap-2">
         <div className="flex items-start gap-2">
-          <textarea
-            ref={textareaRef}
-            value={prompt}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder={t('generatedImage.refinePlaceholder')}
-            disabled={disabled || isRefining}
-            rows={2}
-            className="flex-1 px-3 py-2 bg-zinc-900/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
-          />
+          <div className="relative flex-1">
+            <textarea
+              ref={textareaRef}
+              value={prompt}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              placeholder={t('generatedImage.refinePlaceholder')}
+              disabled={disabled || isRefining}
+              rows={1}
+              className="w-full pl-10 pr-4 py-3 bg-zinc-900/80 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed resize-none transition-all shadow-sm min-h-[48px]"
+            />
+            <div className="absolute left-3 top-3.5 text-zinc-500">
+              <MagicWandIcon className="w-5 h-5" />
+            </div>
+          </div>
 
-          <Tooltip content="Iteratively refine the generated image with natural language prompts" position="bottom">
+          <Tooltip content={t('tooltips.lookbookRefinement')} position="bottom">
             <button
               onClick={handleSubmit}
               disabled={disabled || isRefining || !prompt.trim()}
-              className="px-4 py-2 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 disabled:bg-zinc-600 disabled:cursor-not-allowed transition-colors min-w-[100px] h-[72px] flex items-center justify-center"
+              className="px-6 py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-500 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg hover:shadow-amber-900/20 min-w-[100px] h-[48px] flex items-center justify-center"
             >
-              {isRefining ? <Spinner /> : t('generatedImage.refineButton')}
+              {isRefining ? <Spinner className="h-5 w-5 border-white" /> : t('generatedImage.refineButton')}
             </button>
           </Tooltip>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+             {history.length > 0 && (
+              <button
+                onClick={toggleHistory}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-zinc-800/50 text-zinc-400 rounded-lg hover:bg-zinc-800 hover:text-zinc-200 transition-colors border border-transparent hover:border-zinc-700"
+              >
+                <HistoryIcon className="w-3.5 h-3.5" />
+                {t('generatedImage.refineHistory')} ({history.length})
+                {isHistoryExpanded ? (
+                  <ChevronUpIcon className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDownIcon className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
+          </div>
+          
           {history.length > 0 && (
             <button
               onClick={handleReset}
               disabled={disabled || isRefining}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-red-400 transition-colors disabled:opacity-50"
             >
-              <RefreshIcon className="w-4 h-4" />
-              Reset
-            </button>
-          )}
-
-          {history.length > 0 && (
-            <button
-              onClick={toggleHistory}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 hover:text-white transition-colors"
-            >
-              <HistoryIcon className="w-4 h-4" />
-              History ({history.length})
-              {isHistoryExpanded ? (
-                <ChevronUpIcon className="w-4 h-4" />
-              ) : (
-                <ChevronDownIcon className="w-4 h-4" />
-              )}
+              <RefreshIcon className="w-3.5 h-3.5" />
+              {t('generatedImage.refineReset')}
             </button>
           )}
         </div>
@@ -129,17 +136,16 @@ export const RefinementInput: React.FC<RefinementInputProps> = ({
 
       {/* Refinement History */}
       {history.length > 0 && isHistoryExpanded && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 space-y-2 max-h-[200px] overflow-y-auto animate-fade-in">
-          <h4 className="text-sm font-semibold text-zinc-400 mb-2">Refinement History</h4>
+        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-1 space-y-1 max-h-[200px] overflow-y-auto animate-fade-in custom-scrollbar">
           {history.map((item, index) => (
             <div
               key={index}
-              className="flex items-start justify-between gap-3 p-2 bg-zinc-800/50 rounded border border-zinc-700/50"
+              className="flex items-start justify-between gap-3 p-3 hover:bg-zinc-800/50 rounded-lg transition-colors group"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-zinc-200 break-words">{item.prompt}</p>
+                <p className="text-sm text-zinc-300 break-words group-hover:text-white transition-colors">{item.prompt}</p>
               </div>
-              <span className="flex-shrink-0 text-xs text-zinc-500">
+              <span className="flex-shrink-0 text-xs text-zinc-600 group-hover:text-zinc-500">
                 {formatTimeAgo(item.timestamp)}
               </span>
             </div>
