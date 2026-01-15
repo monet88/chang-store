@@ -11,6 +11,7 @@
  * - Critical cleanup on unmount (prevents memory leaks)
  */
 
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useRef, RefObject } from 'react';
 
 /**
@@ -55,7 +56,7 @@ export interface UseCanvasDrawingProps {
 export interface UseCanvasDrawingReturn {
   drawOnscreenCanvas: (source: HTMLImageElement) => void;
   getCanvasAndImageMetrics: () => CanvasMetrics | null;
-  getPointOnCanvas: (e: React.MouseEvent<HTMLCanvasElement>) => Point | null;
+  getPointOnCanvas: (e: ReactMouseEvent<HTMLCanvasElement>) => Point | null;
 }
 
 /**
@@ -161,7 +162,7 @@ export function useCanvasDrawing({
    * @param e - Mouse event
    * @returns Point on canvas or null if canvas not available
    */
-  const getPointOnCanvas = useCallback((e: React.MouseEvent<HTMLCanvasElement>): Point | null => {
+  const getPointOnCanvas = useCallback((e: ReactMouseEvent<HTMLCanvasElement>): Point | null => {
     const canvas = e.currentTarget;
     const rect = canvas.getBoundingClientRect();
     if (!rect) return null;

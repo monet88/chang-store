@@ -95,10 +95,10 @@ const AIVIDEOAUTO_CONFIG = {
   aivideoautoAccessToken: 'test-token-123',
   onStatusUpdate: vi.fn(),
   aivideoautoVideoModels: [
-    { id_base: 'video-model-1', model: 'video-model', name: 'Video Model 1' },
+    { id_base: 'video-model-1', model: 'video-model', name: 'Video Model 1', server: 'test-server', price: 0, startText: true, startImage: true },
   ],
   aivideoautoImageModels: [
-    { id_base: 'image-model-1', model: 'image-model', name: 'Image Model 1' },
+    { id_base: 'image-model-1', model: 'image-model', name: 'Image Model 1', server: 'test-server', price: 0, startText: true, startImage: true },
   ],
 };
 
