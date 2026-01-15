@@ -11,7 +11,8 @@ import { editImage, upscaleImage, createImageChatSession, ImageChatSession, Refi
 import { generateClothingDescription } from '../services/gemini/text';
 
 // This would contain the large prompt strings
-import { BOXED_PROMPT, FOLDED_PROMPT, MANNEQUIN_BACKGROUND_PROMPTS, LookbookStyle, GarmentType, FoldedPresentationType, MannequinBackgroundStyleKey } from '../components/LookbookGenerator.prompts';
+import { LookbookStyle, GarmentType, FoldedPresentationType, MannequinBackgroundStyleKey } from '../components/LookbookGenerator.prompts';
+import { buildLookbookPrompt, buildVariationPrompt, buildCloseUpPrompts, buildCloseUpNegativePrompt, LookbookFormState as PromptFormState } from '../utils/lookbookPromptBuilder';
 
 export interface LookbookSet {
   main: ImageFile;
@@ -199,30 +200,16 @@ export const useLookbookGenerator = () => {
         setGeneratedLookbook(null);
     
         const imagesForApi: ImageFile[] = validClothingImages.map(item => item.image as ImageFile);
-        let fabricPromptSection = '';
     
         if (fabricTextureImage) {
             imagesForApi.push(fabricTextureImage);
-            fabricPromptSection += `...`; // Logic from component
         }
     
-        // ... (rest of the handleGenerate logic from the component)
-        // This is a very large function, for brevity, assume it is moved here.
-        // I will copy the full logic
-        let prompt = '';
-        if (imagesForApi.length > (fabricTextureImage ? 2 : 1)) {
-            prompt += `
-              **Image Roles**: Multiple images of the same clothing item are provided, showing different angles (e.g., front, side, back).
-              **Core Synthesis Task**: Your primary goal is to mentally reconstruct a complete, 3D understanding of the single garment from these multiple 2D views. Synthesize all details—shape, seams, texture, pattern flow, and features—into one cohesive object. The final output should feature this synthesized garment.
-            `;
-        } else {
-            prompt += `
-              **Image Role**: A single image of a clothing item is provided.
-            `;
-        }
-    
-        let stylePrompt = '';
-        // ... (The large switch statement for stylePrompt generation)
+        const prompt = buildLookbookPrompt(
+            formState as PromptFormState,
+            imagesForApi,
+            fabricTextureImage
+        );
         
         try {
           const results = await editImage({
@@ -232,7 +219,14 @@ export const useLookbookGenerator = () => {
             numberOfImages: 1
           }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
           if (results.length > 0) {
-            setGeneratedLookbook({ main: results[0], variations: [], closeups: [] });
+            const generatedImage = results[0];
+            
+            // Store original for version selection
+            originalImageRef.current = generatedImage;
+            setRefinementVersions([]);
+            setSelectedVersionIndex(-1);
+            
+            setGeneratedLookbook({ main: generatedImage, variations: [], closeups: [] });
             setActiveOutputTab('main');
 
             // Create new chat session for image refinement
@@ -284,12 +278,11 @@ export const useLookbookGenerator = () => {
             setError(t('lookbook.variationError'));
             return;
         }
-        // ... (rest of the logic from the component)
         setIsGeneratingVariations(true);
         setError(null);
     
         const baseImage = generatedLookbook.main;
-        let prompt = `...`; // variation prompt logic
+        const prompt = buildVariationPrompt(formState.lookbookStyle, variationCount);
         
         try {
             const newVariations = await editImage({ 
@@ -305,32 +298,44 @@ export const useLookbookGenerator = () => {
             setIsGeneratingVariations(false);
             setLoadingMessage('');
         }
-    }, [generatedLookbook, formState.negativePrompt, variationCount, imageEditModel, buildImageServiceConfig, t]);
+    }, [generatedLookbook, formState.negativePrompt, formState.lookbookStyle, variationCount, imageEditModel, buildImageServiceConfig, t]);
 
     const handleGenerateCloseUp = useCallback(async () => {
         if (!generatedLookbook) {
             setError(t('lookbook.closeUpError'));
             return;
         }
-        // ... (rest of the logic from the component)
         setIsGeneratingCloseUp(true);
         setError(null);
         setGeneratedLookbook(prev => prev ? { ...prev, closeups: [] } : null);
     
         const baseImage = generatedLookbook.main;
         
-        const closeUpPrompts = [/* ... */];
-        const combinedNegativePrompt = [formState.negativePrompt.trim(), /* ... */].filter(Boolean).join(', ');
+        const closeUpPrompts = buildCloseUpPrompts();
+        const combinedNegativePrompt = buildCloseUpNegativePrompt(formState.negativePrompt);
     
         try {
-            // ... loop to generate closeups
+            const closeups: ImageFile[] = [];
+            for (const closeUpPrompt of closeUpPrompts) {
+                setLoadingMessage(t('lookbook.generatingCloseUp', { current: closeups.length + 1, total: closeUpPrompts.length }));
+                const results = await editImage({
+                    images: [baseImage],
+                    prompt: closeUpPrompt,
+                    negativePrompt: combinedNegativePrompt,
+                    numberOfImages: 1
+                }, imageEditModel, buildImageServiceConfig(() => {}));
+                if (results.length > 0) {
+                    closeups.push(results[0]);
+                    setGeneratedLookbook(prev => prev ? { ...prev, closeups: [...closeups] } : null);
+                }
+            }
         } catch (err) {
           setError(getErrorMessage(err, t));
         } finally {
             setIsGeneratingCloseUp(false);
             setLoadingMessage('');
         }
-    }, [generatedLookbook, formState.negativePrompt, t]);
+    }, [generatedLookbook, formState.negativePrompt, imageEditModel, buildImageServiceConfig, t]);
 
     const handleRefineImage = useCallback(async (prompt: string) => {
         if (!chatSession || !generatedLookbook) {
@@ -346,6 +351,14 @@ export const useLookbookGenerator = () => {
                 prompt,
                 generatedLookbook.main
             );
+
+            // Add to refinement versions history
+            setRefinementVersions(prev => [...prev, {
+                image: refinedImage,
+                prompt,
+                timestamp: Date.now()
+            }]);
+            setSelectedVersionIndex(prev => prev + 1);
 
             // Update lookbook with refined image
             setGeneratedLookbook(prev => prev ? {
