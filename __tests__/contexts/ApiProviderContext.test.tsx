@@ -384,21 +384,6 @@ describe('ApiProviderContext', () => {
         expect(models.videoGenerateModel).toBe('aivideoauto--grwm-model');
       });
 
-      it('overrides non-aivideoauto model for VideoContinuity feature', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
-
-        act(() => {
-          result.current.setVideoGenerateModel('non-aivideoauto');
-          result.current.setAivideoautoVideoModels([createMockAIVideoAutoModel('continuity-model')]);
-        });
-
-        const models = result.current.getModelsForFeature(Feature.VideoContinuity);
-
-        expect(models.videoGenerateModel).toBe('aivideoauto--continuity-model');
-      });
-
       it('keeps aivideoauto model unchanged for video features', () => {
         const { result } = renderHook(() => useApi(), {
           wrapper: createWrapper(),

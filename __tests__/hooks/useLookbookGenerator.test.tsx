@@ -32,10 +32,11 @@ import {
 // Mock Setup - Must be before imports
 // ============================================================================
 
-/** Mock editImage and upscaleImage from imageEditingService */
+/** Mock editImage, upscaleImage, and createImageChatSession from imageEditingService */
 vi.mock('../../services/imageEditingService', () => ({
   editImage: vi.fn(),
   upscaleImage: vi.fn(),
+  createImageChatSession: vi.fn(),
 }));
 
 /** Mock generateClothingDescription from gemini/text */
