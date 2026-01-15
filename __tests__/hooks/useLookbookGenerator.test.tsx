@@ -21,7 +21,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { Feature } from '../../types';
+import { Feature, ImageFile } from '../../types';
 import {
   mockUseLanguage,
   mockUseImageGallery,
@@ -456,7 +456,7 @@ describe('useLookbookGenerator', () => {
      * Test: Shows loading state during generation
      */
     it('should show loading state during generation', async () => {
-      let resolvePromise: (value: unknown[]) => void;
+      let resolvePromise: (value: ImageFile[]) => void;
       vi.mocked(editImage).mockImplementation(
         () => new Promise((resolve) => { resolvePromise = resolve; })
       );

@@ -32,7 +32,7 @@ const MENTION_REGEX = /@img(\d+)/g;
 const AIEditor: React.FC = () => {
   const { t } = useLanguage();
   const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
-  const { imageEditModel } = getModelsForFeature(Feature.Inpainting); // Will be updated to Feature.AIEditor in phase 4
+  const { imageEditModel } = getModelsForFeature(Feature.AIEditor);
 
   // State
   const [images, setImages] = useState<ImageFile[]>([]);

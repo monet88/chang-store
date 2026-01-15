@@ -8,10 +8,7 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
-        // Enable file system caching for faster subsequent starts
-        fs: {
-          cachedChecks: true,
-        },
+
         // Exclude unnecessary directories from file watching
         watch: {
           ignored: [
