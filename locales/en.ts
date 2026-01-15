@@ -44,6 +44,8 @@ export const en = {
     refiningStatus: 'Refining image...',
     refineHistory: 'History',
     refineReset: 'Reset to Original',
+    versionHistory: 'Version History',
+    originalVersion: 'Original image before refinements',
   },
   imageActions: {
     regenerate: 'Regenerate',

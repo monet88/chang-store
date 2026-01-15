@@ -6,8 +6,8 @@
  * This is a thin orchestrator that composes child components.
  */
 
-import React, { useState, useCallback } from 'react';
-import { editImage, upscaleImage, RefinementHistoryItem } from '../services/imageEditingService';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { editImage, upscaleImage, RefinementHistoryItem, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { generateClothingDescription } from '../services/gemini/text';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -16,7 +16,7 @@ import { getErrorMessage } from '../utils/imageUtils';
 import { MannequinBackgroundStyleKey } from './LookbookGenerator.prompts';
 import { LookbookForm, ClothingItem } from './LookbookForm';
 import { LookbookOutput, LookbookSet } from './LookbookOutput';
-import { useLookbookGenerator, LookbookFormState } from '../hooks/useLookbookGenerator';
+import { LookbookFormState } from '../hooks/useLookbookGenerator';
 import {
   buildLookbookPrompt,
   buildVariationPrompt,
@@ -58,16 +58,106 @@ export const LookbookGenerator: React.FC = () => {
 
   // Hooks
   const { t } = useLanguage();
-
-  // Refinement handlers from hook
-  const {
-    refinementHistory,
-    isRefining,
-    handleRefineImage,
-    handleResetRefinement,
-  } = useLookbookGenerator();
   const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Lookbook);
+
+  // Refinement state - managed locally instead of from hook
+  const chatSessionRef = useRef<ImageChatSession | null>(null);
+  const originalImageRef = useRef<ImageFile | null>(null);
+  const [refinementHistory, setRefinementHistory] = useState<RefinementHistoryItem[]>([]);
+  const [refinementVersions, setRefinementVersions] = useState<Array<{ image: ImageFile; prompt: string; timestamp: number }>>([]);
+  const [selectedVersionIndex, setSelectedVersionIndex] = useState<number>(-1); // -1 = current/latest
+  const [isRefining, setIsRefining] = useState(false);
+
+  // Initialize chat session when lookbook is generated
+  useEffect(() => {
+    if (generatedLookbook && !chatSessionRef.current) {
+      chatSessionRef.current = createImageChatSession(imageEditModel);
+      originalImageRef.current = generatedLookbook.main;
+      setRefinementHistory([]);
+      setRefinementVersions([]);
+      setSelectedVersionIndex(-1);
+    }
+  }, [generatedLookbook, imageEditModel]);
+
+  const handleRefineImage = useCallback(async (prompt: string) => {
+    if (!chatSessionRef.current || !generatedLookbook) {
+      setError(t('lookbook.refineError'));
+      return;
+    }
+
+    setIsRefining(true);
+    setError(null);
+
+    try {
+      const refinedImage = await chatSessionRef.current.sendRefinement(
+        prompt,
+        generatedLookbook.main
+      );
+
+      // Save current version before updating
+      setRefinementVersions(prev => [...prev, {
+        image: refinedImage,
+        prompt,
+        timestamp: Date.now()
+      }]);
+
+      setGeneratedLookbook(prev => prev ? {
+        ...prev,
+        main: refinedImage,
+        variations: [],
+        closeups: []
+      } : null);
+
+      setRefinementHistory(chatSessionRef.current.getHistory());
+      setSelectedVersionIndex(-1); // Reset to latest
+    } catch (err) {
+      setError(getErrorMessage(err, t));
+    } finally {
+      setIsRefining(false);
+    }
+  }, [generatedLookbook, t]);
+
+  const handleSelectVersion = useCallback((index: number) => {
+    if (index === -1 && originalImageRef.current) {
+      // Select original
+      setGeneratedLookbook(prev => prev ? {
+        ...prev,
+        main: originalImageRef.current!,
+        variations: [],
+        closeups: []
+      } : null);
+    } else if (index >= 0 && index < refinementVersions.length) {
+      // Select a refined version
+      setGeneratedLookbook(prev => prev ? {
+        ...prev,
+        main: refinementVersions[index].image,
+        variations: [],
+        closeups: []
+      } : null);
+    }
+    setSelectedVersionIndex(index);
+  }, [refinementVersions]);
+
+  const handleResetRefinement = useCallback(() => {
+    if (chatSessionRef.current) {
+      chatSessionRef.current.reset();
+      chatSessionRef.current = null;
+      setRefinementHistory([]);
+      setRefinementVersions([]);
+      setSelectedVersionIndex(-1);
+      
+      // Restore original image
+      if (originalImageRef.current) {
+        setGeneratedLookbook(prev => prev ? {
+          ...prev,
+          main: originalImageRef.current!,
+          variations: [],
+          closeups: []
+        } : null);
+      }
+    }
+  }, []);
 
   // Helper functions - memoized to prevent recreation on every render
   const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
@@ -315,6 +405,10 @@ export const LookbookGenerator: React.FC = () => {
           variationCount={variationCount}
           onVariationCountChange={setVariationCount}
           refinementHistory={refinementHistory}
+          refinementVersions={refinementVersions}
+          selectedVersionIndex={selectedVersionIndex}
+          originalImage={originalImageRef.current}
+          onSelectVersion={handleSelectVersion}
           isRefining={isRefining}
           onRefineImage={handleRefineImage}
           onResetRefinement={handleResetRefinement}
