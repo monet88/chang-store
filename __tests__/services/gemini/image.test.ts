@@ -601,15 +601,14 @@ describe('services/gemini/image.ts', () => {
       });
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-flash-image',
+          model: 'gemini-3-pro-image-preview',
         })
       );
-      // Verify prompt mentions 2K upscaling
+      // Verify prompt mentions upscaling
       const callArgs = mockGenerateContent.mock.calls[0][0];
       const textPart = callArgs.contents.parts.find(
         (p: { text?: string }) => p.text
       );
-      expect(textPart.text).toContain('2K');
       expect(textPart.text).toContain('Upscale');
     });
 
