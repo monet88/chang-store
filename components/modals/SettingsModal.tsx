@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApi } from '../../contexts/ApiProviderContext';
 import { getLocalStorageUsage, backupData, restoreData, clearAppData } from '../../utils/storage';
 import { useImageGallery } from '../../contexts/ImageGalleryContext';
-import { listModels } from '../../services/aivideoautoService';
 import { generateTextLocal } from '../../services/localProviderService';
+import { isDebugEnabled, setDebugEnabled } from '../../services/debugService';
 import Spinner from '../Spinner';
 import { CloseIcon, CheckCircleIcon } from '../Icons';
-import { ImageEditModel, ImageGenerateModel, VideoGenerateModel, TextGenerateModel } from '../../types';
+import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../../types';
 import { GoogleDriveSettings } from '../GoogleDriveSettings';
 import { LOCAL_TEXT_MODELS, LOCAL_TEXT_MODELS_WITH_PREFIX, LOCAL_IMAGE_MODELS_WITH_PREFIX } from '../../utils/localModels';
 
@@ -19,7 +19,6 @@ const ServiceModelSelector: React.FC<{
 }> = ({ label, services, modelsByService, selectedModel, onModelChange }) => {
 
     const parseModelId = (modelId: string): { service: string, model: string } => {
-        if (modelId.startsWith('aivideoauto--')) return { service: 'aivideoauto', model: modelId };
         if (modelId.startsWith('local--')) return { service: 'local', model: modelId };
         return { service: 'google', model: modelId };
     };
@@ -83,35 +82,33 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         googleApiKey, setGoogleApiKey,
         localApiBaseUrl, setLocalApiBaseUrl,
         localApiKey, setLocalApiKey,
-        aivideoautoAccessToken, setAivideoautoAccessToken,
-        aivideoautoImageModels, setAivideoautoImageModels,
-        aivideoautoVideoModels, setAivideoautoVideoModels,
         imageEditModel, setImageEditModel,
         imageGenerateModel, setImageGenerateModel,
-        videoGenerateModel, setVideoGenerateModel,
         textGenerateModel, setTextGenerateModel,
     } = useApi();
     const { images } = useImageGallery();
-    
+
     // Local state for all settings
     const [localGoogleKey, setLocalGoogleKey] = useState(googleApiKey || '');
     const [localProviderBaseUrl, setLocalProviderBaseUrl] = useState(localApiBaseUrl || '');
     const [localProviderApiKey, setLocalProviderApiKey] = useState(localApiKey || '');
-    const [localAivideoautoKey, setLocalAivideoautoKey] = useState(aivideoautoAccessToken || '');
-    
+
     const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
     const [localImageGenerateModel, setLocalImageGenerateModel] = useState(imageGenerateModel);
-    const [localVideoGenerateModel, setLocalVideoGenerateModel] = useState(videoGenerateModel);
     const [localTextGenerateModel, setLocalTextGenerateModel] = useState(textGenerateModel);
-    
-    const [isTestingAivideoauto, setIsTestingAivideoauto] = useState(false);
-    const [aivideoautoError, setAivideoautoError] = useState<string | null>(null);
-    const [aivideoautoSaveSuccess, setAivideoautoSaveSuccess] = useState(false);
 
     const [isTestingLocalProvider, setIsTestingLocalProvider] = useState(false);
     const [localProviderError, setLocalProviderError] = useState<string | null>(null);
     const [localProviderSaveSuccess, setLocalProviderSaveSuccess] = useState(false);
-    
+
+    const [debugMode, setDebugMode] = useState(() => isDebugEnabled());
+
+    const handleDebugToggle = () => {
+        const newValue = !debugMode;
+        setDebugMode(newValue);
+        setDebugEnabled(newValue);
+    };
+
     const [storageUsage, setStorageUsage] = useState(0);
     const [storageQuota, setStorageQuota] = useState(200 * 1024 * 1024);
     
@@ -131,39 +128,14 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         setLocalGoogleKey(googleApiKey || '');
         setLocalProviderBaseUrl(localApiBaseUrl || '');
         setLocalProviderApiKey(localApiKey || '');
-        setLocalAivideoautoKey(aivideoautoAccessToken || '');
         setLocalImageEditModel(imageEditModel);
         setLocalImageGenerateModel(imageGenerateModel);
-        setLocalVideoGenerateModel(videoGenerateModel);
         setLocalTextGenerateModel(textGenerateModel);
 
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [isOpen, onClose, images, googleApiKey, localApiBaseUrl, localApiKey, aivideoautoAccessToken, imageEditModel, imageGenerateModel, videoGenerateModel, textGenerateModel]);
+    }, [isOpen, onClose, images, googleApiKey, localApiBaseUrl, localApiKey, imageEditModel, imageGenerateModel, textGenerateModel]);
     
     if (!isOpen) return null;
-
-    const handleAivideoautoKeyCheckAndSave = async () => {
-        setIsTestingAivideoauto(true);
-        setAivideoautoError(null);
-        setAivideoautoSaveSuccess(false);
-        try {
-            const [videoModels, imageModels] = await Promise.all([
-                listModels(localAivideoautoKey, 'video'),
-                listModels(localAivideoautoKey, 'image')
-            ]);
-    
-            setAivideoautoAccessToken(localAivideoautoKey);
-            setAivideoautoVideoModels(videoModels);
-            setAivideoautoImageModels(imageModels);
-            setAivideoautoSaveSuccess(true);
-            setTimeout(() => setAivideoautoSaveSuccess(false), 2000);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'An unknown error occurred.';
-            setAivideoautoError(message);
-        } finally {
-            setIsTestingAivideoauto(false);
-        }
-    };
 
     const handleLocalProviderTestAndSave = async () => {
         setIsTestingLocalProvider(true);
@@ -198,11 +170,10 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     
     const handleSave = () => {
         setGoogleApiKey(localGoogleKey);
-        // Local Provider and AIVideoAuto are saved on test
+        // Local Provider is saved on test
 
         setImageEditModel(localImageEditModel);
         setImageGenerateModel(localImageGenerateModel);
-        setVideoGenerateModel(localVideoGenerateModel);
         setTextGenerateModel(localTextGenerateModel);
 
         onClose();
@@ -231,10 +202,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     const IMAGE_EDIT_SERVICES = [
         { id: 'google', name: 'Google' },
         { id: 'local', name: 'Agy Provider' },
-        { id: 'aivideoauto', name: 'AIVideoAuto' },
-    ];
-    const VIDEO_GENERATE_SERVICES = [
-        { id: 'google', name: 'Google' }, { id: 'aivideoauto', name: 'AIVideoAuto' },
     ];
     const TEXT_GENERATE_SERVICES = [
         { id: 'google', name: 'Google' },
@@ -248,7 +215,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                 { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
             ],
             'local': LOCAL_IMAGE_MODELS_WITH_PREFIX,
-            'aivideoauto': aivideoautoImageModels.map(m => ({ id: `aivideoauto--${m.id_base}`, name: m.name })),
         },
         imageGenerate: {
             'google': [
@@ -257,16 +223,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                 { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast' },
             ],
             'local': LOCAL_IMAGE_MODELS_WITH_PREFIX,
-            'aivideoauto': aivideoautoImageModels.map(m => ({ id: `aivideoauto--${m.id_base}`, name: m.name })),
-        },
-        videoGenerate: {
-            'google': [
-                { id: 'veo-3.1-generate-preview', name: 'Veo 3.1' },
-                { id: 'veo-3.1-fast-generate-preview', name: 'Veo 3.1 Fast' },
-                { id: 'veo-3.0-generate-001', name: 'Veo 3' },
-                { id: 'veo-3.0-fast-generate-001', name: 'Veo 3 Fast' },
-            ],
-            'aivideoauto': aivideoautoVideoModels.map(m => ({ id: `aivideoauto--${m.id_base}`, name: m.name })),
         },
         textGenerate: {
             'google': [
@@ -278,13 +234,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
             'local': LOCAL_TEXT_MODELS_WITH_PREFIX,
         },
     };
-
-    console.log('[SettingsModal] MODELS_BY_SERVICE:', {
-        aivideoautoImageModelsCount: aivideoautoImageModels.length,
-        aivideoautoImageModelsMapped: MODELS_BY_SERVICE.imageEdit.aivideoauto,
-        localImageEditModel,
-        localImageGenerateModel,
-    });
 
     const storagePercentage = storageQuota > 0 ? (storageUsage / storageQuota) * 100 : 0;
     const usageMB = (storageUsage / 1024 / 1024).toFixed(2);
@@ -307,7 +256,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                            <ServiceModelSelector label="Text Generation (Analysis/Prompts)" services={TEXT_GENERATE_SERVICES} modelsByService={MODELS_BY_SERVICE.textGenerate} selectedModel={localTextGenerateModel} onModelChange={setLocalTextGenerateModel} />
                            <ServiceModelSelector label="Image Editing / Variation" services={IMAGE_EDIT_SERVICES} modelsByService={MODELS_BY_SERVICE.imageEdit} selectedModel={localImageEditModel} onModelChange={setLocalImageEditModel} />
                            <ServiceModelSelector label="Image Generation (Text-to-Image)" services={IMAGE_EDIT_SERVICES} modelsByService={MODELS_BY_SERVICE.imageGenerate} selectedModel={localImageGenerateModel} onModelChange={setLocalImageGenerateModel} />
-                           <ServiceModelSelector label="Video Generation" services={VIDEO_GENERATE_SERVICES} modelsByService={MODELS_BY_SERVICE.videoGenerate} selectedModel={localVideoGenerateModel} onModelChange={setLocalVideoGenerateModel} />
                         </div>
                     </section>
                 
@@ -364,19 +312,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                                 </div>
                                 {localProviderError && <p className="text-red-400 text-xs mt-2">{`Error: ${localProviderError}`}</p>}
                             </div>
-                             <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                                <h4 className="font-semibold text-slate-200 mb-2">AIVideoAuto API</h4>
-                                <p className="text-xs text-slate-400 mb-3">
-                                    Get your access token from: <a href="https://aivideoauto.com/pages/account/apikeys" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">aivideoauto.com</a>
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    <input type="password" value={localAivideoautoKey} onChange={e => setLocalAivideoautoKey(e.target.value)} placeholder="Enter your AIVideoAuto Access Token" className="flex-grow bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm" />
-                                    <button onClick={handleAivideoautoKeyCheckAndSave} disabled={isTestingAivideoauto || !localAivideoautoKey.trim()} className="bg-amber-600 text-white font-semibold px-4 py-2 rounded-md text-sm w-40 text-center disabled:bg-slate-600">
-                                        {isTestingAivideoauto ? <Spinner /> : aivideoautoSaveSuccess ? 'Saved!' : 'Check & Save Key'}
-                                    </button>
-                                </div>
-                                {aivideoautoError && <p className="text-red-400 text-xs mt-2">{`Error: ${aivideoautoError}`}</p>}
-                            </div>
                         </div>
                     </section>
 
@@ -399,6 +334,30 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                                 <button onClick={() => restoreInputRef.current?.click()} className="bg-slate-700 text-white font-semibold py-2 rounded-md text-sm">Restore Data</button>
                                 <input type="file" ref={restoreInputRef} onChange={handleRestore} className="hidden" accept=".json" />
                                 <button onClick={handleClear} className="bg-red-600/80 text-white font-semibold py-2 rounded-md text-sm">Clear All Data</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className="text-base md:text-lg font-semibold text-amber-400 mb-4">Developer</h3>
+                        <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="font-semibold text-slate-200">Debug Mode</h4>
+                                    <p className="text-xs text-slate-400 mt-1">Log API calls to browser console (F12)</p>
+                                </div>
+                                <button
+                                    onClick={handleDebugToggle}
+                                    className={`relative w-12 h-6 rounded-full transition-colors ${
+                                        debugMode ? 'bg-amber-500' : 'bg-slate-600'
+                                    }`}
+                                >
+                                    <span
+                                        className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                                            debugMode ? 'translate-x-6' : ''
+                                        }`}
+                                    />
+                                </button>
                             </div>
                         </div>
                     </section>

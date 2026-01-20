@@ -26,9 +26,7 @@ const OutfitAnalysis = lazy(() => import('./components/OutfitAnalysis'));
 const Relight = lazy(() => import('./components/Relight'));
 const Upscale = lazy(() => import('./components/Upscale'));
 const ImageEditor = lazy(() => import('./components/ImageEditor').then(m => ({ default: m.ImageEditor })));
-const VideoGenerator = lazy(() => import('./components/VideoGenerator').then(m => ({ default: m.VideoGenerator })));
 const AIEditor = lazy(() => import('./components/AIEditor'));
-const GRWMVideoGenerator = lazy(() => import('./components/GRWMVideoGenerator').then(m => ({ default: m.GRWMVideoGenerator })));
 const WatermarkRemover = lazy(() => import('./components/WatermarkRemover'));
 
 // --- Lazy-loaded modal components ---
@@ -110,10 +108,6 @@ const AppContent: React.FC = () => {
         return <Relight key="relight" />;
       case Feature.Upscale:
         return <Upscale key="upscale" />;
-      case Feature.Video:
-        return <VideoGenerator key="video" />;
-      case Feature.GRWMVideo:
-        return <GRWMVideoGenerator key="grwm-video" />;
 case Feature.AIEditor:
         return <AIEditor key="ai-editor" />;
       case Feature.WatermarkRemover:

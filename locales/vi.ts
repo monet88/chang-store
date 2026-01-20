@@ -14,10 +14,8 @@ export const vi: Translation = {
     outfitAnalysis: 'Thiết kế lại',
     relight: 'Chỉnh sáng',
     upscale: 'Nâng cấp',
-    videoAI: 'Video AI',
     imageEditor: 'Trình chỉnh sửa ảnh',
     aiEditor: 'AI Editor',
-    grwmVideo: 'Video GRWM',
     watermarkRemover: 'Xóa Watermark',
   },
 
@@ -109,8 +107,6 @@ export const vi: Translation = {
       analysisFailed: 'Phân tích trang phục thất bại: {{errorMessage}}',
       extractionFailed: 'Tách trang phục thất bại: {{errorMessage}}',
       geminiFailed: 'Gọi Gemini API thất bại. Lỗi: {{error}}',
-      aivideoautoFailed: 'Gọi AIVideoAuto API thất bại. Lỗi: {{error}}',
-      aivideoautoAuth: 'Thiếu token AIVideoAuto. Vui lòng thêm trong phần Cài đặt.',
       textToImageNotSupported: 'Nhà cung cấp API đã chọn không hỗ trợ tạo ảnh từ văn bản.',
 
     },

@@ -8,9 +8,7 @@ export enum Feature {
   Relight = 'relight',
   Upscale = 'upscale',
   ImageEditor = 'image-editor',
-  Video = 'video',
   AIEditor = 'ai-editor',
-  GRWMVideo = 'grwm-video',
   WatermarkRemover = 'watermark-remover',
 }
 
@@ -72,33 +70,8 @@ export interface PoseCollection {
     poses: Pose[];
 }
 
-export interface AIVideoAutoModel {
-  id_base: string;
-  name: string;
-  description?: string;
-  server: string;
-  model: string;
-  price: number;
-  startText: boolean;
-  startImage: boolean;
-  startImageAndEnd?: boolean;
-  withReference?: boolean;
-  extendVideo?: boolean;
-  withLipsync?: boolean;
-  withMotion?: boolean;
-  ratios?: Array<{ name: string; type: string }>;
-  resolutions?: Array<{ name: string; type: string }>;
-  durations?: Array<{ name: string; type: string }>;
-  prices?: Array<any>;
-  mode?: Array<{ type: string; name: string; description: string; price: number }>;
-  videoTotalToday?: number;
-  videoMaxToday?: number;
-  [key: string]: any; // Allow additional fields from API
-}
-
 export type ImageEditModel = string;
 export type ImageGenerateModel = string;
-export type VideoGenerateModel = string;
 export type TextGenerateModel = string;
 
 // ============================================

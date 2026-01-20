@@ -1,15 +1,14 @@
 /**
  * Unit Tests for imageEditingService
  *
- * Tests the unified facade that routes image/video operations to either:
+ * Tests the unified facade that routes image operations to either:
  * - gemini/image.ts (Gemini API) for 'gemini-*' models
- * - aivideoautoService.ts (AIVideoAuto API) for 'aivideoauto--*' models
+ * - localProviderService.ts for 'local--*' models
  *
  * Key test scenarios:
  * 1. Model routing logic based on prefix
- * 2. Missing aivideoauto token throws proper error
- * 3. Error propagation from underlying services
- * 4. Correct parameter passing to each backend
+ * 2. Error propagation from underlying services
+ * 3. Correct parameter passing to each backend
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -33,24 +32,6 @@ vi.mock('../../services/gemini/image', () => ({
   },
 }));
 
-/** Mock gemini/text.ts service */
-vi.mock('../../services/gemini/text', () => ({
-  generateText: vi.fn(),
-}));
-
-/** Mock gemini/video.ts service */
-vi.mock('../../services/gemini/video', () => ({
-  generateVideo: vi.fn(),
-}));
-
-/** Mock aivideoautoService.ts */
-vi.mock('../../services/aivideoautoService', () => ({
-  createImage: vi.fn(),
-  uploadImage: vi.fn(),
-  createVideoTask: vi.fn(),
-  pollForVideo: vi.fn(),
-}));
-
 /** Mock localProviderService.ts */
 vi.mock('../../services/localProviderService', () => ({
   editImageLocal: vi.fn(),
@@ -70,14 +51,10 @@ import {
   upscaleImage,
   extractOutfitItem,
   critiqueAndRedesignOutfit,
-  generateVideo,
   recreateImageWithFace,
 } from '../../services/imageEditingService';
 import { getImageDimensions } from '../../utils/imageUtils';
 import * as geminiImageService from '../../services/gemini/image';
-import * as geminiTextService from '../../services/gemini/text';
-import * as geminiVideoService from '../../services/gemini/video';
-import * as aivideoautoService from '../../services/aivideoautoService';
 import * as localProviderService from '../../services/localProviderService';
 
 // ============================================================================
@@ -90,24 +67,9 @@ const TEST_IMAGE: { base64: string; mimeType: string } = {
   mimeType: 'image/png',
 };
 
-/** Default API config with no aivideoauto token */
+/** Default API config */
 const DEFAULT_CONFIG = {
-  aivideoautoAccessToken: null,
   onStatusUpdate: vi.fn(),
-  aivideoautoVideoModels: [],
-  aivideoautoImageModels: [],
-};
-
-/** Config with aivideoauto token and models */
-const AIVIDEOAUTO_CONFIG = {
-  aivideoautoAccessToken: 'test-token-123',
-  onStatusUpdate: vi.fn(),
-  aivideoautoVideoModels: [
-    { id_base: 'video-model-1', model: 'video-model', name: 'Video Model 1', server: 'test-server', price: 0, startText: true, startImage: true },
-  ],
-  aivideoautoImageModels: [
-    { id_base: 'image-model-1', model: 'image-model', name: 'Image Model 1', server: 'test-server', price: 0, startText: true, startImage: true },
-  ],
 };
 
 /** Config with local provider details */
@@ -153,7 +115,6 @@ describe('editImage', () => {
         ...params,
         model: 'gemini-2.5-flash-image'
       });
-      expect(aivideoautoService.createImage).not.toHaveBeenCalled();
       expect(result).toEqual(mockResult);
     });
 
@@ -177,122 +138,63 @@ describe('editImage', () => {
   });
 
   // --------------------------------------------------------------------------
-  // AIVideoAuto Routing Tests
+  // Local Provider Routing Tests
   // --------------------------------------------------------------------------
 
-  describe('AIVideoAuto routing (aivideoauto--* models)', () => {
+  describe('Local provider routing (local--* models)', () => {
     /**
-     * Test: Routes to aivideoautoService.createImage for aivideoauto models
+     * Test: Routes to local provider for local-- models
      */
-    it('should route to aivideoautoService.createImage for aivideoauto--* models', async () => {
+    it('should route to local provider for local-- models', async () => {
       // Arrange
-      const mockResult = { base64: 'aivideoauto-result', mimeType: 'image/png' };
-      vi.mocked(aivideoautoService.createImage).mockResolvedValueOnce(mockResult);
+      const mockResult = { base64: 'local-result', mimeType: 'image/png' };
+      vi.mocked(localProviderService.editImageLocal).mockResolvedValueOnce(mockResult);
 
       const params = {
         images: [TEST_IMAGE],
-        prompt: 'Edit with AIVideoAuto',
+        prompt: 'Edit with local',
         numberOfImages: 1,
       };
 
       // Act
-      const result = await editImage(params, 'aivideoauto--image-model-1', AIVIDEOAUTO_CONFIG);
+      const result = await editImage(params, 'local--flux-model', LOCAL_CONFIG);
 
       // Assert
-      expect(aivideoautoService.createImage).toHaveBeenCalledWith(
-        'test-token-123',
+      expect(localProviderService.editImageLocal).toHaveBeenCalledWith(
+        TEST_IMAGE,
+        'Edit with local',
+        'flux-model',
         expect.objectContaining({
-          model: 'image-model',
-          prompt: 'Edit with AIVideoAuto',
-          subjects: [TEST_IMAGE],
-        })
+          baseUrl: 'http://localhost:11434',
+          apiKey: 'local-key',
+        }),
+        '1024x1024'
       );
-      expect(geminiImageService.editImage).not.toHaveBeenCalled();
       expect(result).toEqual([mockResult]);
     });
 
     /**
-     * Test: Throws error.api.aivideoautoAuth when token is missing
+     * Test: Throws error when local API URL is missing
      */
-    it('should throw error.api.aivideoautoAuth when aivideoauto token is null', async () => {
+    it('should throw error when local API URL is missing', async () => {
       // Arrange
       const params = {
         images: [TEST_IMAGE],
-        prompt: 'Edit with AIVideoAuto',
+        prompt: 'Edit with local',
       };
 
       // Act & Assert
-      await expect(editImage(params, 'aivideoauto--model', DEFAULT_CONFIG))
-        .rejects.toThrow('error.api.aivideoautoAuth');
+      await expect(editImage(params, 'local--model', DEFAULT_CONFIG))
+        .rejects.toThrow('error.api.localProviderFailed');
     });
 
     /**
-     * Test: Throws error when model ID is invalid
+     * Test: Generates multiple images for local provider
      */
-    it('should throw error when aivideoauto model ID is invalid', async () => {
-      // Arrange
-      const params = {
-        images: [TEST_IMAGE],
-        prompt: 'Edit with AIVideoAuto',
-      };
-
-      // Act & Assert
-      await expect(editImage(params, 'aivideoauto--invalid-model', AIVIDEOAUTO_CONFIG))
-        .rejects.toThrow('Invalid AIVideoAuto model ID for image editing: invalid-model');
-    });
-
-    /**
-     * Test: Propagates errors from aivideoauto service
-     */
-    it('should propagate errors from aivideoauto service', async () => {
-      // Arrange
-      const aivideoautoError = new Error('Tạo ảnh thất bại.');
-      vi.mocked(aivideoautoService.createImage).mockRejectedValueOnce(aivideoautoError);
-
-      const params = {
-        images: [TEST_IMAGE],
-        prompt: 'Edit with AIVideoAuto',
-      };
-
-      // Act & Assert
-      await expect(editImage(params, 'aivideoauto--image-model-1', AIVIDEOAUTO_CONFIG))
-        .rejects.toThrow('Tạo ảnh thất bại.');
-    });
-
-    /**
-     * Test: Correctly maps aspect ratio to aivideoauto format
-     */
-    it('should map aspect ratio correctly for aivideoauto', async () => {
+    it('should generate multiple images for local provider when numberOfImages > 1', async () => {
       // Arrange
       const mockResult = { base64: 'result', mimeType: 'image/png' };
-      vi.mocked(aivideoautoService.createImage).mockResolvedValueOnce(mockResult);
-
-      const params = {
-        images: [TEST_IMAGE],
-        prompt: 'Edit with aspect ratio',
-        aspectRatio: '16:9' as const,
-        numberOfImages: 1,
-      };
-
-      // Act
-      await editImage(params, 'aivideoauto--image-model-1', AIVIDEOAUTO_CONFIG);
-
-      // Assert
-      expect(aivideoautoService.createImage).toHaveBeenCalledWith(
-        'test-token-123',
-        expect.objectContaining({
-          ratio: '16_9',
-        })
-      );
-    });
-
-    /**
-     * Test: Generates multiple images when numberOfImages > 1
-     */
-    it('should generate multiple images for aivideoauto when numberOfImages > 1', async () => {
-      // Arrange
-      const mockResult = { base64: 'result', mimeType: 'image/png' };
-      vi.mocked(aivideoautoService.createImage).mockResolvedValue(mockResult);
+      vi.mocked(localProviderService.editImageLocal).mockResolvedValue(mockResult);
 
       const params = {
         images: [TEST_IMAGE],
@@ -301,10 +203,10 @@ describe('editImage', () => {
       };
 
       // Act
-      const result = await editImage(params, 'aivideoauto--image-model-1', AIVIDEOAUTO_CONFIG);
+      const result = await editImage(params, 'local--flux-model', LOCAL_CONFIG);
 
       // Assert
-      expect(aivideoautoService.createImage).toHaveBeenCalledTimes(3);
+      expect(localProviderService.editImageLocal).toHaveBeenCalledTimes(3);
       expect(result).toHaveLength(3);
     });
   });
@@ -347,29 +249,31 @@ describe('generateImage', () => {
   });
 
   /**
-   * Test: Routes to aivideoauto for aivideoauto models (via editImage)
+   * Test: Routes to local provider for local models
    */
-  it('should route to aivideoauto via editImage for aivideoauto models', async () => {
+  it('should route to local provider for local-- models', async () => {
     // Arrange
-    const mockResult = { base64: 'generated', mimeType: 'image/png' };
-    vi.mocked(aivideoautoService.createImage).mockResolvedValueOnce(mockResult);
+    const mockResult = { base64: 'generated-local', mimeType: 'image/png' };
+    vi.mocked(localProviderService.generateImageLocal).mockResolvedValueOnce(mockResult);
 
     // Act
     const result = await generateImage(
       'A beautiful sunset',
       '1:1',
       1,
-      'aivideoauto--image-model-1',
-      AIVIDEOAUTO_CONFIG
+      'local--flux-model',
+      LOCAL_CONFIG
     );
 
     // Assert
-    expect(aivideoautoService.createImage).toHaveBeenCalledWith(
-      'test-token-123',
+    expect(localProviderService.generateImageLocal).toHaveBeenCalledWith(
+      'A beautiful sunset',
+      'flux-model',
       expect.objectContaining({
-        prompt: 'A beautiful sunset',
-        ratio: '1_1',
-      })
+        baseUrl: 'http://localhost:11434',
+        apiKey: 'local-key',
+      }),
+      '1024x1024'
     );
     expect(result).toEqual([mockResult]);
   });
@@ -397,28 +301,6 @@ describe('upscaleImage', () => {
 
     // Assert
     expect(geminiImageService.upscaleImage).toHaveBeenCalledWith(TEST_IMAGE, '2K');
-    expect(result).toEqual(mockResult);
-  });
-
-  /**
-   * Test: Routes to aivideoauto editImage for aivideoauto models
-   */
-  it('should route to aivideoauto editImage for aivideoauto models', async () => {
-    // Arrange
-    const mockResult = { base64: 'upscaled', mimeType: 'image/png' };
-    vi.mocked(aivideoautoService.createImage).mockResolvedValueOnce(mockResult);
-
-    // Act
-    const result = await upscaleImage(TEST_IMAGE, 'aivideoauto--image-model-1', AIVIDEOAUTO_CONFIG);
-
-    // Assert
-    expect(aivideoautoService.createImage).toHaveBeenCalledWith(
-      'test-token-123',
-      expect.objectContaining({
-        prompt: expect.stringContaining('Upscale'),
-        subjects: [TEST_IMAGE],
-      })
-    );
     expect(result).toEqual(mockResult);
   });
 
@@ -479,33 +361,6 @@ describe('extractOutfitItem', () => {
       TEST_IMAGE,
       'red t-shirt',
       'gemini-2.5-flash-image'
-    );
-    expect(result).toEqual(mockResult);
-  });
-
-  /**
-   * Test: Routes to aivideoauto for aivideoauto models
-   */
-  it('should route to aivideoauto for aivideoauto models', async () => {
-    // Arrange
-    const mockResult = { base64: 'extracted', mimeType: 'image/png' };
-    vi.mocked(aivideoautoService.createImage).mockResolvedValueOnce(mockResult);
-
-    // Act
-    const result = await extractOutfitItem(
-      TEST_IMAGE,
-      'blue jeans',
-      'aivideoauto--image-model-1',
-      AIVIDEOAUTO_CONFIG
-    );
-
-    // Assert
-    expect(aivideoautoService.createImage).toHaveBeenCalledWith(
-      'test-token-123',
-      expect.objectContaining({
-        prompt: expect.stringContaining('blue jeans'),
-        subjects: [TEST_IMAGE],
-      })
     );
     expect(result).toEqual(mockResult);
   });
@@ -585,32 +440,6 @@ describe('critiqueAndRedesignOutfit', () => {
   });
 
   /**
-   * Test: Routes to aivideoauto with gemini critique for aivideoauto models
-   */
-  it('should use gemini for critique and aivideoauto for image for aivideoauto models', async () => {
-    // Arrange
-    vi.mocked(geminiTextService.generateText).mockResolvedValueOnce('AI generated critique');
-    const mockImage = { base64: 'redesigned', mimeType: 'image/png' };
-    vi.mocked(aivideoautoService.createImage).mockResolvedValueOnce(mockImage);
-
-    // Act
-    const result = await critiqueAndRedesignOutfit(
-      TEST_IMAGE,
-      'luxury',
-      1,
-      'aivideoauto--image-model-1',
-      AIVIDEOAUTO_CONFIG,
-      '1:1'
-    );
-
-    // Assert
-    expect(geminiTextService.generateText).toHaveBeenCalled();
-    expect(aivideoautoService.createImage).toHaveBeenCalled();
-    expect(result.critique).toBe('AI generated critique');
-    expect(result.redesignedImages).toEqual([mockImage]);
-  });
-
-  /**
    * Test: Routes to local provider for local models
    */
   it('should use local provider for local-- models', async () => {
@@ -639,123 +468,6 @@ describe('critiqueAndRedesignOutfit', () => {
 });
 
 // ============================================================================
-// Test Suite: generateVideo
-// ============================================================================
-
-describe('generateVideo', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  /**
-   * Test: Routes to gemini for gemini models
-   */
-  it('should route to gemini/video.generateVideo for gemini models', async () => {
-    // Arrange
-    const mockVideoUrl = 'https://example.com/video.mp4';
-    vi.mocked(geminiVideoService.generateVideo).mockResolvedValueOnce(mockVideoUrl);
-
-    const config = {
-      ...DEFAULT_CONFIG,
-      onStatusUpdate: vi.fn(),
-    };
-
-    // Act
-    const result = await generateVideo(
-      'Create a cinematic video',
-      'veo-2.0-generate-001',
-      config,
-      TEST_IMAGE
-    );
-
-    // Assert
-    expect(geminiVideoService.generateVideo).toHaveBeenCalledWith(
-      TEST_IMAGE,
-      'Create a cinematic video',
-      config.onStatusUpdate,
-      'veo-2.0-generate-001'
-    );
-    expect(result).toBe(mockVideoUrl);
-  });
-
-  /**
-   * Test: Throws error when reference image is missing for gemini
-   */
-  it('should throw error when reference image is missing for gemini', async () => {
-    // Act & Assert
-    await expect(
-      generateVideo('Create a video', 'veo-2.0-generate-001', DEFAULT_CONFIG, null)
-    ).rejects.toThrow('A reference image is mandatory for Gemini video generation.');
-  });
-
-  /**
-   * Test: Routes to aivideoauto for aivideoauto models
-   */
-  it('should route to aivideoauto for aivideoauto--* models', async () => {
-    // Arrange
-    const uploadedImage = { id_base: 'uploaded-001', url: 'https://cdn.example.com/img.png' };
-    vi.mocked(aivideoautoService.uploadImage).mockResolvedValueOnce(uploadedImage);
-    vi.mocked(aivideoautoService.createVideoTask).mockResolvedValueOnce('video-task-001');
-    vi.mocked(aivideoautoService.pollForVideo).mockResolvedValueOnce('https://cdn.example.com/video.mp4');
-
-    // Act
-    const result = await generateVideo(
-      'Create a video with AIVideoAuto',
-      'aivideoauto--video-model-1',
-      AIVIDEOAUTO_CONFIG,
-      TEST_IMAGE
-    );
-
-    // Assert
-    expect(aivideoautoService.uploadImage).toHaveBeenCalledWith('test-token-123', TEST_IMAGE);
-    expect(aivideoautoService.createVideoTask).toHaveBeenCalledWith(
-      'test-token-123',
-      expect.objectContaining({
-        model: 'video-model',
-        prompt: 'Create a video with AIVideoAuto',
-        images: [uploadedImage],
-      })
-    );
-    expect(aivideoautoService.pollForVideo).toHaveBeenCalledWith(
-      'test-token-123',
-      'video-task-001',
-      AIVIDEOAUTO_CONFIG.onStatusUpdate
-    );
-    expect(result).toBe('https://cdn.example.com/video.mp4');
-  });
-
-  /**
-   * Test: Throws error.api.aivideoautoAuth when token is missing
-   */
-  it('should throw error.api.aivideoautoAuth when aivideoauto token is null', async () => {
-    // Act & Assert
-    await expect(
-      generateVideo('Create a video', 'aivideoauto--video-model-1', DEFAULT_CONFIG, TEST_IMAGE)
-    ).rejects.toThrow('error.api.aivideoautoAuth');
-  });
-
-  /**
-   * Test: Throws error when reference image is missing for aivideoauto
-   */
-  it('should throw error when reference image is missing for aivideoauto', async () => {
-    // Act & Assert
-    await expect(
-      generateVideo('Create a video', 'aivideoauto--video-model-1', AIVIDEOAUTO_CONFIG, null)
-    ).rejects.toThrow('A reference image is mandatory for AIVideoAuto video generation.');
-  });
-
-  /**
-   * Test: Throws error when aivideoauto model ID is invalid
-   */
-  it('should throw error when aivideoauto video model ID is invalid', async () => {
-    // Act & Assert
-    await expect(
-      generateVideo('Create a video', 'aivideoauto--invalid-model', AIVIDEOAUTO_CONFIG, TEST_IMAGE)
-    ).rejects.toThrow('Invalid AIVideoAuto model ID: invalid-model. Models not loaded.');
-  });
-});
-
-// ============================================================================
 // Test Suite: recreateImageWithFace
 // ============================================================================
 
@@ -770,59 +482,33 @@ describe('recreateImageWithFace', () => {
   const STYLE_IMAGE = { base64: 'c3R5bGUtZGF0YQ==', mimeType: 'image/png' };
 
   /**
-   * Test: Calls editImage with constructed prompt
+   * Test: Calls editImage with constructed prompt for gemini
    */
-  it('should call editImage with constructed prompt and return result', async () => {
+  it('should call gemini editImage with constructed prompt', async () => {
     // Arrange
-    const mockResult = { base64: 'recreated', mimeType: 'image/png' };
-    vi.mocked(aivideoautoService.createImage).mockResolvedValueOnce(mockResult);
+    const mockResult = { base64: 'recreated-gemini', mimeType: 'image/png' };
+    vi.mocked(geminiImageService.editImage).mockResolvedValueOnce([mockResult]);
 
     // Act
     const result = await recreateImageWithFace(
       'A professional portrait in office setting',
       FACE_IMAGE,
       STYLE_IMAGE,
-      'aivideoauto--image-model-1',
-      AIVIDEOAUTO_CONFIG,
+      'gemini-2.5-flash-image',
+      DEFAULT_CONFIG,
       '16:9'
     );
 
     // Assert
-    expect(aivideoautoService.createImage).toHaveBeenCalledWith(
-      'test-token-123',
-      expect.objectContaining({
-        prompt: expect.stringContaining('IMAGE RECREATION WITH NEW SUBJECT'),
-        subjects: [FACE_IMAGE],
-      })
-    );
+    expect(geminiImageService.editImage).toHaveBeenCalledWith({
+      images: [FACE_IMAGE],
+      prompt: expect.stringContaining('IMAGE RECREATION WITH NEW SUBJECT'),
+      numberOfImages: 1,
+      aspectRatio: '16:9',
+      resolution: undefined,
+      model: 'gemini-2.5-flash-image',
+    });
     expect(result).toEqual(mockResult);
-  });
-
-  /**
-   * Test: Uses explicit aspect ratio when provided
-   */
-  it('should use explicit aspect ratio when provided', async () => {
-    // Arrange
-    const mockResult = { base64: 'recreated', mimeType: 'image/png' };
-    vi.mocked(aivideoautoService.createImage).mockResolvedValueOnce(mockResult);
-
-    // Act
-    await recreateImageWithFace(
-      'Test prompt',
-      FACE_IMAGE,
-      STYLE_IMAGE,
-      'aivideoauto--image-model-1',
-      AIVIDEOAUTO_CONFIG,
-      '9:16'
-    );
-
-    // Assert
-    expect(aivideoautoService.createImage).toHaveBeenCalledWith(
-      'test-token-123',
-      expect.objectContaining({
-        ratio: '9_16',
-      })
-    );
   });
 
   /**
@@ -832,23 +518,22 @@ describe('recreateImageWithFace', () => {
     // Arrange
     vi.mocked(getImageDimensions).mockResolvedValueOnce({ width: 1920, height: 1080 });
     const mockResult = { base64: 'recreated', mimeType: 'image/png' };
-    vi.mocked(aivideoautoService.createImage).mockResolvedValueOnce(mockResult);
+    vi.mocked(geminiImageService.editImage).mockResolvedValueOnce([mockResult]);
 
     // Act
     await recreateImageWithFace(
       'Test prompt',
       FACE_IMAGE,
       STYLE_IMAGE,
-      'aivideoauto--image-model-1',
-      AIVIDEOAUTO_CONFIG
+      'gemini-2.5-flash-image',
+      DEFAULT_CONFIG
     );
 
     // Assert
     expect(getImageDimensions).toHaveBeenCalledWith(STYLE_IMAGE.base64, STYLE_IMAGE.mimeType);
-    expect(aivideoautoService.createImage).toHaveBeenCalledWith(
-      'test-token-123',
+    expect(geminiImageService.editImage).toHaveBeenCalledWith(
       expect.objectContaining({
-        ratio: '16_9', // 1920/1080 ≈ 16:9
+        aspectRatio: '16:9', // 1920/1080 ≈ 16:9
       })
     );
   });
@@ -858,7 +543,7 @@ describe('recreateImageWithFace', () => {
    */
   it('should throw error when image recreation fails', async () => {
     // Arrange - editImage returns empty array
-    vi.mocked(aivideoautoService.createImage).mockResolvedValueOnce(undefined as any);
+    vi.mocked(geminiImageService.editImage).mockResolvedValueOnce([]);
 
     // Act & Assert
     await expect(
@@ -866,8 +551,8 @@ describe('recreateImageWithFace', () => {
         'Test prompt',
         FACE_IMAGE,
         STYLE_IMAGE,
-        'aivideoauto--image-model-1',
-        AIVIDEOAUTO_CONFIG
+        'gemini-2.5-flash-image',
+        DEFAULT_CONFIG
       )
     ).rejects.toThrow('Image recreation failed to produce a result.');
   });
