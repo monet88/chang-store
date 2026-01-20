@@ -254,7 +254,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                 </div>
             </div>
             {/* Right Column: Output */}
-            <div className="lg:sticky lg:top-8">
+            <div>
                 <div className={`relative w-full min-h-[50vh] lg:min-h-0 lg:aspect-[4/5] bg-zinc-900/50 rounded-2xl border border-zinc-800 p-4 flex flex-col ${generatedImages.length === 0 && !isLoading && !error ? 'items-center justify-center' : ''}`}>
                     {/* Header with Start Over button */}
                     {generatedImages.length > 0 && (
@@ -285,7 +285,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
 
                     {/* Generated images grid - 2 columns */}
                     {generatedImages.length > 0 && (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {generatedImages.map((image, index) => (
                                 <div key={index}>
                                     <HoverableImage image={image} altText={image.pose} />
