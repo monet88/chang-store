@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { ImageFile, AnalyzedItem, Feature, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '../services/imageEditingService';
-import { analyzeOutfit } from '../services/gemini/text';
+import { analyzeOutfit } from '../services/textService';
 import type { RedesignPreset } from '../services/gemini/image';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -21,7 +21,7 @@ interface RedesignResult {
 
 const OutfitAnalysis: React.FC = () => {
     const { t } = useLanguage();
-    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, textGenerateModel } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.OutfitAnalysis);
     const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
     const requireAivideoautoConfig = () => {
@@ -35,6 +35,8 @@ const OutfitAnalysis: React.FC = () => {
         onStatusUpdate,
         aivideoautoAccessToken,
         aivideoautoImageModels,
+        localApiBaseUrl,
+        localApiKey,
     });
 
     const [step, setStep] = useState(0); // 0: upload, 1: analysis, 2: redesign results
@@ -88,7 +90,7 @@ const OutfitAnalysis: React.FC = () => {
         setLoadingMessage(t('outfitAnalysis.statusAnalyzing'));
         setError(null);
         try {
-            const results = await analyzeOutfit(file);
+            const results = await analyzeOutfit(file, textGenerateModel, { localApiBaseUrl, localApiKey });
             setAnalysisResults(results);
             setStep(1);
         } catch (err) {

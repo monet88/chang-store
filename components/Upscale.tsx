@@ -25,7 +25,7 @@ const Upscale: React.FC = () => {
   const [quality, setQuality] = useState<UpscaleQuality>('2K');
 
   const { t } = useLanguage();
-  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
+  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Upscale);
   const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
   const requireAivideoautoConfig = () => {
@@ -39,6 +39,8 @@ const Upscale: React.FC = () => {
     onStatusUpdate,
     aivideoautoAccessToken,
     aivideoautoImageModels,
+    localApiBaseUrl,
+    localApiKey,
   });
 
   const handleGenerate = async () => {

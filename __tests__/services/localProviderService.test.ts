@@ -135,6 +135,7 @@ describe('localProviderService', () => {
     const body = JSON.parse(options.body);
     expect(body.generationConfig.responseModalities).toContain('IMAGE');
     expect(body.generationConfig.imageConfig.aspectRatio).toBe('1:1');
+    expect(body.generationConfig.imageConfig.imageSize).toBe('1K');
   });
 
   it('generateImageLocal includes imageSize when provided', async () => {
@@ -151,6 +152,7 @@ describe('localProviderService', () => {
     expect(url).toBe('http://localhost:8317/v1beta/models/image-model:generateContent?key=local-key-123');
     const body = JSON.parse(options.body);
     expect(body.generationConfig.imageConfig.aspectRatio).toBe('1:1');
+    expect(body.generationConfig.imageConfig.imageSize).toBe('2K');
   });
 
   it('editImageLocal posts generateContent with inlineData and returns ImageFile', async () => {
@@ -172,5 +174,6 @@ describe('localProviderService', () => {
     expect(body.contents[0].parts[0].inlineData.mimeType).toBe('image/png');
     expect(body.contents[0].parts[1].text).toBe('Edit it');
     expect(body.generationConfig.responseModalities).toContain('IMAGE');
+    expect(body.generationConfig.imageConfig.imageSize).toBe('1K');
   });
 });

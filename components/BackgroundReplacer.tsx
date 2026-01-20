@@ -4,7 +4,7 @@ import ImageUploader from './ImageUploader';
 import Spinner, { ErrorDisplay } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
-import { generateImageDescription } from '../services/gemini/text';
+import { generateImageDescription } from '../services/textService';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -15,12 +15,14 @@ import ResultPlaceholder from './shared/ResultPlaceholder';
 
 const BackgroundReplacer: React.FC = () => {
   const { t } = useLanguage();
-  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
+  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, textGenerateModel } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Background);
   const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
     aivideoautoAccessToken,
     aivideoautoImageModels,
+    localApiBaseUrl,
+    localApiKey,
   });
 
   const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);
@@ -86,7 +88,7 @@ const BackgroundReplacer: React.FC = () => {
     setIsGeneratingDescription(true);
     setError(null);
     try {
-      const description = await generateImageDescription(backgroundImage);
+      const description = await generateImageDescription(backgroundImage, textGenerateModel, { localApiBaseUrl, localApiKey });
       setPromptText(description);
       setBackgroundImage(null);
       setSelectedPredefinedKey('custom');

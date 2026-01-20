@@ -51,8 +51,8 @@ vi.mock('@/services/imageEditingService', () => ({
   extractOutfitItem: vi.fn(),
 }));
 
-/** Mock gemini/text service */
-vi.mock('@/services/gemini/text', () => ({
+/** Mock textService */
+vi.mock('@/services/textService', () => ({
   analyzeOutfit: vi.fn(),
 }));
 
@@ -74,7 +74,7 @@ vi.mock('@/utils/imageUtils', () => ({
 
 // Import hook and mocked services after mocking
 import { useOutfitAnalysis } from '../../hooks/useOutfitAnalysis';
-import { analyzeOutfit } from '@/services/gemini/text';
+import { analyzeOutfit } from '@/services/textService';
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '@/services/imageEditingService';
 import { getErrorMessage } from '@/utils/imageUtils';
 import { AnalyzedItem, ImageFile } from '@/types';

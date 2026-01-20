@@ -6,7 +6,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage, upscaleImage } from '../services/imageEditingService';
-import { generatePoseDescription } from '../services/gemini/text';
+import { generatePoseDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
 
 export const usePoseChanger = () => {
