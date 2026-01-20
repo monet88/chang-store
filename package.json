@@ -12,6 +12,8 @@
     "lint": "eslint . --ext .ts,.tsx",
     "test": "vitest --run --passWithNoTests",
     "test:ui": "vitest --ui",
+    "test:local-models": "node scripts/local-model-smoke-test.mjs",
+    "test:local-features": "node scripts/local-feature-smoke-test.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
@@ -56,5 +58,8 @@
     "typescript-language-server": "^5.1.3",
     "vite": "^6.2.0",
     "vitest": "^4.0.13"
-  }
+  },
+  "trustedDependencies": [
+    "@swc/core"
+  ]
 }
