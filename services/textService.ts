@@ -129,10 +129,37 @@ export const generateImageDescription = async (
   model: string,
   config?: TextServiceConfig
 ): Promise<string> => {
-  if (isLocalModel(model)) {
-    return generateTextFromImageLocal(image, IMAGE_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config));
+  const startTime = Date.now();
+  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+
+  try {
+    const result = isLocalModel(model)
+      ? await generateTextFromImageLocal(image, IMAGE_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config))
+      : await geminiTextService.generateImageDescription(image);
+
+    logApiCall({
+      provider,
+      model,
+      feature: 'Image Description',
+      prompt: IMAGE_DESCRIPTION_PROMPT,
+      duration: Date.now() - startTime,
+      status: 'success',
+      responseSize: result.length,
+    });
+
+    return result;
+  } catch (error) {
+    logApiCall({
+      provider,
+      model,
+      feature: 'Image Description',
+      prompt: IMAGE_DESCRIPTION_PROMPT,
+      duration: Date.now() - startTime,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
-  return geminiTextService.generateImageDescription(image);
 };
 
 export const generateClothingDescription = async (
@@ -140,10 +167,37 @@ export const generateClothingDescription = async (
   model: string,
   config?: TextServiceConfig
 ): Promise<string> => {
-  if (isLocalModel(model)) {
-    return generateTextFromImageLocal(image, CLOTHING_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config));
+  const startTime = Date.now();
+  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+
+  try {
+    const result = isLocalModel(model)
+      ? await generateTextFromImageLocal(image, CLOTHING_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config))
+      : await geminiTextService.generateClothingDescription(image);
+
+    logApiCall({
+      provider,
+      model,
+      feature: 'Clothing Description',
+      prompt: CLOTHING_DESCRIPTION_PROMPT,
+      duration: Date.now() - startTime,
+      status: 'success',
+      responseSize: result.length,
+    });
+
+    return result;
+  } catch (error) {
+    logApiCall({
+      provider,
+      model,
+      feature: 'Clothing Description',
+      prompt: CLOTHING_DESCRIPTION_PROMPT,
+      duration: Date.now() - startTime,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
-  return geminiTextService.generateClothingDescription(image);
 };
 
 export const generatePoseDescription = async (
@@ -151,10 +205,37 @@ export const generatePoseDescription = async (
   model: string,
   config?: TextServiceConfig
 ): Promise<string> => {
-  if (isLocalModel(model)) {
-    return generateTextFromImageLocal(image, POSE_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config));
+  const startTime = Date.now();
+  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+
+  try {
+    const result = isLocalModel(model)
+      ? await generateTextFromImageLocal(image, POSE_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config))
+      : await geminiTextService.generatePoseDescription(image);
+
+    logApiCall({
+      provider,
+      model,
+      feature: 'Pose Description',
+      prompt: POSE_DESCRIPTION_PROMPT,
+      duration: Date.now() - startTime,
+      status: 'success',
+      responseSize: result.length,
+    });
+
+    return result;
+  } catch (error) {
+    logApiCall({
+      provider,
+      model,
+      feature: 'Pose Description',
+      prompt: POSE_DESCRIPTION_PROMPT,
+      duration: Date.now() - startTime,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
-  return geminiTextService.generatePoseDescription(image);
 };
 
 export const analyzeOutfit = async (
@@ -162,16 +243,44 @@ export const analyzeOutfit = async (
   model: string,
   config?: TextServiceConfig
 ): Promise<AnalyzedItem[]> => {
-  if (isLocalModel(model)) {
-    const response = await generateTextFromImageLocal(
-      image,
-      OUTFIT_ANALYSIS_PROMPT,
-      stripLocalPrefix(model),
-      buildLocalConfig(config)
-    );
-    return parseOutfitAnalysis(response);
+  const startTime = Date.now();
+  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+
+  try {
+    const result = isLocalModel(model)
+      ? parseOutfitAnalysis(
+          await generateTextFromImageLocal(
+            image,
+            OUTFIT_ANALYSIS_PROMPT,
+            stripLocalPrefix(model),
+            buildLocalConfig(config)
+          )
+        )
+      : await geminiTextService.analyzeOutfit(image);
+
+    logApiCall({
+      provider,
+      model,
+      feature: 'Outfit Analysis',
+      prompt: OUTFIT_ANALYSIS_PROMPT,
+      duration: Date.now() - startTime,
+      status: 'success',
+      responseSize: JSON.stringify(result).length,
+    });
+
+    return result;
+  } catch (error) {
+    logApiCall({
+      provider,
+      model,
+      feature: 'Outfit Analysis',
+      prompt: OUTFIT_ANALYSIS_PROMPT,
+      duration: Date.now() - startTime,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
-  return geminiTextService.analyzeOutfit(image);
 };
 
 export const generateStylePromptFromImage = async (
@@ -179,15 +288,42 @@ export const generateStylePromptFromImage = async (
   model: string,
   config?: TextServiceConfig
 ): Promise<string> => {
-  if (isLocalModel(model)) {
-    return generateTextFromImageLocal(
-      image,
-      STYLE_PROMPT_FROM_IMAGE,
-      stripLocalPrefix(model),
-      buildLocalConfig(config)
-    );
+  const startTime = Date.now();
+  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+
+  try {
+    const result = isLocalModel(model)
+      ? await generateTextFromImageLocal(
+          image,
+          STYLE_PROMPT_FROM_IMAGE,
+          stripLocalPrefix(model),
+          buildLocalConfig(config)
+        )
+      : await geminiTextService.generateStylePromptFromImage(image, model);
+
+    logApiCall({
+      provider,
+      model,
+      feature: 'Style Prompt',
+      prompt: STYLE_PROMPT_FROM_IMAGE,
+      duration: Date.now() - startTime,
+      status: 'success',
+      responseSize: result.length,
+    });
+
+    return result;
+  } catch (error) {
+    logApiCall({
+      provider,
+      model,
+      feature: 'Style Prompt',
+      prompt: STYLE_PROMPT_FROM_IMAGE,
+      duration: Date.now() - startTime,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
-  return geminiTextService.generateStylePromptFromImage(image, model);
 };
 
 export const analyzeScene = async (
@@ -195,13 +331,40 @@ export const analyzeScene = async (
   model: string,
   config?: TextServiceConfig
 ): Promise<string> => {
-  if (isLocalModel(model)) {
-    return generateTextFromImageLocal(
-      image,
-      ANALYZE_SCENE_PROMPT,
-      stripLocalPrefix(model),
-      buildLocalConfig(config)
-    );
+  const startTime = Date.now();
+  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+
+  try {
+    const result = isLocalModel(model)
+      ? await generateTextFromImageLocal(
+          image,
+          ANALYZE_SCENE_PROMPT,
+          stripLocalPrefix(model),
+          buildLocalConfig(config)
+        )
+      : await geminiTextService.analyzeScene(image, model);
+
+    logApiCall({
+      provider,
+      model,
+      feature: 'Scene Analysis',
+      prompt: ANALYZE_SCENE_PROMPT,
+      duration: Date.now() - startTime,
+      status: 'success',
+      responseSize: result.length,
+    });
+
+    return result;
+  } catch (error) {
+    logApiCall({
+      provider,
+      model,
+      feature: 'Scene Analysis',
+      prompt: ANALYZE_SCENE_PROMPT,
+      duration: Date.now() - startTime,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
-  return geminiTextService.analyzeScene(image, model);
 };
