@@ -160,15 +160,44 @@ export const upscaleImage = async (
     config: ApiConfig,
     quality: UpscaleQuality = '2K'
 ): Promise<ImageFile> => {
-    const resolution = quality === '4K' ? '4096' : '2048';
-    const prompt = `Upscale this image to a high-resolution ${quality} format (${resolution}px). Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.`;
-    const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
+    const startTime = Date.now();
+    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+    const prompt = `Upscale this image to a high-resolution ${quality} format (${quality === '4K' ? '4096' : '2048'}px). Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.`;
 
-    if (isLocalModel(model)) {
-        const [result] = await editImage(params, model, config);
+    try {
+        let result: ImageFile;
+
+        if (isLocalModel(model)) {
+            const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
+            const [upscaled] = await editImage(params, model, config);
+            result = upscaled;
+        } else {
+            result = await geminiImageService.upscaleImage(image, quality);
+        }
+
+        logApiCall({
+            provider,
+            model,
+            feature: 'Upscale',
+            prompt,
+            duration: Date.now() - startTime,
+            status: 'success',
+            responseSize: result.base64.length * 0.75,
+        });
+
         return result;
+    } catch (error) {
+        logApiCall({
+            provider,
+            model,
+            feature: 'Upscale',
+            prompt,
+            duration: Date.now() - startTime,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
     }
-    return geminiImageService.upscaleImage(image, quality);
 };
 
 export const extractOutfitItem = async (
