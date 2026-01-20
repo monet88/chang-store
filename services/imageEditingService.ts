@@ -311,6 +311,9 @@ export const recreateImageWithFace = async (
     aspectRatio?: AspectRatio,
     resolution?: ImageResolution
 ): Promise<ImageFile> => {
+    const startTime = Date.now();
+    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+
     const finalPrompt = `
 # INSTRUCTION: IMAGE RECREATION WITH NEW SUBJECT
 ## 1. CORE TASK: Recreate a new image based *only* on the provided text prompt. The subject MUST be the person from the reference image.
@@ -319,41 +322,65 @@ export const recreateImageWithFace = async (
 ## 4. CRITICAL RULES: Ignore any visual style from other images. The 'Face Reference' is for identity only. The text prompt is for style only.
 ## 5. FINAL OUTPUT: Generate a single, high-resolution (2K), photorealistic image that fuses the person from the 'Face Reference' with the style from the text prompt.`;
 
-    let finalAspectRatio: AspectRatio = 'Default';
+    try {
+        let finalAspectRatio: AspectRatio = 'Default';
 
-    if (aspectRatio && aspectRatio !== 'Default') {
-        finalAspectRatio = aspectRatio;
-    } else {
-        const { width, height } = await getImageDimensions(styleImage.base64, styleImage.mimeType);
-        const ratio = width / height;
+        if (aspectRatio && aspectRatio !== 'Default') {
+            finalAspectRatio = aspectRatio;
+        } else {
+            const { width, height } = await getImageDimensions(styleImage.base64, styleImage.mimeType);
+            const ratio = width / height;
 
-        const ratios: Record<string, number> = {
-            '1:1': 1,
-            '9:16': 9 / 16,
-            '16:9': 16 / 9,
-            '4:3': 4 / 3,
-            '3:4': 3 / 4,
-        };
+            const ratios: Record<string, number> = {
+                '1:1': 1,
+                '9:16': 9 / 16,
+                '16:9': 16 / 9,
+                '4:3': 4 / 3,
+                '3:4': 3 / 4,
+            };
 
-        let closestRatioKey: AspectRatio = 'Default';
-        let minDiff = Infinity;
+            let closestRatioKey: AspectRatio = 'Default';
+            let minDiff = Infinity;
 
-        for (const key in ratios) {
-            const diff = Math.abs(ratio - ratios[key]);
-            if (diff < minDiff) {
-                minDiff = diff;
-                closestRatioKey = key as AspectRatio;
+            for (const key in ratios) {
+                const diff = Math.abs(ratio - ratios[key]);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestRatioKey = key as AspectRatio;
+                }
+            }
+
+            if (minDiff < 0.1) {
+                finalAspectRatio = closestRatioKey;
             }
         }
 
-        if (minDiff < 0.1) {
-            finalAspectRatio = closestRatioKey;
-        }
-    }
+        const [result] = await editImage({ images: [faceImage], prompt: finalPrompt, numberOfImages: 1, aspectRatio: finalAspectRatio, resolution }, model, config);
+        if (!result) throw new Error('Image recreation failed to produce a result.');
 
-    const [result] = await editImage({ images: [faceImage], prompt: finalPrompt, numberOfImages: 1, aspectRatio: finalAspectRatio, resolution }, model, config);
-    if (!result) throw new Error('Image recreation failed to produce a result.');
-    return result;
+        logApiCall({
+            provider,
+            model,
+            feature: 'Face Recreation',
+            prompt,
+            duration: Date.now() - startTime,
+            status: 'success',
+            responseSize: result.base64.length * 0.75,
+        });
+
+        return result;
+    } catch (error) {
+        logApiCall({
+            provider,
+            model,
+            feature: 'Face Recreation',
+            prompt,
+            duration: Date.now() - startTime,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
+    }
 };
 
 // Export chat service for image refinement
