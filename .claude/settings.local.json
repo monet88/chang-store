@@ -15,6 +15,21 @@
       "Bash(bd stats)"
     ]
   },
-  "outputStyle": "God Mode (Level 5)",
-  "spinnerTipsEnabled": false
+  "spinnerTipsEnabled": false,
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": false
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/run-hook.cmd session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
