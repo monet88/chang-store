@@ -1,9 +1,10 @@
-import { ImageFile, AnalyzedItem } from '../types';
+import { ImageFile, AnalyzedItem, TextGenerateModel } from '../types';
 import * as geminiTextService from './gemini/text';
 import {
   generateTextLocal,
   generateTextFromImageLocal,
 } from './localProviderService';
+import { logApiCall } from './debugService';
 
 export interface TextServiceConfig {
   localApiBaseUrl?: string | null;
@@ -87,13 +88,40 @@ const parseOutfitAnalysis = (jsonText: string): AnalyzedItem[] => {
 
 export const generateText = async (
   prompt: string,
-  model: string,
+  model: TextGenerateModel,
   config?: TextServiceConfig
 ): Promise<string> => {
-  if (isLocalModel(model)) {
-    return generateTextLocal(prompt, stripLocalPrefix(model), buildLocalConfig(config));
+  const startTime = Date.now();
+  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+
+  try {
+    const result = isLocalModel(model)
+      ? await generateTextLocal(prompt, stripLocalPrefix(model), buildLocalConfig(config))
+      : await geminiTextService.generateText(prompt, model);
+
+    logApiCall({
+      provider,
+      model,
+      feature: 'Text Generate',
+      prompt,
+      duration: Date.now() - startTime,
+      status: 'success',
+      responseSize: result.length,
+    });
+
+    return result;
+  } catch (error) {
+    logApiCall({
+      provider,
+      model,
+      feature: 'Text Generate',
+      prompt,
+      duration: Date.now() - startTime,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
-  return geminiTextService.generateText(prompt, model);
 };
 
 export const generateImageDescription = async (
