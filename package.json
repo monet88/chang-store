@@ -13,19 +13,10 @@
     "test": "vitest --run --passWithNoTests",
     "test:ui": "vitest --ui",
     "test:local-models": "node scripts/local-model-smoke-test.mjs",
-    "test:local-features": "node scripts/local-feature-smoke-test.mjs",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
-    "tauri:icon": "tauri icon"
+    "test:local-features": "node scripts/local-feature-smoke-test.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.17.0",
-    "@tauri-apps/api": "^2.9.1",
-    "@tauri-apps/plugin-dialog": "^2.4.2",
-    "@tauri-apps/plugin-fs": "^2.4.4",
-    "@tauri-apps/plugin-notification": "^2.3.3",
-    "@tauri-apps/plugin-shell": "^2.3.3",
     "axios": "^1.7.2",
     "jszip": "^3.10.1",
     "lodash-es": "^4.17.22",
@@ -34,7 +25,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
-    "@tauri-apps/cli": "^2.9.6",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
