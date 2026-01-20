@@ -95,7 +95,7 @@ git commit -m "test: add local feature smoke test assets"
 **Step 2: Run stub to verify failure**
 ```bash
 LOCAL_PROVIDER_URL="http://localhost:8317" \
-LOCAL_PROVIDER_API_KEY="proxypal-local" \
+LOCAL_PROVIDER_API_KEY="<LOCAL_PROVIDER_API_KEY>" \
 node scripts/local-feature-smoke-test.mjs
 ```
 Expected: Exit code != 0.
@@ -112,7 +112,7 @@ Expected: Exit code != 0.
 **Step 4: Run tests to verify PASS**
 ```bash
 LOCAL_PROVIDER_URL="http://localhost:8317" \
-LOCAL_PROVIDER_API_KEY="proxypal-local" \
+LOCAL_PROVIDER_API_KEY="<LOCAL_PROVIDER_API_KEY>" \
 LOCAL_SMOKE_SAVE_IMAGES="true" \
 node scripts/local-feature-smoke-test.mjs
 ```
