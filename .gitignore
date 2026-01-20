@@ -45,3 +45,23 @@ src-tauri/target/
 # bv (beads viewer) local config and caches
 .bv/
 .osgrep
+
+# Local agent/tooling artifacts
+.agent/
+.claude/
+.codex/
+.cursor/
+.github/
+.serena/
+.skillsrc
+
+# Local test artifacts
+__tests__/AGENTS.md
+__tests__/images-test/
+
+# Local plans and smoke outputs
+plans/*
+scripts/local-feature-smoke-output/
+scripts/local-feature-smoke-output-proxypal/
+scripts/local-model-smoke-output/
+scripts/local-model-smoke-test.mjs
