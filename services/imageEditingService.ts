@@ -1,18 +1,12 @@
-import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, VideoGenerateModel, AIVideoAutoModel, ImageResolution, UpscaleQuality, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, ImageResolution, UpscaleQuality, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import * as geminiImageService from './gemini/image';
-import * as geminiTextService from './gemini/text';
-import * as geminiVideoService from './gemini/video';
-import * as aivideoautoService from './aivideoautoService';
 import { editImageLocal, generateImageLocal, generateTextLocal } from './localProviderService';
 import { getImageDimensions } from '../utils/imageUtils';
 
 interface ApiConfig {
-    aivideoautoAccessToken?: string | null;
     localApiBaseUrl?: string | null;
     localApiKey?: string | null;
     onStatusUpdate: (message: string) => void;
-    aivideoautoVideoModels?: AIVideoAutoModel[];
-    aivideoautoImageModels?: AIVideoAutoModel[];
 }
 
 export type EditImageParams = geminiImageService.EditImageParams;
@@ -72,38 +66,6 @@ export const editImage = async (
             )
         );
     }
-    if (model.startsWith('aivideoauto--')) {
-        if (!config.aivideoautoAccessToken) throw new Error("error.api.aivideoautoAuth");
-        const modelIdBase = model.split('--')[1];
-        
-        const aivideoautoModel = config.aivideoautoImageModels?.find(m => m.id_base === modelIdBase);
-        if (!aivideoautoModel) {
-            throw new Error(`Invalid AIVideoAuto model ID for image editing: ${modelIdBase}.`);
-        }
-        
-        const ratioMap: { [key in AspectRatio]?: '1_1' | '9_16' | '16_9' | '4_3' | '3_4' } = {
-            '1:1': '1_1', '9:16': '9_16', '16:9': '16_9', '4:3': '4_3', '3:4': '3_4',
-        };
-        const ratio = params.aspectRatio ? ratioMap[params.aspectRatio] : undefined;
-
-        // Debug logging: Track aspect ratio mapping for AIVideoAuto
-        console.log('🔄 AIVideoAuto Aspect Ratio Mapping:', {
-            inputAspectRatio: params.aspectRatio,
-            mappedRatio: ratio,
-            model: aivideoautoModel.model,
-            modelIdBase: modelIdBase
-        });
-        
-        const results = await Promise.all(Array.from({ length: params.numberOfImages || 1 }).map(() => 
-            aivideoautoService.createImage(config.aivideoautoAccessToken!, {
-                model: aivideoautoModel.model,
-                prompt: params.prompt,
-                subjects: params.images.length > 0 ? params.images : undefined,
-                ratio,
-            })
-        ));
-        return results;
-    }
     return geminiImageService.editImage({ ...params, model });
 };
 
@@ -126,10 +88,6 @@ export const generateImage = async (
             )
         );
     }
-    if (model.startsWith('aivideoauto--')) {
-        const params: EditImageParams = { images: [], prompt, numberOfImages, aspectRatio };
-        return editImage(params, model, config);
-    }
     return geminiImageService.generateImageFromText(prompt, aspectRatio, numberOfImages, model);
 };
 
@@ -142,8 +100,8 @@ export const upscaleImage = async (
     const resolution = quality === '4K' ? '4096' : '2048';
     const prompt = `Upscale this image to a high-resolution ${quality} format (${resolution}px). Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.`;
     const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
-    
-    if (model.startsWith('aivideoauto--') || isLocalModel(model)) {
+
+    if (isLocalModel(model)) {
         const [result] = await editImage(params, model, config);
         return result;
     }
@@ -158,8 +116,8 @@ export const extractOutfitItem = async (
 ): Promise<ImageFile> => {
     const prompt = `From the provided image, precisely extract only the following clothing item: "${itemDescription}". Place the extracted item on a clean, neutral, white background. The output must be only the item itself, with no other parts of the original image or person visible. Ensure the item is fully visible and not cropped.`;
     const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
-    
-    if (model.startsWith('aivideoauto--') || isLocalModel(model)) {
+
+    if (isLocalModel(model)) {
         const [result] = await editImage(params, model, config);
         return result;
     }
@@ -183,14 +141,6 @@ export const critiqueAndRedesignOutfit = async (
         if (!config.localApiBaseUrl) throw new Error('error.api.localProviderFailed');
         config.onStatusUpdate('Generating critique with local provider...');
         const critique = await generateTextLocal(critiquePrompt, stripLocalPrefix(model), buildLocalConfig(config));
-        const redesignedImages = await editImage(params, model, config);
-        return { critique, redesignedImages };
-    }
-
-    if (model.startsWith('aivideoauto--')) {
-        config.onStatusUpdate('Generating critique with Gemini...');
-        const critique = await geminiTextService.generateText(critiquePrompt);
-
         const redesignedImages = await editImage(params, model, config);
         return { critique, redesignedImages };
     }
@@ -250,38 +200,6 @@ export const recreateImageWithFace = async (
     const [result] = await editImage({ images: [faceImage], prompt: finalPrompt, numberOfImages: 1, aspectRatio: finalAspectRatio, resolution }, model, config);
     if (!result) throw new Error('Image recreation failed to produce a result.');
     return result;
-};
-
-export const generateVideo = async (
-    prompt: string,
-    model: VideoGenerateModel,
-    config: ApiConfig,
-    faceImage?: ImageFile | null
-): Promise<string> => {
-    if (model.startsWith('aivideoauto--')) {
-        if (!config.aivideoautoAccessToken) throw new Error("error.api.aivideoautoAuth");
-        if (!faceImage) throw new Error("A reference image is mandatory for AIVideoAuto video generation.");
-
-        const modelIdBase = model.split('--')[1];
-        const aivideoautoModel = config.aivideoautoVideoModels?.find(m => m.id_base === modelIdBase);
-        if (!aivideoautoModel) throw new Error(`Invalid AIVideoAuto model ID: ${modelIdBase}. Models not loaded.`);
-
-        config.onStatusUpdate('Uploading reference image...');
-        const uploaded = await aivideoautoService.uploadImage(config.aivideoautoAccessToken, faceImage);
-
-        config.onStatusUpdate('Creating video task...');
-        const videoId = await aivideoautoService.createVideoTask(config.aivideoautoAccessToken, {
-            model: aivideoautoModel.model,
-            prompt,
-            images: [uploaded],
-        });
-
-        config.onStatusUpdate('Task created. Polling for video status...');
-        return await aivideoautoService.pollForVideo(config.aivideoautoAccessToken, videoId, config.onStatusUpdate);
-    }
-
-    if (!faceImage) throw new Error("A reference image is mandatory for Gemini video generation.");
-    return geminiVideoService.generateVideo(faceImage, prompt, config.onStatusUpdate, model);
 };
 
 // Export chat service for image refinement

@@ -3,7 +3,7 @@
  *
  * Tests for the ApiProvider and useApi hook.
  * Validates API context state management including:
- * - API key management (Google, AIVideoAuto)
+ * - API key management (Google, Local)
  * - Model selection and storage
  * - Feature-based model routing logic
  * - localStorage persistence for Google API key
@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React, { ReactNode } from 'react';
 import { ApiProvider, useApi } from '@/contexts/ApiProviderContext';
-import { Feature, AIVideoAutoModel } from '@/types';
+import { Feature } from '@/types';
 
 // -----------------------------------------------------------------------------
 // Mocks
@@ -59,20 +59,6 @@ const createWrapper = () => {
   };
 };
 
-/**
- * Creates a mock AIVideoAutoModel for testing.
- * @param id - Unique identifier for the model
- */
-const createMockAIVideoAutoModel = (id: string): AIVideoAutoModel => ({
-  id_base: id,
-  name: `Mock Model ${id}`,
-  server: 'test-server',
-  model: `model-${id}`,
-  price: 0.01,
-  startText: true,
-  startImage: true,
-});
-
 // -----------------------------------------------------------------------------
 // Test Suites
 // -----------------------------------------------------------------------------
@@ -108,7 +94,6 @@ describe('ApiProviderContext', () => {
       expect(typeof result.current.setGoogleApiKey).toBe('function');
       expect(typeof result.current.setLocalApiBaseUrl).toBe('function');
       expect(typeof result.current.setLocalApiKey).toBe('function');
-      expect(typeof result.current.setAivideoautoAccessToken).toBe('function');
       expect(typeof result.current.getModelsForFeature).toBe('function');
     });
   });
@@ -121,7 +106,6 @@ describe('ApiProviderContext', () => {
 
       expect(result.current.imageEditModel).toBe('gemini-3-pro-image-preview');
       expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
-      expect(result.current.videoGenerateModel).toBe('');
       expect(result.current.textGenerateModel).toBe('gemini-3-flash-preview');
     });
 
@@ -133,16 +117,6 @@ describe('ApiProviderContext', () => {
       expect(result.current.googleApiKey).toBeNull();
       expect(result.current.localApiBaseUrl).toBeNull();
       expect(result.current.localApiKey).toBeNull();
-      expect(result.current.aivideoautoAccessToken).toBeNull();
-    });
-
-    it('has empty arrays for AIVideoAuto models', () => {
-      const { result } = renderHook(() => useApi(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.aivideoautoImageModels).toEqual([]);
-      expect(result.current.aivideoautoVideoModels).toEqual([]);
     });
 
     it('loads Google API key from localStorage on mount', () => {
@@ -286,33 +260,6 @@ describe('ApiProviderContext', () => {
     });
   });
 
-  describe('setAivideoautoAccessToken', () => {
-    it('updates access token state', () => {
-      const { result } = renderHook(() => useApi(), {
-        wrapper: createWrapper(),
-      });
-
-      act(() => {
-        result.current.setAivideoautoAccessToken('aivideoauto-token');
-      });
-
-      expect(result.current.aivideoautoAccessToken).toBe('aivideoauto-token');
-    });
-
-    it('can set token to null', () => {
-      const { result } = renderHook(() => useApi(), {
-        wrapper: createWrapper(),
-      });
-
-      act(() => {
-        result.current.setAivideoautoAccessToken('token');
-        result.current.setAivideoautoAccessToken(null);
-      });
-
-      expect(result.current.aivideoautoAccessToken).toBeNull();
-    });
-  });
-
   describe('local provider setters', () => {
     it('setLocalApiBaseUrl persists trimmed url and updates state', () => {
       const { result } = renderHook(() => useApi(), {
@@ -369,40 +316,6 @@ describe('ApiProviderContext', () => {
     });
   });
 
-  describe('setAivideoautoImageModels', () => {
-    it('updates image models array', () => {
-      const { result } = renderHook(() => useApi(), {
-        wrapper: createWrapper(),
-      });
-
-      const models = [createMockAIVideoAutoModel('img-1'), createMockAIVideoAutoModel('img-2')];
-
-      act(() => {
-        result.current.setAivideoautoImageModels(models);
-      });
-
-      expect(result.current.aivideoautoImageModels).toEqual(models);
-      expect(result.current.aivideoautoImageModels).toHaveLength(2);
-    });
-  });
-
-  describe('setAivideoautoVideoModels', () => {
-    it('updates video models array', () => {
-      const { result } = renderHook(() => useApi(), {
-        wrapper: createWrapper(),
-      });
-
-      const models = [createMockAIVideoAutoModel('vid-1')];
-
-      act(() => {
-        result.current.setAivideoautoVideoModels(models);
-      });
-
-      expect(result.current.aivideoautoVideoModels).toEqual(models);
-      expect(result.current.aivideoautoVideoModels).toHaveLength(1);
-    });
-  });
-
   describe('model setters', () => {
     it('setImageEditModel updates imageEditModel', () => {
       const { result } = renderHook(() => useApi(), {
@@ -410,10 +323,10 @@ describe('ApiProviderContext', () => {
       });
 
       act(() => {
-        result.current.setImageEditModel('aivideoauto--custom-edit');
+        result.current.setImageEditModel('local--custom-edit');
       });
 
-      expect(result.current.imageEditModel).toBe('aivideoauto--custom-edit');
+      expect(result.current.imageEditModel).toBe('local--custom-edit');
     });
 
     it('setImageGenerateModel updates imageGenerateModel', () => {
@@ -426,18 +339,6 @@ describe('ApiProviderContext', () => {
       });
 
       expect(result.current.imageGenerateModel).toBe('custom-generate-model');
-    });
-
-    it('setVideoGenerateModel updates videoGenerateModel', () => {
-      const { result } = renderHook(() => useApi(), {
-        wrapper: createWrapper(),
-      });
-
-      act(() => {
-        result.current.setVideoGenerateModel('aivideoauto--video-model');
-      });
-
-      expect(result.current.videoGenerateModel).toBe('aivideoauto--video-model');
     });
 
     it('setTextGenerateModel updates textGenerateModel', () => {
@@ -454,173 +355,54 @@ describe('ApiProviderContext', () => {
   });
 
   describe('getModelsForFeature', () => {
-    describe('non-video features', () => {
-      it('returns unchanged models for TryOn feature', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
-
-        const models = result.current.getModelsForFeature(Feature.TryOn);
-
-        expect(models.imageEditModel).toBe('gemini-3-pro-image-preview');
-        expect(models.imageGenerateModel).toBe('imagen-4.0-generate-001');
-        expect(models.videoGenerateModel).toBe('');
-        expect(models.textGenerateModel).toBe('gemini-3-flash-preview');
+    it('returns unchanged models for TryOn feature', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
       });
 
-      it('returns unchanged models for Background feature', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
+      const models = result.current.getModelsForFeature(Feature.TryOn);
 
-        act(() => {
-          result.current.setImageEditModel('custom-edit');
-        });
-
-        const models = result.current.getModelsForFeature(Feature.Background);
-
-        expect(models.imageEditModel).toBe('custom-edit');
-      });
-
-      it('returns unchanged models for Upscale feature', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
-
-        const models = result.current.getModelsForFeature(Feature.Upscale);
-
-        expect(models.videoGenerateModel).toBe('');
-      });
+      expect(models.imageEditModel).toBe('gemini-3-pro-image-preview');
+      expect(models.imageGenerateModel).toBe('imagen-4.0-generate-001');
+      expect(models.textGenerateModel).toBe('gemini-3-flash-preview');
     });
 
-    describe('video features with AIVideoAuto override', () => {
-      it('overrides non-aivideoauto model for Video feature', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
-
-        // Set a gemini video model (not aivideoauto)
-        act(() => {
-          result.current.setVideoGenerateModel('gemini-video');
-          result.current.setAivideoautoVideoModels([createMockAIVideoAutoModel('veo-2')]);
-        });
-
-        const models = result.current.getModelsForFeature(Feature.Video);
-
-        // Should override to aivideoauto model
-        expect(models.videoGenerateModel).toBe('aivideoauto--veo-2');
+    it('returns unchanged models for Background feature', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
       });
 
-      it('overrides non-aivideoauto model for GRWMVideo feature', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
-
-        act(() => {
-          result.current.setVideoGenerateModel('some-other-model');
-          result.current.setAivideoautoVideoModels([createMockAIVideoAutoModel('grwm-model')]);
-        });
-
-        const models = result.current.getModelsForFeature(Feature.GRWMVideo);
-
-        expect(models.videoGenerateModel).toBe('aivideoauto--grwm-model');
+      act(() => {
+        result.current.setImageEditModel('custom-edit');
       });
 
-      it('keeps aivideoauto model unchanged for video features', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
+      const models = result.current.getModelsForFeature(Feature.Background);
 
-        act(() => {
-          result.current.setVideoGenerateModel('aivideoauto--existing-model');
-          result.current.setAivideoautoVideoModels([createMockAIVideoAutoModel('other-model')]);
-        });
-
-        const models = result.current.getModelsForFeature(Feature.Video);
-
-        // Should keep the existing aivideoauto model, not override
-        expect(models.videoGenerateModel).toBe('aivideoauto--existing-model');
-      });
-
-      it('uses first available aivideoauto model when overriding', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
-
-        act(() => {
-          result.current.setVideoGenerateModel('gemini-video');
-          result.current.setAivideoautoVideoModels([
-            createMockAIVideoAutoModel('first-model'),
-            createMockAIVideoAutoModel('second-model'),
-            createMockAIVideoAutoModel('third-model'),
-          ]);
-        });
-
-        const models = result.current.getModelsForFeature(Feature.Video);
-
-        // Should use the first available model
-        expect(models.videoGenerateModel).toBe('aivideoauto--first-model');
-      });
+      expect(models.imageEditModel).toBe('custom-edit');
     });
 
-    describe('video features with no AIVideoAuto models', () => {
-      it('passes through non-aivideoauto model when no aivideoauto models available', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
-
-        act(() => {
-          result.current.setVideoGenerateModel('gemini-video-model');
-          // No aivideoauto models set (empty array by default)
-        });
-
-        const models = result.current.getModelsForFeature(Feature.Video);
-
-        // Should pass through the invalid model
-        // Service layer will handle the error
-        expect(models.videoGenerateModel).toBe('gemini-video-model');
+    it('returns unchanged models for Upscale feature', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
       });
 
-      it('passes through empty string when no models available', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
+      const models = result.current.getModelsForFeature(Feature.Upscale);
 
-        // Default videoGenerateModel is ''
-        const models = result.current.getModelsForFeature(Feature.Video);
-
-        expect(models.videoGenerateModel).toBe('');
-      });
+      expect(models.imageEditModel).toBe('gemini-3-pro-image-preview');
     });
 
-    describe('other models unchanged for video features', () => {
-      it('does not affect imageEditModel for video features', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
-
-        act(() => {
-          result.current.setImageEditModel('custom-image-edit');
-        });
-
-        const models = result.current.getModelsForFeature(Feature.Video);
-
-        expect(models.imageEditModel).toBe('custom-image-edit');
+    it('returns unchanged models for Lookbook feature', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
       });
 
-      it('does not affect textGenerateModel for video features', () => {
-        const { result } = renderHook(() => useApi(), {
-          wrapper: createWrapper(),
-        });
-
-        act(() => {
-          result.current.setTextGenerateModel('custom-text-model');
-        });
-
-        const models = result.current.getModelsForFeature(Feature.GRWMVideo);
-
-        expect(models.textGenerateModel).toBe('custom-text-model');
+      act(() => {
+        result.current.setImageEditModel('updated-edit');
       });
+
+      const models = result.current.getModelsForFeature(Feature.Lookbook);
+
+      expect(models.imageEditModel).toBe('updated-edit');
     });
   });
 
@@ -633,13 +415,11 @@ describe('ApiProviderContext', () => {
       act(() => {
         result.current.setImageEditModel('edit-1');
         result.current.setImageGenerateModel('gen-1');
-        result.current.setVideoGenerateModel('video-1');
         result.current.setTextGenerateModel('text-1');
       });
 
       expect(result.current.imageEditModel).toBe('edit-1');
       expect(result.current.imageGenerateModel).toBe('gen-1');
-      expect(result.current.videoGenerateModel).toBe('video-1');
       expect(result.current.textGenerateModel).toBe('text-1');
     });
 
@@ -650,14 +430,10 @@ describe('ApiProviderContext', () => {
 
       act(() => {
         result.current.setImageEditModel('updated-edit');
-        result.current.setAivideoautoVideoModels([createMockAIVideoAutoModel('new-video')]);
       });
 
-      const nonVideoModels = result.current.getModelsForFeature(Feature.Lookbook);
-      expect(nonVideoModels.imageEditModel).toBe('updated-edit');
-
-      const videoModels = result.current.getModelsForFeature(Feature.Video);
-      expect(videoModels.videoGenerateModel).toBe('aivideoauto--new-video');
+      const models = result.current.getModelsForFeature(Feature.Lookbook);
+      expect(models.imageEditModel).toBe('updated-edit');
     });
   });
 });
