@@ -1,10 +1,9 @@
-
 import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, VideoGenerateModel, AIVideoAutoModel, ImageResolution, UpscaleQuality, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import * as geminiImageService from './gemini/image';
 import * as geminiTextService from './gemini/text';
 import * as geminiVideoService from './gemini/video';
 import * as aivideoautoService from './aivideoautoService';
-import { editImageLocal, generateImageLocal } from './localProviderService';
+import { editImageLocal, generateImageLocal, generateTextLocal } from './localProviderService';
 import { getImageDimensions } from '../utils/imageUtils';
 
 interface ApiConfig {
@@ -144,7 +143,7 @@ export const upscaleImage = async (
     const prompt = `Upscale this image to a high-resolution ${quality} format (${resolution}px). Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.`;
     const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
     
-    if (model.startsWith('aivideoauto--')) {
+    if (model.startsWith('aivideoauto--') || isLocalModel(model)) {
         const [result] = await editImage(params, model, config);
         return result;
     }
@@ -160,7 +159,7 @@ export const extractOutfitItem = async (
     const prompt = `From the provided image, precisely extract only the following clothing item: "${itemDescription}". Place the extracted item on a clean, neutral, white background. The output must be only the item itself, with no other parts of the original image or person visible. Ensure the item is fully visible and not cropped.`;
     const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
     
-    if (model.startsWith('aivideoauto--')) {
+    if (model.startsWith('aivideoauto--') || isLocalModel(model)) {
         const [result] = await editImage(params, model, config);
         return result;
     }
@@ -178,10 +177,18 @@ export const critiqueAndRedesignOutfit = async (
 ): Promise<{ critique: string; redesignedImages: ImageFile[] }> => {
     const fullPrompt = geminiImageService.PRESET_PROMPTS[preset];
     const params: EditImageParams = { images: [image], prompt: fullPrompt, numberOfImages, aspectRatio, resolution };
+    const critiquePrompt = `You are a professional fashion stylist. Based on the provided image, generate ONLY the text critique part of the following instruction. DO NOT generate an image or mention that you will. ONLY provide the text. \n\nINSTRUCTION:\n${fullPrompt}`;
+
+    if (isLocalModel(model)) {
+        if (!config.localApiBaseUrl) throw new Error('error.api.localProviderFailed');
+        config.onStatusUpdate('Generating critique with local provider...');
+        const critique = await generateTextLocal(critiquePrompt, stripLocalPrefix(model), buildLocalConfig(config));
+        const redesignedImages = await editImage(params, model, config);
+        return { critique, redesignedImages };
+    }
 
     if (model.startsWith('aivideoauto--')) {
         config.onStatusUpdate('Generating critique with Gemini...');
-        const critiquePrompt = `You are a professional fashion stylist. Based on the provided image, generate ONLY the text critique part of the following instruction. DO NOT generate an image or mention that you will. ONLY provide the text. \n\nINSTRUCTION:\n${fullPrompt}`;
         const critique = await geminiTextService.generateText(critiquePrompt);
 
         const redesignedImages = await editImage(params, model, config);
@@ -279,4 +286,3 @@ export const generateVideo = async (
 
 // Export chat service for image refinement
 export { createImageChatSession, type ImageChatSession, type RefinementHistoryItem } from './gemini/chat';
-

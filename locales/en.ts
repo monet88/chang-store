@@ -96,6 +96,7 @@ export const en = {
       safetyBlock: 'The request was blocked due to safety settings. Please modify your prompt.',
       noContent: 'The API returned no content. This might be due to a safety block or an issue with the request.',
       noImageInParts: 'The API response did not contain an image. Please try again.',
+      noImageGenerated: 'The model could not generate an image. Try a different prompt or image.',
       noText: 'The API response did not contain any text.',
       noTextDescription: 'Failed to generate a text description from the image.',
       textOnlyResponse: 'The API returned only text. Please adjust your prompt. Reason: {{reason}}',

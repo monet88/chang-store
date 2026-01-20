@@ -44,7 +44,6 @@ import {
 import axios from 'axios';
 
 // Access the mock instance created by axios.create()
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockAxiosInstance = (axios.create as any)() as {
   post: ReturnType<typeof vi.fn>;
   get: ReturnType<typeof vi.fn>;

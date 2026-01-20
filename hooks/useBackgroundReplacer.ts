@@ -11,8 +11,8 @@ import { getErrorMessage } from '../utils/imageUtils';
 
 export const useBackgroundReplacer = () => {
     const { t } = useLanguage();
-    const { getModelsForFeature } = useApi();
-    const { imageEditModel } = getModelsForFeature(Feature.Background);
+    const { localApiBaseUrl, localApiKey, getModelsForFeature } = useApi();
+    const { imageEditModel, textGenerateModel } = getModelsForFeature(Feature.Background);
     const { addImage } = useImageGallery();
 
     const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);

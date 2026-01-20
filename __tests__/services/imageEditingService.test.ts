@@ -51,6 +51,13 @@ vi.mock('../../services/aivideoautoService', () => ({
   pollForVideo: vi.fn(),
 }));
 
+/** Mock localProviderService.ts */
+vi.mock('../../services/localProviderService', () => ({
+  editImageLocal: vi.fn(),
+  generateImageLocal: vi.fn(),
+  generateTextLocal: vi.fn(),
+}));
+
 /** Mock imageUtils for getImageDimensions */
 vi.mock('../../utils/imageUtils', () => ({
   getImageDimensions: vi.fn().mockResolvedValue({ width: 1920, height: 1080 }),
@@ -71,6 +78,7 @@ import * as geminiImageService from '../../services/gemini/image';
 import * as geminiTextService from '../../services/gemini/text';
 import * as geminiVideoService from '../../services/gemini/video';
 import * as aivideoautoService from '../../services/aivideoautoService';
+import * as localProviderService from '../../services/localProviderService';
 
 // ============================================================================
 // Test Constants
@@ -100,6 +108,13 @@ const AIVIDEOAUTO_CONFIG = {
   aivideoautoImageModels: [
     { id_base: 'image-model-1', model: 'image-model', name: 'Image Model 1', server: 'test-server', price: 0, startText: true, startImage: true },
   ],
+};
+
+/** Config with local provider details */
+const LOCAL_CONFIG = {
+  ...DEFAULT_CONFIG,
+  localApiBaseUrl: 'http://localhost:11434',
+  localApiKey: 'local-key',
 };
 
 // ============================================================================
@@ -406,6 +421,32 @@ describe('upscaleImage', () => {
     );
     expect(result).toEqual(mockResult);
   });
+
+  /**
+   * Test: Routes to local provider for local models
+   */
+  it('should route to local provider for local-- models', async () => {
+    // Arrange
+    const mockResult = { base64: 'upscaled-local', mimeType: 'image/png' };
+    vi.mocked(localProviderService.editImageLocal).mockResolvedValueOnce(mockResult);
+
+    // Act
+    const result = await upscaleImage(TEST_IMAGE, 'local--image-model-1', LOCAL_CONFIG);
+
+    // Assert
+    expect(localProviderService.editImageLocal).toHaveBeenCalledTimes(1);
+    expect(localProviderService.editImageLocal).toHaveBeenCalledWith(
+      TEST_IMAGE,
+      expect.stringContaining('Upscale this image'),
+      'image-model-1',
+      expect.objectContaining({
+        baseUrl: 'http://localhost:11434',
+        apiKey: 'local-key',
+      }),
+      '1024x1024'
+    );
+    expect(result).toEqual(mockResult);
+  });
 });
 
 // ============================================================================
@@ -465,6 +506,37 @@ describe('extractOutfitItem', () => {
         prompt: expect.stringContaining('blue jeans'),
         subjects: [TEST_IMAGE],
       })
+    );
+    expect(result).toEqual(mockResult);
+  });
+
+  /**
+   * Test: Routes to local provider for local models
+   */
+  it('should route to local provider for local-- models', async () => {
+    // Arrange
+    const mockResult = { base64: 'extracted-local', mimeType: 'image/png' };
+    vi.mocked(localProviderService.editImageLocal).mockResolvedValueOnce(mockResult);
+
+    // Act
+    const result = await extractOutfitItem(
+      TEST_IMAGE,
+      'blue jeans',
+      'local--image-model-1',
+      LOCAL_CONFIG
+    );
+
+    // Assert
+    expect(localProviderService.editImageLocal).toHaveBeenCalledTimes(1);
+    expect(localProviderService.editImageLocal).toHaveBeenCalledWith(
+      TEST_IMAGE,
+      expect.stringContaining('blue jeans'),
+      'image-model-1',
+      expect.objectContaining({
+        baseUrl: 'http://localhost:11434',
+        apiKey: 'local-key',
+      }),
+      '1024x1024'
     );
     expect(result).toEqual(mockResult);
   });
@@ -535,6 +607,33 @@ describe('critiqueAndRedesignOutfit', () => {
     expect(geminiTextService.generateText).toHaveBeenCalled();
     expect(aivideoautoService.createImage).toHaveBeenCalled();
     expect(result.critique).toBe('AI generated critique');
+    expect(result.redesignedImages).toEqual([mockImage]);
+  });
+
+  /**
+   * Test: Routes to local provider for local models
+   */
+  it('should use local provider for local-- models', async () => {
+    // Arrange
+    const mockImage = { base64: 'redesigned-local', mimeType: 'image/png' };
+    vi.mocked(localProviderService.generateTextLocal).mockResolvedValueOnce('Local critique');
+    vi.mocked(localProviderService.editImageLocal).mockResolvedValueOnce(mockImage);
+
+    // Act
+    const result = await critiqueAndRedesignOutfit(
+      TEST_IMAGE,
+      'casual',
+      1,
+      'local--image-model-1',
+      LOCAL_CONFIG,
+      'Default',
+      '2K'
+    );
+
+    // Assert
+    expect(localProviderService.generateTextLocal).toHaveBeenCalledTimes(1);
+    expect(localProviderService.editImageLocal).toHaveBeenCalledTimes(1);
+    expect(result.critique).toBe('Local critique');
     expect(result.redesignedImages).toEqual([mockImage]);
   });
 });
@@ -771,5 +870,69 @@ describe('recreateImageWithFace', () => {
         AIVIDEOAUTO_CONFIG
       )
     ).rejects.toThrow('Image recreation failed to produce a result.');
+  });
+
+  /**
+   * Test: Passes resolution through to gemini editImage
+   */
+  it('should pass resolution to gemini editImage when provided', async () => {
+    // Arrange
+    const mockResult = { base64: 'recreated-gemini', mimeType: 'image/png' };
+    vi.mocked(geminiImageService.editImage).mockResolvedValueOnce([mockResult]);
+
+    // Act
+    const result = await recreateImageWithFace(
+      'Test prompt',
+      FACE_IMAGE,
+      STYLE_IMAGE,
+      'gemini-2.5-flash-image',
+      DEFAULT_CONFIG,
+      '16:9',
+      '4K'
+    );
+
+    // Assert
+    expect(geminiImageService.editImage).toHaveBeenCalledWith({
+      images: [FACE_IMAGE],
+      prompt: expect.stringContaining('IMAGE RECREATION WITH NEW SUBJECT'),
+      numberOfImages: 1,
+      aspectRatio: '16:9',
+      resolution: '4K',
+      model: 'gemini-2.5-flash-image',
+    });
+    expect(result).toEqual(mockResult);
+  });
+
+  /**
+   * Test: Maps resolution to local provider size when provided
+   */
+  it('should map resolution to local provider size for local-- models', async () => {
+    // Arrange
+    const mockResult = { base64: 'recreated-local', mimeType: 'image/png' };
+    vi.mocked(localProviderService.editImageLocal).mockResolvedValueOnce(mockResult);
+
+    // Act
+    const result = await recreateImageWithFace(
+      'Test prompt',
+      FACE_IMAGE,
+      STYLE_IMAGE,
+      'local--image-model-1',
+      LOCAL_CONFIG,
+      '16:9',
+      '4K'
+    );
+
+    // Assert
+    expect(localProviderService.editImageLocal).toHaveBeenCalledWith(
+      FACE_IMAGE,
+      expect.stringContaining('IMAGE RECREATION WITH NEW SUBJECT'),
+      'image-model-1',
+      expect.objectContaining({
+        baseUrl: 'http://localhost:11434',
+        apiKey: 'local-key',
+      }),
+      '4096x2304'
+    );
+    expect(result).toEqual(mockResult);
   });
 });

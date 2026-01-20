@@ -17,8 +17,8 @@ export const usePoseChanger = () => {
 
     const { addImage } = useImageGallery();
     const { t } = useLanguage();
-    const { getModelsForFeature } = useApi();
-    const { imageEditModel } = getModelsForFeature(Feature.Pose);
+    const { localApiBaseUrl, localApiKey, getModelsForFeature } = useApi();
+    const { imageEditModel, textGenerateModel } = getModelsForFeature(Feature.Pose);
 
     const handleGenerate = async () => {
         // ... complex generation logic from component

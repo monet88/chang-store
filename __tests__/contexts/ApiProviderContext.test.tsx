@@ -155,6 +155,22 @@ describe('ApiProviderContext', () => {
       expect(localStorageMock.getItem).toHaveBeenCalledWith('google_api_key');
       expect(result.current.googleApiKey).toBe('stored-api-key');
     });
+
+    it('loads Local provider settings from localStorage on mount', () => {
+      localStorageMock.getItem
+        .mockReturnValueOnce(null)
+        .mockReturnValueOnce('http://localhost:8317')
+        .mockReturnValueOnce('local-key');
+
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('local_provider_base_url');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('local_provider_api_key');
+      expect(result.current.localApiBaseUrl).toBe('http://localhost:8317');
+      expect(result.current.localApiKey).toBe('local-key');
+    });
   });
 
   describe('local provider storage', () => {
@@ -294,6 +310,62 @@ describe('ApiProviderContext', () => {
       });
 
       expect(result.current.aivideoautoAccessToken).toBeNull();
+    });
+  });
+
+  describe('local provider setters', () => {
+    it('setLocalApiBaseUrl persists trimmed url and updates state', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setLocalApiBaseUrl('  http://localhost:8317  ');
+      });
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('local_provider_base_url', 'http://localhost:8317');
+      expect(result.current.localApiBaseUrl).toBe('http://localhost:8317');
+    });
+
+    it('setLocalApiBaseUrl removes storage when cleared', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setLocalApiBaseUrl('http://localhost:8317');
+        result.current.setLocalApiBaseUrl(null);
+      });
+
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('local_provider_base_url');
+      expect(result.current.localApiBaseUrl).toBeNull();
+    });
+
+    it('setLocalApiKey persists trimmed key and updates state', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setLocalApiKey('  local-key  ');
+      });
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('local_provider_api_key', 'local-key');
+      expect(result.current.localApiKey).toBe('local-key');
+    });
+
+    it('setLocalApiKey removes storage when cleared', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setLocalApiKey('local-key');
+        result.current.setLocalApiKey(null);
+      });
+
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('local_provider_api_key');
+      expect(result.current.localApiKey).toBeNull();
     });
   });
 

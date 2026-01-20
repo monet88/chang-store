@@ -97,6 +97,7 @@ export const vi: Translation = {
       safetyBlock: 'Yêu cầu đã bị chặn vì cài đặt an toàn. Vui lòng sửa đổi prompt của bạn.',
       noContent: 'API không trả về nội dung. Điều này có thể do chặn an toàn hoặc sự cố với yêu cầu.',
       noImageInParts: 'Phản hồi API không chứa ảnh. Vui lòng thử lại.',
+      noImageGenerated: 'Mô hình không thể tạo ảnh. Thử prompt hoặc ảnh khác.',
       noText: 'Phản hồi API không chứa văn bản nào.',
       noTextDescription: 'Không thể tạo mô tả văn bản từ hình ảnh.',
       textOnlyResponse: 'API chỉ trả về văn bản. Vui lòng điều chỉnh prompt của bạn. Lý do: {{reason}}',

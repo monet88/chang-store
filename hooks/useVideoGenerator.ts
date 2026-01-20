@@ -19,7 +19,7 @@ export const useVideoGenerator = () => {
 
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoVideoModels } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoVideoModels, localApiBaseUrl, localApiKey } = useApi();
 
     const handleSuggestScenes = async () => {
         // ... logic

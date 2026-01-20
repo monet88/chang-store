@@ -85,7 +85,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
     setIsGeneratingPoseDescription(true);
     setError(null);
     try {
-    const description = await generatePoseDescription(poseReferenceImage, textGenerateModel, { localApiBaseUrl, localApiKey });
+      const description = await generatePoseDescription(poseReferenceImage, textGenerateModel, { localApiBaseUrl, localApiKey });
       setCustomPosePrompt(description);
       setPoseReferenceImage(null);
     } catch (err) {
