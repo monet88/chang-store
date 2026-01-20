@@ -2,6 +2,7 @@ import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, ImageResolu
 import * as geminiImageService from './gemini/image';
 import { editImageLocal, generateImageLocal, generateTextLocal } from './localProviderService';
 import { getImageDimensions } from '../utils/imageUtils';
+import { logApiCall } from './debugService';
 
 interface ApiConfig {
     localApiBaseUrl?: string | null;
@@ -49,24 +50,55 @@ export const editImage = async (
     model: ImageEditModel,
     config: ApiConfig
 ): Promise<ImageFile[]> => {
-    if (isLocalModel(model)) {
-        if (!config.localApiBaseUrl) throw new Error('error.api.localProviderFailed');
-        if (params.images.length === 0) throw new Error('error.api.noImage');
-        const size = buildLocalSize(params.aspectRatio, params.resolution ?? DEFAULT_IMAGE_RESOLUTION);
-        const localModel = stripLocalPrefix(model);
-        let finalPrompt = params.prompt;
-        if (params.negativePrompt?.trim()) {
-            finalPrompt += ` Negative prompt: strictly avoid including ${params.negativePrompt.trim()}.`;
+    const startTime = Date.now();
+    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+
+    try {
+        let result: ImageFile[];
+
+        if (isLocalModel(model)) {
+            if (!config.localApiBaseUrl) throw new Error('error.api.localProviderFailed');
+            if (params.images.length === 0) throw new Error('error.api.noImage');
+            const size = buildLocalSize(params.aspectRatio, params.resolution ?? DEFAULT_IMAGE_RESOLUTION);
+            const localModel = stripLocalPrefix(model);
+            let finalPrompt = params.prompt;
+            if (params.negativePrompt?.trim()) {
+                finalPrompt += ` Negative prompt: strictly avoid including ${params.negativePrompt.trim()}.`;
+            }
+            const localConfig = buildLocalConfig(config);
+            const count = params.numberOfImages || 1;
+            result = await Promise.all(
+                Array.from({ length: count }).map(() =>
+                    editImageLocal(params.images[0], finalPrompt, localModel, localConfig, size)
+                )
+            );
+        } else {
+            result = await geminiImageService.editImage({ ...params, model });
         }
-        const localConfig = buildLocalConfig(config);
-        const count = params.numberOfImages || 1;
-        return Promise.all(
-            Array.from({ length: count }).map(() =>
-                editImageLocal(params.images[0], finalPrompt, localModel, localConfig, size)
-            )
-        );
+
+        logApiCall({
+            provider,
+            model,
+            feature: 'Image Edit',
+            prompt: params.prompt,
+            duration: Date.now() - startTime,
+            status: 'success',
+            responseSize: result.reduce((sum, img) => sum + img.base64.length * 0.75, 0),
+        });
+
+        return result;
+    } catch (error) {
+        logApiCall({
+            provider,
+            model,
+            feature: 'Image Edit',
+            prompt: params.prompt,
+            duration: Date.now() - startTime,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
     }
-    return geminiImageService.editImage({ ...params, model });
 };
 
 export const generateImage = async (
