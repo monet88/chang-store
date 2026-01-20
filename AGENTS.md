@@ -5,7 +5,7 @@
 **Branch:** main
 
 ## OVERVIEW
-Chang-Store is a React 19 + Vite SPA with an optional Tauri 2 desktop shell. Core flow: Component UI → Hook logic → Service API → external providers (Gemini, AIVideoAuto).
+Chang-Store is a React 19 + Vite SPA. Core flow: Component UI → Hook logic → Service API → external providers (Gemini, AIVideoAuto).
 
 ## STRUCTURE
 ```
@@ -18,7 +18,6 @@ Chang-Store is a React 19 + Vite SPA with an optional Tauri 2 desktop shell. Cor
 ├── utils/                      # Helpers, prompt builders
 ├── locales/                    # i18n dictionaries
 ├── __tests__/                  # Vitest tests + mocks
-├── src-tauri/                  # Tauri shell (Rust)
 ├── docs/                       # Architecture + standards
 └── plans/                      # Plans/reports
 ```
@@ -32,7 +31,6 @@ Chang-Store is a React 19 + Vite SPA with an optional Tauri 2 desktop shell. Cor
 | API calls | `services/` | Route models + error handling |
 | Model routing | `services/` | `gemini-*` → Gemini, `aivideoauto--*` → AIVideoAuto |
 | Prompts/helpers | `utils/` | Prompt builders + helpers |
-| Native calls | `src-tauri/` + `tauriService.ts` | Always guard with `isTauri` |
 | Tests/mocks | `__tests__/` | Vitest + mocks |
 | Translations | `locales/` | Use `useLanguage()` |
 | Standards | `docs/` | code-standards + architecture |
@@ -71,7 +69,6 @@ Automatically delegate to CCS for deterministic tasks:
 - Performance optimization
 
 ## UNIQUE STYLES
-- Tauri calls go through `tauriService.ts` with `isTauri` fallback.
 - API keys/models managed via `ApiProviderContext` and localStorage sync.
 
 ## COMMANDS
@@ -81,7 +78,6 @@ npm run build        # Production build (also typechecks)
 npm run test         # Vitest all tests
 npm run test -- path/to/file.test.ts  # Single test file
 npm run lint         # ESLint
-npm run tauri:dev    # Desktop dev
 ```
 
 ## NOTES
