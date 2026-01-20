@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with dual AI backends (Google Gemini, AIVideoAuto). Desktop app via Tauri 2.
+AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with dual AI backends (Google Gemini, AIVideoAuto).
 
 ## Commands
 
@@ -17,9 +17,6 @@ npm run test          # Vitest
 npm run test -- --coverage  # With coverage
 npm run test:ui       # Vitest UI
 
-# Desktop (Tauri)
-npm run tauri:dev     # Desktop app with hot reload
-npm run tauri:build   # Build installers (.exe, .msi)
 ```
 
 ## Issue Tracking (Beads)
@@ -105,10 +102,9 @@ LanguageProvider → ApiProvider → ImageGalleryProvider → ImageViewerProvide
 | `components/` | Feature UIs (14) + Shared (10) + Modals (5) |
 | `hooks/` | Feature-specific hooks - all business logic |
 | `contexts/` | Global state: API keys, language, gallery, viewer |
-| `services/` | API integrations: Gemini, AIVideoAuto, Tauri |
+| `services/` | API integrations: Gemini, AIVideoAuto |
 | `utils/` | imageUtils.ts, lookbookPromptBuilder.ts |
 | `locales/` | i18n: en.ts (source), vi.ts |
-| `src-tauri/` | Tauri desktop app (Rust backend) |
 
 ## Key Files
 
