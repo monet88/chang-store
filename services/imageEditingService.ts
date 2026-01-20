@@ -1,13 +1,16 @@
 
-import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, VideoGenerateModel, AIVideoAutoModel, ImageResolution, UpscaleQuality } from '../types';
+import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, VideoGenerateModel, AIVideoAutoModel, ImageResolution, UpscaleQuality, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import * as geminiImageService from './gemini/image';
 import * as geminiTextService from './gemini/text';
 import * as geminiVideoService from './gemini/video';
 import * as aivideoautoService from './aivideoautoService';
+import { editImageLocal, generateImageLocal } from './localProviderService';
 import { getImageDimensions } from '../utils/imageUtils';
 
 interface ApiConfig {
     aivideoautoAccessToken?: string | null;
+    localApiBaseUrl?: string | null;
+    localApiKey?: string | null;
     onStatusUpdate: (message: string) => void;
     aivideoautoVideoModels?: AIVideoAutoModel[];
     aivideoautoImageModels?: AIVideoAutoModel[];
@@ -15,11 +18,61 @@ interface ApiConfig {
 
 export type EditImageParams = geminiImageService.EditImageParams;
 
+const LOCAL_PREFIX = 'local--';
+const isLocalModel = (model: string) => model.startsWith(LOCAL_PREFIX);
+const stripLocalPrefix = (model: string) => model.slice(LOCAL_PREFIX.length);
+
+const RESOLUTION_BASE: Record<ImageResolution, number> = {
+    '1K': 1024,
+    '2K': 2048,
+    '4K': 4096,
+};
+
+const buildLocalSize = (aspectRatio?: AspectRatio, resolution: ImageResolution = DEFAULT_IMAGE_RESOLUTION): string => {
+    const base = RESOLUTION_BASE[resolution] ?? RESOLUTION_BASE[DEFAULT_IMAGE_RESOLUTION];
+    if (!aspectRatio || aspectRatio === 'Default') {
+        return `${base}x${base}`;
+    }
+    const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
+    if (!Number.isFinite(widthRatio) || !Number.isFinite(heightRatio) || widthRatio <= 0 || heightRatio <= 0) {
+        return `${base}x${base}`;
+    }
+    const ratio = widthRatio / heightRatio;
+    if (ratio >= 1) {
+        const height = Math.max(1, Math.round(base / ratio));
+        return `${base}x${height}`;
+    }
+    const width = Math.max(1, Math.round(base * ratio));
+    return `${width}x${base}`;
+};
+
+const buildLocalConfig = (config: ApiConfig) => ({
+    baseUrl: config.localApiBaseUrl ?? '',
+    apiKey: config.localApiKey ?? null,
+});
+
 export const editImage = async (
     params: EditImageParams,
     model: ImageEditModel,
     config: ApiConfig
 ): Promise<ImageFile[]> => {
+    if (isLocalModel(model)) {
+        if (!config.localApiBaseUrl) throw new Error('error.api.localProviderFailed');
+        if (params.images.length === 0) throw new Error('error.api.noImage');
+        const size = buildLocalSize(params.aspectRatio, params.resolution ?? DEFAULT_IMAGE_RESOLUTION);
+        const localModel = stripLocalPrefix(model);
+        let finalPrompt = params.prompt;
+        if (params.negativePrompt?.trim()) {
+            finalPrompt += ` Negative prompt: strictly avoid including ${params.negativePrompt.trim()}.`;
+        }
+        const localConfig = buildLocalConfig(config);
+        const count = params.numberOfImages || 1;
+        return Promise.all(
+            Array.from({ length: count }).map(() =>
+                editImageLocal(params.images[0], finalPrompt, localModel, localConfig, size)
+            )
+        );
+    }
     if (model.startsWith('aivideoauto--')) {
         if (!config.aivideoautoAccessToken) throw new Error("error.api.aivideoautoAuth");
         const modelIdBase = model.split('--')[1];
@@ -62,6 +115,18 @@ export const generateImage = async (
     model: ImageGenerateModel,
     config: ApiConfig
 ): Promise<ImageFile[]> => {
+    if (isLocalModel(model)) {
+        if (!config.localApiBaseUrl) throw new Error('error.api.localProviderFailed');
+        const size = buildLocalSize(aspectRatio, DEFAULT_IMAGE_RESOLUTION);
+        const localModel = stripLocalPrefix(model);
+        const localConfig = buildLocalConfig(config);
+        const count = numberOfImages || 1;
+        return Promise.all(
+            Array.from({ length: count }).map(() =>
+                generateImageLocal(prompt, localModel, localConfig, size)
+            )
+        );
+    }
     if (model.startsWith('aivideoauto--')) {
         const params: EditImageParams = { images: [], prompt, numberOfImages, aspectRatio };
         return editImage(params, model, config);

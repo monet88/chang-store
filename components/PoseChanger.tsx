@@ -4,7 +4,7 @@ import ImageUploader from './ImageUploader';
 import Spinner, { ErrorDisplay, ProgressBar } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
-import { generatePoseDescription } from '../services/gemini/text';
+import { generatePoseDescription } from '../services/textService';
 import { Feature, ImageFile, PoseCollection, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -56,7 +56,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
   const { t } = useLanguage();
-  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
+  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, textGenerateModel } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Pose);
   const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
   const requireAivideoautoConfig = () => {
@@ -70,6 +70,8 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
     onStatusUpdate,
     aivideoautoAccessToken,
     aivideoautoImageModels,
+    localApiBaseUrl,
+    localApiKey,
   });
 
   const allPrompts = [...selectedLibraryPoses, ...(customPosePrompt.trim() ? [customPosePrompt.trim()] : [])];
@@ -83,7 +85,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
     setIsGeneratingPoseDescription(true);
     setError(null);
     try {
-      const description = await generatePoseDescription(poseReferenceImage);
+    const description = await generatePoseDescription(poseReferenceImage, textGenerateModel, { localApiBaseUrl, localApiKey });
       setCustomPosePrompt(description);
       setPoseReferenceImage(null);
     } catch (err) {

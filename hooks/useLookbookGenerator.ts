@@ -8,7 +8,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage, createImageChatSession, ImageChatSession, RefinementHistoryItem } from '../services/imageEditingService';
-import { generateClothingDescription } from '../services/gemini/text';
+import { generateClothingDescription } from '../services/textService';
 
 // This would contain the large prompt strings
 import { LookbookStyle, GarmentType, FoldedPresentationType, MannequinBackgroundStyleKey } from '../components/LookbookGenerator.prompts';
@@ -95,12 +95,14 @@ export const useLookbookGenerator = () => {
     const originalImageRef = useRef<ImageFile | null>(null);
 
     const { t } = useLanguage();
-    const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
+    const { aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, textGenerateModel, getModelsForFeature } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Lookbook);
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
         aivideoautoAccessToken,
         aivideoautoImageModels,
+        localApiBaseUrl,
+        localApiKey,
     });
 
     // Debounced localStorage save - prevents 200ms typing lag
@@ -173,14 +175,14 @@ export const useLookbookGenerator = () => {
         setIsGeneratingDescription(true);
         setError(null);
         try {
-            const description = await generateClothingDescription(firstImage);
+            const description = await generateClothingDescription(firstImage, textGenerateModel, { localApiBaseUrl, localApiKey });
             updateForm({ clothingDescription: description });
         } catch (err) {
           setError(getErrorMessage(err, t));
         } finally {
             setIsGeneratingDescription(false);
         }
-    }, [formState.clothingImages, t, updateForm]);
+    }, [formState.clothingImages, t, updateForm, textGenerateModel, localApiBaseUrl, localApiKey]);
 
     const handleGenerate = useCallback(async () => {
         const { clothingImages, lookbookStyle, foldedPresentationType, garmentType, mannequinBackgroundStyle, fabricTextureImage, fabricTexturePrompt, clothingDescription, negativePrompt } = formState;

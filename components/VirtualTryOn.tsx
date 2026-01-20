@@ -38,12 +38,14 @@ const VirtualTryOn: React.FC = () => {
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
   const { t } = useLanguage();
-  const { aivideoautoAccessToken, aivideoautoImageModels, getModelsForFeature } = useApi();
+  const { aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, getModelsForFeature } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.TryOn);
   const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
     aivideoautoAccessToken,
     aivideoautoImageModels,
+    localApiBaseUrl,
+    localApiKey,
   });
 
   const validClothingItems = clothingItems.filter(item => item.image !== null);

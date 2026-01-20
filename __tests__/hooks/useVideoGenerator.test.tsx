@@ -45,8 +45,8 @@ vi.mock('../../services/gemini/video', () => ({
   enhanceSceneDescription: vi.fn(),
 }));
 
-/** Mock gemini/text.ts service */
-vi.mock('../../services/gemini/text', () => ({
+/** Mock textService */
+vi.mock('../../services/textService', () => ({
   analyzeScene: vi.fn(),
 }));
 
@@ -91,7 +91,7 @@ vi.mock('../../contexts/ApiProviderContext', () => mockUseApi({
 import { useVideoGenerator } from '../../hooks/useVideoGenerator';
 import { generateVideo } from '../../services/imageEditingService';
 import { enforceVisualPreservation, generateVideoSceneSuggestions, enhanceSceneDescription } from '../../services/gemini/video';
-import { analyzeScene } from '../../services/gemini/text';
+import { analyzeScene } from '../../services/textService';
 import { getActiveApiKey } from '../../services/apiClient';
 import { getErrorMessage } from '../../utils/imageUtils';
 
