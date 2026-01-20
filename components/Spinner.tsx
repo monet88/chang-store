@@ -7,8 +7,10 @@ interface SpinnerProps {
 }
 
 const Spinner: React.FC<SpinnerProps> = ({ className }) => {
-  // Default classes if not overridden
-  const sizeClasses = className?.match(/h-\d+|w-\d+/) ? '' : 'h-8 w-8';
+  // Default classes if not overridden; support partial overrides.
+  const hasHeightClass = !!className && /\bh-\d+\b/.test(className);
+  const hasWidthClass = !!className && /\bw-\d+\b/.test(className);
+  const sizeClasses = `${hasHeightClass ? '' : 'h-8'} ${hasWidthClass ? '' : 'w-8'}`.trim();
   const colorClasses = className?.includes('border-') ? '' : 'border-amber-400';
 
   return (
