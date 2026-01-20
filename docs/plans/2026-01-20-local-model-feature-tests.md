@@ -27,7 +27,7 @@ Legend: **Local API type** = how local provider is called.
 | Image Editor | image-edit + text-to-image | Yes | Uses `editImage` + `generateImage`. |
 | AI Editor (Inpainting) | image-edit | Yes | Uses `editImage` (if canvas mask path is wired). |
 | Watermark Remover | image-edit | Yes | Uses `editImage`. |
-| Swap Face | image-edit + image-to-text | Yes | Uses `recreateImageWithFace` + `generateStylePromptFromImage`. |
+| Swap Face | - | Removed | Feature removed from UI; do not test. |
 | Video / GRWM Video | video | No (local) | Uses AIVideoAuto or Gemini video. |
 
 ---
@@ -68,7 +68,7 @@ git commit -m "docs: map local feature coverage for gemini-style tests"
 **Step 2: Map assets to features**
 - Suggested usage:
   - `D15-2.jpg`: general image-edit (lookbook, background, relight, watermark).
-  - `D15-3.jpg`: face/subject (swap face, pose).
+  - `D15-3.jpg`: face/subject (pose, relight variations).
   - `D15-4.jpg`: secondary angle (image editor, try-on).
   - `design-example.jpg`: backup for text-to-image comparison.
   - `image.jpg`: backup for background/pose.
@@ -104,7 +104,6 @@ Expected: Exit code != 0.
 - Lookbook: image-edit with clothing image.
 - Background Replacer: image-edit with subject image.
 - Pose Changer: image-edit with subject + pose prompt.
-- Swap Face: image-edit with face image + prompt.
 - Outfit Analysis: image-to-text JSON prompt (validate parse).
 - Relight: image-edit.
 - Watermark Remover: image-edit.

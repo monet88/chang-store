@@ -184,7 +184,6 @@ async function run() {
     { name: 'lookbook', fn: () => runImageEditTest('lookbook', defaultImage, `${promptBase} Full-body outfit.`) },
     { name: 'background-replacer', fn: () => runImageEditTest('background-replacer', defaultImage, `${promptBase} Replace background with a bright minimalist studio.`) },
     { name: 'pose-changer', fn: () => runImageEditTest('pose-changer', faceImage, `${promptBase} Change pose to a relaxed standing pose, hands in pockets.`) },
-    { name: 'swap-face', fn: () => runImageEditTest('swap-face', faceImage, `${promptBase} Keep identity and face, update outfit styling.`) },
     { name: 'relight', fn: () => runImageEditTest('relight', defaultImage, 'Relight this image with soft, diffused daylight from the left.') },
     { name: 'watermark-remover', fn: () => runImageEditTest('watermark-remover', defaultImage, 'Retouch this image to remove any artifacts and restore a clean version. Keep content unchanged.') },
     { name: 'try-on', fn: () => runImageEditTest('try-on', altImage, 'Virtually try on a minimalist beige trench coat with clean tailoring.') },
