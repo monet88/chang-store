@@ -2,10 +2,18 @@
 import React from 'react';
 import { CloseIcon, ErrorIcon } from './Icons';
 
-const Spinner: React.FC = () => {
+interface SpinnerProps {
+  className?: string;
+}
+
+const Spinner: React.FC<SpinnerProps> = ({ className }) => {
+  // Default classes if not overridden
+  const sizeClasses = className?.match(/h-\d+|w-\d+/) ? '' : 'h-8 w-8';
+  const colorClasses = className?.includes('border-') ? '' : 'border-amber-400';
+
   return (
     <div className="flex justify-center items-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400"></div>
+      <div className={`animate-spin rounded-full border-b-2 ${sizeClasses} ${colorClasses} ${className || ''}`}></div>
     </div>
   );
 };

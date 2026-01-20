@@ -171,7 +171,7 @@ export const VideoGenerator: React.FC = () => {
             const downloadLink = await generateVideo(
                 enforcedPrompt,
                 videoGenerateModel,
-                { aivideoautoAccessToken, onStatusUpdate: setLoadingMessage, aivideoautoVideoModels },
+                { aivideoautoAccessToken, onStatusUpdate: setLoadingMessage, aivideoautoVideoModels, localApiBaseUrl, localApiKey },
                 faceImage
             );
 

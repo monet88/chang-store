@@ -73,18 +73,20 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const setLocalApiBaseUrl = (url: string | null) => {
-    setLocalApiBaseUrlState(url);
-    if (url) {
-        localStorage.setItem(LOCAL_BASE_URL_KEY, url);
+    const normalized = url?.trim() ? url.trim() : null;
+    setLocalApiBaseUrlState(normalized);
+    if (normalized) {
+        localStorage.setItem(LOCAL_BASE_URL_KEY, normalized);
     } else {
         localStorage.removeItem(LOCAL_BASE_URL_KEY);
     }
   };
 
   const setLocalApiKey = (key: string | null) => {
-    setLocalApiKeyState(key);
-    if (key) {
-        localStorage.setItem(LOCAL_API_KEY, key);
+    const normalized = key?.trim() ? key.trim() : null;
+    setLocalApiKeyState(normalized);
+    if (normalized) {
+        localStorage.setItem(LOCAL_API_KEY, normalized);
     } else {
         localStorage.removeItem(LOCAL_API_KEY);
     }

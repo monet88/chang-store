@@ -1,114 +1,178 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-01-08 | **Commit:** b066e51 | **Branch:** main
+**Generated:** 2026-01-14
+**Commit:** 77963c0
+**Branch:** main
 
 ## OVERVIEW
-
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with Tauri 2 desktop support. Dual AI backends: Google Gemini, AIVideoAuto.
+Chang-Store is a React 19 + Vite SPA with an optional Tauri 2 desktop shell. Core flow: Component UI → Hook logic → Service API → external providers (Gemini, AIVideoAuto).
 
 ## STRUCTURE
-
 ```
 ./
-├── App.tsx, index.tsx      # Entry points (non-standard: root, not /src/)
-├── types.ts                # Shared types: ImageFile, Feature, AspectRatio
-├── components/             # 49 UI components (feature + shared + modals)
-├── hooks/                  # 15 feature hooks (ALL business logic here)
-├── contexts/               # 5 providers: Language, Api, Gallery, Viewer
-├── services/               # API facade: Gemini, AIVideoAuto, Tauri
-├── utils/                  # imageUtils.ts (active), storage.ts (disabled)
-├── locales/                # i18n: en.ts (source), vi.ts
-├── src-tauri/              # Rust desktop backend (Tauri 2)
-├── docs/                   # Technical documentation
-└── plans/                  # Planning + reports
+├── App.tsx / index.tsx         # App entry
+├── components/                 # UI-only components
+├── hooks/                      # Feature logic
+├── contexts/                   # Global state + providers
+├── services/                   # API adapters + provider routing
+├── utils/                      # Helpers, prompt builders
+├── locales/                    # i18n dictionaries
+├── __tests__/                  # Vitest tests + mocks
+├── src-tauri/                  # Tauri shell (Rust)
+├── docs/                       # Architecture + standards
+└── plans/                      # Plans/reports
 ```
 
 ## WHERE TO LOOK
-
 | Task | Location | Notes |
-|------|----------|-------|
-| Add new feature | `hooks/useFeatureName.ts` → `components/FeatureName.tsx` | Hook-first pattern |
-| Fix API issue | `services/imageEditingService.ts` | Routes to Gemini or AIVideoAuto |
-| Add translation | `locales/en.ts` (source) → `vi.ts` | Type-safe i18n |
-| Desktop functionality | `services/tauriService.ts` → `src-tauri/src/lib.rs` | IPC bridge |
-| Global state | `contexts/` | Provider stack order matters |
-| Image utilities | `utils/imageUtils.ts` | Conversion, error handling |
+|------|----------|------|
+| UI layout | `components/` | UI-only, no business logic |
+| Feature logic | `hooks/` | All mutations/state live here |
+| Global state | `contexts/` | Providers + shared state |
+| API calls | `services/` | Route models + error handling |
+| Model routing | `services/` | `gemini-*` → Gemini, `aivideoauto--*` → AIVideoAuto |
+| Prompts/helpers | `utils/` | Prompt builders + helpers |
+| Native calls | `src-tauri/` + `tauriService.ts` | Always guard with `isTauri` |
+| Tests/mocks | `__tests__/` | Vitest + mocks |
+| Translations | `locales/` | Use `useLanguage()` |
+| Standards | `docs/` | code-standards + architecture |
 
-## ARCHITECTURE
-
-```
-Component (UI) → Hook (Logic) → Service (API Facade) → External APIs
-```
-
-**Provider Stack (order matters):**
-```
-LanguageProvider → ApiProvider → ImageGalleryProvider → ImageViewerProvider → App
-```
-
-**Model Routing:**
-```typescript
-"aivideoauto--*" → AIVideoAuto backend
-"gemini-*"       → Gemini backend
-```
+## CODE MAP
+LSP workspace symbol map unavailable in this environment. Use the structure table above and `docs/codebase-summary.md` for navigation.
 
 ## CONVENTIONS
-
-| Area | Convention |
-|------|------------|
-| Imports | `@/` alias → root (non-standard: not /src/) |
-| Components | PascalCase, thin UI layer |
-| Hooks | `use*` prefix, ALL logic here |
-| Services | Facade pattern, singleton clients |
-| Tests | `*.test.ts(x)` colocated, Vitest |
-| Commits | Conventional: `feat:`, `fix:`, `refactor:` |
+- Code lives at repo root (no `src/`), imports use `@/` alias to root.
+- Hooks hold all logic; components are thin UI wrappers.
+- Tailwind 4, React.lazy for feature loading.
+- Gallery is in-memory only (no persistence).
+- Vitest with coverage thresholds (80%/75%).
 
 ## ANTI-PATTERNS (THIS PROJECT)
+- Never put logic in components (extract to hooks).
+- Never use markdown TODOs; use `bd` issues instead.
+- Canvas operations must clean up in `useEffect` return.
+- Do not call external APIs directly from hooks (use services).
 
-- **NEVER** end session without `git push` (work stranded locally)
-- **NEVER** commit `.env` or API keys
-- **NEVER** use markdown TODOs - use `bd` (beads) for issues
-- **NEVER** put logic in components - extract to hooks
-- **DO NOT** use `storage.ts` - persistence disabled
-- **Video features** MUST use AIVideoAuto backend
-- **Canvas operations** MUST cleanup in useEffect return
+## CCS AUTO-DELEGATION
+
+Automatically delegate to CCS for deterministic tasks:
+- Typo fixes, formatting
+- Add/update tests (NOT debugging failing tests)
+- Simple refactors (rename, extract, inline)
+- Documentation updates
+- Code cleanup (remove dead code, unused imports)
+
+**Execution**: `use ccs --glm [task]`
+
+**DO NOT delegate**:
+- Bug investigation
+- Architecture decisions
+- Security-related code
+- Performance optimization
 
 ## UNIQUE STYLES
-
-- Code at ROOT not `/src/` - `@/*` points to `./`
-- Tailwind 4 (not v3)
-- Feature switching via switch-case, not router
-- Lazy loading via `React.lazy()` for features
-- In-memory gallery (session only, no persistence)
+- Tauri calls go through `tauriService.ts` with `isTauri` fallback.
+- API keys/models managed via `ApiProviderContext` and localStorage sync.
 
 ## COMMANDS
-
 ```bash
-npm run dev        # Dev server @ localhost:3000
-npm run build      # Production build
-npm run test       # Vitest (~400 tests, 97% context coverage)
-npm run lint       # ESLint
-npm run tauri:dev  # Desktop dev
-npm run tauri:build # Desktop release
-```
-
-## ISSUE TRACKING (bd)
-
-```bash
-bd ready --json              # Unblocked issues
-bd create "Title" -p 1 --json # Create issue
-bd update bd-42 --status in_progress --json
-bd close bd-42 --reason "Done" --json
+npm run dev          # Dev server @ localhost:3000
+npm run build        # Production build (also typechecks)
+npm run test         # Vitest all tests
+npm run test -- path/to/file.test.ts  # Single test file
+npm run lint         # ESLint
+npm run tauri:dev    # Desktop dev
 ```
 
 ## NOTES
+- Status updates are often polled; UI expects progress callbacks.
+- Video features rely on AIVideoAuto models.
 
-- Large files need refactoring: `ImageEditor.tsx` (1235 lines), `locales/*.ts` (~1000), `services/gemini/video.ts` (759)
-- NO CI/CD configured - desktop-focused
-- Upscale targets 2K resolution
-- Video polling: Gemini (indefinite), AIVideoAuto (10min max)
+<!-- bv-agent-instructions-v1 -->
 
-## SUB-DOCUMENTATION
+---
 
-- `components/AGENTS.md` - UI patterns, modals, shared components
-- `services/AGENTS.md` - API facade, Gemini/AIVideoAuto routing
-- `src-tauri/AGENTS.md` - Rust backend, IPC commands
+## Beads Workflow Integration
+
+This project uses [beads_viewer](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
+
+### Essential Commands
+
+```bash
+# View issues (launches TUI - avoid in automated sessions)
+bv
+
+# CLI commands for agents (use these instead)
+bd ready              # Show issues ready to work (no blockers)
+bd list --status=open # All open issues
+bd show <id>          # Full issue details with dependencies
+bd create --title="..." --type=task --priority=2
+bd update <id> --status=in_progress
+bd close <id> --reason="Completed"
+bd close <id1> <id2>  # Close multiple issues at once
+bd sync               # Commit and push changes
+```
+
+### Workflow Pattern
+
+1. **Start**: Run `bd ready` to find actionable work
+2. **Claim**: Use `bd update <id> --status=in_progress`
+3. **Work**: Implement the task
+4. **Complete**: Use `bd close <id>`
+5. **Sync**: Always run `bd sync` at session end
+
+### Key Concepts
+
+- **Dependencies**: Issues can block other issues. `bd ready` shows only unblocked work.
+- **Priority**: P0=critical, P1=high, P2=medium, P3=low, P4=backlog (use numbers, not words)
+- **Types**: task, bug, feature, epic, question, docs
+- **Blocking**: `bd dep add <issue> <depends-on>` to add dependencies
+
+### Session Protocol
+
+**Before ending any session, run this checklist:**
+
+```bash
+git status              # Check what changed
+git add <files>         # Stage code changes
+bd sync                 # Commit beads changes
+git commit -m "..."     # Commit code
+bd sync                 # Commit any new beads changes
+git push                # Push to remote
+```
+
+### Best Practices
+
+- Check `bd ready` at session start to find available work
+- Update status as you work (in_progress → closed)
+- Create new issues with `bd create` when you discover tasks
+- Use descriptive titles and set appropriate priority/type
+- Always `bd sync` before ending session
+
+<!-- end-bv-agent-instructions -->
+
+## Landing the Plane (Session Completion)
+
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+
+**MANDATORY WORKFLOW:**
+
+1. **File issues for remaining work** - Create issues for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   bd sync
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
+
+**CRITICAL RULES:**
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds

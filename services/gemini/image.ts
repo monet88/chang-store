@@ -87,6 +87,11 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
             throw new Error('error.api.safetyBlock');
         }
 
+        if (finishReason === 'NO_IMAGE') {
+            console.error("Model could not generate an image. This can happen with complex edits or certain image content.");
+            throw new Error('error.api.noImageGenerated');
+        }
+
         const content = candidate.content;
         
         if (content?.parts && content.parts.length > 0) {

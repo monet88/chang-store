@@ -1,19 +1,93 @@
-# CLAUDE.md - Chang-Store Project Guide
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with dual AI backends (Google Gemini, AIVideoAuto).
+AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with dual AI backends (Google Gemini, AIVideoAuto). Desktop app via Tauri 2.
 
-## Quick Reference
+## Commands
 
 ```bash
-npm run dev      # Dev server @ localhost:3000
-npm run build    # Production build
-npm run test     # Vitest
-npm run lint     # ESLint
+# Web Development
+npm run dev           # Dev server @ localhost:3000
+npm run build         # Production build
+npm run lint          # ESLint
+npm run test          # Vitest
+npm run test -- --coverage  # With coverage
+npm run test:ui       # Vitest UI
+
+# Desktop (Tauri)
+npm run tauri:dev     # Desktop app with hot reload
+npm run tauri:build   # Build installers (.exe, .msi)
 ```
 
-## Architecture Pattern
+## Issue Tracking (Beads)
+
+<!-- bv-agent-instructions-v1 -->
+
+---
+
+## Beads Workflow Integration
+
+This project uses [beads_viewer](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
+
+### Essential Commands
+
+```bash
+# View issues (launches TUI - avoid in automated sessions)
+bv
+
+# CLI commands for agents (use these instead)
+bd ready              # Show issues ready to work (no blockers)
+bd list --status=open # All open issues
+bd show <id>          # Full issue details with dependencies
+bd create --title="..." --type=task --priority=2
+bd update <id> --status=in_progress
+bd close <id> --reason="Completed"
+bd close <id1> <id2>  # Close multiple issues at once
+bd sync               # Commit and push changes
+```
+
+### Workflow Pattern
+
+1. **Start**: Run `bd ready` to find actionable work
+2. **Claim**: Use `bd update <id> --status=in_progress`
+3. **Work**: Implement the task
+4. **Complete**: Use `bd close <id>`
+5. **Sync**: Always run `bd sync` at session end
+
+### Key Concepts
+
+- **Dependencies**: Issues can block other issues. `bd ready` shows only unblocked work.
+- **Priority**: P0=critical, P1=high, P2=medium, P3=low, P4=backlog (use numbers, not words)
+- **Types**: task, bug, feature, epic, question, docs
+- **Blocking**: `bd dep add <issue> <depends-on>` to add dependencies
+
+### Session Protocol
+
+**Before ending any session, run this checklist:**
+
+```bash
+git status              # Check what changed
+git add <files>         # Stage code changes
+bd sync                 # Commit beads changes
+git commit -m "..."     # Commit code
+bd sync                 # Commit any new beads changes
+git push                # Push to remote
+```
+
+### Best Practices
+
+- Check `bd ready` at session start to find available work
+- Update status as you work (in_progress → closed)
+- Create new issues with `bd create` when you discover tasks
+- Use descriptive titles and set appropriate priority/type
+- Always `bd sync` before ending session
+
+<!-- end-bv-agent-instructions -->
+
+## Architecture
 
 ```
 Component (UI) → Hook (Logic) → Service (API Facade) → External APIs
@@ -29,100 +103,61 @@ LanguageProvider → ApiProvider → ImageGalleryProvider → ImageViewerProvide
 | Directory | Purpose |
 |-----------|---------|
 | `components/` | Feature UIs (14) + Shared (10) + Modals (5) |
-| `hooks/` | Feature-specific hooks (13) - all business logic here |
+| `hooks/` | Feature-specific hooks - all business logic |
 | `contexts/` | Global state: API keys, language, gallery, viewer |
-| `services/` | API integrations: Gemini, AIVideoAuto |
-| `services/gemini/` | image.ts, text.ts, video.ts |
-| `utils/` | imageUtils.ts (active), storage.ts (disabled) |
+| `services/` | API integrations: Gemini, AIVideoAuto, Tauri |
+| `utils/` | imageUtils.ts, lookbookPromptBuilder.ts |
 | `locales/` | i18n: en.ts (source), vi.ts |
-| `docs/` | Technical documentation |
+| `src-tauri/` | Tauri desktop app (Rust backend) |
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `App.tsx` | Provider stack + feature router |
-| `types.ts` | Shared types: ImageFile, Feature enum, AspectRatio |
-| `services/imageEditingService.ts` | Unified facade - routes to Gemini or AIVideoAuto |
+| `types.ts` | ImageFile, Feature enum, AspectRatio |
+| `services/imageEditingService.ts` | Unified facade - routes by model prefix |
 | `services/apiClient.ts` | Gemini client singleton |
 
-## Code Conventions
+## Code Patterns
 
-### Component Pattern
+### Component → Hook separation
 ```typescript
-// Feature component - thin UI layer
+// Component: thin UI
 export const FeatureName: React.FC = () => {
   const { state, handlers } = useFeatureName();
   return <UI state={state} onAction={handlers.action} />;
 };
-```
 
-### Hook Pattern
-```typescript
-// Feature hook - all logic here
+// Hook: all logic
 export function useFeatureName() {
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
-  const { getModelsForFeature } = useApi();
-
-  // State, handlers, effects
   return { state, handlers };
 }
 ```
 
 ### Service Routing
 ```typescript
-// Model prefix determines backend
 const model = "aivideoauto--model-name";  // → AIVideoAuto
 const model = "gemini-2.5-flash";          // → Gemini
 ```
 
 ## External APIs
 
-| Service | SDK/URL | Auth |
-|---------|---------|------|
-| Google Gemini | `@google/genai` | `GEMINI_API_KEY` env or Settings |
-| AIVideoAuto | `api.gommo.net/ai` | access_token in Settings |
-
-## Features (14)
-
-`try-on` `lookbook` `background` `pose` `swap-face` `photo-album` `outfit-analysis` `relight` `upscale` `image-editor` `video` `video-continuity` `inpainting` `grwm-video`
+| Service | Auth |
+|---------|------|
+| Google Gemini (`@google/genai`) | `GEMINI_API_KEY` env or Settings |
+| AIVideoAuto (`api.gommo.net/ai`) | access_token in Settings |
 
 ## i18n
 
 - Source: `locales/en.ts` (exports `Translation` type)
-- Vietnamese: `locales/vi.ts` (implements `Translation`)
 - Usage: `const { t } = useLanguage(); t('key.path')`
-
-## Error Handling
-
-```typescript
-import { getErrorMessage } from '@/utils/imageUtils';
-catch (err) {
-  setError(getErrorMessage(err, t));
-}
-```
-
-## Types
-
-```typescript
-interface ImageFile { base64: string; mimeType: string; }
-type AspectRatio = 'Default' | '1:1' | '9:16' | '16:9' | '4:3' | '3:4';
-enum Feature { TryOn = 'try-on', Lookbook = 'lookbook', ... }
-```
 
 ## Development Notes
 
-- Local storage persistence is **disabled** (stubbed in `utils/storage.ts`)
+- Local storage persistence **disabled** (stubbed in `utils/storage.ts`)
 - Images stored in-memory via `ImageGalleryContext` (session only)
-- All generated images go through `addImage()` from gallery context
-- Upscale targets 2K resolution
-- Video generation uses polling pattern (Gemini: indefinite, AIVideoAuto: 10min max)
-
-## Documentation
-
-See `docs/` for detailed documentation:
-- `project-overview-pdr.md` - Vision, requirements
-- `codebase-summary.md` - Structure, modules
-- `code-standards.md` - Conventions, patterns
-- `system-architecture.md` - Architecture diagrams
+- Generated images go through `addImage()` from gallery context
+- Video generation uses polling (Gemini: indefinite, AIVideoAuto: 10min max)

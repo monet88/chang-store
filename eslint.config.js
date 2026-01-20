@@ -7,7 +7,17 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'src-tauri/target/**',
+      'coverage/**',
+      '*.local',
+      '.vscode/**',
+      '.idea/**',
+      '*.log',
+      '*.tsbuildinfo',
+    ],
   },
   js.configs.recommended,
   {
