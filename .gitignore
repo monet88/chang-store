@@ -36,6 +36,9 @@ test-*.mjs
 # Claude context cache
 .claude/context/
 
+# Git worktrees (local)
+.worktrees/
+
 # Tauri build artifacts
 src-tauri/target/
 
