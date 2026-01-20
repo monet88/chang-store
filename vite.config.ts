@@ -17,7 +17,6 @@ export default defineConfig(({ mode }) => {
             '**/dist/**',
             '**/coverage/**',
             '**/.beads/**',
-            '**/src-tauri/target/**',
           ],
         },
       },
@@ -32,7 +31,6 @@ export default defineConfig(({ mode }) => {
           'axios',
           'lodash-es', // Tree-shakeable ES modules version
         ],
-        exclude: ['@tauri-apps/api', '@tauri-apps/plugin-dialog', '@tauri-apps/plugin-fs'],
         // Force dependency re-optimization on config changes
         force: false,
         // Enable esbuild optimization for dependencies
