@@ -6,7 +6,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '../services/imageEditingService';
-import { analyzeOutfit } from '../services/gemini/text';
+import { analyzeOutfit } from '../services/textService';
 import { RedesignPreset } from '../services/gemini/image';
 import { getErrorMessage } from '../utils/imageUtils';
 

@@ -31,7 +31,7 @@ const MENTION_REGEX = /@img(\d+)/g;
  */
 const AIEditor: React.FC = () => {
   const { t } = useLanguage();
-  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
+  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.AIEditor);
 
   // State
@@ -148,6 +148,8 @@ Return the final edited image.`;
           onStatusUpdate: () => {},
           aivideoautoAccessToken,
           aivideoautoImageModels,
+          localApiBaseUrl,
+          localApiKey,
         }
       );
 

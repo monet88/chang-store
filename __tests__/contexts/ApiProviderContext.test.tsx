@@ -106,6 +106,8 @@ describe('ApiProviderContext', () => {
 
       expect(result.current).toBeDefined();
       expect(typeof result.current.setGoogleApiKey).toBe('function');
+      expect(typeof result.current.setLocalApiBaseUrl).toBe('function');
+      expect(typeof result.current.setLocalApiKey).toBe('function');
       expect(typeof result.current.setAivideoautoAccessToken).toBe('function');
       expect(typeof result.current.getModelsForFeature).toBe('function');
     });
@@ -129,6 +131,8 @@ describe('ApiProviderContext', () => {
       });
 
       expect(result.current.googleApiKey).toBeNull();
+      expect(result.current.localApiBaseUrl).toBeNull();
+      expect(result.current.localApiKey).toBeNull();
       expect(result.current.aivideoautoAccessToken).toBeNull();
     });
 
@@ -150,6 +154,72 @@ describe('ApiProviderContext', () => {
 
       expect(localStorageMock.getItem).toHaveBeenCalledWith('google_api_key');
       expect(result.current.googleApiKey).toBe('stored-api-key');
+    });
+  });
+
+  describe('local provider storage', () => {
+    it('loads local provider config from localStorage on mount', () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'local_provider_base_url') return 'http://localhost:8317';
+        if (key === 'local_provider_api_key') return 'proxypal-local';
+        return null;
+      });
+
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('local_provider_base_url');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('local_provider_api_key');
+      expect(result.current.localApiBaseUrl).toBe('http://localhost:8317');
+      expect(result.current.localApiKey).toBe('proxypal-local');
+    });
+
+    it('persists local provider base URL to localStorage', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setLocalApiBaseUrl('http://localhost:8317');
+      });
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('local_provider_base_url', 'http://localhost:8317');
+      expect(result.current.localApiBaseUrl).toBe('http://localhost:8317');
+    });
+
+    it('persists local provider API key to localStorage', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setLocalApiKey('proxypal-local');
+      });
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('local_provider_api_key', 'proxypal-local');
+      expect(result.current.localApiKey).toBe('proxypal-local');
+    });
+
+    it('removes local provider values when setting null', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setLocalApiBaseUrl('http://localhost:8317');
+        result.current.setLocalApiKey('proxypal-local');
+      });
+
+      act(() => {
+        result.current.setLocalApiBaseUrl(null);
+        result.current.setLocalApiKey(null);
+      });
+
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('local_provider_base_url');
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('local_provider_api_key');
+      expect(result.current.localApiBaseUrl).toBeNull();
+      expect(result.current.localApiKey).toBeNull();
     });
   });
 

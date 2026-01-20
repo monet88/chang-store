@@ -5,6 +5,10 @@ import { setGeminiApiKey } from '../services/apiClient';
 interface ApiContextType {
   googleApiKey: string | null;
   setGoogleApiKey: (key: string | null) => void;
+  localApiBaseUrl: string | null;
+  setLocalApiBaseUrl: (url: string | null) => void;
+  localApiKey: string | null;
+  setLocalApiKey: (key: string | null) => void;
   aivideoautoAccessToken: string | null;
   setAivideoautoAccessToken: (key: string | null) => void;
   aivideoautoImageModels: AIVideoAutoModel[];
@@ -30,8 +34,16 @@ interface ApiContextType {
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
 
 export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const LOCAL_BASE_URL_KEY = 'local_provider_base_url';
+  const LOCAL_API_KEY = 'local_provider_api_key';
   const [googleApiKey, setGoogleApiKeyState] = useState<string | null>(() => {
       return typeof localStorage !== 'undefined' ? localStorage.getItem('google_api_key') : null;
+  });
+  const [localApiBaseUrl, setLocalApiBaseUrlState] = useState<string | null>(() => {
+      return typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_BASE_URL_KEY) : null;
+  });
+  const [localApiKey, setLocalApiKeyState] = useState<string | null>(() => {
+      return typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_API_KEY) : null;
   });
   const [aivideoautoAccessToken, setAivideoautoAccessTokenState] = useState<string | null>(null);
 
@@ -57,6 +69,24 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         localStorage.setItem('google_api_key', key);
     } else {
         localStorage.removeItem('google_api_key');
+    }
+  };
+
+  const setLocalApiBaseUrl = (url: string | null) => {
+    setLocalApiBaseUrlState(url);
+    if (url) {
+        localStorage.setItem(LOCAL_BASE_URL_KEY, url);
+    } else {
+        localStorage.removeItem(LOCAL_BASE_URL_KEY);
+    }
+  };
+
+  const setLocalApiKey = (key: string | null) => {
+    setLocalApiKeyState(key);
+    if (key) {
+        localStorage.setItem(LOCAL_API_KEY, key);
+    } else {
+        localStorage.removeItem(LOCAL_API_KEY);
     }
   };
 
@@ -114,6 +144,8 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <ApiContext.Provider value={{
         googleApiKey, setGoogleApiKey,
+        localApiBaseUrl, setLocalApiBaseUrl,
+        localApiKey, setLocalApiKey,
         aivideoautoAccessToken, setAivideoautoAccessToken,
         aivideoautoImageModels, setAivideoautoImageModels,
         aivideoautoVideoModels, setAivideoautoVideoModels,

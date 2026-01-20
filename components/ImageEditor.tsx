@@ -564,11 +564,13 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
     // FIX: Ensure AIVideoAuto credentials are available for service calls.
-    const { imageEditModel, imageGenerateModel, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
+    const { imageEditModel, imageGenerateModel, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey } = useApi();
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
         aivideoautoAccessToken,
         aivideoautoImageModels,
+        localApiBaseUrl,
+        localApiKey,
     });
 
     const [view, setView] = useState<'launcher' | 'editor'>(initialImage ? 'editor' : 'launcher');

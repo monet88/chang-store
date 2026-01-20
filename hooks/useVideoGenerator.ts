@@ -9,7 +9,7 @@ import { useApi } from '../contexts/ApiProviderContext';
 import { generateVideo } from '../services/imageEditingService';
 // FIX: `analyzeScene` is in the `text` service, not `video`.
 import { enforceVisualPreservation, generateVideoSceneSuggestions, enhanceSceneDescription } from '../services/gemini/video';
-import { analyzeScene } from '../services/gemini/text';
+import { analyzeScene } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
 import { getActiveApiKey } from '../services/apiClient';
 

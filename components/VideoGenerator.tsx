@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Feature, ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { analyzeScene } from '../services/gemini/text';
+import { analyzeScene } from '../services/textService';
 import { enforceVisualPreservation, fuseStyleForCompactPrompt, generateVideoSceneSuggestions, enhanceSceneDescription } from '../services/gemini/video';
 import { generateVideo } from '../services/imageEditingService';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -71,7 +71,7 @@ const STYLE_PRESETS = {
 
 export const VideoGenerator: React.FC = () => {
     const { t, language } = useLanguage();
-    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoVideoModels } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoVideoModels, localApiBaseUrl, localApiKey, textGenerateModel } = useApi();
     const { videoGenerateModel } = getModelsForFeature(Feature.Video);
 
     const [faceImage, setFaceImage] = useState<ImageFile | null>(null);
@@ -133,7 +133,7 @@ export const VideoGenerator: React.FC = () => {
         setIsLoading(true);
         setLoadingMessage(t('videoAI.status.generatingPrompt'));
         try {
-            const baseDescription = await analyzeScene(faceImage!);
+            const baseDescription = await analyzeScene(faceImage!, textGenerateModel, { localApiBaseUrl, localApiKey });
             const enhanced = await enhanceSceneDescription(baseDescription);
             setSceneDescription(enhanced);
         } catch (err) {

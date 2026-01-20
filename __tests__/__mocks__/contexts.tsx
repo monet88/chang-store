@@ -44,6 +44,10 @@ interface ImageGalleryContextType {
 interface ApiContextType {
   googleApiKey: string | null;
   setGoogleApiKey: ReturnType<typeof vi.fn>;
+  localApiBaseUrl: string | null;
+  setLocalApiBaseUrl: ReturnType<typeof vi.fn>;
+  localApiKey: string | null;
+  setLocalApiKey: ReturnType<typeof vi.fn>;
   aivideoautoAccessToken: string | null;
   setAivideoautoAccessToken: ReturnType<typeof vi.fn>;
   aivideoautoImageModels: Array<{ id_base: string; model: string; name: string }>;
@@ -150,6 +154,10 @@ export const mockUseApi = (
   const defaults: ApiContextType = {
     googleApiKey: null,
     setGoogleApiKey: vi.fn(),
+    localApiBaseUrl: null,
+    setLocalApiBaseUrl: vi.fn(),
+    localApiKey: null,
+    setLocalApiKey: vi.fn(),
     aivideoautoAccessToken: null,
     setAivideoautoAccessToken: vi.fn(),
     aivideoautoImageModels: [],

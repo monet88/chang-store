@@ -39,8 +39,8 @@ vi.mock('../../services/imageEditingService', () => ({
   createImageChatSession: vi.fn(),
 }));
 
-/** Mock generateClothingDescription from gemini/text */
-vi.mock('../../services/gemini/text', () => ({
+/** Mock generateClothingDescription from textService */
+vi.mock('../../services/textService', () => ({
   generateClothingDescription: vi.fn(),
 }));
 
@@ -70,7 +70,7 @@ vi.mock('../../components/LookbookGenerator.prompts', () => ({
 // Import hook and mocked services after mocking
 import { useLookbookGenerator } from '../../hooks/useLookbookGenerator';
 import { editImage, upscaleImage } from '../../services/imageEditingService';
-import { generateClothingDescription } from '../../services/gemini/text';
+import { generateClothingDescription } from '../../services/textService';
 
 // ============================================================================
 // Test Constants
@@ -303,7 +303,11 @@ describe('useLookbookGenerator', () => {
         await result.current.handleGenerateDescription();
       });
 
-      expect(generateClothingDescription).toHaveBeenCalledWith(TEST_CLOTHING_IMAGE);
+      expect(generateClothingDescription).toHaveBeenCalledWith(
+        TEST_CLOTHING_IMAGE,
+        'gemini-2.5-pro',
+        { localApiBaseUrl: null, localApiKey: null }
+      );
       expect(result.current.formState.clothingDescription).toBe('A beautiful red dress');
       expect(result.current.isGeneratingDescription).toBe(false);
     });
@@ -458,7 +462,7 @@ describe('useLookbookGenerator', () => {
     it('should show loading state during generation', async () => {
       let resolvePromise: (value: ImageFile[]) => void;
       vi.mocked(editImage).mockImplementation(
-        () => new Promise((resolve) => { resolvePromise = resolve; })
+        () => new Promise<ImageFile[]>((resolve) => { resolvePromise = resolve; })
       );
       const { result } = renderHook(() => useLookbookGenerator());
 
