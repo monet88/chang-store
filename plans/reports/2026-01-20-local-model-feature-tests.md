@@ -1,7 +1,7 @@
 # Local Model Feature Test Report (2026-01-20)
 
 **Local provider:** `https://proxypal.azacc.store`  
-**API key:** `proxypal-local`  
+**API key:** `<LOCAL_PROVIDER_API_KEY>`  
 **Models:** `gemini-3-pro-preview` (text), `gemini-3-pro-image-preview` (image)
 
 ## Automated Smoke Tests (gemini-style)
@@ -9,7 +9,7 @@
 Command:
 ```bash
 LOCAL_PROVIDER_URL="https://proxypal.azacc.store" \
-LOCAL_PROVIDER_API_KEY="proxypal-local" \
+LOCAL_PROVIDER_API_KEY="<LOCAL_PROVIDER_API_KEY>" \
 LOCAL_SMOKE_SAVE_IMAGES="true" \
 LOCAL_SMOKE_OUTPUT_DIR="scripts/local-feature-smoke-output-proxypal" \
 LOCAL_SMOKE_IMAGE="__tests__/images-test/D15-2.jpg" \
@@ -37,7 +37,7 @@ Outputs:
 Command (sample):
 ```bash
 LOCAL_PROVIDER_URL="http://localhost:8317" \
-LOCAL_PROVIDER_API_KEY="proxypal-local" \
+LOCAL_PROVIDER_API_KEY="<LOCAL_PROVIDER_API_KEY>" \
 LOCAL_IMAGE_MODEL_ID="gemini-3-pro-image-preview" \
 node -e "<ratio+size test script>"
 ```
