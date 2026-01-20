@@ -11,13 +11,11 @@ Chang-Store/
 │   └── [Feature].tsx    # Feature components
 ├── contexts/            # React Context providers (4 files)
 ├── hooks/               # Custom hooks per feature (13 files)
-├── services/            # API service layer (8 files)
-│   ├── gemini/          # Gemini-specific services
-│   └── tauriService.ts  # Desktop native features bridge
+├── services/            # API service layer (7 files)
+│   └── gemini/          # Gemini-specific services
 ├── locales/             # i18n translations (2 files)
 ├── utils/               # Utility functions (3 files)
 │   └── lookbookPromptBuilder.ts  # Pure prompt generation functions
-├── src-tauri/           # Tauri desktop app (Rust backend)
 ├── App.tsx              # Root component with provider stack
 ├── index.tsx            # Entry point
 └── types.ts             # Shared TypeScript definitions
@@ -57,7 +55,6 @@ Chang-Store/
 | `services/gemini/text.ts` | Gemini text generation |
 | `services/gemini/video.ts` | Gemini video generation (Veo) |
 | `services/aivideoautoService.ts` | AIVideoAuto API integration |
-| `services/tauriService.ts` | Tauri desktop native features bridge |
 | `utils/lookbookPromptBuilder.ts` | Pure functions for lookbook prompt generation |
 
 ### 2.5 Feature Components

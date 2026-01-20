@@ -12,7 +12,6 @@ services/
 ├── apiClient.ts            # Gemini client singleton
 ├── geminiService.ts        # Gemini direct calls
 ├── aivideoautoService.ts   # AIVideoAuto API calls
-├── tauriService.ts         # Desktop IPC bridge
 ├── googleDriveService.ts   # Cloud storage (optional)
 └── gemini/
     ├── image.ts            # Image generation prompts
@@ -27,7 +26,6 @@ services/
 | Add AI feature | `imageEditingService.ts` | Add to routing switch |
 | Modify prompts | `gemini/image.ts` or `gemini/text.ts` | Prompt templates |
 | Video generation | `gemini/video.ts` | Complex polling logic |
-| Desktop save | `tauriService.ts` | IPC to Rust backend |
 | API client config | `apiClient.ts` | Gemini SDK setup |
 
 ## MODEL ROUTING

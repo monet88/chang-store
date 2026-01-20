@@ -5,10 +5,9 @@
 [![Coverage](https://img.shields.io/badge/coverage-53%25-yellow)](.)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev/)
-[![Tauri](https://img.shields.io/badge/Tauri-2-ffc131)](https://tauri.app/)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-AI-powered virtual fashion studio built with React + TypeScript (Vite). It combines virtual try-on, lookbook generation, intelligent editing tools, and AI video creation in a single SPA. Now available as a **Windows desktop application** via Tauri!
+AI-powered virtual fashion studio built with React + TypeScript (Vite). It combines virtual try-on, lookbook generation, intelligent editing tools, and AI video creation in a single SPA.
 
 ---
 
@@ -19,11 +18,8 @@ AI-powered virtual fashion studio built with React + TypeScript (Vite). It combi
 git clone <repo-url> && cd chang-store
 npm install
 
-# Web development
+# Development
 npm run dev              # http://localhost:3000
-
-# Desktop development (requires Rust)
-npm run tauri:dev        # Launches desktop app with hot reload
 ```
 
 > **API Keys**: Click the settings gear in the app to add your Gemini API key (required). Other keys are optional.
@@ -49,7 +45,6 @@ npm run tauri:dev        # Launches desktop app with hot reload
 | Category | Technology |
 |----------|------------|
 | Frontend | React 19, TypeScript 5.8, Vite 6 |
-| Desktop | Tauri 2 (Windows .exe/.msi) |
 | Styling | Tailwind CSS 4 |
 | State | Context API (language, API keys, gallery, viewer) |
 | HTTP | Axios, Google Gemini client |
@@ -61,24 +56,14 @@ npm run tauri:dev        # Launches desktop app with hot reload
 ## Prerequisites
 
 - **Node.js** 18.17+ and npm
-- **Rust toolchain** (for desktop build) - install via [rustup.rs](https://rustup.rs/)
 
 ---
 
 ## Setup
 
-### Web Development
-
 ```bash
 npm install
 npm run dev  # dev server on http://localhost:3000
-```
-
-### Desktop Development (Tauri)
-
-```bash
-npm install
-npm run tauri:dev  # launches desktop app with hot reload
 ```
 
 ### Environment Variables
@@ -95,8 +80,6 @@ Or paste keys in the Settings modal; they persist in localStorage.
 
 ## Scripts
 
-### Web
-
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start Vite dev server with HMR (port 3000) |
@@ -105,43 +88,6 @@ Or paste keys in the Settings modal; they persist in localStorage.
 | `npm run lint` | ESLint across .ts/.tsx |
 | `npm run test` | Vitest in run mode |
 | `npm run test:ui` | Vitest UI (browser runner) |
-
-### Desktop (Tauri)
-
-| Command | Description |
-|---------|-------------|
-| `npm run tauri:dev` | Launch desktop app with hot reload |
-| `npm run tauri:build` | Build production installers (.exe, .msi) |
-| `npm run tauri:icon` | Generate app icons from source image |
-
----
-
-## Desktop App Features
-
-When running as a desktop app via Tauri, additional native features are available:
-
-- **File System Access**: Save generated images directly to local folders
-- **System Tray**: Minimize to tray, quick access menu
-- **Desktop Notifications**: Get notified when generation completes
-- **Native Dialogs**: Open/Save file dialogs
-
-### Building Desktop Installers
-
-```bash
-npm run tauri:build
-```
-
-Output locations:
-- `src-tauri/target/release/bundle/nsis/` - NSIS installer (.exe)
-- `src-tauri/target/release/bundle/msi/` - MSI installer
-
-### Custom App Icon
-
-Replace `src-tauri/app-icon.png` with your 1024x1024 PNG logo, then:
-
-```bash
-npm run tauri:icon
-```
 
 ---
 
@@ -152,12 +98,11 @@ chang-store/
 ├── App.tsx              # Provider stack & feature switching
 ├── components/          # Feature UIs (VirtualTryOn, LookbookGenerator, etc.)
 ├── contexts/            # Global state (API keys, language, gallery, viewer)
-├── services/            # AI integrations (gemini, aivideoauto, tauri)
+├── services/            # AI integrations (gemini, aivideoauto)
 ├── hooks/               # Feature-specific hooks
 ├── utils/               # Utility functions (prompts, images, storage)
 ├── locales/             # i18n strings (en, vi)
 ├── types.ts             # Shared enums and types
-├── src-tauri/           # Tauri desktop app (Rust backend, config, icons)
 └── vite.config.ts       # Vite config, @/ alias, server settings
 ```
 
@@ -167,7 +112,7 @@ chang-store/
 
 1. Open the app and click the settings gear to add your keys (Gemini required; others optional)
 2. Pick a feature from the left tabs; each tool shows the required inputs (uploads, prompts, poses, aspect ratio)
-3. Generated items are saved to the gallery. In desktop mode, you can also save directly to local files.
+3. Generated items are saved to the gallery.
 
 ---
 
@@ -217,8 +162,7 @@ Detailed documentation is available in `docs/`:
 ## Known Limitations
 
 - API keys live in the client; avoid production secrets
-- **Web mode**: Generated assets stored in browser localStorage (size-limited)
-- **Desktop mode**: Full file system access available
+- Generated assets stored in browser localStorage (size-limited)
 - No React error boundary; failures surface per feature UI
 
 ---

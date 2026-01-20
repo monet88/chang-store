@@ -5,7 +5,7 @@
 
 ## 1. Vision Statement
 
-Chang-Store is an AI-powered virtual fashion studio that empowers users to visualize, create, and transform fashion content through generative AI. Now available as both a web application and a native **Tauri-powered desktop application**, the platform bridges the gap between imagination and visualization for fashion enthusiasts, content creators, and e-commerce businesses.
+Chang-Store is an AI-powered virtual fashion studio that empowers users to visualize, create, and transform fashion content through generative AI. The platform bridges the gap between imagination and visualization for fashion enthusiasts, content creators, and e-commerce businesses.
 
 ## 2. Target Users
 
@@ -56,7 +56,6 @@ Chang-Store is an AI-powered virtual fashion studio that empowers users to visua
 | Layer | Technology |
 |-------|------------|
 | Framework | React 19.1.1 |
-| Desktop Wrapper | Tauri 2.0 (Rust) |
 | Language | TypeScript 5.8 |
 | Build Tool | Vite 6.2 |
 | AI SDK | @google/genai ^1.17.0 |
