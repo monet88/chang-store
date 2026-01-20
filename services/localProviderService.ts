@@ -7,6 +7,7 @@ export interface LocalProviderConfig {
 
 const DEFAULT_IMAGE_SIZE = '1024x1024';
 const DEFAULT_ASPECT_RATIO = '1:1';
+const DEFAULT_IMAGE_RESOLUTION = '1K';
 
 type InlineData = {
   data?: string;
@@ -132,6 +133,23 @@ function mapSizeToAspectRatio(size: string): string {
   return closest.value;
 }
 
+function mapSizeToImageSize(size: string): string {
+  const [widthStr, heightStr] = size.split('x');
+  const width = Number(widthStr);
+  const height = Number(heightStr);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return DEFAULT_IMAGE_RESOLUTION;
+  }
+  const maxDimension = Math.max(width, height);
+  if (maxDimension <= 1536) {
+    return '1K';
+  }
+  if (maxDimension <= 3072) {
+    return '2K';
+  }
+  return '4K';
+}
+
 export async function generateTextLocal(
   prompt: string,
   model: string,
@@ -202,7 +220,10 @@ export async function generateImageLocal(
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         responseModalities: ['IMAGE'],
-        imageConfig: { aspectRatio: mapSizeToAspectRatio(size) },
+        imageConfig: {
+          aspectRatio: mapSizeToAspectRatio(size),
+          imageSize: mapSizeToImageSize(size),
+        },
       },
     });
 
@@ -238,7 +259,10 @@ export async function editImageLocal(
       }],
       generationConfig: {
         responseModalities: ['IMAGE'],
-        imageConfig: { aspectRatio: mapSizeToAspectRatio(size) },
+        imageConfig: {
+          aspectRatio: mapSizeToAspectRatio(size),
+          imageSize: mapSizeToImageSize(size),
+        },
       },
     });
 
