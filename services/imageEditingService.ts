@@ -255,19 +255,51 @@ export const critiqueAndRedesignOutfit = async (
   aspectRatio: AspectRatio = 'Default',
   resolution?: ImageResolution
 ): Promise<{ critique: string; redesignedImages: ImageFile[] }> => {
+    const startTime = Date.now();
+    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
     const fullPrompt = geminiImageService.PRESET_PROMPTS[preset];
-    const params: EditImageParams = { images: [image], prompt: fullPrompt, numberOfImages, aspectRatio, resolution };
-    const critiquePrompt = `You are a professional fashion stylist. Based on the provided image, generate ONLY the text critique part of the following instruction. DO NOT generate an image or mention that you will. ONLY provide the text. \n\nINSTRUCTION:\n${fullPrompt}`;
 
-    if (isLocalModel(model)) {
-        if (!config.localApiBaseUrl) throw new Error('error.api.localProviderFailed');
-        config.onStatusUpdate('Generating critique with local provider...');
-        const critique = await generateTextLocal(critiquePrompt, stripLocalPrefix(model), buildLocalConfig(config));
-        const redesignedImages = await editImage(params, model, config);
-        return { critique, redesignedImages };
+    try {
+        let result: { critique: string; redesignedImages: ImageFile[] };
+
+        if (isLocalModel(model)) {
+            if (!config.localApiBaseUrl) throw new Error('error.api.localProviderFailed');
+            const critiquePrompt = `You are a professional fashion stylist. Based on the provided image, generate ONLY the text critique part of the following instruction. DO NOT generate an image or mention that you will. ONLY provide the text. \n\nINSTRUCTION:\n${fullPrompt}`;
+            config.onStatusUpdate('Generating critique with local provider...');
+            const critique = await generateTextLocal(critiquePrompt, stripLocalPrefix(model), buildLocalConfig(config));
+            const params: EditImageParams = { images: [image], prompt: fullPrompt, numberOfImages, aspectRatio, resolution };
+            const redesignedImages = await editImage(params, model, config);
+            result = { critique, redesignedImages };
+        } else {
+            result = await geminiImageService.critiqueAndRedesignOutfit(image, preset, numberOfImages, model, aspectRatio, resolution);
+        }
+
+        const responseSize = result.critique.length +
+            result.redesignedImages.reduce((sum, img) => sum + img.base64.length * 0.75, 0);
+
+        logApiCall({
+            provider,
+            model,
+            feature: 'Outfit Redesign',
+            prompt: fullPrompt,
+            duration: Date.now() - startTime,
+            status: 'success',
+            responseSize,
+        });
+
+        return result;
+    } catch (error) {
+        logApiCall({
+            provider,
+            model,
+            feature: 'Outfit Redesign',
+            prompt: fullPrompt,
+            duration: Date.now() - startTime,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
     }
-
-    return geminiImageService.critiqueAndRedesignOutfit(image, preset, numberOfImages, model, aspectRatio, resolution);
 };
 
 export const recreateImageWithFace = async (
