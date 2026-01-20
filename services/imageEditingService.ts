@@ -108,19 +108,50 @@ export const generateImage = async (
     model: ImageGenerateModel,
     config: ApiConfig
 ): Promise<ImageFile[]> => {
-    if (isLocalModel(model)) {
-        if (!config.localApiBaseUrl) throw new Error('error.api.localProviderFailed');
-        const size = buildLocalSize(aspectRatio, DEFAULT_IMAGE_RESOLUTION);
-        const localModel = stripLocalPrefix(model);
-        const localConfig = buildLocalConfig(config);
-        const count = numberOfImages || 1;
-        return Promise.all(
-            Array.from({ length: count }).map(() =>
-                generateImageLocal(prompt, localModel, localConfig, size)
-            )
-        );
+    const startTime = Date.now();
+    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+
+    try {
+        let result: ImageFile[];
+
+        if (isLocalModel(model)) {
+            if (!config.localApiBaseUrl) throw new Error('error.api.localProviderFailed');
+            const size = buildLocalSize(aspectRatio, DEFAULT_IMAGE_RESOLUTION);
+            const localModel = stripLocalPrefix(model);
+            const localConfig = buildLocalConfig(config);
+            const count = numberOfImages || 1;
+            result = await Promise.all(
+                Array.from({ length: count }).map(() =>
+                    generateImageLocal(prompt, localModel, localConfig, size)
+                )
+            );
+        } else {
+            result = await geminiImageService.generateImageFromText(prompt, aspectRatio, numberOfImages, model);
+        }
+
+        logApiCall({
+            provider,
+            model,
+            feature: 'Image Generate',
+            prompt,
+            duration: Date.now() - startTime,
+            status: 'success',
+            responseSize: result.reduce((sum, img) => sum + img.base64.length * 0.75, 0),
+        });
+
+        return result;
+    } catch (error) {
+        logApiCall({
+            provider,
+            model,
+            feature: 'Image Generate',
+            prompt,
+            duration: Date.now() - startTime,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
     }
-    return geminiImageService.generateImageFromText(prompt, aspectRatio, numberOfImages, model);
 };
 
 export const upscaleImage = async (
