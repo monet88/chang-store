@@ -161,6 +161,8 @@ git commit -m "test: cover gemini-style imageSize in local provider"
 - Relight
 - Watermark Remover
 - Image Editor (edit + refine)
+- Try-On
+- Photo Album
 
 **Step 2: Manual run**
 - Set Settings → Local Provider base URL + key.
