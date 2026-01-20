@@ -3,10 +3,12 @@ import { useApi } from '../../contexts/ApiProviderContext';
 import { getLocalStorageUsage, backupData, restoreData, clearAppData } from '../../utils/storage';
 import { useImageGallery } from '../../contexts/ImageGalleryContext';
 import { listModels } from '../../services/aivideoautoService';
+import { generateTextLocal } from '../../services/localProviderService';
 import Spinner from '../Spinner';
 import { CloseIcon, CheckCircleIcon } from '../Icons';
 import { ImageEditModel, ImageGenerateModel, VideoGenerateModel, TextGenerateModel } from '../../types';
 import { GoogleDriveSettings } from '../GoogleDriveSettings';
+import { LOCAL_TEXT_MODELS, LOCAL_TEXT_MODELS_WITH_PREFIX, LOCAL_IMAGE_MODELS_WITH_PREFIX } from '../../utils/localModels';
 
 const ServiceModelSelector: React.FC<{
     label: string;
@@ -18,6 +20,7 @@ const ServiceModelSelector: React.FC<{
 
     const parseModelId = (modelId: string): { service: string, model: string } => {
         if (modelId.startsWith('aivideoauto--')) return { service: 'aivideoauto', model: modelId };
+        if (modelId.startsWith('local--')) return { service: 'local', model: modelId };
         return { service: 'google', model: modelId };
     };
     
@@ -78,6 +81,8 @@ const ServiceModelSelector: React.FC<{
 export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ isOpen, onClose }) => {
     const {
         googleApiKey, setGoogleApiKey,
+        localApiBaseUrl, setLocalApiBaseUrl,
+        localApiKey, setLocalApiKey,
         aivideoautoAccessToken, setAivideoautoAccessToken,
         aivideoautoImageModels, setAivideoautoImageModels,
         aivideoautoVideoModels, setAivideoautoVideoModels,
@@ -90,6 +95,8 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     
     // Local state for all settings
     const [localGoogleKey, setLocalGoogleKey] = useState(googleApiKey || '');
+    const [localProviderBaseUrl, setLocalProviderBaseUrl] = useState(localApiBaseUrl || '');
+    const [localProviderApiKey, setLocalProviderApiKey] = useState(localApiKey || '');
     const [localAivideoautoKey, setLocalAivideoautoKey] = useState(aivideoautoAccessToken || '');
     
     const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
@@ -100,6 +107,10 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     const [isTestingAivideoauto, setIsTestingAivideoauto] = useState(false);
     const [aivideoautoError, setAivideoautoError] = useState<string | null>(null);
     const [aivideoautoSaveSuccess, setAivideoautoSaveSuccess] = useState(false);
+
+    const [isTestingLocalProvider, setIsTestingLocalProvider] = useState(false);
+    const [localProviderError, setLocalProviderError] = useState<string | null>(null);
+    const [localProviderSaveSuccess, setLocalProviderSaveSuccess] = useState(false);
     
     const [storageUsage, setStorageUsage] = useState(0);
     const [storageQuota, setStorageQuota] = useState(200 * 1024 * 1024);
@@ -118,6 +129,8 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         
         // Sync local state with context when modal opens
         setLocalGoogleKey(googleApiKey || '');
+        setLocalProviderBaseUrl(localApiBaseUrl || '');
+        setLocalProviderApiKey(localApiKey || '');
         setLocalAivideoautoKey(aivideoautoAccessToken || '');
         setLocalImageEditModel(imageEditModel);
         setLocalImageGenerateModel(imageGenerateModel);
@@ -125,7 +138,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         setLocalTextGenerateModel(textGenerateModel);
 
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [isOpen, onClose, images, googleApiKey, aivideoautoAccessToken, imageEditModel, imageGenerateModel, videoGenerateModel, textGenerateModel]);
+    }, [isOpen, onClose, images, googleApiKey, localApiBaseUrl, localApiKey, aivideoautoAccessToken, imageEditModel, imageGenerateModel, videoGenerateModel, textGenerateModel]);
     
     if (!isOpen) return null;
 
@@ -151,10 +164,41 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
             setIsTestingAivideoauto(false);
         }
     };
+
+    const handleLocalProviderTestAndSave = async () => {
+        setIsTestingLocalProvider(true);
+        setLocalProviderError(null);
+        setLocalProviderSaveSuccess(false);
+        try {
+            const trimmedBaseUrl = localProviderBaseUrl.trim();
+            if (!trimmedBaseUrl) {
+                throw new Error('Base URL is required.');
+            }
+            const selectedLocalModel = localTextGenerateModel.startsWith('local--')
+                ? localTextGenerateModel.replace('local--', '')
+                : (LOCAL_TEXT_MODELS[0]?.id || 'gemini-3-pro-preview');
+
+            await generateTextLocal(
+                'Ping',
+                selectedLocalModel,
+                { baseUrl: trimmedBaseUrl, apiKey: localProviderApiKey.trim() || null }
+            );
+
+            setLocalApiBaseUrl(trimmedBaseUrl);
+            setLocalApiKey(localProviderApiKey.trim() || null);
+            setLocalProviderSaveSuccess(true);
+            setTimeout(() => setLocalProviderSaveSuccess(false), 2000);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+            setLocalProviderError(message);
+        } finally {
+            setIsTestingLocalProvider(false);
+        }
+    };
     
     const handleSave = () => {
         setGoogleApiKey(localGoogleKey);
-        // AIVideoAuto is saved on check
+        // Local Provider and AIVideoAuto are saved on test
 
         setImageEditModel(localImageEditModel);
         setImageGenerateModel(localImageGenerateModel);
@@ -185,13 +229,16 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     };
     
     const IMAGE_EDIT_SERVICES = [
-        { id: 'google', name: 'Google' }, { id: 'aivideoauto', name: 'AIVideoAuto' },
+        { id: 'google', name: 'Google' },
+        { id: 'local', name: 'Agy Provider' },
+        { id: 'aivideoauto', name: 'AIVideoAuto' },
     ];
     const VIDEO_GENERATE_SERVICES = [
         { id: 'google', name: 'Google' }, { id: 'aivideoauto', name: 'AIVideoAuto' },
     ];
     const TEXT_GENERATE_SERVICES = [
         { id: 'google', name: 'Google' },
+        { id: 'local', name: 'Agy Provider' },
     ];
 
     const MODELS_BY_SERVICE = {
@@ -200,6 +247,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                 { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image (Preview)' },
                 { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
             ],
+            'local': LOCAL_IMAGE_MODELS_WITH_PREFIX,
             'aivideoauto': aivideoautoImageModels.map(m => ({ id: `aivideoauto--${m.id_base}`, name: m.name })),
         },
         imageGenerate: {
@@ -208,6 +256,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                 { id: 'imagen-4.0-generate-001', name: 'Imagen 4' },
                 { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast' },
             ],
+            'local': LOCAL_IMAGE_MODELS_WITH_PREFIX,
             'aivideoauto': aivideoautoImageModels.map(m => ({ id: `aivideoauto--${m.id_base}`, name: m.name })),
         },
         videoGenerate: {
@@ -226,6 +275,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                 { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
                 { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
             ],
+            'local': LOCAL_TEXT_MODELS_WITH_PREFIX,
         },
     };
 
@@ -281,6 +331,38 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                                         </>
                                     )}
                                 </div>
+                            </div>
+                            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                <h4 className="font-semibold text-slate-200 mb-2">Agy Provider</h4>
+                                <p className="text-xs text-slate-400 mb-3">
+                                    Gemini-style local endpoint for text and image generation.
+                                </p>
+                                <div className="space-y-3">
+                                    <input
+                                        type="text"
+                                        value={localProviderBaseUrl}
+                                        onChange={e => setLocalProviderBaseUrl(e.target.value)}
+                                        placeholder="Base URL (e.g. https://proxypal.azacc.store)"
+                                        className="w-full bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm text-slate-200 placeholder-slate-500"
+                                    />
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="password"
+                                            value={localProviderApiKey}
+                                            onChange={e => setLocalProviderApiKey(e.target.value)}
+                                            placeholder="API key (e.g. proxypal-local)"
+                                            className="flex-grow bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm"
+                                        />
+                                        <button
+                                            onClick={handleLocalProviderTestAndSave}
+                                            disabled={isTestingLocalProvider || !localProviderBaseUrl.trim()}
+                                            className="bg-amber-600 text-white font-semibold px-4 py-2 rounded-md text-sm w-40 text-center disabled:bg-slate-600"
+                                        >
+                                            {isTestingLocalProvider ? <Spinner /> : localProviderSaveSuccess ? 'Saved!' : 'Test & Save'}
+                                        </button>
+                                    </div>
+                                </div>
+                                {localProviderError && <p className="text-red-400 text-xs mt-2">{`Error: ${localProviderError}`}</p>}
                             </div>
                              <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
                                 <h4 className="font-semibold text-slate-200 mb-2">AIVideoAuto API</h4>

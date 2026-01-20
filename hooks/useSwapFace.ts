@@ -6,7 +6,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { recreateImageWithFace } from '../services/imageEditingService';
-import { generateStylePromptFromImage } from '../services/gemini/text';
+import { generateStylePromptFromImage } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
 
 export const useSwapFace = () => {

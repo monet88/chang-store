@@ -131,7 +131,7 @@ Your primary task is to relight the provided source image according to the speci
 
 const Relight: React.FC = () => {
     const { t } = useLanguage();
-    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels } = useApi();
+    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Relight);
     const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
     const requireAivideoautoConfig = () => {
@@ -145,6 +145,8 @@ const Relight: React.FC = () => {
         onStatusUpdate,
         aivideoautoAccessToken,
         aivideoautoImageModels,
+        localApiBaseUrl,
+        localApiKey,
     });
 
     const [image, setImage] = useState<ImageFile | null>(null);
