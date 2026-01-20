@@ -201,19 +201,49 @@ export const upscaleImage = async (
 };
 
 export const extractOutfitItem = async (
-    image: ImageFile, 
+    image: ImageFile,
     itemDescription: string,
     model: ImageEditModel,
     config: ApiConfig
 ): Promise<ImageFile> => {
+    const startTime = Date.now();
+    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
     const prompt = `From the provided image, precisely extract only the following clothing item: "${itemDescription}". Place the extracted item on a clean, neutral, white background. The output must be only the item itself, with no other parts of the original image or person visible. Ensure the item is fully visible and not cropped.`;
-    const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
 
-    if (isLocalModel(model)) {
-        const [result] = await editImage(params, model, config);
+    try {
+        let result: ImageFile;
+
+        if (isLocalModel(model)) {
+            const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
+            const [extracted] = await editImage(params, model, config);
+            result = extracted;
+        } else {
+            result = await geminiImageService.extractOutfitItem(image, itemDescription, model);
+        }
+
+        logApiCall({
+            provider,
+            model,
+            feature: 'Extract Outfit',
+            prompt,
+            duration: Date.now() - startTime,
+            status: 'success',
+            responseSize: result.base64.length * 0.75,
+        });
+
         return result;
+    } catch (error) {
+        logApiCall({
+            provider,
+            model,
+            feature: 'Extract Outfit',
+            prompt,
+            duration: Date.now() - startTime,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw error;
     }
-    return geminiImageService.extractOutfitItem(image, itemDescription, model);
 };
 
 export const critiqueAndRedesignOutfit = async (
