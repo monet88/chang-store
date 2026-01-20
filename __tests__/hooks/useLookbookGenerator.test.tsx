@@ -458,7 +458,7 @@ describe('useLookbookGenerator', () => {
     it('should show loading state during generation', async () => {
       let resolvePromise: (value: ImageFile[]) => void;
       vi.mocked(editImage).mockImplementation(
-        () => new Promise((resolve) => { resolvePromise = resolve; })
+        () => new Promise<ImageFile[]>((resolve) => { resolvePromise = resolve; })
       );
       const { result } = renderHook(() => useLookbookGenerator());
 
