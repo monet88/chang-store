@@ -27,6 +27,10 @@ const ApiContext = createContext<ApiContextType | undefined>(undefined);
 export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const LOCAL_BASE_URL_KEY = 'local_provider_base_url';
   const LOCAL_API_KEY = 'local_provider_api_key';
+  const IMAGE_EDIT_MODEL_KEY = 'image_edit_model';
+  const IMAGE_GENERATE_MODEL_KEY = 'image_generate_model';
+  const TEXT_GENERATE_MODEL_KEY = 'text_generate_model';
+
   const [googleApiKey, setGoogleApiKeyState] = useState<string | null>(() => {
       return typeof localStorage !== 'undefined' ? localStorage.getItem('google_api_key') : null;
   });
@@ -37,9 +41,18 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_API_KEY) : null;
   });
 
-  const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>('gemini-3-pro-image-preview');
-  const [imageGenerateModel, setImageGenerateModelState] = useState<ImageGenerateModel>('imagen-4.0-generate-001');
-  const [textGenerateModel, setTextGenerateModelState] = useState<TextGenerateModel>('gemini-3-flash-preview');
+  const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
+      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(IMAGE_EDIT_MODEL_KEY) : null;
+      return saved || 'gemini-3-pro-image-preview';
+  });
+  const [imageGenerateModel, setImageGenerateModelState] = useState<ImageGenerateModel>(() => {
+      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(IMAGE_GENERATE_MODEL_KEY) : null;
+      return saved || 'imagen-4.0-generate-001';
+  });
+  const [textGenerateModel, setTextGenerateModelState] = useState<TextGenerateModel>(() => {
+      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(TEXT_GENERATE_MODEL_KEY) : null;
+      return saved || 'gemini-3-flash-preview';
+  });
 
   // Initialize Gemini client with stored key on mount
   useEffect(() => {
@@ -80,12 +93,15 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const setImageEditModel = (model: ImageEditModel) => {
     setImageEditModelState(model);
+    localStorage.setItem(IMAGE_EDIT_MODEL_KEY, model);
   };
   const setImageGenerateModel = (model: ImageGenerateModel) => {
     setImageGenerateModelState(model);
+    localStorage.setItem(IMAGE_GENERATE_MODEL_KEY, model);
   };
   const setTextGenerateModel = (model: TextGenerateModel) => {
     setTextGenerateModelState(model);
+    localStorage.setItem(TEXT_GENERATE_MODEL_KEY, model);
   };
 
   const getModelsForFeature = () => {
