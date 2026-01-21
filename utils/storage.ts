@@ -30,12 +30,12 @@ export const getLocalStorageUsage = async (): Promise<{ usage: number, quota: nu
 };
 
 export const backupData = () => {
-    alert('Data backup is disabled as the application does not use local storage.');
+    alert('Data backup is currently disabled.');
 };
 
 export const restoreData = (file: File): Promise<void> => {
     return new Promise((_, reject) => {
-        reject(new Error('Data restore is disabled as the application does not use local storage.'));
+        reject(new Error('Data restore is currently disabled.'));
     });
 };
 

@@ -6,7 +6,7 @@
  * - API key management (Google, Local)
  * - Model selection and storage
  * - Feature-based model routing logic
- * - localStorage persistence for Google API key
+ * - localStorage persistence for Google API key and model selections
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -144,6 +144,26 @@ describe('ApiProviderContext', () => {
       expect(localStorageMock.getItem).toHaveBeenCalledWith('local_provider_api_key');
       expect(result.current.localApiBaseUrl).toBe('http://localhost:8317');
       expect(result.current.localApiKey).toBe('local-key');
+    });
+
+    it('loads model selections from localStorage on mount', () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'image_edit_model') return 'gemini-2.5-flash-image';
+        if (key === 'image_generate_model') return 'custom-generate-model';
+        if (key === 'text_generate_model') return 'gemini-2.5-flash';
+        return null;
+      });
+
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('image_edit_model');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('image_generate_model');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('text_generate_model');
+      expect(result.current.imageEditModel).toBe('gemini-2.5-flash-image');
+      expect(result.current.imageGenerateModel).toBe('custom-generate-model');
+      expect(result.current.textGenerateModel).toBe('gemini-2.5-flash');
     });
   });
 
@@ -351,6 +371,22 @@ describe('ApiProviderContext', () => {
       });
 
       expect(result.current.textGenerateModel).toBe('gemini-2.5-flash');
+    });
+
+    it('persists model selections to localStorage', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setImageEditModel('local--custom-edit');
+        result.current.setImageGenerateModel('custom-generate-model');
+        result.current.setTextGenerateModel('gemini-2.5-flash');
+      });
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'local--custom-edit');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'custom-generate-model');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-2.5-flash');
     });
   });
 

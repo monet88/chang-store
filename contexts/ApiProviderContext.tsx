@@ -31,27 +31,51 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const IMAGE_GENERATE_MODEL_KEY = 'image_generate_model';
   const TEXT_GENERATE_MODEL_KEY = 'text_generate_model';
 
+  const safeStorage = {
+    getItem: (key: string) => {
+      if (typeof localStorage === 'undefined') return null;
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
+    setItem: (key: string, value: string) => {
+      if (typeof localStorage === 'undefined') return;
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // Ignore storage errors (private mode, sandbox, quota).
+      }
+    },
+    removeItem: (key: string) => {
+      if (typeof localStorage === 'undefined') return;
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        // Ignore storage errors (private mode, sandbox, quota).
+      }
+    },
+  };
+
   const [googleApiKey, setGoogleApiKeyState] = useState<string | null>(() => {
-      return typeof localStorage !== 'undefined' ? localStorage.getItem('google_api_key') : null;
+      return safeStorage.getItem('google_api_key');
   });
   const [localApiBaseUrl, setLocalApiBaseUrlState] = useState<string | null>(() => {
-      return typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_BASE_URL_KEY) : null;
+      return safeStorage.getItem(LOCAL_BASE_URL_KEY);
   });
   const [localApiKey, setLocalApiKeyState] = useState<string | null>(() => {
-      return typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_API_KEY) : null;
+      return safeStorage.getItem(LOCAL_API_KEY);
   });
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
-      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(IMAGE_EDIT_MODEL_KEY) : null;
-      return saved || 'gemini-3-pro-image-preview';
+      return safeStorage.getItem(IMAGE_EDIT_MODEL_KEY) || 'gemini-3-pro-image-preview';
   });
   const [imageGenerateModel, setImageGenerateModelState] = useState<ImageGenerateModel>(() => {
-      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(IMAGE_GENERATE_MODEL_KEY) : null;
-      return saved || 'imagen-4.0-generate-001';
+      return safeStorage.getItem(IMAGE_GENERATE_MODEL_KEY) || 'imagen-4.0-generate-001';
   });
   const [textGenerateModel, setTextGenerateModelState] = useState<TextGenerateModel>(() => {
-      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(TEXT_GENERATE_MODEL_KEY) : null;
-      return saved || 'gemini-3-flash-preview';
+      return safeStorage.getItem(TEXT_GENERATE_MODEL_KEY) || 'gemini-3-flash-preview';
   });
 
   // Initialize Gemini client with stored key on mount
@@ -65,9 +89,9 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setGoogleApiKeyState(key);
     setGeminiApiKey(key);
     if (key) {
-        localStorage.setItem('google_api_key', key);
+        safeStorage.setItem('google_api_key', key);
     } else {
-        localStorage.removeItem('google_api_key');
+        safeStorage.removeItem('google_api_key');
     }
   };
 
@@ -75,9 +99,9 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const normalized = url?.trim() ? url.trim() : null;
     setLocalApiBaseUrlState(normalized);
     if (normalized) {
-        localStorage.setItem(LOCAL_BASE_URL_KEY, normalized);
+        safeStorage.setItem(LOCAL_BASE_URL_KEY, normalized);
     } else {
-        localStorage.removeItem(LOCAL_BASE_URL_KEY);
+        safeStorage.removeItem(LOCAL_BASE_URL_KEY);
     }
   };
 
@@ -85,23 +109,23 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const normalized = key?.trim() ? key.trim() : null;
     setLocalApiKeyState(normalized);
     if (normalized) {
-        localStorage.setItem(LOCAL_API_KEY, normalized);
+        safeStorage.setItem(LOCAL_API_KEY, normalized);
     } else {
-        localStorage.removeItem(LOCAL_API_KEY);
+        safeStorage.removeItem(LOCAL_API_KEY);
     }
   };
 
   const setImageEditModel = (model: ImageEditModel) => {
     setImageEditModelState(model);
-    localStorage.setItem(IMAGE_EDIT_MODEL_KEY, model);
+    safeStorage.setItem(IMAGE_EDIT_MODEL_KEY, model);
   };
   const setImageGenerateModel = (model: ImageGenerateModel) => {
     setImageGenerateModelState(model);
-    localStorage.setItem(IMAGE_GENERATE_MODEL_KEY, model);
+    safeStorage.setItem(IMAGE_GENERATE_MODEL_KEY, model);
   };
   const setTextGenerateModel = (model: TextGenerateModel) => {
     setTextGenerateModelState(model);
-    localStorage.setItem(TEXT_GENERATE_MODEL_KEY, model);
+    safeStorage.setItem(TEXT_GENERATE_MODEL_KEY, model);
   };
 
   const getModelsForFeature = () => {
