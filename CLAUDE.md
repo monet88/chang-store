@@ -153,7 +153,7 @@ const model = "gemini-2.5-flash";          // → Gemini
 
 ## Development Notes
 
-- Local storage persistence **disabled** (stubbed in `utils/storage.ts`)
+- Local storage persistence enabled for settings (API keys, provider config, model selections); gallery remains session-only
 - Images stored in-memory via `ImageGalleryContext` (session only)
 - Generated images go through `addImage()` from gallery context
 - Video generation uses polling (Gemini: indefinite, AIVideoAuto: 10min max)

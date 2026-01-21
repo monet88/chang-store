@@ -15,10 +15,6 @@
       "Bash(bd stats)"
     ]
   },
-  "spinnerTipsEnabled": false,
-  "enabledPlugins": {
-    "superpowers@superpowers-marketplace": false
-  },
   "hooks": {
     "SessionStart": [
       {
@@ -31,5 +27,7 @@
         ]
       }
     ]
-  }
+  },
+  "enabledPlugins": {},
+  "spinnerTipsEnabled": false
 }
