@@ -9,6 +9,10 @@ interface ApiContextType {
   setLocalApiBaseUrl: (url: string | null) => void;
   localApiKey: string | null;
   setLocalApiKey: (key: string | null) => void;
+  antiApiBaseUrl: string | null;
+  setAntiApiBaseUrl: (url: string | null) => void;
+  antiApiKey: string | null;
+  setAntiApiKey: (key: string | null) => void;
   imageEditModel: ImageEditModel;
   setImageEditModel: (model: ImageEditModel) => void;
   imageGenerateModel: ImageGenerateModel;
@@ -27,6 +31,8 @@ const ApiContext = createContext<ApiContextType | undefined>(undefined);
 export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const LOCAL_BASE_URL_KEY = 'local_provider_base_url';
   const LOCAL_API_KEY = 'local_provider_api_key';
+  const ANTI_BASE_URL_KEY = 'anti_provider_base_url';
+  const ANTI_API_KEY = 'anti_provider_api_key';
   const IMAGE_EDIT_MODEL_KEY = 'image_edit_model';
   const IMAGE_GENERATE_MODEL_KEY = 'image_generate_model';
   const TEXT_GENERATE_MODEL_KEY = 'text_generate_model';
@@ -66,6 +72,12 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
   const [localApiKey, setLocalApiKeyState] = useState<string | null>(() => {
       return safeStorage.getItem(LOCAL_API_KEY);
+  });
+  const [antiApiBaseUrl, setAntiApiBaseUrlState] = useState<string | null>(() => {
+      return safeStorage.getItem(ANTI_BASE_URL_KEY);
+  });
+  const [antiApiKey, setAntiApiKeyState] = useState<string | null>(() => {
+      return safeStorage.getItem(ANTI_API_KEY);
   });
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
@@ -115,6 +127,26 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const setAntiApiBaseUrl = (url: string | null) => {
+    const normalized = url?.trim() ? url.trim() : null;
+    setAntiApiBaseUrlState(normalized);
+    if (normalized) {
+        safeStorage.setItem(ANTI_BASE_URL_KEY, normalized);
+    } else {
+        safeStorage.removeItem(ANTI_BASE_URL_KEY);
+    }
+  };
+
+  const setAntiApiKey = (key: string | null) => {
+    const normalized = key?.trim() ? key.trim() : null;
+    setAntiApiKeyState(normalized);
+    if (normalized) {
+        safeStorage.setItem(ANTI_API_KEY, normalized);
+    } else {
+        safeStorage.removeItem(ANTI_API_KEY);
+    }
+  };
+
   const setImageEditModel = (model: ImageEditModel) => {
     setImageEditModelState(model);
     safeStorage.setItem(IMAGE_EDIT_MODEL_KEY, model);
@@ -141,6 +173,8 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         googleApiKey, setGoogleApiKey,
         localApiBaseUrl, setLocalApiBaseUrl,
         localApiKey, setLocalApiKey,
+        antiApiBaseUrl, setAntiApiBaseUrl,
+        antiApiKey, setAntiApiKey,
         imageEditModel, setImageEditModel,
         imageGenerateModel, setImageGenerateModel,
         textGenerateModel, setTextGenerateModel,

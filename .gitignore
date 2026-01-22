@@ -66,3 +66,4 @@ scripts/local-feature-smoke-output-proxypal/
 scripts/local-model-smoke-output/
 scripts/local-model-smoke-test.mjs
 nul
+docs/plans/*

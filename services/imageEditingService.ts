@@ -1,20 +1,26 @@
 import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, ImageResolution, UpscaleQuality, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import * as geminiImageService from './gemini/image';
 import { editImageLocal, generateImageLocal, generateTextLocal } from './localProviderService';
+import { editImageAnti, generateImageAnti, generateTextAnti } from './antiProviderService';
 import { getImageDimensions } from '../utils/imageUtils';
 import { logApiCall } from './debugService';
 
 interface ApiConfig {
     localApiBaseUrl?: string | null;
     localApiKey?: string | null;
+    antiApiBaseUrl?: string | null;
+    antiApiKey?: string | null;
     onStatusUpdate: (message: string) => void;
 }
 
 export type EditImageParams = geminiImageService.EditImageParams;
 
 const LOCAL_PREFIX = 'local--';
+const ANTI_PREFIX = 'anti--';
 const isLocalModel = (model: string) => model.startsWith(LOCAL_PREFIX);
+const isAntiModel = (model: string) => model.startsWith(ANTI_PREFIX);
 const stripLocalPrefix = (model: string) => model.slice(LOCAL_PREFIX.length);
+const stripAntiPrefix = (model: string) => model.slice(ANTI_PREFIX.length);
 
 const RESOLUTION_BASE: Record<ImageResolution, number> = {
     '1K': 1024,
@@ -45,13 +51,18 @@ const buildLocalConfig = (config: ApiConfig) => ({
     apiKey: config.localApiKey ?? null,
 });
 
+const buildAntiConfig = (config: ApiConfig) => ({
+    baseUrl: config.antiApiBaseUrl ?? '',
+    apiKey: config.antiApiKey ?? null,
+});
+
 export const editImage = async (
     params: EditImageParams,
     model: ImageEditModel,
     config: ApiConfig
 ): Promise<ImageFile[]> => {
     const startTime = Date.now();
-    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+    const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
     try {
         let result: ImageFile[];
@@ -70,6 +81,22 @@ export const editImage = async (
             result = await Promise.all(
                 Array.from({ length: count }).map(() =>
                     editImageLocal(params.images[0], finalPrompt, localModel, localConfig, size)
+                )
+            );
+        } else if (isAntiModel(model)) {
+            if (!config.antiApiBaseUrl) throw new Error('error.api.antiProviderFailed');
+            if (params.images.length === 0) throw new Error('error.api.noImage');
+            const size = buildLocalSize(params.aspectRatio, params.resolution ?? DEFAULT_IMAGE_RESOLUTION);
+            const antiModel = stripAntiPrefix(model);
+            let finalPrompt = params.prompt;
+            if (params.negativePrompt?.trim()) {
+                finalPrompt += ` Negative prompt: strictly avoid including ${params.negativePrompt.trim()}.`;
+            }
+            const antiConfig = buildAntiConfig(config);
+            const count = params.numberOfImages || 1;
+            result = await Promise.all(
+                Array.from({ length: count }).map(() =>
+                    editImageAnti(params.images[0], finalPrompt, antiModel, antiConfig, size)
                 )
             );
         } else {
@@ -109,7 +136,7 @@ export const generateImage = async (
     config: ApiConfig
 ): Promise<ImageFile[]> => {
     const startTime = Date.now();
-    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+    const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
     try {
         let result: ImageFile[];
@@ -123,6 +150,17 @@ export const generateImage = async (
             result = await Promise.all(
                 Array.from({ length: count }).map(() =>
                     generateImageLocal(prompt, localModel, localConfig, size)
+                )
+            );
+        } else if (isAntiModel(model)) {
+            if (!config.antiApiBaseUrl) throw new Error('error.api.antiProviderFailed');
+            const size = buildLocalSize(aspectRatio, DEFAULT_IMAGE_RESOLUTION);
+            const antiModel = stripAntiPrefix(model);
+            const antiConfig = buildAntiConfig(config);
+            const count = numberOfImages || 1;
+            result = await Promise.all(
+                Array.from({ length: count }).map(() =>
+                    generateImageAnti(prompt, antiModel, antiConfig, size)
                 )
             );
         } else {
@@ -161,13 +199,13 @@ export const upscaleImage = async (
     quality: UpscaleQuality = '2K'
 ): Promise<ImageFile> => {
     const startTime = Date.now();
-    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+    const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
     const prompt = `Upscale this image to a high-resolution ${quality} format (${quality === '4K' ? '4096' : '2048'}px). Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.`;
 
     try {
         let result: ImageFile;
 
-        if (isLocalModel(model)) {
+        if (isLocalModel(model) || isAntiModel(model)) {
             const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
             const [upscaled] = await editImage(params, model, config);
             result = upscaled;
@@ -207,13 +245,13 @@ export const extractOutfitItem = async (
     config: ApiConfig
 ): Promise<ImageFile> => {
     const startTime = Date.now();
-    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+    const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
     const prompt = `From the provided image, precisely extract only the following clothing item: "${itemDescription}". Place the extracted item on a clean, neutral, white background. The output must be only the item itself, with no other parts of the original image or person visible. Ensure the item is fully visible and not cropped.`;
 
     try {
         let result: ImageFile;
 
-        if (isLocalModel(model)) {
+        if (isLocalModel(model) || isAntiModel(model)) {
             const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
             const [extracted] = await editImage(params, model, config);
             result = extracted;
@@ -256,7 +294,7 @@ export const critiqueAndRedesignOutfit = async (
   resolution?: ImageResolution
 ): Promise<{ critique: string; redesignedImages: ImageFile[] }> => {
     const startTime = Date.now();
-    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+    const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
     const fullPrompt = geminiImageService.PRESET_PROMPTS[preset];
 
     try {
@@ -267,6 +305,14 @@ export const critiqueAndRedesignOutfit = async (
             const critiquePrompt = `You are a professional fashion stylist. Based on the provided image, generate ONLY the text critique part of the following instruction. DO NOT generate an image or mention that you will. ONLY provide the text. \n\nINSTRUCTION:\n${fullPrompt}`;
             config.onStatusUpdate('Generating critique with local provider...');
             const critique = await generateTextLocal(critiquePrompt, stripLocalPrefix(model), buildLocalConfig(config));
+            const params: EditImageParams = { images: [image], prompt: fullPrompt, numberOfImages, aspectRatio, resolution };
+            const redesignedImages = await editImage(params, model, config);
+            result = { critique, redesignedImages };
+        } else if (isAntiModel(model)) {
+            if (!config.antiApiBaseUrl) throw new Error('error.api.antiProviderFailed');
+            const critiquePrompt = `You are a professional fashion stylist. Based on the provided image, generate ONLY the text critique part of the following instruction. DO NOT generate an image or mention that you will. ONLY provide the text. \n\nINSTRUCTION:\n${fullPrompt}`;
+            config.onStatusUpdate('Generating critique with Anti provider...');
+            const critique = await generateTextAnti(critiquePrompt, stripAntiPrefix(model), buildAntiConfig(config));
             const params: EditImageParams = { images: [image], prompt: fullPrompt, numberOfImages, aspectRatio, resolution };
             const redesignedImages = await editImage(params, model, config);
             result = { critique, redesignedImages };
@@ -312,7 +358,7 @@ export const recreateImageWithFace = async (
     resolution?: ImageResolution
 ): Promise<ImageFile> => {
     const startTime = Date.now();
-    const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+    const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
     const finalPrompt = `
 # INSTRUCTION: IMAGE RECREATION WITH NEW SUBJECT

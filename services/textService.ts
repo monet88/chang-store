@@ -4,14 +4,21 @@ import {
   generateTextLocal,
   generateTextFromImageLocal,
 } from './localProviderService';
+import {
+  generateTextAnti,
+  generateTextFromImageAnti,
+} from './antiProviderService';
 import { logApiCall } from './debugService';
 
 export interface TextServiceConfig {
   localApiBaseUrl?: string | null;
   localApiKey?: string | null;
+  antiApiBaseUrl?: string | null;
+  antiApiKey?: string | null;
 }
 
 const LOCAL_PREFIX = 'local--';
+const ANTI_PREFIX = 'anti--';
 
 const IMAGE_DESCRIPTION_PROMPT = 'Describe this image as a photorealistic background for a fashion photoshoot. Focus on lighting, environment, mood, and key elements. Be concise and descriptive.';
 const CLOTHING_DESCRIPTION_PROMPT = 'Analyze the provided image of a clothing or accessory item. Provide a detailed and concise description covering its category (e.g., dress, shirt, necklace), material (e.g., silk, cotton, denim, gold), pattern (e.g., floral, striped, solid), color, and any notable design features (e.g., v-neck, puff sleeves, intricate details). Focus only on describing the single main item in a way that helps an AI model recreate it accurately.';
@@ -60,11 +67,18 @@ Return one clean paragraph in natural English — concise but complete.
 Do not include stylistic opinions or hypothetical scenes.`;
 
 const isLocalModel = (model: string) => model.startsWith(LOCAL_PREFIX);
+const isAntiModel = (model: string) => model.startsWith(ANTI_PREFIX);
 const stripLocalPrefix = (model: string) => model.slice(LOCAL_PREFIX.length);
+const stripAntiPrefix = (model: string) => model.slice(ANTI_PREFIX.length);
 
 const buildLocalConfig = (config?: TextServiceConfig) => ({
   baseUrl: config?.localApiBaseUrl ?? '',
   apiKey: config?.localApiKey ?? null,
+});
+
+const buildAntiConfig = (config?: TextServiceConfig) => ({
+  baseUrl: config?.antiApiBaseUrl ?? '',
+  apiKey: config?.antiApiKey ?? null,
 });
 
 const parseOutfitAnalysis = (jsonText: string): AnalyzedItem[] => {
@@ -92,12 +106,17 @@ export const generateText = async (
   config?: TextServiceConfig
 ): Promise<string> => {
   const startTime = Date.now();
-  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+  const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
   try {
-    const result = isLocalModel(model)
-      ? await generateTextLocal(prompt, stripLocalPrefix(model), buildLocalConfig(config))
-      : await geminiTextService.generateText(prompt, model);
+    let result: string;
+    if (isLocalModel(model)) {
+      result = await generateTextLocal(prompt, stripLocalPrefix(model), buildLocalConfig(config));
+    } else if (isAntiModel(model)) {
+      result = await generateTextAnti(prompt, stripAntiPrefix(model), buildAntiConfig(config));
+    } else {
+      result = await geminiTextService.generateText(prompt, model);
+    }
 
     logApiCall({
       provider,
@@ -130,12 +149,17 @@ export const generateImageDescription = async (
   config?: TextServiceConfig
 ): Promise<string> => {
   const startTime = Date.now();
-  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+  const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
   try {
-    const result = isLocalModel(model)
-      ? await generateTextFromImageLocal(image, IMAGE_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config))
-      : await geminiTextService.generateImageDescription(image);
+    let result: string;
+    if (isLocalModel(model)) {
+      result = await generateTextFromImageLocal(image, IMAGE_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config));
+    } else if (isAntiModel(model)) {
+      result = await generateTextFromImageAnti(image, IMAGE_DESCRIPTION_PROMPT, stripAntiPrefix(model), buildAntiConfig(config));
+    } else {
+      result = await geminiTextService.generateImageDescription(image);
+    }
 
     logApiCall({
       provider,
@@ -168,12 +192,17 @@ export const generateClothingDescription = async (
   config?: TextServiceConfig
 ): Promise<string> => {
   const startTime = Date.now();
-  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+  const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
   try {
-    const result = isLocalModel(model)
-      ? await generateTextFromImageLocal(image, CLOTHING_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config))
-      : await geminiTextService.generateClothingDescription(image);
+    let result: string;
+    if (isLocalModel(model)) {
+      result = await generateTextFromImageLocal(image, CLOTHING_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config));
+    } else if (isAntiModel(model)) {
+      result = await generateTextFromImageAnti(image, CLOTHING_DESCRIPTION_PROMPT, stripAntiPrefix(model), buildAntiConfig(config));
+    } else {
+      result = await geminiTextService.generateClothingDescription(image);
+    }
 
     logApiCall({
       provider,
@@ -206,12 +235,17 @@ export const generatePoseDescription = async (
   config?: TextServiceConfig
 ): Promise<string> => {
   const startTime = Date.now();
-  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+  const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
   try {
-    const result = isLocalModel(model)
-      ? await generateTextFromImageLocal(image, POSE_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config))
-      : await geminiTextService.generatePoseDescription(image);
+    let result: string;
+    if (isLocalModel(model)) {
+      result = await generateTextFromImageLocal(image, POSE_DESCRIPTION_PROMPT, stripLocalPrefix(model), buildLocalConfig(config));
+    } else if (isAntiModel(model)) {
+      result = await generateTextFromImageAnti(image, POSE_DESCRIPTION_PROMPT, stripAntiPrefix(model), buildAntiConfig(config));
+    } else {
+      result = await geminiTextService.generatePoseDescription(image);
+    }
 
     logApiCall({
       provider,
@@ -244,19 +278,21 @@ export const analyzeOutfit = async (
   config?: TextServiceConfig
 ): Promise<AnalyzedItem[]> => {
   const startTime = Date.now();
-  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+  const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
   try {
-    const result = isLocalModel(model)
-      ? parseOutfitAnalysis(
-          await generateTextFromImageLocal(
-            image,
-            OUTFIT_ANALYSIS_PROMPT,
-            stripLocalPrefix(model),
-            buildLocalConfig(config)
-          )
-        )
-      : await geminiTextService.analyzeOutfit(image);
+    let result: AnalyzedItem[];
+    if (isLocalModel(model)) {
+      result = parseOutfitAnalysis(
+        await generateTextFromImageLocal(image, OUTFIT_ANALYSIS_PROMPT, stripLocalPrefix(model), buildLocalConfig(config))
+      );
+    } else if (isAntiModel(model)) {
+      result = parseOutfitAnalysis(
+        await generateTextFromImageAnti(image, OUTFIT_ANALYSIS_PROMPT, stripAntiPrefix(model), buildAntiConfig(config))
+      );
+    } else {
+      result = await geminiTextService.analyzeOutfit(image);
+    }
 
     logApiCall({
       provider,
@@ -289,17 +325,17 @@ export const generateStylePromptFromImage = async (
   config?: TextServiceConfig
 ): Promise<string> => {
   const startTime = Date.now();
-  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+  const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
   try {
-    const result = isLocalModel(model)
-      ? await generateTextFromImageLocal(
-          image,
-          STYLE_PROMPT_FROM_IMAGE,
-          stripLocalPrefix(model),
-          buildLocalConfig(config)
-        )
-      : await geminiTextService.generateStylePromptFromImage(image, model);
+    let result: string;
+    if (isLocalModel(model)) {
+      result = await generateTextFromImageLocal(image, STYLE_PROMPT_FROM_IMAGE, stripLocalPrefix(model), buildLocalConfig(config));
+    } else if (isAntiModel(model)) {
+      result = await generateTextFromImageAnti(image, STYLE_PROMPT_FROM_IMAGE, stripAntiPrefix(model), buildAntiConfig(config));
+    } else {
+      result = await geminiTextService.generateStylePromptFromImage(image, model);
+    }
 
     logApiCall({
       provider,
@@ -332,17 +368,17 @@ export const analyzeScene = async (
   config?: TextServiceConfig
 ): Promise<string> => {
   const startTime = Date.now();
-  const provider = isLocalModel(model) ? 'Local' : 'Gemini';
+  const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
   try {
-    const result = isLocalModel(model)
-      ? await generateTextFromImageLocal(
-          image,
-          ANALYZE_SCENE_PROMPT,
-          stripLocalPrefix(model),
-          buildLocalConfig(config)
-        )
-      : await geminiTextService.analyzeScene(image, model);
+    let result: string;
+    if (isLocalModel(model)) {
+      result = await generateTextFromImageLocal(image, ANALYZE_SCENE_PROMPT, stripLocalPrefix(model), buildLocalConfig(config));
+    } else if (isAntiModel(model)) {
+      result = await generateTextFromImageAnti(image, ANALYZE_SCENE_PROMPT, stripAntiPrefix(model), buildAntiConfig(config));
+    } else {
+      result = await geminiTextService.analyzeScene(image, model);
+    }
 
     logApiCall({
       provider,
