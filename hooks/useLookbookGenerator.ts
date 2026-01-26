@@ -95,7 +95,7 @@ export const useLookbookGenerator = () => {
     const originalImageRef = useRef<ImageFile | null>(null);
 
     const { t } = useLanguage();
-    const { aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, textGenerateModel, getModelsForFeature } = useApi();
+    const { aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, textGenerateModel, getModelsForFeature } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Lookbook);
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
@@ -103,6 +103,8 @@ export const useLookbookGenerator = () => {
         aivideoautoImageModels,
         localApiBaseUrl,
         localApiKey,
+        antiApiBaseUrl,
+        antiApiKey,
     });
 
     // Debounced localStorage save - prevents 200ms typing lag
@@ -132,10 +134,10 @@ export const useLookbookGenerator = () => {
     // Initialize chat session if lookbook exists but session doesn't
     useEffect(() => {
         if (generatedLookbook && !chatSession) {
-            const session = createImageChatSession(imageEditModel);
+            const session = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
             setChatSession(session);
         }
-    }, [generatedLookbook, chatSession, imageEditModel]);
+    }, [generatedLookbook, chatSession, imageEditModel, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey]);
 
     const updateForm = useCallback((updates: Partial<LookbookFormState>) => {
         setFormState(prev => ({...prev, ...updates}));
@@ -218,7 +220,9 @@ export const useLookbookGenerator = () => {
             images: imagesForApi,
             prompt,
             negativePrompt,
-            numberOfImages: 1
+            numberOfImages: 1,
+            aspectRatio,
+            resolution
           }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
           if (results.length > 0) {
             const generatedImage = results[0];
@@ -232,7 +236,7 @@ export const useLookbookGenerator = () => {
             setActiveOutputTab('main');
 
             // Create new chat session for image refinement
-            const session = createImageChatSession(imageEditModel);
+            const session = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
             setChatSession(session);
             setRefinementHistory([]);
           }
@@ -242,7 +246,7 @@ export const useLookbookGenerator = () => {
           setIsLoading(false);
           setLoadingMessage('');
         }
-    }, [formState, imageEditModel, aivideoautoAccessToken, buildImageServiceConfig, t]);
+    }, [formState, imageEditModel, aivideoautoAccessToken, buildImageServiceConfig, aspectRatio, resolution, t]);
     
     const handleUpscale = useCallback(async (imageToUpscale: ImageFile, imageKey: string) => {
         setUpscalingStates(prev => ({ ...prev, [imageKey]: true }));
@@ -287,11 +291,13 @@ export const useLookbookGenerator = () => {
         const prompt = buildVariationPrompt(formState.lookbookStyle, variationCount);
         
         try {
-            const newVariations = await editImage({ 
-                images: [baseImage], 
-                prompt, 
-                negativePrompt: formState.negativePrompt, 
-                numberOfImages: variationCount 
+            const newVariations = await editImage({
+                images: [baseImage],
+                prompt,
+                negativePrompt: formState.negativePrompt,
+                numberOfImages: variationCount,
+                aspectRatio,
+                resolution
             }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
             setGeneratedLookbook(prev => prev ? { ...prev, variations: newVariations } : null);
         } catch (err) {
@@ -300,7 +306,7 @@ export const useLookbookGenerator = () => {
             setIsGeneratingVariations(false);
             setLoadingMessage('');
         }
-    }, [generatedLookbook, formState.negativePrompt, formState.lookbookStyle, variationCount, imageEditModel, buildImageServiceConfig, t]);
+    }, [generatedLookbook, formState.negativePrompt, formState.lookbookStyle, variationCount, imageEditModel, buildImageServiceConfig, aspectRatio, resolution, t]);
 
     const handleGenerateCloseUp = useCallback(async () => {
         if (!generatedLookbook) {
@@ -324,7 +330,9 @@ export const useLookbookGenerator = () => {
                     images: [baseImage],
                     prompt: closeUpPrompt,
                     negativePrompt: combinedNegativePrompt,
-                    numberOfImages: 1
+                    numberOfImages: 1,
+                    aspectRatio,
+                    resolution
                 }, imageEditModel, buildImageServiceConfig(() => {}));
                 if (results.length > 0) {
                     closeups.push(results[0]);
@@ -337,7 +345,7 @@ export const useLookbookGenerator = () => {
             setIsGeneratingCloseUp(false);
             setLoadingMessage('');
         }
-    }, [generatedLookbook, formState.negativePrompt, imageEditModel, buildImageServiceConfig, t]);
+    }, [generatedLookbook, formState.negativePrompt, imageEditModel, buildImageServiceConfig, aspectRatio, resolution, t]);
 
     const handleRefineImage = useCallback(async (prompt: string) => {
         if (!chatSession || !generatedLookbook) {

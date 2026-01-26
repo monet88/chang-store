@@ -1,7 +1,7 @@
 import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, ImageResolution, UpscaleQuality, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import * as geminiImageService from './gemini/image';
-import { editImageLocal, generateImageLocal, generateTextLocal } from './localProviderService';
-import { editImageAnti, generateImageAnti, generateTextAnti } from './antiProviderService';
+import { editImageLocal, generateImageLocal, generateTextLocal, createImageChatSessionLocal, type LocalProviderConfig } from './localProviderService';
+import { editImageAnti, generateImageAnti, generateTextAnti, createImageChatSessionAnti, type AntiProviderConfig } from './antiProviderService';
 import { getImageDimensions } from '../utils/imageUtils';
 import { logApiCall } from './debugService';
 
@@ -429,5 +429,50 @@ export const recreateImageWithFace = async (
     }
 };
 
-// Export chat service for image refinement
-export { createImageChatSession, type ImageChatSession, type RefinementHistoryItem } from './gemini/chat';
+// Re-export types for compatibility
+export type { RefinementHistoryItem } from './gemini/chat';
+import { createImageChatSession as createImageChatSessionGemini } from './gemini/chat';
+
+// Unified ImageChatSession interface
+export interface ImageChatSession {
+    sendRefinement(prompt: string, currentImage: ImageFile): Promise<ImageFile>;
+    getHistory(): Array<{ prompt: string; timestamp: number }>;
+    reset(): void;
+}
+
+/**
+ * Create a chat session for iterative image refinement.
+ * Routes to the appropriate provider based on model prefix.
+ */
+export const createImageChatSession = (
+    model: string,
+    config: ApiConfig
+): ImageChatSession => {
+    if (isLocalModel(model)) {
+        if (!config.localApiBaseUrl) {
+            throw new Error('error.api.localProviderFailed');
+        }
+        const localModel = stripLocalPrefix(model);
+        const localConfig: LocalProviderConfig = {
+            baseUrl: config.localApiBaseUrl,
+            apiKey: config.localApiKey ?? undefined,
+        };
+        return createImageChatSessionLocal(localModel, localConfig);
+    }
+
+    if (isAntiModel(model)) {
+        if (!config.antiApiBaseUrl) {
+            throw new Error('error.api.antiProviderFailed');
+        }
+        const antiModel = stripAntiPrefix(model);
+        const antiConfig: AntiProviderConfig = {
+            baseUrl: config.antiApiBaseUrl,
+            apiKey: config.antiApiKey ?? undefined,
+        };
+        return createImageChatSessionAnti(antiModel, antiConfig);
+    }
+
+    // Default to Gemini
+    return createImageChatSessionGemini(model) as ImageChatSession;
+};
+

@@ -275,3 +275,77 @@ export async function editImageLocal(
     throw normalizeError(error);
   }
 }
+
+
+export interface ImageChatSessionLocal {
+  sendRefinement(prompt: string, currentImage: ImageFile): Promise<ImageFile>;
+  getHistory(): RefinementHistoryItemLocal[];
+  reset(): void;
+}
+
+export interface RefinementHistoryItemLocal {
+  prompt: string;
+  timestamp: number;
+}
+
+type ConversationPart = {
+  text?: string;
+  inlineData?: { data: string; mimeType: string };
+};
+
+/**
+ * Create a chat session for iterative image refinement using Local provider.
+ * Maintains conversation history client-side.
+ */
+export function createImageChatSessionLocal(
+  model: string,
+  config: LocalProviderConfig
+): ImageChatSessionLocal {
+  let history: RefinementHistoryItemLocal[] = [];
+  let conversationParts: ConversationPart[] = [];
+
+  return {
+    async sendRefinement(prompt: string, currentImage: ImageFile): Promise<ImageFile> {
+      if (!config.baseUrl) {
+        throw new Error('error.api.localProviderFailed');
+      }
+
+      // Add current image and prompt to conversation
+      const imagePart: ConversationPart = {
+        inlineData: {
+          data: normalizeBase64(currentImage.base64),
+          mimeType: currentImage.mimeType,
+        },
+      };
+      const textPart: ConversationPart = { text: prompt };
+
+      conversationParts.push(imagePart, textPart);
+
+      const url = buildGeminiUrl(config.baseUrl, model, 'generateContent', config.apiKey ?? null);
+      const data = await postJson<GeminiResponse>(url, {
+        contents: [{ role: 'user', parts: conversationParts }],
+        generationConfig: {
+          responseModalities: ['IMAGE'],
+        },
+      });
+
+      const inlineImage = extractInlineImage(extractParts(data));
+      if (!inlineImage?.data) {
+        throw new Error('error.api.noImage');
+      }
+
+      history.push({ prompt, timestamp: Date.now() });
+
+      return { base64: inlineImage.data, mimeType: inlineImage.mimeType || 'image/png' };
+    },
+
+    getHistory(): RefinementHistoryItemLocal[] {
+      return [...history];
+    },
+
+    reset(): void {
+      history = [];
+      conversationParts = [];
+    },
+  };
+}
