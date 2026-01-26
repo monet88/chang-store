@@ -9,6 +9,8 @@ import { CloseIcon, CheckCircleIcon } from '../Icons';
 import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../../types';
 import { GoogleDriveSettings } from '../GoogleDriveSettings';
 import { LOCAL_TEXT_MODELS, LOCAL_TEXT_MODELS_WITH_PREFIX, LOCAL_IMAGE_MODELS_WITH_PREFIX } from '../../utils/localModels';
+import { ANTI_TEXT_MODELS, ANTI_TEXT_MODELS_WITH_PREFIX, ANTI_IMAGE_MODELS_WITH_PREFIX } from '../../utils/antiModels';
+import { generateTextAnti } from '../../services/antiProviderService';
 
 const ServiceModelSelector: React.FC<{
     label: string;
@@ -20,6 +22,7 @@ const ServiceModelSelector: React.FC<{
 
     const parseModelId = (modelId: string): { service: string, model: string } => {
         if (modelId.startsWith('local--')) return { service: 'local', model: modelId };
+        if (modelId.startsWith('anti--')) return { service: 'anti', model: modelId };
         return { service: 'google', model: modelId };
     };
     
@@ -82,6 +85,8 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         googleApiKey, setGoogleApiKey,
         localApiBaseUrl, setLocalApiBaseUrl,
         localApiKey, setLocalApiKey,
+        antiApiBaseUrl, setAntiApiBaseUrl,
+        antiApiKey, setAntiApiKey,
         imageEditModel, setImageEditModel,
         imageGenerateModel, setImageGenerateModel,
         textGenerateModel, setTextGenerateModel,
@@ -92,6 +97,8 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     const [localGoogleKey, setLocalGoogleKey] = useState(googleApiKey || '');
     const [localProviderBaseUrl, setLocalProviderBaseUrl] = useState(localApiBaseUrl || '');
     const [localProviderApiKey, setLocalProviderApiKey] = useState(localApiKey || '');
+    const [antiProviderBaseUrl, setAntiProviderBaseUrl] = useState(antiApiBaseUrl || '');
+    const [antiProviderApiKey, setAntiProviderApiKey] = useState(antiApiKey || '');
 
     const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
     const [localImageGenerateModel, setLocalImageGenerateModel] = useState(imageGenerateModel);
@@ -100,6 +107,10 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     const [isTestingLocalProvider, setIsTestingLocalProvider] = useState(false);
     const [localProviderError, setLocalProviderError] = useState<string | null>(null);
     const [localProviderSaveSuccess, setLocalProviderSaveSuccess] = useState(false);
+
+    const [isTestingAntiProvider, setIsTestingAntiProvider] = useState(false);
+    const [antiProviderError, setAntiProviderError] = useState<string | null>(null);
+    const [antiProviderSaveSuccess, setAntiProviderSaveSuccess] = useState(false);
 
     const [debugMode, setDebugMode] = useState(() => isDebugEnabled());
 
@@ -128,12 +139,14 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         setLocalGoogleKey(googleApiKey || '');
         setLocalProviderBaseUrl(localApiBaseUrl || '');
         setLocalProviderApiKey(localApiKey || '');
+        setAntiProviderBaseUrl(antiApiBaseUrl || '');
+        setAntiProviderApiKey(antiApiKey || '');
         setLocalImageEditModel(imageEditModel);
         setLocalImageGenerateModel(imageGenerateModel);
         setLocalTextGenerateModel(textGenerateModel);
 
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [isOpen, onClose, images, googleApiKey, localApiBaseUrl, localApiKey, imageEditModel, imageGenerateModel, textGenerateModel]);
+    }, [isOpen, onClose, images, googleApiKey, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, imageEditModel, imageGenerateModel, textGenerateModel]);
     
     if (!isOpen) return null;
 
@@ -167,7 +180,38 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
             setIsTestingLocalProvider(false);
         }
     };
-    
+
+    const handleAntiProviderTestAndSave = async () => {
+        setIsTestingAntiProvider(true);
+        setAntiProviderError(null);
+        setAntiProviderSaveSuccess(false);
+        try {
+            const trimmedBaseUrl = antiProviderBaseUrl.trim();
+            if (!trimmedBaseUrl) {
+                throw new Error('Base URL is required.');
+            }
+            const selectedAntiModel = localTextGenerateModel.startsWith('anti--')
+                ? localTextGenerateModel.replace('anti--', '')
+                : (ANTI_TEXT_MODELS[0]?.id || 'gemini-3-pro-preview');
+
+            await generateTextAnti(
+                'Ping',
+                selectedAntiModel,
+                { baseUrl: trimmedBaseUrl, apiKey: antiProviderApiKey.trim() || null }
+            );
+
+            setAntiApiBaseUrl(trimmedBaseUrl);
+            setAntiApiKey(antiProviderApiKey.trim() || null);
+            setAntiProviderSaveSuccess(true);
+            setTimeout(() => setAntiProviderSaveSuccess(false), 2000);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+            setAntiProviderError(message);
+        } finally {
+            setIsTestingAntiProvider(false);
+        }
+    };
+
     const handleSave = () => {
         setGoogleApiKey(localGoogleKey);
         // Local Provider is saved on test
@@ -202,10 +246,12 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     const IMAGE_EDIT_SERVICES = [
         { id: 'google', name: 'Google' },
         { id: 'local', name: 'Agy Provider' },
+        { id: 'anti', name: 'Anti Provider' },
     ];
     const TEXT_GENERATE_SERVICES = [
         { id: 'google', name: 'Google' },
         { id: 'local', name: 'Agy Provider' },
+        { id: 'anti', name: 'Anti Provider' },
     ];
 
     const MODELS_BY_SERVICE = {
@@ -215,6 +261,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                 { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
             ],
             'local': LOCAL_IMAGE_MODELS_WITH_PREFIX,
+            'anti': ANTI_IMAGE_MODELS_WITH_PREFIX,
         },
         imageGenerate: {
             'google': [
@@ -223,6 +270,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                 { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast' },
             ],
             'local': LOCAL_IMAGE_MODELS_WITH_PREFIX,
+            'anti': ANTI_IMAGE_MODELS_WITH_PREFIX,
         },
         textGenerate: {
             'google': [
@@ -232,6 +280,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                 { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
             ],
             'local': LOCAL_TEXT_MODELS_WITH_PREFIX,
+            'anti': ANTI_TEXT_MODELS_WITH_PREFIX,
         },
     };
 
@@ -311,6 +360,38 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                                     </div>
                                 </div>
                                 {localProviderError && <p className="text-red-400 text-xs mt-2">{`Error: ${localProviderError}`}</p>}
+                            </div>
+                            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                <h4 className="font-semibold text-slate-200 mb-2">Anti Provider</h4>
+                                <p className="text-xs text-slate-400 mb-3">
+                                    Gemini-style endpoint for anti detection and image generation.
+                                </p>
+                                <div className="space-y-3">
+                                    <input
+                                        type="text"
+                                        value={antiProviderBaseUrl}
+                                        onChange={e => setAntiProviderBaseUrl(e.target.value)}
+                                        placeholder="Base URL (e.g. https://anti.azacc.store)"
+                                        className="w-full bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm text-slate-200 placeholder-slate-500"
+                                    />
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="password"
+                                            value={antiProviderApiKey}
+                                            onChange={e => setAntiProviderApiKey(e.target.value)}
+                                            placeholder="API key (optional)"
+                                            className="flex-grow bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm"
+                                        />
+                                        <button
+                                            onClick={handleAntiProviderTestAndSave}
+                                            disabled={isTestingAntiProvider || !antiProviderBaseUrl.trim()}
+                                            className="bg-amber-600 text-white font-semibold px-4 py-2 rounded-md text-sm w-40 text-center disabled:bg-slate-600"
+                                        >
+                                            {isTestingAntiProvider ? <Spinner /> : antiProviderSaveSuccess ? 'Saved!' : 'Test & Save'}
+                                        </button>
+                                    </div>
+                                </div>
+                                {antiProviderError && <p className="text-red-400 text-xs mt-2">{`Error: ${antiProviderError}`}</p>}
                             </div>
                         </div>
                     </section>
