@@ -2,13 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApi } from '../../contexts/ApiProviderContext';
 import { getLocalStorageUsage, backupData, restoreData, clearAppData } from '../../utils/storage';
 import { useImageGallery } from '../../contexts/ImageGalleryContext';
-import { generateTextLocal } from '../../services/localProviderService';
 import { isDebugEnabled, setDebugEnabled } from '../../services/debugService';
 import Spinner from '../Spinner';
-import { CloseIcon, CheckCircleIcon } from '../Icons';
-import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../../types';
+import { CloseIcon } from '../Icons';
 import { GoogleDriveSettings } from '../GoogleDriveSettings';
-import { LOCAL_TEXT_MODELS, LOCAL_TEXT_MODELS_WITH_PREFIX, LOCAL_IMAGE_MODELS_WITH_PREFIX } from '../../utils/localModels';
+import { LOCAL_TEXT_MODELS_WITH_PREFIX, LOCAL_IMAGE_MODELS_WITH_PREFIX } from '../../utils/localModels';
 import { ANTI_TEXT_MODELS, ANTI_TEXT_MODELS_WITH_PREFIX, ANTI_IMAGE_MODELS_WITH_PREFIX } from '../../utils/antiModels';
 import { generateTextAnti } from '../../services/antiProviderService';
 
@@ -82,9 +80,6 @@ const ServiceModelSelector: React.FC<{
 
 export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ isOpen, onClose }) => {
     const {
-        googleApiKey, setGoogleApiKey,
-        localApiBaseUrl, setLocalApiBaseUrl,
-        localApiKey, setLocalApiKey,
         antiApiBaseUrl, setAntiApiBaseUrl,
         antiApiKey, setAntiApiKey,
         imageEditModel, setImageEditModel,
@@ -94,19 +89,12 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     const { images } = useImageGallery();
 
     // Local state for all settings
-    const [localGoogleKey, setLocalGoogleKey] = useState(googleApiKey || '');
-    const [localProviderBaseUrl, setLocalProviderBaseUrl] = useState(localApiBaseUrl || '');
-    const [localProviderApiKey, setLocalProviderApiKey] = useState(localApiKey || '');
     const [antiProviderBaseUrl, setAntiProviderBaseUrl] = useState(antiApiBaseUrl || '');
     const [antiProviderApiKey, setAntiProviderApiKey] = useState(antiApiKey || '');
 
     const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
     const [localImageGenerateModel, setLocalImageGenerateModel] = useState(imageGenerateModel);
     const [localTextGenerateModel, setLocalTextGenerateModel] = useState(textGenerateModel);
-
-    const [isTestingLocalProvider, setIsTestingLocalProvider] = useState(false);
-    const [localProviderError, setLocalProviderError] = useState<string | null>(null);
-    const [localProviderSaveSuccess, setLocalProviderSaveSuccess] = useState(false);
 
     const [isTestingAntiProvider, setIsTestingAntiProvider] = useState(false);
     const [antiProviderError, setAntiProviderError] = useState<string | null>(null);
@@ -136,9 +124,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         });
         
         // Sync local state with context when modal opens
-        setLocalGoogleKey(googleApiKey || '');
-        setLocalProviderBaseUrl(localApiBaseUrl || '');
-        setLocalProviderApiKey(localApiKey || '');
         setAntiProviderBaseUrl(antiApiBaseUrl || '');
         setAntiProviderApiKey(antiApiKey || '');
         setLocalImageEditModel(imageEditModel);
@@ -146,40 +131,9 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         setLocalTextGenerateModel(textGenerateModel);
 
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [isOpen, onClose, images, googleApiKey, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, imageEditModel, imageGenerateModel, textGenerateModel]);
+    }, [isOpen, onClose, images, antiApiBaseUrl, antiApiKey, imageEditModel, imageGenerateModel, textGenerateModel]);
     
     if (!isOpen) return null;
-
-    const handleLocalProviderTestAndSave = async () => {
-        setIsTestingLocalProvider(true);
-        setLocalProviderError(null);
-        setLocalProviderSaveSuccess(false);
-        try {
-            const trimmedBaseUrl = localProviderBaseUrl.trim();
-            if (!trimmedBaseUrl) {
-                throw new Error('Base URL is required.');
-            }
-            const selectedLocalModel = localTextGenerateModel.startsWith('local--')
-                ? localTextGenerateModel.replace('local--', '')
-                : (LOCAL_TEXT_MODELS[0]?.id || 'gemini-3-pro-preview');
-
-            await generateTextLocal(
-                'Ping',
-                selectedLocalModel,
-                { baseUrl: trimmedBaseUrl, apiKey: localProviderApiKey.trim() || null }
-            );
-
-            setLocalApiBaseUrl(trimmedBaseUrl);
-            setLocalApiKey(localProviderApiKey.trim() || null);
-            setLocalProviderSaveSuccess(true);
-            setTimeout(() => setLocalProviderSaveSuccess(false), 2000);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'An unknown error occurred.';
-            setLocalProviderError(message);
-        } finally {
-            setIsTestingLocalProvider(false);
-        }
-    };
 
     const handleAntiProviderTestAndSave = async () => {
         setIsTestingAntiProvider(true);
@@ -213,9 +167,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     };
 
     const handleSave = () => {
-        setGoogleApiKey(localGoogleKey);
-        // Local Provider is saved on test
-
         setImageEditModel(localImageEditModel);
         setImageGenerateModel(localImageGenerateModel);
         setTextGenerateModel(localTextGenerateModel);
@@ -311,56 +262,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                     <section>
                         <h3 className="text-base md:text-lg font-semibold text-amber-400 mb-4">API Keys</h3>
                         <div className="space-y-4">
-                            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                                <h4 className="font-semibold text-slate-200 mb-2">Google Gemini API Key</h4>
-                                <input 
-                                    type="password" 
-                                    value={localGoogleKey} 
-                                    onChange={e => setLocalGoogleKey(e.target.value)} 
-                                    placeholder="Enter your Google Gemini API key..." 
-                                    className="w-full bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm text-slate-200 placeholder-slate-500 mb-1" 
-                                />
-                                <div className="flex items-center gap-2 mt-1">
-                                    {!localGoogleKey && (
-                                        <>
-                                            <CheckCircleIcon className="w-4 h-4 text-green-400" />
-                                            <p className="text-xs text-slate-400">Using default environment key</p>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                                <h4 className="font-semibold text-slate-200 mb-2">Proxypal Provider</h4>
-                                <p className="text-xs text-slate-400 mb-3">
-                                    Gemini-style local endpoint for text and image generation.
-                                </p>
-                                <div className="space-y-3">
-                                    <input
-                                        type="text"
-                                        value={localProviderBaseUrl}
-                                        onChange={e => setLocalProviderBaseUrl(e.target.value)}
-                                        placeholder="Base URL (e.g. https://proxypal.azacc.store)"
-                                        className="w-full bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm text-slate-200 placeholder-slate-500"
-                                    />
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="password"
-                                            value={localProviderApiKey}
-                                            onChange={e => setLocalProviderApiKey(e.target.value)}
-                                            placeholder="API key (e.g. proxypal-local)"
-                                            className="flex-grow bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm"
-                                        />
-                                        <button
-                                            onClick={handleLocalProviderTestAndSave}
-                                            disabled={isTestingLocalProvider || !localProviderBaseUrl.trim()}
-                                            className="bg-amber-600 text-white font-semibold px-4 py-2 rounded-md text-sm w-40 text-center disabled:bg-slate-600"
-                                        >
-                                            {isTestingLocalProvider ? <Spinner /> : localProviderSaveSuccess ? 'Saved!' : 'Test & Save'}
-                                        </button>
-                                    </div>
-                                </div>
-                                {localProviderError && <p className="text-red-400 text-xs mt-2">{`Error: ${localProviderError}`}</p>}
-                            </div>
                             <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
                                 <h4 className="font-semibold text-slate-200 mb-2">Anti Provider</h4>
                                 <div className="flex items-center justify-between mb-3">
