@@ -13,7 +13,7 @@
  * // Override specific values for a test
  * vi.mock('@/contexts/ApiProviderContext', () => mockUseApi({
  *   googleApiKey: 'test-key',
- *   aivideoautoAccessToken: 'token-123',
+ *   antiApiKey: 'anti-key-123',
  * }));
  */
 
@@ -48,12 +48,10 @@ interface ApiContextType {
   setLocalApiBaseUrl: ReturnType<typeof vi.fn>;
   localApiKey: string | null;
   setLocalApiKey: ReturnType<typeof vi.fn>;
-  aivideoautoAccessToken: string | null;
-  setAivideoautoAccessToken: ReturnType<typeof vi.fn>;
-  aivideoautoImageModels: Array<{ id_base: string; model: string; name: string }>;
-  setAivideoautoImageModels: ReturnType<typeof vi.fn>;
-  aivideoautoVideoModels: Array<{ id_base: string; model: string; name: string }>;
-  setAivideoautoVideoModels: ReturnType<typeof vi.fn>;
+  antiApiBaseUrl: string | null;
+  setAntiApiBaseUrl: ReturnType<typeof vi.fn>;
+  antiApiKey: string | null;
+  setAntiApiKey: ReturnType<typeof vi.fn>;
   imageEditModel: string;
   setImageEditModel: ReturnType<typeof vi.fn>;
   imageGenerateModel: string;
@@ -144,8 +142,7 @@ export const mockUseImageGallery = (
  * @example
  * vi.mock('@/contexts/ApiProviderContext', () => mockUseApi({
  *   googleApiKey: 'test-api-key',
- *   aivideoautoAccessToken: 'test-token',
- *   aivideoautoImageModels: [{ id_base: 'model-1', model: 'model', name: 'Test' }],
+ *   antiApiKey: 'test-anti-key',
  * }));
  */
 export const mockUseApi = (
@@ -158,12 +155,10 @@ export const mockUseApi = (
     setLocalApiBaseUrl: vi.fn(),
     localApiKey: null,
     setLocalApiKey: vi.fn(),
-    aivideoautoAccessToken: null,
-    setAivideoautoAccessToken: vi.fn(),
-    aivideoautoImageModels: [],
-    setAivideoautoImageModels: vi.fn(),
-    aivideoautoVideoModels: [],
-    setAivideoautoVideoModels: vi.fn(),
+    antiApiBaseUrl: null,
+    setAntiApiBaseUrl: vi.fn(),
+    antiApiKey: null,
+    setAntiApiKey: vi.fn(),
     imageEditModel: 'gemini-2.5-flash-image',
     setImageEditModel: vi.fn(),
     imageGenerateModel: 'imagen-4.0-generate-001',

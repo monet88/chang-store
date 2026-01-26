@@ -16,7 +16,6 @@
  * 4. Main image generation with validation
  * 5. Variations and close-up generation
  * 6. Upscale functionality
- * 7. AIVideoAuto auth validation
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -385,30 +384,6 @@ describe('useLookbookGenerator', () => {
 
       expect(result.current.error).toBe('lookbook.inputError');
       expect(editImage).not.toHaveBeenCalled();
-    });
-
-    /**
-     * Test: AIVideoAuto auth validation is checked in hook
-     * Note: This test verifies the validation logic exists - actual auth errors
-     * are tested at integration level where mock context can be reconfigured
-     */
-    it('should validate aivideoauto token requirement exists in hook', async () => {
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      // With default mock (gemini model), should succeed without auth error
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      // Should not have auth error when using gemini model
-      expect(result.current.error).not.toBe('error.api.aivideoautoAuth');
     });
 
     /**

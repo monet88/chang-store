@@ -5,7 +5,12 @@
 **Branch:** main
 
 ## OVERVIEW
-Chang-Store is a React 19 + Vite SPA. Core flow: Component UI → Hook logic → Service API → external providers (Gemini, AIVideoAuto).
+Chang-Store is a React 19 + Vite SPA. Core flow: Component UI → Hook logic → Service API → external providers (Gemini, Local Provider, Anti Provider).
+
+## PROVIDERS (SETTINGS)
+- Google
+- Proxypal Provider (local)
+- Anti Provider
 
 ## STRUCTURE
 ```
@@ -29,7 +34,7 @@ Chang-Store is a React 19 + Vite SPA. Core flow: Component UI → Hook logic →
 | Feature logic | `hooks/` | All mutations/state live here |
 | Global state | `contexts/` | Providers + shared state |
 | API calls | `services/` | Route models + error handling |
-| Model routing | `services/` | `gemini-*` → Gemini, `aivideoauto--*` → AIVideoAuto |
+| Model routing | `services/` | `gemini-*` → Gemini, `local--*` → Local, `anti--*` → Anti |
 | Prompts/helpers | `utils/` | Prompt builders + helpers |
 | Tests/mocks | `__tests__/` | Vitest + mocks |
 | Translations | `locales/` | Use `useLanguage()` |
@@ -82,7 +87,6 @@ npm run lint         # ESLint
 
 ## NOTES
 - Status updates are often polled; UI expects progress callbacks.
-- Video features rely on AIVideoAuto models.
 
 <!-- bv-agent-instructions-v1 -->
 

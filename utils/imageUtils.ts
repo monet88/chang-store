@@ -44,11 +44,7 @@ export const getErrorMessage = (error: unknown, t: (key: string, options?: any) 
         const reason = rawMessage.substring('error.api.geminiFailed:'.length);
         return t('error.api.geminiFailed', { error: reason });
     }
-    if (rawMessage.startsWith('error.api.aivideoautoFailed:')) {
-        const reason = rawMessage.substring('error.api.aivideoautoFailed:'.length);
-        return t('error.api.aivideoautoFailed', { error: reason });
-    }
-    
+
     return t(rawMessage, { default: rawMessage });
 };
 

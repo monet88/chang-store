@@ -90,16 +90,6 @@ describe('getErrorMessage', () => {
       expect(result).toBe('error.api.geminiFailed:Rate limit exceeded');
     });
 
-    it('should extract reason from error.api.aivideoautoFailed pattern', () => {
-      const error = new Error('error.api.aivideoautoFailed:Invalid API token');
-      const result = getErrorMessage(error, mockT);
-
-      expect(mockT).toHaveBeenCalledWith('error.api.aivideoautoFailed', {
-        error: 'Invalid API token',
-      });
-      expect(result).toBe('error.api.aivideoautoFailed:Invalid API token');
-    });
-
     it('should handle empty reason after colon', () => {
       const error = new Error('error.api.textOnlyResponse:');
       const result = getErrorMessage(error, mockT);

@@ -15,14 +15,14 @@ import ResultPlaceholder from './shared/ResultPlaceholder';
 
 const BackgroundReplacer: React.FC = () => {
   const { t } = useLanguage();
-  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, textGenerateModel } = useApi();
+  const { getModelsForFeature, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, textGenerateModel } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Background);
   const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
-    aivideoautoAccessToken,
-    aivideoautoImageModels,
     localApiBaseUrl,
     localApiKey,
+    antiApiBaseUrl,
+    antiApiKey,
   });
 
   const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);
@@ -106,10 +106,6 @@ const BackgroundReplacer: React.FC = () => {
     }
     if (!backgroundImage && !promptText) {
       setError(t('background.backgroundError'));
-      return;
-    }
-    if (imageEditModel.startsWith('aivideoauto--') && !aivideoautoAccessToken) {
-      setError(t('error.api.aivideoautoAuth'));
       return;
     }
 

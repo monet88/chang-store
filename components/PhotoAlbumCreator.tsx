@@ -19,20 +19,12 @@ interface GeneratedAlbumImage extends ImageFile {
 
 export const PhotoAlbumCreator: React.FC = () => {
     const { t } = useLanguage();
-    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey } = useApi();
+    const { getModelsForFeature, antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.PhotoAlbum);
-    const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
-    const requireAivideoautoConfig = () => {
-        if (isAivideoautoModel && !aivideoautoAccessToken) {
-            setError(t('error.api.aivideoautoAuth'));
-            return false;
-        }
-        return true;
-    };
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
-        aivideoautoAccessToken,
-        aivideoautoImageModels,
+        antiApiBaseUrl,
+        antiApiKey,
         localApiBaseUrl,
         localApiKey,
     });

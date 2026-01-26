@@ -38,6 +38,14 @@ npm run dev              # http://localhost:3000
 - **Photo Album Creator & Gallery**: Save, revisit, and re-edit generated media
 - **Settings & i18n**: Sidebar gear opens API key/model settings; language switcher supports EN and VI
 
+## Providers (Settings)
+
+The Settings modal exposes the following providers for model selection:
+
+- Google
+- Proxypal Provider (local)
+- Anti Provider
+
 ---
 
 ## Tech Stack
@@ -48,7 +56,7 @@ npm run dev              # http://localhost:3000
 | Styling | Tailwind CSS 4 |
 | State | Context API (language, API keys, gallery, viewer) |
 | HTTP | Axios, Google Gemini client |
-| AI | Google Gemini, AIVideoAuto (optional) |
+| AI | Google Gemini, Local Provider, Anti Provider |
 | Testing | Vitest, React Testing Library |
 
 ---
@@ -98,7 +106,7 @@ chang-store/
 ├── App.tsx              # Provider stack & feature switching
 ├── components/          # Feature UIs (VirtualTryOn, LookbookGenerator, etc.)
 ├── contexts/            # Global state (API keys, language, gallery, viewer)
-├── services/            # AI integrations (gemini, aivideoauto)
+├── services/            # AI integrations (gemini, local, anti)
 ├── hooks/               # Feature-specific hooks
 ├── utils/               # Utility functions (prompts, images, storage)
 ├── locales/             # i18n strings (en, vi)

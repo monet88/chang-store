@@ -31,7 +31,7 @@ const MENTION_REGEX = /@img(\d+)/g;
  */
 const AIEditor: React.FC = () => {
   const { t } = useLanguage();
-  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey } = useApi();
+  const { getModelsForFeature, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.AIEditor);
 
   // State
@@ -111,12 +111,6 @@ Return the final edited image.`;
       return;
     }
 
-    // Check API auth for aivideoauto models
-    if (imageEditModel.startsWith('aivideoauto--') && !aivideoautoAccessToken) {
-      setError(t('error.api.aivideoautoAuth'));
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
@@ -146,10 +140,10 @@ Return the final edited image.`;
         imageEditModel,
         {
           onStatusUpdate: () => {},
-          aivideoautoAccessToken,
-          aivideoautoImageModels,
           localApiBaseUrl,
           localApiKey,
+          antiApiBaseUrl,
+          antiApiKey,
         }
       );
 
@@ -163,8 +157,10 @@ Return the final edited image.`;
     images,
     prompt,
     imageEditModel,
-    aivideoautoAccessToken,
-    aivideoautoImageModels,
+    localApiBaseUrl,
+    localApiKey,
+    antiApiBaseUrl,
+    antiApiKey,
     aspectRatio,
     resolution,
     extractMentionedImages,

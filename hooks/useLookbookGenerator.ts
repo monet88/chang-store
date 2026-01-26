@@ -95,12 +95,10 @@ export const useLookbookGenerator = () => {
     const originalImageRef = useRef<ImageFile | null>(null);
 
     const { t } = useLanguage();
-    const { aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, textGenerateModel, getModelsForFeature } = useApi();
+    const { localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, textGenerateModel, getModelsForFeature } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Lookbook);
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
-        aivideoautoAccessToken,
-        aivideoautoImageModels,
         localApiBaseUrl,
         localApiKey,
         antiApiBaseUrl,
@@ -193,10 +191,6 @@ export const useLookbookGenerator = () => {
           setError(t('lookbook.inputError'));
           return;
         }
-        if (imageEditModel.startsWith('aivideoauto--') && !aivideoautoAccessToken) {
-          setError(t('error.api.aivideoautoAuth'));
-          return;
-        }
     
         setIsLoading(true);
         setLoadingMessage(t('lookbook.generatingStatus'));
@@ -246,7 +240,7 @@ export const useLookbookGenerator = () => {
           setIsLoading(false);
           setLoadingMessage('');
         }
-    }, [formState, imageEditModel, aivideoautoAccessToken, buildImageServiceConfig, aspectRatio, resolution, t]);
+    }, [formState, imageEditModel, buildImageServiceConfig, aspectRatio, resolution, t]);
     
     const handleUpscale = useCallback(async (imageToUpscale: ImageFile, imageKey: string) => {
         setUpscalingStates(prev => ({ ...prev, [imageKey]: true }));

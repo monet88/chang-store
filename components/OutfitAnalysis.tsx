@@ -21,20 +21,12 @@ interface RedesignResult {
 
 const OutfitAnalysis: React.FC = () => {
     const { t } = useLanguage();
-    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, textGenerateModel } = useApi();
+    const { getModelsForFeature, antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey, textGenerateModel } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.OutfitAnalysis);
-    const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
-    const requireAivideoautoConfig = () => {
-        if (isAivideoautoModel && !aivideoautoAccessToken) {
-            setError(t('error.api.aivideoautoAuth'));
-            return false;
-        }
-        return true;
-    };
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
-        aivideoautoAccessToken,
-        aivideoautoImageModels,
+        antiApiBaseUrl,
+        antiApiKey,
         localApiBaseUrl,
         localApiKey,
     });
@@ -104,9 +96,6 @@ const OutfitAnalysis: React.FC = () => {
         if (!uploadedImage) return;
         if (selectedPresets.length === 0) {
             setError(t('outfitAnalysis.styleSelectionError'));
-            return;
-        }
-        if (!requireAivideoautoConfig()) {
             return;
         }
 
@@ -205,9 +194,6 @@ const OutfitAnalysis: React.FC = () => {
 
     const handleExtractItem = async (item: AnalyzedItem) => {
         if (!uploadedImage) return;
-        if (!requireAivideoautoConfig()) {
-            return;
-        }
 
         const key = item.item;
         setExtractionStatus(prev => ({ ...prev, [key]: 'loading' }));

@@ -56,22 +56,14 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
   const { t } = useLanguage();
-  const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, textGenerateModel } = useApi();
+  const { getModelsForFeature, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, textGenerateModel } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.Pose);
-  const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
-  const requireAivideoautoConfig = () => {
-    if (isAivideoautoModel && !aivideoautoAccessToken) {
-      setError(t('error.api.aivideoautoAuth'));
-      return false;
-    }
-    return true;
-  };
   const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
-    aivideoautoAccessToken,
-    aivideoautoImageModels,
     localApiBaseUrl,
     localApiKey,
+    antiApiBaseUrl,
+    antiApiKey,
   });
 
   const allPrompts = [...selectedLibraryPoses, ...(customPosePrompt.trim() ? [customPosePrompt.trim()] : [])];
@@ -111,9 +103,6 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
   const handleGenerate = async () => {
     if (!subjectImage) {
       setError(t('pose.subjectError'));
-      return;
-    }
-    if (!requireAivideoautoConfig()) {
       return;
     }
 
@@ -165,11 +154,6 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
       const prompts = allPrompts;
       if (prompts.length === 0) {
         setError(t('pose.promptError'));
-        return;
-      }
-
-      if (!requireAivideoautoConfig()) {
-        setIsLoading(false);
         return;
       }
 

@@ -15,7 +15,6 @@
  * 4. Upscale functionality
  * 5. Clothing uploader management
  * 6. Validation errors (no subject, no clothing)
- * 7. AIVideoAuto auth error when token missing
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -326,43 +325,6 @@ describe('useVirtualTryOn', () => {
       // Assert
       expect(result.current.error).toBe('virtualTryOn.inputError');
       expect(editImage).not.toHaveBeenCalled();
-    });
-  });
-
-  // ==========================================================================
-  // Test Suite: AIVideoAuto Authentication
-  // ==========================================================================
-
-  describe('AIVideoAuto Authentication', () => {
-    /**
-     * Test: The hook checks requiresAivideoauto based on model prefix
-     * Note: This test verifies the validation logic exists by checking behavior
-     * when using gemini model (which should NOT trigger auth error)
-     */
-    it('should not set auth error for gemini models even without token', async () => {
-      // Arrange - default mock uses gemini model and null token
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-
-      const { result } = renderHook(() => useVirtualTryOn());
-
-      // Set up required state
-      act(() => {
-        result.current.setSubjectImage(TEST_IMAGE);
-      });
-
-      const clothingId = result.current.clothingItems[0].id;
-      act(() => {
-        result.current.handleClothingUpload(TEST_CLOTHING_IMAGE, clothingId);
-      });
-
-      // Act
-      await act(async () => {
-        await result.current.handleGenerateImage();
-      });
-
-      // Assert - should proceed without auth error for gemini model
-      expect(result.current.error).not.toBe('error.api.aivideoautoAuth');
-      expect(editImage).toHaveBeenCalled();
     });
   });
 

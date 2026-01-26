@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-9 service files: unified facade routing to Gemini or AIVideoAuto backends. Prompt Engineering as Code in `gemini/`.
+Service files: unified facade routing to Gemini, Local Provider, or Anti Provider backends. Prompt Engineering as Code in `gemini/`.
 
 ## STRUCTURE
 
@@ -11,7 +11,8 @@ services/
 ├── imageEditingService.ts  # UNIFIED FACADE - routes by model prefix
 ├── apiClient.ts            # Gemini client singleton
 ├── geminiService.ts        # Gemini direct calls
-├── aivideoautoService.ts   # AIVideoAuto API calls
+├── localProviderService.ts # Local Provider API calls
+├── antiProviderService.ts  # Anti Provider API calls
 ├── googleDriveService.ts   # Cloud storage (optional)
 └── gemini/
     ├── image.ts            # Image generation prompts
@@ -33,8 +34,11 @@ services/
 ```typescript
 // In imageEditingService.ts
 function routeRequest(model: string) {
-  if (model.startsWith("aivideoauto--")) {
-    return aivideoautoService.process(...);
+  if (model.startsWith("local--")) {
+    return localProviderService.process(...);
+  }
+  if (model.startsWith("anti--")) {
+    return antiProviderService.process(...);
   }
   return geminiService.process(...);
 }
@@ -51,7 +55,6 @@ function routeRequest(model: string) {
 
 - **NEVER** call external APIs directly from hooks - use services
 - **NEVER** store state in services - use contexts
-- **Video features** MUST route to AIVideoAuto (not Gemini)
 - **DO NOT** hardcode API keys - use ApiContext
 
 ## PROMPT ENGINEERING

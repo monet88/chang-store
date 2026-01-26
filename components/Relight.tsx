@@ -131,20 +131,12 @@ Your primary task is to relight the provided source image according to the speci
 
 const Relight: React.FC = () => {
     const { t } = useLanguage();
-    const { getModelsForFeature, aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey } = useApi();
+    const { getModelsForFeature, antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.Relight);
-    const isAivideoautoModel = imageEditModel.startsWith('aivideoauto--');
-    const requireAivideoautoConfig = () => {
-        if (isAivideoautoModel && !aivideoautoAccessToken) {
-            setError(t('error.api.aivideoautoAuth'));
-            return false;
-        }
-        return true;
-    };
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
-        aivideoautoAccessToken,
-        aivideoautoImageModels,
+        antiApiBaseUrl,
+        antiApiKey,
         localApiBaseUrl,
         localApiKey,
     });
@@ -168,9 +160,6 @@ const Relight: React.FC = () => {
     const handleRelight = async () => {
         if (!image) {
             setError(t('relight.inputError'));
-            return;
-        }
-        if (!requireAivideoautoConfig()) {
             return;
         }
 

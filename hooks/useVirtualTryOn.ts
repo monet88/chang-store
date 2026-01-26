@@ -25,26 +25,21 @@ export const useVirtualTryOn = () => {
   const [generatedImages, setGeneratedImages] = useState<ImageFile[]>([]);
 
   const { t } = useLanguage();
-  const { aivideoautoAccessToken, aivideoautoImageModels, localApiBaseUrl, localApiKey, getModelsForFeature } = useApi();
+  const { localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, getModelsForFeature } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.TryOn);
   const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
-    aivideoautoAccessToken,
-    aivideoautoImageModels,
     localApiBaseUrl,
     localApiKey,
+    antiApiBaseUrl,
+    antiApiKey,
   });
-  
+
   const validClothingItems = clothingItems.filter(item => item.image !== null);
-  const requiresAivideoauto = imageEditModel.startsWith('aivideoauto--');
 
   const handleGenerateImage = async () => {
     if (!subjectImage || validClothingItems.length === 0) {
       setError(t('virtualTryOn.inputError'));
-      return;
-    }
-    if (requiresAivideoauto && !aivideoautoAccessToken) {
-      setError(t('error.api.aivideoautoAuth'));
       return;
     }
 

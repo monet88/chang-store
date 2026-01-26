@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with dual AI backends (Google Gemini, AIVideoAuto).
+AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with multiple AI backends (Google Gemini, Local Provider, Anti Provider).
+
+## Providers (Settings)
+- Google
+- Proxypal Provider (local)
+- Anti Provider
 
 ## Commands
 
@@ -102,7 +107,7 @@ LanguageProvider → ApiProvider → ImageGalleryProvider → ImageViewerProvide
 | `components/` | Feature UIs (14) + Shared (10) + Modals (5) |
 | `hooks/` | Feature-specific hooks - all business logic |
 | `contexts/` | Global state: API keys, language, gallery, viewer |
-| `services/` | API integrations: Gemini, AIVideoAuto |
+| `services/` | API integrations: Gemini, Local, Anti |
 | `utils/` | imageUtils.ts, lookbookPromptBuilder.ts |
 | `locales/` | i18n: en.ts (source), vi.ts |
 
@@ -135,8 +140,9 @@ export function useFeatureName() {
 
 ### Service Routing
 ```typescript
-const model = "aivideoauto--model-name";  // → AIVideoAuto
-const model = "gemini-2.5-flash";          // → Gemini
+const model = "local--model-name";     // → Local Provider
+const model = "anti--model-name";      // → Anti Provider
+const model = "gemini-2.5-flash";      // → Gemini (default)
 ```
 
 ## External APIs
@@ -144,7 +150,8 @@ const model = "gemini-2.5-flash";          // → Gemini
 | Service | Auth |
 |---------|------|
 | Google Gemini (`@google/genai`) | `GEMINI_API_KEY` env or Settings |
-| AIVideoAuto (`api.gommo.net/ai`) | access_token in Settings |
+| Local Provider | Base URL + API Key in Settings |
+| Anti Provider | Base URL + API Key in Settings |
 
 ## i18n
 
@@ -156,4 +163,3 @@ const model = "gemini-2.5-flash";          // → Gemini
 - Local storage persistence enabled for settings (API keys, provider config, model selections); gallery remains session-only
 - Images stored in-memory via `ImageGalleryContext` (session only)
 - Generated images go through `addImage()` from gallery context
-- Video generation uses polling (Gemini: indefinite, AIVideoAuto: 10min max)
