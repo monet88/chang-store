@@ -68,3 +68,4 @@ scripts/local-model-smoke-output/
 scripts/local-model-smoke-test.mjs
 nul
 docs/plans/*
+opencode.json
