@@ -52,6 +52,7 @@ src-tauri/target/
 .codex/
 .cursor/
 .github/
+.opencode/
 .serena/
 .skillsrc
 
