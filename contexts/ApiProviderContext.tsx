@@ -68,10 +68,10 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return safeStorage.getItem('google_api_key');
   });
   const [localApiBaseUrl, setLocalApiBaseUrlState] = useState<string | null>(() => {
-      return safeStorage.getItem(LOCAL_BASE_URL_KEY);
+      return safeStorage.getItem(LOCAL_BASE_URL_KEY) || import.meta.env.VITE_LOCAL_PROVIDER_BASE_URL || null;
   });
   const [localApiKey, setLocalApiKeyState] = useState<string | null>(() => {
-      return safeStorage.getItem(LOCAL_API_KEY);
+      return safeStorage.getItem(LOCAL_API_KEY) || import.meta.env.VITE_LOCAL_PROVIDER_API_KEY || null;
   });
   const [antiApiBaseUrl, setAntiApiBaseUrlState] = useState<string | null>(() => {
       return safeStorage.getItem(ANTI_BASE_URL_KEY);
