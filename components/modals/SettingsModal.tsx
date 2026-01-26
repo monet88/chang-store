@@ -245,12 +245,12 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
     
     const IMAGE_EDIT_SERVICES = [
         { id: 'google', name: 'Google' },
-        { id: 'local', name: 'Agy Provider' },
+        { id: 'local', name: 'Proxypal Provider' },
         { id: 'anti', name: 'Anti Provider' },
     ];
     const TEXT_GENERATE_SERVICES = [
         { id: 'google', name: 'Google' },
-        { id: 'local', name: 'Agy Provider' },
+        { id: 'local', name: 'Proxypal Provider' },
         { id: 'anti', name: 'Anti Provider' },
     ];
 
@@ -330,7 +330,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                                 </div>
                             </div>
                             <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                                <h4 className="font-semibold text-slate-200 mb-2">Agy Provider</h4>
+                                <h4 className="font-semibold text-slate-200 mb-2">Proxypal Provider</h4>
                                 <p className="text-xs text-slate-400 mb-3">
                                     Gemini-style local endpoint for text and image generation.
                                 </p>
@@ -363,15 +363,28 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                             </div>
                             <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
                                 <h4 className="font-semibold text-slate-200 mb-2">Anti Provider</h4>
-                                <p className="text-xs text-slate-400 mb-3">
-                                    Gemini-style endpoint for anti detection and image generation.
-                                </p>
+                                <div className="flex items-center justify-between mb-3">
+                                    <p className="text-xs text-slate-400">
+                                        Default: http://127.0.0.1:8045, API key: sk-monet4292
+                                    </p>
+                                    {(!antiProviderBaseUrl && !antiProviderApiKey) && (
+                                        <button
+                                            onClick={() => {
+                                                setAntiProviderBaseUrl('http://127.0.0.1:8045');
+                                                setAntiProviderApiKey('sk-monet4292');
+                                            }}
+                                            className="text-xs text-amber-400 hover:text-amber-300 underline"
+                                        >
+                                            Fill Defaults
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="space-y-3">
                                     <input
                                         type="text"
                                         value={antiProviderBaseUrl}
                                         onChange={e => setAntiProviderBaseUrl(e.target.value)}
-                                        placeholder="Base URL (e.g. https://anti.azacc.store)"
+                                        placeholder="http://127.0.0.1:8045"
                                         className="w-full bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm text-slate-200 placeholder-slate-500"
                                     />
                                     <div className="flex items-center gap-2">
@@ -379,12 +392,12 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                                             type="password"
                                             value={antiProviderApiKey}
                                             onChange={e => setAntiProviderApiKey(e.target.value)}
-                                            placeholder="API key (optional)"
+                                            placeholder="sk-monet4292 (required)"
                                             className="flex-grow bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm"
                                         />
                                         <button
                                             onClick={handleAntiProviderTestAndSave}
-                                            disabled={isTestingAntiProvider || !antiProviderBaseUrl.trim()}
+                                            disabled={isTestingAntiProvider || !antiProviderBaseUrl.trim() || !antiProviderApiKey.trim()}
                                             className="bg-amber-600 text-white font-semibold px-4 py-2 rounded-md text-sm w-40 text-center disabled:bg-slate-600"
                                         >
                                             {isTestingAntiProvider ? <Spinner /> : antiProviderSaveSuccess ? 'Saved!' : 'Test & Save'}
