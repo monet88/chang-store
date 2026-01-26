@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'chang-store-debug';
 
-export type Provider = 'Gemini' | 'Local';
+export type Provider = 'Gemini' | 'Local' | 'Anti';
 
 export interface ApiCallLog {
   provider: Provider;

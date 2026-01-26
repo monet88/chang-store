@@ -17,8 +17,8 @@ export type EditImageParams = geminiImageService.EditImageParams;
 
 const LOCAL_PREFIX = 'local--';
 const ANTI_PREFIX = 'anti--';
-const isLocalModel = (model: string) => model.startsWith(LOCAL_PREFIX);
-const isAntiModel = (model: string) => model.startsWith(ANTI_PREFIX);
+const isLocalModel = (model?: string) => !!model && model.startsWith(LOCAL_PREFIX);
+const isAntiModel = (model?: string) => !!model && model.startsWith(ANTI_PREFIX);
 const stripLocalPrefix = (model: string) => model.slice(LOCAL_PREFIX.length);
 const stripAntiPrefix = (model: string) => model.slice(ANTI_PREFIX.length);
 
@@ -100,7 +100,12 @@ export const editImage = async (
                 )
             );
         } else {
-            result = await geminiImageService.editImage({ ...params, model });
+            let resolvedModel = model;
+            if (!resolvedModel) {
+                console.warn('[ImageEditingService] Model is undefined or empty, falling back to gemini-3-pro-image-preview');
+                resolvedModel = 'gemini-3-pro-image-preview';
+            }
+            result = await geminiImageService.editImage({ ...params, model: resolvedModel });
         }
 
         logApiCall({

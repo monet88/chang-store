@@ -2,15 +2,7 @@
 import { Part, Modality, Type } from "@google/genai";
 import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel, UpscaleQuality } from '../../types';
 import { getGeminiClient } from '../apiClient';
-
-/**
- * Check if model supports imageSize parameter.
- * Only Gemini 3 and Imagen 4 models support imageSize.
- * Gemini 2.5 flash-image only supports aspectRatio.
- */
-const supportsImageSize = (model: string): boolean => {
-    return model.includes('gemini-3') || model.includes('imagen-4');
-};
+import { getModelCapabilities } from '../../config/modelRegistry';
 
 export interface EditImageParams {
   images: ImageFile[];
@@ -42,11 +34,13 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
 
     const generateSingleImage = async (): Promise<ImageFile> => {
         // Build imageConfig - only include imageSize for models that support it
+        const capabilities = getModelCapabilities(model);
         const imageConfig: { aspectRatio?: string; imageSize?: string } = {};
-        if (aspectRatio && aspectRatio !== 'Default') {
+        
+        if (aspectRatio && aspectRatio !== 'Default' && capabilities.supportsAspectRatio) {
             imageConfig.aspectRatio = aspectRatio;
         }
-        if (resolution && supportsImageSize(model)) {
+        if (resolution && capabilities.supportsImageSize) {
             imageConfig.imageSize = resolution;
         }
 
@@ -56,7 +50,7 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
             aspectRatio,
             resolution,
             imageConfig,
-            supportsImageSize: supportsImageSize(model)
+            capabilities
         });
 
         const response = await ai.models.generateContent({
@@ -314,11 +308,13 @@ export const critiqueAndRedesignOutfit = async (
 
     const generateSingleRedesign = async (): Promise<{ critique: string; image: ImageFile }> => {
         // Build imageConfig - only include imageSize for models that support it
+        const capabilities = getModelCapabilities(model);
         const imageConfig: { aspectRatio?: string; imageSize?: string } = {};
-        if (aspectRatio && aspectRatio !== 'Default') {
+        
+        if (aspectRatio && aspectRatio !== 'Default' && capabilities.supportsAspectRatio) {
             imageConfig.aspectRatio = aspectRatio;
         }
-        if (resolution && supportsImageSize(model)) {
+        if (resolution && capabilities.supportsImageSize) {
             imageConfig.imageSize = resolution;
         }
 
