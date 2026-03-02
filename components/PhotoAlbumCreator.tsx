@@ -76,10 +76,6 @@ export const PhotoAlbumCreator: React.FC = () => {
             setError(t('photoAlbum.error.noPose'));
             return;
         }
-        if (!requireAivideoautoConfig()) {
-            return;
-        }
-
         setIsLoading(true);
         setError(null);
         setGeneratedImages([]);

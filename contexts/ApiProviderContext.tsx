@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
+import { Feature, ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
 import { setGeminiApiKey } from '../services/apiClient';
 
 interface ApiContextType {
@@ -19,7 +19,7 @@ interface ApiContextType {
   setImageGenerateModel: (model: ImageGenerateModel) => void;
   textGenerateModel: TextGenerateModel;
   setTextGenerateModel: (model: TextGenerateModel) => void;
-  getModelsForFeature: () => {
+  getModelsForFeature: (feature?: Feature) => {
     imageEditModel: ImageEditModel;
     imageGenerateModel: ImageGenerateModel;
     textGenerateModel: TextGenerateModel;
@@ -160,7 +160,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     safeStorage.setItem(TEXT_GENERATE_MODEL_KEY, model);
   };
 
-  const getModelsForFeature = () => {
+  const getModelsForFeature = (_feature?: Feature) => {
     return {
       imageEditModel,
       imageGenerateModel,
