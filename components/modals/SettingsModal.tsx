@@ -146,7 +146,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
             }
             const selectedAntiModel = localTextGenerateModel.startsWith('anti--')
                 ? localTextGenerateModel.replace('anti--', '')
-                : (ANTI_TEXT_MODELS[0]?.id || 'gemini-3-pro-preview');
+                : (ANTI_TEXT_MODELS[0]?.id || 'gemini-3.1-pro-preview');
 
             await generateTextAnti(
                 'Ping',
@@ -209,6 +209,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         imageEdit: {
             'google': [
                 { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image (Preview)' },
+                { id: 'gemini-3.1-flash-image-preview', name: 'Gemini 3.1 Flash Image (Preview)' },
                 { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
             ],
             'local': LOCAL_IMAGE_MODELS_WITH_PREFIX,
@@ -225,7 +226,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         },
         textGenerate: {
             'google': [
-                { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro (Preview)' },
+                { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (Preview)' },
                 { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash (Preview)' },
                 { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
                 { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },

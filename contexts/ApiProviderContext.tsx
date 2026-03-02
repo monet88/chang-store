@@ -81,7 +81,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
-      return safeStorage.getItem(IMAGE_EDIT_MODEL_KEY) || 'gemini-3-pro-image-preview';
+      return safeStorage.getItem(IMAGE_EDIT_MODEL_KEY) || 'gemini-3.1-flash-image-preview';
   });
   const [imageGenerateModel, setImageGenerateModelState] = useState<ImageGenerateModel>(() => {
       return safeStorage.getItem(IMAGE_GENERATE_MODEL_KEY) || 'imagen-4.0-generate-001';

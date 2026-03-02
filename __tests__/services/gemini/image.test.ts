@@ -601,7 +601,7 @@ describe('services/gemini/image.ts', () => {
       });
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-3-pro-image-preview',
+          model: 'gemini-3.1-flash-image-preview',
         })
       );
       // Verify prompt mentions upscaling

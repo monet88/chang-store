@@ -11,7 +11,8 @@ interface ResolutionSelectorProps {
 /**
  * Resolution selector with model-aware options
  * - gemini-2.5-flash-image: only 1K (fixed output ~1024px)
- * - gemini-3-pro-image-preview: 1K, 2K, 4K all available
+ * - gemini-3-pro-image-preview: 0.5K, 1K, 2K, 4K all available
+ * - gemini-3.1-flash-image-preview: 0.5K, 1K, 2K, 4K all available
  * - Other models: all options available
  */
 const ResolutionSelector: React.FC<ResolutionSelectorProps> = ({ resolution, setResolution, model }) => {

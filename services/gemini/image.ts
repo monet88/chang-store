@@ -160,7 +160,7 @@ export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '
     const textPart: Part = { text: `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview',
+      model: 'gemini-3.1-flash-image-preview',
       contents: { parts: [imagePart, textPart] },
       config: {
         responseModalities: [Modality.IMAGE],

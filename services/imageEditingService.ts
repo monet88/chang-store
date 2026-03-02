@@ -102,8 +102,8 @@ export const editImage = async (
         } else {
             let resolvedModel = model;
             if (!resolvedModel) {
-                console.warn('[ImageEditingService] Model is undefined or empty, falling back to gemini-3-pro-image-preview');
-                resolvedModel = 'gemini-3-pro-image-preview';
+                console.warn('[ImageEditingService] Model is undefined or empty, falling back to gemini-3.1-flash-image-preview');
+                resolvedModel = 'gemini-3.1-flash-image-preview';
             }
             result = await geminiImageService.editImage({ ...params, model: resolvedModel });
         }
