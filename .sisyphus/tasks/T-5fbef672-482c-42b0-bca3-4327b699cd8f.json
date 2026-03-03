@@ -1,0 +1,10 @@
+{
+  "id": "T-5fbef672-482c-42b0-bca3-4327b699cd8f",
+  "subject": "Xác minh sửa lỗi bằng diagnostics, tsc và build",
+  "description": "Chạy lsp_diagnostics file đã đổi, npx tsc --noEmit và npm run build",
+  "status": "completed",
+  "activeForm": "Đang xác minh bằng diagnostics, tsc và build",
+  "blocks": [],
+  "blockedBy": [],
+  "threadID": "ses_352b75e7fffe536b6HoYkeCs2I"
+}

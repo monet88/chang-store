@@ -1,0 +1,13 @@
+{
+  "id": "T-28f192f8-68e9-4e46-91e4-40aac0532ade",
+  "subject": "Chạy build để xác nhận không vỡ sau sửa type",
+  "description": "Chạy npm run build theo yêu cầu để xác thực toàn bộ build vẫn pass.",
+  "status": "completed",
+  "activeForm": "Đang chạy build để xác nhận không vỡ",
+  "blocks": [],
+  "blockedBy": [
+    "T-6520513e-130b-4cd8-9781-d8bb8c5cf3ea"
+  ],
+  "repoURL": "F:\\CodeBase\\Chang-Store",
+  "threadID": "ses_352b7a275ffegppNy8XmWMJGJ2"
+}

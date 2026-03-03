@@ -1,0 +1,10 @@
+{
+  "id": "T-1ad62935-a1e7-4d3b-8320-e2f4fe3af0d0",
+  "subject": "Sửa lỗi TypeScript tại components/PhotoAlbumCreator.tsx",
+  "description": "Áp dụng fix phù hợp sau điều tra cho identifier requireAivideoautoConfig",
+  "status": "completed",
+  "activeForm": "Đang sửa lỗi TypeScript ở PhotoAlbumCreator.tsx",
+  "blocks": [],
+  "blockedBy": [],
+  "threadID": "ses_352b75e7fffe536b6HoYkeCs2I"
+}

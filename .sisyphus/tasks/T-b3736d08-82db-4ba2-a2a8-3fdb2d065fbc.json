@@ -1,0 +1,9 @@
+{
+  "id": "T-b3736d08-82db-4ba2-a2a8-3fdb2d065fbc",
+  "subject": "Fix import.meta.env TS errors",
+  "description": "Fix \"import.meta.env\" TypeScript errors by adding \"vite/client\" to tsconfig.json types array.",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "threadID": "ses_352b80440ffe8Ulv6ENgDEiYb2"
+}
