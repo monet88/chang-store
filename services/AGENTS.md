@@ -1,76 +1,54 @@
 # SERVICES - API Facade Layer
 
 ## OVERVIEW
-
-Service files: unified facade routing to Gemini, Local Provider, or Anti Provider backends. Prompt Engineering as Code in `gemini/`.
+Stateless facades routing requests by model prefix to Gemini, Local Provider, or Anti Provider. Prompt engineering in `gemini/`.
 
 ## STRUCTURE
-
 ```
 services/
-├── imageEditingService.ts  # UNIFIED FACADE - routes by model prefix
-├── apiClient.ts            # Gemini client singleton
-├── geminiService.ts        # Gemini direct calls
-├── localProviderService.ts # Local Provider API calls
-├── antiProviderService.ts  # Anti Provider API calls
-├── googleDriveService.ts   # Cloud storage (optional)
+├── imageEditingService.ts   # UNIFIED FACADE - edit/generate/upscale routing (483 lines)
+├── textService.ts           # Text generation facade with same routing (406 lines)
+├── apiClient.ts             # Gemini SDK singleton + key management
+├── localProviderService.ts  # Local/Proxypal REST calls (351 lines)
+├── antiProviderService.ts   # Anti Provider REST calls (351 lines)
+├── debugService.ts          # Debug logging utility (logApiCall)
+├── googleDriveService.ts    # Cloud storage sync (optional)
 └── gemini/
-    ├── image.ts            # Image generation prompts
-    ├── text.ts             # Text generation prompts
-    └── video.ts            # Video prompts (759 lines - needs refactor)
+    ├── image.ts             # Image generation prompts + SDK calls
+    ├── text.ts              # Text generation prompts (372 lines)
+    └── video.ts             # Video prompts + polling (759 lines)
 ```
 
 ## WHERE TO LOOK
-
 | Task | File | Notes |
 |------|------|-------|
 | Add AI feature | `imageEditingService.ts` | Add to routing switch |
 | Modify prompts | `gemini/image.ts` or `gemini/text.ts` | Prompt templates |
 | Video generation | `gemini/video.ts` | Complex polling logic |
-| API client config | `apiClient.ts` | Gemini SDK setup |
+| API client config | `apiClient.ts` | Gemini SDK singleton |
+| Debug API calls | `debugService.ts` | Enable via localStorage |
 
 ## MODEL ROUTING
-
 ```typescript
-// In imageEditingService.ts
-function routeRequest(model: string) {
-  if (model.startsWith("local--")) {
-    return localProviderService.process(...);
-  }
-  if (model.startsWith("anti--")) {
-    return antiProviderService.process(...);
-  }
-  return geminiService.process(...);
-}
+// imageEditingService.ts + textService.ts
+const LOCAL_PREFIX = 'local--';   // → localProviderService
+const ANTI_PREFIX  = 'anti--';    // → antiProviderService
+// Default (no prefix / gemini-*)  → Gemini SDK
 ```
 
-## CONVENTIONS
-
-- Services are stateless facades
-- Singletons for API clients (`apiClient.ts`)
-- Async/await throughout
-- Error messages via `getErrorMessage(err, t)` for i18n
+## ERROR HANDLING
+- All errors use i18n keys: `error.api.safetyBlock`, `error.api.noContent`, etc.
+- `normalizeError()` in Local/Anti services preserves i18n keys
+- Gemini checks: `promptFeedback.blockReason`, empty candidates, `finishReason`
+- Status updates via `onStatusUpdate` callback in service config
 
 ## ANTI-PATTERNS
-
-- **NEVER** call external APIs directly from hooks - use services
-- **NEVER** store state in services - use contexts
-- **DO NOT** hardcode API keys - use ApiContext
-
-## PROMPT ENGINEERING
-
-```typescript
-// gemini/*.ts pattern
-export function buildPrompt(params: FeatureParams): string {
-  return `System: You are a fashion AI...
-  
-  User request: ${params.description}
-  Style: ${params.style}`;
-}
-```
+- **NEVER** call external APIs directly from hooks — use facades
+- **NEVER** store state in services — use contexts
+- **DO NOT** hardcode API keys — use `ApiProviderContext`
 
 ## COMPLEXITY HOTSPOTS
-
-| File | Lines | Issue | Action |
-|------|-------|-------|--------|
-| `gemini/video.ts` | 759 | Prompt builder bloat | Extract prompt templates |
+| File | Lines | Issue |
+|------|-------|-------|
+| `gemini/video.ts` | 759 | Prompt builder bloat — extract prompt templates |
+| `imageEditingService.ts` | 483 | Large facade — acceptable for routing complexity |

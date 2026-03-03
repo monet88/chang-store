@@ -1,92 +1,119 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-01-14
-**Commit:** 77963c0
+**Generated:** 2026-03-02
+**Commit:** 5ff2755
 **Branch:** main
 
 ## OVERVIEW
-Chang-Store is a React 19 + Vite SPA. Core flow: Component UI → Hook logic → Service API → external providers (Gemini, Local Provider, Anti Provider).
+Chang-Store: AI-powered virtual fashion studio. React 19 + TypeScript 5.8 + Vite 6 SPA.
+Core flow: Component (UI) → Hook (logic) → Service (facade) → Provider (Gemini | Local | Anti).
 
 ## PROVIDERS (SETTINGS)
-- Google
-- Proxypal Provider (local)
-- Anti Provider
+- Google (Gemini SDK, `@google/genai`)
+- Proxypal Provider (local REST, `local--*` prefix)
+- Anti Provider (REST, `anti--*` prefix)
 
 ## STRUCTURE
 ```
 ./
-├── App.tsx / index.tsx         # App entry
-├── components/                 # UI-only components
-├── hooks/                      # Feature logic
-├── contexts/                   # Global state + providers
-├── services/                   # API adapters + provider routing
-├── utils/                      # Helpers, prompt builders
-├── locales/                    # i18n dictionaries
-├── __tests__/                  # Vitest tests + mocks
-├── docs/                       # Architecture + standards
-└── plans/                      # Plans/reports
+├── App.tsx              # Provider stack + lazy feature router
+├── index.tsx            # Entry point
+├── types.ts             # Feature enum, ImageFile, AspectRatio
+├── components/          # 51 files: 14 features + shared + modals
+├── hooks/               # 13 hooks: 1 per feature, all business logic
+├── contexts/            # 5 providers: API keys, language, gallery, viewer, Drive
+├── services/            # 12 files: facade routing + provider implementations
+│   └── gemini/          # Gemini-specific: image, text, video
+├── utils/               # 10 files: prompt builders, image processing, model configs
+├── config/              # modelRegistry.ts
+├── locales/             # en.ts (source), vi.ts
+├── __tests__/           # 19 test files + mocks (mirrors source structure)
+├── docs/                # Architecture, code standards, API docs
+└── plans/               # Session plans + reports
 ```
 
 ## WHERE TO LOOK
 | Task | Location | Notes |
-|------|----------|------|
-| UI layout | `components/` | UI-only, no business logic |
-| Feature logic | `hooks/` | All mutations/state live here |
-| Global state | `contexts/` | Providers + shared state |
-| API calls | `services/` | Route models + error handling |
-| Model routing | `services/` | `gemini-*` → Gemini, `local--*` → Local, `anti--*` → Anti |
-| Prompts/helpers | `utils/` | Prompt builders + helpers |
-| Tests/mocks | `__tests__/` | Vitest + mocks |
-| Translations | `locales/` | Use `useLanguage()` |
-| Standards | `docs/` | code-standards + architecture |
+|------|----------|-------|
+| Add feature UI | `components/FeatureName.tsx` + lazy import in `App.tsx` | Pair with hook |
+| Feature logic | `hooks/useFeatureName.ts` | All state, validation, service calls |
+| Global state | `contexts/` | API keys, language, gallery, viewer |
+| API routing | `services/imageEditingService.ts` | Unified facade: prefix → provider |
+| Text generation | `services/textService.ts` | Facade with same routing pattern |
+| Gemini prompts | `services/gemini/*.ts` | Prompt templates + SDK calls |
+| Model configs | `utils/localModels.ts`, `utils/antiModels.ts` | Available models per provider |
+| Prompt building | `utils/lookbookPromptBuilder.ts` | Pure functions, no side effects |
+| Image helpers | `utils/imageUtils.ts` | Dimensions, compression, base64 |
+| Tests | `__tests__/` | Mirrors source structure |
+| Translations | `locales/en.ts` | Source of truth; `useLanguage().t('key.path')` |
+| Standards | `docs/code-standards.md` | React/TS conventions |
 
-## CODE MAP
-LSP workspace symbol map unavailable in this environment. Use the structure table above and `docs/codebase-summary.md` for navigation.
+## PROVIDER ROUTING
+```typescript
+// Model prefix determines provider (imageEditingService.ts, textService.ts)
+const LOCAL_PREFIX = 'local--';   // → localProviderService (REST)
+const ANTI_PREFIX  = 'anti--';    // → antiProviderService (REST)
+// No prefix / gemini-*            → Gemini SDK (default)
+```
+
+## PROVIDER STACK (App.tsx)
+```
+LanguageProvider → ApiProvider → ImageGalleryProvider → ImageViewerProvider → App
+```
 
 ## CONVENTIONS
-- Code lives at repo root (no `src/`), imports use `@/` alias to root.
-- Hooks hold all logic; components are thin UI wrappers.
-- Tailwind 4, React.lazy for feature loading.
-- Gallery is in-memory only (no persistence).
-- Vitest with coverage thresholds (80%/75%).
+- Code at repo root (no `src/`); imports use `@/` alias mapped to root.
+- Components are thin UI; hooks hold ALL logic.
+- Tailwind 4 via PostCSS. Dark theme: zinc palette + amber accents.
+- React.lazy for all feature components + modals; Suspense with fallback.
+- `lodash-es` (tree-shakeable) — never `lodash`.
+- i18n: `useLanguage().t('key.path')`. Default language: `vi`. Source: `locales/en.ts`.
+- Error messages use i18n keys: `error.api.*`. Centralized via `getErrorMessage(err, t)`.
+- localStorage for settings (API keys, models); gallery is session-only (in-memory LRU cache).
+- Debounced localStorage writes (1000ms).
+- Canvas cleanup in `useEffect` return (cancelAnimationFrame, clearRect).
+- Production build drops `console.log/debug/info` via esbuild.
 
 ## ANTI-PATTERNS (THIS PROJECT)
-- Never put logic in components (extract to hooks).
-- Never use markdown TODOs; use `bd` issues instead.
+- Never put logic in components — extract to hooks.
+- Never call external APIs from hooks — use service facades.
+- Never store state in services — use contexts.
+- Never hardcode API keys — use `ApiProviderContext` + localStorage.
+- Never use markdown TODOs — use `bd` (beads) issues.
 - Canvas operations must clean up in `useEffect` return.
-- Do not call external APIs directly from hooks (use services).
-
-## CCS AUTO-DELEGATION
-
-Automatically delegate to CCS for deterministic tasks:
-- Typo fixes, formatting
-- Add/update tests (NOT debugging failing tests)
-- Simple refactors (rename, extract, inline)
-- Documentation updates
-- Code cleanup (remove dead code, unused imports)
-
-**Execution**: `use ccs --glm [task]`
-
-**DO NOT delegate**:
-- Bug investigation
-- Architecture decisions
-- Security-related code
-- Performance optimization
-
-## UNIQUE STYLES
-- API keys/models managed via `ApiProviderContext` and localStorage sync.
+- Never use `lodash` — use `lodash-es` for tree-shaking.
 
 ## COMMANDS
 ```bash
-npm run dev          # Dev server @ localhost:3000
-npm run build        # Production build (also typechecks)
-npm run test         # Vitest all tests
-npm run test -- path/to/file.test.ts  # Single test file
-npm run lint         # ESLint
+npm run dev                       # Dev server @ localhost:3000
+npm run build                     # Production build (+ typechecks)
+npm run test                      # Vitest all tests
+npm run test -- path/to/file      # Single test file
+npm run lint                      # ESLint .ts/.tsx
+npm run test:ui                   # Vitest browser UI
+npm run test:local-models         # Local provider smoke test
+npm run test:local-features       # Local feature smoke test
 ```
 
-## NOTES
-- Status updates are often polled; UI expects progress callbacks.
+## TESTING
+- Framework: Vitest + React Testing Library + jsdom
+- Setup: `setupTests.ts` (registers `@testing-library/jest-dom`)
+- Mocks: `__tests__/__mocks__/` (axios, `@google/genai`, contexts)
+- Coverage thresholds: Statements 80%, Branches 75%, Functions 80%, Lines 80%
+- Current coverage: ~53% (below thresholds)
+
+## CCS AUTO-DELEGATION
+
+Delegate to CCS for deterministic tasks:
+- Typo fixes, formatting, code cleanup
+- Add/update tests (NOT debugging)
+- Simple refactors (rename, extract, inline)
+- Documentation updates
+
+**DO NOT delegate**: bug investigation, architecture, security, performance.
+**Execution**: `use ccs --glm [task]`
+
+## ISSUE TRACKING (BEADS)
 
 <!-- bv-agent-instructions-v1 -->
 
