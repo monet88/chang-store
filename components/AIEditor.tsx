@@ -49,12 +49,12 @@ const AIEditor: React.FC = () => {
    */
   const extractMentionedImages = useCallback((promptText: string): ImageFile[] => {
     const matches = [...promptText.matchAll(MENTION_REGEX)];
-    // Get unique indices (1-based in prompt, convert to 0-based)
-    const indices = [...new Set(matches.map(m => parseInt(m[1]) - 1))];
-    // Filter valid indices and map to images
-    return indices
+    // Get unique indices (1-based in prompt, convert to 0-based), sorted ascending
+    // Sorting ensures images sent to API match @img1, @img2... order in prompt
+    const indices = [...new Set(matches.map(m => parseInt(m[1]) - 1))]
       .filter(i => i >= 0 && i < images.length)
-      .map(i => images[i]);
+      .sort((a, b) => a - b);
+    return indices.map(i => images[i]);
   }, [images]);
 
   /**
@@ -72,12 +72,11 @@ ${userPrompt}
 Return the edited image as the final result.`;
     }
 
-    // Build image roles based on mentioned images
-    const imageRoles = mentionedImages.map((_, idx) => {
-      // Find original index in images array
-      const originalIndex = images.indexOf(mentionedImages[idx]);
+    // Build image roles - images are sorted by original index, so position matches tag
+    const imageRoles = mentionedImages.map((img, idx) => {
+      const originalIndex = images.indexOf(img);
       const tag = `@img${originalIndex + 1}`;
-      return `- Image ${idx + 1} (${tag}): Reference image`;
+      return `- Image ${idx + 1} is ${tag}`;
     }).join('\n');
 
     return `# INSTRUCTION: MULTI-IMAGE EDITING
