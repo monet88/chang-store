@@ -20,6 +20,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
     { id: Feature.Relight, label: t('tabs.relight') },
     { id: Feature.Upscale, label: t('tabs.upscale') },
     { id: Feature.WatermarkRemover, label: t('tabs.watermarkRemover') },
+    { id: Feature.ClothingTransfer, label: t('tabs.clothingTransfer') },
     { id: Feature.ImageEditor, label: t('tabs.imageEditor') },
     { id: Feature.AIEditor, label: t('tabs.aiEditor') },
   ];

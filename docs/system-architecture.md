@@ -13,7 +13,7 @@
 │  │                         PRESENTATION LAYER                           │    │
 │  │  ┌──────────┐  ┌──────────────────────────────────────────────────┐ │    │
 │  │  │  Header  │  │              Feature Components                   │ │    │
-│  │  │ (NavBar) │  │  VirtualTryOn | Lookbook | Background | Pose ... │ │    │
+│  │  │ (NavBar) │  │  VirtualTryOn | Lookbook | Background | Pose | ClothingTransfer ... │ │    │
 │  │  └──────────┘  └──────────────────────────────────────────────────┘ │    │
 │  │  ┌─────────────────────────────────────────────────────────────────┐│    │
 │  │  │              Modals: Gallery | Settings | PoseLibrary           ││    │

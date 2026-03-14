@@ -28,6 +28,7 @@ const Upscale = lazy(() => import('./components/Upscale'));
 const ImageEditor = lazy(() => import('./components/ImageEditor').then(m => ({ default: m.ImageEditor })));
 const AIEditor = lazy(() => import('./components/AIEditor'));
 const WatermarkRemover = lazy(() => import('./components/WatermarkRemover'));
+const ClothingTransfer = lazy(() => import('./components/ClothingTransfer'));
 
 // --- Lazy-loaded modal components ---
 const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
@@ -112,6 +113,8 @@ case Feature.AIEditor:
         return <AIEditor key="ai-editor" />;
       case Feature.WatermarkRemover:
         return <WatermarkRemover key="watermark-remover" />;
+      case Feature.ClothingTransfer:
+        return <ClothingTransfer key="clothing-transfer" />;
       case Feature.ImageEditor:
         return null; // ImageEditor is rendered separately as a modal
       default:
