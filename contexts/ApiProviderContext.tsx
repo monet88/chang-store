@@ -27,6 +27,9 @@ interface ApiContextType {
 }
 
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
+const DEFAULT_IMAGE_EDIT_MODEL: ImageEditModel = 'gemini-3.1-flash-image-preview';
+const isProviderSpecificImageEditModel = (model: ImageEditModel) =>
+  model.startsWith('local--') || model.startsWith('anti--');
 
 export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const LOCAL_BASE_URL_KEY = 'local_provider_base_url';
@@ -50,16 +53,16 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (typeof localStorage === 'undefined') return;
       try {
         localStorage.setItem(key, value);
-      } catch {
-        // Ignore storage errors (private mode, sandbox, quota).
+      } catch (e) {
+        console.warn('[safeStorage] Failed to save:', key, e);
       }
     },
     removeItem: (key: string) => {
       if (typeof localStorage === 'undefined') return;
       try {
         localStorage.removeItem(key);
-      } catch {
-        // Ignore storage errors (private mode, sandbox, quota).
+      } catch (e) {
+        console.warn('[safeStorage] Failed to remove:', key, e);
       }
     },
   };
@@ -81,7 +84,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
-      return safeStorage.getItem(IMAGE_EDIT_MODEL_KEY) || 'gemini-3.1-flash-image-preview';
+      return safeStorage.getItem(IMAGE_EDIT_MODEL_KEY) || DEFAULT_IMAGE_EDIT_MODEL;
   });
   const [imageGenerateModel, setImageGenerateModelState] = useState<ImageGenerateModel>(() => {
       return safeStorage.getItem(IMAGE_GENERATE_MODEL_KEY) || 'imagen-4.0-generate-001';
@@ -160,9 +163,21 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     safeStorage.setItem(TEXT_GENERATE_MODEL_KEY, model);
   };
 
-  const getModelsForFeature = (_feature?: Feature) => {
+  /** ClothingTransfer is Gemini-only — override local/anti models to default Gemini model */
+  const getModelsForFeature = (feature?: Feature) => {
+    const shouldOverride =
+      feature === Feature.ClothingTransfer && isProviderSpecificImageEditModel(imageEditModel);
+
+    if (shouldOverride) {
+      if (!googleApiKey) {
+        console.error(`[ClothingTransfer] Cannot override to Gemini: no Google API key configured. Set it in Settings.`);
+      } else {
+        console.warn(`[ClothingTransfer] Model override: ${imageEditModel} → ${DEFAULT_IMAGE_EDIT_MODEL} (Gemini-only feature)`);
+      }
+    }
+
     return {
-      imageEditModel,
+      imageEditModel: shouldOverride ? DEFAULT_IMAGE_EDIT_MODEL : imageEditModel,
       imageGenerateModel,
       textGenerateModel,
     };

@@ -17,6 +17,7 @@ export const en = {
     imageEditor: 'Image Editor',
     aiEditor: 'AI Editor',
     watermarkRemover: 'Watermark Remover',
+    clothingTransfer: 'Clothing Transfer',
   },
   imageUploader: {
     removeAria: 'Remove image',
@@ -977,6 +978,25 @@ Do not include any other text or markdown.
       quick: 'Quick Removal',
       custom: 'Custom Prompt',
     },
+  },
+  /** Clothing Transfer feature — replace outfits in styled photos */
+  clothingTransfer: {
+    title: 'Clothing Transfer',
+    providerNotice: 'This tool currently uses Gemini image editing only.',
+    step1: 'Step 1: Upload Reference Outfits',
+    step2: 'Step 2: Upload Concept Image',
+    step3: 'Step 3: Generate',
+    referenceTitle: 'Reference Outfit',
+    conceptTitle: 'Concept Image',
+    addOutfit: 'Add Outfit',
+    extraPromptLabel: 'Extra Instructions',
+    extraPromptPlaceholder: 'Add specific instructions (e.g., "match exact color tone", "keep necklaces visible")',
+    extraPromptDescription: 'Optional: guide the AI with additional instructions',
+    generateButton: 'Transfer Outfits',
+    generatingStatus: 'Transferring outfits into concept...',
+    inputError: 'Please upload at least one reference outfit and a concept image.',
+    outputPanelDescription: 'Upload reference outfits and a concept image, then click Generate to see results.',
+    numberOfImages: 'Number of variations',
   },
   /** Google Drive sync settings and status messages */
   googleDrive: {

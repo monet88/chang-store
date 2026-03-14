@@ -17,6 +17,7 @@ export const vi: Translation = {
     imageEditor: 'Trình chỉnh sửa ảnh',
     aiEditor: 'AI Editor',
     watermarkRemover: 'Xóa Watermark',
+    clothingTransfer: 'Chuyển Trang phục',
   },
 
   imageUploader: {
@@ -980,6 +981,25 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       quick: 'Xóa Nhanh',
       custom: 'Prompt Tùy chỉnh',
     },
+  },
+  /** Tính năng Chuyển Trang phục — thay đổi trang phục trong ảnh styled */
+  clothingTransfer: {
+    title: 'Chuyển Trang phục',
+    providerNotice: 'Công cụ này hiện chỉ dùng chỉnh sửa ảnh bằng Gemini.',
+    step1: 'Bước 1: Tải ảnh Trang phục Tham chiếu',
+    step2: 'Bước 2: Tải ảnh Concept',
+    step3: 'Bước 3: Tạo ảnh',
+    referenceTitle: 'Trang phục Tham chiếu',
+    conceptTitle: 'Ảnh Concept',
+    addOutfit: 'Thêm Trang phục',
+    extraPromptLabel: 'Hướng dẫn Bổ sung',
+    extraPromptPlaceholder: 'Thêm hướng dẫn cụ thể (VD: "giữ nguyên tông màu", "giữ vòng cổ hiển thị")',
+    extraPromptDescription: 'Tùy chọn: hướng dẫn AI với chỉ dẫn bổ sung',
+    generateButton: 'Chuyển Trang phục',
+    generatingStatus: 'Đang chuyển trang phục vào concept...',
+    inputError: 'Vui lòng tải lên ít nhất một ảnh trang phục tham chiếu và một ảnh concept.',
+    outputPanelDescription: 'Tải ảnh trang phục tham chiếu và ảnh concept, sau đó nhấn Tạo ảnh để xem kết quả.',
+    numberOfImages: 'Số lượng biến thể',
   },
   /** Cài đặt và thông báo trạng thái đồng bộ Google Drive */
   googleDrive: {

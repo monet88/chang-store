@@ -10,6 +10,7 @@ export enum Feature {
   ImageEditor = 'image-editor',
   AIEditor = 'ai-editor',
   WatermarkRemover = 'watermark-remover',
+  ClothingTransfer = 'clothing-transfer',
 }
 
 export interface ImageFile {

@@ -13,7 +13,7 @@
 │  │                         PRESENTATION LAYER                           │    │
 │  │  ┌──────────┐  ┌──────────────────────────────────────────────────┐ │    │
 │  │  │  Header  │  │              Feature Components                   │ │    │
-│  │  │ (NavBar) │  │  VirtualTryOn | Lookbook | Background | Pose ... │ │    │
+│  │  │ (NavBar) │  │  VirtualTryOn | Lookbook | Background | Pose | ClothingTransfer ... │ │    │
 │  │  └──────────┘  └──────────────────────────────────────────────────┘ │    │
 │  │  ┌─────────────────────────────────────────────────────────────────┐│    │
 │  │  │              Modals: Gallery | Settings | PoseLibrary           ││    │
@@ -157,6 +157,9 @@ getModelsForFeature(feature: Feature) {
   return { imageEditModel, imageGenerateModel, videoGenerateModel };
 }
 ```
+
+**Feature-specific overrides:**
+- `ClothingTransfer` → always Gemini. If user selected `local--*` or `anti--*`, `getModelsForFeature` overrides to `DEFAULT_IMAGE_EDIT_MODEL`. This is permanent — multi-image reference + concept ordering requires Gemini's native image editing capability.
 
 ### 4.2 Service Routing
 

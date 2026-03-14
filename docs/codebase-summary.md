@@ -79,6 +79,7 @@ Chang-Store/
 | `VideoGenerator.tsx` | `useVideoGenerator` | Text/image to video |
 | `GRWMVideoGenerator.tsx` | `useGRWMVideoGenerator` | GRWM video creation |
 | `VideoContinuity.tsx` | - | Multi-scene video (WIP) |
+| `ClothingTransfer.tsx` | `useClothingTransfer` | Transfer clothing item onto a person |
 
 ### 2.6 Shared Components
 
@@ -123,7 +124,7 @@ Feature Component
 | Directory | File Count | Primary Extension |
 |-----------|------------|-------------------|
 | `components/` | ~47 | `.tsx` |
-| `hooks/` | 14 | `.ts` |
+| `hooks/` | 15 | `.ts` |
 | `services/` | 8 | `.ts` |
 | `contexts/` | 4 | `.tsx` |
 | `locales/` | 2 | `.ts` |
