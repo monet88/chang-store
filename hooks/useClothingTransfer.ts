@@ -23,7 +23,7 @@ Remove all existing clothing from the target image. Keep the background, lightin
 
 Extract outfits from all reference images, preserving all details — colors, fabric textures, patterns, folds, and proportions.
 
-Insert each outfit into the target with a natural layout, as if displayed on hangers — no overlapping. Maintain realistic proportions, orientation, and spacing between items. The new clothing must blend seamlessly into the scene, looking as if genuinely displayed in the existing environment. No manual masking needed — AI auto-detects and replaces clothing.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
+Insert each outfit into the target, matching the exact display style of the target — whether on hangers, laid flat, on a mannequin, or any other arrangement. Maintain realistic proportions, orientation, and spacing. The new clothing must blend seamlessly, looking as if genuinely part of the existing scene. No manual masking needed — AI auto-detects and replaces clothing.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
 }
 
 export function useClothingTransfer() {
