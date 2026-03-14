@@ -92,7 +92,7 @@ const UPSCALED_IMAGE = {
 
 describe('useClothingTransfer', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('Initial State', () => {

@@ -169,7 +169,11 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       feature === Feature.ClothingTransfer && isProviderSpecificImageEditModel(imageEditModel);
 
     if (shouldOverride) {
-      console.warn(`[ClothingTransfer] Model override: ${imageEditModel} → ${DEFAULT_IMAGE_EDIT_MODEL} (Gemini-only feature)`);
+      if (!googleApiKey) {
+        console.error(`[ClothingTransfer] Cannot override to Gemini: no Google API key configured. Set it in Settings.`);
+      } else {
+        console.warn(`[ClothingTransfer] Model override: ${imageEditModel} → ${DEFAULT_IMAGE_EDIT_MODEL} (Gemini-only feature)`);
+      }
     }
 
     return {
