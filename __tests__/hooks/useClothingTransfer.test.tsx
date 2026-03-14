@@ -378,8 +378,8 @@ describe('useClothingTransfer', () => {
       const prompt = callArgs[0].prompt;
 
       expect(prompt).toContain('Images 1 to 2 are reference outfits');
-      expect(prompt).toContain('Extract tops, bottoms, skirts, or full outfits');
-      expect(prompt).toContain('remove all existing clothing');
+      expect(prompt).toContain('Remove all existing clothing from the target');
+      expect(prompt).toContain('Extract outfits from all reference images');
       expect(prompt).toContain('high fashion photography, studio lighting');
     });
 

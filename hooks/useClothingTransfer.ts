@@ -19,11 +19,11 @@ interface ReferenceItem {
 function buildClothingTransferPrompt(refCount: number, extraInstructions: string): string {
   return `Images 1 to ${refCount} are reference outfits. The last image is the target.
 
-Extract tops, bottoms, skirts, or full outfits from each reference image. If a reference has a caption, prioritize the clothing type mentioned in it.
+Remove all existing clothing from the target image. Keep the background, lighting, camera angle, and every other detail unchanged.
 
-On the target image: remove all existing clothing but keep the background, lighting, camera angle, and every other detail unchanged.
+Extract outfits from all reference images, preserving all details — colors, fabric textures, patterns, folds, and proportions.
 
-Then insert each extracted outfit into the target, preserving all details — colors, patterns, fabric textures, folds, and proportions. Each outfit must blend naturally into the scene. When multiple outfits appear in the same target, maintain correct proportions, orientation, and logical layering order.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
+Insert each outfit into the target with a natural layout, as if displayed on hangers — no overlapping. Maintain realistic proportions, orientation, and spacing between items. The new clothing must blend seamlessly into the scene, looking as if genuinely displayed in the existing environment. No manual masking needed — AI auto-detects and replaces clothing.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
 }
 
 export function useClothingTransfer() {
