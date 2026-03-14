@@ -35,7 +35,6 @@ const ClothingTransfer: React.FC = () => {
           <p className="text-xs text-center text-zinc-400">{t('clothingTransfer.providerNotice')}</p>
         </div>
 
-        {/* Step 1: Reference Outfits */}
         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
           <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('clothingTransfer.step1')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -66,7 +65,6 @@ const ClothingTransfer: React.FC = () => {
           </button>
         </div>
 
-        {/* Step 2: Concept Image */}
         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
           <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('clothingTransfer.step2')}</h3>
           <ImageUploader
@@ -77,7 +75,6 @@ const ClothingTransfer: React.FC = () => {
           />
         </div>
 
-        {/* Step 3: Options + Generate */}
         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
           <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('clothingTransfer.step3')}</h3>
           <div className="space-y-4">

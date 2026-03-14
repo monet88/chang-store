@@ -158,6 +158,9 @@ getModelsForFeature(feature: Feature) {
 }
 ```
 
+**Feature-specific overrides:**
+- `ClothingTransfer` → always Gemini. If user selected `local--*` or `anti--*`, `getModelsForFeature` overrides to `DEFAULT_IMAGE_EDIT_MODEL`. This is permanent — multi-image reference + concept ordering requires Gemini's native image editing capability.
+
 ### 4.2 Service Routing
 
 ```typescript

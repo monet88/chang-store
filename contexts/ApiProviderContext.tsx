@@ -53,16 +53,16 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (typeof localStorage === 'undefined') return;
       try {
         localStorage.setItem(key, value);
-      } catch {
-        // Ignore storage errors (private mode, sandbox, quota).
+      } catch (e) {
+        console.warn('[safeStorage] Failed to save:', key, e);
       }
     },
     removeItem: (key: string) => {
       if (typeof localStorage === 'undefined') return;
       try {
         localStorage.removeItem(key);
-      } catch {
-        // Ignore storage errors (private mode, sandbox, quota).
+      } catch (e) {
+        console.warn('[safeStorage] Failed to remove:', key, e);
       }
     },
   };
@@ -163,14 +163,17 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     safeStorage.setItem(TEXT_GENERATE_MODEL_KEY, model);
   };
 
+  /** ClothingTransfer is Gemini-only — override local/anti models to default Gemini model */
   const getModelsForFeature = (feature?: Feature) => {
-    const resolvedImageEditModel =
-      feature === Feature.ClothingTransfer && isProviderSpecificImageEditModel(imageEditModel)
-        ? DEFAULT_IMAGE_EDIT_MODEL
-        : imageEditModel;
+    const shouldOverride =
+      feature === Feature.ClothingTransfer && isProviderSpecificImageEditModel(imageEditModel);
+
+    if (shouldOverride) {
+      console.warn(`[ClothingTransfer] Model override: ${imageEditModel} → ${DEFAULT_IMAGE_EDIT_MODEL} (Gemini-only feature)`);
+    }
 
     return {
-      imageEditModel: resolvedImageEditModel,
+      imageEditModel: shouldOverride ? DEFAULT_IMAGE_EDIT_MODEL : imageEditModel,
       imageGenerateModel,
       textGenerateModel,
     };

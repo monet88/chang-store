@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
+import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 
@@ -10,13 +11,18 @@ interface ReferenceItem {
   image: ImageFile | null;
 }
 
-/** Build the clothing transfer prompt with reference count and optional extra instructions */
+/**
+ * Build the clothing transfer prompt.
+ * IMPORTANT: Caller must pass images as [ref_1...ref_N, concept_last].
+ * Wrong order causes AI to process incorrectly with no error thrown.
+ */
 function buildClothingTransferPrompt(refCount: number, extraInstructions: string): string {
   return `Use images 1 to ${refCount} as references, extracting tops, bottoms, or full outfits from each image. Insert each outfit into the last image (concept/styled photo), preserving all clothing details, colors, patterns, and textures. Keep the background, lighting, perspective, and all other elements of the concept image exactly the same. Each outfit should integrate naturally into the scene, with realistic proportions, folds, and fabric textures.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
 }
 
 export function useClothingTransfer() {
-  const [referenceItems, setReferenceItems] = useState<ReferenceItem[]>([{ id: Date.now(), image: null }]);
+  const idCounter = useRef(0);
+  const [referenceItems, setReferenceItems] = useState<ReferenceItem[]>([{ id: ++idCounter.current, image: null }]);
   const [conceptImage, setConceptImage] = useState<ImageFile | null>(null);
   const [extraPrompt, setExtraPrompt] = useState('');
   const [numImages, setNumImages] = useState(1);
@@ -29,13 +35,12 @@ export function useClothingTransfer() {
   const [upscalingStates, setUpscalingStates] = useState<Record<number, boolean>>({});
 
   const { t } = useLanguage();
-  const { antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey, getModelsForFeature } = useApi();
+  const { addImage } = useImageGallery();
+  const { localApiBaseUrl, localApiKey, getModelsForFeature } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.ClothingTransfer);
 
   const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
-    antiApiBaseUrl,
-    antiApiKey,
     localApiBaseUrl,
     localApiKey,
   });
@@ -47,7 +52,7 @@ export function useClothingTransfer() {
     setReferenceItems(items => items.map(item => item.id === id ? { ...item, image: file } : item));
   };
 
-  const addReference = () => setReferenceItems(prev => [...prev, { id: Date.now(), image: null }]);
+  const addReference = () => setReferenceItems(prev => [...prev, { id: ++idCounter.current, image: null }]);
 
   const removeReference = (id: number) => setReferenceItems(prev => prev.filter(item => item.id !== id));
 
@@ -66,7 +71,6 @@ export function useClothingTransfer() {
 
     try {
       const prompt = buildClothingTransferPrompt(validReferences.length, extraPrompt.trim());
-      // References first, concept LAST
       const imagesForApi = [...validReferences.map(item => item.image as ImageFile), conceptImage];
       const results = await editImage(
         { images: imagesForApi, prompt, numberOfImages: numImages, aspectRatio, resolution },
@@ -74,6 +78,7 @@ export function useClothingTransfer() {
         buildImageServiceConfig(setLoadingMessage)
       );
       setGeneratedImages(results);
+      results.forEach(img => addImage(img));
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -94,6 +99,7 @@ export function useClothingTransfer() {
         buildImageServiceConfig(() => {})
       );
       setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
+      addImage(result);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -102,16 +108,12 @@ export function useClothingTransfer() {
   };
 
   return {
-    // State
     referenceItems, conceptImage, extraPrompt, numImages,
     aspectRatio, resolution, isLoading, loadingMessage,
     error, generatedImages, upscalingStates,
-    // Setters
     setExtraPrompt, setNumImages, setAspectRatio, setResolution, setError,
-    // Handlers
     handleReferenceUpload, addReference, removeReference,
     handleConceptUpload, handleGenerate, handleUpscale,
-    // Computed
     validReferences, anyUpscaling, imageEditModel,
   };
 }
