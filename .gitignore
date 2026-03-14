@@ -44,6 +44,7 @@ src-tauri/target/
 
 # bv (beads viewer) local config and caches
 .bv/
+.beads/
 .osgrep
 
 # Local agent/tooling artifacts
@@ -54,6 +55,7 @@ src-tauri/target/
 .github/
 .opencode/
 .serena/
+.sisyphus/
 .skillsrc
 
 # Local test artifacts
@@ -69,3 +71,5 @@ scripts/local-model-smoke-test.mjs
 nul
 docs/plans/*
 opencode.json
+# Gemini CLI settings (contains user-specific config)
+.gemini/
