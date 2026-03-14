@@ -987,6 +987,7 @@ Do not include any other text or markdown.
     step2: 'Step 2: Upload Concept Image',
     step3: 'Step 3: Generate',
     referenceTitle: 'Reference Outfit',
+    referenceLabelPlaceholder: 'e.g. top, pants, skirt... (optional)',
     conceptTitle: 'Concept Image',
     addOutfit: 'Add Outfit',
     extraPromptLabel: 'Extra Instructions',

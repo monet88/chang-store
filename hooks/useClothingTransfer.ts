@@ -9,6 +9,7 @@ import { editImage, upscaleImage } from '../services/imageEditingService';
 interface ReferenceItem {
   id: number;
   image: ImageFile | null;
+  label: string;
 }
 
 /**
@@ -16,8 +17,16 @@ interface ReferenceItem {
  * IMPORTANT: Caller must pass images as [ref_1...ref_N, concept_last].
  * Wrong order causes AI to process incorrectly with no error thrown.
  */
-function buildClothingTransferPrompt(refCount: number, extraInstructions: string): string {
+function buildClothingTransferPrompt(referenceLabels: string[], extraInstructions: string): string {
+  const refCount = referenceLabels.length;
+  const labelLines = referenceLabels
+    .map((label, i) => `  Image ${i + 1}: ${label || 'auto-detect'}`)
+    .join('\n');
+
   return `Images 1 to ${refCount} are reference outfits. The last image is the target.
+
+Reference clothing types:
+${labelLines}
 
 Remove all existing clothing from the target image. Keep the background, lighting, camera angle, and every other detail unchanged.
 
@@ -28,7 +37,7 @@ Insert each outfit into the target, matching the exact display style of the targ
 
 export function useClothingTransfer() {
   const idCounter = useRef(0);
-  const [referenceItems, setReferenceItems] = useState<ReferenceItem[]>([{ id: ++idCounter.current, image: null }]);
+  const [referenceItems, setReferenceItems] = useState<ReferenceItem[]>([{ id: ++idCounter.current, image: null, label: '' }]);
   const [conceptImage, setConceptImage] = useState<ImageFile | null>(null);
   const [extraPrompt, setExtraPrompt] = useState('');
   const [numImages, setNumImages] = useState(1);
@@ -58,7 +67,11 @@ export function useClothingTransfer() {
     setReferenceItems(items => items.map(item => item.id === id ? { ...item, image: file } : item));
   };
 
-  const addReference = () => setReferenceItems(prev => [...prev, { id: ++idCounter.current, image: null }]);
+  const handleReferenceLabel = (label: string, id: number) => {
+    setReferenceItems(items => items.map(item => item.id === id ? { ...item, label } : item));
+  };
+
+  const addReference = () => setReferenceItems(prev => [...prev, { id: ++idCounter.current, image: null, label: '' }]);
 
   const removeReference = (id: number) => setReferenceItems(prev => prev.filter(item => item.id !== id));
 
@@ -76,7 +89,8 @@ export function useClothingTransfer() {
     setGeneratedImages([]);
 
     try {
-      const prompt = buildClothingTransferPrompt(validReferences.length, extraPrompt.trim());
+      const referenceLabels = validReferences.map(item => item.label);
+      const prompt = buildClothingTransferPrompt(referenceLabels, extraPrompt.trim());
       const imagesForApi = [...validReferences.map(item => item.image as ImageFile), conceptImage];
       const results = await editImage(
         { images: imagesForApi, prompt, numberOfImages: numImages, aspectRatio, resolution },
@@ -118,7 +132,7 @@ export function useClothingTransfer() {
     aspectRatio, resolution, isLoading, loadingMessage,
     error, generatedImages, upscalingStates,
     setExtraPrompt, setNumImages, setAspectRatio, setResolution, setError,
-    handleReferenceUpload, addReference, removeReference,
+    handleReferenceUpload, handleReferenceLabel, addReference, removeReference,
     handleConceptUpload, handleGenerate, handleUpscale,
     validReferences, anyUpscaling, imageEditModel,
   };

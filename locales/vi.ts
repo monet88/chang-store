@@ -990,6 +990,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     step2: 'Bước 2: Tải ảnh Concept',
     step3: 'Bước 3: Tạo ảnh',
     referenceTitle: 'Trang phục Tham chiếu',
+    referenceLabelPlaceholder: 'vd: áo, quần, chân váy... (tùy chọn)',
     conceptTitle: 'Ảnh Concept',
     addOutfit: 'Thêm Trang phục',
     extraPromptLabel: 'Hướng dẫn Bổ sung',

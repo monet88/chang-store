@@ -14,7 +14,7 @@ const ClothingTransfer: React.FC = () => {
     aspectRatio, resolution, isLoading, loadingMessage,
     error, generatedImages, upscalingStates,
     setExtraPrompt, setNumImages, setAspectRatio, setResolution, setError,
-    handleReferenceUpload, addReference, removeReference,
+    handleReferenceUpload, handleReferenceLabel, addReference, removeReference,
     handleConceptUpload, handleGenerate, handleUpscale,
     validReferences, anyUpscaling, imageEditModel,
   } = useClothingTransfer();
@@ -45,6 +45,13 @@ const ClothingTransfer: React.FC = () => {
                   id={`ref-outfit-${item.id}`}
                   title={`${t('clothingTransfer.referenceTitle')} ${index + 1}`}
                   onImageUpload={(file) => handleReferenceUpload(file, item.id)}
+                />
+                <input
+                  type="text"
+                  value={item.label}
+                  onChange={(e) => handleReferenceLabel(e.target.value, item.id)}
+                  placeholder={t('clothingTransfer.referenceLabelPlaceholder')}
+                  className="w-full mt-1.5 bg-zinc-800/50 border border-zinc-700 rounded-md px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                 />
                 {referenceItems.length > 1 && (
                   <button
