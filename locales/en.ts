@@ -982,6 +982,7 @@ Do not include any other text or markdown.
   /** Clothing Transfer feature — replace outfits in styled photos */
   clothingTransfer: {
     title: 'Clothing Transfer',
+    providerNotice: 'This tool currently uses Gemini image editing only.',
     step1: 'Step 1: Upload Reference Outfits',
     step2: 'Step 2: Upload Concept Image',
     step3: 'Step 3: Generate',

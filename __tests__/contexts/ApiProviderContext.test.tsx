@@ -109,14 +109,14 @@ describe('ApiProviderContext', () => {
       expect(result.current.textGenerateModel).toBe('gemini-3-flash-preview');
     });
 
-    it('has null for API keys initially', () => {
+    it('uses env-backed defaults for provider settings initially', () => {
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
       expect(result.current.googleApiKey).toBeNull();
-      expect(result.current.localApiBaseUrl).toBeNull();
-      expect(result.current.localApiKey).toBeNull();
+      expect(result.current.localApiBaseUrl).toBe(import.meta.env.VITE_LOCAL_PROVIDER_BASE_URL || null);
+      expect(result.current.localApiKey).toBe(import.meta.env.VITE_LOCAL_PROVIDER_API_KEY || null);
     });
 
     it('loads Google API key from localStorage on mount', () => {
@@ -439,6 +439,50 @@ describe('ApiProviderContext', () => {
       const models = result.current.getModelsForFeature(Feature.Lookbook);
 
       expect(models.imageEditModel).toBe('updated-edit');
+    });
+
+    it('returns Gemini edit model for Clothing Transfer when global edit model is local provider', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setImageEditModel('local--custom-edit');
+      });
+
+      const models = result.current.getModelsForFeature(Feature.ClothingTransfer);
+
+      expect(models.imageEditModel).toBe('gemini-3.1-flash-image-preview');
+      expect(models.imageGenerateModel).toBe('imagen-4.0-generate-001');
+      expect(models.textGenerateModel).toBe('gemini-3-flash-preview');
+    });
+
+    it('returns Gemini edit model for Clothing Transfer when global edit model is anti provider', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setImageEditModel('anti--custom-edit');
+      });
+
+      const models = result.current.getModelsForFeature(Feature.ClothingTransfer);
+
+      expect(models.imageEditModel).toBe('gemini-3.1-flash-image-preview');
+    });
+
+    it('preserves selected Gemini edit model for Clothing Transfer', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.setImageEditModel('gemini-2.5-flash-image');
+      });
+
+      const models = result.current.getModelsForFeature(Feature.ClothingTransfer);
+
+      expect(models.imageEditModel).toBe('gemini-2.5-flash-image');
     });
   });
 

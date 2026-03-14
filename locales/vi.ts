@@ -985,6 +985,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
   /** Tính năng Chuyển Trang phục — thay đổi trang phục trong ảnh styled */
   clothingTransfer: {
     title: 'Chuyển Trang phục',
+    providerNotice: 'Công cụ này hiện chỉ dùng chỉnh sửa ảnh bằng Gemini.',
     step1: 'Bước 1: Tải ảnh Trang phục Tham chiếu',
     step2: 'Bước 2: Tải ảnh Concept',
     step3: 'Bước 3: Tạo ảnh',

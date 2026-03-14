@@ -27,6 +27,9 @@ interface ApiContextType {
 }
 
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
+const DEFAULT_IMAGE_EDIT_MODEL: ImageEditModel = 'gemini-3.1-flash-image-preview';
+const isProviderSpecificImageEditModel = (model: ImageEditModel) =>
+  model.startsWith('local--') || model.startsWith('anti--');
 
 export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const LOCAL_BASE_URL_KEY = 'local_provider_base_url';
@@ -81,7 +84,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
-      return safeStorage.getItem(IMAGE_EDIT_MODEL_KEY) || 'gemini-3.1-flash-image-preview';
+      return safeStorage.getItem(IMAGE_EDIT_MODEL_KEY) || DEFAULT_IMAGE_EDIT_MODEL;
   });
   const [imageGenerateModel, setImageGenerateModelState] = useState<ImageGenerateModel>(() => {
       return safeStorage.getItem(IMAGE_GENERATE_MODEL_KEY) || 'imagen-4.0-generate-001';
@@ -160,9 +163,14 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     safeStorage.setItem(TEXT_GENERATE_MODEL_KEY, model);
   };
 
-  const getModelsForFeature = (_feature?: Feature) => {
+  const getModelsForFeature = (feature?: Feature) => {
+    const resolvedImageEditModel =
+      feature === Feature.ClothingTransfer && isProviderSpecificImageEditModel(imageEditModel)
+        ? DEFAULT_IMAGE_EDIT_MODEL
+        : imageEditModel;
+
     return {
-      imageEditModel,
+      imageEditModel: resolvedImageEditModel,
       imageGenerateModel,
       textGenerateModel,
     };

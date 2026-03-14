@@ -30,7 +30,10 @@ const ClothingTransfer: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
       {/* Left panel — inputs */}
       <div className="flex flex-col gap-6">
-        <h2 className="text-xl md:text-2xl font-bold text-center flex-shrink-0">{t('clothingTransfer.title')}</h2>
+        <div className="space-y-2">
+          <h2 className="text-xl md:text-2xl font-bold text-center flex-shrink-0">{t('clothingTransfer.title')}</h2>
+          <p className="text-xs text-center text-zinc-400">{t('clothingTransfer.providerNotice')}</p>
+        </div>
 
         {/* Step 1: Reference Outfits */}
         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
