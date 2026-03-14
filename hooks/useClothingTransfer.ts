@@ -17,7 +17,13 @@ interface ReferenceItem {
  * Wrong order causes AI to process incorrectly with no error thrown.
  */
 function buildClothingTransferPrompt(refCount: number, extraInstructions: string): string {
-  return `Use images 1 to ${refCount} as references, extracting tops, bottoms, or full outfits from each image. Insert each outfit into the last image (concept/styled photo), preserving all clothing details, colors, patterns, and textures. Keep the background, lighting, perspective, and all other elements of the concept image exactly the same. Each outfit should integrate naturally into the scene, with realistic proportions, folds, and fabric textures.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
+  return `Images 1 to ${refCount} are reference outfits. The last image is the target.
+
+Extract tops, bottoms, skirts, or full outfits from each reference image. If a reference has a caption, prioritize the clothing type mentioned in it.
+
+On the target image: remove all existing clothing but keep the background, lighting, camera angle, and every other detail unchanged.
+
+Then insert each extracted outfit into the target, preserving all details — colors, patterns, fabric textures, folds, and proportions. Each outfit must blend naturally into the scene. When multiple outfits appear in the same target, maintain correct proportions, orientation, and logical layering order.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
 }
 
 export function useClothingTransfer() {

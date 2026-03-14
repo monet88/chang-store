@@ -377,9 +377,9 @@ describe('useClothingTransfer', () => {
       const callArgs = vi.mocked(editImage).mock.calls[0];
       const prompt = callArgs[0].prompt;
 
-      expect(prompt).toContain('Use images 1 to 2 as references');
-      expect(prompt).toContain('extracting tops, bottoms, or full outfits');
-      expect(prompt).toContain('Insert each outfit into the last image (concept/styled photo)');
+      expect(prompt).toContain('Images 1 to 2 are reference outfits');
+      expect(prompt).toContain('Extract tops, bottoms, skirts, or full outfits');
+      expect(prompt).toContain('remove all existing clothing');
       expect(prompt).toContain('high fashion photography, studio lighting');
     });
 
