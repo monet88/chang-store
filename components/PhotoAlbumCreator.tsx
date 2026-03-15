@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -18,7 +18,12 @@ interface GeneratedAlbumImage extends ImageFile {
     pose: string;
 }
 
-export const PhotoAlbumCreator: React.FC = () => {
+interface PhotoAlbumCreatorProps {
+    transferredImage?: ImageFile;
+    onTransferConsumed?: () => void;
+}
+
+export const PhotoAlbumCreator: React.FC<PhotoAlbumCreatorProps> = ({ transferredImage, onTransferConsumed }) => {
     const { t } = useLanguage();
     const { getModelsForFeature, antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey } = useApi();
     const { imageEditModel } = getModelsForFeature(Feature.PhotoAlbum);
@@ -67,6 +72,15 @@ export const PhotoAlbumCreator: React.FC = () => {
         setError(null);
         setIsLoading(false);
     };
+
+    // Consume transferred outfit image from another feature
+    useEffect(() => {
+        if (transferredImage) {
+            setOutfitImage(transferredImage);
+            setMode('faceAndOutfit');
+            onTransferConsumed?.();
+        }
+    }, [transferredImage]);
 
     const handleGenerate = async () => {
         if (mode === 'fullModel' && !originalPhoto) {

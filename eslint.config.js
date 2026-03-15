@@ -17,6 +17,8 @@ export default [
       '.idea/**',
       '*.log',
       '*.tsbuildinfo',
+      'scripts/**',
+      '.opencode/**',
     ],
   },
   js.configs.recommended,
