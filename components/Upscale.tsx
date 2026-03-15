@@ -70,7 +70,7 @@ const Upscale: React.FC = () => {
           <p className="text-zinc-400">{t('upscale.description')}</p>
         </div>
 
-        <div className="max-w-[65%] mx-auto">
+        <div className="w-full">
           <ImageUploader
             image={uploadedImage}
             id="upscale-upload"
