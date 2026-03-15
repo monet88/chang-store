@@ -12,6 +12,7 @@ import { getErrorMessage } from '../utils/imageUtils';
 import { MagicWandIcon } from './Icons';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import ResultPlaceholder from './shared/ResultPlaceholder';
+import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 
 const BackgroundReplacer: React.FC = () => {
   const { t } = useLanguage();
