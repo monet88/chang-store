@@ -69,29 +69,26 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
   }, [onSendToFeature]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
-      {/* Left Column: Form */}
-      <div>
-        <LookbookForm
-          formState={formState}
-          onFormChange={updateForm}
-          onGenerateDescription={handleGenerateDescription}
-          onGenerate={handleGenerate}
-          onClearForm={handleClearForm}
-          isGeneratingDescription={isGeneratingDescription}
-          isLoading={isLoading}
-          aspectRatio={aspectRatio}
-          setAspectRatio={setAspectRatio}
-          resolution={resolution}
-          setResolution={setResolution}
-          imageEditModel={imageEditModel}
-          mannequinBackgroundStyles={MANNEQUIN_BACKGROUND_STYLES}
-        />
-      </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
+      {/* Form columns: at xl display:contents makes the 2 inner divs direct grid items */}
+      <LookbookForm
+        formState={formState}
+        onFormChange={updateForm}
+        onGenerateDescription={handleGenerateDescription}
+        onGenerate={handleGenerate}
+        onClearForm={handleClearForm}
+        isGeneratingDescription={isGeneratingDescription}
+        isLoading={isLoading}
+        aspectRatio={aspectRatio}
+        setAspectRatio={setAspectRatio}
+        resolution={resolution}
+        setResolution={setResolution}
+        imageEditModel={imageEditModel}
+        mannequinBackgroundStyles={MANNEQUIN_BACKGROUND_STYLES}
+      />
 
       {/* Right Column: Output */}
-      <div>
-        <LookbookOutput
+      <LookbookOutput
           lookbook={generatedLookbook}
           activeTab={activeOutputTab}
           onTabChange={setActiveOutputTab}
@@ -116,8 +113,7 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
           onRefineImage={handleRefineImage}
           onResetRefinement={handleResetRefinement}
           onSendToFeature={onSendToFeature ? handleSendToAlbum : undefined}
-        />
-      </div>
+      />
     </div>
   );
 };
