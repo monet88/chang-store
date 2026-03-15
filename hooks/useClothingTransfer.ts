@@ -14,31 +14,32 @@ interface ReferenceItem {
 
 /**
  * Build the clothing transfer prompt.
- * IMPORTANT: Caller must pass images as [ref_1...ref_N, concept_last].
- * Wrong order causes AI to process incorrectly with no error thrown.
+ * IMPORTANT: Caller must pass images as [concept_first, ref_1...ref_N].
+ * Image 1 = DESTINATION SCENE (concept), Images 2+ = SOURCE OUTFITS (references).
+ * Gemini treats the first image as the primary/base image to edit.
  */
 function buildClothingTransferPrompt(referenceLabels: string[], extraInstructions: string): string {
   const refCount = referenceLabels.length;
   const labelLines = referenceLabels
-    .map((label, i) => `  Image ${i + 1} (SOURCE): ${label || 'auto-detect'}`)
+    .map((label, i) => `  Image ${i + 2} (SOURCE): ${label || 'auto-detect'}`)
     .join('\n');
 
   return `You are performing a clothing transfer task. Follow these steps precisely.
 
 ROLE OF EACH IMAGE:
-- Images 1 to ${refCount} are SOURCE OUTFITS — these contain the clothing items you MUST extract and use.
-- The LAST image (Image ${refCount + 1}) is the DESTINATION SCENE — this defines the background, arrangement, lighting, and display style you MUST preserve.
+- Image 1 is the DESTINATION SCENE — this is the main image to edit. Preserve its background, arrangement, lighting, and display style.
+- Images 2 to ${refCount + 1} are SOURCE OUTFITS — these contain the clothing items you MUST extract and use.
 
 SOURCE outfit details:
 ${labelLines}
 
 STEP-BY-STEP INSTRUCTIONS:
-1. ANALYSE SOURCE: Look at images 1 to ${refCount}. Identify every clothing item — note the exact colors, fabric textures, patterns, folds, and proportions.
-2. ANALYSE DESTINATION: Look at the last image. Identify the scene layout — how items are arranged (on hangers, laid flat, on mannequin, folded, displayed in a closet, etc.), the background, lighting, camera angle, and overall composition.
-3. REMOVE: Remove all existing clothing from the destination scene. Keep EVERYTHING else — background, props, accessories, lighting, camera angle — completely unchanged.
+1. ANALYSE DESTINATION: Look at Image 1. Identify the scene layout — how items are arranged (on hangers, laid flat, on mannequin, folded, displayed in a closet, etc.), the background, lighting, camera angle, and overall composition.
+2. ANALYSE SOURCE: Look at images 2 to ${refCount + 1}. Identify every clothing item — note the exact colors, fabric textures, patterns, folds, and proportions.
+3. REMOVE: Remove all existing clothing from Image 1 (the destination scene). Keep EVERYTHING else — background, props, accessories, lighting, camera angle — completely unchanged.
 4. INSERT: Place the source outfits into the destination scene, replacing the removed clothing. Each outfit must match the destination's display style and arrangement. Maintain realistic proportions, orientation, spacing, and natural layering order. The inserted clothing must blend seamlessly, looking as if it was genuinely part of the original scene.
 
-CRITICAL: The clothing in the final result MUST come from the SOURCE images (images 1 to ${refCount}), NOT from the destination. The destination only provides the scene/arrangement.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
+CRITICAL: The clothing in the final result MUST come from the SOURCE images (images 2 to ${refCount + 1}), NOT from Image 1. Image 1 only provides the scene/arrangement to preserve.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
 }
 
 export function useClothingTransfer() {
@@ -97,7 +98,7 @@ export function useClothingTransfer() {
     try {
       const referenceLabels = validReferences.map(item => item.label);
       const prompt = buildClothingTransferPrompt(referenceLabels, extraPrompt.trim());
-      const imagesForApi = [...validReferences.map(item => item.image as ImageFile), conceptImage];
+      const imagesForApi = [conceptImage, ...validReferences.map(item => item.image as ImageFile)];
       const results = await editImage(
         { images: imagesForApi, prompt, numberOfImages: numImages, aspectRatio, resolution },
         imageEditModel,

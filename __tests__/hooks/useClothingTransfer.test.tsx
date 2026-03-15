@@ -10,7 +10,7 @@
  *
  * Key test scenarios:
  * 1. Validation guards (no refs, no concept)
- * 2. Image ordering contract (refs FIRST, concept LAST)
+ * 2. Image ordering contract (concept FIRST, refs AFTER)
  * 3. Successful generation adds result to gallery
  * 4. Failed generation sets error state
  * 5. Upscale functionality
@@ -171,9 +171,9 @@ describe('useClothingTransfer', () => {
 
   describe('Image Ordering Contract', () => {
     /**
-     * Test: Image ordering contract - verify editImage receives [ref_1...ref_N, concept_last]
+     * Test: Image ordering contract - verify editImage receives [concept_first, ref_1...ref_N]
      */
-    it('should pass images to editImage in correct order: references first, concept last', async () => {
+    it('should pass images to editImage in correct order: concept first, references after', async () => {
       // Arrange
       vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
 
@@ -205,14 +205,14 @@ describe('useClothingTransfer', () => {
         await result.current.handleGenerate();
       });
 
-      // Assert - verify correct order: [ref1, ref2, concept]
+      // Assert - verify correct order: [concept, ref1, ref2]
       const callArgs = vi.mocked(editImage).mock.calls[0];
       const imagesParam = callArgs[0].images;
 
       expect(imagesParam).toHaveLength(3);
-      expect(imagesParam[0]).toEqual(TEST_REFERENCE_1);
-      expect(imagesParam[1]).toEqual(TEST_REFERENCE_2);
-      expect(imagesParam[2]).toEqual(TEST_CONCEPT_IMAGE);
+      expect(imagesParam[0]).toEqual(TEST_CONCEPT_IMAGE);
+      expect(imagesParam[1]).toEqual(TEST_REFERENCE_1);
+      expect(imagesParam[2]).toEqual(TEST_REFERENCE_2);
     });
   });
 
@@ -377,9 +377,9 @@ describe('useClothingTransfer', () => {
       const callArgs = vi.mocked(editImage).mock.calls[0];
       const prompt = callArgs[0].prompt;
 
-      expect(prompt).toContain('Images 1 to 2 are SOURCE OUTFITS');
-      expect(prompt).toContain('DESTINATION SCENE');
-      expect(prompt).toContain('REMOVE: Remove all existing clothing from the destination scene');
+      expect(prompt).toContain('Image 1 is the DESTINATION SCENE');
+      expect(prompt).toContain('Images 2 to 3 are SOURCE OUTFITS');
+      expect(prompt).toContain('REMOVE: Remove all existing clothing from Image 1');
       expect(prompt).toContain('INSERT: Place the source outfits into the destination scene');
       expect(prompt).toContain('high fashion photography, studio lighting');
     });
@@ -833,8 +833,8 @@ describe('useClothingTransfer', () => {
         })
       );
       expect(callArgs[0].images).toHaveLength(2);
-      expect(callArgs[0].images[0]).toEqual(TEST_REFERENCE_1);
-      expect(callArgs[0].images[1]).toEqual(TEST_CONCEPT_IMAGE);
+      expect(callArgs[0].images[0]).toEqual(TEST_CONCEPT_IMAGE);
+      expect(callArgs[0].images[1]).toEqual(TEST_REFERENCE_1);
       expect(callArgs[0].prompt).toContain('professional styling');
 
       // Second arg: model string
