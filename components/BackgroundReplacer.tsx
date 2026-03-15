@@ -41,8 +41,11 @@ const BackgroundReplacer: React.FC = () => {
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
   const PREDEFINED_BG_KEYS = ['studioMirrorChair', 'sofaMirrorCurtain', 'curvedSofaCurtain'];
-  const allBackgroundLabels = t('photoAlbum.backgroundLabels', { returnObjects: true });
-  const allBackgroundPrompts = t('photoAlbum.backgroundPrompts', { returnObjects: true });
+  const allBackgroundLabels: Record<string, string> = t('photoAlbum.backgroundLabels', { returnObjects: true });
+  const allBackgroundPrompts: Record<string, string> = PHOTO_ALBUM_BACKGROUNDS.reduce((acc, curr) => {
+    acc[curr.id] = curr.prompt;
+    return acc;
+  }, {} as Record<string, string>);
 
   const predefinedBackgroundOptions = PREDEFINED_BG_KEYS.map(key => ({
     key,

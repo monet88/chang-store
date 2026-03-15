@@ -1,0 +1,269 @@
+{
+  "generated_at": "2026-03-15T02:42:37.465Z",
+  "project_id": "32df422d8bb86d7567e94cddd61cbc28",
+  "project_path": "f:\\CodeBase\\Chang-Store",
+  "standards": {
+    "validation": {
+      "zod-z-object-schema": {
+        "preferred": "Zod z.object() schema",
+        "import": "import { z } from 'zod';",
+        "usage_count": 3,
+        "files": [
+          "docs/api/gemini-3.md",
+          "plans/2026-01-21-supabase-image-jobs-execute.md"
+        ],
+        "confidence": "high",
+        "rationale": "Project uses Zod schemas in 3 files. Type-safe validation with TypeScript inference.",
+        "example": "\"tools\": [\n                {\"google_search\": {}},\n                {\"url_context\": {}}",
+        "alternatives": []
+      }
+    },
+    "error-handling": {
+      "console-logging": {
+        "preferred": "try-catch with console logging",
+        "usage_count": 2,
+        "files": [
+          "test-chat-service.ts",
+          "services/googleDriveService.ts"
+        ],
+        "confidence": "medium",
+        "rationale": "Pattern found in 2 files across the project.",
+        "example": "console.log('\\n--- Test 6: Error handling for API failures ---');\r\n  try {\r\n    // Test with invalid API key",
+        "alternatives": []
+      }
+    },
+    "logging": {
+      "console-logging": {
+        "preferred": "console.log/error/warn",
+        "usage_count": 78,
+        "files": [
+          "services/debugService.ts",
+          "vite.config.ts",
+          "plans/reports/silent-failure-260314-2201-pr4-clothing-transfer.md",
+          "plans/2026-01-26-fix-virtual-tryon-params/plan.md",
+          "services/gemini/image.ts"
+        ],
+        "confidence": "high",
+        "rationale": "Pattern found in 78 files across the project.",
+        "example": "console.log('Status:', statusIcon, log.status);\r\n    if (log.error) {\r\n      console.error('Error:', log.error);",
+        "alternatives": []
+      }
+    },
+    "testing": {
+      "assertions": {
+        "preferred": "expect().toBe/toEqual assertions",
+        "usage_count": 39,
+        "files": [
+          "__tests__/utils/imageCache.test.ts",
+          "__tests__/hooks/useVirtualTryOn.test.tsx",
+          "__tests__/services/imageEditingService.test.ts",
+          "__tests__/utils/imageUtils.test.ts",
+          "__tests__/services/localProviderService.test.ts"
+        ],
+        "confidence": "high",
+        "rationale": "Pattern found in 39 files across the project.",
+        "example": "// Tests\n// ============================================================================",
+        "alternatives": [
+          {
+            "pattern": "Jest/Mocha with beforeEach setup",
+            "usage_count": 25,
+            "recommendation": "Consider using \"expect().toBe/toEqual assertions\" instead (39 vs 25 occurrences)"
+          }
+        ]
+      },
+      "test-setup": {
+        "preferred": "Jest/Mocha with beforeEach setup",
+        "usage_count": 25,
+        "files": [
+          "__tests__/utils/imageCache.test.ts",
+          "__tests__/hooks/useVirtualTryOn.test.tsx",
+          "__tests__/contexts/ApiProviderContext.test.tsx",
+          "__tests__/services/imageEditingService.test.ts",
+          "__tests__/utils/imageUtils.test.ts"
+        ],
+        "confidence": "high",
+        "rationale": "Test setup pattern found in 25 files. Ensures clean state for each test.",
+        "example": "// Tests\n// ============================================================================",
+        "alternatives": []
+      }
+    },
+    "react-patterns": {
+      "usestate-hook": {
+        "preferred": "useState hook",
+        "import": "import { useState } from 'react';",
+        "usage_count": 36,
+        "files": [
+          "hooks/useImageEditor.ts",
+          "components/ImageUploader.tsx",
+          "hooks/useInpainting.ts",
+          "components/ImageSpinner.tsx",
+          "hooks/useGoogleDriveSync.ts"
+        ],
+        "confidence": "high",
+        "rationale": "useState hook used in 36 files for local component state management.",
+        "example": "// hooks/useImageEditor.ts\r\nimport { useState, useRef, useCallback, useEffect, useMemo } from 'react';",
+        "alternatives": [
+          {
+            "pattern": "useCallback memoization",
+            "usage_count": 32,
+            "recommendation": "Consider using \"useState hook\" instead (36 vs 32 occurrences)"
+          },
+          {
+            "pattern": "useRef hook",
+            "usage_count": 21,
+            "recommendation": "Consider using \"useState hook\" instead (36 vs 21 occurrences)"
+          },
+          {
+            "pattern": "useEffect hook",
+            "usage_count": 20,
+            "recommendation": "Consider using \"useState hook\" instead (36 vs 20 occurrences)"
+          }
+        ]
+      },
+      "usecallback-memoization": {
+        "preferred": "useCallback memoization",
+        "import": "import { useCallback } from 'react';",
+        "usage_count": 32,
+        "files": [
+          "hooks/useInpainting.ts",
+          "components/ImageUploader.tsx",
+          "docs/code-standards.md",
+          "components/Toast.tsx",
+          "hooks/useWatermarkRemover.ts"
+        ],
+        "confidence": "high",
+        "rationale": "useCallback used in 32 files for memoizing callbacks to prevent unnecessary re-renders.",
+        "example": "// hooks/useInpainting.ts\r\nimport { useState, useRef, useCallback, useEffect } from 'react';",
+        "alternatives": []
+      },
+      "useref-hook": {
+        "preferred": "useRef hook",
+        "import": "import { useRef } from 'react';",
+        "usage_count": 21,
+        "files": [
+          "components/ImageUploader.tsx",
+          "hooks/useInpainting.ts",
+          "components/ImageSpinner.tsx",
+          "hooks/useImageEditor.ts",
+          "hooks/useGoogleDriveSync.ts"
+        ],
+        "confidence": "high",
+        "rationale": "useRef used in 21 files for DOM refs or mutable values that don't trigger re-renders.",
+        "example": "// hooks/useInpainting.ts\r\nimport { useState, useRef, useCallback, useEffect } from 'react';",
+        "alternatives": []
+      },
+      "useeffect-hook": {
+        "preferred": "useEffect hook",
+        "import": "import { useEffect } from 'react';",
+        "usage_count": 20,
+        "files": [
+          "components/ImageUploader.tsx",
+          "docs/code-standards.md",
+          "components/ImageSpinner.tsx",
+          "hooks/useGoogleDriveSync.ts",
+          "components/modals/PoseLibraryModal.tsx"
+        ],
+        "confidence": "high",
+        "rationale": "useEffect hook used in 20 files for side effects and lifecycle management.",
+        "example": "const [isGallerySelectionOpen, setIsGallerySelectionOpen] = useState(false);\r\n  const { t } = useLanguage();\r\n  const inputRef = useRef<HTMLInputElement>(null);",
+        "alternatives": []
+      },
+      "custom-hook-use-pattern": {
+        "preferred": "Custom hook (use* pattern)",
+        "usage_count": 13,
+        "files": [
+          "hooks/useImageEditor.ts",
+          "hooks/useInpainting.ts",
+          "components/Toast.tsx",
+          "docs/code-standards.md",
+          "hooks/usePoseChanger.ts"
+        ],
+        "confidence": "high",
+        "rationale": "Custom hooks (use* pattern) found in 13 files. Reusable stateful logic across components.",
+        "example": "// hooks/useImageEditor.ts\r\nimport { useState, useRef, useCallback, useEffect, useMemo } from 'react';",
+        "alternatives": []
+      },
+      "usememo-computed-values": {
+        "preferred": "useMemo computed values",
+        "import": "import { useMemo } from 'react';",
+        "usage_count": 7,
+        "files": [
+          "components/ImageUploader.tsx",
+          "docs/code-standards.md",
+          "components/modals/PoseLibraryModal.tsx",
+          "components/ImageEditor.tsx",
+          "hooks/useWatermarkRemover.ts"
+        ],
+        "confidence": "high",
+        "rationale": "useMemo used in 7 files for memoizing expensive computations.",
+        "example": "const [isGallerySelectionOpen, setIsGallerySelectionOpen] = useState(false);\r\n  const { t } = useLanguage();\r\n  const inputRef = useRef<HTMLInputElement>(null);",
+        "alternatives": []
+      },
+      "react-memo-component": {
+        "preferred": "React.memo component",
+        "import": "import { memo } from 'react';",
+        "usage_count": 4,
+        "files": [
+          "components/ImageUploader.tsx",
+          "components/MentionTextarea.tsx",
+          "docs/code-standards.md",
+          "components/MultiImageUploader.tsx"
+        ],
+        "confidence": "high",
+        "rationale": "React.memo used in 4 files for component memoization to prevent unnecessary re-renders.",
+        "example": "* MentionTextarea component\r\n * Provides autocomplete dropdown when typing @ to reference images\r\n */",
+        "alternatives": []
+      },
+      "usecontext-hook": {
+        "preferred": "useContext hook",
+        "import": "import { useContext } from 'react';",
+        "usage_count": 1,
+        "files": [
+          "components/Toast.tsx"
+        ],
+        "confidence": "low",
+        "rationale": "useContext used in 1 files for consuming React Context values.",
+        "example": "const ToastContext = createContext<ToastContextType | undefined>(undefined);\r\n\r\n/**",
+        "alternatives": []
+      }
+    },
+    "state-management": {
+      "react-context": {
+        "preferred": "React Context",
+        "usage_count": 11,
+        "files": [
+          "contexts/ImageViewerContext.tsx",
+          "contexts/LanguageContext.tsx",
+          "contexts/ImageGalleryContext.tsx",
+          "contexts/GoogleDriveContext.tsx",
+          "components/Toast.tsx"
+        ],
+        "confidence": "high",
+        "rationale": "React Context used in 11 files for prop-drilling-free state sharing.",
+        "example": "import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';\r\nimport { ImageFile } from '../types';\r\nimport { useImageGallery } from './ImageGalleryContext';",
+        "alternatives": [
+          {
+            "pattern": "Context Provider pattern",
+            "usage_count": 7,
+            "recommendation": "Consider using \"React Context\" instead (11 vs 7 occurrences)"
+          }
+        ]
+      },
+      "context-provider-pattern": {
+        "preferred": "Context Provider pattern",
+        "usage_count": 7,
+        "files": [
+          "contexts/ApiProviderContext.tsx",
+          "contexts/GoogleDriveContext.tsx",
+          "contexts/ImageGalleryContext.tsx",
+          "contexts/LanguageContext.tsx",
+          "contexts/ImageViewerContext.tsx"
+        ],
+        "confidence": "high",
+        "rationale": "Pattern found in 7 files across the project.",
+        "example": "imageGenerateModel,\r\n      textGenerateModel,\r\n    };",
+        "alternatives": []
+      }
+    }
+  }
+}
