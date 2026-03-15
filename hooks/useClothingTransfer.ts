@@ -20,19 +20,25 @@ interface ReferenceItem {
 function buildClothingTransferPrompt(referenceLabels: string[], extraInstructions: string): string {
   const refCount = referenceLabels.length;
   const labelLines = referenceLabels
-    .map((label, i) => `  Image ${i + 1}: ${label || 'auto-detect'}`)
+    .map((label, i) => `  Image ${i + 1} (SOURCE): ${label || 'auto-detect'}`)
     .join('\n');
 
-  return `Images 1 to ${refCount} are reference outfits. The last image is the target.
+  return `You are performing a clothing transfer task. Follow these steps precisely.
 
-Reference clothing types:
+ROLE OF EACH IMAGE:
+- Images 1 to ${refCount} are SOURCE OUTFITS — these contain the clothing items you MUST extract and use.
+- The LAST image (Image ${refCount + 1}) is the DESTINATION SCENE — this defines the background, arrangement, lighting, and display style you MUST preserve.
+
+SOURCE outfit details:
 ${labelLines}
 
-Remove all existing clothing from the target image. Keep the background, lighting, camera angle, and every other detail unchanged.
+STEP-BY-STEP INSTRUCTIONS:
+1. ANALYSE SOURCE: Look at images 1 to ${refCount}. Identify every clothing item — note the exact colors, fabric textures, patterns, folds, and proportions.
+2. ANALYSE DESTINATION: Look at the last image. Identify the scene layout — how items are arranged (on hangers, laid flat, on mannequin, folded, displayed in a closet, etc.), the background, lighting, camera angle, and overall composition.
+3. REMOVE: Remove all existing clothing from the destination scene. Keep EVERYTHING else — background, props, accessories, lighting, camera angle — completely unchanged.
+4. INSERT: Place the source outfits into the destination scene, replacing the removed clothing. Each outfit must match the destination's display style and arrangement. Maintain realistic proportions, orientation, spacing, and natural layering order. The inserted clothing must blend seamlessly, looking as if it was genuinely part of the original scene.
 
-Extract outfits from all reference images, preserving all details — colors, fabric textures, patterns, folds, and proportions.
-
-Insert each outfit into the target, matching the exact display style of the target — whether on hangers, laid flat, on a mannequin, or any other arrangement. Maintain realistic proportions, orientation, and spacing. The new clothing must blend seamlessly, looking as if genuinely part of the existing scene. No manual masking needed — AI auto-detects and replaces clothing.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
+CRITICAL: The clothing in the final result MUST come from the SOURCE images (images 1 to ${refCount}), NOT from the destination. The destination only provides the scene/arrangement.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
 }
 
 export function useClothingTransfer() {
