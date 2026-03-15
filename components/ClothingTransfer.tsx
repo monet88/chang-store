@@ -74,12 +74,14 @@ const ClothingTransfer: React.FC = () => {
 
         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
           <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('clothingTransfer.step2')}</h3>
-          <ImageUploader
-            image={conceptImage}
-            id="concept-upload"
-            title={t('clothingTransfer.conceptTitle')}
-            onImageUpload={handleConceptUpload}
-          />
+          <div className="max-w-[50%] mx-auto">
+            <ImageUploader
+              image={conceptImage}
+              id="concept-upload"
+              title={t('clothingTransfer.conceptTitle')}
+              onImageUpload={handleConceptUpload}
+            />
+          </div>
         </div>
 
         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">

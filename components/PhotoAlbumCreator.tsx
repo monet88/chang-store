@@ -163,7 +163,9 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                     </div>
 
                     {mode === 'fullModel' ? (
-                        <ImageUploader image={originalPhoto} onImageUpload={setOriginalPhoto} title={t('photoAlbum.originalPhoto')} id="pa-original" />
+                        <div className="max-w-[50%] mx-auto">
+                            <ImageUploader image={originalPhoto} onImageUpload={setOriginalPhoto} title={t('photoAlbum.originalPhoto')} id="pa-original" />
+                        </div>
                     ) : (
                         <div className="grid grid-cols-2 gap-4">
                             <ImageUploader image={faceImage} onImageUpload={setFaceImage} title={t('photoAlbum.faceImage')} id="pa-face" />
