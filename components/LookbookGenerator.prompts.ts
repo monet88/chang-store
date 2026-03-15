@@ -59,8 +59,109 @@ no blurry details, no fabric distortion, no incorrect colors.
 `;
 
 
-export type LookbookStyle = 'flat lay' | 'mannequin' | 'hanger' | 'studio background' | 'minimalist showroom' | 'folded';
+export const GHOST_MANNEQUIN_PROMPT = `
+# INSTRUCTION: PRODUCT SHOT — GHOST MANNEQUIN
+
+## 1. IMAGE ROLES
+Multiple images (up to 4 views) of the SAME model wearing the SAME outfit.
+Cross-reference ALL views to reconstruct the COMPLETE garment:
+- Front view → buttons, pockets, placket, front seams, neckline
+- Back view → back panel, rear closure, back label, rear seams
+- Side view → silhouette, side seams, sleeve shape, hem curve
+- Detail view → texture close-up, hardware, stitching
+
+## 2. CORE TASK
+Extract the clothing from the model and render it in **ghost mannequin**
+(invisible mannequin) style — the garment appears as if worn by an invisible
+body, maintaining its natural 3D shape, drape, and volume.
+
+## 3. CRITICAL RULES
+- View: Front-facing, straight-on (0° angle)
+- The garment keeps its natural worn shape — NOT flattened, NOT vacuum-sealed
+- NO visible person, mannequin, or hanger — clothing floats in 3D form
+\${ACCESSORIES_SECTION}
+\${FOOTWEAR_SECTION}
+
+## 4. PRESERVATION (100% accuracy — this is a reference sample for AI)
+Fabric texture & weave | True colors (zero shift) | All seams & stitching |
+Buttons/zippers (exact count, size, position) | Collar/neckline structure |
+Sleeve length & cuff style | Hem shape & finishing | Pockets (type & position) |
+Labels/tags if visible | Elastic, drawstrings, ribbing |
+Internal lining visible at neckline/cuffs (ghost mannequin effect)
+
+## 5. SHEER/TRANSPARENT FABRICS
+If garment has sheer, lace, or mesh sections — render them transparent,
+showing the white background through the fabric. Maintain true opacity level.
+
+## 6. OUTPUT
+- Background: pure white (#FFFFFF), seamless, zero texture
+- Lighting: flat, even, shadowless — optimize for AI detail recognition
+- Shadow: NONE (or absolute minimal beneath garment base)
+- Crop: full garment visible, ~5% padding all sides
+- Resolution: sharp, detail-focused
+- Purpose: This is an AI reference sample, NOT a production catalog photo
+  Prioritize detail clarity over artistic presentation.
+
+## 7. PROHIBITIONS
+NO human skin/face/hair/hands/feet | NO mannequin texture or stand visible |
+NO hanger | NO background objects | NO color correction or "improvement" |
+NO artistic lighting or shadows | NO stylization — photorealistic only
+`;
+
+export const CLEAN_FLAT_LAY_PROMPT = `
+# INSTRUCTION: PRODUCT SHOT — CLEAN FLAT LAY
+
+## 1. IMAGE ROLES
+Multiple images (up to 4 views) of the SAME model wearing the SAME outfit.
+Cross-reference ALL views to reconstruct EACH piece completely:
+- Front view → buttons, pockets, placket, front seams, neckline, waistband
+- Back view → back panel, rear closure, back label, rear seams, back pockets
+- Side view → silhouette, side seams, sleeve shape, hem curve
+- Detail view → texture close-up, hardware, stitching
+
+## 2. CORE TASK
+Extract ALL pieces of the outfit from the model and render each piece
+as a **separate, laid-out item** on a pure white background.
+
+Layout rules:
+- Each piece displayed SEPARATELY with clear spacing (~10% gap)
+- Pieces stacked vertically: top piece above, bottom piece below
+- If 3 pieces: top → middle → bottom (e.g., jacket → shirt → pants)
+- Each piece shows its FULL form — NO overlap between pieces
+- Garments laid flat but with NATURAL fabric volume — subtle folds and
+  creases as if just carefully placed down, NOT ironed flat
+\${ACCESSORIES_SECTION}
+\${FOOTWEAR_SECTION}
+
+## 3. PRESERVATION (100% accuracy — this is a reference sample for AI)
+Fabric texture & weave | True colors (zero shift) | All seams & stitching |
+Buttons/zippers (exact count, size, position) | Collar/neckline structure |
+Sleeve length & cuff style | Hem shape & finishing | Pockets (type & position) |
+Waistband, belt loops, fly closure | Labels/tags if visible |
+Elastic, drawstrings, ribbing
+
+## 4. SHEER/TRANSPARENT FABRICS
+If any piece has sheer, lace, or mesh sections — render them transparent,
+showing the white background through the fabric. Maintain true opacity level.
+
+## 5. OUTPUT
+- Background: pure white (#FFFFFF), seamless, zero texture
+- Lighting: flat, even, shadowless — optimize for AI detail recognition
+- Shadow: NONE (or absolute minimal beneath each piece)
+- Crop: ALL pieces fully visible in 1 image, ~5% padding all sides
+- Resolution: sharp, detail-focused
+- Purpose: This is an AI reference sample, NOT a production catalog photo
+  Prioritize detail clarity over artistic presentation.
+
+## 6. PROHIBITIONS
+NO human skin/face/hair/hands/feet | NO mannequin | NO hanger |
+NO background objects | NO color correction | NO artistic lighting or shadow |
+NO overlap between pieces | NO stylization — photorealistic only
+`;
+
+export type LookbookStyle = 'flat lay' | 'mannequin' | 'hanger' | 'studio background' | 'minimalist showroom' | 'folded' | 'product shot';
 export type GarmentType = 'one-piece' | 'two-piece' | 'three-piece';
+export type ProductShotSubType = 'ghost-mannequin' | 'clean-flat-lay';
 export type FoldedPresentationType = 'boxed' | 'folded';
 export type MannequinBackgroundStyleKey = keyof typeof en.lookbook.mannequinBackgroundStyles;
 

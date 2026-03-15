@@ -18,7 +18,8 @@ import {
   LookbookStyle,
   GarmentType,
   FoldedPresentationType,
-  MannequinBackgroundStyleKey
+  MannequinBackgroundStyleKey,
+  ProductShotSubType
 } from './LookbookGenerator.prompts';
 import { LookbookFormState } from '../utils/lookbookPromptBuilder';
 
@@ -81,7 +82,10 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
     garmentType,
     foldedPresentationType,
     mannequinBackgroundStyle,
-    negativePrompt
+    negativePrompt,
+    productShotSubType,
+    includeAccessories,
+    includeFootwear
   } = formState;
 
   // Memoized handlers
@@ -132,8 +136,15 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
   }, [onFormChange]);
 
   const handleStyleChange = useCallback((style: LookbookStyle) => {
-    onFormChange({ lookbookStyle: style });
-  }, [onFormChange]);
+    const updates: Partial<LookbookFormState> = { lookbookStyle: style };
+    // Auto-select product shot sub-type based on current garment type
+    if (style === 'product shot') {
+      updates.productShotSubType = garmentType === 'one-piece'
+        ? 'ghost-mannequin'
+        : 'clean-flat-lay';
+    }
+    onFormChange(updates);
+  }, [onFormChange, garmentType]);
 
   const handlePresentationTypeChange = useCallback((type: FoldedPresentationType) => {
     onFormChange({ foldedPresentationType: type });
@@ -147,6 +158,18 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
     onFormChange({ mannequinBackgroundStyle: style });
   }, [onFormChange]);
 
+  const handleProductShotSubTypeChange = useCallback((subType: ProductShotSubType) => {
+    onFormChange({ productShotSubType: subType });
+  }, [onFormChange]);
+
+  const handleIncludeAccessoriesChange = useCallback((checked: boolean) => {
+    onFormChange({ includeAccessories: checked });
+  }, [onFormChange]);
+
+  const handleIncludeFootwearChange = useCallback((checked: boolean) => {
+    onFormChange({ includeFootwear: checked });
+  }, [onFormChange]);
+
   const validClothingImages = clothingImages.filter(item => item.image !== null);
   const anyLoading = isLoading || isGeneratingDescription;
 
@@ -157,6 +180,7 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
     { key: 'folded', label: t('lookbook.styleFolded') },
     { key: 'studio background', label: t('lookbook.styleStudioBackground') },
     { key: 'minimalist showroom', label: t('lookbook.styleMinimalistShowroom') },
+    { key: 'product shot', label: t('lookbook.styleProductShot') },
   ];
 
   return (
@@ -372,7 +396,7 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
         )}
 
         {/* Conditional: Garment Type */}
-        {['hanger', 'flat lay', 'minimalist showroom', 'folded'].includes(lookbookStyle) && (
+        {['hanger', 'flat lay', 'minimalist showroom', 'folded', 'product shot'].includes(lookbookStyle) && (
           <div className="flex flex-col items-center gap-2 pt-4 border-t border-zinc-700/50 animate-fade-in">
             <span className="text-zinc-300 font-medium">{t('lookbook.garmentTypeLabel')}:</span>
             <div className="flex gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
@@ -428,6 +452,60 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
                   {style.label}
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Conditional: Product Shot Sub-Type & Options */}
+        {lookbookStyle === 'product shot' && (
+          <div className="flex flex-col items-center gap-4 pt-4 border-t border-zinc-700/50 animate-fade-in">
+            {/* Sub-type radio */}
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-zinc-300 font-medium">{t('lookbook.productShotSubTypeLabel')}:</span>
+              <div className="flex gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
+                <button
+                  onClick={() => handleProductShotSubTypeChange('ghost-mannequin')}
+                  className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
+                    productShotSubType === 'ghost-mannequin'
+                      ? 'bg-amber-600 text-white'
+                      : 'text-zinc-300 hover:bg-zinc-700/50'
+                  }`}
+                >
+                  {t('lookbook.productShotGhostMannequin')}
+                </button>
+                <button
+                  onClick={() => handleProductShotSubTypeChange('clean-flat-lay')}
+                  className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
+                    productShotSubType === 'clean-flat-lay'
+                      ? 'bg-amber-600 text-white'
+                      : 'text-zinc-300 hover:bg-zinc-700/50'
+                  }`}
+                >
+                  {t('lookbook.productShotCleanFlatLay')}
+                </button>
+              </div>
+            </div>
+
+            {/* Checkboxes */}
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeAccessories}
+                  onChange={(e) => handleIncludeAccessoriesChange(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-amber-500 focus:ring-amber-500"
+                />
+                {t('lookbook.includeAccessories')}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeFootwear}
+                  onChange={(e) => handleIncludeFootwearChange(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-amber-500 focus:ring-amber-500"
+                />
+                {t('lookbook.includeFootwear')}
+              </label>
             </div>
           </div>
         )}

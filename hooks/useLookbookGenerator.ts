@@ -11,7 +11,7 @@ import { editImage, upscaleImage, createImageChatSession, ImageChatSession, Refi
 import { generateClothingDescription } from '../services/textService';
 
 // This would contain the large prompt strings
-import { LookbookStyle, GarmentType, FoldedPresentationType, MannequinBackgroundStyleKey } from '../components/LookbookGenerator.prompts';
+import { LookbookStyle, GarmentType, FoldedPresentationType, MannequinBackgroundStyleKey, ProductShotSubType } from '../components/LookbookGenerator.prompts';
 import { buildLookbookPrompt, buildVariationPrompt, buildCloseUpPrompts, buildCloseUpNegativePrompt, LookbookFormState as PromptFormState } from '../utils/lookbookPromptBuilder';
 
 export interface LookbookSet {
@@ -35,6 +35,10 @@ export interface LookbookFormState {
   foldedPresentationType: FoldedPresentationType;
   mannequinBackgroundStyle: MannequinBackgroundStyleKey;
   negativePrompt: string;
+  // Product Shot fields
+  productShotSubType: ProductShotSubType;
+  includeAccessories: boolean;
+  includeFootwear: boolean;
 }
 
 const DRAFT_STORAGE_KEY = 'lookbookGeneratorDraft';
@@ -49,6 +53,9 @@ const initialFormState: LookbookFormState = {
   foldedPresentationType: 'boxed',
   mannequinBackgroundStyle: 'minimalistShowroom',
   negativePrompt: '',
+  productShotSubType: 'ghost-mannequin',
+  includeAccessories: false,
+  includeFootwear: false,
 };
 
 
@@ -61,7 +68,7 @@ export const useLookbookGenerator = () => {
         }
         try {
             const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
-            return saved ? JSON.parse(saved) : initialFormState;
+            return saved ? { ...initialFormState, ...JSON.parse(saved) } : initialFormState;
         } catch {
             return initialFormState;
         }

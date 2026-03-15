@@ -8,11 +8,14 @@
 import {
   BOXED_PROMPT,
   FOLDED_PROMPT,
+  GHOST_MANNEQUIN_PROMPT,
+  CLEAN_FLAT_LAY_PROMPT,
   MANNEQUIN_BACKGROUND_PROMPTS,
   LookbookStyle,
   GarmentType,
   FoldedPresentationType,
-  MannequinBackgroundStyleKey
+  MannequinBackgroundStyleKey,
+  ProductShotSubType
 } from '../components/LookbookGenerator.prompts';
 import { ImageFile, AspectRatio } from '../types';
 
@@ -29,6 +32,10 @@ export interface LookbookFormState {
   foldedPresentationType: FoldedPresentationType;
   mannequinBackgroundStyle: MannequinBackgroundStyleKey;
   negativePrompt: string;
+  // Product Shot fields
+  productShotSubType: ProductShotSubType;
+  includeAccessories: boolean;
+  includeFootwear: boolean;
 }
 
 /**
@@ -117,6 +124,13 @@ export const buildLookbookPrompt = (
       break;
     case 'minimalist showroom':
       stylePrompt = buildMinimalistShowroomPrompt(garmentType);
+      break;
+    case 'product shot':
+      stylePrompt = buildProductShotPrompt(
+        formState.productShotSubType,
+        formState.includeAccessories,
+        formState.includeFootwear
+      );
       break;
     default:
       stylePrompt = buildFlatLayPrompt(garmentType);
@@ -397,6 +411,31 @@ Absolute priorities:
   };
   const outfitTypeText = outfitTypeMap[garmentType];
   return basePrompt.replace(/\$\{outfitType\}/g, outfitTypeText);
+};
+
+/**
+ * Build product shot prompt — Ghost Mannequin or Clean Flat Lay
+ */
+const buildProductShotPrompt = (
+  subType: ProductShotSubType,
+  includeAccessories: boolean,
+  includeFootwear: boolean
+): string => {
+  const basePrompt = subType === 'ghost-mannequin'
+    ? GHOST_MANNEQUIN_PROMPT
+    : CLEAN_FLAT_LAY_PROMPT;
+
+  const accessoriesSection = includeAccessories
+    ? '- INCLUDE all accessories that are part of the outfit: belts, scarves, ties, brooches, pins. Display them alongside the garment pieces.'
+    : '- EXCLUDE all accessories: no belts, scarves, ties, brooches, jewelry. Extract ONLY the core garment pieces.';
+
+  const footwearSection = includeFootwear
+    ? '- INCLUDE footwear worn by the model. Display shoes/boots as the bottom-most item in the layout, below all garment pieces.'
+    : '- EXCLUDE footwear entirely. Do NOT include any shoes, boots, or sandals.';
+
+  return basePrompt
+    .replace('${ACCESSORIES_SECTION}', accessoriesSection)
+    .replace('${FOOTWEAR_SECTION}', footwearSection);
 };
 
 /**
