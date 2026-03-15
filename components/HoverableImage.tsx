@@ -4,7 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useToast } from './Toast';
 import Spinner from './Spinner';
-import { CloudUploadIcon, DeleteIcon, DownloadIcon, EditorIcon, FullscreenIcon, GalleryIcon, RegenerateIcon } from './Icons';
+import { CloudUploadIcon, DeleteIcon, DownloadIcon, EditorIcon, FullscreenIcon, GalleryIcon, RegenerateIcon, SendIcon } from './Icons';
 import { useImageViewer } from '../contexts/ImageViewerContext';
 
 interface HoverableImageProps {
@@ -16,6 +16,7 @@ interface HoverableImageProps {
     onDelete?: () => void;
     onEdit?: () => void;
     onClick?: () => void;
+    onSendToFeature?: () => void;
     isGenerating?: boolean;
     isUpscaling?: boolean;
     containerClassName?: string;
@@ -30,6 +31,7 @@ const HoverableImage: React.FC<HoverableImageProps> = ({
     onDelete,
     onEdit,
     onClick,
+    onSendToFeature,
     isGenerating,
     isUpscaling,
     containerClassName
@@ -128,6 +130,16 @@ const HoverableImage: React.FC<HoverableImageProps> = ({
                                 aria-label="Delete image"
                             >
                                 <DeleteIcon className="w-5 h-5" />
+                            </button>
+                        )}
+                        {onSendToFeature && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onSendToFeature(); }}
+                                className="p-2 bg-purple-600/70 rounded-full text-white hover:bg-purple-500/90 transition-colors"
+                                aria-label={t('imageActions.sendToAlbum')}
+                                title={t('imageActions.sendToAlbum')}
+                            >
+                                <SendIcon className="w-5 h-5" />
                             </button>
                         )}
                         <button 

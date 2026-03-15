@@ -56,6 +56,7 @@ interface LookbookOutputProps {
   isRefining: boolean;
   onRefineImage: (prompt: string) => void;
   onResetRefinement: () => void;
+  onSendToFeature?: (image: ImageFile) => void;
 }
 
 /**
@@ -85,7 +86,8 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
   onSelectVersion,
   isRefining,
   onRefineImage,
-  onResetRefinement
+  onResetRefinement,
+  onSendToFeature
 }) => {
   const { t } = useLanguage();
 
@@ -180,6 +182,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                     altText={t('lookbook.tabGeneratedImage')}
                     onUpscale={() => onUpscale(lookbook.main, 'main')}
                     isUpscaling={upscalingStates['main']}
+                    onSendToFeature={onSendToFeature ? () => onSendToFeature(lookbook.main) : undefined}
                     containerClassName="w-full h-full rounded-xl overflow-hidden shadow-2xl border border-zinc-800"
                   />
                 </div>
@@ -287,6 +290,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                         altText={t('lookbook.variationAltText', { index: i + 1 })}
                         onUpscale={() => onUpscale(img, `var-${i}`)}
                         isUpscaling={upscalingStates[`var-${i}`]}
+                        onSendToFeature={onSendToFeature ? () => onSendToFeature(img) : undefined}
                       />
                     ))}
                   </div>

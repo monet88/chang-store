@@ -7,8 +7,13 @@ import { AddIcon, DeleteIcon } from './Icons';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import { useClothingTransfer } from '../hooks/useClothingTransfer';
+import { Feature, ImageFile } from '../types';
 
-const ClothingTransfer: React.FC = () => {
+interface ClothingTransferProps {
+  onSendToFeature?: (feature: Feature, image: ImageFile) => void;
+}
+
+const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) => {
   const {
     referenceItems, conceptImage, extraPrompt, numImages,
     aspectRatio, resolution, isLoading, loadingMessage,
@@ -177,6 +182,7 @@ const ClothingTransfer: React.FC = () => {
                       onUpscale={() => handleUpscale(image, index)}
                       isGenerating={isLoading}
                       isUpscaling={upscalingStates[index]}
+                      onSendToFeature={onSendToFeature ? () => onSendToFeature(Feature.PhotoAlbum, image) : undefined}
                     />
                   </div>
                 ))}

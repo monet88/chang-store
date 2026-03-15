@@ -48,6 +48,7 @@ const AppContent: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [imageToEdit, setImageToEdit] = useState<ImageFile | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [transferPayload, setTransferPayload] = useState<{ feature: Feature; image: ImageFile } | null>(null);
 
   const [isPoseLibraryOpen, setIsPoseLibraryOpen] = useState(false);
   const [poseConfirmCallback, setPoseConfirmCallback] = useState<{ fn: (poses: string[]) => void } | null>(null);
@@ -84,6 +85,15 @@ const AppContent: React.FC = () => {
   const handleToggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
   const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
+  /** Send image to another feature (e.g. Lookbook result → Photo Album as outfit) */
+  const handleSendToFeature = useCallback((feature: Feature, image: ImageFile) => {
+    setTransferPayload({ feature, image });
+    setActiveFeature(feature);
+    setIsSidebarOpen(false);
+  }, []);
+
+  const clearTransferPayload = useCallback(() => setTransferPayload(null), []);
+
   // Auto-close sidebar when feature is selected on mobile
   const handleSetActiveFeature = useCallback((feature: Feature) => {
     setActiveFeature(feature);
@@ -96,13 +106,17 @@ const AppContent: React.FC = () => {
       case Feature.TryOn:
         return <VirtualTryOn key="try-on" />;
       case Feature.Lookbook:
-        return <LookbookGenerator key="lookbook" />;
+        return <LookbookGenerator key="lookbook" onSendToFeature={handleSendToFeature} />;
       case Feature.Background:
         return <BackgroundReplacer key="background" />;
       case Feature.Pose:
         return <PoseChanger key="pose" onOpenPoseLibrary={handleOpenPoseLibrary} />;
       case Feature.PhotoAlbum:
-        return <PhotoAlbumCreator key="photo-album" />;
+        return <PhotoAlbumCreator
+          key="photo-album"
+          transferredImage={transferPayload?.feature === Feature.PhotoAlbum ? transferPayload.image : undefined}
+          onTransferConsumed={clearTransferPayload}
+        />;
       case Feature.OutfitAnalysis:
         return <OutfitAnalysis key="outfit-analysis" />;
       case Feature.Relight:
@@ -114,7 +128,7 @@ case Feature.AIEditor:
       case Feature.WatermarkRemover:
         return <WatermarkRemover key="watermark-remover" />;
       case Feature.ClothingTransfer:
-        return <ClothingTransfer key="clothing-transfer" />;
+        return <ClothingTransfer key="clothing-transfer" onSendToFeature={handleSendToFeature} />;
       case Feature.ImageEditor:
         return null; // ImageEditor is rendered separately as a modal
       default:

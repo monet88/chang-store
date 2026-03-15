@@ -4,14 +4,19 @@
  * Thin orchestrator that uses useLookbookGenerator hook as single source of truth.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useLookbookGenerator } from '../hooks/useLookbookGenerator';
 import { useLanguage } from '../contexts/LanguageContext';
+import { Feature, ImageFile } from '../types';
 import { MannequinBackgroundStyleKey } from './LookbookGenerator.prompts';
 import { LookbookForm } from './LookbookForm';
 import { LookbookOutput } from './LookbookOutput';
 
-export const LookbookGenerator: React.FC = () => {
+interface LookbookGeneratorProps {
+  onSendToFeature?: (feature: Feature, image: ImageFile) => void;
+}
+
+export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFeature }) => {
   const {
     formState,
     updateForm,
@@ -58,6 +63,10 @@ export const LookbookGenerator: React.FC = () => {
     key,
     label: t(`lookbook.mannequinBackgroundStyles.${key}`),
   }));
+
+  const handleSendToAlbum = useCallback((image: ImageFile) => {
+    onSendToFeature?.(Feature.PhotoAlbum, image);
+  }, [onSendToFeature]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
@@ -106,6 +115,7 @@ export const LookbookGenerator: React.FC = () => {
           isRefining={isRefining}
           onRefineImage={handleRefineImage}
           onResetRefinement={handleResetRefinement}
+          onSendToFeature={onSendToFeature ? handleSendToAlbum : undefined}
         />
       </div>
     </div>
