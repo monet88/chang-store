@@ -49,6 +49,7 @@ src-tauri/target/
 
 # Local agent/tooling artifacts
 .agent/
+.ck/
 .claude/
 .codex/
 .cursor/
@@ -57,6 +58,9 @@ src-tauri/target/
 .serena/
 .sisyphus/
 .skillsrc
+
+# TypeScript build cache
+*.tsbuildinfo
 
 # Local test artifacts
 __tests__/AGENTS.md
