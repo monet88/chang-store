@@ -12,25 +12,32 @@ export interface EditImageParams {
   resolution?: ImageResolution;
   negativePrompt?: string;
   numberOfImages?: number;
+  /** Pre-built interleaved parts (text labels + images). When provided, overrides images+prompt auto-assembly. */
+  interleavedParts?: Part[];
 }
 
-export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-image', aspectRatio, resolution, negativePrompt, numberOfImages = 1 }: EditImageParams): Promise<ImageFile[]> => {
+export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-image', aspectRatio, resolution, negativePrompt, numberOfImages = 1, interleavedParts }: EditImageParams): Promise<ImageFile[]> => {
   const ai = getGeminiClient();
   try {
-    const imageParts: Part[] = images.map(image => ({
-      inlineData: {
-        data: image.base64,
-        mimeType: image.mimeType,
-      },
-    }));
+    // Build content parts: use interleaved parts if provided, otherwise default pattern
+    let contentParts: Part[];
+    if (interleavedParts && interleavedParts.length > 0) {
+      contentParts = interleavedParts;
+    } else {
+      const imageParts: Part[] = images.map(image => ({
+        inlineData: {
+          data: image.base64,
+          mimeType: image.mimeType,
+        },
+      }));
 
-    let finalPrompt = prompt;
+      let finalPrompt = prompt;
+      if (negativePrompt?.trim()) {
+        finalPrompt += ` Negative prompt: strictly avoid including ${negativePrompt.trim()}.`;
+      }
 
-    if (negativePrompt?.trim()) {
-      finalPrompt += ` Negative prompt: strictly avoid including ${negativePrompt.trim()}.`;
+      contentParts = [...imageParts, { text: finalPrompt }];
     }
-
-    const textPart: Part = { text: finalPrompt };
 
     const generateSingleImage = async (): Promise<ImageFile> => {
         // Build imageConfig - only include imageSize for models that support it
@@ -55,7 +62,7 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
 
         const response = await ai.models.generateContent({
             model: model,
-            contents: { parts: [...imageParts, textPart] },
+            contents: { parts: contentParts },
             config: {
                 responseModalities: [Modality.IMAGE],
                 ...(Object.keys(imageConfig).length > 0 && { imageConfig }),

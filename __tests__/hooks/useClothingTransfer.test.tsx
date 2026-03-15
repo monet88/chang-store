@@ -373,15 +373,18 @@ describe('useClothingTransfer', () => {
         await result.current.handleGenerate();
       });
 
-      // Assert - check the prompt
+      // Assert - check the interleaved parts contain correct content
       const callArgs = vi.mocked(editImage).mock.calls[0];
-      const prompt = callArgs[0].prompt;
+      const parts = callArgs[0].interleavedParts;
 
-      expect(prompt).toContain('Image 1 is the DESTINATION SCENE');
-      expect(prompt).toContain('Images 2 to 3 are SOURCE OUTFITS');
-      expect(prompt).toContain('REMOVE: Remove all existing clothing from Image 1');
-      expect(prompt).toContain('INSERT: Place the source outfits into the destination scene');
-      expect(prompt).toContain('high fashion photography, studio lighting');
+      // interleavedParts should exist and contain text parts with expected content
+      expect(parts).toBeDefined();
+      const textContent = parts!.filter((p: any) => p.text).map((p: any) => p.text).join('\n');
+
+      expect(textContent).toContain('DESTINATION SCENE');
+      expect(textContent).toContain('SOURCE OUTFIT');
+      expect(textContent).toContain('Replace all clothing in the DESTINATION SCENE');
+      expect(textContent).toContain('high fashion photography, studio lighting');
     });
 
     /**
@@ -835,7 +838,11 @@ describe('useClothingTransfer', () => {
       expect(callArgs[0].images).toHaveLength(2);
       expect(callArgs[0].images[0]).toEqual(TEST_CONCEPT_IMAGE);
       expect(callArgs[0].images[1]).toEqual(TEST_REFERENCE_1);
-      expect(callArgs[0].prompt).toContain('professional styling');
+      // Prompt is empty since content goes through interleavedParts
+      expect(callArgs[0].prompt).toBe('');
+      // interleavedParts should contain the extra instructions
+      const textContent = callArgs[0].interleavedParts!.filter((p: any) => p.text).map((p: any) => p.text).join('\n');
+      expect(textContent).toContain('professional styling');
 
       // Second arg: model string
       expect(typeof callArgs[1]).toBe('string');

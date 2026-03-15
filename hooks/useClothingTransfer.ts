@@ -5,6 +5,7 @@ import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage } from '../services/imageEditingService';
+import type { Part } from '@google/genai';
 
 interface ReferenceItem {
   id: number;
@@ -13,33 +14,41 @@ interface ReferenceItem {
 }
 
 /**
- * Build the clothing transfer prompt.
- * IMPORTANT: Caller must pass images as [concept_first, ref_1...ref_N].
- * Image 1 = DESTINATION SCENE (concept), Images 2+ = SOURCE OUTFITS (references).
- * Gemini treats the first image as the primary/base image to edit.
+ * Build interleaved parts for clothing transfer.
+ * Structure: [label_concept, img_concept, label_ref1, img_ref1, ..., task_instructions]
+ * This ensures Gemini knows exactly which image is the destination vs source.
  */
-function buildClothingTransferPrompt(referenceLabels: string[], extraInstructions: string): string {
-  const refCount = referenceLabels.length;
-  const labelLines = referenceLabels
-    .map((label, i) => `  Image ${i + 2} (SOURCE): ${label || 'auto-detect'}`)
-    .join('\n');
+function buildClothingTransferParts(
+  conceptImage: ImageFile,
+  references: { image: ImageFile; label: string }[],
+  extraInstructions: string
+): Part[] {
+  const parts: Part[] = [];
 
-  return `You are performing a clothing transfer task. Follow these steps precisely.
+  // 1. Concept image with clear label
+  parts.push({ text: 'DESTINATION SCENE (keep this background, arrangement and display style):' });
+  parts.push({ inlineData: { data: conceptImage.base64, mimeType: conceptImage.mimeType } });
 
-ROLE OF EACH IMAGE:
-- Image 1 is the DESTINATION SCENE — this is the main image to edit. Preserve its background, arrangement, lighting, and display style.
-- Images 2 to ${refCount + 1} are SOURCE OUTFITS — these contain the clothing items you MUST extract and use.
+  // 2. Each reference image with clear label
+  references.forEach((ref, i) => {
+    const label = ref.label || 'auto-detect clothing type';
+    parts.push({ text: `SOURCE OUTFIT ${i + 1} (extract this clothing — ${label}):` });
+    parts.push({ inlineData: { data: ref.image.base64, mimeType: ref.image.mimeType } });
+  });
 
-SOURCE outfit details:
-${labelLines}
+  // 3. Task instructions at the end
+  const taskPrompt = `TASK: Replace all clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images above.
 
-STEP-BY-STEP INSTRUCTIONS:
-1. ANALYSE DESTINATION: Look at Image 1. Identify the scene layout — how items are arranged (on hangers, laid flat, on mannequin, folded, displayed in a closet, etc.), the background, lighting, camera angle, and overall composition.
-2. ANALYSE SOURCE: Look at images 2 to ${refCount + 1}. Identify every clothing item — note the exact colors, fabric textures, patterns, folds, and proportions.
-3. REMOVE: Remove all existing clothing from Image 1 (the destination scene). Keep EVERYTHING else — background, props, accessories, lighting, camera angle — completely unchanged.
-4. INSERT: Place the source outfits into the destination scene, replacing the removed clothing. Each outfit must match the destination's display style and arrangement. Maintain realistic proportions, orientation, spacing, and natural layering order. The inserted clothing must blend seamlessly, looking as if it was genuinely part of the original scene.
+RULES:
+- The OUTPUT must use the DESTINATION SCENE's background, layout, camera angle, lighting, and arrangement style.
+- The CLOTHING in the output must come from the SOURCE OUTFIT images — preserve their exact colors, patterns, textures, and fabric details.
+- Remove existing clothing from the destination scene first, then insert the source outfits.
+- Match the display style of the destination (hangers, flat lay, mannequin, closet display, etc.).
+- Keep all non-clothing elements from the destination unchanged (props, accessories, background).${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
 
-CRITICAL: The clothing in the final result MUST come from the SOURCE images (images 2 to ${refCount + 1}), NOT from Image 1. Image 1 only provides the scene/arrangement to preserve.${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
+  parts.push({ text: taskPrompt });
+
+  return parts;
 }
 
 export function useClothingTransfer() {
@@ -96,11 +105,14 @@ export function useClothingTransfer() {
     setGeneratedImages([]);
 
     try {
-      const referenceLabels = validReferences.map(item => item.label);
-      const prompt = buildClothingTransferPrompt(referenceLabels, extraPrompt.trim());
-      const imagesForApi = [conceptImage, ...validReferences.map(item => item.image as ImageFile)];
+      const refsWithImages = validReferences.map(item => ({
+        image: item.image as ImageFile,
+        label: item.label,
+      }));
+      const interleavedParts = buildClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim());
+      const imagesForApi = [conceptImage, ...refsWithImages.map(r => r.image)];
       const results = await editImage(
-        { images: imagesForApi, prompt, numberOfImages: numImages, aspectRatio, resolution },
+        { images: imagesForApi, prompt: '', numberOfImages: numImages, aspectRatio, resolution, interleavedParts },
         imageEditModel,
         buildImageServiceConfig(setLoadingMessage)
       );
