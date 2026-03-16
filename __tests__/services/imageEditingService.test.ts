@@ -300,7 +300,12 @@ describe('upscaleImage', () => {
     const result = await upscaleImage(TEST_IMAGE, 'gemini-2.5-flash-image', DEFAULT_CONFIG);
 
     // Assert
-    expect(geminiImageService.upscaleImage).toHaveBeenCalledWith(TEST_IMAGE, '2K');
+    expect(geminiImageService.upscaleImage).toHaveBeenCalledWith(
+      TEST_IMAGE,
+      '2K',
+      expect.stringContaining('Upscale this image to 2K resolution'),
+      'gemini-2.5-flash-image',
+    );
     expect(result).toEqual(mockResult);
   });
 
