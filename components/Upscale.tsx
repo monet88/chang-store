@@ -1,133 +1,160 @@
+/**
+ * Upscale — Thin workspace coordinator.
+ *
+ * Wires the `useUpscale` hook into a two-column layout with:
+ * - Left: Mode switch, session image rail, Quick Upscale/AI Studio panels
+ * - Right: Shared sticky output panel with confirmation dialog overlay
+ *
+ * All business logic lives in the hook; child components are focused UI modules.
+ */
 
-
-import React, { useState } from 'react';
-import ImageUploader from './ImageUploader';
-import Spinner, { ErrorDisplay } from './Spinner';
-import ImageComparator from './ImageComparator';
-import { upscaleImage } from '../services/imageEditingService';
-import { Feature, ImageFile, UpscaleQuality } from '../types';
+import React, { useCallback } from 'react';
+import { useUpscale } from '../hooks/useUpscale';
+import { ImageFile, UpscaleStudioStep, DEFAULT_UPSCALE_QUICK_MODEL } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useApi } from '../contexts/ApiProviderContext';
-import { getErrorMessage } from '../utils/imageUtils';
-import ResultPlaceholder from './shared/ResultPlaceholder';
 
-const QUALITY_OPTIONS: { value: UpscaleQuality; label: string }[] = [
-  { value: '2K', label: '2K (2048px)' },
-  { value: '4K', label: '4K (4096px)' },
-];
+import UpscaleModeSwitch from './upscale/UpscaleModeSwitch';
+import UpscaleSessionImageRail from './upscale/UpscaleSessionImageRail';
+import UpscaleQuickPanel from './upscale/UpscaleQuickPanel';
+import UpscaleStudioStepShell from './upscale/UpscaleStudioStepShell';
+import UpscaleOutputPanel from './upscale/UpscaleOutputPanel';
 
 const Upscale: React.FC = () => {
-  const [uploadedImage, setUploadedImage] = useState<ImageFile | null>(null);
-  const [generatedImage, setGeneratedImage] = useState<ImageFile | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [quality, setQuality] = useState<UpscaleQuality>('2K');
-
   const { t } = useLanguage();
-  const { getModelsForFeature, antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey } = useApi();
-  const { imageEditModel } = getModelsForFeature(Feature.Upscale);
-  const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
-    onStatusUpdate,
-    antiApiBaseUrl,
-    antiApiKey,
-    localApiBaseUrl,
-    localApiKey,
-  });
+  const {
+    sessionImages,
+    activeImageId,
+    activeImage,
+    mode,
+    isLoading,
+    loadingMessage,
+    error,
+    errorSuggestion,
+    showReupscaleConfirm,
+    showResultGlow,
+    addSessionImage,
+    removeSessionImage,
+    setActiveImageId,
+    setMode,
+    setActiveQuality,
+    setActiveModel,
+    requestReupscale,
+    confirmReupscale,
+    cancelReupscale,
+    clearError,
+    setActiveStudioStep,
+  } = useUpscale();
 
-  const handleGenerate = async () => {
-    if (!uploadedImage) {
-      setError(t('upscale.inputError'));
-      return;
-    }
+  /** Convert File → ImageFile and add to session */
+  const handleFileUpload = useCallback(
+    (file: File) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const image: ImageFile = { base64, mimeType: file.type };
+        addSessionImage(image);
+      };
+      reader.readAsDataURL(file);
+    },
+    [addSessionImage],
+  );
 
-    setIsLoading(true);
-    setLoadingMessage(t('upscale.generatingStatus'));
-    setError(null);
-    setGeneratedImage(null);
-
-    try {
-    const result = await upscaleImage(
-      uploadedImage,
-      imageEditModel,
-      buildImageServiceConfig(setLoadingMessage),
-      quality
-    );
-      setGeneratedImage(result);
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
-    }
-  };
+  /** Direct ImageFile upload (from ImageUploader component) */
+  const handleImageUpload = useCallback(
+    (image: ImageFile) => {
+      addSessionImage(image);
+    },
+    [addSessionImage],
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch overflow-x-hidden pb-12">
-      <div className="flex flex-col gap-6">
+      {/* Left column — controls */}
+      <div className="flex flex-col gap-5">
+        {/* Header */}
         <div className="text-center">
           <h2 className="text-xl md:text-2xl font-bold mb-1">{t('upscale.title')}</h2>
           <p className="text-zinc-400">{t('upscale.description')}</p>
         </div>
 
-        <div className="w-full">
-          <ImageUploader
-            image={uploadedImage}
-            id="upscale-upload"
-            title={t('upscale.uploadTitle')}
-            onImageUpload={setUploadedImage}
+        {/* Mode switch */}
+        <UpscaleModeSwitch mode={mode} onSwitch={setMode} disabled={isLoading} />
+
+        {/* Session image rail — visible when ≥1 image uploaded */}
+        {sessionImages.length > 0 && (
+          <UpscaleSessionImageRail
+            images={sessionImages}
+            activeId={activeImageId}
+            onSelect={setActiveImageId}
+            onUpload={handleFileUpload}
+            onRemove={removeSessionImage}
           />
-        </div>
+        )}
 
-        <div className="w-full">
-          <label className="block text-sm font-medium text-zinc-300 mb-2">{t('upscale.qualityLabel')}</label>
-          <div className="flex gap-2">
-            {QUALITY_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setQuality(option.value)}
-                className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                  quality === option.value
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white'
-                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="text-center">
-          <button
-            onClick={handleGenerate}
-            disabled={isLoading || !uploadedImage}
-            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105"
-          >
-            {isLoading ? <Spinner /> : (generatedImage ? t('upscale.generateAgainButton') : t('upscale.generateButton'))}
-          </button>
-        </div>
+        {/* Mode-specific panel */}
+        {mode === 'quick' ? (
+          <UpscaleQuickPanel
+            activeOriginal={activeImage?.original ?? null}
+            hasResult={!!activeImage?.quickResult}
+            quality={activeImage?.quickQuality ?? '2K'}
+            model={activeImage?.quickModel ?? DEFAULT_UPSCALE_QUICK_MODEL}
+            onQualityChange={setActiveQuality}
+            onModelChange={setActiveModel}
+            onRequestUpscale={requestReupscale}
+            onImageUpload={handleImageUpload}
+            isLoading={isLoading}
+          />
+        ) : (
+          <UpscaleStudioStepShell
+            currentStep={activeImage?.studioStep ?? UpscaleStudioStep.Analyze}
+            onStepChange={setActiveStudioStep}
+            hasActiveImage={!!activeImage}
+          />
+        )}
       </div>
 
-      <div className="lg:sticky lg:top-8 h-full">
-        <div className="relative w-full h-full min-h-[50vh] bg-zinc-900/50 rounded-2xl border border-zinc-800 grid place-items-center p-2 sm:p-4">
-          {isLoading ? (
-            <div className="text-center"><Spinner /><p className="mt-4 text-zinc-400">{loadingMessage}</p></div>
-          ) : error ? (
-            <div className="p-4">
-              <ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} />
-            </div>
-          ) : generatedImage && uploadedImage ? (
-            <div className="w-full h-full flex flex-col gap-4 absolute inset-0 p-4">
-              <h3 className="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">{t('upscale.comparisonTitle')}</h3>
-              <div className="flex-grow relative">
-                <ImageComparator before={uploadedImage} after={generatedImage} />
+      {/* Right column — sticky output panel */}
+      <div className="lg:sticky lg:top-8 h-full relative">
+        <UpscaleOutputPanel
+          original={activeImage?.original ?? null}
+          result={activeImage?.quickResult ?? null}
+          quality={activeImage?.quickQuality}
+          model={activeImage?.quickModel}
+          isLoading={isLoading}
+          loadingMessage={loadingMessage}
+          error={error}
+          errorSuggestion={errorSuggestion}
+          showGlow={showResultGlow}
+          onClearError={clearError}
+        />
+
+        {/* Re-upscale confirmation dialog — overlay on output panel */}
+        {showReupscaleConfirm && (
+          <div className="absolute inset-0 z-30 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center p-6">
+            <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 max-w-sm text-center shadow-2xl">
+              <h4 className="text-lg font-semibold text-white mb-2">
+                {t('upscale.confirmReupscale.title')}
+              </h4>
+              <p className="text-sm text-zinc-400 mb-5">
+                {t('upscale.confirmReupscale.message')}
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={cancelReupscale}
+                  className="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors font-medium"
+                >
+                  {t('upscale.confirmReupscale.cancel')}
+                </button>
+                <button
+                  onClick={confirmReupscale}
+                  className="px-5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold hover:opacity-90 transition-opacity"
+                >
+                  {t('upscale.confirmReupscale.confirm')}
+                </button>
               </div>
             </div>
-          ) : (
-            <ResultPlaceholder description={t('upscale.outputPanelDescription')} />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
