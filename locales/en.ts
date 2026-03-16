@@ -623,6 +623,28 @@ export const en = {
     reanalyzeConfirmMessage: 'This will replace the current analysis report and prompt. Continue?',
     reanalyzeConfirmYes: 'Re-analyze',
     reanalyzeConfirmNo: 'Cancel',
+    // AI Studio — Enhance step
+    enhanceButton: 'Upscale with AI Prompt',
+    enhancingStatus: 'Upscaling with AI-generated prompt...',
+    enhanceError: 'Studio upscale failed. Please try again.',
+    enhanceNoPrompt: 'Run analysis first to generate a prompt.',
+    enhanceComplete: 'Upscale complete!',
+    // Preview simulation
+    previewTitle: 'Simulated Preview',
+    previewDisclaimer: 'This preview describes likely improvements — not guaranteed results.',
+    previewAdvisory: 'Advisory: Actual results depend on model capability and image complexity.',
+    // Guidance
+    guidanceTitle: 'Gemini Execution Guide',
+    guidanceStep1: 'Review the analysis report above',
+    guidanceStep2: 'Check preservation risk areas',
+    guidanceStep3: 'Trigger upscale with the AI-generated prompt',
+    guidanceStep4: 'Compare result with original in the output panel',
+    guidanceNextAnalyze: 'Analyze your image first to generate a prompt.',
+    guidanceNextUpscale: 'Ready! Trigger upscale to enhance your image.',
+    guidanceNextDone: 'Upscale complete — review the result in the output panel.',
+    // Reliability
+    studioUnsupportedProvider: 'AI Studio requires Google Gemini. Switch your provider in Settings.',
+    studioNoApiKey: 'Configure your Gemini API key in Settings to use AI Studio.',
   },
   imageComparator: {
     before: 'Before',

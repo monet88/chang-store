@@ -238,6 +238,9 @@ export interface UpscaleAnalysisReport {
   preservationRisks: PreservationRiskItem[];
 }
 
+/** Provider support status for AI Studio (Gemini-only) */
+export type StudioSupportStatus = 'supported' | 'unsupported_provider' | 'no_api_key';
+
 /** Per-image session state stored in the session array */
 export interface UpscaleSessionImage {
   /** Stable identifier (crypto.randomUUID) */
@@ -258,4 +261,8 @@ export interface UpscaleSessionImage {
   analysisReport?: UpscaleAnalysisReport | null;
   /** Generated master prompt from analysis (null until composed) */
   studioPrompt?: string | null;
+  /** Studio upscale result — after Enhance step (null until upscaled) */
+  studioResult?: ImageFile | null;
+  /** Simulated preview text describing expected improvements */
+  studioPreview?: string | null;
 }

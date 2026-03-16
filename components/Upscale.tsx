@@ -34,6 +34,9 @@ const Upscale: React.FC = () => {
     showResultGlow,
     isAnalyzing,
     analysisError,
+    isStudioUpscaling,
+    studioUpscaleError,
+    studioSupportStatus,
     addSessionImage,
     removeSessionImage,
     setActiveImageId,
@@ -47,6 +50,8 @@ const Upscale: React.FC = () => {
     setActiveStudioStep,
     handleAnalyzeImage,
     clearAnalysisError,
+    handleStudioUpscale,
+    clearStudioUpscaleError,
   } = useUpscale();
 
   /** Convert File → ImageFile and add to session */
@@ -119,6 +124,13 @@ const Upscale: React.FC = () => {
             studioPrompt={activeImage?.studioPrompt ?? null}
             onAnalyze={handleAnalyzeImage}
             onClearAnalysisError={clearAnalysisError}
+            isStudioUpscaling={isStudioUpscaling}
+            studioUpscaleError={studioUpscaleError}
+            studioSupportStatus={studioSupportStatus}
+            studioPreview={activeImage?.studioPreview ?? null}
+            studioResult={activeImage?.studioResult ?? null}
+            onStudioUpscale={handleStudioUpscale}
+            onClearStudioUpscaleError={clearStudioUpscaleError}
           />
         )}
       </div>

@@ -625,6 +625,28 @@ export const vi: Translation = {
     reanalyzeConfirmMessage: 'Thao tác này sẽ thay thế báo cáo phân tích và prompt hiện tại. Tiếp tục?',
     reanalyzeConfirmYes: 'Phân tích lại',
     reanalyzeConfirmNo: 'Hủy',
+    // AI Studio — Bước Nâng cấp
+    enhanceButton: 'Nâng cấp với AI Prompt',
+    enhancingStatus: 'Đang nâng cấp với prompt AI...',
+    enhanceError: 'Nâng cấp Studio thất bại. Vui lòng thử lại.',
+    enhanceNoPrompt: 'Chạy phân tích trước để tạo prompt.',
+    enhanceComplete: 'Nâng cấp hoàn tất!',
+    // Xem trước mô phỏng
+    previewTitle: 'Xem trước Mô phỏng',
+    previewDisclaimer: 'Phần xem trước này mô tả cải thiện có thể — không đảm bảo kết quả.',
+    previewAdvisory: 'Lưu ý: Kết quả thực tế phụ thuộc vào khả năng mô hình và độ phức tạp ảnh.',
+    // Hướng dẫn
+    guidanceTitle: 'Hướng dẫn Thực thi Gemini',
+    guidanceStep1: 'Xem báo cáo phân tích ở trên',
+    guidanceStep2: 'Kiểm tra các vùng rủi ro bảo quản',
+    guidanceStep3: 'Kích hoạt nâng cấp với prompt AI',
+    guidanceStep4: 'So sánh kết quả với ảnh gốc trong bảng đầu ra',
+    guidanceNextAnalyze: 'Phân tích ảnh trước để tạo prompt.',
+    guidanceNextUpscale: 'Sẵn sàng! Kích hoạt nâng cấp để cải thiện ảnh.',
+    guidanceNextDone: 'Nâng cấp hoàn tất — xem kết quả trong bảng đầu ra.',
+    // Độ tin cậy
+    studioUnsupportedProvider: 'AI Studio yêu cầu Google Gemini. Chuyển nhà cung cấp trong Cài đặt.',
+    studioNoApiKey: 'Cấu hình API key Gemini trong Cài đặt để sử dụng AI Studio.',
   },
   imageComparator: {
     before: 'Trước',

@@ -26,10 +26,16 @@ import {
   UpscaleSessionImage,
   UpscaleStudioStep,
   UpscaleAnalysisReport,
+  StudioSupportStatus,
   DEFAULT_UPSCALE_QUICK_MODEL,
 } from '../types';
 import { upscaleImage } from '../services/imageEditingService';
-import { analyzeImage, generateUpscalePrompt } from '../services/upscaleAnalysisService';
+import {
+  analyzeImage,
+  generateUpscalePrompt,
+  generatePreviewSimulation,
+  checkStudioSupport,
+} from '../services/upscaleAnalysisService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -82,6 +88,14 @@ export interface UseUpscaleReturn {
   /** Analysis-specific error (null = no error) */
   analysisError: string | null;
 
+  // ---- AI Studio Enhance state ----
+  /** Whether an inline studio upscale is running */
+  isStudioUpscaling: boolean;
+  /** Enhance-step error */
+  studioUpscaleError: string | null;
+  /** Studio support status for current config */
+  studioSupportStatus: StudioSupportStatus;
+
   // ---- Actions ----
   /** Add a new image to the session (auto-activates it) */
   addSessionImage: (image: ImageFile) => void;
@@ -111,6 +125,10 @@ export interface UseUpscaleReturn {
   handleAnalyzeImage: () => Promise<void>;
   /** Clear analysis error */
   clearAnalysisError: () => void;
+  /** Run inline upscale using the studio prompt */
+  handleStudioUpscale: () => Promise<void>;
+  /** Clear studio upscale error */
+  clearStudioUpscaleError: () => void;
 }
 
 // ============================================================================
@@ -137,6 +155,13 @@ export function useUpscale(): UseUpscaleReturn {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const glowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ---- Studio Enhance state ----
+  const [isStudioUpscaling, setIsStudioUpscaling] = useState(false);
+  const [studioUpscaleError, setStudioUpscaleError] = useState<string | null>(null);
+
+  /** Derived: check if Gemini API key is configured */
+  const studioSupportStatus: StudioSupportStatus = checkStudioSupport();
 
   // ---- Derived state ----
   const activeImage = sessionImages.find((img) => img.id === activeImageId) ?? null;
@@ -312,10 +337,13 @@ export function useUpscale(): UseUpscaleReturn {
     try {
       const report: UpscaleAnalysisReport = await analyzeImage(activeImage.original);
       const prompt = generateUpscalePrompt(report);
+      const preview = generatePreviewSimulation(report);
 
       updateSessionImage(activeImage.id, {
         analysisReport: report,
         studioPrompt: prompt,
+        studioPreview: preview,
+        studioStep: UpscaleStudioStep.Enhance,
       });
     } catch (err) {
       console.error('[useUpscale] Analysis failed:', err);
@@ -324,6 +352,54 @@ export function useUpscale(): UseUpscaleReturn {
       setIsAnalyzing(false);
     }
   }, [activeImage, updateSessionImage, t]);
+
+  // ---- AI Studio Enhance action ----
+
+  const handleStudioUpscale = useCallback(async () => {
+    if (!activeImage) {
+      setStudioUpscaleError(t('upscale.analyzeNoImage'));
+      return;
+    }
+
+    if (!activeImage.studioPrompt) {
+      setStudioUpscaleError(t('upscale.enhanceNoPrompt'));
+      return;
+    }
+
+    if (studioSupportStatus !== 'supported') {
+      setStudioUpscaleError(t('upscale.studioNoApiKey'));
+      return;
+    }
+
+    setIsStudioUpscaling(true);
+    setStudioUpscaleError(null);
+
+    try {
+      const result = await upscaleImage(
+        activeImage.original,
+        imageEditModel,
+        buildServiceConfig(setLoadingMessage),
+        activeImage.quickQuality,
+        activeImage.quickModel,
+        activeImage.studioPrompt,
+      );
+      updateSessionImage(activeImage.id, { studioResult: result });
+
+      // Trigger glow animation for studio result
+      setShowResultGlow(true);
+      if (glowTimerRef.current) clearTimeout(glowTimerRef.current);
+      glowTimerRef.current = setTimeout(() => setShowResultGlow(false), 2000);
+    } catch (err) {
+      console.error('[useUpscale] Studio upscale failed:', err);
+      setStudioUpscaleError(getErrorMessage(err, t));
+    } finally {
+      setIsStudioUpscaling(false);
+    }
+  }, [activeImage, studioSupportStatus, imageEditModel, buildServiceConfig, updateSessionImage, t]);
+
+  const clearStudioUpscaleError = useCallback(() => {
+    setStudioUpscaleError(null);
+  }, []);
 
   // ---- Public API ----
 
@@ -340,6 +416,9 @@ export function useUpscale(): UseUpscaleReturn {
     showResultGlow,
     isAnalyzing,
     analysisError,
+    isStudioUpscaling,
+    studioUpscaleError,
+    studioSupportStatus,
 
     addSessionImage,
     removeSessionImage,
@@ -355,5 +434,7 @@ export function useUpscale(): UseUpscaleReturn {
     setActiveStudioStep,
     handleAnalyzeImage,
     clearAnalysisError,
+    handleStudioUpscale,
+    clearStudioUpscaleError,
   };
 }

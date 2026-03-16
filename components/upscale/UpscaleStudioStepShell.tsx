@@ -1,19 +1,18 @@
 /**
  * UpscaleStudioStepShell — Visible AI Studio step header with routed content.
  *
- * Phase 3 evolution: Shows the three guided steps (Analyze → Enhance → Export)
- * with the current step highlighted and future steps visually disabled.
- * Routes to the UpscaleAnalyzeStep when on the Analyze step;
- * Enhance/Export show "coming soon" placeholders.
+ * Phase 4 evolution: Routes to UpscaleAnalyzeStep (Analyze) and
+ * UpscaleEnhanceStep (Enhance). Export remains a "coming soon" placeholder.
  *
  * Does not own step state — receives current step and navigation callback from parent.
  */
 
 import React from 'react';
 import { UpscaleStudioStep } from '../../types';
-import type { UpscaleAnalysisReport } from '../../types';
+import type { ImageFile, UpscaleAnalysisReport, StudioSupportStatus } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import UpscaleAnalyzeStep from './UpscaleAnalyzeStep';
+import UpscaleEnhanceStep from './UpscaleEnhanceStep';
 
 interface UpscaleStudioStepShellProps {
   currentStep: UpscaleStudioStep;
@@ -26,6 +25,14 @@ interface UpscaleStudioStepShellProps {
   studioPrompt?: string | null;
   onAnalyze?: () => void;
   onClearAnalysisError?: () => void;
+  // ---- Phase 4 Enhance props ----
+  isStudioUpscaling?: boolean;
+  studioUpscaleError?: string | null;
+  studioSupportStatus?: StudioSupportStatus;
+  studioPreview?: string | null;
+  studioResult?: ImageFile | null;
+  onStudioUpscale?: () => void;
+  onClearStudioUpscaleError?: () => void;
 }
 
 /** Ordered step definitions */
@@ -48,6 +55,13 @@ const UpscaleStudioStepShell: React.FC<UpscaleStudioStepShellProps> = ({
   studioPrompt,
   onAnalyze,
   onClearAnalysisError,
+  isStudioUpscaling = false,
+  studioUpscaleError = null,
+  studioSupportStatus = 'supported',
+  studioPreview,
+  studioResult,
+  onStudioUpscale,
+  onClearStudioUpscaleError,
 }) => {
   const { t } = useLanguage();
   const currentIdx = stepIndex(currentStep);
@@ -79,6 +93,21 @@ const UpscaleStudioStepShell: React.FC<UpscaleStudioStepShellProps> = ({
         );
 
       case UpscaleStudioStep.Enhance:
+        return (
+          <UpscaleEnhanceStep
+            hasActiveImage={hasActiveImage}
+            hasAnalysisReport={!!analysisReport}
+            studioPrompt={studioPrompt ?? null}
+            studioPreview={studioPreview ?? null}
+            studioResult={studioResult ?? null}
+            studioSupportStatus={studioSupportStatus}
+            isStudioUpscaling={isStudioUpscaling}
+            studioUpscaleError={studioUpscaleError}
+            onUpscale={onStudioUpscale ?? (() => {})}
+            onClearError={onClearStudioUpscaleError ?? (() => {})}
+          />
+        );
+
       case UpscaleStudioStep.Export:
       default:
         return (

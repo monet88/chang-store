@@ -10,7 +10,7 @@
  */
 
 import { Part, Type } from '@google/genai';
-import { getGeminiClient } from './apiClient';
+import { getGeminiClient, getActiveApiKey } from './apiClient';
 import type {
   ImageFile,
   UpscaleAnalysisReport,
@@ -21,6 +21,7 @@ import type {
   AnalysisFraming,
   AnalysisPose,
   PreservationRiskItem,
+  StudioSupportStatus,
 } from '../types';
 
 // ============================================================================
@@ -302,6 +303,59 @@ export function generateUpscalePrompt(report: UpscaleAnalysisReport): string {
 }
 
 // ============================================================================
+// generatePreviewSimulation — pure function, no API call
+// ============================================================================
+
+/**
+ * Builds a simulated preview description of expected upscale improvements.
+ * The output is advisory text — NOT a guaranteed result.
+ *
+ * @param report The analysis report from `analyzeImage`
+ * @returns Multi-line advisory text describing likely upscale improvements
+ */
+export function generatePreviewSimulation(report: UpscaleAnalysisReport): string {
+  const lines: string[] = [];
+  lines.push('⚠️ SIMULATED PREVIEW — This describes LIKELY improvements, not guaranteed results.\n');
+
+  // Garment sharpness
+  if (report.garments.length > 0) {
+    const names = report.garments.map((g) => g.name).join(', ');
+    lines.push(
+      `🔍 Sharpness: Fine construction details on ${names} should become crisper with defined edges and stitching.`,
+    );
+  }
+
+  // Material texture
+  if (report.materials.length > 0) {
+    const fabrics = report.materials.map((m) => `${m.garment} (${m.fabric})`).join(', ');
+    lines.push(
+      `🧵 Texture: Fabric weave patterns on ${fabrics} should show increased definition and tactile quality.`,
+    );
+  }
+
+  // Lighting
+  lines.push(
+    `💡 Lighting: ${report.lighting.quality} ${report.lighting.direction} lighting should maintain exact color temperature (${report.lighting.colorTemperature}) with enhanced shadow gradation.`,
+  );
+
+  // Preservation risks — advisory
+  if (report.preservationRisks.length > 0) {
+    const highRisks = report.preservationRisks.filter((r) => r.riskLevel === 'high');
+    if (highRisks.length > 0) {
+      const areas = highRisks.map((r) => r.area).join(', ');
+      lines.push(
+        `⚠️ Watch areas: ${areas} — these contain fine details that may be challenging to preserve perfectly.`,
+      );
+    }
+  }
+
+  lines.push(
+    '\nThis preview is advisory. Actual upscale results depend on model capability and image complexity.',
+  );
+  return lines.join('\n');
+}
+
+// ============================================================================
 // Helpers
 // ============================================================================
 
@@ -311,4 +365,23 @@ function normalizeRiskLevel(level: string): 'high' | 'medium' | 'low' {
   if (normalized === 'high') return 'high';
   if (normalized === 'medium') return 'medium';
   return 'low';
+}
+
+// ============================================================================
+// checkStudioSupport — provider/key validation
+// ============================================================================
+
+/**
+ * Checks if AI Studio is supported with the current configuration.
+ * AI Studio requires an active Gemini API key.
+ *
+ * @returns `StudioSupportStatus` — 'supported', 'no_api_key', or 'unsupported_provider'
+ */
+export function checkStudioSupport(): StudioSupportStatus {
+  try {
+    getActiveApiKey();
+    return 'supported';
+  } catch {
+    return 'no_api_key';
+  }
 }

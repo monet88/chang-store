@@ -208,12 +208,13 @@ export const upscaleImage = async (
     model: ImageEditModel,
     config: ApiConfig,
     quality: UpscaleQuality = '2K',
-    quickModel?: string
+    quickModel?: string,
+    promptOverride?: string
 ): Promise<ImageFile> => {
     const resolvedModel = quickModel ?? model;
     const startTime = Date.now();
     const provider = isLocalModel(resolvedModel) ? 'Local' : isAntiModel(resolvedModel) ? 'Anti' : 'Gemini';
-    const prompt = UPSCALE_PROMPTS[quality];
+    const prompt = promptOverride ?? UPSCALE_PROMPTS[quality];
 
     try {
         let result: ImageFile;
