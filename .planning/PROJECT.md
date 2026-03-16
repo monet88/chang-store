@@ -10,7 +10,7 @@ Users can turn fashion reference images into production-ready visual assets quic
 
 ## Current Milestone: v1.0 Improve Upscale Feature
 
-**Goal:** Turn Upscale into a self-contained hybrid workflow that keeps direct in-app upscaling while adding a step-based Gemini-only AI Studio pipeline inside the same feature.
+**Goal:** Turn Upscale into a self-contained hybrid workflow that keeps direct in-app upscaling while adding a step-based Gemini-only AI Studio pipeline that can generate per-image prompts and trigger upscale immediately inside the same feature.
 
 **Target features:**
 - Structured image analysis for one or more uploaded fashion lookbook photos
@@ -19,7 +19,8 @@ Users can turn fashion reference images into production-ready visual assets quic
 - Actionable execution guidance for Gemini only
 - Entire pipeline contained inside the Upscale feature without depending on other feature screens
 - Support for handling multiple uploaded images inside the same Upscale session
-- A preservation-first `Quick Upscale` lane using a fixed high-detail fashion prompt
+- A preservation-first `Quick Upscale` lane with 2K and 4K quality options
+- A per-image AI Studio prompt output with an inline Upscale action for that image
 
 ## Requirements
 
@@ -39,7 +40,8 @@ Users can turn fashion reference images into production-ready visual assets quic
 - [ ] User can read a simulated high-resolution outcome description before choosing the next action
 - [ ] User can see Gemini-specific follow-up instructions without depending on third-party tools
 - [ ] User can complete the full guided pipeline inside Upscale without switching to another feature
-- [ ] User can run `Quick Upscale` with a fixed preservation-first prompt that emphasizes 4K output, fabric texture, color accuracy, face preservation, and unchanged composition
+- [ ] User can run `Quick Upscale` with a preservation-first prompt pattern that adapts to 2K or 4K output
+- [ ] User can trigger Upscale immediately after AI Studio generates the prompt for a selected image
 
 ### Out of Scope
 
@@ -70,9 +72,16 @@ Users can turn fashion reference images into production-ready visual assets quic
 | Use a hybrid Upscale experience instead of replacing the current flow | Preserve current quick upscale utility while adding higher-value AI Studio guidance | — Pending |
 | Treat this as milestone v1.0 in GSD planning | Repo had no prior GSD milestone history, so first tracked milestone should start cleanly | ✓ Good |
 | Keep the milestone Gemini-only | User explicitly narrowed the feature after research review, so roadmap and requirements should ignore third-party tool paths | ✓ Good |
-| Lock `Quick Upscale` to a preservation-first fashion prompt | User provided the intended prompt, so planning should treat Quick Upscale as a fixed high-fidelity lane instead of an open-ended generation path | ✓ Good |
+| Use a preservation-first Quick Upscale prompt template with 2K and 4K options | User first provided the prompt style, then clarified that 2K must be added back, so Quick Upscale should keep quality selection while preserving the same prompt intent | ✓ Good |
+| AI Studio should allow inline upscale right after prompt generation | User wants prompt generation to lead directly into execution for each image inside the same feature | ✓ Good |
 
-### Quick Upscale Prompt
+### Quick Upscale Prompt Pattern
+
+```text
+Upscale this image to {target_resolution} resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the model's face and the overall composition exactly the same. Photorealistic, fashion photography quality, {output_quality}.
+```
+
+**4K variant provided by user:**
 
 ```text
 Upscale this image to 4K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the model's face and the overall composition exactly the same. Photorealistic, fashion photography quality, 8K quality.

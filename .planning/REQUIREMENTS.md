@@ -8,11 +8,12 @@
 ### Workflow
 
 - [ ] **UPS-01**: User can upload multiple fashion lookbook images and keep them available inside the Upscale feature during one session
-- [ ] **UPS-02**: User can keep using a direct in-app `Quick Upscale` flow with before/after comparison
+- [ ] **UPS-02**: User can keep using a direct in-app `Quick Upscale` flow with 2K or 4K selection and before/after comparison
 - [ ] **UPS-03**: User can move through the `AI Studio` steps inside the Upscale feature without leaving the screen or switching to another feature
 - [ ] **UPS-04**: User can run `AI Studio` without losing access to the `Quick Upscale` lane in the same feature screen
 - [ ] **UPS-05**: User can select any uploaded image in the current Upscale session as the active image for `Quick Upscale` or `AI Studio`
-- [ ] **UPS-06**: User can run `Quick Upscale` with the fixed preservation-first prompt defined for this milestone
+- [ ] **UPS-06**: User can run `Quick Upscale` with the locked preservation-first prompt pattern adapted to the selected 2K or 4K target
+- [ ] **UPS-07**: User can trigger Upscale immediately after `AI Studio` generates the prompt for the active image
 
 ### Analysis
 
@@ -21,9 +22,9 @@
 
 ### Prompt Package
 
-- [ ] **PRM-01**: User can receive one copy-ready English master prompt generated from the uploaded image and analysis for the Gemini workflow available in the app
+- [ ] **PRM-01**: User can receive one copy-ready English master prompt generated from the active image and analysis for the Gemini workflow available in the app
 - [ ] **PRM-02**: User can receive Gemini-oriented prompt guidance that prioritizes faithful upscale and detail preservation rather than creative restyling
-- [ ] **PRM-03**: The `Quick Upscale` lane uses a fixed prompt that targets 4K output, sharper fabric texture, color accuracy, unchanged face, and unchanged composition
+- [ ] **PRM-03**: Each uploaded image can keep its own AI Studio-generated upscale prompt, and the inline Upscale action uses the matching prompt for that image
 
 ### Preview
 
@@ -60,27 +61,28 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| UPS-01 | TBD | Pending |
-| UPS-02 | TBD | Pending |
-| UPS-03 | TBD | Pending |
-| UPS-04 | TBD | Pending |
-| UPS-05 | TBD | Pending |
-| UPS-06 | TBD | Pending |
-| ANL-01 | TBD | Pending |
-| ANL-02 | TBD | Pending |
-| PRM-01 | TBD | Pending |
-| PRM-02 | TBD | Pending |
-| PRM-03 | TBD | Pending |
-| PRV-01 | TBD | Pending |
-| PRV-02 | TBD | Pending |
-| GDE-01 | TBD | Pending |
-| GDE-02 | TBD | Pending |
-| REL-01 | TBD | Pending |
+| UPS-01 | Phase 1 | Pending |
+| UPS-02 | Phase 2 | Pending |
+| UPS-03 | Phase 1 | Pending |
+| UPS-04 | Phase 1 | Pending |
+| UPS-05 | Phase 1 | Pending |
+| UPS-06 | Phase 2 | Pending |
+| UPS-07 | Phase 4 | Pending |
+| ANL-01 | Phase 3 | Pending |
+| ANL-02 | Phase 3 | Pending |
+| PRM-01 | Phase 3 | Pending |
+| PRM-02 | Phase 3 | Pending |
+| PRM-03 | Phase 3 | Pending |
+| PRV-01 | Phase 4 | Pending |
+| PRV-02 | Phase 4 | Pending |
+| GDE-01 | Phase 4 | Pending |
+| GDE-02 | Phase 4 | Pending |
+| REL-01 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 16 total
-- Mapped to phases: 0
-- Unmapped: 16 ⚠️
+- v1 requirements: 17 total
+- Mapped to phases: 17
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-16*  

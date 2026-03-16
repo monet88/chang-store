@@ -39,6 +39,8 @@
 - User clarified after research review that this milestone should be **Gemini-only**
 - User clarified the whole guided workflow should stay **fully inside Upscale Feature**
 - User clarified the feature should support **multiple uploaded images** in the same Upscale session
+- User clarified `Quick Upscale` must support **both 2K and 4K**
+- User clarified `AI Studio` should expose an inline **Upscale** action right after prompt generation for each image
 - Ignore third-party execution cards and automation playbooks in the roadmap
 - Keep research findings that still apply to hybrid IA, trust, and architecture
 
@@ -46,10 +48,12 @@
 
 1. Preserve quick direct upscale and compare flow
 2. Add multiple-image handling inside Upscale
-3. Add a structured AI Studio report
-4. Add a polished English prompt package for Gemini
-5. Add Gemini-specific guidance and warnings
-6. Keep the milestone free of third-party tool integration
+3. Add 2K and 4K support to Quick Upscale
+4. Add a structured AI Studio report
+5. Add a polished per-image English prompt package for Gemini
+6. Add inline Upscale execution from the AI Studio prompt step
+7. Add Gemini-specific guidance and warnings
+8. Keep the milestone free of third-party tool integration
 
 ## Recommended Default Decisions
 
@@ -57,7 +61,8 @@
 - Studio report should be Gemini-only in v1, with clear unsupported-provider messaging
 - The entire step-based pipeline should live inside the Upscale screen, not other features
 - Multiple uploaded images should be supported in the same Upscale session
-- Quick Upscale should use a fixed preservation-first prompt provided by the user
+- Quick Upscale should keep 2K and 4K while reusing the same preservation-first prompt intent
+- AI Studio prompt generation should lead directly to an inline Upscale action for the active image
 - Simulated preview stays textual
 - Base prompt targets faithful upscale and preservation first, not creative restyling
 - Guided output should focus on Gemini workflow only
