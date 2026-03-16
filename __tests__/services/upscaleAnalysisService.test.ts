@@ -4,6 +4,8 @@
  * Tests:
  * 1. generateUpscalePrompt — pure function, no mocks needed
  * 2. analyzeImage — Gemini API call with structured output
+ * 3. generatePreviewSimulation — advisory preview text generation
+ * 4. checkStudioSupport — API key availability check
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -14,16 +16,23 @@ import type { UpscaleAnalysisReport, ImageFile } from '../../types';
 // ============================================================================
 
 const mockGenerateContent = vi.fn();
+const mockGetActiveApiKey = vi.fn();
 vi.mock('../../services/apiClient', () => ({
   getGeminiClient: vi.fn(() => ({
     models: {
       generateContent: mockGenerateContent,
     },
   })),
+  getActiveApiKey: (...args: unknown[]) => mockGetActiveApiKey(...args),
 }));
 
 // Import after mocking
-import { analyzeImage, generateUpscalePrompt } from '../../services/upscaleAnalysisService';
+import {
+  analyzeImage,
+  generateUpscalePrompt,
+  generatePreviewSimulation,
+  checkStudioSupport,
+} from '../../services/upscaleAnalysisService';
 
 // ============================================================================
 // Test Fixtures
@@ -231,5 +240,83 @@ describe('analyzeImage', () => {
 
     const callArgs = mockGenerateContent.mock.calls[0][0];
     expect(callArgs.model).toBe('gemini-2.5-pro');
+  });
+});
+
+// ============================================================================
+// generatePreviewSimulation tests
+// ============================================================================
+
+describe('generatePreviewSimulation', () => {
+  it('should produce simulated preview text', () => {
+    const preview = generatePreviewSimulation(FULL_REPORT);
+    expect(preview).toBeTruthy();
+    expect(typeof preview).toBe('string');
+  });
+
+  it('should include disclaimer header', () => {
+    const preview = generatePreviewSimulation(FULL_REPORT);
+    expect(preview).toContain('SIMULATED PREVIEW');
+  });
+
+  it('should include sharpness for garments', () => {
+    const preview = generatePreviewSimulation(FULL_REPORT);
+    expect(preview).toContain('Sharpness');
+    expect(preview).toContain('Silk Blouse');
+  });
+
+  it('should include texture for materials', () => {
+    const preview = generatePreviewSimulation(FULL_REPORT);
+    expect(preview).toContain('Texture');
+    expect(preview).toContain('silk charmeuse');
+  });
+
+  it('should include lighting description', () => {
+    const preview = generatePreviewSimulation(FULL_REPORT);
+    expect(preview).toContain('Lighting');
+    expect(preview).toContain('warm golden hour');
+  });
+
+  it('should flag high preservation risks', () => {
+    const preview = generatePreviewSimulation(FULL_REPORT);
+    expect(preview).toContain('Watch areas');
+    expect(preview).toContain('silk charmeuse drape');
+  });
+
+  it('should omit sharpness when no garments', () => {
+    const noGarments = { ...FULL_REPORT, garments: [] };
+    const preview = generatePreviewSimulation(noGarments);
+    expect(preview).not.toContain('Sharpness');
+  });
+
+  it('should omit watch areas when no high risks', () => {
+    const noHighRisks = {
+      ...FULL_REPORT,
+      preservationRisks: [{ area: 'test', riskLevel: 'low' as const, detail: 'minor' }],
+    };
+    const preview = generatePreviewSimulation(noHighRisks);
+    expect(preview).not.toContain('Watch areas');
+  });
+});
+
+// ============================================================================
+// checkStudioSupport tests
+// ============================================================================
+
+describe('checkStudioSupport', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should return "supported" when API key exists', () => {
+    mockGetActiveApiKey.mockReturnValueOnce('test-key');
+    expect(checkStudioSupport()).toBe('supported');
+  });
+
+  it('should return "no_api_key" when getActiveApiKey throws', () => {
+    mockGetActiveApiKey.mockImplementationOnce(() => {
+      throw new Error('API_KEY is not configured');
+    });
+    expect(checkStudioSupport()).toBe('no_api_key');
   });
 });

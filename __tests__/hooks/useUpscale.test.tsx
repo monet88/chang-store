@@ -1,7 +1,7 @@
 /**
  * Unit Tests for useUpscale Hook
  *
- * Regression coverage for the Phase 1 + Phase 2 multi-image session contract:
+ * Regression coverage for the Phase 1 + Phase 2 + Phase 3 + Phase 4 multi-image session contract:
  * 1. Session management — adding, removing, switching images
  * 2. Active-image rule — newest upload becomes active
  * 3. Per-image state isolation — quality, model, and studio step survive image switching
@@ -9,6 +9,8 @@
  * 5. Quick Upscale action — loading, error, result lifecycle
  * 6. AI Studio step navigation — step ordering and lock rules
  * 7. Phase 2: Model selection, confirmation flow, glow trigger, error suggestions
+ * 8. Phase 3: AI Studio analysis — report, prompt, error handling
+ * 9. Phase 4: Studio upscale, preview simulation, support status, error handling
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -33,6 +35,8 @@ vi.mock('../../services/imageEditingService', () => ({
 vi.mock('../../services/upscaleAnalysisService', () => ({
   analyzeImage: vi.fn(),
   generateUpscalePrompt: vi.fn(),
+  generatePreviewSimulation: vi.fn(),
+  checkStudioSupport: vi.fn(),
 }));
 
 /** Mock getErrorMessage from imageUtils */
@@ -48,7 +52,12 @@ vi.mock('../../contexts/ApiProviderContext', () => mockUseApi());
 // Import hook and mocked services after mocking
 import { useUpscale } from '../../hooks/useUpscale';
 import { upscaleImage } from '../../services/imageEditingService';
-import { analyzeImage, generateUpscalePrompt } from '../../services/upscaleAnalysisService';
+import {
+  analyzeImage,
+  generateUpscalePrompt,
+  generatePreviewSimulation,
+  checkStudioSupport,
+} from '../../services/upscaleAnalysisService';
 
 // ============================================================================
 // Test Constants
@@ -69,6 +78,8 @@ const MOCK_ANALYSIS_REPORT = {
   preservationRisks: [{ area: 'silk texture', riskLevel: 'high' as const, detail: 'Fine weave pattern' }],
 };
 const MOCK_PROMPT = 'Generated upscale prompt text';
+const MOCK_PREVIEW = 'Simulated preview text for upscale';
+const STUDIO_UPSCALED: ImageFile = { base64: 'c3R1ZGlvLXVwc2NhbGVk', mimeType: 'image/png' };
 
 // ============================================================================
 // Test Suite
@@ -80,6 +91,9 @@ describe('useUpscale', () => {
     // Mock crypto.randomUUID for stable IDs in tests
     let counter = 0;
     vi.spyOn(crypto, 'randomUUID').mockImplementation(() => `test-uuid-${++counter}` as `${string}-${string}-${string}-${string}-${string}`);
+    // Default: studio supported
+    vi.mocked(checkStudioSupport).mockReturnValue('supported');
+    vi.mocked(generatePreviewSimulation).mockReturnValue(MOCK_PREVIEW);
   });
 
   afterEach(() => {
@@ -839,6 +853,214 @@ describe('useUpscale', () => {
       // A should still have its report
       expect(result.current.activeImage?.analysisReport).toEqual(MOCK_ANALYSIS_REPORT);
       expect(result.current.activeImage?.studioPrompt).toBe(MOCK_PROMPT);
+    });
+  });
+
+  // ============================================================================
+  // Phase 4: Studio Upscale & Enhance Step
+  // ============================================================================
+
+  describe('Phase 4: Studio Upscale & Enhance', () => {
+    it('should expose studioSupportStatus from checkStudioSupport', () => {
+      vi.mocked(checkStudioSupport).mockReturnValue('no_api_key');
+      const { result } = renderHook(() => useUpscale());
+      expect(result.current.studioSupportStatus).toBe('no_api_key');
+    });
+
+    it('should start with isStudioUpscaling=false and studioUpscaleError=null', () => {
+      const { result } = renderHook(() => useUpscale());
+      expect(result.current.isStudioUpscaling).toBe(false);
+      expect(result.current.studioUpscaleError).toBeNull();
+    });
+
+    it('handleStudioUpscale should error when no active image', async () => {
+      const { result } = renderHook(() => useUpscale());
+
+      await act(async () => {
+        await result.current.handleStudioUpscale();
+      });
+
+      expect(result.current.studioUpscaleError).toBeTruthy();
+    });
+
+    it('handleStudioUpscale should error when no studio prompt', async () => {
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A);
+      });
+
+      // Image has no studioPrompt
+      await act(async () => {
+        await result.current.handleStudioUpscale();
+      });
+
+      expect(result.current.studioUpscaleError).toBeTruthy();
+    });
+
+    it('handleStudioUpscale should error when studio not supported', async () => {
+      vi.mocked(checkStudioSupport).mockReturnValue('no_api_key');
+      vi.mocked(analyzeImage).mockResolvedValueOnce(MOCK_ANALYSIS_REPORT);
+      vi.mocked(generateUpscalePrompt).mockReturnValueOnce(MOCK_PROMPT);
+
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A);
+      });
+
+      // First, analyze to set prompt
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      await act(async () => {
+        await result.current.handleStudioUpscale();
+      });
+
+      expect(result.current.studioUpscaleError).toBeTruthy();
+    });
+
+    it('handleStudioUpscale should call upscaleImage and store result on success', async () => {
+      vi.mocked(analyzeImage).mockResolvedValueOnce(MOCK_ANALYSIS_REPORT);
+      vi.mocked(generateUpscalePrompt).mockReturnValueOnce(MOCK_PROMPT);
+      vi.mocked(upscaleImage).mockResolvedValueOnce(STUDIO_UPSCALED);
+
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A);
+      });
+
+      // Analyze first → sets prompt + preview + auto-advances to Enhance
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      expect(result.current.activeImage?.studioStep).toBe(UpscaleStudioStep.Enhance);
+      expect(result.current.activeImage?.studioPreview).toBe(MOCK_PREVIEW);
+
+      // Now upscale
+      await act(async () => {
+        await result.current.handleStudioUpscale();
+      });
+
+      expect(result.current.isStudioUpscaling).toBe(false);
+      expect(result.current.studioUpscaleError).toBeNull();
+      expect(result.current.activeImage?.studioResult).toEqual(STUDIO_UPSCALED);
+      expect(vi.mocked(upscaleImage)).toHaveBeenCalledTimes(1);
+    });
+
+    it('handleStudioUpscale should set error on service failure', async () => {
+      vi.mocked(analyzeImage).mockResolvedValueOnce(MOCK_ANALYSIS_REPORT);
+      vi.mocked(generateUpscalePrompt).mockReturnValueOnce(MOCK_PROMPT);
+      vi.mocked(upscaleImage).mockRejectedValueOnce(new Error('Upscale service failed'));
+
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A);
+      });
+
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      await act(async () => {
+        await result.current.handleStudioUpscale();
+      });
+
+      expect(result.current.studioUpscaleError).toBe('Upscale service failed');
+      expect(result.current.activeImage?.studioResult).toBeUndefined();
+    });
+
+    it('clearStudioUpscaleError should reset error', async () => {
+      vi.mocked(analyzeImage).mockResolvedValueOnce(MOCK_ANALYSIS_REPORT);
+      vi.mocked(generateUpscalePrompt).mockReturnValueOnce(MOCK_PROMPT);
+      vi.mocked(upscaleImage).mockRejectedValueOnce(new Error('fail'));
+
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A);
+      });
+
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      await act(async () => {
+        await result.current.handleStudioUpscale();
+      });
+
+      expect(result.current.studioUpscaleError).toBeTruthy();
+
+      act(() => {
+        result.current.clearStudioUpscaleError();
+      });
+
+      expect(result.current.studioUpscaleError).toBeNull();
+    });
+
+    it('analysis should auto-advance step and generate preview', async () => {
+      vi.mocked(analyzeImage).mockResolvedValueOnce(MOCK_ANALYSIS_REPORT);
+      vi.mocked(generateUpscalePrompt).mockReturnValueOnce(MOCK_PROMPT);
+
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A);
+      });
+
+      expect(result.current.activeImage?.studioStep).toBe(UpscaleStudioStep.Analyze);
+
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      // Should auto-advance to Enhance
+      expect(result.current.activeImage?.studioStep).toBe(UpscaleStudioStep.Enhance);
+      // Should have preview text
+      expect(result.current.activeImage?.studioPreview).toBe(MOCK_PREVIEW);
+      expect(vi.mocked(generatePreviewSimulation)).toHaveBeenCalledWith(MOCK_ANALYSIS_REPORT);
+    });
+
+    it('studioResult should be preserved across image switches', async () => {
+      vi.mocked(analyzeImage).mockResolvedValueOnce(MOCK_ANALYSIS_REPORT);
+      vi.mocked(generateUpscalePrompt).mockReturnValueOnce(MOCK_PROMPT);
+      vi.mocked(upscaleImage).mockResolvedValueOnce(STUDIO_UPSCALED);
+
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A); // uuid-1
+      });
+
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      await act(async () => {
+        await result.current.handleStudioUpscale();
+      });
+
+      expect(result.current.activeImage?.studioResult).toEqual(STUDIO_UPSCALED);
+
+      // Add second image
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_B); // uuid-2
+      });
+
+      // B should have no studioResult
+      expect(result.current.activeImage?.studioResult).toBeUndefined();
+
+      // Switch back to A
+      act(() => {
+        result.current.setActiveImageId('test-uuid-1');
+      });
+
+      // A should still have its studioResult
+      expect(result.current.activeImage?.studioResult).toEqual(STUDIO_UPSCALED);
     });
   });
 });
