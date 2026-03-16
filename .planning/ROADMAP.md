@@ -73,7 +73,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 04-01: Add AI Studio inline upscale, preview, Gemini guidance, and reliability handling
+- [x] 04-01: Add AI Studio inline upscale, preview, Gemini guidance, and reliability handling
 
 ## Progress
 
@@ -82,4 +82,4 @@ Plans:
 | 1. Multi-Image Session Foundation | 1/1 | ✅ Done | 2026-03-16 |
 | 2. Quick Upscale Quality Lane | 1/1 | ✅ Done | 2026-03-16 |
 | 3. AI Studio Analysis And Prompt Package | 1/1 | ✅ Done | 2026-03-16 |
-| 4. AI Studio Inline Upscale Preview Guidance And Reliability | 0/1 | Not started | - |
+| 4. AI Studio Inline Upscale Preview Guidance And Reliability | 1/1 | ✅ Done | 2026-03-16 |
