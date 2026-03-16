@@ -34,23 +34,34 @@
 - Do not leak provider logic into UI code
 - Do not expand this milestone into real third-party integrations
 
+## Scope Override
+
+- User clarified after research review that this milestone should be **Gemini-only**
+- User clarified the whole guided workflow should stay **fully inside Upscale Feature**
+- User clarified the feature should support **multiple uploaded images** in the same Upscale session
+- Ignore third-party execution cards and automation playbooks in the roadmap
+- Keep research findings that still apply to hybrid IA, trust, and architecture
+
 ## Recommended Scope for Requirements
 
 1. Preserve quick direct upscale and compare flow
-2. Add a structured AI Studio report
-3. Add a polished English prompt package
-4. Add tool-specific guidance and warnings
-5. Keep automation guidance instructional only
+2. Add multiple-image handling inside Upscale
+3. Add a structured AI Studio report
+4. Add a polished English prompt package for Gemini
+5. Add Gemini-specific guidance and warnings
+6. Keep the milestone free of third-party tool integration
 
 ## Recommended Default Decisions
 
 - AI Studio should be a parallel lane, not a replacement
-- Studio report can be Gemini-first in v1 if unsupported providers get clear messaging
+- Studio report should be Gemini-only in v1, with clear unsupported-provider messaging
+- The entire step-based pipeline should live inside the Upscale screen, not other features
+- Multiple uploaded images should be supported in the same Upscale session
+- Quick Upscale should use a fixed preservation-first prompt provided by the user
 - Simulated preview stays textual
 - Base prompt targets faithful upscale and preservation first, not creative restyling
-- Tool cards can all render, with one highlighted “recommended next step”
+- Guided output should focus on Gemini workflow only
 
 ## Unresolved Questions
 
 - Whether runtime validation should stay dependency-light or use a dedicated schema library
-- Whether v1 automation guidance should include a copyable payload block

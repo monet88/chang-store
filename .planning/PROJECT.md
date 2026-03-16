@@ -10,13 +10,16 @@ Users can turn fashion reference images into production-ready visual assets quic
 
 ## Current Milestone: v1.0 Improve Upscale Feature
 
-**Goal:** Turn Upscale into a hybrid workflow that keeps direct in-app upscaling while adding AI-guided analysis, prompt generation, simulated upscale preview, and practical follow-through guidance.
+**Goal:** Turn Upscale into a self-contained hybrid workflow that keeps direct in-app upscaling while adding a step-based Gemini-only AI Studio pipeline inside the same feature.
 
 **Target features:**
-- Structured image analysis for uploaded fashion lookbook photos
-- English prompt generation tuned for external image/upscale workflows
+- Structured image analysis for one or more uploaded fashion lookbook photos
+- English prompt generation tuned for the Gemini workflow already used in the app
 - Simulated "what the upscale will look like" preview description
-- Actionable execution guidance for Gemini, Midjourney, Krea, Leonardo, Topaz, and no-code automation
+- Actionable execution guidance for Gemini only
+- Entire pipeline contained inside the Upscale feature without depending on other feature screens
+- Support for handling multiple uploaded images inside the same Upscale session
+- A preservation-first `Quick Upscale` lane using a fixed high-detail fashion prompt
 
 ## Requirements
 
@@ -30,18 +33,20 @@ Users can turn fashion reference images into production-ready visual assets quic
 
 ### Active
 
-- [ ] User can upload a lookbook image and receive a structured AI Studio report inside Upscale
+- [ ] User can upload multiple lookbook images and receive a structured AI Studio report for the selected image inside Upscale
 - [ ] User can keep using direct in-app upscale in the same feature flow without losing the simple path
-- [ ] User can copy or reuse a generated English prompt tailored for high-end fashion image workflows
+- [ ] User can copy or reuse a generated English prompt tailored for the Gemini workflow already available in the app
 - [ ] User can read a simulated high-resolution outcome description before choosing the next action
-- [ ] User can see tool-specific follow-up instructions for external platforms and automation flows
+- [ ] User can see Gemini-specific follow-up instructions without depending on third-party tools
+- [ ] User can complete the full guided pipeline inside Upscale without switching to another feature
+- [ ] User can run `Quick Upscale` with a fixed preservation-first prompt that emphasizes 4K output, fabric texture, color accuracy, face preservation, and unchanged composition
 
 ### Out of Scope
 
-- End-to-end integration with Midjourney, Krea, Leonardo, Topaz, Make.com, or Zapier APIs in this milestone — this milestone provides guidance output, not third-party execution
+- Any Midjourney, Krea, Leonardo, Topaz, Make.com, or Zapier support in this milestone — user clarified this milestone should stay Gemini-only
+- Reusing or spreading the pipeline across other feature screens — user clarified the whole experience must stay inside Upscale
 - Reworking unrelated feature screens outside Upscale — keep milestone tightly scoped
 - Moving provider calls behind a backend proxy — important architectural concern, but not part of this milestone
-- Batch upscale pipelines for multiple uploaded images — not part of the requested workflow yet
 
 ## Context
 
@@ -64,7 +69,14 @@ Users can turn fashion reference images into production-ready visual assets quic
 |----------|-----------|---------|
 | Use a hybrid Upscale experience instead of replacing the current flow | Preserve current quick upscale utility while adding higher-value AI Studio guidance | — Pending |
 | Treat this as milestone v1.0 in GSD planning | Repo had no prior GSD milestone history, so first tracked milestone should start cleanly | ✓ Good |
-| Run research before requirements | External-tool guidance and AI-studio UX benefit from pattern and pitfall research | — Pending |
+| Keep the milestone Gemini-only | User explicitly narrowed the feature after research review, so roadmap and requirements should ignore third-party tool paths | ✓ Good |
+| Lock `Quick Upscale` to a preservation-first fashion prompt | User provided the intended prompt, so planning should treat Quick Upscale as a fixed high-fidelity lane instead of an open-ended generation path | ✓ Good |
+
+### Quick Upscale Prompt
+
+```text
+Upscale this image to 4K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the model's face and the overall composition exactly the same. Photorealistic, fashion photography quality, 8K quality.
+```
 
 ---
 *Last updated: 2026-03-16 after milestone v1.0 kickoff*
