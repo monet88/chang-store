@@ -2,8 +2,8 @@
 phase: 3
 slug: ai-studio-analysis-and-prompt-package
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-16
 ---
 
@@ -38,11 +38,11 @@ created: 2026-03-16
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 03-01-01 | 01 | 1 | ANL-01, ANL-02 | unit | `npm run test -- --run __tests__/services/upscaleAnalysisService.test.ts` | ? W0 | ○ pending |
-| 03-01-02 | 01 | 1 | PRM-01, PRM-02, PRM-03 | unit | `npm run test -- --run __tests__/services/upscaleAnalysisService.test.ts` | ? W0 | ○ pending |
-| 03-01-03 | 01 | 2 | ANL-01, ANL-02 | unit | `npm run test -- --run __tests__/hooks/useUpscale.test.tsx` | ✓ exists | ○ pending |
-| 03-01-04 | 01 | 2 | PRM-03 | unit | `npm run test -- --run __tests__/hooks/useUpscale.test.tsx` | ✓ exists | ○ pending |
-| 03-01-05 | 01 | 3 | ANL-01, ANL-02, PRM-01 | component | `npm run test -- --run __tests__/components/UpscaleAnalyzeStep.test.tsx` | ? W0 | ○ pending |
+| 03-01-01 | 01 | 1 | ANL-01, ANL-02 | unit | `npm run test -- --run __tests__/services/upscaleAnalysisService.test.ts` | ? W0 | ✓ green |
+| 03-01-02 | 01 | 1 | PRM-01, PRM-02, PRM-03 | unit | `npm run test -- --run __tests__/services/upscaleAnalysisService.test.ts` | ? W0 | ✓ green |
+| 03-01-03 | 01 | 2 | ANL-01, ANL-02 | unit | `npm run test -- --run __tests__/hooks/useUpscale.test.tsx` | ✓ exists | ✓ green |
+| 03-01-04 | 01 | 2 | PRM-03 | unit | `npm run test -- --run __tests__/hooks/useUpscale.test.tsx` | ✓ exists | ✓ green |
+| 03-01-05 | 01 | 3 | ANL-01, ANL-02, PRM-01 | component | `npm run test -- --run __tests__/components/UpscaleAnalyzeStep.test.tsx` | ? W0 | ✓ green |
 
 *Status: ○ pending ✓ green ✗ red ⚡ flaky*
 
@@ -50,8 +50,8 @@ created: 2026-03-16
 
 ## Wave 0 Requirements
 
-- [ ] `__tests__/services/upscaleAnalysisService.test.ts` — stubs for ANL-01, ANL-02, PRM-01, PRM-02, PRM-03
-- [ ] `__tests__/components/UpscaleAnalyzeStep.test.tsx` — render test stubs
+- [x] `__tests__/services/upscaleAnalysisService.test.ts` — stubs for ANL-01, ANL-02, PRM-01, PRM-02, PRM-03
+- [x] `__tests__/components/UpscaleAnalyzeStep.test.tsx` — render test stubs
 
 *Existing infrastructure covers hooks testing — `__tests__/hooks/useUpscale.test.tsx` already exists.*
 
@@ -69,11 +69,11 @@ created: 2026-03-16
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending

@@ -2,8 +2,8 @@
 phase: 2
 slug: quick-upscale-quality-lane
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-16
 ---
 
@@ -38,10 +38,10 @@ created: 2026-03-16
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 02-01-01 | 01 | 1 | UPS-02 | unit | `npm run test -- useUpscale` | ✅ | ⬜ pending |
-| 02-01-02 | 01 | 1 | UPS-06 | unit | `npm run test -- imageEditingService` | ✅ | ⬜ pending |
-| 02-01-03 | 01 | 1 | UPS-02 | unit | `npm run test -- UpscaleQuickPanel` | ✅ | ⬜ pending |
-| 02-01-04 | 01 | 1 | UPS-02 | unit | `npm run test -- ImageComparator` | ✅ | ⬜ pending |
+| 02-01-01 | 01 | 1 | UPS-02 | unit | `npm run test -- useUpscale` | ✅ | ✅ green |
+| 02-01-02 | 01 | 1 | UPS-06 | unit | `npm run test -- imageEditingService` | ✅ | ✅ green |
+| 02-01-03 | 01 | 1 | UPS-02 | unit | `npm run test -- UpscaleQuickPanel` | ✅ | ✅ green |
+| 02-01-04 | 01 | 1 | UPS-02 | unit | `npm run test -- ImageComparator` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -65,11 +65,11 @@ Existing infrastructure covers all phase requirements. Vitest already configured
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending

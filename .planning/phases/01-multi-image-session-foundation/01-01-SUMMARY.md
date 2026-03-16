@@ -3,6 +3,7 @@ phase: 01-multi-image-session-foundation
 plan: 01
 status: completed
 completed_at: 2026-03-15T21:10:00+07:00
+requirements-completed: [UPS-01, UPS-03, UPS-04, UPS-05]
 ---
 
 # Plan 01-01 Summary: Multi-Image Session Foundation
