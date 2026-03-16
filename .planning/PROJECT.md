@@ -8,40 +8,34 @@ Chang-Store is a browser-based AI fashion studio for creators and fashion teams 
 
 Users can turn fashion reference images into production-ready visual assets quickly, with predictable quality and minimal manual tool-hopping.
 
-## Current Milestone: v1.0 Improve Upscale Feature
+## Current Milestone: Planning Next Milestone
 
-**Goal:** Turn Upscale into a self-contained hybrid workflow that keeps direct in-app upscaling while adding a step-based Gemini-only AI Studio pipeline that can generate per-image prompts and trigger upscale immediately inside the same feature.
+**Goal:** Determine the next set of features or improvements following the successful v1.0 launch of the hybrid Upscale and AI Studio pipeline.
 
 **Target features:**
-- Structured image analysis for one or more uploaded fashion lookbook photos
-- English prompt generation tuned for the Gemini workflow already used in the app
-- Simulated "what the upscale will look like" preview description
-- Actionable execution guidance for Gemini only
-- Entire pipeline contained inside the Upscale feature without depending on other feature screens
-- Support for handling multiple uploaded images inside the same Upscale session
-- A preservation-first `Quick Upscale` lane with 2K and 4K quality options
-- A per-image AI Studio prompt output with an inline Upscale action for that image
+- (TBD - pending planning phase)
 
 ## Requirements
 
 ### Validated
 
-- [x] Users can switch between multiple AI fashion image workflows inside one SPA
-- [x] Users can route image operations through Gemini, local, and anti providers from shared settings
-- [x] Users can upload a single image to Upscale, choose quality, and generate an upscaled result
-- [x] Users can compare original and upscaled images inside the Upscale screen
-- [x] Users can use bilingual UI strings through the shared language context
+- ✓ Users can switch between multiple AI fashion image workflows inside one SPA — baseline
+- ✓ Users can route image operations through Gemini, local, and anti providers from shared settings — baseline
+- ✓ Users can upload a single image to Upscale, choose quality, and generate an upscaled result — baseline
+- ✓ Users can compare original and upscaled images inside the Upscale screen — baseline
+- ✓ Users can use bilingual UI strings through the shared language context — baseline
+- ✓ User can upload multiple lookbook images and receive a structured AI Studio report for the selected image inside Upscale — v1.0
+- ✓ User can keep using direct in-app upscale in the same feature flow without losing the simple path — v1.0
+- ✓ User can copy or reuse a generated English prompt tailored for the Gemini workflow already available in the app — v1.0
+- ✓ User can read a simulated high-resolution outcome description before choosing the next action — v1.0
+- ✓ User can see Gemini-specific follow-up instructions without depending on third-party tools — v1.0
+- ✓ User can complete the full guided pipeline inside Upscale without switching to another feature — v1.0
+- ✓ User can run `Quick Upscale` with a preservation-first prompt pattern that adapts to 2K or 4K output — v1.0
+- ✓ User can trigger Upscale immediately after AI Studio generates the prompt for a selected image — v1.0
 
 ### Active
 
-- [ ] User can upload multiple lookbook images and receive a structured AI Studio report for the selected image inside Upscale
-- [ ] User can keep using direct in-app upscale in the same feature flow without losing the simple path
-- [ ] User can copy or reuse a generated English prompt tailored for the Gemini workflow already available in the app
-- [ ] User can read a simulated high-resolution outcome description before choosing the next action
-- [ ] User can see Gemini-specific follow-up instructions without depending on third-party tools
-- [ ] User can complete the full guided pipeline inside Upscale without switching to another feature
-- [ ] User can run `Quick Upscale` with a preservation-first prompt pattern that adapts to 2K or 4K output
-- [ ] User can trigger Upscale immediately after AI Studio generates the prompt for a selected image
+- (None yet — prioritize new features)
 
 ### Out of Scope
 
@@ -53,9 +47,9 @@ Users can turn fashion reference images into production-ready visual assets quic
 ## Context
 
 - The app is a React 19 + TypeScript + Vite browser SPA with provider routing centralized in `services/imageEditingService.ts`.
-- Current Upscale is implemented as a single component and only supports direct upload -> quality select -> upscale -> compare.
-- The desired milestone expands Upscale from a pure utility into a guided "AI Studio" workflow for fashion lookbook images.
-- Existing repo conventions prefer thin components, hooks for orchestration, service facades for provider logic, and localized UI strings in both English and Vietnamese.
+- Shipped v1.0 milestone, successfully upgrading Upscale into a multi-mode feature with Quick Upscale and an AI Studio pipeline running in parallel.
+- The workflow now robustly supports multi-image sessions, 2K/4K scaling, and rich Gemini-driven image analysis and prompt generation.
+- Existing repo conventions (thin components, hooks for orchestration, service facades for provider logic, bilingual localized UI strings) were followed throughout v1.0 implementation.
 
 ## Constraints
 
@@ -69,7 +63,7 @@ Users can turn fashion reference images into production-ready visual assets quic
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Use a hybrid Upscale experience instead of replacing the current flow | Preserve current quick upscale utility while adding higher-value AI Studio guidance | — Pending |
+| Use a hybrid Upscale experience instead of replacing the current flow | Preserve current quick upscale utility while adding higher-value AI Studio guidance | ✓ Good |
 | Treat this as milestone v1.0 in GSD planning | Repo had no prior GSD milestone history, so first tracked milestone should start cleanly | ✓ Good |
 | Keep the milestone Gemini-only | User explicitly narrowed the feature after research review, so roadmap and requirements should ignore third-party tool paths | ✓ Good |
 | Use a preservation-first Quick Upscale prompt template with 2K and 4K options | User first provided the prompt style, then clarified that 2K must be added back, so Quick Upscale should keep quality selection while preserving the same prompt intent | ✓ Good |
@@ -88,4 +82,4 @@ Upscale this image to 4K resolution. Enhance the details, make the fabric textur
 ```
 
 ---
-*Last updated: 2026-03-16 after milestone v1.0 kickoff*
+*Last updated: 2026-03-16 after completing v1.0 milestone*
