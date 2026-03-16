@@ -29,7 +29,7 @@ This milestone upgrades Upscale from a single-image utility into a self-containe
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01-01: Build Upscale session state, multi-image selection, and internal step shell
+- [x] 01-01: Build Upscale session state, multi-image selection, and internal step shell
 
 ### Phase 2: Quick Upscale Quality Lane
 **Goal**: Users can run a one-click 2K or 4K upscale flow with the locked preservation-first prompt pattern and review the result against the original.
@@ -43,7 +43,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 02-01: Implement the 2K/4K Quick Upscale lane and comparison behavior
+- [x] 02-01: Implement the 2K/4K Quick Upscale lane and comparison behavior
 
 ### Phase 3: AI Studio Analysis And Prompt Package
 **Goal**: Users can generate a structured Gemini report with fashion analysis and a per-image prompt package for the active image.
@@ -58,7 +58,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 03-01: Implement Gemini analysis service, report schema, and per-image prompt package output
+- [x] 03-01: Implement Gemini analysis service, report schema, and per-image prompt package output
 
 ### Phase 4: AI Studio Inline Upscale Preview Guidance And Reliability
 **Goal**: Users can finish the guided AI Studio lane with inline prompt-based upscale, preview simulation, Gemini-specific next steps, and clear unsupported-provider handling.
@@ -79,7 +79,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Multi-Image Session Foundation | 0/1 | Not started | - |
-| 2. Quick Upscale Quality Lane | 0/1 | Not started | - |
-| 3. AI Studio Analysis And Prompt Package | 0/1 | Not started | - |
+| 1. Multi-Image Session Foundation | 1/1 | ✅ Done | 2026-03-16 |
+| 2. Quick Upscale Quality Lane | 1/1 | ✅ Done | 2026-03-16 |
+| 3. AI Studio Analysis And Prompt Package | 1/1 | ✅ Done | 2026-03-16 |
 | 4. AI Studio Inline Upscale Preview Guidance And Reliability | 0/1 | Not started | - |
