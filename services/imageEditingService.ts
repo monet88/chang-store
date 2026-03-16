@@ -197,30 +197,38 @@ export const generateImage = async (
     }
 };
 
+/** Locked preservation-first upscale prompts — single source of truth */
+const UPSCALE_PROMPTS: Record<UpscaleQuality, string> = {
+    '2K': 'Upscale this image to 2K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the model\'s face and the overall composition exactly the same. Photorealistic, fashion photography quality, 2K quality.',
+    '4K': 'Upscale this image to 4K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the model\'s face and the overall composition exactly the same. Photorealistic, fashion photography quality, 4K quality.',
+};
+
 export const upscaleImage = async (
     image: ImageFile,
     model: ImageEditModel,
     config: ApiConfig,
-    quality: UpscaleQuality = '2K'
+    quality: UpscaleQuality = '2K',
+    quickModel?: string
 ): Promise<ImageFile> => {
+    const resolvedModel = quickModel ?? model;
     const startTime = Date.now();
-    const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
-    const prompt = `Upscale this image to a high-resolution ${quality} format (${quality === '4K' ? '4096' : '2048'}px). Enhance fine details, sharpness, and textures while maintaining strict photorealism. Do not add, remove, or change any content or subjects in the image. The result must be a higher-resolution version of the original.`;
+    const provider = isLocalModel(resolvedModel) ? 'Local' : isAntiModel(resolvedModel) ? 'Anti' : 'Gemini';
+    const prompt = UPSCALE_PROMPTS[quality];
 
     try {
         let result: ImageFile;
 
-        if (isLocalModel(model) || isAntiModel(model)) {
+        if (isLocalModel(resolvedModel) || isAntiModel(resolvedModel)) {
             const params: EditImageParams = { images: [image], prompt, numberOfImages: 1 };
-            const [upscaled] = await editImage(params, model, config);
+            const [upscaled] = await editImage(params, resolvedModel, config);
             result = upscaled;
         } else {
-            result = await geminiImageService.upscaleImage(image, quality);
+            result = await geminiImageService.upscaleImage(image, quality, prompt, resolvedModel);
         }
 
         logApiCall({
             provider,
-            model,
+            model: resolvedModel,
             feature: 'Upscale',
             prompt,
             duration: Date.now() - startTime,
@@ -232,7 +240,7 @@ export const upscaleImage = async (
     } catch (error) {
         logApiCall({
             provider,
-            model,
+            model: resolvedModel,
             feature: 'Upscale',
             prompt,
             duration: Date.now() - startTime,

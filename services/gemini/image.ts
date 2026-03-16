@@ -160,14 +160,14 @@ export const generateImageFromText = async (prompt: string, aspectRatio: ImageAs
     }
 };
 
-export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '2K'): Promise<ImageFile> => {
+export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '2K', prompt?: string, model: string = 'gemini-3.1-flash-image-preview'): Promise<ImageFile> => {
   const ai = getGeminiClient();
   try {
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
-    const textPart: Part = { text: `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
+    const textPart: Part = { text: prompt ?? `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image-preview',
+      model,
       contents: { parts: [imagePart, textPart] },
       config: {
         responseModalities: [Modality.IMAGE],
