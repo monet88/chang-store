@@ -25,9 +25,11 @@ import {
   UpscaleQuickModel,
   UpscaleSessionImage,
   UpscaleStudioStep,
+  UpscaleAnalysisReport,
   DEFAULT_UPSCALE_QUICK_MODEL,
 } from '../types';
 import { upscaleImage } from '../services/imageEditingService';
+import { analyzeImage, generateUpscalePrompt } from '../services/upscaleAnalysisService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -74,6 +76,12 @@ export interface UseUpscaleReturn {
   /** Whether the output panel should glow */
   showResultGlow: boolean;
 
+  // ---- AI Studio Analysis state ----
+  /** Whether an analysis is currently running */
+  isAnalyzing: boolean;
+  /** Analysis-specific error (null = no error) */
+  analysisError: string | null;
+
   // ---- Actions ----
   /** Add a new image to the session (auto-activates it) */
   addSessionImage: (image: ImageFile) => void;
@@ -99,6 +107,10 @@ export interface UseUpscaleReturn {
   clearError: () => void;
   /** Navigate the active image's studio step */
   setActiveStudioStep: (step: UpscaleStudioStep) => void;
+  /** Run AI Studio analysis on the active image */
+  handleAnalyzeImage: () => Promise<void>;
+  /** Clear analysis error */
+  clearAnalysisError: () => void;
 }
 
 // ============================================================================
@@ -120,6 +132,10 @@ export function useUpscale(): UseUpscaleReturn {
   const [errorSuggestion, setErrorSuggestion] = useState<string | null>(null);
   const [showReupscaleConfirm, setShowReupscaleConfirm] = useState(false);
   const [showResultGlow, setShowResultGlow] = useState(false);
+
+  // ---- Analysis state ----
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const glowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ---- Derived state ----
@@ -278,6 +294,37 @@ export function useUpscale(): UseUpscaleReturn {
     setErrorSuggestion(null);
   }, []);
 
+  const clearAnalysisError = useCallback(() => {
+    setAnalysisError(null);
+  }, []);
+
+  // ---- AI Studio Analysis action ----
+
+  const handleAnalyzeImage = useCallback(async () => {
+    if (!activeImage) {
+      setAnalysisError(t('upscale.analyzeNoImage'));
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+
+    try {
+      const report: UpscaleAnalysisReport = await analyzeImage(activeImage.original);
+      const prompt = generateUpscalePrompt(report);
+
+      updateSessionImage(activeImage.id, {
+        analysisReport: report,
+        studioPrompt: prompt,
+      });
+    } catch (err) {
+      console.error('[useUpscale] Analysis failed:', err);
+      setAnalysisError(getErrorMessage(err, t));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [activeImage, updateSessionImage, t]);
+
   // ---- Public API ----
 
   return {
@@ -291,6 +338,8 @@ export function useUpscale(): UseUpscaleReturn {
     errorSuggestion,
     showReupscaleConfirm,
     showResultGlow,
+    isAnalyzing,
+    analysisError,
 
     addSessionImage,
     removeSessionImage,
@@ -304,5 +353,7 @@ export function useUpscale(): UseUpscaleReturn {
     handleQuickUpscale,
     clearError,
     setActiveStudioStep,
+    handleAnalyzeImage,
+    clearAnalysisError,
   };
 }

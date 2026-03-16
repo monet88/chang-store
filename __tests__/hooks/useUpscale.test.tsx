@@ -29,6 +29,12 @@ vi.mock('../../services/imageEditingService', () => ({
   upscaleImage: vi.fn(),
 }));
 
+/** Mock upscaleAnalysisService */
+vi.mock('../../services/upscaleAnalysisService', () => ({
+  analyzeImage: vi.fn(),
+  generateUpscalePrompt: vi.fn(),
+}));
+
 /** Mock getErrorMessage from imageUtils */
 vi.mock('../../utils/imageUtils', () => ({
   getErrorMessage: vi.fn((err: Error) => err.message),
@@ -42,6 +48,7 @@ vi.mock('../../contexts/ApiProviderContext', () => mockUseApi());
 // Import hook and mocked services after mocking
 import { useUpscale } from '../../hooks/useUpscale';
 import { upscaleImage } from '../../services/imageEditingService';
+import { analyzeImage, generateUpscalePrompt } from '../../services/upscaleAnalysisService';
 
 // ============================================================================
 // Test Constants
@@ -51,6 +58,17 @@ const TEST_IMAGE_A: ImageFile = { base64: 'aW1hZ2VBZGF0YQ==', mimeType: 'image/p
 const TEST_IMAGE_B: ImageFile = { base64: 'aW1hZ2VCZGchdYQ==', mimeType: 'image/jpeg' };
 const TEST_IMAGE_C: ImageFile = { base64: 'aW1hZ2VDZGRkZA==', mimeType: 'image/png' };
 const UPSCALED_RESULT: ImageFile = { base64: 'dXBzY2FsZWQtcmVzdWx0', mimeType: 'image/png' };
+
+const MOCK_ANALYSIS_REPORT = {
+  garments: [{ name: 'Silk Blouse', type: 'top', description: 'Flowy cut' }],
+  materials: [{ garment: 'Silk Blouse', fabric: 'silk', texture: 'smooth', weight: 'light', sheen: 'high' }],
+  background: { environment: 'studio', surfaces: 'seamless paper', depth: 'shallow', description: 'White backdrop' },
+  lighting: { direction: 'front-left', quality: 'soft', colorTemperature: 'neutral', shadows: 'diffused' },
+  framing: { shotType: 'half-body', angle: 'eye-level', composition: 'centered' },
+  pose: { bodyPosition: 'standing', gesture: 'relaxed', expression: 'neutral', movement: 'static' },
+  preservationRisks: [{ area: 'silk texture', riskLevel: 'high' as const, detail: 'Fine weave pattern' }],
+};
+const MOCK_PROMPT = 'Generated upscale prompt text';
 
 // ============================================================================
 // Test Suite
@@ -680,6 +698,147 @@ describe('useUpscale', () => {
 
       expect(result.current.error).toBeNull();
       expect(result.current.errorSuggestion).toBeNull();
+    });
+  });
+
+  // ============================================================================
+  // Phase 3: AI Studio Analysis
+  // ============================================================================
+
+  describe('AI Studio Analysis (Phase 3)', () => {
+    it('should start with isAnalyzing=false and analysisError=null', () => {
+      const { result } = renderHook(() => useUpscale());
+
+      expect(result.current.isAnalyzing).toBe(false);
+      expect(result.current.analysisError).toBeNull();
+    });
+
+    it('should set analysisError when no active image', async () => {
+      const { result } = renderHook(() => useUpscale());
+
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      expect(result.current.analysisError).toBe('upscale.analyzeNoImage');
+      expect(analyzeImage).not.toHaveBeenCalled();
+    });
+
+    it('should analyze active image and store report + prompt', async () => {
+      vi.mocked(analyzeImage).mockResolvedValueOnce(MOCK_ANALYSIS_REPORT as any);
+      vi.mocked(generateUpscalePrompt).mockReturnValueOnce(MOCK_PROMPT);
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A);
+      });
+
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      expect(analyzeImage).toHaveBeenCalledWith(TEST_IMAGE_A);
+      expect(generateUpscalePrompt).toHaveBeenCalledWith(MOCK_ANALYSIS_REPORT);
+      expect(result.current.activeImage?.analysisReport).toEqual(MOCK_ANALYSIS_REPORT);
+      expect(result.current.activeImage?.studioPrompt).toBe(MOCK_PROMPT);
+      expect(result.current.isAnalyzing).toBe(false);
+      expect(result.current.analysisError).toBeNull();
+    });
+
+    it('should handle analysis error', async () => {
+      vi.mocked(analyzeImage).mockRejectedValueOnce(new Error('Gemini quota exceeded'));
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A);
+      });
+
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      expect(result.current.analysisError).toBe('Gemini quota exceeded');
+      expect(result.current.isAnalyzing).toBe(false);
+      expect(result.current.activeImage?.analysisReport).toBeUndefined();
+    });
+
+    it('should show isAnalyzing=true during analysis', async () => {
+      let resolvePromise: (value: any) => void;
+      vi.mocked(analyzeImage).mockImplementation(
+        () => new Promise((resolve) => { resolvePromise = resolve; }),
+      );
+      vi.mocked(generateUpscalePrompt).mockReturnValue(MOCK_PROMPT);
+
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A);
+      });
+
+      let analyzePromise: Promise<void>;
+      act(() => {
+        analyzePromise = result.current.handleAnalyzeImage();
+      });
+
+      expect(result.current.isAnalyzing).toBe(true);
+
+      await act(async () => {
+        resolvePromise!(MOCK_ANALYSIS_REPORT);
+        await analyzePromise;
+      });
+
+      expect(result.current.isAnalyzing).toBe(false);
+    });
+
+    it('should clear analysis error via clearAnalysisError', async () => {
+      vi.mocked(analyzeImage).mockRejectedValueOnce(new Error('fail'));
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A);
+      });
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      expect(result.current.analysisError).toBe('fail');
+
+      act(() => {
+        result.current.clearAnalysisError();
+      });
+
+      expect(result.current.analysisError).toBeNull();
+    });
+
+    it('should preserve analysis report across image switching', async () => {
+      vi.mocked(analyzeImage).mockResolvedValueOnce(MOCK_ANALYSIS_REPORT as any);
+      vi.mocked(generateUpscalePrompt).mockReturnValueOnce(MOCK_PROMPT);
+      const { result } = renderHook(() => useUpscale());
+
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_A); // uuid-1
+      });
+
+      await act(async () => {
+        await result.current.handleAnalyzeImage();
+      });
+
+      // Add second image
+      act(() => {
+        result.current.addSessionImage(TEST_IMAGE_B); // uuid-2
+      });
+
+      // B should have no report
+      expect(result.current.activeImage?.analysisReport).toBeUndefined();
+
+      // Switch back to A
+      act(() => {
+        result.current.setActiveImageId('test-uuid-1');
+      });
+
+      // A should still have its report
+      expect(result.current.activeImage?.analysisReport).toEqual(MOCK_ANALYSIS_REPORT);
+      expect(result.current.activeImage?.studioPrompt).toBe(MOCK_PROMPT);
     });
   });
 });

@@ -596,6 +596,33 @@ export const en = {
     studioStepExport: 'Export',
     studioUploadFirst: 'Upload an image to begin AI Studio workflow.',
     studioComingSoon: 'Full AI Studio tools coming soon.',
+    // AI Studio — Analyze step
+    analyzeButton: 'Analyze Image',
+    analyzingStatus: 'Analyzing fashion details...',
+    analyzeError: 'Analysis failed. Please try again.',
+    analyzeNoImage: 'Upload an image first to analyze.',
+    // Analysis report card
+    reportTitle: 'Fashion Analysis Report',
+    reportGarments: 'Garments',
+    reportMaterials: 'Materials',
+    reportBackground: 'Background',
+    reportLighting: 'Lighting',
+    reportFraming: 'Framing & Composition',
+    reportPose: 'Pose',
+    reportPreservationRisks: 'Preservation Risks',
+    reportRiskHigh: 'High',
+    reportRiskMedium: 'Medium',
+    reportRiskLow: 'Low',
+    // Prompt package
+    promptPackageTitle: 'Generated Upscale Prompt',
+    promptPackageCopy: 'Copy Prompt',
+    promptPackageCopied: 'Copied!',
+    promptPackageEmpty: 'Run analysis first to generate a prompt.',
+    // Re-analyze confirmation
+    reanalyzeConfirmTitle: 'Re-analyze Image?',
+    reanalyzeConfirmMessage: 'This will replace the current analysis report and prompt. Continue?',
+    reanalyzeConfirmYes: 'Re-analyze',
+    reanalyzeConfirmNo: 'Cancel',
   },
   imageComparator: {
     before: 'Before',

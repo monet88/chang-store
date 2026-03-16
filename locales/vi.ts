@@ -598,6 +598,33 @@ export const vi: Translation = {
     studioStepExport: 'Xuất',
     studioUploadFirst: 'Tải ảnh lên để bắt đầu quy trình AI Studio.',
     studioComingSoon: 'Công cụ AI Studio đầy đủ sắp ra mắt.',
+    // AI Studio — Bước Phân tích
+    analyzeButton: 'Phân tích Ảnh',
+    analyzingStatus: 'Đang phân tích chi tiết thời trang...',
+    analyzeError: 'Phân tích thất bại. Vui lòng thử lại.',
+    analyzeNoImage: 'Tải ảnh lên trước để phân tích.',
+    // Thẻ báo cáo phân tích
+    reportTitle: 'Báo cáo Phân tích Thời trang',
+    reportGarments: 'Trang phục',
+    reportMaterials: 'Chất liệu',
+    reportBackground: 'Hậu cảnh',
+    reportLighting: 'Ánh sáng',
+    reportFraming: 'Bố cục & Góc máy',
+    reportPose: 'Tư thế',
+    reportPreservationRisks: 'Rủi ro Bảo quản',
+    reportRiskHigh: 'Cao',
+    reportRiskMedium: 'Trung bình',
+    reportRiskLow: 'Thấp',
+    // Gói prompt
+    promptPackageTitle: 'Prompt Nâng cấp Được tạo',
+    promptPackageCopy: 'Sao chép Prompt',
+    promptPackageCopied: 'Đã sao chép!',
+    promptPackageEmpty: 'Chạy phân tích trước để tạo prompt.',
+    // Xác nhận phân tích lại
+    reanalyzeConfirmTitle: 'Phân tích lại Ảnh?',
+    reanalyzeConfirmMessage: 'Thao tác này sẽ thay thế báo cáo phân tích và prompt hiện tại. Tiếp tục?',
+    reanalyzeConfirmYes: 'Phân tích lại',
+    reanalyzeConfirmNo: 'Hủy',
   },
   imageComparator: {
     before: 'Trước',
