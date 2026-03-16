@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { DownloadIcon } from './Icons';
@@ -6,14 +6,20 @@ import { DownloadIcon } from './Icons';
 interface ImageComparatorProps {
   before: ImageFile;
   after: ImageFile;
+  /** Context-aware download filename (without extension) */
+  downloadName?: string;
 }
 
-const ImageComparator: React.FC<ImageComparatorProps> = ({ before, after }) => {
+const ImageComparator: React.FC<ImageComparatorProps> = ({ before, after, downloadName }) => {
   const { t } = useLanguage();
   const [sliderVal, setSliderVal] = useState(50);
   
   const beforeUrl = `data:${before.mimeType};base64,${before.base64}`;
   const afterUrl = `data:${after.mimeType};base64,${after.base64}`;
+
+  const filename = downloadName
+    ? `${downloadName}.png`
+    : 'upscaled-image.png';
 
   return (
     <div className="comparator-container">
@@ -29,7 +35,7 @@ const ImageComparator: React.FC<ImageComparatorProps> = ({ before, after }) => {
 
       <a
         href={afterUrl}
-        download="upscaled-image.png"
+        download={filename}
         className="absolute top-2 right-2 z-20 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
         aria-label={t('imageActions.download')}
         onClick={(e) => e.stopPropagation()}
