@@ -9,18 +9,17 @@ export function setGeminiApiKey(key: string | null) {
 }
 
 export function getActiveApiKey(): string {
-    if (customApiKey) {
-        return customApiKey;
-    }
-
-    // Exclusively use the environment variable
+    // Priority 1: Environment variable from .env.local (always wins)
     if (process.env.API_KEY) {
       return process.env.API_KEY;
     }
+
+    // Priority 2: Custom key from Settings UI (fallback)
+    if (customApiKey) {
+        return customApiKey;
+    }
     
     // If neither is available, we can't proceed.
-    // However, throwing here might break the app if it checks validity early.
-    // We'll throw, but the UI should handle it or it will be caught during generation.
     throw new Error("API_KEY is not configured. Please set it in the settings or environment.");
 }
 

@@ -128,16 +128,16 @@ describe('apiClient', () => {
   // getActiveApiKey tests
   // ============================================================
   describe('getActiveApiKey', () => {
-    it('should return custom API key when set', () => {
+    it('should return custom API key when set and no env key exists', () => {
       // Arrange
       const customKey = 'my-custom-key';
       setGeminiApiKey(customKey);
-      process.env.API_KEY = 'env-key-should-not-use';
+      delete process.env.API_KEY;
 
       // Act
       const result = getActiveApiKey();
 
-      // Assert - custom key takes precedence
+      // Assert - custom key used when no env key
       expect(result).toBe(customKey);
     });
 
@@ -163,16 +163,16 @@ describe('apiClient', () => {
       );
     });
 
-    it('should prioritize custom key over environment variable', () => {
+    it('should prioritize environment variable over custom key', () => {
       // Arrange
       setGeminiApiKey('priority-custom-key');
-      process.env.API_KEY = 'should-be-ignored';
+      process.env.API_KEY = 'env-always-wins';
 
       // Act
       const result = getActiveApiKey();
 
-      // Assert
-      expect(result).toBe('priority-custom-key');
+      // Assert - env key takes precedence
+      expect(result).toBe('env-always-wins');
     });
   });
 
@@ -291,16 +291,17 @@ describe('apiClient', () => {
       const client1 = getGeminiClient();
       expect(constructorCalls[0]).toEqual({ apiKey: 'initial-env-key' });
 
-      // Step 2: User sets custom key (clears instance automatically)
+      // Step 2: User sets custom key — but env should still win
       setGeminiApiKey('user-custom-key');
       const client2 = getGeminiClient();
-      expect(constructorCalls[1]).toEqual({ apiKey: 'user-custom-key' });
+      expect(constructorCalls[1]).toEqual({ apiKey: 'initial-env-key' });
       expect(client1).not.toBe(client2);
 
-      // Step 3: User clears custom key, falls back to env
-      setGeminiApiKey(null);
+      // Step 3: Remove env key, custom key kicks in as fallback
+      delete process.env.API_KEY;
+      setGeminiApiKey('user-custom-key');
       const client3 = getGeminiClient();
-      expect(constructorCalls[2]).toEqual({ apiKey: 'initial-env-key' });
+      expect(constructorCalls[2]).toEqual({ apiKey: 'user-custom-key' });
 
       // Verify total instances created
       expect(constructorCalls).toHaveLength(3);
