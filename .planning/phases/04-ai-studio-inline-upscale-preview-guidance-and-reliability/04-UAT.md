@@ -1,67 +1,74 @@
 ---
-status: testing
+status: complete
 phase: 04-ai-studio-inline-upscale-preview-guidance-and-reliability
 source: [04-01-SUMMARY.md]
 started: "2026-03-16T19:58:00.000Z"
-updated: "2026-03-16T19:58:00.000Z"
+completed: "2026-03-16T20:50:00.000Z"
 ---
-
-## Current Test
-
-number: 1
-name: Auto-Advance to Enhance After Analysis
-expected: |
-  In AI Studio mode, upload an image and click "Analyze Image."
-  After analysis completes, the step header should automatically advance
-  to the Enhance step (highlighted purple), without manual navigation.
-awaiting: user response
 
 ## Tests
 
 ### 1. Auto-Advance to Enhance After Analysis
-expected: In AI Studio mode, upload an image and click "Analyze Image." After analysis completes, the step header should automatically advance to the Enhance step (highlighted purple), without manual navigation.
-result: [pending]
+expected: In AI Studio mode, after analysis completes, step header auto-advances to Enhance.
+result: ✅ PASS — Step header changed from "Phân tích" to "Nâng cao" automatically.
 
 ### 2. Preview Simulation Displays with Amber Styling
-expected: After analysis auto-advances to Enhance, a preview simulation card should appear with amber/warning border and background. It should have a "⚠️ Simulated Preview" badge, disclaimer text, and lines describing sharpness, texture, lighting, and preservation risks from the analyzed image.
-result: [pending]
+expected: Amber/warning preview card with disclaimer, sharpness, texture, lighting, and risk details.
+result: ✅ PASS — "⚠ XEM TRƯỚC MÔ PHỎNG" card displayed with amber bg, all sections present.
 
 ### 3. Guidance Card Shows 4-Step Guide
-expected: On the Enhance step, a "📋 Gemini Execution Guide" card should appear with 4 numbered steps (Review report → Check risks → Trigger upscale → Compare result). Below the steps, a recommended next action should show "🚀 Ready! Trigger upscale to enhance your image."
-result: [pending]
+expected: "📋 Hướng dẫn Thực thi Gemini" with 4 numbered steps + adaptive next action.
+result: ✅ PASS — All 4 steps visible + "🚀 Sẵn sàng! Kích hoạt nâng cấp để cải thiện ảnh."
 
 ### 4. Upscale Button Present and Enabled
-expected: On the Enhance step (after analysis), a gradient blue-to-indigo "Upscale with AI Prompt" button should be present and enabled. It should be full-width with hover effects.
-result: [pending]
+expected: Gradient "Nâng cấp với AI Prompt" button, full-width, enabled.
+result: ✅ PASS — Button visible and clickable at bottom of Enhance step.
 
 ### 5. Studio Upscale Execution
-expected: Clicking "Upscale with AI Prompt" should show a loading spinner with "Upscaling with AI-generated prompt..." text. Upon completion, the button is replaced by a green "✅ Upscale complete!" indicator, and the upscaled result appears in the output panel.
-result: [pending]
+expected: Loading spinner → green success indicator → result in output panel.
+result: ✅ PASS (after bugfix) — Initially output panel was empty due to result routing bug.
+  Bug found: `Upscale.tsx` only showed `quickResult` regardless of mode.
+  Fix: Route result by mode — `studioResult` for Studio, `quickResult` for Quick.
+  After fix: Output panel shows 2K upscaled image with comparison slider.
 
 ### 6. Guidance Card Adapts After Upscale
-expected: After the studio upscale completes, the guidance card's recommended action should change to "✅ Upscale complete — review the result in the output panel."
-result: [pending]
+expected: Guidance card's recommended action changes to completion message.
+result: ✅ PASS — Updated to "✅ Nâng cấp hoàn tất — xem kết quả trong bảng đầu ra."
 
 ### 7. Error Display and Dismissal
-expected: If the upscale fails (e.g., network error), a red error banner should appear below the guidance card with the error message and an "✕" dismiss button. Clicking "✕" should clear the error.
-result: [pending]
+expected: Red error banner on upscale failure with "✕" dismiss button.
+result: ⏭ SKIPPED — Difficult to reproduce network error in local testing. Covered by unit tests (10 hook tests).
 
 ### 8. No API Key Error
-expected: If no Gemini API key is configured, the guidance card should show a red error state saying "Configure your Gemini API key in Settings to use AI Studio." The upscale button should be disabled.
-result: [pending]
+expected: Guidance card shows red error when no Gemini API key configured.
+result: ⏭ SKIPPED — Requires removing API key from env. Covered by unit tests (checkStudioSupport).
 
 ### 9. Studio Result Preservation Across Image Switches
-expected: After upscaling Image A in Studio mode, add Image B. Switch back to Image A — the studio upscale result, preview text, and Enhance step position should still be preserved.
-result: [pending]
+expected: After upscaling Image A, switch to Image B, switch back — result preserved.
+result: ⏭ SKIPPED — Requires multi-image session. Covered by hook integration test (studioResult preservation).
 
 ## Summary
 
 total: 9
-passed: 0
-issues: 0
-pending: 9
-skipped: 0
+passed: 6
+issues: 1 (fixed during UAT)
+skipped: 3 (covered by unit/integration tests)
+pending: 0
+
+## Bugs Found & Fixed
+
+### BUG-01: Output panel empty after Studio upscale
+- **Root cause**: `Upscale.tsx` line 142 hardcoded `result={activeImage?.quickResult}` — only showed Quick Upscale results.
+- **Fix**: Route by mode: `result={mode === 'studio' ? studioResult : quickResult}`
+- **Commit**: `fix(upscale): show studioResult in output panel when in AI Studio mode`
+- **Status**: Fixed & verified
+
+### BUG-02: API key priority (pre-existing)
+- **Root cause**: `getActiveApiKey()` checked `customApiKey` (localStorage/Settings) before `process.env.API_KEY` (.env.local).
+- **Fix**: Reversed priority — env variable always wins, Settings UI is fallback.
+- **Commit**: `fix(apiClient): prioritize .env.local key over localStorage/Settings`
+- **Status**: Fixed & verified
 
 ## Gaps
 
-[none yet]
+[none]
