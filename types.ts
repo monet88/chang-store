@@ -115,3 +115,48 @@ export interface WatermarkConfig {
   /** Number of concurrent processing jobs (1-5) */
   concurrency: number;
 }
+
+// ============================================
+// UPSCALE SESSION TYPES
+// ============================================
+
+/** Mode toggle for the Upscale workspace */
+export type UpscaleMode = 'quick' | 'studio';
+
+/** Hardcoded Quick Upscale models — only these support imageSize for 2K/4K */
+export const UPSCALE_QUICK_MODELS = ['gemini-3.1-flash-image-preview', 'gemini-3-pro-image-preview'] as const;
+export type UpscaleQuickModel = typeof UPSCALE_QUICK_MODELS[number];
+
+/** Short UI labels for Quick Upscale models */
+export const UPSCALE_QUICK_MODEL_LABELS: Record<UpscaleQuickModel, string> = {
+  'gemini-3.1-flash-image-preview': 'Flash',
+  'gemini-3-pro-image-preview': 'Pro',
+};
+
+/** Default Quick Upscale model */
+export const DEFAULT_UPSCALE_QUICK_MODEL: UpscaleQuickModel = 'gemini-3.1-flash-image-preview';
+
+/** AI Studio guided steps — unlocked sequentially */
+export enum UpscaleStudioStep {
+  Analyze = 'analyze',
+  Enhance = 'enhance',
+  Export = 'export',
+}
+
+/** Per-image session state stored in the session array */
+export interface UpscaleSessionImage {
+  /** Stable identifier (crypto.randomUUID) */
+  id: string;
+  /** Original uploaded image */
+  original: ImageFile;
+  /** Quick Upscale result (null until upscaled) */
+  quickResult: ImageFile | null;
+  /** Selected quality for Quick Upscale */
+  quickQuality: UpscaleQuality;
+  /** Selected model for Quick Upscale (Flash or Pro) */
+  quickModel: UpscaleQuickModel;
+  /** Current AI Studio step for this image */
+  studioStep: UpscaleStudioStep;
+  /** Timestamp for ordering — newest first in rail */
+  addedAt: number;
+}
