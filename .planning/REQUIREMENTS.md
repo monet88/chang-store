@@ -61,23 +61,23 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| UPS-01 | Phase 1 | Pending |
-| UPS-02 | Phase 2 | Pending |
-| UPS-03 | Phase 1 | Pending |
-| UPS-04 | Phase 1 | Pending |
-| UPS-05 | Phase 1 | Pending |
-| UPS-06 | Phase 2 | Pending |
-| UPS-07 | Phase 4 | Pending |
-| ANL-01 | Phase 3 | Pending |
-| ANL-02 | Phase 3 | Pending |
-| PRM-01 | Phase 3 | Pending |
-| PRM-02 | Phase 3 | Pending |
-| PRM-03 | Phase 3 | Pending |
-| PRV-01 | Phase 4 | Pending |
-| PRV-02 | Phase 4 | Pending |
-| GDE-01 | Phase 4 | Pending |
-| GDE-02 | Phase 4 | Pending |
-| REL-01 | Phase 4 | Pending |
+| UPS-01 | Phase 5 | Pending |
+| UPS-02 | Phase 5 | Pending |
+| UPS-03 | Phase 5 | Pending |
+| UPS-04 | Phase 5 | Pending |
+| UPS-05 | Phase 5 | Pending |
+| UPS-06 | Phase 5 | Pending |
+| UPS-07 | Phase 5 | Pending |
+| ANL-01 | Phase 5 | Pending |
+| ANL-02 | Phase 5 | Pending |
+| PRM-01 | Phase 5 | Pending |
+| PRM-02 | Phase 5 | Pending |
+| PRM-03 | Phase 5 | Pending |
+| PRV-01 | Phase 5 | Pending |
+| PRV-02 | Phase 5 | Pending |
+| GDE-01 | Phase 5 | Pending |
+| GDE-02 | Phase 5 | Pending |
+| REL-01 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total

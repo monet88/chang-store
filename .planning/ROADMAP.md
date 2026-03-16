@@ -14,6 +14,7 @@ This milestone upgrades Upscale from a single-image utility into a self-containe
 - [ ] **Phase 2: Quick Upscale Quality Lane** - Lock in the preservation-first quick path with 2K/4K options and comparison UX
 - [ ] **Phase 3: AI Studio Analysis And Prompt Package** - Add Gemini-driven structured analysis and per-image prompt generation
 - [ ] **Phase 4: AI Studio Inline Upscale Preview Guidance And Reliability** - Complete inline prompt-based upscale, preview simulation, Gemini guidance, and unsupported-model resilience
+- [ ] **Phase 5: Nyquist Validation & Verification Compliance** - Retroactively create missing verification and validation artifacts to close milestone gaps
 
 ## Phase Details
 
@@ -74,6 +75,12 @@ Plans:
 
 Plans:
 - [x] 04-01: Add AI Studio inline upscale, preview, Gemini guidance, and reliability handling
+
+### Phase 5: Nyquist Validation & Verification Compliance
+**Goal**: Retroactively create missing validation and verification artifacts for all phases to close milestone audit requirements gaps.
+**Depends on**: Phase 4
+**Requirements**: [UPS-01, UPS-02, UPS-03, UPS-04, UPS-05, UPS-06, UPS-07, ANL-01, ANL-02, PRM-01, PRM-02, PRM-03, PRV-01, PRV-02, GDE-01, GDE-02, REL-01]
+**Gap Closure**: Closes gaps from audit (missing VERIFICATION.md, VALIDATION.md, and SUMMARY frontmatters).
 
 ## Progress
 
