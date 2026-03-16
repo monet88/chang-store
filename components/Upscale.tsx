@@ -139,7 +139,7 @@ const Upscale: React.FC = () => {
       <div className="lg:sticky lg:top-8 h-full relative">
         <UpscaleOutputPanel
           original={activeImage?.original ?? null}
-          result={activeImage?.quickResult ?? null}
+          result={mode === 'studio' ? (activeImage?.studioResult ?? null) : (activeImage?.quickResult ?? null)}
           quality={activeImage?.quickQuality}
           model={activeImage?.quickModel}
           isLoading={isLoading}
