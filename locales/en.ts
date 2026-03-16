@@ -559,9 +559,43 @@ export const en = {
     uploadTitle: 'Upload Image to Upscale',
     generateButton: 'Upscale Image',
     generateAgainButton: 'Upscale Again',
+    reupscaleButton: 'Re-upscale ({{quality}} · {{model}})',
     outputPanelDescription: 'Upload an image and press "Upscale Image" to see the result.',
     comparisonTitle: 'Upscale Comparison',
     qualityLabel: 'Output Quality',
+    modelLabel: 'Model',
+    // Confirmation dialog
+    confirmReupscale: {
+      title: 'Replace Current Result?',
+      message: 'This will replace your current upscaled image. Continue?',
+      confirm: 'Re-upscale',
+      cancel: 'Cancel',
+    },
+    // Error auto-suggestions
+    suggestion: {
+      trySwitchModel: 'Try switching to Pro model for better results',
+      tryDifferentSettings: 'Try a different quality setting or retry',
+      checkConnectionRetry: 'Check your connection and retry',
+    },
+    // Result metadata
+    metadata: {
+      resolution: 'Resolution',
+      fileSize: 'File Size',
+    },
+    // Mode switch
+    modeQuick: 'Quick Upscale',
+    modeStudio: 'AI Studio',
+    // Session image rail
+    selectImage: 'Select this image',
+    sessionImageAlt: 'Session image thumbnail',
+    removeImage: 'Remove this image',
+    addImage: 'Upload another image',
+    // AI Studio step shell
+    studioStepAnalyze: 'Analyze',
+    studioStepEnhance: 'Enhance',
+    studioStepExport: 'Export',
+    studioUploadFirst: 'Upload an image to begin AI Studio workflow.',
+    studioComingSoon: 'Full AI Studio tools coming soon.',
   },
   imageComparator: {
     before: 'Before',

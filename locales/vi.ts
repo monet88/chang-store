@@ -561,9 +561,43 @@ export const vi: Translation = {
     uploadTitle: 'Tải ảnh lên để Nâng cấp',
     generateButton: 'Nâng cấp ảnh',
     generateAgainButton: 'Nâng cấp lại',
+    reupscaleButton: 'Nâng cấp lại ({{quality}} · {{model}})',
     outputPanelDescription: 'Tải ảnh lên và nhấn "Nâng cấp ảnh" để xem kết quả.',
     comparisonTitle: 'So sánh Nâng cấp',
     qualityLabel: 'Chất lượng đầu ra',
+    modelLabel: 'Mô hình',
+    // Confirmation dialog
+    confirmReupscale: {
+      title: 'Thay thế Kết quả Hiện tại?',
+      message: 'Thao tác này sẽ thay thế ảnh đã nâng cấp. Tiếp tục?',
+      confirm: 'Nâng cấp lại',
+      cancel: 'Hủy',
+    },
+    // Error auto-suggestions
+    suggestion: {
+      trySwitchModel: 'Thử chuyển sang mô hình Pro để kết quả tốt hơn',
+      tryDifferentSettings: 'Thử cài đặt chất lượng khác hoặc thử lại',
+      checkConnectionRetry: 'Kiểm tra kết nối và thử lại',
+    },
+    // Result metadata
+    metadata: {
+      resolution: 'Độ phân giải',
+      fileSize: 'Kích thước',
+    },
+    // Mode switch
+    modeQuick: 'Nâng cấp Nhanh',
+    modeStudio: 'AI Studio',
+    // Session image rail
+    selectImage: 'Chọn ảnh này',
+    sessionImageAlt: 'Ảnh thu nhỏ trong phiên',
+    removeImage: 'Xóa ảnh này',
+    addImage: 'Tải thêm ảnh',
+    // AI Studio step shell
+    studioStepAnalyze: 'Phân tích',
+    studioStepEnhance: 'Nâng cao',
+    studioStepExport: 'Xuất',
+    studioUploadFirst: 'Tải ảnh lên để bắt đầu quy trình AI Studio.',
+    studioComingSoon: 'Công cụ AI Studio đầy đủ sắp ra mắt.',
   },
   imageComparator: {
     before: 'Trước',
