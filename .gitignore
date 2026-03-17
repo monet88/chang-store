@@ -33,31 +33,8 @@ test-chat-service.mjs
 test-*.ts
 test-*.mjs
 
-# Claude context cache
-.claude/context/
-
-# Git worktrees (local)
-.worktrees/
-
 # Tauri build artifacts
 src-tauri/target/
-
-# bv (beads viewer) local config and caches
-.bv/
-.beads/
-.osgrep
-
-# Local agent/tooling artifacts
-.agent/
-.ck/
-.claude/
-.codex/
-.cursor/
-.github/
-.opencode/
-.serena/
-.sisyphus/
-.skillsrc
 
 # TypeScript build cache
 *.tsbuildinfo
@@ -75,6 +52,3 @@ scripts/local-model-smoke-test.mjs
 nul
 docs/plans/*
 opencode.json
-# Gemini CLI settings (contains user-specific config)
-.gemini/
-.cursorrules
