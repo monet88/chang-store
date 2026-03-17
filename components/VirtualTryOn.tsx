@@ -80,8 +80,9 @@ const VirtualTryOn: React.FC = () => {
           },
           integrationRules: [
             "Completely remove the original outfit from the Subject Image; do NOT blend or reuse old clothing elements.",
-            "Clothing must fit the subject’s body naturally, aligned with pose and proportions.",
+            "Clothing must fit the subject's body naturally, aligned with pose and proportions.",
             "Respect garment construction from the Clothing Source (neckline, sleeve style, hem length, waistband height, silhouette, fabric drape, decorative details).",
+            "CRITICAL STYLING RULE: Tops, shirts, and blouses MUST always be worn UNTUCKED — hanging naturally OUTSIDE the pants/skirt waistband. NEVER tuck any top into the bottom garment. The hem of the top should drape freely over the waistline, showing natural fabric fall. This applies to ALL top garments regardless of style.",
             "Preserve occlusions: keep hands, hair strands, accessories (like bags or cups), and natural shadows in front of the new outfit.",
             "Match lighting, shadows, and color grading of the Subject Image for a seamless result.",
             "Ensure correct scale and orientation of patterns from the Clothing Source (no mirroring, shrinking, duplication, or distortions).",
@@ -96,6 +97,7 @@ const VirtualTryOn: React.FC = () => {
           },
           strictNegativeConstraints: [
             "Do NOT add or keep any parts of the original outfit.",
+            "Do NOT tuck tops/shirts/blouses into pants or skirts — tops must ALWAYS hang freely outside the waistband.",
             "Do NOT add text, logos, labels, watermarks, or extra people.",
             "Do NOT distort body shape, face, or hairstyle.",
             "The final output must be clean, photorealistic, high-resolution (2K), and professional-grade.",
