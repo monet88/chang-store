@@ -5,7 +5,7 @@
  * without changing any prompt semantics. Locks current structure for safe refactoring.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, test } from 'vitest';
 import { buildVirtualTryOnPrompt, VirtualTryOnFormState } from '@/utils/virtual-try-on-prompt-builder';
 
 describe('buildVirtualTryOnPrompt', () => {
@@ -323,6 +323,40 @@ describe('buildVirtualTryOnPrompt', () => {
       const prompt = buildVirtualTryOnPrompt(stateWithTuckInstruction);
       expect(prompt).toContain('MUST always be worn UNTUCKED');
       expect(prompt).toContain('tuck the shirt into the pants');
+    });
+  });
+
+  describe('supported matrix — top + bottom combinations', () => {
+    it('pants use-case — dual-garment waistband overlap language is present', () => {
+      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
+      expect(prompt).toMatch(/drapes over|overlaps the waistband/);
+    });
+
+    it('skirt use-case — dual-garment role binding (Image 2 top, Image 3 bottom) is present', () => {
+      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
+      expect(prompt).toContain('Image 2 (Top Garment Image)');
+      expect(prompt).toContain('Image 3 (Bottom Garment Image)');
+    });
+
+    it('shorts use-case — hem preservation rule is present', () => {
+      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
+      expect(prompt).toContain('Preserve the source hem length of the top exactly');
+    });
+
+    test.each([
+      ['pants scenario', { subjectImageCount: 1, clothingImageCount: 2, extraPrompt: '', backgroundPrompt: '', numImages: 1 }],
+      ['skirt scenario', { subjectImageCount: 1, clothingImageCount: 2, extraPrompt: '', backgroundPrompt: '', numImages: 1 }],
+      ['shorts scenario', { subjectImageCount: 1, clothingImageCount: 2, extraPrompt: '', backgroundPrompt: '', numImages: 1 }],
+    ])('%s — dual-garment UNTUCKED rule is present', (_label, formState) => {
+      const prompt = buildVirtualTryOnPrompt(formState);
+      expect(prompt).toContain('MUST always be worn UNTUCKED');
+    });
+
+    it('builder does not mention "skirt" or "shorts" by name in the dual-garment layering rule', () => {
+      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
+      const dualGarmentSection = prompt.match(/DUAL-GARMENT LAYERING RULE:.*?(?=\n-|\n##|$)/s)?.[0] ?? '';
+      expect(dualGarmentSection).not.toMatch(/\bshorts\b/i);
+      expect(dualGarmentSection).not.toMatch(/\bskirt\b/i);
     });
   });
 });
