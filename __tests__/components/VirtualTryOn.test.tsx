@@ -192,12 +192,9 @@ describe('VirtualTryOn Component', () => {
     expect(textarea?.value).toBe('professional lighting');
   });
 
-  it('should render aspect ratio and resolution selectors', () => {
+  it('should render ImageOptionsPanel with aspect ratio and resolution selectors', () => {
     render(<VirtualTryOn />);
-    // These are part of ImageOptionsPanel child component
-    // Just verify the component renders without errors
-    const leftPanel = document.querySelector('.flex.flex-col.gap-6');
-    expect(leftPanel).toBeInTheDocument();
+    expect(screen.getByTestId('image-options-panel')).toBeInTheDocument();
   });
 
   it('should send dual-garment builder prompt to editImage after subject and 2 clothing uploads', async () => {

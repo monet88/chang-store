@@ -56,12 +56,19 @@ export function useFeatureName() {
 }
 ```
 
-### Feature rendering uses CSS display toggle (not conditional mount) to preserve state:
-```tsx
-<div style={{ display: activeFeature === Feature.TryOn ? 'block' : 'none' }}>
-  <VirtualTryOn />
-</div>
+### Feature rendering uses conditional mount via switch statement:
+```typescript
+const renderActiveFeature = () => {
+  switch (activeFeature) {
+    case Feature.TryOn:
+      return <VirtualTryOn key="try-on" />;
+    case Feature.Lookbook:
+      return <LookbookGenerator key="lookbook" />;
+    // ... other features
+  }
+};
 ```
+Each `key` prop forces full component remount on feature switch (state not preserved across tabs).
 
 ## Project-Specific Notes
 
