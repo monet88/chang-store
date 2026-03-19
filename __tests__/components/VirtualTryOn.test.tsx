@@ -10,7 +10,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import type { ImageFile } from '../../types';
 import {
   mockUseLanguage,
   mockUseImageGallery,
@@ -37,6 +39,40 @@ vi.mock('../../contexts/LanguageContext', () => mockUseLanguage());
 vi.mock('../../contexts/ImageGalleryContext', () => mockUseImageGallery());
 vi.mock('../../contexts/ApiProviderContext', () => mockUseApi());
 vi.mock('../../contexts/ImageViewerContext', () => mockUseImageViewer());
+
+vi.mock('../../components/Tooltip', () => ({
+  default: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../components/HoverableImage', () => ({
+  default: () => <div data-testid="hoverable-image" />,
+}));
+
+vi.mock('../../components/ImageOptionsPanel', () => ({
+  default: () => <div data-testid="image-options-panel" />,
+}));
+
+vi.mock('../../components/ImageUploader', () => ({
+  default: ({
+    onImageUpload,
+    id,
+    title,
+  }: {
+    onImageUpload: (file: ImageFile | null) => void;
+    id: string;
+    title?: string;
+  }) => (
+    <div>
+      {title ? <span>{title}</span> : null}
+      <button
+        data-testid={`upload-${id}`}
+        onClick={() => onImageUpload({ base64: 'fake-base64', mimeType: 'image/png' })}
+      >
+        Upload {id}
+      </button>
+    </div>
+  ),
+}));
 
 // Import component after mocks
 import VirtualTryOn from '../../components/VirtualTryOn';
@@ -162,5 +198,29 @@ describe('VirtualTryOn Component', () => {
     // Just verify the component renders without errors
     const leftPanel = document.querySelector('.flex.flex-col.gap-6');
     expect(leftPanel).toBeInTheDocument();
+  });
+
+  it('should send dual-garment builder prompt to editImage after subject and 2 clothing uploads', async () => {
+    render(<VirtualTryOn />);
+
+    fireEvent.click(screen.getByTestId('upload-subject-upload'));
+    fireEvent.click(screen.getAllByTestId(/upload-clothing-/)[0]);
+
+    fireEvent.click(screen.getByText('virtualTryOn.addItem'));
+    fireEvent.click(screen.getAllByTestId(/upload-clothing-/)[1]);
+
+    const generateButton = screen.getByText('virtualTryOn.generateButton').closest('button');
+    expect(generateButton).toBeEnabled();
+    fireEvent.click(generateButton!);
+
+    await waitFor(() => {
+      expect(editImage).toHaveBeenCalledTimes(1);
+    });
+
+    const [requestPayload] = vi.mocked(editImage).mock.calls[0];
+    expect(requestPayload.images).toHaveLength(3);
+    expect(requestPayload.prompt).toContain('Image 2 (Top Garment Image)');
+    expect(requestPayload.prompt).toContain('Image 3 (Bottom Garment Image)');
+    expect(requestPayload.prompt).toContain('MUST always be worn UNTUCKED');
   });
 });
