@@ -344,12 +344,13 @@ describe('buildVirtualTryOnPrompt', () => {
     });
 
     test.each([
-      ['pants scenario', { subjectImageCount: 1, clothingImageCount: 2, extraPrompt: '', backgroundPrompt: '', numImages: 1 }],
-      ['skirt scenario', { subjectImageCount: 1, clothingImageCount: 2, extraPrompt: '', backgroundPrompt: '', numImages: 1 }],
-      ['shorts scenario', { subjectImageCount: 1, clothingImageCount: 2, extraPrompt: '', backgroundPrompt: '', numImages: 1 }],
-    ])('%s — dual-garment UNTUCKED rule is present', (_label, formState) => {
+      ['pants scenario', { ...dualGarmentFormState, extraPrompt: 'model wearing the pants casually' }],
+      ['skirt scenario', { ...dualGarmentFormState, extraPrompt: 'model wearing the skirt formally' }],
+      ['shorts scenario', { ...dualGarmentFormState, extraPrompt: 'model wearing the shorts outdoors' }],
+    ])('%s — UNTUCKED rule persists regardless of extraPrompt', (_label, formState) => {
       const prompt = buildVirtualTryOnPrompt(formState);
       expect(prompt).toContain('MUST always be worn UNTUCKED');
+      expect(prompt).toContain(formState.extraPrompt);
     });
 
     it('builder does not mention "skirt" or "shorts" by name in the dual-garment layering rule', () => {

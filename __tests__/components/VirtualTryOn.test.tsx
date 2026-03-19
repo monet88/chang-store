@@ -94,18 +94,13 @@ describe('VirtualTryOn Component', () => {
     expect(screen.getByText('virtualTryOn.outputPanelDescription')).toBeInTheDocument();
   });
 
-  it('should call editImage when generate button clicked with subject and clothing', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([
-      { base64: 'result', mimeType: 'image/png' }
-    ]);
-
+  it('should not call editImage when no images are uploaded', () => {
     render(<VirtualTryOn />);
-
-    // The test framework limitation: we can't easily simulate file uploads via ImageUploader
-    // This would require File objects, canvas operations, etc.
-    // Instead, we verify the component structure and mock behavior
+    // Generate button should be disabled when no images uploaded
     const generateButton = screen.getByText('virtualTryOn.generateButton').closest('button');
     expect(generateButton).toBeDisabled();
+    // Verify editImage was NOT called (no spurious calls on render)
+    expect(editImage).not.toHaveBeenCalled();
   });
 
   it('should render add item button for multiple clothing', () => {
