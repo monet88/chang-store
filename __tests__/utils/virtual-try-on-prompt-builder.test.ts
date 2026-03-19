@@ -11,6 +11,14 @@ import { buildVirtualTryOnPrompt, VirtualTryOnFormState } from '@/utils/virtual-
 describe('buildVirtualTryOnPrompt', () => {
   const defaultFormState: VirtualTryOnFormState = {
     subjectImageCount: 1,
+    clothingImageCount: 1,
+    extraPrompt: '',
+    backgroundPrompt: '',
+    numImages: 1,
+  };
+
+  const dualGarmentFormState: VirtualTryOnFormState = {
+    subjectImageCount: 1,
     clothingImageCount: 2,
     extraPrompt: '',
     backgroundPrompt: '',
@@ -277,6 +285,44 @@ describe('buildVirtualTryOnPrompt', () => {
       // These are internal form state fields, not part of the output
       expect(prompt).not.toContain('subjectImageCount');
       expect(prompt).not.toContain('clothingImageCount');
+    });
+  });
+
+  describe('dual-garment waist-layering rules', () => {
+    it('dual-garment (clothingImageCount=2) binds Image 2 as top, Image 3 as bottom', () => {
+      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
+      expect(prompt).toContain('Image 2 (Top Garment Image)');
+      expect(prompt).toContain('Image 3 (Bottom Garment Image)');
+    });
+
+    it('dual-garment adds waistband-overlap language', () => {
+      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
+      expect(prompt).toMatch(/drapes over|overlaps the waistband/);
+    });
+
+    it('dual-garment preserves source hem length', () => {
+      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
+      expect(prompt).toContain('Preserve the source hem length of the top exactly');
+    });
+
+    it('single-garment (clothingImageCount=1) does not add dual-garment role binding', () => {
+      const prompt = buildVirtualTryOnPrompt(defaultFormState);
+      expect(prompt).not.toContain('Image 2 (Top Garment Image)');
+    });
+
+    it('single-garment does not claim bottom garment exists', () => {
+      const prompt = buildVirtualTryOnPrompt(defaultFormState);
+      expect(prompt).not.toContain('Image 3 (Bottom Garment Image)');
+    });
+
+    it('extraPrompt cannot override mandatory untucked rule', () => {
+      const stateWithTuckInstruction = {
+        ...dualGarmentFormState,
+        extraPrompt: 'tuck the shirt into the pants',
+      };
+      const prompt = buildVirtualTryOnPrompt(stateWithTuckInstruction);
+      expect(prompt).toContain('MUST always be worn UNTUCKED');
+      expect(prompt).toContain('tuck the shirt into the pants');
     });
   });
 });

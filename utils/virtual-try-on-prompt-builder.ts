@@ -28,8 +28,12 @@ export const buildVirtualTryOnPrompt = (
 ): string => {
   const {
     backgroundPrompt,
+    clothingImageCount,
     extraPrompt,
   } = formState;
+
+  // Dual-garment path: exactly 2 clothing images → slot 1 = top, slot 2 = bottom
+  const isDualGarment = clothingImageCount === 2;
 
   const newPoseInstruction = `Generate a new dynamic fashion pose that complements the background style and best showcases the outfit from the Clothing Source Image(s):
 - Choose a pose that is confident, chic, and magazine-cover ready — never stiff or awkward.
@@ -39,8 +43,18 @@ export const buildVirtualTryOnPrompt = (
 - Adjust the pose to enhance the mood and context of the background (e.g., relaxed and inviting in a living room or sofa scene, poised and strong in a minimalist studio, playful and lively in lifestyle settings).
 - Always avoid robotic, unnatural, or stiff gestures.`;
 
+  // IMAGE ROLES — dual-garment binds Image 2 = top, Image 3 = bottom explicitly
+  const imageRoles = isDualGarment
+    ? "Image 1 (Subject Image): the person/model. Image 2 (Top Garment Image): the top garment to apply (uploaded first). Image 3 (Bottom Garment Image): the bottom garment to apply (uploaded second)."
+    : "The **first image** is the 'Subject Image' (the person). All subsequent images are 'Clothing Source Images' (the garments to apply).";
+
+  // Dual-garment waistband-overlap rule (only injected when exactly 2 clothing images)
+  const dualGarmentWaistRule = isDualGarment
+    ? "DUAL-GARMENT LAYERING RULE: The top garment (Image 2) must be worn OUTSIDE the waistband of the bottom garment (Image 3). The lower hem of the top drapes over and overlaps the waistband of the bottom garment. The bottom garment stays underneath the top at the waist region. Preserve the source hem length of the top exactly — if the source top is cropped, it remains cropped, but must still sit outside (not inside) the bottom's waistband."
+    : null;
+
   const promptStructure = {
-    imageRoles: "The **first image** is the 'Subject Image' (the person). All subsequent images are 'Clothing Source Images' (the garments to apply).",
+    imageRoles,
     absoluteHighestPriority: "The generated image must precisely preserve the person's facial features, hairstyle, body shape, skin tone, and proportions from the Subject Image. The resemblance must be unmistakable and identical.",
     task: {
       description: "Replace the outfit on the person in the Subject Image with the outfit provided in the Clothing Source Image(s). Use the clothing source(s) as the single source of truth for garment design, color, pattern, silhouette, and fabric texture.",
@@ -50,6 +64,7 @@ export const buildVirtualTryOnPrompt = (
       "Clothing must fit the subject's body naturally, aligned with pose and proportions.",
       "Respect garment construction from the Clothing Source (neckline, sleeve style, hem length, waistband height, silhouette, fabric drape, decorative details).",
       "CRITICAL STYLING RULE: Tops, shirts, and blouses MUST always be worn UNTUCKED — hanging naturally OUTSIDE the pants/skirt waistband. NEVER tuck any top into the bottom garment. The hem of the top should drape freely over the waistline, showing natural fabric fall. This applies to ALL top garments regardless of style.",
+      ...(dualGarmentWaistRule ? [dualGarmentWaistRule] : []),
       "Preserve occlusions: keep hands, hair strands, accessories (like bags or cups), and natural shadows in front of the new outfit.",
       "Match lighting, shadows, and color grading of the Subject Image for a seamless result.",
       "Ensure correct scale and orientation of patterns from the Clothing Source (no mirroring, shrinking, duplication, or distortions).",
