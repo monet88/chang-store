@@ -1,8 +1,4 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
+# Project Overview
 
 AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with multiple AI backends (Google Gemini, Local Provider, Anti Provider). Features include virtual try-on, lookbook generation, background replacement, pose changing, upscaling, image editing, and more.
 
@@ -56,19 +52,12 @@ export function useFeatureName() {
 }
 ```
 
-### Feature rendering uses conditional mount via switch statement:
-```typescript
-const renderActiveFeature = () => {
-  switch (activeFeature) {
-    case Feature.TryOn:
-      return <VirtualTryOn key="try-on" />;
-    case Feature.Lookbook:
-      return <LookbookGenerator key="lookbook" />;
-    // ... other features
-  }
-};
+### Feature rendering uses CSS display toggle (not conditional mount) to preserve state:
+```tsx
+<div style={{ display: activeFeature === Feature.TryOn ? 'block' : 'none' }}>
+  <VirtualTryOn />
+</div>
 ```
-Each `key` prop forces full component remount on feature switch (state not preserved across tabs).
 
 ## Project-Specific Notes
 

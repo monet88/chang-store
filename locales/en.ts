@@ -131,6 +131,7 @@ export const en = {
     step1: 'Step 1: Upload Images',
     subjectImageTitle: 'Subject Image (Person)',
     clothingItemTitle: 'Clothing Item #{{index}}',
+    clothingUploadHint: 'For dual-garment layering: upload top garment in slot 1, bottom garment in slot 2',
     addItem: 'Add Another Item',
     step2: 'Step 2: Customize (Optional)',
     backgroundPromptLabel: 'Describe Background Changes',

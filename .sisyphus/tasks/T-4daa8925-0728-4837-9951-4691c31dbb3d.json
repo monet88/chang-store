@@ -1,9 +1,0 @@
-{
-  "id": "T-4daa8925-0728-4837-9951-4691c31dbb3d",
-  "subject": "Verify lsp diagnostics on all changed files",
-  "description": "Zero TS errors in changed files (SettingsModal.tsx, watermark-prompts.ts, ResolutionSelector.tsx, modelRegistry.ts). All pre-existing errors are unrelated.",
-  "status": "completed",
-  "blocks": [],
-  "blockedBy": [],
-  "threadID": "ses_353420c35ffeNHaqPcBgRic05d"
-}

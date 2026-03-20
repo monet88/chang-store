@@ -1,9 +1,0 @@
-{
-  "id": "T-b18bc17f-06ca-48b7-ae2f-89498383a1b2",
-  "subject": "Add gemini-3.1 pattern to modelRegistry.ts (supports imageSize + aspectRatio)",
-  "description": "Pattern /gemini-3/ already matches gemini-3.1-flash-image-preview. No change needed.",
-  "status": "completed",
-  "blocks": [],
-  "blockedBy": [],
-  "threadID": "ses_353420c35ffeNHaqPcBgRic05d"
-}
