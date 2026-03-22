@@ -76,6 +76,44 @@ export type ImageGenerateModel = string;
 export type TextGenerateModel = string;
 
 // ============================================
+// SHARED BATCH PROCESSING TYPES
+// ============================================
+
+/** Shared processing status for feature-local batch image jobs */
+export type BatchImageStatus = 'pending' | 'processing' | 'completed' | 'error';
+
+/** Shared clothing uploader state for Virtual Try-On */
+export interface VirtualTryOnClothingItem {
+  id: number;
+  image: ImageFile | null;
+}
+
+/** One subject image job inside a Virtual Try-On batch run */
+export interface VirtualTryOnBatchItem {
+  id: string;
+  subjectImage: ImageFile;
+  status: BatchImageStatus;
+  results: ImageFile[];
+  error?: string;
+}
+
+/** Shared reference uploader state for Clothing Transfer */
+export interface ClothingTransferReferenceItem {
+  id: number;
+  image: ImageFile | null;
+  label: string;
+}
+
+/** One concept image job inside a Clothing Transfer batch run */
+export interface ClothingTransferBatchItem {
+  id: string;
+  conceptImage: ImageFile;
+  status: BatchImageStatus;
+  results: ImageFile[];
+  error?: string;
+}
+
+// ============================================
 // WATERMARK REMOVER TYPES
 // ============================================
 
