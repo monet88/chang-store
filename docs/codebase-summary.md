@@ -1,20 +1,22 @@
 # Chang-Store: Codebase Summary
 
-**Last Updated:** 2026-01-04
+**Last Updated:** 2026-03-17
 
 ## 1. Directory Structure
 
 ```
 Chang-Store/
-├── components/           # React UI components (30+ files)
-│   ├── modals/          # Modal dialogs (6 files)
-│   └── [Feature].tsx    # Feature components
-├── contexts/            # React Context providers (4 files)
-├── hooks/               # Custom hooks per feature (13 files)
-├── services/            # API service layer (7 files)
-│   └── gemini/          # Gemini-specific services
+├── components/           # React UI components (64 files)
+│   ├── upscale/         # Upscaling features
+│   ├── shared/          # Shared UI components
+│   ├── modals/          # Modal dialogs (5 files)
+│   └── [Feature].tsx    # Feature components (14 main features)
+├── contexts/            # React Context providers (5 files)
+├── hooks/               # Custom hooks per feature (15 files)
+├── services/            # API service layer (13 files)
+│   └── gemini/          # Gemini-specific services (chat, image, text, video)
 ├── locales/             # i18n translations (2 files)
-├── utils/               # Utility functions (3 files)
+├── utils/               # Utility functions (12 files)
 │   └── lookbookPromptBuilder.ts  # Pure prompt generation functions
 ├── App.tsx              # Root component with provider stack
 ├── index.tsx            # Entry point
@@ -27,22 +29,23 @@ Chang-Store/
 
 | File | Purpose |
 |------|---------|
-| `index.tsx` | React DOM render, mounts `<App />` |
+| `index.tsx` | React 19 DOM render, mounts `<App />` |
 | `App.tsx` | Provider hierarchy, feature routing, global modals |
 
 ### 2.2 Type Definitions
 
 | File | Contents |
 |------|----------|
-| `types.ts` | `Feature` enum, `ImageFile`, `AspectRatio`, `AIVideoAutoModel`, model types |
+| `types.ts` | `Feature` enum, `ImageFile`, `AspectRatio`, model types, specialized interfaces |
 
 ### 2.3 Context Providers
 
 | File | State Managed |
 |------|---------------|
-| `contexts/LanguageContext.tsx` | Current locale, translation function `t()` |
+| `contexts/LanguageContext.tsx` | Current locale (en/vi), translation function `t()` |
 | `contexts/ApiProviderContext.tsx` | API keys, model selection, per-feature model resolution |
-| `contexts/ImageGalleryContext.tsx` | Session image gallery (add/remove/list) |
+| `contexts/GoogleDriveContext.tsx` | OAuth state, token refresh, Drive integration |
+| `contexts/ImageGalleryContext.tsx` | Gallery state with Drive sync + LRU cache |
 | `contexts/ImageViewerContext.tsx` | Fullscreen image viewer state |
 
 ### 2.4 Service Layer
@@ -50,11 +53,11 @@ Chang-Store/
 | File | Responsibility |
 |------|----------------|
 | `services/apiClient.ts` | Gemini SDK initialization, API key management |
-| `services/imageEditingService.ts` | Unified facade routing to Gemini or AIVideoAuto |
+| `services/imageEditingService.ts` | Unified facade routing by model prefix (`local--`, `anti--`, or Gemini) |
 | `services/gemini/image.ts` | Gemini image generation/editing |
 | `services/gemini/text.ts` | Gemini text generation |
 | `services/gemini/video.ts` | Gemini video generation (Veo) |
-| `services/aivideoautoService.ts` | AIVideoAuto API integration |
+| `services/gemini/chat.ts` | Gemini chat session management |
 | `utils/lookbookPromptBuilder.ts` | Pure functions for lookbook prompt generation |
 
 ### 2.5 Feature Components
@@ -62,23 +65,18 @@ Chang-Store/
 | Component | Hook | Description |
 |-----------|------|-------------|
 | `VirtualTryOn.tsx` | `useVirtualTryOn` | Garment overlay on person |
-| `LookbookGenerator.tsx` | - | Orchestrator for lookbook creation (delegates to form/output) |
-| `LookbookForm.tsx` | - | Input UI for lookbook generator (memoized) |
-| `LookbookOutput.tsx` | - | Output display with tabs (main/variations/closeup) |
+| `LookbookGenerator.tsx` | `useLookbook` | Orchestrator for lookbook creation |
 | `BackgroundReplacer.tsx` | `useBackgroundReplacer` | AI background replacement |
 | `PoseChanger.tsx` | `usePoseChanger` | Model pose transformation |
 | `SwapFace.tsx` | `useSwapFace` | Face swap between images |
 | `PhotoAlbumCreator.tsx` | `usePhotoAlbum` | Multi-image album styling |
 | `OutfitAnalysis.tsx` | `useOutfitAnalysis` | Style critique + redesign |
 | `Relight.tsx` | `useRelight` | Lighting adjustment |
-| `Upscale.tsx` | - | Image resolution enhancement |
+| `Upscale.tsx` | `useUpscale` | Image resolution enhancement |
 | `ImageEditor.tsx` | `useImageEditor` | Canvas-based editor (orchestrator) |
-| `ImageEditorCanvas.tsx` | - | Canvas rendering layers (memoized) |
-| `ImageEditorToolbar.tsx` | - | Editing toolbar UI (memoized) |
 | `Inpainting.tsx` | `useInpainting` | Mask-based region editing |
 | `VideoGenerator.tsx` | `useVideoGenerator` | Text/image to video |
 | `GRWMVideoGenerator.tsx` | `useGRWMVideoGenerator` | GRWM video creation |
-| `VideoContinuity.tsx` | - | Multi-scene video (WIP) |
 | `ClothingTransfer.tsx` | `useClothingTransfer` | Transfer clothing item onto a person |
 
 ### 2.6 Shared Components
@@ -86,8 +84,8 @@ Chang-Store/
 | Component | Purpose |
 |-----------|---------|
 | `Header.tsx` | Sidebar navigation, feature selection |
-| `GalleryButton.tsx` / `GalleryModal.tsx` | Session image gallery |
-| `SettingsModal.tsx` | API key configuration, model selection |
+| `GalleryButton.tsx` / `GalleryModal.tsx` | Image gallery with Drive sync |
+| `SettingsModal.tsx` | API key configuration, provider selection (Local/Anti/Google) |
 | `ImageUpload.tsx` | Reusable image upload with preview |
 | `Icons.tsx` | SVG icon library |
 
@@ -95,18 +93,19 @@ Chang-Store/
 
 ```
 App.tsx
-  └── Providers (Language -> Api -> ImageGallery -> ImageViewer)
+  └── Providers (Language -> Api -> GoogleDrive -> ImageGallery -> ImageViewer)
         └── AppContent
               ├── Header (feature selection)
               ├── Feature Components (conditionally rendered)
               ├── GalleryModal (overlay)
               └── SettingsModal (overlay)
 
-Feature Component
-  └── useFeatureHook()
-        ├── useApi() - model selection
+Feature Component (Thin UI)
+  └── useFeatureHook() (Business Logic)
+        ├── useApi() - model selection & prefix routing
         ├── useLanguage() - translations
         ├── useImageGallery() - save results
+        ├── useGoogleDrive() - cloud persistence
         └── imageEditingService - API calls
 ```
 
@@ -114,21 +113,22 @@ Feature Component
 
 1. **User Input** -> Component state (via hook)
 2. **Generation Trigger** -> Hook calls `imageEditingService`
-3. **Service Routing** -> Based on model prefix (`aivideoauto--` or Gemini)
+3. **Service Routing** -> Based on model prefix (`local--`, `anti--`, or Gemini)
 4. **API Response** -> `ImageFile` returned to hook
 5. **State Update** -> Component re-renders with results
-6. **Gallery Save** -> `addImage()` persists to session context
+6. **Gallery Save** -> `addImage()` persists to session context + Google Drive sync
+7. **Persistence** -> LocalStorage for settings/drafts, Drive for images
 
 ## 5. File Statistics
 
 | Directory | File Count | Primary Extension |
 |-----------|------------|-------------------|
-| `components/` | ~47 | `.tsx` |
+| `components/` | 64 | `.tsx` |
 | `hooks/` | 15 | `.ts` |
-| `services/` | 8 | `.ts` |
-| `contexts/` | 4 | `.tsx` |
+| `services/` | 13 | `.ts` |
+| `contexts/` | 5 | `.tsx` |
 | `locales/` | 2 | `.ts` |
-| `utils/` | 3 | `.ts` |
+| `utils/` | 12 | `.ts` |
 
-**Total Source Files:** ~111 (excluding node_modules, tests)
-**Estimated Token Count:** ~205k tokens
+**Total Source Files:** ~115 (excluding node_modules, tests)
+**Estimated Token Count:** ~250k tokens

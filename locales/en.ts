@@ -132,6 +132,7 @@ export const en = {
     subjectImagesTitle: 'Subject Images (Models)',
     subjectImageTitle: 'Subject Image (Person)',
     clothingItemTitle: 'Clothing Item #{{index}}',
+    clothingUploadHint: 'For dual-garment layering: upload top garment in slot 1, bottom garment in slot 2',
     addItem: 'Add Another Item',
     sharedOutfitHint: 'Upload one or two outfit images. The same outfit set will be reused for every subject image in this batch.',
     step2: 'Step 2: Customize (Optional)',

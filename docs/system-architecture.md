@@ -1,6 +1,6 @@
 # Chang-Store: System Architecture
 
-**Last Updated:** 2026-01-01
+**Last Updated:** 2026-03-17
 
 ## 1. High-Level Architecture
 
@@ -13,7 +13,7 @@
 │  │                         PRESENTATION LAYER                           │    │
 │  │  ┌──────────┐  ┌──────────────────────────────────────────────────┐ │    │
 │  │  │  Header  │  │              Feature Components                   │ │    │
-│  │  │ (NavBar) │  │  VirtualTryOn | Lookbook | Background | Pose | ClothingTransfer ... │ │    │
+│  │  │ (NavBar) │  │  VirtualTryOn | Lookbook | Background | Pose | ...  │ │    │
 │  │  └──────────┘  └──────────────────────────────────────────────────┘ │    │
 │  │  ┌─────────────────────────────────────────────────────────────────┐│    │
 │  │  │              Modals: Gallery | Settings | PoseLibrary           ││    │
@@ -24,7 +24,7 @@
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │                          HOOKS LAYER                                 │    │
 │  │  useVirtualTryOn | useLookbook | useBackgroundReplacer | ...        │    │
-│  │  (State Management + Business Logic)                                 │    │
+│  │  (State Management + Business Logic + Drive Sync)                    │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                                    │                                         │
 │                                    ▼                                         │
@@ -33,14 +33,23 @@
 │  │  ┌──────────────────────────────────────────────────────────────┐   │    │
 │  │  │            imageEditingService (Unified Facade)               │   │    │
 │  │  └──────────────────────────────────────────────────────────────┘   │    │
-│  │              │                                    │                  │    │
-│  │              ▼                                    ▼                  │    │
-│  │  ┌────────────────────┐              ┌────────────────────────┐     │    │
-│  │  │   gemini/*         │              │  aivideoautoService    │     │    │
-│  │  │  - image.ts        │              │  (gommo.net API)       │     │    │
-│  │  │  - text.ts         │              └────────────────────────┘     │    │
+│  │              │                    │               │                  │    │
+│  │              ▼                    ▼               ▼                  │    │
+│  │  ┌────────────────────┐  ┌────────────────┐  ┌──────────────────┐    │    │
+│  │  │   gemini/*         │  │ Local Provider │  │  Anti Provider   │    │    │
+│  │  │  - image.ts        │  │ (REST)         │  │  (REST)          │    │    │
+│  │  │  - text.ts         │  └────────────────┘  └──────────────────┘    │    │
 │  │  │  - video.ts        │                                              │    │
 │  │  └────────────────────┘                                              │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                    │                                         │
+│                                    ▼                                         │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                        PERSISTENCE LAYER                             │    │
+│  │  ┌────────────────────┐              ┌────────────────────────┐     │    │
+│  │  │   LocalStorage     │              │      Google Drive      │     │    │
+│  │  │  (Settings/Drafts) │              │      (Image Storage)   │     │    │
+│  │  └────────────────────┘              └────────────────────────┘     │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                                    │                                         │
 └────────────────────────────────────┼─────────────────────────────────────────┘
@@ -52,10 +61,10 @@
 │  │  Google Gemini  │  │  Google Imagen  │  │   Google Veo    │              │
 │  │  (Text + Image) │  │  (Image Gen)    │  │  (Video Gen)    │              │
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘              │
-│  ┌─────────────────┐  ┌─────────────────┐                                   │
-│  │  AIVideoAuto    │  │     ImgBB       │                                   │
-│  │  (gommo.net)    │  │  (Image Host)   │                                   │
-│  └─────────────────┘  └─────────────────┘                                   │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐              │
+│  │  Local Provider │  │  Anti Provider  │  │  Google Drive   │              │
+│  │  (Custom REST)  │  │  (Custom REST)  │  │  (OAuth/Files)  │              │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -63,20 +72,22 @@
 
 ```
 <LanguageProvider>           // i18n context (locale, t())
-  <ApiProvider>              // API keys, model selection
-    <ImageGalleryProvider>   // Session image storage
-      <ImageViewerProvider>  // Fullscreen viewer state
-        <AppContent />       // Main application
-      </ImageViewerProvider>
-    </ImageGalleryProvider>
+  <ApiProvider>              // API keys, model selection, provider config
+    <GoogleDriveProvider>    // OAuth state, Drive API integration
+      <ImageGalleryProvider> // Gallery state with Drive sync + LRU cache
+        <ImageViewerProvider>// Fullscreen viewer state
+          <AppContent />     // Main application
+        </ImageViewerProvider>
+      </ImageGalleryProvider>
+    </GoogleDriveProvider>
   </ApiProvider>
 </LanguageProvider>
 ```
 
 **Provider Dependencies:**
 - `ApiProvider` depends on `LanguageProvider` (error messages)
-- `ImageGalleryProvider` is independent
-- `ImageViewerProvider` is independent
+- `GoogleDriveProvider` depends on `ApiProvider` (client IDs)
+- `ImageGalleryProvider` depends on `GoogleDriveProvider` (syncing)
 - `AppContent` consumes all providers
 
 ## 3. Data Flow Diagrams
@@ -91,19 +102,20 @@
                                                                    │
                      ┌─────────────────────────────────────────────┘
                      ▼
-          ┌──────────────────────┐
-          │ imageEditingService  │
-          │   Route by Model     │
-          └──────────┬───────────┘
-                     │
-        ┌────────────┴────────────┐
-        ▼                         ▼
-┌───────────────┐        ┌────────────────┐
-│ geminiService │        │ aivideoauto    │
-│ (if gemini-*) │        │ (if aiva--)    │
-└───────┬───────┘        └───────┬────────┘
-        │                        │
-        ▼                        ▼
+           ┌──────────────────────┐
+           │ imageEditingService  │
+           │   Route by Prefix    │
+           └──────────┬───────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+┌───────────────┐ ┌───────────┐ ┌───────────┐
+│ geminiService │ │ localProv │ │ antiProv  │
+│ (default)     │ │ (local--) │ │ (anti--)  │
+└───────┬───────┘ └─────┬─────┘ └─────┬─────┘
+        │               │             │
+        └───────────────┼─────────────┘
+                        ▼
 ┌───────────────────────────────────────┐
 │         External API Response          │
 │         (ImageFile[] or URL)           │
@@ -113,32 +125,8 @@
 ┌───────────────────────────────────────┐
 │   Hook State Update (setResults)       │
 │   Gallery Context (addImage)           │
+│   Google Drive Sync (upload)           │
 └───────────────────────────────────────┘
-        │
-        ▼
-┌───────────────────────────────────────┐
-│      Component Re-render               │
-│      Display Generated Images          │
-└───────────────────────────────────────┘
-```
-
-### 3.2 Feature Selection Flow
-
-```
-Header (setActiveFeature)
-         │
-         ▼
-   AppContent State
-   (activeFeature)
-         │
-         ▼
-   CSS Display Toggle
-   (show/hide features)
-         │
-   ┌─────┴─────┬────────────┬────────────┐
-   ▼           ▼            ▼            ▼
-TryOn      Lookbook    Background     ...
-(visible)  (hidden)    (hidden)     (hidden)
 ```
 
 ## 4. API Integration Patterns
@@ -148,140 +136,31 @@ TryOn      Lookbook    Background     ...
 ```typescript
 // ApiProviderContext.tsx
 getModelsForFeature(feature: Feature) {
-  // Video features force AIVideoAuto
-  if ([Feature.Video, Feature.GRWMVideo].includes(feature)) {
-    if (!videoModel.startsWith('aivideoauto--')) {
-      return { videoGenerateModel: `aivideoauto--${fallbackModel.id_base}` };
-    }
-  }
+  // Prefix-based routing logic
+  // local--model-name -> Local Provider
+  // anti--model-name  -> Anti Provider
+  // default           -> Gemini
   return { imageEditModel, imageGenerateModel, videoGenerateModel };
 }
 ```
-
-**Feature-specific overrides:**
-- `ClothingTransfer` → always Gemini. If user selected `local--*` or `anti--*`, `getModelsForFeature` overrides to `DEFAULT_IMAGE_EDIT_MODEL`. This is permanent — multi-image reference + concept ordering requires Gemini's native image editing capability.
 
 ### 4.2 Service Routing
 
 ```typescript
 // imageEditingService.ts
 export const editImage = async (params, model, config) => {
-  if (model.startsWith('aivideoauto--')) {
-    const modelId = model.split('--')[1];
-    return aivideoautoService.createImage(config.token, { model: modelId, ... });
+  if (model.startsWith('local--')) {
+    return localProvider.editImage(params, model.replace('local--', ''));
+  }
+  if (model.startsWith('anti--')) {
+    return antiProvider.editImage(params, model.replace('anti--', ''));
   }
   return geminiImageService.editImage(params);
 };
 ```
 
-### 4.3 Status Updates
+### 4.3 Persistence Strategy
 
-```typescript
-// Hooks receive status callback for long-running operations
-const buildServiceConfig = (onStatusUpdate: (msg: string) => void) => ({
-  onStatusUpdate,
-  aivideoautoAccessToken,
-  aivideoautoImageModels,
-});
-
-// Usage in hook
-await generateVideo(prompt, model, buildServiceConfig(setLoadingMessage));
-```
-
-## 5. Service Layer Design
-
-### 5.1 Gemini Services
-
-| Service | Functions | Model |
-|---------|-----------|-------|
-| `gemini/image.ts` | `editImage`, `generateImageFromText`, `upscaleImage`, `extractOutfitItem` | `imagen-4.0-generate-001`, `gemini-2.5-flash-image` |
-| `gemini/text.ts` | `generateText` | `gemini-2.5-pro` |
-| `gemini/video.ts` | `generateVideo` | `veo-3.1` |
-
-### 5.2 AIVideoAuto Service
-
-```typescript
-// aivideoautoService.ts
-export async function createImage(token, params): Promise<ImageFile>
-export async function uploadImage(token, image): Promise<UploadedImage>
-export async function createVideoTask(token, params): Promise<string>
-export async function pollForVideo(token, taskId, onStatus): Promise<string>
-```
-
-### 5.3 API Client
-
-```typescript
-// apiClient.ts
-let genAIClient: GoogleGenerativeAI | null = null;
-
-export const setGeminiApiKey = (key: string | null) => {
-  genAIClient = key ? new GoogleGenerativeAI(key) : null;
-};
-
-export const getGeminiClient = () => {
-  if (!genAIClient) throw new Error('API key not configured');
-  return genAIClient;
-};
-```
-
-## 6. State Flow Summary
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    STATE OWNERSHIP                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  GLOBAL (Context)                                            │
-│  ├── Language: locale, t()                                   │
-│  ├── API: keys, models, getModelsForFeature()               │
-│  ├── Gallery: images[], addImage(), removeImage()           │
-│  └── Viewer: viewerImage, isOpen                            │
-│                                                              │
-│  FEATURE (Hook)                                              │
-│  ├── Inputs: subjectImage, clothingItems, prompt            │
-│  ├── Outputs: generatedImages[], generatedVideo             │
-│  ├── Loading: isLoading, loadingMessage                     │
-│  └── Error: error                                            │
-│                                                              │
-│  COMPONENT (Local)                                           │
-│  ├── Form state not in hook                                  │
-│  └── UI toggles (dropdowns, tabs)                            │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## 7. Error Handling Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     ERROR FLOW                               │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  API Error (Google/AIVideoAuto)                              │
-│       │                                                      │
-│       ▼                                                      │
-│  Service Layer Catch                                         │
-│       │                                                      │
-│       ├── Known error key? (e.g., "error.api.rateLimit")    │
-│       │         │                                            │
-│       │         ▼                                            │
-│       │   Throw with translation key                         │
-│       │                                                      │
-│       └── Unknown error?                                     │
-│                 │                                            │
-│                 ▼                                            │
-│           Throw with raw message                             │
-│                                                              │
-│  Hook Layer Catch                                            │
-│       │                                                      │
-│       ▼                                                      │
-│  getErrorMessage(err, t)                                     │
-│       │                                                      │
-│       ▼                                                      │
-│  setError(localizedMessage)                                  │
-│       │                                                      │
-│       ▼                                                      │
-│  Component displays error UI                                 │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
+- **LocalStorage**: Stores API keys, provider base URLs, and feature-specific drafts (debounced).
+- **Google Drive**: Stores generated images in a dedicated folder. `ImageGalleryContext` manages a local LRU cache and syncs with Drive in the background.
+- **OAuth**: Managed via `GoogleDriveContext` with automatic token refresh.

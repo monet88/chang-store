@@ -148,8 +148,11 @@ export const useVirtualTryOn = () => {
 
     const outfitImages = validClothingItems.map((item) => item.image as ImageFile);
     const prompt = buildVirtualTryOnPrompt({
+      subjectImageCount: 1, // We process jobs per item, so it's 1 subject per request
+      clothingImageCount: validClothingItems.length,
       backgroundPrompt,
       extraPrompt,
+      numImages,
     });
     const jobs = subjectItems.map((item) => ({
       id: item.id,

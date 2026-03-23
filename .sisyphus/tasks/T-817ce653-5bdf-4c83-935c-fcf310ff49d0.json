@@ -1,9 +1,0 @@
-{
-  "id": "T-817ce653-5bdf-4c83-935c-fcf310ff49d0",
-  "subject": "Add gemini-3.1 to ResolutionSelector.tsx logic (supports all resolutions)",
-  "description": "gemini-3.1-flash-image-preview does not contain 'gemini-2.5-flash' so it falls into the else branch correctly — shows all resolutions. Only updated comment to reflect the new model.",
-  "status": "completed",
-  "blocks": [],
-  "blockedBy": [],
-  "threadID": "ses_353420c35ffeNHaqPcBgRic05d"
-}

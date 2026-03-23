@@ -5,6 +5,7 @@ import Spinner from './Spinner';
 import HoverableImage from './HoverableImage';
 import { BatchImageStatus } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+
 import { AddIcon, DeleteIcon } from './Icons';
 import Tooltip from './Tooltip';
 import ResultPlaceholder from './shared/ResultPlaceholder';
@@ -118,6 +119,7 @@ const VirtualTryOn: React.FC = () => {
                   <span>{t('virtualTryOn.addItem')}</span>
                 </button>
               </Tooltip>
+              <p className="text-xs text-zinc-500 mt-1 text-center">{t('virtualTryOn.clothingUploadHint')}</p>
             </div>
           </div>
         </div>
