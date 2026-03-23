@@ -1,60 +1,34 @@
-import { useState, useRef } from 'react';
-import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  AspectRatio,
+  ClothingTransferBatchItem,
+  ClothingTransferReferenceItem,
+  DEFAULT_IMAGE_RESOLUTION,
+  Feature,
+  ImageFile,
+  ImageResolution,
+} from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage } from '../services/imageEditingService';
-import type { Part } from '@google/genai';
+import { buildClothingTransferParts } from '../utils/clothing-transfer-prompt-builder';
+import { remapImageBatchItems } from '../utils/batch-image-session';
+import { runBoundedWorkers } from '../utils/run-bounded-workers';
 
-interface ReferenceItem {
-  id: number;
-  image: ImageFile | null;
-  label: string;
-}
-
-/**
- * Build interleaved parts for clothing transfer.
- * Structure: [label_concept, img_concept, label_ref1, img_ref1, ..., task_instructions]
- * This ensures Gemini knows exactly which image is the destination vs source.
- */
-function buildClothingTransferParts(
-  conceptImage: ImageFile,
-  references: { image: ImageFile; label: string }[],
-  extraInstructions: string
-): Part[] {
-  const parts: Part[] = [];
-
-  // 1. Concept image with clear label
-  parts.push({ text: 'DESTINATION SCENE (keep this background, arrangement and display style):' });
-  parts.push({ inlineData: { data: conceptImage.base64, mimeType: conceptImage.mimeType } });
-
-  // 2. Each reference image with clear label
-  references.forEach((ref, i) => {
-    const label = ref.label || 'auto-detect clothing type';
-    parts.push({ text: `SOURCE OUTFIT ${i + 1} (extract this clothing — ${label}):` });
-    parts.push({ inlineData: { data: ref.image.base64, mimeType: ref.image.mimeType } });
-  });
-
-  // 3. Task instructions at the end
-  const taskPrompt = `TASK: Replace all clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images above.
-
-RULES:
-- The OUTPUT must use the DESTINATION SCENE's background, layout, camera angle, lighting, and arrangement style.
-- The CLOTHING in the output must come from the SOURCE OUTFIT images — preserve their exact colors, patterns, textures, and fabric details.
-- Remove existing clothing from the destination scene first, then insert the source outfits.
-- Match the display style of the destination (hangers, flat lay, mannequin, closet display, etc.).
-- Keep all non-clothing elements from the destination unchanged (props, accessories, background).${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
-
-  parts.push({ text: taskPrompt });
-
-  return parts;
-}
+const MAX_SHARED_REFERENCE_IMAGES = 2;
+const BATCH_CONCURRENCY = 3;
+const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 
 export function useClothingTransfer() {
   const idCounter = useRef(0);
-  const [referenceItems, setReferenceItems] = useState<ReferenceItem[]>([{ id: ++idCounter.current, image: null, label: '' }]);
-  const [conceptImage, setConceptImage] = useState<ImageFile | null>(null);
+  const batchIdCounter = useRef(0);
+  const [referenceItems, setReferenceItems] = useState<ClothingTransferReferenceItem[]>([
+    { id: ++idCounter.current, image: null, label: '' },
+  ]);
+  const [conceptItems, setConceptItems] = useState<ClothingTransferBatchItem[]>([]);
+  const [selectedConceptItemId, setSelectedConceptItemId] = useState<string | null>(null);
   const [extraPrompt, setExtraPrompt] = useState('');
   const [numImages, setNumImages] = useState(1);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
@@ -62,97 +36,303 @@ export function useClothingTransfer() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [generatedImages, setGeneratedImages] = useState<ImageFile[]>([]);
-  const [upscalingStates, setUpscalingStates] = useState<Record<number, boolean>>({});
+  const [upscalingStates, setUpscalingStates] = useState<Record<string, boolean>>({});
 
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
-  const { localApiBaseUrl, localApiKey, getModelsForFeature } = useApi();
+  const { localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, getModelsForFeature } = useApi();
   const { imageEditModel } = getModelsForFeature(Feature.ClothingTransfer);
 
-  const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+  const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
     localApiBaseUrl,
     localApiKey,
-  });
+    antiApiBaseUrl,
+    antiApiKey,
+  }), [antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey]);
 
-  const validReferences = referenceItems.filter(item => item.image !== null);
-  const anyUpscaling = Object.values(upscalingStates).some(s => s);
+  const createConceptItem = useCallback((image: ImageFile): ClothingTransferBatchItem => ({
+    id: `ct-${++batchIdCounter.current}`,
+    conceptImage: image,
+    status: 'pending',
+    results: [],
+  }), []);
 
-  const handleReferenceUpload = (file: ImageFile | null, id: number) => {
-    setReferenceItems(items => items.map(item => item.id === id ? { ...item, image: file } : item));
-  };
+  const updateConceptItem = useCallback(
+    (id: string, updater: Partial<ClothingTransferBatchItem> | ((item: ClothingTransferBatchItem) => ClothingTransferBatchItem)) => {
+      setConceptItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== id) {
+            return item;
+          }
 
-  const handleReferenceLabel = (label: string, id: number) => {
-    setReferenceItems(items => items.map(item => item.id === id ? { ...item, label } : item));
-  };
+          return typeof updater === 'function' ? updater(item) : { ...item, ...updater };
+        }),
+      );
+    },
+    [],
+  );
 
-  const addReference = () => setReferenceItems(prev => [...prev, { id: ++idCounter.current, image: null, label: '' }]);
+  const validReferences = useMemo(
+    () => referenceItems.filter((item) => item.image !== null),
+    [referenceItems],
+  );
 
-  const removeReference = (id: number) => setReferenceItems(prev => prev.filter(item => item.id !== id));
+  const conceptImages = useMemo(
+    () => conceptItems.map((item) => item.conceptImage),
+    [conceptItems],
+  );
 
-  const handleConceptUpload = (file: ImageFile | null) => setConceptImage(file);
+  const conceptImage = useMemo(
+    () => conceptItems[0]?.conceptImage ?? null,
+    [conceptItems],
+  );
 
-  const handleGenerate = async () => {
-    if (validReferences.length === 0 || !conceptImage) {
+  const activeConceptItem = useMemo(
+    () => conceptItems.find((item) => item.id === selectedConceptItemId) ?? conceptItems[0] ?? null,
+    [conceptItems, selectedConceptItemId],
+  );
+
+  const generatedImages = activeConceptItem?.results ?? [];
+
+  const anyUpscaling = useMemo(
+    () => Object.values(upscalingStates).some(Boolean),
+    [upscalingStates],
+  );
+
+  const completedCount = useMemo(
+    () => conceptItems.filter((item) => item.status === 'completed').length,
+    [conceptItems],
+  );
+
+  const failedCount = useMemo(
+    () => conceptItems.filter((item) => item.status === 'error').length,
+    [conceptItems],
+  );
+
+  const canGenerate = conceptItems.length > 0 && validReferences.length > 0;
+
+  const handleReferenceUpload = useCallback((file: ImageFile | null, id: number) => {
+    setReferenceItems((items) =>
+      items.map((item) => (item.id === id ? { ...item, image: file } : item)),
+    );
+  }, []);
+
+  const handleReferenceLabel = useCallback((label: string, id: number) => {
+    setReferenceItems((items) =>
+      items.map((item) => (item.id === id ? { ...item, label } : item)),
+    );
+  }, []);
+
+  const addReference = useCallback(() => {
+    setReferenceItems((prev) => {
+      if (prev.length >= MAX_SHARED_REFERENCE_IMAGES) {
+        return prev;
+      }
+
+      return [...prev, { id: ++idCounter.current, image: null, label: '' }];
+    });
+  }, []);
+
+  const removeReference = useCallback((id: number) => {
+    setReferenceItems((prev) => {
+      if (prev.length <= 1) {
+        return prev;
+      }
+
+      return prev.filter((item) => item.id !== id);
+    });
+  }, []);
+
+  const handleConceptImagesUpload = useCallback((images: ImageFile[]) => {
+    let nextItems: ClothingTransferBatchItem[] = [];
+
+    setConceptItems((prev) => {
+      nextItems = remapImageBatchItems(
+        images,
+        prev,
+        (item) => item.conceptImage,
+        createConceptItem,
+      );
+      return nextItems;
+    });
+
+    setSelectedConceptItemId((prev) => {
+      if (nextItems.length === 0) {
+        return null;
+      }
+
+      return prev && nextItems.some((item) => item.id === prev) ? prev : nextItems[0].id;
+    });
+
+    setError(null);
+  }, [createConceptItem]);
+
+  const handleConceptUpload = useCallback((file: ImageFile | null) => {
+    handleConceptImagesUpload(file ? [file] : []);
+  }, [handleConceptImagesUpload]);
+
+  const handleGenerate = useCallback(async () => {
+    if (!canGenerate) {
       setError(t('clothingTransfer.inputError'));
       return;
     }
 
+    const refsWithImages = validReferences.map((item) => ({
+      image: item.image as ImageFile,
+      label: item.label,
+    }));
+    const referenceImages = refsWithImages.map((item) => item.image);
+    const jobs = conceptItems.map((item) => ({
+      id: item.id,
+      conceptImage: item.conceptImage,
+    }));
+
     setIsLoading(true);
     setLoadingMessage(t('clothingTransfer.generatingStatus'));
     setError(null);
-    setGeneratedImages([]);
+    setUpscalingStates({});
+    setConceptItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        status: 'pending',
+        results: [],
+        error: undefined,
+      })),
+    );
 
     try {
-      const refsWithImages = validReferences.map(item => ({
-        image: item.image as ImageFile,
-        label: item.label,
-      }));
-      const interleavedParts = buildClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim());
-      const imagesForApi = [conceptImage, ...refsWithImages.map(r => r.image)];
-      const results = await editImage(
-        { images: imagesForApi, prompt: '', numberOfImages: numImages, aspectRatio, resolution, interleavedParts },
-        imageEditModel,
-        buildImageServiceConfig(setLoadingMessage)
+      await runBoundedWorkers(
+        jobs,
+        BATCH_CONCURRENCY,
+        async (job) => {
+          updateConceptItem(job.id, {
+            status: 'processing',
+            error: undefined,
+            results: [],
+          });
+
+          try {
+            const interleavedParts = buildClothingTransferParts(
+              job.conceptImage,
+              refsWithImages,
+              extraPrompt.trim(),
+            );
+            const results = await editImage(
+              {
+                images: [job.conceptImage, ...referenceImages],
+                prompt: '',
+                numberOfImages: numImages,
+                aspectRatio,
+                resolution,
+                interleavedParts,
+              },
+              imageEditModel,
+              buildImageServiceConfig(setLoadingMessage),
+            );
+
+            updateConceptItem(job.id, {
+              status: 'completed',
+              results,
+              error: undefined,
+            });
+            results.forEach((image) => addImage(image));
+          } catch (itemError) {
+            updateConceptItem(job.id, {
+              status: 'error',
+              results: [],
+              error: getErrorMessage(itemError, t),
+            });
+          }
+        },
       );
-      setGeneratedImages(results);
-      results.forEach(img => addImage(img));
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  };
+  }, [
+    addImage,
+    aspectRatio,
+    buildImageServiceConfig,
+    canGenerate,
+    conceptItems,
+    extraPrompt,
+    imageEditModel,
+    numImages,
+    resolution,
+    t,
+    updateConceptItem,
+    validReferences,
+  ]);
 
-  const handleUpscale = async (imageToUpscale: ImageFile, index: number) => {
-    if (!imageToUpscale) return;
+  const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number, itemId?: string) => {
+    const targetItemId = itemId ?? activeConceptItem?.id;
+    if (!imageToUpscale || !targetItemId) {
+      return;
+    }
 
-    setUpscalingStates(prev => ({ ...prev, [index]: true }));
+    const stateKey = getUpscaleStateKey(targetItemId, index);
+    setUpscalingStates((prev) => ({ ...prev, [stateKey]: true }));
     setError(null);
+
     try {
       const result = await upscaleImage(
         imageToUpscale,
         imageEditModel,
-        buildImageServiceConfig(() => {})
+        buildImageServiceConfig(() => {}),
       );
-      setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
+
+      updateConceptItem(targetItemId, (item) => ({
+        ...item,
+        results: item.results.map((image, resultIndex) => (
+          resultIndex === index ? result : image
+        )),
+      }));
       addImage(result);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
-      setUpscalingStates(prev => ({ ...prev, [index]: false }));
+      setUpscalingStates((prev) => ({ ...prev, [stateKey]: false }));
     }
-  };
+  }, [activeConceptItem?.id, addImage, buildImageServiceConfig, imageEditModel, t, updateConceptItem]);
 
   return {
-    referenceItems, conceptImage, extraPrompt, numImages,
-    aspectRatio, resolution, isLoading, loadingMessage,
-    error, generatedImages, upscalingStates,
-    setExtraPrompt, setNumImages, setAspectRatio, setResolution, setError,
-    handleReferenceUpload, handleReferenceLabel, addReference, removeReference,
-    handleConceptUpload, handleGenerate, handleUpscale,
-    validReferences, anyUpscaling, imageEditModel,
+    referenceItems,
+    conceptItems,
+    conceptImages,
+    conceptImage,
+    selectedConceptItemId,
+    setSelectedConceptItemId,
+    activeConceptItem,
+    extraPrompt,
+    numImages,
+    aspectRatio,
+    resolution,
+    isLoading,
+    loadingMessage,
+    error,
+    generatedImages,
+    upscalingStates,
+    setExtraPrompt,
+    setNumImages,
+    setAspectRatio,
+    setResolution,
+    setError,
+    handleReferenceUpload,
+    handleReferenceLabel,
+    addReference,
+    removeReference,
+    handleConceptUpload,
+    handleConceptImagesUpload,
+    handleGenerate,
+    handleUpscale,
+    validReferences,
+    anyUpscaling,
+    completedCount,
+    failedCount,
+    canGenerate,
+    imageEditModel,
   };
 }

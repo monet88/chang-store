@@ -2,7 +2,41 @@
 
 ## Cross-Milestone Trends
 
-*(Trends will be populated after multiple milestones)*
+- Tight, feature-scoped milestones keep delivery speed high in this SPA.
+- Hook-owned orchestration continues to scale better than pushing workflow logic into shared services too early.
+- Verification hygiene still needs to happen inside phase execution; retroactive audit cleanup adds avoidable overhead.
+
+---
+
+## Milestone: v1.1 — Batch Try-On & Clothing Transfer
+
+**Shipped:** 2026-03-22
+**Phases:** 1 | **Plans:** 1
+
+### What Was Built
+- Added bounded-parallel batch subject processing to Virtual Try-On with shared outfit reuse.
+- Added bounded-parallel batch concept processing to Clothing Transfer with concept-first request assembly.
+- Added a shared batch rail, per-item progress states, partial-failure isolation, and localized copy for both features.
+- Preserved the existing single-image paths and added hook/component regression coverage for the new contract.
+
+### What Worked
+- Keeping the existing `Component -> Hook -> Service` boundary avoided service churn and kept provider contracts stable.
+- Shared utilities (`run-bounded-workers` and batch-session remapping) prevented duplicate logic across the two feature flows.
+
+### What Was Inefficient
+- v1.1 requirements were tracked in `PROJECT.md` instead of a standalone `REQUIREMENTS.md`, so archival had to be reconstructed manually.
+- Nyquist validation evidence was added at milestone completion instead of during phase execution.
+
+### Patterns Established
+- Shared bounded worker pools are now the default client-side pattern for parallel image processing features.
+- Batch result review works better as a focused item rail than as one flat output grid.
+
+### Key Lessons
+- If a milestone adds parallel fan-out, create validation and traceability artifacts in the same phase instead of retrofitting them during archive.
+
+### Cost Observations
+- Model mix: mostly local code/test execution on top of the existing Vitest/Vite toolchain.
+- Notable: scope stayed clean because batching applied to the source image list only, not outfit/reference cross-products.
 
 ---
 

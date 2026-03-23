@@ -10,10 +10,10 @@ Users can turn fashion reference images into production-ready visual assets quic
 
 ## Current Milestone: Planning Next Milestone
 
-**Goal:** Determine the next set of features or improvements following the successful v1.0 launch of the hybrid Upscale and AI Studio pipeline.
+**Goal:** Define the next milestone after shipping v1.1 batch workflows for Virtual Try-On and Clothing Transfer.
 
 **Target features:**
-- (TBD - pending planning phase)
+- (TBD - pending milestone definition)
 
 ## Requirements
 
@@ -32,32 +32,38 @@ Users can turn fashion reference images into production-ready visual assets quic
 - ✓ User can complete the full guided pipeline inside Upscale without switching to another feature — v1.0
 - ✓ User can run `Quick Upscale` with a preservation-first prompt pattern that adapts to 2K or 4K output — v1.0
 - ✓ User can trigger Upscale immediately after AI Studio generates the prompt for a selected image — v1.0
+- ✓ User can batch multiple subject images in Virtual Try-On with one shared outfit set — v1.1
+- ✓ User can batch multiple concept images in Clothing Transfer with one shared reference outfit set — v1.1
+- ✓ User can see per-item processing status and partial failures inside both batch features — v1.1
+- ✓ User can keep the existing single-image path while using the new batch-capable feature screens — v1.1
 
 ### Active
 
-- (None yet — prioritize new features)
+- (None yet — define the next milestone before starting implementation)
 
 ### Out of Scope
 
-- Any Midjourney, Krea, Leonardo, Topaz, Make.com, or Zapier support in this milestone — user clarified this milestone should stay Gemini-only
-- Reusing or spreading the pipeline across other feature screens — user clarified the whole experience must stay inside Upscale
-- Reworking unrelated feature screens outside Upscale — keep milestone tightly scoped
-- Moving provider calls behind a backend proxy — important architectural concern, but not part of this milestone
+- Backend job queues or export tooling for long-running batch image work — v1.1 stayed inside client-side orchestration
+- Batch expansion across unrelated feature screens — shipped scope stayed limited to Virtual Try-On and Clothing Transfer
+- Outfit/reference cross-product generation — current product requirement is one shared set applied to many source images
+- Moving provider calls behind a backend proxy — still important, but not addressed yet
 
 ## Context
 
 - The app is a React 19 + TypeScript + Vite browser SPA with provider routing centralized in `services/imageEditingService.ts`.
 - Shipped v1.0 milestone, successfully upgrading Upscale into a multi-mode feature with Quick Upscale and an AI Studio pipeline running in parallel.
-- The workflow now robustly supports multi-image sessions, 2K/4K scaling, and rich Gemini-driven image analysis and prompt generation.
-- Existing repo conventions (thin components, hooks for orchestration, service facades for provider logic, bilingual localized UI strings) were followed throughout v1.0 implementation.
+- Shipped v1.1 milestone, adding bounded-parallel batch orchestration to Virtual Try-On and Clothing Transfer with per-item result tracking.
+- The workflow now supports multi-image sessions across Upscale, Virtual Try-On, and Clothing Transfer while preserving existing provider contracts.
+- Virtual Try-On and Clothing Transfer now share the same batch-session remapping and worker-pool orchestration pattern.
+- Existing repo conventions (thin components, hooks for orchestration, service facades for provider logic, bilingual localized UI strings) were followed throughout shipped milestones.
 
 ## Constraints
 
-- **Tech stack**: Keep implementation inside the existing React SPA architecture — avoid introducing a backend for this milestone
-- **Compatibility**: Preserve current direct-upscale behavior so existing users do not lose the fast path
+- **Tech stack**: Keep implementation inside the existing React SPA architecture unless a future milestone explicitly funds backend work
+- **Compatibility**: Preserve current single-image flows while extending batch behaviors incrementally
 - **Architecture**: Provider routing stays in services and shared context, not duplicated in the UI
 - **Localization**: New user-facing strings must be added to both `locales/en.ts` and `locales/vi.ts`
-- **Scope control**: Focus milestone on Upscale only, not broad documentation or provider refactors
+- **Scope control**: Keep future milestones tightly scoped to a small number of feature surfaces at a time
 
 ## Key Decisions
 
@@ -68,6 +74,10 @@ Users can turn fashion reference images into production-ready visual assets quic
 | Keep the milestone Gemini-only | User explicitly narrowed the feature after research review, so roadmap and requirements should ignore third-party tool paths | ✓ Good |
 | Use a preservation-first Quick Upscale prompt template with 2K and 4K options | User first provided the prompt style, then clarified that 2K must be added back, so Quick Upscale should keep quality selection while preserving the same prompt intent | ✓ Good |
 | AI Studio should allow inline upscale right after prompt generation | User wants prompt generation to lead directly into execution for each image inside the same feature | ✓ Good |
+| Batch the subject/concept list only, not outfit/reference cross-products | User requirement was many inputs against one shared set, so cross-product generation would add wrong cost and wrong UX | ✓ Good |
+| Keep batching in hooks, not services | Existing architecture already separates UI from orchestration and keeps service contracts provider-focused | ✓ Good |
+| Cap shared outfit/reference inputs at 2 images | Product requirement is one compact shared set, so the UI should enforce the limit instead of allowing unsupported extra inputs | ✓ Good |
+| Use a bounded worker pool for batch execution | Parallelism is needed for speed, but unbounded fan-out would create noisy provider load and less predictable UX | ✓ Good |
 
 ### Quick Upscale Prompt Pattern
 
@@ -82,4 +92,4 @@ Upscale this image to 4K resolution. Enhance the details, make the fabric textur
 ```
 
 ---
-*Last updated: 2026-03-16 after completing v1.0 milestone*
+*Last updated: 2026-03-22 after completing the v1.1 milestone*
