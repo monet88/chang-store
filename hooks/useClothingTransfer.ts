@@ -12,7 +12,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { buildClothingTransferParts } from '../utils/clothing-transfer-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
@@ -31,12 +31,17 @@ export function useClothingTransfer() {
   const [selectedConceptItemId, setSelectedConceptItemId] = useState<string | null>(null);
   const [extraPrompt, setExtraPrompt] = useState('');
   const [numImages, setNumImages] = useState(1);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [upscalingStates, setUpscalingStates] = useState<Record<string, boolean>>({});
+
+  // Refine state — per image slot: key = `itemId:index`
+  const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
+  const [refinePrompts, setRefinePrompts] = useState<Record<string, string>>({});
+  const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
 
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
@@ -192,6 +197,10 @@ export function useClothingTransfer() {
     setLoadingMessage(t('clothingTransfer.generatingStatus'));
     setError(null);
     setUpscalingStates({});
+    // Reset refine sessions so new results get fresh conversation context
+    chatSessionsRef.current = {};
+    setRefinePrompts({});
+    setIsRefining({});
     setConceptItems((prev) =>
       prev.map((item) => ({
         ...item,
@@ -298,6 +307,34 @@ export function useClothingTransfer() {
     }
   }, [activeConceptItem?.id, addImage, buildImageServiceConfig, imageEditModel, t, updateConceptItem]);
 
+  const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, itemId: string, prompt: string) => {
+    const key = `${itemId}:${index}`;
+    if (!prompt.trim()) return;
+
+    if (!chatSessionsRef.current[key]) {
+      chatSessionsRef.current[key] = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
+    }
+    const session = chatSessionsRef.current[key];
+
+    setIsRefining((prev) => ({ ...prev, [key]: true }));
+    setError(null);
+
+    try {
+      const refined = await session.sendRefinement(prompt, imageToRefine);
+
+      updateConceptItem(itemId, (item) => ({
+        ...item,
+        results: item.results.map((img, i) => (i === index ? refined : img)),
+      }));
+      addImage(refined);
+      setRefinePrompts((prev) => ({ ...prev, [key]: '' }));
+    } catch (err) {
+      setError(getErrorMessage(err, t));
+    } finally {
+      setIsRefining((prev) => ({ ...prev, [key]: false }));
+    }
+  }, [addImage, buildImageServiceConfig, imageEditModel, t, updateConceptItem]);
+
   return {
     referenceItems,
     conceptItems,
@@ -328,11 +365,15 @@ export function useClothingTransfer() {
     handleConceptImagesUpload,
     handleGenerate,
     handleUpscale,
+    handleRefine,
     validReferences,
     anyUpscaling,
     completedCount,
     failedCount,
     canGenerate,
     imageEditModel,
+    refinePrompts,
+    setRefinePrompts,
+    isRefining,
   };
 }

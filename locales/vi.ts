@@ -56,6 +56,9 @@ export const vi: Translation = {
     savedToGallery: 'Đã lưu',
     saveAllToGallery: 'Lưu tất cả',
     sendToAlbum: 'Dùng làm Trang phục cho Photo Album',
+    refinePromptPlaceholder: 'Nhập prompt tinh chỉnh...',
+    refineButton: 'Tinh chỉnh',
+    refiningStatus: 'Đang tinh chỉnh...',
   },
   toast: {
     imageSaved: 'Đã lưu ảnh vào Gallery',
@@ -134,6 +137,7 @@ export const vi: Translation = {
     subjectImagesTitle: 'Ảnh chủ thể (Nhiều người mẫu)',
     subjectImageTitle: 'Ảnh chủ thể (Người)',
     clothingItemTitle: 'Món đồ #{{index}}',
+    clothingUploadHint: 'Để mặc 2 lớp: tải lên trang phục trên ở ô 1, trang phục dưới ở ô 2',
     addItem: 'Thêm món đồ khác',
     sharedOutfitHint: 'Tải lên 1 hoặc 2 ảnh outfit. Cùng một bộ outfit sẽ được áp dụng cho mọi ảnh chủ thể trong batch này.',
     step2: 'Bước 2: Tùy chỉnh (Tùy chọn)',

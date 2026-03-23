@@ -12,7 +12,7 @@ import {
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { buildVirtualTryOnPrompt } from '../utils/virtual-try-on-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
@@ -32,12 +32,17 @@ export const useVirtualTryOn = () => {
   const [backgroundPrompt, setBackgroundPrompt] = useState('');
   const [extraPrompt, setExtraPrompt] = useState('');
   const [numImages, setNumImages] = useState(1);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
   const [isLoading, setIsLoading] = useState(false);
   const [upscalingStates, setUpscalingStates] = useState<Record<string, boolean>>({});
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Refine state — per image slot: key = `itemId:index`
+  const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
+  const [refinePrompts, setRefinePrompts] = useState<Record<string, string>>({});
+  const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
 
   const { t } = useLanguage();
   const { localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, getModelsForFeature } = useApi();
@@ -163,6 +168,10 @@ export const useVirtualTryOn = () => {
     setLoadingMessage(t('virtualTryOn.generatingStatus'));
     setError(null);
     setUpscalingStates({});
+    // Reset refine sessions so new results get fresh conversation context
+    chatSessionsRef.current = {};
+    setRefinePrompts({});
+    setIsRefining({});
     setSubjectItems((prev) =>
       prev.map((item) => ({
         ...item,
@@ -261,6 +270,44 @@ export const useVirtualTryOn = () => {
     }
   }, [activeSubjectItem?.id, buildImageServiceConfig, imageEditModel, t, updateSubjectItem]);
 
+  const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, itemId: string, prompt: string) => {
+    const key = `${itemId}:${index}`;
+    if (!prompt.trim()) return;
+
+    // Get or create a chat session for this specific image slot
+    if (!chatSessionsRef.current[key]) {
+      try {
+        chatSessionsRef.current[key] = createImageChatSession(
+          imageEditModel,
+          buildImageServiceConfig(() => {}),
+        );
+      } catch (sessionErr) {
+        setError(getErrorMessage(sessionErr, t));
+        return;
+      }
+    }
+    const session = chatSessionsRef.current[key];
+
+    setIsRefining((prev) => ({ ...prev, [key]: true }));
+    setError(null);
+
+    try {
+      const refined = await session.sendRefinement(prompt, imageToRefine);
+
+      updateSubjectItem(itemId, (item) => ({
+        ...item,
+        results: item.results.map((img, i) => (i === index ? refined : img)),
+      }));
+
+      // Clear the prompt after successful refinement
+      setRefinePrompts((prev) => ({ ...prev, [key]: '' }));
+    } catch (err) {
+      setError(getErrorMessage(err, t));
+    } finally {
+      setIsRefining((prev) => ({ ...prev, [key]: false }));
+    }
+  }, [buildImageServiceConfig, imageEditModel, t, updateSubjectItem]);
+
   const handleClothingUpload = useCallback((file: ImageFile | null, id: number) => {
     setClothingItems((items) =>
       items.map((item) => (item.id === id ? { ...item, image: file } : item)),
@@ -319,10 +366,14 @@ export const useVirtualTryOn = () => {
     canGenerate,
     handleGenerateImage,
     handleUpscale,
+    handleRefine,
     handleClothingUpload,
     addClothingUploader,
     removeClothingUploader,
     anyUpscaling,
     imageEditModel,
+    refinePrompts,
+    setRefinePrompts,
+    isRefining,
   };
 };
