@@ -74,12 +74,16 @@ const baseHookState = {
   canGenerate: false,
   handleGenerateImage: vi.fn(),
   handleUpscale: vi.fn(),
+  handleRefine: vi.fn(),
   handleSubjectImagesUpload: vi.fn(),
   handleClothingUpload: vi.fn(),
   addClothingUploader: vi.fn(),
   removeClothingUploader: vi.fn(),
   anyUpscaling: false,
   imageEditModel: 'gemini-2.5-flash-image',
+  refinePrompts: {},
+  setRefinePrompts: vi.fn(),
+  isRefining: {},
 };
 
 describe('VirtualTryOn component', () => {
