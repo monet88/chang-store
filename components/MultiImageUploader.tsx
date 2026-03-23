@@ -45,6 +45,7 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
   const [isDragging, setIsDragging] = useState(false);
   const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
+  const dragCounter = useRef(0);
 
   /**
    * Process multiple files and convert to ImageFile format
@@ -117,7 +118,10 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
    */
   const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(true);
+    dragCounter.current += 1;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
   }, []);
 
   /**
@@ -125,7 +129,10 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
    */
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(false);
+    dragCounter.current -= 1;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
   }, []);
 
   /**
@@ -133,6 +140,7 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
    */
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    dragCounter.current = 0;
     setIsDragging(false);
     const fileList = e.dataTransfer.files;
     if (fileList && fileList.length > 0) {
