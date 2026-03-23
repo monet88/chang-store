@@ -1,56 +1,56 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import ImageUploader from './ImageUploader';
 import Spinner, { ErrorDisplay } from './Spinner';
 import HoverableImage from './HoverableImage';
-import { editImage, upscaleImage } from '../services/imageEditingService';
-import { generateImageDescription } from '../services/textService';
-import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useApi } from '../contexts/ApiProviderContext';
-import { getErrorMessage } from '../utils/imageUtils';
 import { MagicWandIcon } from './Icons';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import ResultPlaceholder from './shared/ResultPlaceholder';
-import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
+import { useBackgroundReplacer } from '../hooks/useBackgroundReplacer';
 
 const BackgroundReplacer: React.FC = () => {
   const { t } = useLanguage();
-  const { getModelsForFeature, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, textGenerateModel } = useApi();
-  const { imageEditModel } = getModelsForFeature(Feature.Background);
-  const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
-    onStatusUpdate,
-    localApiBaseUrl,
-    localApiKey,
-    antiApiBaseUrl,
-    antiApiKey,
-  });
+  const {
+    subjectImage,
+    setSubjectImage,
+    backgroundImage,
+    setBackgroundImage,
+    promptText,
+    setPromptText,
+    selectedPredefinedKey,
+    setSelectedPredefinedKey,
+    generatedImages,
+    isLoading,
+    loadingMessage,
+    upscalingStates,
+    isGeneratingDescription,
+    error,
+    setError,
+    negativePrompt,
+    setNegativePrompt,
+    cameraView,
+    setCameraView,
+    aspectRatio,
+    setAspectRatio,
+    resolution,
+    setResolution,
+    handleGenerate,
+    handleUpscale,
+    handleRefine,
+    handleGenerateDescription,
+    imageEditModel,
+    refinePrompts,
+    setRefinePrompts,
+    isRefining,
+    PREDEFINED_BG_KEYS,
+    allBackgroundPrompts,
+  } = useBackgroundReplacer();
 
-  const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);
-  const [backgroundImage, setBackgroundImage] = useState<ImageFile | null>(null);
-  const [promptText, setPromptText] = useState<string>('');
-  const [selectedPredefinedKey, setSelectedPredefinedKey] = useState<string>('custom');
-  const [generatedImages, setGeneratedImages] = useState<ImageFile[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [upscalingStates, setUpscalingStates] = useState<Record<number, boolean>>({});
-  const [loadingMessage, setLoadingMessage] = useState('');
-  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [negativePrompt, setNegativePrompt] = useState('');
-  const [cameraView, setCameraView] = useState<string>('fullBody');
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
-  const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
-
-  const PREDEFINED_BG_KEYS = ['studioMirrorChair', 'sofaMirrorCurtain', 'curvedSofaCurtain'];
   const allBackgroundLabels: Record<string, string> = t('photoAlbum.backgroundLabels', { returnObjects: true });
-  const allBackgroundPrompts: Record<string, string> = PHOTO_ALBUM_BACKGROUNDS.reduce((acc, curr) => {
-    acc[curr.id] = curr.prompt;
-    return acc;
-  }, {} as Record<string, string>);
-
-  const predefinedBackgroundOptions = PREDEFINED_BG_KEYS.map(key => ({
+  const predefinedBackgroundOptions = PREDEFINED_BG_KEYS.map((key) => ({
     key,
-    label: allBackgroundLabels[key]
+    label: allBackgroundLabels[key],
   }));
 
   const cameraViewOptions = [
@@ -63,160 +63,9 @@ const BackgroundReplacer: React.FC = () => {
   const handlePredefinedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const key = e.target.value;
     setSelectedPredefinedKey(key);
-
-    if (key === 'custom') {
-      setPromptText('');
-    } else {
-      setPromptText(allBackgroundPrompts[key]);
-    }
-    setBackgroundImage(null);
-  };
-
-  const handleSubjectUpload = (file: ImageFile | null) => {
-    setSubjectImage(file);
-  };
-
-  const handleBackgroundUpload = (file: ImageFile | null) => {
-    setBackgroundImage(file);
-    if (file) {
-      setPromptText('');
-      setSelectedPredefinedKey('custom');
-    }
-  };
-
-  const handleGenerateDescription = async () => {
-    if (!backgroundImage) {
-      setError(t('background.descriptionError'));
-      return;
-    }
-    setIsGeneratingDescription(true);
-    setError(null);
-    try {
-      const description = await generateImageDescription(backgroundImage, textGenerateModel, { localApiBaseUrl, localApiKey });
-      setPromptText(description);
+    if (key !== 'custom') {
+      setPromptText(allBackgroundPrompts[key] ?? '');
       setBackgroundImage(null);
-      setSelectedPredefinedKey('custom');
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setIsGeneratingDescription(false);
-    }
-  };
-
-  const handleGenerate = async () => {
-    if (!subjectImage) {
-      setError(t('background.subjectError'));
-      return;
-    }
-    if (!backgroundImage && !promptText) {
-      setError(t('background.backgroundError'));
-      return;
-    }
-
-    setIsLoading(true);
-    setLoadingMessage(t('background.generatingStatus'));
-    setError(null);
-    setGeneratedImages([]);
-
-    const images: ImageFile[] = [subjectImage];
-
-    let framingInstruction = "Use default framing provided by the model.";
-    if (cameraView !== 'default') {
-      const keyMap: Record<string, string> = {
-        fullBody: 'fullBody',
-        halfBody: 'halfBody',
-        kneesUp: 'kneesUp',
-      };
-      const instructionKey = `framingInstructions.${keyMap[cameraView]}`;
-      const instructionText = t(instructionKey);
-      if (instructionText) {
-        framingInstruction = instructionText;
-      }
-    }
-
-    const coreInstruction = `
-      **Task**: Perform a photorealistic background replacement for a fashion photograph.
-      **Subject Image**: Contains the model to be isolated.
-      **Background Source**: The new environment into which the subject will be placed.
-      **Instructions for Integration**:
-      1. **Subject Isolation**: From the Subject Image, isolate only the main person. Remove all other people or objects. The final output must contain only this subject.
-      2. **Preserve Subject Integrity**: CRITICAL RULE. Do not alter, redraw, or change the subject in any way. Preserve exact body proportions, facial features, pose, and clothing details from the Subject Image.
-      3. **Seamless Masking**: Perform a perfect, high-quality cutout. Pay close attention to edges, hair strands, and semi-translucent fabrics. There must be no halos, rough edges, or leftover background artifacts.
-      4. **Lighting and Shadow Harmony**:
-         * **Lighting Matching**: Adjust the subject’s lighting to match the dominant light source in the Background Source (direction, intensity, color temperature). Pay special attention to matching any rim lighting or highlights from the background environment onto the subject's edges for a perfect blend.
-         * **Physically Accurate Shadows**:
-            - **Contact Shadows & Ambient Occlusion**: Add subtle shadows where the subject touches surfaces (e.g., feet on the ground). Generate realistic ambient occlusion (contact darkening) where the subject is very close to other surfaces or parts of their own body, enhancing realism and depth.
-            - **Cast Shadows**: Create realistic shadows consistent with the light source in the Background Source (sharp if hard light, soft if diffused).
-            - Shadows must firmly anchor the subject to the scene.
-         * **Color Grading**: Apply consistent tones and colors across subject and background so they look unified.
-         * **Reflections**: If the Background Source has reflective surfaces, generate accurate reflections from the subject.
-      5. **Perspective and Proportion**:
-         * Scale the subject naturally to match the environment (height vs. doors, chairs, tables).
-         * Align the subject’s feet with the ground plane to avoid floating or sinking.
-      6. **Framing**: ${framingInstruction}
-      **Goal**: The final output must be a high-resolution (2K), photorealistic image where the Subject Image is seamlessly integrated into the Background Source with no trace of the original background.
-    `;
-
-    let prompt: string;
-
-    if (backgroundImage) {
-      images.push(backgroundImage);
-      if (promptText) {
-        prompt = `
-            ${coreInstruction}
-            **Background Source**: Completely remove and discard the original background from the Subject Image. 
-            Replace it entirely with the Background Source provided.
-            **Modification**: While using the Background Source, also apply this modification: "${promptText}".
-          `;
-      } else {
-        prompt = `
-            ${coreInstruction}
-            **Background Source**: Completely remove and discard the original background from the Subject Image. 
-            Replace it entirely with the Background Source provided.
-          `;
-      }
-    } else {
-      prompt = `
-        ${coreInstruction}
-        **Background Source**: Completely remove and discard the original background from the Subject Image. 
-        Generate a new, photorealistic background based on this description: "${promptText}". 
-        The generated background must be realistic, high-quality, and suitable for fashion photography, 
-        with correct perspective and scale.
-      `;
-    }
-
-    try {
-      const results = await editImage({
-        images,
-        prompt,
-        negativePrompt,
-        numberOfImages: 2,
-        aspectRatio,
-        resolution,
-      }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
-      setGeneratedImages(results);
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
-    }
-  };
-
-  const handleUpscale = async (imageToUpscale: ImageFile, index: number) => {
-    setUpscalingStates(prev => ({ ...prev, [index]: true }));
-    setError(null);
-    try {
-      const result = await upscaleImage(
-        imageToUpscale,
-        imageEditModel,
-        buildImageServiceConfig(() => { })
-      );
-      setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setUpscalingStates(prev => ({ ...prev, [index]: false }));
     }
   };
 
@@ -230,9 +79,9 @@ const BackgroundReplacer: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ImageUploader image={subjectImage} id="subject-upload" title={t('background.subjectUploadTitle')} onImageUpload={handleSubjectUpload} />
+          <ImageUploader image={subjectImage} id="subject-upload" title={t('background.subjectUploadTitle')} onImageUpload={setSubjectImage} />
           <div>
-            <ImageUploader image={backgroundImage} id="background-upload" title={t('background.backgroundUploadTitle')} onImageUpload={handleBackgroundUpload} />
+            <ImageUploader image={backgroundImage} id="background-upload" title={t('background.backgroundUploadTitle')} onImageUpload={setBackgroundImage} />
             {backgroundImage && (
               <div className="text-center mt-2">
                 <button
@@ -270,7 +119,7 @@ const BackgroundReplacer: React.FC = () => {
             }}
           >
             <option value="custom">{t('background.describeLabel')}</option>
-            {predefinedBackgroundOptions.map(opt => (
+            {predefinedBackgroundOptions.map((opt) => (
               <option key={opt.key} value={opt.key}>{opt.label}</option>
             ))}
           </select>
@@ -308,7 +157,7 @@ const BackgroundReplacer: React.FC = () => {
           <label className="block text-sm font-medium text-zinc-300 mb-2 text-center">{t('cameraView.label')}</label>
           <div className="flex justify-center">
             <div className="flex flex-wrap justify-center gap-2 p-1.5 bg-zinc-800/50 rounded-lg">
-              {cameraViewOptions.map(opt => (
+              {cameraViewOptions.map((opt) => (
                 <button key={opt.key} onClick={() => setCameraView(opt.key)} className={`px-4 py-2 text-xs font-semibold rounded-md transition-colors duration-200 ${cameraView === opt.key ? 'bg-amber-600 text-white' : 'text-zinc-300 hover:bg-zinc-700/50'}`}>
                   {opt.label}
                 </button>
@@ -325,7 +174,7 @@ const BackgroundReplacer: React.FC = () => {
         <div className="text-center pt-2">
           <button
             onClick={handleGenerate}
-            disabled={isLoading || Object.values(upscalingStates).some(s => s) || !subjectImage || (!backgroundImage && !promptText)}
+            disabled={isLoading || Object.values(upscalingStates).some((s) => s) || !subjectImage || (!backgroundImage && !promptText)}
             className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105"
           >
             {isLoading ? <Spinner /> : t('background.generateButton')}
@@ -360,15 +209,35 @@ const BackgroundReplacer: React.FC = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                 {generatedImages.map((image, index) => (
-                  <HoverableImage
-                    key={index}
-                    image={image}
-                    altText={`${t('generatedImage.altText')} ${index + 1}`}
-                    onRegenerate={handleGenerate}
-                    onUpscale={() => handleUpscale(image, index)}
-                    isGenerating={isLoading}
-                    isUpscaling={upscalingStates[index]}
-                  />
+                  <div key={index}>
+                    <HoverableImage
+                      image={image}
+                      altText={`${t('generatedImage.altText')} ${index + 1}`}
+                      onRegenerate={handleGenerate}
+                      onUpscale={() => handleUpscale(image, index)}
+                      isGenerating={isLoading}
+                      isUpscaling={upscalingStates[index]}
+                    />
+                    {/* Refine prompt UI */}
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={refinePrompts[String(index)] || ''}
+                        onChange={(e) => setRefinePrompts((prev) => ({ ...prev, [String(index)]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleRefine(image, index, refinePrompts[String(index)] || ''); }}
+                        placeholder={t('imageActions.refinePromptPlaceholder')}
+                        className="flex-1 min-w-0 bg-zinc-800/50 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                        disabled={isRefining[String(index)]}
+                      />
+                      <button
+                        onClick={() => handleRefine(image, index, refinePrompts[String(index)] || '')}
+                        disabled={isRefining[String(index)] || !(refinePrompts[String(index)] || '').trim()}
+                        className="flex-shrink-0 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        {isRefining[String(index)] ? <Spinner /> : t('imageActions.refineButton')}
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

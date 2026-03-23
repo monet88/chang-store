@@ -27,14 +27,15 @@ export function buildClothingTransferParts(
     parts.push({ inlineData: { data: ref.image.base64, mimeType: ref.image.mimeType } });
   });
 
-  const taskPrompt = `TASK: Replace all clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images above.
+  const taskPrompt = `TASK: Composite the SOURCE OUTFIT clothing into the DESTINATION SCENE, replacing the existing clothing entirely.
 
-RULES:
-- The OUTPUT must use the DESTINATION SCENE's background, layout, camera angle, lighting, and arrangement style.
-- The CLOTHING in the output must come from the SOURCE OUTFIT images — preserve their exact colors, patterns, textures, and fabric details.
-- Remove existing clothing from the destination scene first, then insert the source outfits.
-- Match the display style of the destination (hangers, flat lay, mannequin, closet display, etc.).
-- Keep all non-clothing elements from the destination unchanged (props, accessories, background).${extraInstructions ? `\n\nAdditional instructions: ${extraInstructions}` : ''}`;
+CRITICAL RULES — follow exactly:
+1. SCENE ONLY from DESTINATION: Use the DESTINATION image ONLY for its background, setting, camera angle, lighting, props, hangers, and display arrangement. The destination clothing is IRRELEVANT — treat it as if it does not exist.
+2. CLOTHING ONLY from SOURCE: The output clothing MUST be 100% from the SOURCE OUTFIT images. Copy their exact colors, patterns, textures, fabric drape, and silhouette with zero modification.
+3. ZERO blending or mixing: Do NOT blend, average, or mix colors/textures between the source outfit and the destination outfit. The destination outfit's appearance must have absolutely NO influence on the output clothing.
+4. Display style: Match how items are displayed in the destination (on hanger, flat lay, mannequin, hanging in closet, etc.).
+5. Preserve non-clothing elements: Keep all background elements, props, hangers, and accessories from the destination unchanged.
+6. If the SOURCE OUTFIT has multiple pieces (top + bottom), place each in the same relative positions as in the SOURCE OUTFIT.${extraInstructions ? `\n\nAdditional instructions from user: ${extraInstructions}` : ''}`;
 
   parts.push({ text: taskPrompt });
 

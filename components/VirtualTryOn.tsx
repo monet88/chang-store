@@ -56,12 +56,16 @@ const VirtualTryOn: React.FC = () => {
     canGenerate,
     handleGenerateImage,
     handleUpscale,
+    handleRefine,
     handleSubjectImagesUpload,
     handleClothingUpload,
     addClothingUploader,
     removeClothingUploader,
     anyUpscaling,
     imageEditModel,
+    refinePrompts,
+    setRefinePrompts,
+    isRefining,
   } = useVirtualTryOn();
 
   const { t } = useLanguage();
@@ -295,6 +299,25 @@ const VirtualTryOn: React.FC = () => {
                                 isGenerating={isLoading}
                                 isUpscaling={upscalingStates[`${activeSubjectItem.id}:${index}`]}
                               />
+                              {/* Refine prompt UI */}
+                              <div className="mt-2 flex gap-2">
+                                <input
+                                  type="text"
+                                  value={refinePrompts[`${activeSubjectItem.id}:${index}`] || ''}
+                                  onChange={(e) => setRefinePrompts((prev) => ({ ...prev, [`${activeSubjectItem.id}:${index}`]: e.target.value }))}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') handleRefine(image, index, activeSubjectItem.id, refinePrompts[`${activeSubjectItem.id}:${index}`] || ''); }}
+                                  placeholder={t('imageActions.refinePromptPlaceholder')}
+                                  className="flex-1 min-w-0 bg-zinc-800/50 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                                  disabled={isRefining[`${activeSubjectItem.id}:${index}`]}
+                                />
+                                <button
+                                  onClick={() => handleRefine(image, index, activeSubjectItem.id, refinePrompts[`${activeSubjectItem.id}:${index}`] || '')}
+                                  disabled={isRefining[`${activeSubjectItem.id}:${index}`] || !(refinePrompts[`${activeSubjectItem.id}:${index}`] || '').trim()}
+                                  className="flex-shrink-0 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                  {isRefining[`${activeSubjectItem.id}:${index}`] ? <Spinner /> : t('imageActions.refineButton')}
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>

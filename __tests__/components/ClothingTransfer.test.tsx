@@ -70,11 +70,15 @@ const baseHookState = {
   handleConceptImagesUpload: vi.fn(),
   handleGenerate: vi.fn(),
   handleUpscale: vi.fn(),
+  handleRefine: vi.fn(),
   completedCount: 0,
   failedCount: 0,
   canGenerate: false,
   anyUpscaling: false,
   imageEditModel: 'gemini-2.5-flash-image',
+  refinePrompts: {},
+  setRefinePrompts: vi.fn(),
+  isRefining: {},
 };
 
 describe('ClothingTransfer component', () => {

@@ -55,6 +55,9 @@ export const en = {
     savedToGallery: 'Saved',
     saveAllToGallery: 'Save All',
     sendToAlbum: 'Use as Outfit in Photo Album',
+    refinePromptPlaceholder: 'Enter refine prompt...',
+    refineButton: 'Refine',
+    refiningStatus: 'Refining...',
   },
   toast: {
     imageSaved: 'Image saved to Gallery',

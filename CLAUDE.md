@@ -1,47 +1,35 @@
-# CLAUDE.md
+# Chang-Store — Copilot Workspace Instructions
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
-
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with multiple AI backends (Google Gemini, Local Provider, Anti Provider). Features include virtual try-on, lookbook generation, background replacement, pose changing, upscaling, image editing, and more.
-
-## Environment Setup
-
-Copy `.env.example` to `.env.local`. Required variables:
-- `GEMINI_API_KEY` — Google Gemini API key (for AI features)
-- `GOOGLE_CLIENT_ID` — Google OAuth client ID (for Drive sync)
-- `VITE_LOCAL_PROVIDER_BASE_URL` / `VITE_LOCAL_PROVIDER_API_KEY` — Local Provider endpoint
+AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with multiple AI backends (Google Gemini, Local Provider, Anti Provider).
 
 ## Architecture
 
 ```
-Component (Thin UI) → Hook (State + Logic) → Service Facade → Provider-specific API
+Component (thin UI) → Hook (state + logic) → Service Facade → Provider API
 ```
 
-**Provider hierarchy** (order matters — each depends on parent):
+**Provider nesting order** (each depends on parent):
+
 ```
 LanguageProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
 ```
 
-**Service routing** via model prefix in `imageEditingService.ts`:
-- `local--model-name` → `localProviderService.ts` (custom REST)
-- `anti--model-name` → `antiProviderService.ts` (custom REST)
-- No prefix → `gemini/image.ts` (Google Gemini SDK)
+**Service routing** — model prefix determines backend (`services/imageEditingService.ts`):
 
-## Key Files
+| Prefix | Backend | Service file |
+|--------|---------|-------------|
+| `local--` | Local Provider (REST) | `localProviderService.ts` |
+| `anti--` | Anti Provider (REST) | `antiProviderService.ts` |
+| _(none)_ | Google Gemini SDK | `gemini/image.ts` |
 
-| File | Role |
-|------|------|
-| `App.tsx` | Provider stack, lazy-loaded feature router with CSS display toggling |
-| `types.ts` | `Feature` enum, `ImageFile`, `AspectRatio`, resolution/quality types |
-| `services/imageEditingService.ts` | Unified facade — routes API calls by model prefix |
+**Path alias**: `@/*` maps to project root (not `src/`).
 
-## Code Patterns
+## Key Patterns
 
-### Component + Hook (every feature follows this)
+### Every feature = Component + Hook
+
 ```typescript
-// Component: thin UI wrapper, no business logic
+// Component: thin wrapper, NO business logic
 const FeatureName: React.FC = () => {
   const { state, handlers } = useFeatureName();
   return <UI state={state} onAction={handlers.action} />;
@@ -56,22 +44,65 @@ export function useFeatureName() {
 }
 ```
 
-### Feature rendering uses conditional mount via switch statement:
+### Adding a new feature
+
+1. Add enum value in `types.ts` → `Feature`
+2. Create `components/FeatureName.tsx` (thin UI)
+3. Create `hooks/useFeatureName.ts` (all logic)
+4. Add case in `App.tsx` switch + lazy import
+5. Add i18n keys in `locales/en.ts` (source of truth), then `locales/vi.ts`
+6. Add service routing in `imageEditingService.ts` if new API call needed
+
+### Import order
+
+1. React + external libs
+2. Internal contexts/hooks
+3. Internal services/utils
+4. Types
+
+### Error handling in hooks
+
 ```typescript
-const renderActiveFeature = () => {
-  switch (activeFeature) {
-    case Feature.TryOn:
-      return <VirtualTryOn key="try-on" />;
-    case Feature.Lookbook:
-      return <LookbookGenerator key="lookbook" />;
-    // ... other features
-  }
-};
+try { ... } catch (err) { setError(getErrorMessage(err, t)); } finally { setIsLoading(false); }
 ```
-Each `key` prop forces full component remount on feature switch (state not preserved across tabs).
 
-## Project-Specific Notes
+## Conventions
 
-- **Path alias**: `@/*` maps to project root (not `src/`)
-- **Design theme**: Dark glassmorphism (see `docs/design-guidelines.md`)
-- **i18n**: `locales/en.ts` is source of truth, usage: `const { t } = useLanguage(); t('key.path')`
+- **Tailwind only** — no inline styles, no `@apply`
+- **Dark glassmorphism** theme — see `docs/design-guidelines.md`
+- **i18n**: `const { t } = useLanguage(); t('key.path')` — `locales/en.ts` is source of truth
+- **No business logic in components** — extract to hooks
+- **No direct API calls from hooks** — go through service facades
+- **PascalCase** filenames for components (`.tsx`), camelCase for hooks/services (`.ts`)
+- **`React.FC`** type annotation on components
+- **Interface over type** for object shapes; avoid `any`
+
+## Directory Guide
+
+| Directory | Role | Details |
+|-----------|------|---------|
+| `components/` | UI layer (51 components) | See `components/AGENTS.md` |
+| `hooks/` | Feature logic (13 hooks) | See `hooks/AGENTS.md` |
+| `services/` | API facades (stateless) | See `services/AGENTS.md` |
+| `contexts/` | Global state (5 contexts) | See `contexts/AGENTS.md` |
+| `utils/` | Pure helpers | See `utils/AGENTS.md` |
+| `config/` | Model capability registry | `modelRegistry.ts` |
+| `locales/` | i18n (`en.ts`, `vi.ts`) | English is source of truth |
+| `__tests__/` | Mirrors source structure | See `__tests__/AGENTS.md` |
+
+## Detailed Docs (link, don't duplicate)
+
+- **Architecture**: `docs/system-architecture.md`
+- **Design system**: `docs/design-guidelines.md`
+- **Code standards**: `docs/code-standards.md`
+- **Codebase summary**: `docs/codebase-summary.md`
+- **API docs**: `docs/api/` (Gemini, Imagen, Nano Banana)
+
+## Anti-Patterns
+
+- Never put business logic in components — use hooks
+- Never call services directly from components — go through hooks
+- Never store API keys in hooks — use `ApiProviderContext`
+- Never bypass `imageEditingService.ts` facade for API calls
+- Never add inline styles — use Tailwind utilities
+- Never create feature components without a corresponding hook

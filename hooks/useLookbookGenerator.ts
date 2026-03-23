@@ -93,7 +93,7 @@ export const useLookbookGenerator = () => {
     const [activeOutputTab, setActiveOutputTab] = useState<'main' | 'variations' | 'closeup'>('main');
 
     // Aspect ratio and resolution state
-    const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
+    const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
     const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
     const [refinementVersions, setRefinementVersions] = useState<Array<{ image: ImageFile; prompt: string; timestamp: number }>>([]);
     const [selectedVersionIndex, setSelectedVersionIndex] = useState<number>(-1);

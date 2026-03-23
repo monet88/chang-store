@@ -5,7 +5,7 @@ import { ImageFile, AspectRatio as AspectRatioType } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
-import { editImage, generateImage } from '../services/imageEditingService';
+import { editImage, generateImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { getErrorMessage } from '../utils/imageUtils';
 
 // This is a large hook due to the complexity of the editor.
@@ -35,6 +35,11 @@ export const useImageEditor = (initialImage: ImageFile | null, onClose: () => vo
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement>(new Image());
     // ... other refs and interaction states
+
+    // Refine state — keyed by image slot index (string)
+    const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
+    const [refinePrompts, setRefinePrompts] = useState<Record<string, string>>({});
+    const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
 
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
@@ -72,5 +77,11 @@ export const useImageEditor = (initialImage: ImageFile | null, onClose: () => vo
         performApiAction,
         setActiveTool,
         // ... all other handlers
+
+        // Refine state
+        refinePrompts,
+        setRefinePrompts,
+        isRefining,
+        chatSessionsRef,
     };
 }
