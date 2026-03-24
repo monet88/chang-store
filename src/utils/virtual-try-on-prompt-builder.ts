@@ -55,9 +55,9 @@ export const buildVirtualTryOnPrompt = (
 
   const promptStructure = {
     imageRoles,
-    absoluteHighestPriority: "The generated image must precisely preserve the person's facial features, hairstyle, body shape, skin tone, and proportions from the Subject Image. The resemblance must be unmistakable and identical.",
+    absoluteHighestPriority: "You MUST strictly apply the garments from the Clothing Source Image(s) onto the person. It is strictly forbidden to keep any part of the original outfit. Replicating the new clothing's design, color, pattern, silhouette, and fabric exactly as provided is your absolute highest priority.",
     task: {
-      description: "Replace the outfit on the person in the Subject Image with the outfit provided in the Clothing Source Image(s). Use the clothing source(s) as the single source of truth for garment design, color, pattern, silhouette, and fabric texture.",
+      description: "Replace the outfit on the person in the Subject Image with the outfit provided in the Clothing Source Image(s) while accurately preserving the person's facial features, hairstyle, skin tone, and general body proportions.",
     },
     integrationRules: [
       "Completely remove the original outfit from the Subject Image; do NOT blend or reuse old clothing elements.",
