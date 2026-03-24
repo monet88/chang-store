@@ -88,7 +88,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     dragCounter.current -= 1;
-    if (dragCounter.current === 0) {
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0;
       setIsDragging(false);
     }
   }, []);

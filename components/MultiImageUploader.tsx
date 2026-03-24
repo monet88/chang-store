@@ -130,7 +130,8 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     dragCounter.current -= 1;
-    if (dragCounter.current === 0) {
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0;
       setIsDragging(false);
     }
   }, []);
