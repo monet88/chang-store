@@ -6,21 +6,25 @@
 
 ```
 Chang-Store/
-├── components/           # React UI components (64 files)
-│   ├── upscale/         # Upscaling features
-│   ├── shared/          # Shared UI components
-│   ├── modals/          # Modal dialogs (5 files)
-│   └── [Feature].tsx    # Feature components (14 main features)
-├── contexts/            # React Context providers (5 files)
-├── hooks/               # Custom hooks per feature (15 files)
-├── services/            # API service layer (13 files)
-│   └── gemini/          # Gemini-specific services (chat, image, text, video)
-├── locales/             # i18n translations (2 files)
-├── utils/               # Utility functions (12 files)
-│   └── lookbookPromptBuilder.ts  # Pure prompt generation functions
-├── App.tsx              # Root component with provider stack
-├── index.tsx            # Entry point
-└── types.ts             # Shared TypeScript definitions
+├── src/                      # Application source root
+│   ├── components/           # React UI components (64 files)
+│   │   ├── upscale/         # Upscaling features
+│   │   ├── shared/          # Shared UI components
+│   │   ├── modals/          # Modal dialogs (5 files)
+│   │   └── [Feature].tsx    # Feature components (14 main features)
+│   ├── contexts/            # React Context providers (5 files)
+│   ├── hooks/               # Custom hooks per feature (15 files)
+│   ├── services/            # API service layer (13 files)
+│   │   └── gemini/          # Gemini-specific services (chat, image, text, video)
+│   ├── locales/             # i18n translations (2 files)
+│   ├── utils/               # Utility functions (12 files)
+│   │   └── lookbookPromptBuilder.ts  # Pure prompt generation functions
+│   ├── config/              # Config helpers
+│   ├── App.tsx              # Root component with provider stack
+│   ├── index.tsx            # Entry point
+│   ├── index.css            # Global styles
+│   └── types.ts             # Shared TypeScript definitions
+├── __tests__/               # Test suites (intentionally at repo root)
 ```
 
 ## 2. Key Files and Purposes
@@ -29,36 +33,36 @@ Chang-Store/
 
 | File | Purpose |
 |------|---------|
-| `index.tsx` | React 19 DOM render, mounts `<App />` |
-| `App.tsx` | Provider hierarchy, feature routing, global modals |
+| `src/index.tsx` | React 19 DOM render, mounts `<App />` |
+| `src/App.tsx` | Provider hierarchy, feature routing, global modals |
 
 ### 2.2 Type Definitions
 
 | File | Contents |
 |------|----------|
-| `types.ts` | `Feature` enum, `ImageFile`, `AspectRatio`, model types, specialized interfaces |
+| `src/types.ts` | `Feature` enum, `ImageFile`, `AspectRatio`, model types, specialized interfaces |
 
 ### 2.3 Context Providers
 
 | File | State Managed |
 |------|---------------|
-| `contexts/LanguageContext.tsx` | Current locale (en/vi), translation function `t()` |
-| `contexts/ApiProviderContext.tsx` | API keys, model selection, per-feature model resolution |
-| `contexts/GoogleDriveContext.tsx` | OAuth state, token refresh, Drive integration |
-| `contexts/ImageGalleryContext.tsx` | Gallery state with Drive sync + LRU cache |
-| `contexts/ImageViewerContext.tsx` | Fullscreen image viewer state |
+| `src/contexts/LanguageContext.tsx` | Current locale (en/vi), translation function `t()` |
+| `src/contexts/ApiProviderContext.tsx` | API keys, model selection, per-feature model resolution |
+| `src/contexts/GoogleDriveContext.tsx` | OAuth state, token refresh, Drive integration |
+| `src/contexts/ImageGalleryContext.tsx` | Gallery state with Drive sync + LRU cache |
+| `src/contexts/ImageViewerContext.tsx` | Fullscreen image viewer state |
 
 ### 2.4 Service Layer
 
 | File | Responsibility |
 |------|----------------|
-| `services/apiClient.ts` | Gemini SDK initialization, API key management |
-| `services/imageEditingService.ts` | Unified facade routing by model prefix (`local--`, `anti--`, or Gemini) |
-| `services/gemini/image.ts` | Gemini image generation/editing |
-| `services/gemini/text.ts` | Gemini text generation |
-| `services/gemini/video.ts` | Gemini video generation (Veo) |
-| `services/gemini/chat.ts` | Gemini chat session management |
-| `utils/lookbookPromptBuilder.ts` | Pure functions for lookbook prompt generation |
+| `src/services/apiClient.ts` | Gemini SDK initialization, API key management |
+| `src/services/imageEditingService.ts` | Unified facade routing by model prefix (`local--`, `anti--`, or Gemini) |
+| `src/services/gemini/image.ts` | Gemini image generation/editing |
+| `src/services/gemini/text.ts` | Gemini text generation |
+| `src/services/gemini/video.ts` | Gemini video generation (Veo) |
+| `src/services/gemini/chat.ts` | Gemini chat session management |
+| `src/utils/lookbookPromptBuilder.ts` | Pure functions for lookbook prompt generation |
 
 ### 2.5 Feature Components
 
@@ -123,12 +127,12 @@ Feature Component (Thin UI)
 
 | Directory | File Count | Primary Extension |
 |-----------|------------|-------------------|
-| `components/` | 64 | `.tsx` |
-| `hooks/` | 15 | `.ts` |
-| `services/` | 13 | `.ts` |
-| `contexts/` | 5 | `.tsx` |
-| `locales/` | 2 | `.ts` |
-| `utils/` | 12 | `.ts` |
+| `src/components/` | 64 | `.tsx` |
+| `src/hooks/` | 15 | `.ts` |
+| `src/services/` | 13 | `.ts` |
+| `src/contexts/` | 5 | `.tsx` |
+| `src/locales/` | 2 | `.ts` |
+| `src/utils/` | 12 | `.ts` |
 
 **Total Source Files:** ~115 (excluding node_modules, tests)
 **Estimated Token Count:** ~250k tokens

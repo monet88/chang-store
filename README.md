@@ -50,10 +50,10 @@ Dependencies are managed strictly by the tree order:
 
 ### Service Routing
 
-Generative image features are seamlessly routed based on custom model prefixes within `imageEditingService.ts`:
-- **`local--*`**: Passes to `localProviderService.ts` via custom REST API.
-- **`anti--*`**: Passes to `antiProviderService.ts` via custom REST API.
-- **(No prefix)**: Defaults to the `gemini/image.ts` utilizing the official Google Gemini SDK.
+Generative image features are seamlessly routed based on custom model prefixes within `src/services/imageEditingService.ts`:
+- **`local--*`**: Passes to `src/services/localProviderService.ts` via custom REST API.
+- **`anti--*`**: Passes to `src/services/antiProviderService.ts` via custom REST API.
+- **(No prefix)**: Defaults to the `src/services/gemini/image.ts` utilizing the official Google Gemini SDK.
 
 ## 🧑‍💻 Development
 
@@ -75,4 +75,4 @@ npm run build
 
 The application adheres to a dark **glassmorphism** design theme. For further UI details, refer to `docs/design-guidelines.md`.
 
-*Localization (i18n)* is managed via `locales/en.ts` functioning as the main source of truth. Always use `const { t } = useLanguage(); t('key.path')` inside components for text representation.
+*Localization (i18n)* is managed via `src/locales/en.ts` functioning as the main source of truth. Always use `const { t } = useLanguage(); t('key.path')` inside components for text representation.

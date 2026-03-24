@@ -2,7 +2,7 @@
 
 ## Runtime
 
-- Browser-only React SPA. Main entrypoints are `index.tsx`, `App.tsx`, and `index.html`.
+- Browser-only React SPA. Main entrypoints are `src/index.tsx`, `src/App.tsx`, and `index.html`.
 - React 19.2 with `react-dom` 19.2.
 - TypeScript 5.8 with ESM (`"type": "module"` in `package.json`).
 - Vite 6 with `@vitejs/plugin-react-swc` for dev/build.
@@ -31,7 +31,7 @@
 ## Build Configuration
 
 - Dev server runs on port `3000` in `vite.config.ts`.
-- Path alias `@` points to repository root in both `vite.config.ts` and `vitest.config.ts`.
+- Path alias `@` points to `src/` directory in both `vite.config.ts` and `vitest.config.ts`.
 - Production build manually splits `react`, `@google/genai`, and `axios` into vendor chunks.
 - Production build strips `console.log`, `console.debug`, and `console.info`, but keeps `console.warn` and `console.error`.
 
@@ -39,21 +39,20 @@
 
 - Gemini API key is injected to browser code through `vite.config.ts` as `process.env.API_KEY` and `process.env.GEMINI_API_KEY`.
 - Google Identity Services client ID is injected through `vite.config.ts` as `process.env.GOOGLE_CLIENT_ID`.
-- Local provider defaults read `import.meta.env.VITE_LOCAL_PROVIDER_BASE_URL` and `import.meta.env.VITE_LOCAL_PROVIDER_API_KEY` in `contexts/ApiProviderContext.tsx`.
-- User overrides are persisted in `localStorage` by `contexts/ApiProviderContext.tsx` and `contexts/GoogleDriveContext.tsx`.
+- Local provider defaults read `import.meta.env.VITE_LOCAL_PROVIDER_BASE_URL` and `import.meta.env.VITE_LOCAL_PROVIDER_API_KEY` in `src/contexts/ApiProviderContext.tsx`.
+- User overrides are persisted in `localStorage` by `src/contexts/ApiProviderContext.tsx` and `src/contexts/GoogleDriveContext.tsx`.
 
 ## Model Routing Model
 
 - Gemini and Imagen models are treated as default cloud models.
 - Local provider models use the prefix `local--`.
 - Anti provider models use the prefix `anti--`.
-- Routing is centralized in `services/imageEditingService.ts`.
+- Routing is centralized in `src/services/imageEditingService.ts`.
 
 ## Current Source Layout Notes
 
-- Most application source lives at repo root in `components/`, `hooks/`, `contexts/`, `services/`, `utils/`, and `locales/`.
-- `src/` currently contains CSS only (`src/index.css`).
-- Shared domain types live in `types.ts`.
+- All application source lives under `src/` in `src/components/`, `src/hooks/`, `src/contexts/`, `src/services/`, `src/utils/`, and `src/locales/`.
+- Shared domain types live in `src/types.ts`.
 
 ## Key Files
 
@@ -61,4 +60,4 @@
 - `vite.config.ts` - env injection, aliases, code splitting, console stripping.
 - `vitest.config.ts` - test environment, coverage thresholds, aliasing.
 - `eslint.config.js` - lint rules and ignored paths.
-- `types.ts` - feature enum, image types, resolution and aspect-ratio types.
+- `src/types.ts` - feature enum, image types, resolution and aspect-ratio types.

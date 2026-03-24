@@ -14,9 +14,9 @@ Component (thin UI) → Hook (state + logic) → Service Facade → Provider API
 LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
 ```
 
-> **Note**: `ToastProvider` lives in `components/Toast.tsx` (not in `contexts/`). All others are in `contexts/`.
+> **Note**: `ToastProvider` lives in `src/components/Toast.tsx` (not in `contexts/`). All others are in `src/contexts/`.
 
-**Service routing** — model prefix determines backend (`services/imageEditingService.ts`):
+**Service routing** — model prefix determines backend (`src/services/imageEditingService.ts`):
 
 | Prefix | Backend | Service file |
 |--------|---------|-------------|
@@ -24,24 +24,24 @@ LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → I
 | `anti--` | Anti Provider (REST) | `antiProviderService.ts` |
 | _(none)_ | Google Gemini SDK | `gemini/image.ts` |
 
-**Path alias**: `@/*` maps to project root (not `src/`).
+**Path alias**: `@/*` maps to `src/`.
 
-**Feature routing**: No React Router. `App.tsx` → `AppContent` uses a switch on `Feature` enum to render lazy-loaded components.
+**Feature routing**: No React Router. `src/App.tsx` → `AppContent` uses a switch on `Feature` enum to render lazy-loaded components.
 
 ## Project Structure
 
 | Directory | Role | Details |
 |-----------|------|---------|
-| `components/` | UI layer (~50 components) | See `components/AGENTS.md` |
-| `hooks/` | Feature logic (15 hooks) | See `hooks/AGENTS.md` |
-| `services/` | API facades (stateless, 11 files) | See `services/AGENTS.md` |
-| `contexts/` | Global state (5 contexts) | See `contexts/AGENTS.md` |
-| `utils/` | Pure helpers (15 files) | See `utils/AGENTS.md` |
-| `config/` | Model capability registry | `modelRegistry.ts` |
-| `locales/` | i18n (`en.ts`, `vi.ts`) | English is source of truth |
+| `src/components/` | UI layer (~50 components) | See `src/components/AGENTS.md` |
+| `src/hooks/` | Feature logic (15 hooks) | See `src/hooks/AGENTS.md` |
+| `src/services/` | API facades (stateless, 11 files) | See `src/services/AGENTS.md` |
+| `src/contexts/` | Global state (5 contexts) | See `src/contexts/AGENTS.md` |
+| `src/utils/` | Pure helpers (15 files) | See `src/utils/AGENTS.md` |
+| `src/config/` | Model capability registry | `src/config/modelRegistry.ts` |
+| `src/locales/` | i18n (`en.ts`, `vi.ts`) | English is source of truth |
 | `__tests__/` | Mirrors source structure (~25 files) | See `__tests__/AGENTS.md` |
 
-> Source code lives at **project root** (not under `src/`). `src/` only contains `index.css`.
+> Source code lives under `src/`. Entry files, components, hooks, services, contexts, utils, locales, and config all reside in `src/`.
 
 ## Key Patterns
 
@@ -65,12 +65,12 @@ export function useFeatureName() {
 
 ### Adding a new feature
 
-1. Add enum value in `types.ts` → `Feature`
-2. Create `components/FeatureName.tsx` (thin UI)
-3. Create `hooks/useFeatureName.ts` (all logic)
-4. Add case in `App.tsx` switch + lazy import
-5. Add i18n keys in `locales/en.ts` (source of truth), then `locales/vi.ts`
-6. Add service routing in `imageEditingService.ts` if new API call needed
+1. Add enum value in `src/types.ts` → `Feature`
+2. Create `src/components/FeatureName.tsx` (thin UI)
+3. Create `src/hooks/useFeatureName.ts` (all logic)
+4. Add case in `src/App.tsx` switch + lazy import
+5. Add i18n keys in `src/locales/en.ts` (source of truth), then `src/locales/vi.ts`
+6. Add service routing in `src/services/imageEditingService.ts` if new API call needed
 
 ### Import order
 
