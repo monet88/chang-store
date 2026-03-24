@@ -40,7 +40,7 @@ export type ImageResolution = typeof IMAGE_RESOLUTIONS[number];
 
 /** Default values */
 export const DEFAULT_IMAGE_ASPECT_RATIO: ImageAspectRatio = 'Default';
-export const DEFAULT_IMAGE_RESOLUTION: ImageResolution = '1K';
+export const DEFAULT_IMAGE_RESOLUTION: ImageResolution = '2K';
 
 // Backward compatible alias (use ImageAspectRatio for new code)
 export type AspectRatio = ImageAspectRatio;
