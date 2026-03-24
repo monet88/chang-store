@@ -41,18 +41,13 @@ vi.mock('../../src/components/ImageOptionsPanel', () => ({
   default: () => <div>image-options</div>,
 }));
 
-vi.mock('../../src/components/shared/ImageBatchSessionRail', () => ({
-  default: () => <div>session-rail</div>,
-}));
+
 
 import VirtualTryOn from '../../src/components/VirtualTryOn';
 
 const baseHookState = {
   subjectItems: [],
   subjectImages: [],
-  selectedSubjectItemId: null,
-  setSelectedSubjectItemId: vi.fn(),
-  activeSubjectItem: null,
   clothingItems: [{ id: 1, image: null }],
   backgroundPrompt: '',
   setBackgroundPrompt: vi.fn(),
@@ -113,13 +108,6 @@ describe('VirtualTryOn component', () => {
         },
       ],
       subjectImages: [{ base64: 'subject', mimeType: 'image/png' }],
-      selectedSubjectItemId: 'vto-1',
-      activeSubjectItem: {
-        id: 'vto-1',
-        subjectImage: { base64: 'subject', mimeType: 'image/png' },
-        status: 'completed',
-        results: [{ base64: 'result', mimeType: 'image/png' }],
-      },
       completedCount: 1,
     });
 
@@ -127,8 +115,7 @@ describe('VirtualTryOn component', () => {
 
     expect(screen.getByRole('button', { name: 'virtualTryOn.generateButton' })).toBeEnabled();
     expect(screen.getByText('virtualTryOn.batchResultsTitle')).toBeInTheDocument();
-    expect(screen.getByText('session-rail')).toBeInTheDocument();
-    expect(screen.getByText('virtualTryOn.subjectBatchLabel')).toBeInTheDocument();
-    expect(screen.getByText('generatedImage.altText 1')).toBeInTheDocument();
+    // Flat grid: result image rendered directly (no session rail)
+    expect(screen.getByText(/generatedImage.altText/)).toBeInTheDocument();
   });
 });
