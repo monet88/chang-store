@@ -96,7 +96,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                 <div key={item.id} className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium text-zinc-300">
-                      {t('clothingTransfer.clothingItemTitle', { index: index + 1 })}
+                      {t('clothingTransfer.referenceTitle')} {index + 1}
                     </span>
                     {referenceItems.length > 1 && (
                       <button
@@ -112,14 +112,14 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                     <ImageUploader
                       image={item.image}
                       id={`ref-outfit-${item.id}`}
-                      title={t('clothingTransfer.clothingItemTitle', { index: referenceItems.findIndex(r => r.id === item.id) + 1 })}
-                      onImageUpload={(file) => handleReferenceUpload(item.id, file)}
+                      title={`${t('clothingTransfer.referenceTitle')} ${referenceItems.findIndex(r => r.id === item.id) + 1}`}
+                      onImageUpload={(file) => handleReferenceUpload(file, item.id)}
                     />
                     <input
                       type="text"
                       value={item.label}
-                      onChange={(e) => handleReferenceLabel(item.id, e.target.value)}
-                      placeholder={t('clothingTransfer.clothingLabelPlaceholder')}
+                      onChange={(e) => handleReferenceLabel(e.target.value, item.id)}
+                      placeholder={t('clothingTransfer.referenceLabelPlaceholder')}
                       className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 placeholder-zinc-600 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                     />
                   </div>
@@ -132,7 +132,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                 className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-zinc-600 py-2 text-xs text-zinc-400 hover:border-amber-500 hover:text-amber-400 transition-colors"
               >
                 <AddIcon className="w-3.5 h-3.5" />
-                {t('clothingTransfer.addItem')}
+                {t('clothingTransfer.addOutfit')}
               </button>
             )}
           </div>
