@@ -54,3 +54,4 @@
 | 1. Batch Multi-Image Parallel Processing For Virtual Try-On And Clothing Transfer | v1.1 | 1/1 | ✅ Complete | 2026-03-22 |
 | 1. Chuyển code gộp vào thư mục src/ | v1.2 | 1/1 | ✅ Complete | 2026-03-24 |
 | 1. Virtual Try-On Prompt Optimization | v1.3 | 4/4 | ✅ Complete | 2026-03-24 |
+

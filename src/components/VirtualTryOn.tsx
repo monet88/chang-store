@@ -70,6 +70,12 @@ const VirtualTryOn: React.FC = () => {
 
   const { t } = useLanguage();
 
+  // Track which image slots have the refine bar expanded
+  const [refineOpen, setRefineOpen] = React.useState<Record<string, boolean>>({});
+
+  const toggleRefine = (key: string) =>
+    setRefineOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+
   const selectedItemIndex = activeSubjectItem
     ? subjectItems.findIndex((item) => item.id === activeSubjectItem.id)
     : -1;
@@ -255,90 +261,113 @@ const VirtualTryOn: React.FC = () => {
               />
 
               {activeSubjectItem && (
-                <div className="flex flex-col gap-4 overflow-y-auto pr-1">
-                  <div className="grid grid-cols-1 md:grid-cols-[180px,1fr] gap-4 items-start">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-zinc-300">{t('virtualTryOn.selectedSubjectLabel')}</p>
-                      <div className="aspect-[4/5] overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900">
-                        <img
-                          src={`data:${activeSubjectItem.subjectImage.mimeType};base64,${activeSubjectItem.subjectImage.base64}`}
-                          alt={t('virtualTryOn.subjectBatchLabel', { index: selectedItemIndex + 1 })}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
+                <div className="flex flex-col gap-3 overflow-y-auto pr-1 flex-1 min-h-0">
+
+                  {/* Subject identity badge row */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden border border-zinc-700 bg-zinc-900">
+                      <img
+                        src={`data:${activeSubjectItem.subjectImage.mimeType};base64,${activeSubjectItem.subjectImage.base64}`}
+                        alt={t('virtualTryOn.subjectBatchLabel', { index: selectedItemIndex + 1 })}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-zinc-100 leading-tight truncate">
+                        {t('virtualTryOn.subjectBatchLabel', { index: selectedItemIndex + 1 })}
+                      </p>
+                      <p className="text-[11px] text-zinc-500 leading-tight">
+                        {t('virtualTryOn.resultsForSubject')}
+                      </p>
+                    </div>
+                    <span className={`flex-shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_CLASS_NAME[activeSubjectItem.status]}`}>
+                      {t(`virtualTryOn.status.${activeSubjectItem.status}`)}
+                    </span>
+                  </div>
 
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-zinc-100">
-                            {t('virtualTryOn.subjectBatchLabel', { index: selectedItemIndex + 1 })}
-                          </p>
-                          <p className="text-xs text-zinc-500">{t('virtualTryOn.resultsForSubject')}</p>
-                        </div>
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_CLASS_NAME[activeSubjectItem.status]}`}>
-                          {t(`virtualTryOn.status.${activeSubjectItem.status}`)}
-                        </span>
-                      </div>
+                  {activeSubjectItem.error && (
+                    <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                      {activeSubjectItem.error}
+                    </div>
+                  )}
 
-                      {activeSubjectItem.error && (
-                        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                          {activeSubjectItem.error}
-                        </div>
-                      )}
+                  {/* Output grid — full width */}
+                  {activeSubjectItem.results.length > 0 ? (
+                    <div className={`grid ${getGridColsClass(activeSubjectItem.results.length)} gap-3`}>
+                      {activeSubjectItem.results.map((image, index) => {
+                        const key = `${activeSubjectItem.id}:${index}`;
+                        const isOpen = !!refineOpen[key];
+                        const isCurrentlyRefining = !!isRefining[key];
+                        return (
+                          <div key={key} className="animate-fade-in flex flex-col gap-1" style={{ animationDelay: `${index * 80}ms` }}>
+                            <HoverableImage
+                              image={image}
+                              altText={`${t('generatedImage.altText')} ${index + 1}`}
+                              onRegenerate={handleGenerateImage}
+                              onUpscale={() => handleUpscale(image, index, activeSubjectItem.id)}
+                              isGenerating={isLoading}
+                              isUpscaling={upscalingStates[key]}
+                            />
 
-                      {activeSubjectItem.results.length > 0 ? (
-                        <div className={`grid ${getGridColsClass(activeSubjectItem.results.length)} gap-4`}>
-                          {activeSubjectItem.results.map((image, index) => (
-                            <div key={`${activeSubjectItem.id}-${index}`} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-                              <HoverableImage
-                                image={image}
-                                altText={`${t('generatedImage.altText')} ${index + 1}`}
-                                onRegenerate={handleGenerateImage}
-                                onUpscale={() => handleUpscale(image, index, activeSubjectItem.id)}
-                                isGenerating={isLoading}
-                                isUpscaling={upscalingStates[`${activeSubjectItem.id}:${index}`]}
-                              />
-                              {/* Refine prompt UI */}
-                              <div className="mt-2 flex gap-2">
+                            {/* Refine toggle — compact pill */}
+                            <button
+                              onClick={() => toggleRefine(key)}
+                              className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md transition-all w-fit ${
+                                isOpen
+                                  ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20'
+                                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/80'
+                              }`}
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
+                              </svg>
+                              {isOpen ? t('imageActions.refineButton') : '✏️ ' + t('imageActions.refineButton')}
+                            </button>
+
+                            {/* Collapsed refine input — only when open */}
+                            {isOpen && (
+                              <div className="flex gap-1.5 animate-fade-in">
                                 <input
                                   type="text"
-                                  value={refinePrompts[`${activeSubjectItem.id}:${index}`] || ''}
-                                  onChange={(e) => setRefinePrompts((prev) => ({ ...prev, [`${activeSubjectItem.id}:${index}`]: e.target.value }))}
-                                  onKeyDown={(e) => { if (e.key === 'Enter') handleRefine(image, index, activeSubjectItem.id, refinePrompts[`${activeSubjectItem.id}:${index}`] || ''); }}
+                                  value={refinePrompts[key] || ''}
+                                  onChange={(e) => setRefinePrompts((prev) => ({ ...prev, [key]: e.target.value }))}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleRefine(image, index, activeSubjectItem.id, refinePrompts[key] || '');
+                                  }}
                                   placeholder={t('imageActions.refinePromptPlaceholder')}
-                                  className="flex-1 min-w-0 bg-zinc-800/50 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                                  disabled={isRefining[`${activeSubjectItem.id}:${index}`]}
+                                  autoFocus
+                                  className="flex-1 min-w-0 bg-zinc-800/70 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                                  disabled={isCurrentlyRefining}
                                 />
                                 <button
-                                  onClick={() => handleRefine(image, index, activeSubjectItem.id, refinePrompts[`${activeSubjectItem.id}:${index}`] || '')}
-                                  disabled={isRefining[`${activeSubjectItem.id}:${index}`] || !(refinePrompts[`${activeSubjectItem.id}:${index}`] || '').trim()}
+                                  onClick={() => handleRefine(image, index, activeSubjectItem.id, refinePrompts[key] || '')}
+                                  disabled={isCurrentlyRefining || !(refinePrompts[key] || '').trim()}
                                   className="flex-shrink-0 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                                 >
-                                  {isRefining[`${activeSubjectItem.id}:${index}`] ? <Spinner /> : t('imageActions.refineButton')}
+                                  {isCurrentlyRefining ? <Spinner /> : '↵'}
                                 </button>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : activeSubjectItem.status === 'processing' ? (
-                        <div className="space-y-3">
-                          <p className="text-sm text-amber-300">{t('virtualTryOn.processingItem')}</p>
-                          <div className={`grid ${getGridColsClass(numImages)} gap-4`}>
-                            {Array.from({ length: numImages }).map((_, index) => (
-                              <div key={index} className="aspect-[3/4] bg-zinc-800/50 rounded-lg flex items-center justify-center animate-pulse">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400" />
-                              </div>
-                            ))}
+                            )}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-6 text-sm text-zinc-400 text-center">
-                          {t('virtualTryOn.waitingStatus')}
-                        </div>
-                      )}
+                        );
+                      })}
                     </div>
-                  </div>
+                  ) : activeSubjectItem.status === 'processing' ? (
+                    <div className="space-y-2">
+                      <p className="text-sm text-amber-300">{t('virtualTryOn.processingItem')}</p>
+                      <div className={`grid ${getGridColsClass(numImages)} gap-3`}>
+                        {Array.from({ length: numImages }).map((_, index) => (
+                          <div key={index} className="aspect-[3/4] bg-zinc-800/50 rounded-lg flex items-center justify-center animate-pulse">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-6 text-sm text-zinc-400 text-center">
+                      {t('virtualTryOn.waitingStatus')}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
