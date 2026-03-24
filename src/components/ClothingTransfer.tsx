@@ -333,7 +333,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                   ) : activeConceptItem.status === 'processing' ? (
                     <div className="space-y-2">
                       <p className="text-sm text-amber-300">{t('clothingTransfer.processingItem')}</p>
-                      <div className={`grid ${getGridColsClass(numImages)} gap-3`}>
+                      <div className="grid grid-cols-3 gap-3">
                         {Array.from({ length: numImages }).map((_, index) => (
                           <div key={index} className="aspect-[3/4] bg-zinc-800/50 rounded-lg flex items-center justify-center animate-pulse">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400" />
