@@ -78,7 +78,7 @@ function buildTaskText(
     : '';
 
   const backgroundSection = backgroundPrompt.trim()
-    ? `Keep the original background from the Subject Image but modify it with this description: "${backgroundPrompt.trim()}". The background must complement both the person and the new outfit.`
+    ? `[CRITICAL] Replace the background entirely with: "${backgroundPrompt.trim()}". Do NOT keep the original background — generate a new background matching this description exactly. The background must complement both the person and the new outfit.`
     : 'Keep the original background from the Subject Image exactly as is.';
 
   const extraSection = extraPrompt.trim()

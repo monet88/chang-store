@@ -332,7 +332,7 @@ describe('buildVirtualTryOnParts', () => {
       const input = { ...defaultInput, backgroundPrompt: 'Minimalist white studio' };
       const text = getTaskText(buildVirtualTryOnParts(input));
       expect(text).toContain('Minimalist white studio');
-      expect(text).toContain('modify it with this description');
+      expect(text).toContain('Replace the background entirely with');
     });
 
     it('keeps original background when empty', () => {
