@@ -50,9 +50,10 @@ Users can turn fashion reference images into production-ready visual assets quic
 
 ## Context
 
-- The app is a React 19 + TypeScript + Vite browser SPA with provider routing centralized in `services/imageEditingService.ts`.
+- The app is a React 19 + TypeScript + Vite browser SPA with provider routing centralized in `src/services/imageEditingService.ts`.
 - Shipped v1.0 milestone, successfully upgrading Upscale into a multi-mode feature with Quick Upscale and an AI Studio pipeline running in parallel.
 - Shipped v1.1 milestone, adding bounded-parallel batch orchestration to Virtual Try-On and Clothing Transfer with per-item result tracking.
+- Shipped v1.2 milestone, consolidating all runtime source under `src/` — `@` alias now resolves to `src/` across TypeScript, Vite, and Vitest; all 23 test files updated; all docs and agent guidance synced.
 - The workflow now supports multi-image sessions across Upscale, Virtual Try-On, and Clothing Transfer while preserving existing provider contracts.
 - Virtual Try-On and Clothing Transfer now share the same batch-session remapping and worker-pool orchestration pattern.
 - Existing repo conventions (thin components, hooks for orchestration, service facades for provider logic, bilingual localized UI strings) were followed throughout shipped milestones.
@@ -91,5 +92,7 @@ Upscale this image to {target_resolution} resolution. Enhance the details, make 
 Upscale this image to 4K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the model's face and the overall composition exactly the same. Photorealistic, fashion photography quality, 8K quality.
 ```
 
+| One-pass cutover for src/ migration: no bridge files, remove root copies immediately | Clean break prevents dual-source confusion for both humans and AI agents | ✓ Good |
+
 ---
-*Last updated: 2026-03-22 after completing the v1.1 milestone*
+*Last updated: 2026-03-24 after v1.2 milestone*

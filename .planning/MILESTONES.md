@@ -1,10 +1,21 @@
 # Project Milestones: Chang-Store
 
+## v1.2 src/ Source Root Migration (Shipped: 2026-03-24)
+
+**Phases completed:** 1 phases, 1 plans, 4 tasks
+
+**Key accomplishments:**
+
+- Runtime source tree relocated into src/ with alias retarget, 23 test file import rewrites, and full doc sync — build/lint/test all green
+
+---
+
 ## v1.1 Batch Try-On & Clothing Transfer (Shipped: 2026-03-22)
 
 **Phases completed:** 1 phase, 1 plan, 8 tasks
 
 **Key accomplishments:**
+
 - Added bounded-parallel batch processing to Virtual Try-On with shared outfit reuse.
 - Added bounded-parallel batch processing to Clothing Transfer with concept-first request assembly.
 - Added per-item status, partial-failure isolation, and a shared batch review rail in both features.
@@ -17,4 +28,5 @@
 **Phases completed:** 5 phases, 5 plans, 7 tasks
 
 **Key accomplishments:**
+
 - (none recorded)

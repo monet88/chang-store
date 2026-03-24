@@ -5,6 +5,44 @@
 - Tight, feature-scoped milestones keep delivery speed high in this SPA.
 - Hook-owned orchestration continues to scale better than pushing workflow logic into shared services too early.
 - Verification hygiene still needs to happen inside phase execution; retroactive audit cleanup adds avoidable overhead.
+- Structural/infra phases execute faster when planned as one-pass cutover rather than staged bridge migrations.
+
+---
+
+## Milestone: v1.2 — src/ Source Root Migration
+
+**Shipped:** 2026-03-24
+**Phases:** 1 | **Plans:** 1 | **Tasks:** 4
+
+### What Was Built
+- Moved all runtime source (components, hooks, contexts, services, utils, locales, config, entry files) from repo root into `src/` in one pass.
+- Retargeted `@` alias to `src/` across TypeScript (`tsconfig.json`), Vite (`vite.config.ts`), and Vitest (`vitest.config.ts`).
+- Updated browser entry in `index.html` to point at `/src/index.tsx`.
+- Rewrote all 23 test files' import paths and `vi.mock()` calls to target the migrated `src/` tree.
+- Synced all docs and agent guidance (AGENTS.md, CLAUDE.md, README.md, codebase maps, planning files, .github/copilot-instructions.md).
+
+### What Worked
+- One-pass cutover (D-07) was the right call — no bridge files, no intermediate dual-source state, no import churn from staged approach.
+- Planning the migration as one integrated plan with 4 internal tasks (move → retarget → docs → validate) made execution clean and atomic.
+- Pre-existing test failures (4) and type errors (9) were explicitly scoped out, preventing scope creep into unrelated fixes.
+
+### What Was Inefficient
+- Windows `git mv` for directories fails with "Permission denied" — had to use `Copy-Item + Remove-Item` PowerShell workaround. Worth documenting this upfront for future file migrations on Windows.
+- `npm run test -- --run` caused a duplicate `--run` flag error because `package.json` already includes `--run` in the test script. Future plans should document to use `npm run test` directly.
+
+### Patterns Established
+- `src/` is now the canonical application root. All future phases should reference `src/` paths.
+- `@/* → src/` is the stable import alias across all tool surfaces — do not regress.
+- Doc sync is a first-class task, not an afterthought — stale agent guidance causes cascading confusion across AI-assisted work.
+
+### Key Lessons
+- A structural refactor touching 150 files across aliases, configs, test imports, and docs takes ~20 min when planned correctly. The ROI from better project layout is front-loaded.
+- Include `.github/copilot-instructions.md` explicitly in the scope of future doc-sync phases — it was missed in the initial plan scope and required a Rule 2 deviation fix.
+
+### Cost Observations
+- Model mix: sonnet for planning + executor.
+- Sessions: 1 execution session, ~20 min end-to-end.
+- Notable: Zero new TS errors or test regressions introduced by the migration.
 
 ---
 
