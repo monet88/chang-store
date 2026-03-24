@@ -94,10 +94,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {referenceItems.map((item, index) => (
                 <div key={item.id} className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-zinc-300">
-                      {t('clothingTransfer.referenceTitle')} {index + 1}
-                    </span>
+                  <div className="flex items-center justify-end gap-2">
                     {referenceItems.length > 1 && (
                       <button
                         onClick={() => removeReference(item.id)}
