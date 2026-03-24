@@ -164,11 +164,11 @@ describe('editImage', () => {
         TEST_IMAGE,
         'Edit with local',
         'flux-model',
-        expect.objectContaining({
+        {
           baseUrl: 'http://localhost:11434',
           apiKey: 'local-key',
-        }),
-        '1024x1024'
+        },
+        '2048x2048'
       );
       expect(result).toEqual([mockResult]);
     });
@@ -269,11 +269,11 @@ describe('generateImage', () => {
     expect(localProviderService.generateImageLocal).toHaveBeenCalledWith(
       'A beautiful sunset',
       'flux-model',
-      expect.objectContaining({
+      {
         baseUrl: 'http://localhost:11434',
         apiKey: 'local-key',
-      }),
-      '1024x1024'
+      },
+      '2048x2048'
     );
     expect(result).toEqual([mockResult]);
   });
@@ -326,11 +326,11 @@ describe('upscaleImage', () => {
       TEST_IMAGE,
       expect.stringContaining('Upscale this image'),
       'image-model-1',
-      expect.objectContaining({
+      {
         baseUrl: 'http://localhost:11434',
         apiKey: 'local-key',
-      }),
-      '1024x1024'
+      },
+      '2048x2048'
     );
     expect(result).toEqual(mockResult);
   });
@@ -392,11 +392,11 @@ describe('extractOutfitItem', () => {
       TEST_IMAGE,
       expect.stringContaining('blue jeans'),
       'image-model-1',
-      expect.objectContaining({
+      {
         baseUrl: 'http://localhost:11434',
         apiKey: 'local-key',
-      }),
-      '1024x1024'
+      },
+      '2048x2048'
     );
     expect(result).toEqual(mockResult);
   });

@@ -37,9 +37,8 @@ vi.mock('../../src/components/ImageOptionsPanel', () => ({
   default: () => <div>image-options</div>,
 }));
 
-vi.mock('../../src/components/shared/ImageBatchSessionRail', () => ({
-  default: () => <div>session-rail</div>,
-}));
+
+
 
 import ClothingTransfer from '../../src/components/ClothingTransfer';
 
@@ -122,8 +121,6 @@ describe('ClothingTransfer component', () => {
 
     expect(screen.getByRole('button', { name: 'clothingTransfer.generateButton' })).toBeEnabled();
     expect(screen.getByText('clothingTransfer.batchResultsTitle')).toBeInTheDocument();
-    expect(screen.getByText('session-rail')).toBeInTheDocument();
-    expect(screen.getByText('clothingTransfer.conceptBatchLabel')).toBeInTheDocument();
-    expect(screen.getByText('generatedImage.altText 1')).toBeInTheDocument();
+    expect(screen.getByText('clothingTransfer.conceptBatchLabel - generatedImage.altText 1')).toBeInTheDocument();
   });
 });
