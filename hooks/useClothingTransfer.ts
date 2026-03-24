@@ -32,7 +32,7 @@ export function useClothingTransfer() {
   const [extraPrompt, setExtraPrompt] = useState('');
   const [numImages, setNumImages] = useState(1);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
-  const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
+  const [resolution, setResolution] = useState<ImageResolution>('2K');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
