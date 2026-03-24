@@ -44,4 +44,4 @@
 **Plans:** 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md — Move runtime tree into src/, retarget all path contracts, update docs
+- [x] 01-01-PLAN.md — Move runtime tree into src/, retarget all path contracts, update docs
