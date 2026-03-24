@@ -3,38 +3,22 @@ import ImageUploader from './ImageUploader';
 import MultiImageUploader from './MultiImageUploader';
 import Spinner from './Spinner';
 import HoverableImage from './HoverableImage';
-import { BatchImageStatus } from '../types';
+
 import { useLanguage } from '../contexts/LanguageContext';
 
 import { AddIcon, DeleteIcon } from './Icons';
 import Tooltip from './Tooltip';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
-import ImageBatchSessionRail from './shared/ImageBatchSessionRail';
+
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
 
-const STATUS_CLASS_NAME: Record<BatchImageStatus, string> = {
-  pending: 'bg-zinc-700/80 text-zinc-200',
-  processing: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
-  completed: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
-  error: 'bg-red-500/20 text-red-300 border border-red-500/30',
-};
 
-const getGridColsClass = (count: number) => {
-  if (count <= 1) {
-    return 'grid-cols-1';
-  }
-
-  return 'grid-cols-1 sm:grid-cols-2';
-};
 
 const VirtualTryOn: React.FC = () => {
   const {
     subjectItems,
     subjectImages,
-    selectedSubjectItemId,
-    setSelectedSubjectItemId,
-    activeSubjectItem,
     clothingItems,
     backgroundPrompt,
     setBackgroundPrompt,
@@ -75,10 +59,6 @@ const VirtualTryOn: React.FC = () => {
 
   const toggleRefine = (key: string) =>
     setRefineOpen((prev) => ({ ...prev, [key]: !prev[key] }));
-
-  const selectedItemIndex = activeSubjectItem
-    ? subjectItems.findIndex((item) => item.id === activeSubjectItem.id)
-    : -1;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
@@ -219,9 +199,9 @@ const VirtualTryOn: React.FC = () => {
           {subjectItems.length === 0 ? (
             <ResultPlaceholder description={t('virtualTryOn.outputPanelDescription')} />
           ) : (
-            <div className="flex flex-col h-full gap-4 w-full overflow-hidden">
+            <div className="flex flex-col h-full gap-3 w-full overflow-hidden">
               <div className="flex-shrink-0 space-y-2">
-                <h3 className="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
+                <h3 className="text-lg font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
                   {t('virtualTryOn.batchResultsTitle')}
                 </h3>
                 <p className="text-xs text-center text-zinc-400">
@@ -248,74 +228,38 @@ const VirtualTryOn: React.FC = () => {
                 )}
               </div>
 
-              <ImageBatchSessionRail
-                items={subjectItems.map((item) => ({
-                  id: item.id,
-                  image: item.subjectImage,
-                  status: item.status,
-                  resultCount: item.results.length,
-                }))}
-                selectedId={selectedSubjectItemId}
-                onSelect={setSelectedSubjectItemId}
-                getItemLabel={(index) => t('virtualTryOn.subjectBatchLabel', { index: index + 1 })}
-              />
-
-              {activeSubjectItem && (
-                <div className="flex flex-col gap-3 overflow-y-auto pr-1 flex-1 min-h-0">
-
-                  {/* Subject identity badge row */}
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden border border-zinc-700 bg-zinc-900">
-                      <img
-                        src={`data:${activeSubjectItem.subjectImage.mimeType};base64,${activeSubjectItem.subjectImage.base64}`}
-                        alt={t('virtualTryOn.subjectBatchLabel', { index: selectedItemIndex + 1 })}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-zinc-100 leading-tight truncate">
-                        {t('virtualTryOn.subjectBatchLabel', { index: selectedItemIndex + 1 })}
-                      </p>
-                      <p className="text-[11px] text-zinc-500 leading-tight">
-                        {t('virtualTryOn.resultsForSubject')}
-                      </p>
-                    </div>
-                    <span className={`flex-shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_CLASS_NAME[activeSubjectItem.status]}`}>
-                      {t(`virtualTryOn.status.${activeSubjectItem.status}`)}
-                    </span>
-                  </div>
-
-                  {activeSubjectItem.error && (
-                    <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                      {activeSubjectItem.error}
-                    </div>
-                  )}
-
-                  {/* Output grid — full width */}
-                  {activeSubjectItem.results.length > 0 ? (
-                    <div className={`grid ${getGridColsClass(activeSubjectItem.results.length)} gap-3`}>
-                      {activeSubjectItem.results.map((image, index) => {
-                        const key = `${activeSubjectItem.id}:${index}`;
+              {/* Flat 3-column grid — ALL subjects at once */}
+              <div className="grid grid-cols-3 gap-3 overflow-y-auto pr-1">
+                {subjectItems.flatMap((item, itemIdx) =>
+                  item.results.length > 0
+                    ? item.results.map((image, index) => {
+                        const key = `${item.id}:${index}`;
                         const isOpen = !!refineOpen[key];
                         const isCurrentlyRefining = !!isRefining[key];
                         return (
-                          <div key={key} className="animate-fade-in flex flex-col gap-1" style={{ animationDelay: `${index * 80}ms` }}>
-                            <HoverableImage
-                              image={image}
-                              altText={`${t('generatedImage.altText')} ${index + 1}`}
-                              onRegenerate={handleGenerateImage}
-                              onUpscale={() => handleUpscale(image, index, activeSubjectItem.id)}
-                              isGenerating={isLoading}
-                              isUpscaling={upscalingStates[key]}
-                            />
-
-                            {/* Refine toggle — compact pill */}
+                          <div key={key} className="animate-fade-in flex flex-col gap-1" style={{ animationDelay: `${(itemIdx * 4 + index) * 60}ms` }}>
+                            <div className="relative">
+                              <HoverableImage
+                                image={image}
+                                altText={`${t('virtualTryOn.subjectBatchLabel', { index: itemIdx + 1 })} - ${t('generatedImage.altText')} ${index + 1}`}
+                                onRegenerate={handleGenerateImage}
+                                onUpscale={() => handleUpscale(image, index, item.id)}
+                                isGenerating={isLoading}
+                                isUpscaling={upscalingStates[key]}
+                              />
+                              {subjectItems.length > 1 && (
+                                <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-md px-1.5 py-0.5">
+                                  <div className="w-4 h-4 rounded overflow-hidden border border-zinc-600">
+                                    <img src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`} alt="" className="w-full h-full object-cover" />
+                                  </div>
+                                  <span className="text-[10px] text-zinc-300 font-medium">#{itemIdx + 1}</span>
+                                </div>
+                              )}
+                            </div>
                             <button
                               onClick={() => toggleRefine(key)}
                               className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md transition-all w-fit ${
-                                isOpen
-                                  ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20'
-                                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/80'
+                                isOpen ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/80'
                               }`}
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -323,24 +267,20 @@ const VirtualTryOn: React.FC = () => {
                               </svg>
                               {isOpen ? t('imageActions.refineButton') : '✏️ ' + t('imageActions.refineButton')}
                             </button>
-
-                            {/* Collapsed refine input — only when open */}
                             {isOpen && (
                               <div className="flex gap-1.5 animate-fade-in">
                                 <input
                                   type="text"
                                   value={refinePrompts[key] || ''}
                                   onChange={(e) => setRefinePrompts((prev) => ({ ...prev, [key]: e.target.value }))}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleRefine(image, index, activeSubjectItem.id, refinePrompts[key] || '');
-                                  }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') handleRefine(image, index, item.id, refinePrompts[key] || ''); }}
                                   placeholder={t('imageActions.refinePromptPlaceholder')}
                                   autoFocus
                                   className="flex-1 min-w-0 bg-zinc-800/70 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                                   disabled={isCurrentlyRefining}
                                 />
                                 <button
-                                  onClick={() => handleRefine(image, index, activeSubjectItem.id, refinePrompts[key] || '')}
+                                  onClick={() => handleRefine(image, index, item.id, refinePrompts[key] || '')}
                                   disabled={isCurrentlyRefining || !(refinePrompts[key] || '').trim()}
                                   className="flex-shrink-0 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                                 >
@@ -350,26 +290,26 @@ const VirtualTryOn: React.FC = () => {
                             )}
                           </div>
                         );
-                      })}
-                    </div>
-                  ) : activeSubjectItem.status === 'processing' ? (
-                    <div className="space-y-2">
-                      <p className="text-sm text-amber-300">{t('virtualTryOn.processingItem')}</p>
-                      <div className="grid grid-cols-3 gap-3">
-                        {Array.from({ length: numImages }).map((_, index) => (
-                          <div key={index} className="aspect-[3/4] bg-zinc-800/50 rounded-lg flex items-center justify-center animate-pulse">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-6 text-sm text-zinc-400 text-center">
-                      {t('virtualTryOn.waitingStatus')}
-                    </div>
-                  )}
-                </div>
-              )}
+                      })
+                    : item.status === 'processing' || item.status === 'pending'
+                      ? [
+                          <div key={`${item.id}-skeleton`} className={`aspect-[3/4] rounded-lg flex flex-col items-center justify-center gap-2 relative ${item.status === 'processing' ? 'bg-zinc-800/50 animate-pulse' : 'bg-zinc-800/30 border border-zinc-800'}`}>
+                            {item.status === 'processing' ? (
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400" />
+                            ) : (
+                              <p className="text-xs text-zinc-500">{t('virtualTryOn.waitingStatus')}</p>
+                            )}
+                            <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-md px-1.5 py-0.5">
+                              <div className="w-4 h-4 rounded overflow-hidden border border-zinc-600">
+                                <img src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`} alt="" className="w-full h-full object-cover" />
+                              </div>
+                              <span className="text-[10px] text-zinc-300 font-medium">#{itemIdx + 1}</span>
+                            </div>
+                          </div>,
+                        ]
+                      : []
+                )}
+              </div>
             </div>
           )}
         </div>
