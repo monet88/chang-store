@@ -18,7 +18,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ============================================================================
 
 /** Mock gemini/image.ts service */
-vi.mock('../../services/gemini/image', () => ({
+vi.mock('../../src/services/gemini/image', () => ({
   editImage: vi.fn(),
   generateImageFromText: vi.fn(),
   upscaleImage: vi.fn(),
@@ -33,14 +33,14 @@ vi.mock('../../services/gemini/image', () => ({
 }));
 
 /** Mock localProviderService.ts */
-vi.mock('../../services/localProviderService', () => ({
+vi.mock('../../src/services/localProviderService', () => ({
   editImageLocal: vi.fn(),
   generateImageLocal: vi.fn(),
   generateTextLocal: vi.fn(),
 }));
 
 /** Mock imageUtils for getImageDimensions */
-vi.mock('../../utils/imageUtils', () => ({
+vi.mock('../../src/utils/imageUtils', () => ({
   getImageDimensions: vi.fn().mockResolvedValue({ width: 1920, height: 1080 }),
 }));
 
@@ -52,10 +52,10 @@ import {
   extractOutfitItem,
   critiqueAndRedesignOutfit,
   recreateImageWithFace,
-} from '../../services/imageEditingService';
-import { getImageDimensions } from '../../utils/imageUtils';
-import * as geminiImageService from '../../services/gemini/image';
-import * as localProviderService from '../../services/localProviderService';
+} from '../../src/services/imageEditingService';
+import { getImageDimensions } from '../../src/utils/imageUtils';
+import * as geminiImageService from '../../src/services/gemini/image';
+import * as localProviderService from '../../src/services/localProviderService';
 
 // ============================================================================
 // Test Constants

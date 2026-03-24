@@ -12,8 +12,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      /** Path alias mapping '@' to project root */
-      '@': path.resolve(__dirname, '.'),
+      /** Path alias mapping '@' to src/ directory */
+      '@': path.resolve(__dirname, 'src'),
     },
   },
   test: {
@@ -33,10 +33,10 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       /** Source directories to measure coverage for */
       include: [
-        'services/**/*.ts',
-        'utils/**/*.ts',
-        'contexts/**/*.tsx',
-        'hooks/**/*.ts',
+        'src/services/**/*.ts',
+        'src/utils/**/*.ts',
+        'src/contexts/**/*.tsx',
+        'src/hooks/**/*.ts',
       ],
       /** Exclude test files and infrastructure from coverage */
       exclude: [

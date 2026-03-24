@@ -22,22 +22,22 @@ import {
 // ============================================================================
 
 /** Mock services */
-vi.mock('../../services/imageEditingService', () => ({
+vi.mock('../../src/services/imageEditingService', () => ({
   upscaleImage: vi.fn(),
 }));
 
-vi.mock('../../utils/imageUtils', () => ({
+vi.mock('../../src/utils/imageUtils', () => ({
   getErrorMessage: vi.fn((err: Error) => err.message),
 }));
 
 /** Mock contexts */
-vi.mock('../../contexts/LanguageContext', () => mockUseLanguage());
-vi.mock('../../contexts/ImageGalleryContext', () => mockUseImageGallery());
-vi.mock('../../contexts/ApiProviderContext', () => mockUseApi());
-vi.mock('../../contexts/ImageViewerContext', () => mockUseImageViewer());
+vi.mock('../../src/contexts/LanguageContext', () => mockUseLanguage());
+vi.mock('../../src/contexts/ImageGalleryContext', () => mockUseImageGallery());
+vi.mock('../../src/contexts/ApiProviderContext', () => mockUseApi());
+vi.mock('../../src/contexts/ImageViewerContext', () => mockUseImageViewer());
 
 // Import component after mocks
-import Upscale from '../../components/Upscale';
+import Upscale from '../../src/components/Upscale';
 
 // ============================================================================
 // Test Suite

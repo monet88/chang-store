@@ -3,45 +3,45 @@ import { render, screen } from '@testing-library/react';
 
 const useClothingTransferMock = vi.fn();
 
-vi.mock('../../contexts/LanguageContext', () => ({
+vi.mock('../../src/contexts/LanguageContext', () => ({
   useLanguage: () => ({
     t: (key: string) => key,
   }),
 }));
 
-vi.mock('../../hooks/useClothingTransfer', () => ({
+vi.mock('../../src/hooks/useClothingTransfer', () => ({
   useClothingTransfer: () => useClothingTransferMock(),
 }));
 
-vi.mock('../../components/ImageUploader', () => ({
+vi.mock('../../src/components/ImageUploader', () => ({
   default: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
-vi.mock('../../components/MultiImageUploader', () => ({
+vi.mock('../../src/components/MultiImageUploader', () => ({
   default: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
-vi.mock('../../components/Spinner', () => ({
+vi.mock('../../src/components/Spinner', () => ({
   default: () => <div>spinner</div>,
 }));
 
-vi.mock('../../components/HoverableImage', () => ({
+vi.mock('../../src/components/HoverableImage', () => ({
   default: ({ altText }: { altText: string }) => <div>{altText}</div>,
 }));
 
-vi.mock('../../components/shared/ResultPlaceholder', () => ({
+vi.mock('../../src/components/shared/ResultPlaceholder', () => ({
   default: ({ description }: { description: string }) => <div>{description}</div>,
 }));
 
-vi.mock('../../components/ImageOptionsPanel', () => ({
+vi.mock('../../src/components/ImageOptionsPanel', () => ({
   default: () => <div>image-options</div>,
 }));
 
-vi.mock('../../components/shared/ImageBatchSessionRail', () => ({
+vi.mock('../../src/components/shared/ImageBatchSessionRail', () => ({
   default: () => <div>session-rail</div>,
 }));
 
-import ClothingTransfer from '../../components/ClothingTransfer';
+import ClothingTransfer from '../../src/components/ClothingTransfer';
 
 const baseHookState = {
   referenceItems: [{ id: 1, image: null, label: '' }],

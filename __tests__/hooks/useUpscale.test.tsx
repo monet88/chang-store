@@ -15,7 +15,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { ImageFile, UpscaleStudioStep, DEFAULT_UPSCALE_QUICK_MODEL } from '../../types';
+import { ImageFile, UpscaleStudioStep, DEFAULT_UPSCALE_QUICK_MODEL } from '../../src/types';
 import {
   mockUseLanguage,
   mockUseImageGallery,
@@ -27,12 +27,12 @@ import {
 // ============================================================================
 
 /** Mock upscaleImage from imageEditingService */
-vi.mock('../../services/imageEditingService', () => ({
+vi.mock('../../src/services/imageEditingService', () => ({
   upscaleImage: vi.fn(),
 }));
 
 /** Mock upscaleAnalysisService */
-vi.mock('../../services/upscaleAnalysisService', () => ({
+vi.mock('../../src/services/upscaleAnalysisService', () => ({
   analyzeImage: vi.fn(),
   generateUpscalePrompt: vi.fn(),
   generatePreviewSimulation: vi.fn(),
@@ -40,24 +40,24 @@ vi.mock('../../services/upscaleAnalysisService', () => ({
 }));
 
 /** Mock getErrorMessage from imageUtils */
-vi.mock('../../utils/imageUtils', () => ({
+vi.mock('../../src/utils/imageUtils', () => ({
   getErrorMessage: vi.fn((err: Error) => err.message),
 }));
 
 /** Mock contexts */
-vi.mock('../../contexts/LanguageContext', () => mockUseLanguage());
-vi.mock('../../contexts/ImageGalleryContext', () => mockUseImageGallery());
-vi.mock('../../contexts/ApiProviderContext', () => mockUseApi());
+vi.mock('../../src/contexts/LanguageContext', () => mockUseLanguage());
+vi.mock('../../src/contexts/ImageGalleryContext', () => mockUseImageGallery());
+vi.mock('../../src/contexts/ApiProviderContext', () => mockUseApi());
 
 // Import hook and mocked services after mocking
-import { useUpscale } from '../../hooks/useUpscale';
-import { upscaleImage } from '../../services/imageEditingService';
+import { useUpscale } from '../../src/hooks/useUpscale';
+import { upscaleImage } from '../../src/services/imageEditingService';
 import {
   analyzeImage,
   generateUpscalePrompt,
   generatePreviewSimulation,
   checkStudioSupport,
-} from '../../services/upscaleAnalysisService';
+} from '../../src/services/upscaleAnalysisService';
 
 // ============================================================================
 // Test Constants

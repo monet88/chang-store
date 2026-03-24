@@ -18,7 +18,7 @@
  */
 
 import { vi } from 'vitest';
-import { Feature } from '../../types';
+import { Feature } from '../../src/types';
 
 // ============================================================================
 // Type Definitions

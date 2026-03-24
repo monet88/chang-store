@@ -3,22 +3,22 @@ import { renderHook, act } from '@testing-library/react';
 
 const addImageMock = vi.fn();
 
-vi.mock('../../services/imageEditingService', () => ({
+vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
   upscaleImage: vi.fn(),
 }));
 
-vi.mock('../../utils/imageUtils', () => ({
+vi.mock('../../src/utils/imageUtils', () => ({
   getErrorMessage: vi.fn((error: Error) => error.message),
 }));
 
-vi.mock('../../contexts/LanguageContext', () => ({
+vi.mock('../../src/contexts/LanguageContext', () => ({
   useLanguage: () => ({
     t: (key: string) => key,
   }),
 }));
 
-vi.mock('../../contexts/ImageGalleryContext', () => ({
+vi.mock('../../src/contexts/ImageGalleryContext', () => ({
   useImageGallery: () => ({
     images: [],
     addImage: addImageMock,
@@ -27,7 +27,7 @@ vi.mock('../../contexts/ImageGalleryContext', () => ({
   }),
 }));
 
-vi.mock('../../contexts/ApiProviderContext', () => ({
+vi.mock('../../src/contexts/ApiProviderContext', () => ({
   useApi: () => ({
     localApiBaseUrl: null,
     localApiKey: null,
@@ -39,8 +39,8 @@ vi.mock('../../contexts/ApiProviderContext', () => ({
   }),
 }));
 
-import { useVirtualTryOn } from '../../hooks/useVirtualTryOn';
-import { editImage, upscaleImage } from '../../services/imageEditingService';
+import { useVirtualTryOn } from '../../src/hooks/useVirtualTryOn';
+import { editImage, upscaleImage } from '../../src/services/imageEditingService';
 
 const SUBJECT_A = { base64: 'subject-a', mimeType: 'image/png' };
 const SUBJECT_B = { base64: 'subject-b', mimeType: 'image/png' };

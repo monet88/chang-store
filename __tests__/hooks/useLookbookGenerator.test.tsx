@@ -20,7 +20,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { Feature, ImageFile } from '../../types';
+import { Feature, ImageFile } from '../../src/types';
 import {
   mockUseLanguage,
   mockUseImageGallery,
@@ -32,29 +32,29 @@ import {
 // ============================================================================
 
 /** Mock editImage, upscaleImage, and createImageChatSession from imageEditingService */
-vi.mock('../../services/imageEditingService', () => ({
+vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
   upscaleImage: vi.fn(),
   createImageChatSession: vi.fn(),
 }));
 
 /** Mock generateClothingDescription from textService */
-vi.mock('../../services/textService', () => ({
+vi.mock('../../src/services/textService', () => ({
   generateClothingDescription: vi.fn(),
 }));
 
 /** Mock getErrorMessage from imageUtils */
-vi.mock('../../utils/imageUtils', () => ({
+vi.mock('../../src/utils/imageUtils', () => ({
   getErrorMessage: vi.fn((err: Error) => err.message),
 }));
 
 /** Mock contexts */
-vi.mock('../../contexts/LanguageContext', () => mockUseLanguage());
-vi.mock('../../contexts/ImageGalleryContext', () => mockUseImageGallery());
-vi.mock('../../contexts/ApiProviderContext', () => mockUseApi());
+vi.mock('../../src/contexts/LanguageContext', () => mockUseLanguage());
+vi.mock('../../src/contexts/ImageGalleryContext', () => mockUseImageGallery());
+vi.mock('../../src/contexts/ApiProviderContext', () => mockUseApi());
 
 /** Mock prompts */
-vi.mock('../../components/LookbookGenerator.prompts', () => ({
+vi.mock('../../src/components/LookbookGenerator.prompts', () => ({
   BOXED_PROMPT: 'boxed prompt template',
   FOLDED_PROMPT: 'folded prompt template',
   MANNEQUIN_BACKGROUND_PROMPTS: {
@@ -67,9 +67,9 @@ vi.mock('../../components/LookbookGenerator.prompts', () => ({
 }));
 
 // Import hook and mocked services after mocking
-import { useLookbookGenerator } from '../../hooks/useLookbookGenerator';
-import { editImage, upscaleImage } from '../../services/imageEditingService';
-import { generateClothingDescription } from '../../services/textService';
+import { useLookbookGenerator } from '../../src/hooks/useLookbookGenerator';
+import { editImage, upscaleImage } from '../../src/services/imageEditingService';
+import { generateClothingDescription } from '../../src/services/textService';
 
 // ============================================================================
 // Test Constants

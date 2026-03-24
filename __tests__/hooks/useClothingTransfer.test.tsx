@@ -3,22 +3,22 @@ import { renderHook, act } from '@testing-library/react';
 
 const addImageMock = vi.fn();
 
-vi.mock('../../services/imageEditingService', () => ({
+vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
   upscaleImage: vi.fn(),
 }));
 
-vi.mock('../../utils/imageUtils', () => ({
+vi.mock('../../src/utils/imageUtils', () => ({
   getErrorMessage: vi.fn((error: Error) => error.message),
 }));
 
-vi.mock('../../contexts/LanguageContext', () => ({
+vi.mock('../../src/contexts/LanguageContext', () => ({
   useLanguage: () => ({
     t: (key: string) => key,
   }),
 }));
 
-vi.mock('../../contexts/ImageGalleryContext', () => ({
+vi.mock('../../src/contexts/ImageGalleryContext', () => ({
   useImageGallery: () => ({
     images: [],
     addImage: addImageMock,
@@ -27,7 +27,7 @@ vi.mock('../../contexts/ImageGalleryContext', () => ({
   }),
 }));
 
-vi.mock('../../contexts/ApiProviderContext', () => ({
+vi.mock('../../src/contexts/ApiProviderContext', () => ({
   useApi: () => ({
     localApiBaseUrl: null,
     localApiKey: null,
@@ -39,8 +39,8 @@ vi.mock('../../contexts/ApiProviderContext', () => ({
   }),
 }));
 
-import { useClothingTransfer } from '../../hooks/useClothingTransfer';
-import { editImage, upscaleImage } from '../../services/imageEditingService';
+import { useClothingTransfer } from '../../src/hooks/useClothingTransfer';
+import { editImage, upscaleImage } from '../../src/services/imageEditingService';
 
 const CONCEPT_A = { base64: 'concept-a', mimeType: 'image/png' };
 const CONCEPT_B = { base64: 'concept-b', mimeType: 'image/png' };

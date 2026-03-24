@@ -73,7 +73,7 @@ vi.mock('@/utils/imageUtils', () => ({
 }));
 
 // Import hook and mocked services after mocking
-import { useOutfitAnalysis } from '../../hooks/useOutfitAnalysis';
+import { useOutfitAnalysis } from '../../src/hooks/useOutfitAnalysis';
 import { analyzeOutfit } from '@/services/textService';
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '@/services/imageEditingService';
 import { getErrorMessage } from '@/utils/imageUtils';

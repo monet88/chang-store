@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { UpscaleAnalysisReport, ImageFile } from '../../types';
+import type { UpscaleAnalysisReport, ImageFile } from '../../src/types';
 
 // ============================================================================
 // Mock the Gemini client
@@ -17,7 +17,7 @@ import type { UpscaleAnalysisReport, ImageFile } from '../../types';
 
 const mockGenerateContent = vi.fn();
 const mockGetActiveApiKey = vi.fn();
-vi.mock('../../services/apiClient', () => ({
+vi.mock('../../src/services/apiClient', () => ({
   getGeminiClient: vi.fn(() => ({
     models: {
       generateContent: mockGenerateContent,
@@ -32,7 +32,7 @@ import {
   generateUpscalePrompt,
   generatePreviewSimulation,
   checkStudioSupport,
-} from '../../services/upscaleAnalysisService';
+} from '../../src/services/upscaleAnalysisService';
 
 // ============================================================================
 // Test Fixtures

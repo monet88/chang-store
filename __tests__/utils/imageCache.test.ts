@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ImageLRUCache } from '../../utils/imageCache';
-import { ImageFile } from '../../types';
+import { ImageLRUCache } from '../../src/utils/imageCache';
+import { ImageFile } from '../../src/types';
 
 // ============================================================================
 // Test Helpers
