@@ -35,10 +35,10 @@
 </details>
 
 <details>
-<summary>🚧 v1.3 Virtual Try-On Prompt Optimization (Phase 1) — IN PROGRESS</summary>
+<summary>✅ v1.3 Virtual Try-On Prompt Optimization (Phase 1) — SHIPPED 2026-03-24</summary>
 
-- [ ] Phase 1: Virtual Try-On Prompt Optimization (0/4 plans) — Refactor prompt builder from string to interleaved Part[], restructure for better Gemini compliance
-  - Goal: Rewrite virtual-try-on-prompt-builder to return Part[] with interleaved images, optimize prompt content (narrative rules, recency recap, semantic negatives, pose preservation)
+- [x] Phase 1: Virtual Try-On Prompt Optimization (4/4 plans) — completed 2026-03-24
+  - Rewrote prompt builder to interleaved Part[], added Gemini-only guard, comprehensive tests
 
 </details>
 
@@ -53,4 +53,4 @@
 | 5. Nyquist Validation & Compliance | v1.0 | 1/1 | ✅ Complete | 2026-03-16 |
 | 1. Batch Multi-Image Parallel Processing For Virtual Try-On And Clothing Transfer | v1.1 | 1/1 | ✅ Complete | 2026-03-22 |
 | 1. Chuyển code gộp vào thư mục src/ | v1.2 | 1/1 | ✅ Complete | 2026-03-24 |
-| 1. Virtual Try-On Prompt Optimization | v1.3 | 0/4 | 🚧 In Progress | — |
+| 1. Virtual Try-On Prompt Optimization | v1.3 | 4/4 | ✅ Complete | 2026-03-24 |
