@@ -1,6 +1,8 @@
-# Chang-Store — Copilot Workspace Instructions
+# Chang-Store — Agent Knowledge Base
 
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with multiple AI backends (Google Gemini, Local Provider, Anti Provider).
+**Generated:** 2026-03-24 | **Commit:** 8b3ac60 | **Branch:** main
+
+AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Three AI backends: Google Gemini SDK, Local Provider REST, Anti Provider REST.
 
 ## Architecture
 
@@ -8,116 +10,137 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with multipl
 Component (thin UI) → Hook (state + logic) → Service Facade → Provider API
 ```
 
-**Provider nesting order** (each depends on parent):
-
+**Provider stack** (nesting order matters — each depends on parent):
 ```
 LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
 ```
+> `ToastProvider` lives in `src/components/Toast.tsx` — NOT in `contexts/`.
 
-> **Note**: `ToastProvider` lives in `src/components/Toast.tsx` (not in `contexts/`). All others are in `src/contexts/`.
+**Service routing** via model name prefix (`src/services/imageEditingService.ts`):
 
-**Service routing** — model prefix determines backend (`src/services/imageEditingService.ts`):
-
-| Prefix | Backend | Service file |
-|--------|---------|-------------|
-| `local--` | Local Provider (REST) | `localProviderService.ts` |
-| `anti--` | Anti Provider (REST) | `antiProviderService.ts` |
+| Prefix | Backend | File |
+|--------|---------|------|
+| `local--` | Local Provider REST | `localProviderService.ts` |
+| `anti--` | Anti Provider REST | `antiProviderService.ts` |
 | _(none)_ | Google Gemini SDK | `gemini/image.ts` |
 
-**Path alias**: `@/*` maps to `src/`.
+**Path alias**: `@/*` → `src/`. **Feature routing**: no React Router — `App.tsx` switches on `Feature` enum, lazy-loading components.
 
-**Feature routing**: No React Router. `src/App.tsx` → `AppContent` uses a switch on `Feature` enum to render lazy-loaded components.
+## WHERE TO LOOK
+
+| Task | Location | Notes |
+|------|----------|-------|
+| Add a feature | `src/types.ts` + `src/components/` + `src/hooks/` + `src/App.tsx` + `src/locales/en.ts` | 5-step checklist below |
+| Service routing | `src/services/imageEditingService.ts` | Unified facade |
+| Global state | `src/contexts/` | See `src/contexts/AGENTS.md` |
+| i18n strings | `src/locales/en.ts` | Source of truth; `vi.ts` mirrors it |
+| Model registry | `src/config/modelRegistry.ts` | Feature→model capability map |
+| Image processing | `src/utils/imageUtils.ts` | compress, crop, base64, errors |
+| Prompt builders | `src/utils/*-prompt-builder.ts` | Pure functions |
+| Tests | `__tests__/` | See `__tests__/AGENTS.md` |
+| Docs | `docs/` | architecture, design, code-standards, api/ |
 
 ## Project Structure
 
-| Directory | Role | Details |
-|-----------|------|---------|
-| `src/components/` | UI layer (~50 components) | See `src/components/AGENTS.md` |
-| `src/hooks/` | Feature logic (15 hooks) | See `src/hooks/AGENTS.md` |
-| `src/services/` | API facades (stateless, 11 files) | See `src/services/AGENTS.md` |
-| `src/contexts/` | Global state (5 contexts) | See `src/contexts/AGENTS.md` |
-| `src/utils/` | Pure helpers (15 files) | See `src/utils/AGENTS.md` |
-| `src/config/` | Model capability registry | `src/config/modelRegistry.ts` |
-| `src/locales/` | i18n (`en.ts`, `vi.ts`) | English is source of truth |
-| `__tests__/` | Mirrors source structure (~25 files) | See `__tests__/AGENTS.md` |
+| Directory | Files | Role | AGENTS.md |
+|-----------|-------|------|-----------|
+| `src/components/` | ~50 | UI layer — thin wrappers | ✅ |
+| `src/components/upscale/` | 11 | Upscale step-based sub-UI | ✅ |
+| `src/components/modals/` | 4 | Modal dialogs | ✅ |
+| `src/hooks/` | 15 | Feature logic + state | ✅ |
+| `src/services/` | 10 + gemini/ | API facades (stateless) | ✅ |
+| `src/contexts/` | 5 | Global state providers | ✅ |
+| `src/utils/` | 15 | Pure helpers | ✅ |
+| `src/config/` | 1 | Model capability registry | — |
+| `src/locales/` | 2 | i18n en.ts + vi.ts | — |
+| `__tests__/` | ~30 | Mirrors src/ | ✅ |
 
-> Source code lives under `src/`. Entry files, components, hooks, services, contexts, utils, locales, and config all reside in `src/`.
+## Feature Enum (`src/types.ts`)
+
+```
+TryOn | Lookbook | Background | Pose | PhotoAlbum | OutfitAnalysis
+Relight | Upscale | ImageEditor | AIEditor | WatermarkRemover | ClothingTransfer
+```
 
 ## Key Patterns
 
-### Every feature = Component + Hook
-
+**Component**: thin wrapper, zero business logic.
 ```typescript
-// Component: thin wrapper, NO business logic
-const FeatureName: React.FC = () => {
+export const FeatureName: React.FC = () => {
   const { state, handlers } = useFeatureName();
   return <UI state={state} onAction={handlers.action} />;
 };
+```
 
-// Hook: state, API calls, gallery integration
+**Hook**: all state, API calls, gallery integration.
+```typescript
 export function useFeatureName() {
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
   const { getModelsForFeature } = useApi();
-  return { state: { results, isLoading }, handlers: { handleGenerate } };
+  // ...
+  return { state, handlers };
 }
 ```
 
-### Adding a new feature
-
-1. Add enum value in `src/types.ts` → `Feature`
-2. Create `src/components/FeatureName.tsx` (thin UI)
-3. Create `src/hooks/useFeatureName.ts` (all logic)
-4. Add case in `src/App.tsx` switch + lazy import
-5. Add i18n keys in `src/locales/en.ts` (source of truth), then `src/locales/vi.ts`
-6. Add service routing in `src/services/imageEditingService.ts` if new API call needed
-
-### Import order
-
-1. React + external libs
-2. Internal contexts/hooks
-3. Internal services/utils
-4. Types
-
-### Error handling in hooks
-
+**Error handling** (mandatory pattern):
 ```typescript
 try { ... } catch (err) { setError(getErrorMessage(err, t)); } finally { setIsLoading(false); }
 ```
 
+**Adding a new feature** (5 steps):
+1. `src/types.ts` → add `Feature.XxxYyy`
+2. `src/components/XxxYyy.tsx` — thin UI
+3. `src/hooks/useXxxYyy.ts` — all logic
+4. `src/App.tsx` — lazy import + switch case
+5. `src/locales/en.ts` → keys; `vi.ts` → translations
+
+**Import order**: React/external → contexts/hooks → services/utils → types.
+
 ## Conventions
 
 - **Tailwind only** — no inline styles, no `@apply`
-- **Dark glassmorphism** theme — see `docs/design-guidelines.md`
-- **i18n**: `const { t } = useLanguage(); t('key.path')` — `locales/en.ts` is source of truth
-- **No business logic in components** — extract to hooks
-- **No direct API calls from hooks** — go through service facades
-- **PascalCase** filenames for components (`.tsx`), camelCase for hooks/services (`.ts`)
-- **`React.FC`** type annotation on components
-- **Interface over type** for object shapes; avoid `any`
-- **Build optimizations**: manual chunk splitting (vendor-react, vendor-genai, vendor-axios), esbuild drops console in prod
+- **Dark glassmorphism** theme — `docs/design-guidelines.md`
+- **i18n**: `const { t } = useLanguage(); t('key.path')`
+- **PascalCase** for `.tsx` filenames; **camelCase** for `.ts`
+- **`React.FC`** type on all components
+- **Interface** over type for object shapes; avoid `any`
+- **Build**: vendor chunks (vendor-react, vendor-genai, vendor-axios); `console.log/debug/info` dropped in prod via esbuild
 
-## Detailed Docs (link, don't duplicate)
+## Anti-Patterns (NEVER DO)
 
-- **Architecture**: `docs/system-architecture.md`
-- **Design system**: `docs/design-guidelines.md`
-- **Code standards**: `docs/code-standards.md`
-- **Codebase summary**: `docs/codebase-summary.md`
-- **API docs**: `docs/api/` (Gemini, Imagen, Nano Banana)
+- Business logic in components → put in hooks
+- Services called directly from components → go through hooks
+- API keys in hook state → use `ApiProviderContext`
+- Bypass `imageEditingService.ts` for API calls
+- Inline styles → use Tailwind
+- Feature component without paired hook
+- `git reset --hard`, `git clean -fd`, `rm -rf` without explicit user approval
+- File deletion without explicit user permission
+- Branch `master` — always use `main`
 
-## Anti-Patterns
+## Known Tech Debt
 
-- Never put business logic in components — use hooks
-- Never call services directly from components — go through hooks
-- Never store API keys in hooks — use `ApiProviderContext`
-- Never bypass `imageEditingService.ts` facade for API calls
-- Never add inline styles — use Tailwind utilities
-- Never create feature components without a corresponding hook
-
-## Known Violations (Tech Debt)
-
-These components import services directly (should go through hooks):
+Components importing services directly (should go through hooks):
 `AIEditor`, `ImageEditor`, `LookbookOutput`, `SettingsModal`, `Relight`, `PoseChanger`, `PhotoAlbumCreator`, `OutfitAnalysis`, `shared/RefinementInput`
+
+## Commands
+
+```bash
+npm run dev          # Dev server (port 3000)
+npm run build        # Production build
+npm run test         # Vitest run-once
+npm run lint         # ESLint
+npx tsc --noEmit     # Type-check
+```
+
+## Docs
+
+- Architecture: `docs/system-architecture.md`
+- Design system: `docs/design-guidelines.md`
+- Code standards: `docs/code-standards.md`
+- Codebase summary: `docs/codebase-summary.md`
+- API refs: `docs/api/`
 
 ---
 

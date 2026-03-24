@@ -1,7 +1,7 @@
 # TESTS - Testing Architecture
 
 ## OVERVIEW
-~25 test files mirroring source structure. Vitest + React Testing Library + jsdom.
+~30 test files mirroring source structure. Stack: Vitest + React Testing Library + jsdom.
 
 ## STRUCTURE
 ```
@@ -42,13 +42,13 @@ __tests__/
 ```
 
 ## CONVENTIONS
-- Naming: `{filename}.test.ts` or `{filename}.test.tsx`
-- Mocks in `__mocks__/` directory (manual `vi.fn()`)
-- Import pattern: tests import from `../../src/` (e.g., `../../src/hooks/useUpscale`) or use `@/` alias (e.g., `@/services/apiClient`)
-- `vi.mock()` paths must match the import path pattern (relative `../../src/` or `@/` alias)
+- Naming: `{filename}.test.ts` / `{filename}.test.tsx`
+- Mocks in `__mocks__/` — manual `vi.fn()`
+- Import paths: `../../src/hooks/useUpscale` or `@/services/apiClient` (both work)
+- `vi.mock()` path must match the import path pattern used in source
 - DOM mock classes for `global.Image`, `global.FileReader` — restored in `afterEach`
 - Spy pattern: `vi.spyOn(console, 'error').mockImplementation(() => {})`
-- Setup file: `setupTests.ts` (single import: `@testing-library/jest-dom`)
+- Setup file: `setupTests.ts` at root (single import: `@testing-library/jest-dom`)
 - Shared context mocks via `createAllContextMocks()` in `__mocks__/contexts.tsx`
 
 ## COVERAGE THRESHOLDS (vitest.config.ts)
@@ -61,8 +61,12 @@ __tests__/
 
 ## COMMANDS
 ```bash
-npm run test                      # All tests
-npm run test -- path/to/file      # Single file
-npm run test -- --coverage        # With coverage report
-npm run test:ui                   # Vitest browser UI
+npm run test                           # All tests (run-once)
+npm run test -- path/to/file.test.ts  # Single file
+npm run test -- --coverage            # With coverage report
+npm run test:ui                        # Vitest browser UI
 ```
+
+## NOTES
+- Test images in `images-test/` — used in integration-style service tests
+- Coverage currently below targets — adding tests is a priority
