@@ -1,13 +1,13 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
+milestone: v1.0
 milestone_name: milestone
-status: initializing
-stopped_at: Milestone v1.1 completed
-last_updated: "2026-03-22T12:15:01+07:00"
+status: completed
+stopped_at: Phase 1 context gathered
+last_updated: "2026-03-24T04:24:39.608Z"
 last_activity: 2026-03-22 - Milestone v1.1 completed
 progress:
-  total_phases: 0
+  total_phases: 1
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -35,6 +35,7 @@ Progress: [----------] 0%
 ## Performance Metrics
 
 **Velocity:**
+
 - Awaiting next milestone.
 
 ## Accumulated Context
@@ -52,6 +53,10 @@ None yet.
 
 None yet.
 
+### Roadmap Evolution
+
+- Phase 1 added: Chuyển code gộp vào thư mục src/
+
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Directory |
@@ -60,5 +65,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22
-Stopped at: Milestone v1.1 completed
+Last session: 2026-03-24T04:24:39.604Z
+Stopped at: Phase 1 context gathered

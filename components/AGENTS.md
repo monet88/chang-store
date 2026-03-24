@@ -1,16 +1,18 @@
 # COMPONENTS - UI Layer
 
 ## OVERVIEW
-51 React components: 14 AI features + shared UI + modals. Thin wrappers — logic lives in `hooks/`.
+~50 React components: 14 AI features + shared UI + modals + upscale sub-components. Thin wrappers — logic lives in `hooks/`.
 
 ## STRUCTURE
 ```
 components/
-├── [Feature].tsx (14)     # VirtualTryOn, LookbookGenerator, BackgroundReplacer...
-├── shared/                # RefinementInput, ResultPlaceholder
+├── [Feature].tsx (14)     # VirtualTryOn, LookbookGenerator, BackgroundReplacer, ClothingTransfer...
+├── shared/                # RefinementInput, ResultPlaceholder, ImageBatchSessionRail
 ├── modals/                # GalleryModal, SettingsModal, PoseLibraryModal, ImageSelectionModal
+├── upscale/               # 11 sub-components for Upscale feature (studio + quick modes)
 ├── ImageEditor*.tsx (3)   # Canvas + Toolbar + Modal (orchestrator pattern)
 ├── Mobile*.tsx (2)        # MobileOverlay, MobileMenuButton
+├── Toast.tsx              # ToastProvider + useToast (inline context, NOT in contexts/)
 ├── LookbookGenerator.prompts.ts  # Prompt constants
 └── predefinedContent.ts          # Predefined backgrounds/poses
 ```
@@ -23,7 +25,10 @@ components/
 | Gallery display | `modals/GalleryModal.tsx` | Uses ImageGalleryContext |
 | Settings | `modals/SettingsModal.tsx` | API keys, model selection |
 | Image editing | `ImageEditor.tsx` → `ImageEditorCanvas.tsx` | Complex orchestrator |
+| Upscale UI | `upscale/*.tsx` | 11 step-based sub-components |
+| Batch session rail | `shared/ImageBatchSessionRail.tsx` | Shared batch processing UI |
 | Selectors | `AspectRatioSelector`, `ResolutionSelector`, `QualitySelector` | Composed in `ImageOptionsPanel` |
+| Toast notifications | `Toast.tsx` | Contains ToastProvider + useToast |
 | Icons | `Icons.tsx` | 40+ SVG icon components |
 
 ## CONVENTIONS
@@ -40,12 +45,17 @@ export const FeatureName: React.FC = () => {
 - Props interface above component definition
 - `React.FC` type annotation
 - Tailwind utility classes only (no inline styles, no `@apply`)
+- Conditional rendering via CSS `display` toggling (block/none) to preserve state
 
 ## ANTI-PATTERNS
 - **NEVER** put business logic in components — extract to hooks
 - **NEVER** call services directly from components — go through hooks
 - **DO NOT** use inline styles — use Tailwind
 - **DO NOT** create feature components without a corresponding hook
+
+## KNOWN VIOLATIONS
+These components import services directly (tech debt — should go through hooks):
+`AIEditor`, `ImageEditor`, `LookbookOutput`, `SettingsModal`, `Relight`, `PoseChanger`, `PhotoAlbumCreator`, `OutfitAnalysis`, `shared/RefinementInput`
 
 ## MODAL PATTERN
 ```typescript

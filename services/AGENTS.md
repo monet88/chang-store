@@ -6,17 +6,18 @@ Stateless facades routing requests by model prefix to Gemini, Local Provider, or
 ## STRUCTURE
 ```
 services/
-├── imageEditingService.ts   # UNIFIED FACADE - edit/generate/upscale routing (483 lines)
-├── textService.ts           # Text generation facade with same routing (406 lines)
-├── apiClient.ts             # Gemini SDK singleton + key management
-├── localProviderService.ts  # Local/Proxypal REST calls (351 lines)
-├── antiProviderService.ts   # Anti Provider REST calls (351 lines)
-├── debugService.ts          # Debug logging utility (logApiCall)
-├── googleDriveService.ts    # Cloud storage sync (optional)
+├── imageEditingService.ts      # UNIFIED FACADE - edit/generate/upscale routing
+├── textService.ts              # Text generation facade with same routing
+├── upscaleAnalysisService.ts   # Multi-phase upscale analysis + prompt generation
+├── apiClient.ts                # Gemini SDK singleton + key management
+├── localProviderService.ts     # Local/Proxypal REST calls
+├── antiProviderService.ts      # Anti Provider REST calls
+├── debugService.ts             # Debug logging utility (logApiCall)
+├── googleDriveService.ts       # Cloud storage sync (optional)
 └── gemini/
-    ├── image.ts             # Image generation prompts + SDK calls
-    ├── text.ts              # Text generation prompts (372 lines)
-    └── video.ts             # Video prompts + polling (759 lines)
+    ├── image.ts                # Image generation prompts + SDK calls
+    ├── text.ts                 # Text generation prompts
+    └── video.ts                # Video prompts + polling
 ```
 
 ## WHERE TO LOOK
@@ -24,6 +25,7 @@ services/
 |------|------|-------|
 | Add AI feature | `imageEditingService.ts` | Add to routing switch |
 | Modify prompts | `gemini/image.ts` or `gemini/text.ts` | Prompt templates |
+| Upscale analysis | `upscaleAnalysisService.ts` | Quality analysis + prompt generation |
 | Video generation | `gemini/video.ts` | Complex polling logic |
 | API client config | `apiClient.ts` | Gemini SDK singleton |
 | Debug API calls | `debugService.ts` | Enable via localStorage |
@@ -50,5 +52,5 @@ const ANTI_PREFIX  = 'anti--';    // → antiProviderService
 ## COMPLEXITY HOTSPOTS
 | File | Lines | Issue |
 |------|-------|-------|
-| `gemini/video.ts` | 759 | Prompt builder bloat — extract prompt templates |
-| `imageEditingService.ts` | 483 | Large facade — acceptable for routing complexity |
+| `gemini/video.ts` | ~759 | Prompt builder bloat — extract prompt templates |
+| `imageEditingService.ts` | ~483 | Large facade — acceptable for routing complexity |

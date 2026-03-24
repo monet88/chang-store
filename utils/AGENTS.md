@@ -1,12 +1,13 @@
 # UTILS - Helpers & Configs
 
 ## OVERVIEW
-Pure functions: prompt builders, image processing, model configs, caching. No side effects, no state.
+15 files. Pure functions: prompt builders, image processing, model configs, caching. No side effects, no state.
 
 ## WHERE TO LOOK
 | Task | File | Notes |
 |------|------|-------|
 | Lookbook prompts | `lookbookPromptBuilder.ts` | Style-specific builders (flatlay, folded, mannequin, hanger, studio, showroom) |
+| Try-on prompts | `virtual-try-on-prompt-builder.ts` | Garment-aware prompt construction |
 | Watermark prompts | `watermark-prompts.ts` | Predefined configs + custom prompt support |
 | Image processing | `imageUtils.ts` | `getImageDimensions`, `blobToBase64`, `compressImage`, `cropAndCompressImage`, `getErrorMessage` |
 | Image caching | `imageCache.ts` | `ImageLRUCache<T>` class with add/remove/getAll/getMetrics |

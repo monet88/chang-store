@@ -11,8 +11,10 @@ Component (thin UI) → Hook (state + logic) → Service Facade → Provider API
 **Provider nesting order** (each depends on parent):
 
 ```
-LanguageProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
+LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
 ```
+
+> **Note**: `ToastProvider` lives in `components/Toast.tsx` (not in `contexts/`). All others are in `contexts/`.
 
 **Service routing** — model prefix determines backend (`services/imageEditingService.ts`):
 
@@ -23,6 +25,23 @@ LanguageProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvide
 | _(none)_ | Google Gemini SDK | `gemini/image.ts` |
 
 **Path alias**: `@/*` maps to project root (not `src/`).
+
+**Feature routing**: No React Router. `App.tsx` → `AppContent` uses a switch on `Feature` enum to render lazy-loaded components.
+
+## Project Structure
+
+| Directory | Role | Details |
+|-----------|------|---------|
+| `components/` | UI layer (~50 components) | See `components/AGENTS.md` |
+| `hooks/` | Feature logic (15 hooks) | See `hooks/AGENTS.md` |
+| `services/` | API facades (stateless, 11 files) | See `services/AGENTS.md` |
+| `contexts/` | Global state (5 contexts) | See `contexts/AGENTS.md` |
+| `utils/` | Pure helpers (15 files) | See `utils/AGENTS.md` |
+| `config/` | Model capability registry | `modelRegistry.ts` |
+| `locales/` | i18n (`en.ts`, `vi.ts`) | English is source of truth |
+| `__tests__/` | Mirrors source structure (~25 files) | See `__tests__/AGENTS.md` |
+
+> Source code lives at **project root** (not under `src/`). `src/` only contains `index.css`.
 
 ## Key Patterns
 
@@ -76,19 +95,7 @@ try { ... } catch (err) { setError(getErrorMessage(err, t)); } finally { setIsLo
 - **PascalCase** filenames for components (`.tsx`), camelCase for hooks/services (`.ts`)
 - **`React.FC`** type annotation on components
 - **Interface over type** for object shapes; avoid `any`
-
-## Directory Guide
-
-| Directory | Role | Details |
-|-----------|------|---------|
-| `components/` | UI layer | See `components/AGENTS.md` |
-| `hooks/` | Feature logic | See `hooks/AGENTS.md` |
-| `services/` | API facades (stateless) | See `services/AGENTS.md` |
-| `contexts/` | Global state | See `contexts/AGENTS.md` |
-| `utils/` | Pure helpers | See `utils/AGENTS.md` |
-| `config/` | Model capability registry | `modelRegistry.ts` |
-| `locales/` | i18n (`en.ts`, `vi.ts`) | English is source of truth |
-| `__tests__/` | Mirrors source structure | See `__tests__/AGENTS.md` |
+- **Build optimizations**: manual chunk splitting (vendor-react, vendor-genai, vendor-axios), esbuild drops console in prod
 
 ## Detailed Docs (link, don't duplicate)
 
@@ -106,6 +113,11 @@ try { ... } catch (err) { setError(getErrorMessage(err, t)); } finally { setIsLo
 - Never bypass `imageEditingService.ts` facade for API calls
 - Never add inline styles — use Tailwind utilities
 - Never create feature components without a corresponding hook
+
+## Known Violations (Tech Debt)
+
+These components import services directly (should go through hooks):
+`AIEditor`, `ImageEditor`, `LookbookOutput`, `SettingsModal`, `Relight`, `PoseChanger`, `PhotoAlbumCreator`, `OutfitAnalysis`, `shared/RefinementInput`
 
 ---
 
@@ -129,17 +141,14 @@ If the user tells you to do something, even if it goes against what follows belo
 
 **The default branch is `main`.** All work happens on `main`. Never reference `master` in code or docs.
 
+### Third-Party Library Usage
+
+If you aren't 100% sure how to use a third-party library, **SEARCH ONLINE** to find the latest documentation and current best practices. Do not hallucinate APIs.
+
 ### Code Editing Discipline
 
 1. **No Script-Based Changes:** **NEVER** run a script that processes/changes code files in this repo using brute-force search & replace (e.g. `sed`). Always make code changes manually or use dedicated semantic refactor tools.
 2. **No File Proliferation:** If you want to change something or add a feature, **revise existing code files in place**. **NEVER** create variations like `FeatureV2.tsx` or `Utils_new.ts`.
-
-### Dealing with Parallel Agents
-
-This project may involve multiple AI agents working simultaneously.
-If you observe unexpected changes in the working tree or files that you "did not make":
-**NEVER EVER PANIC OR COMPLAIN.**
-The answer is literally ALWAYS the same: those are changes created by other agents working on the project at the same time. You NEVER, under ANY CIRCUMSTANCE, stash, revert, overwrite, or otherwise disturb in ANY way the work of other agents. Treat those changes identically to changes that you yourself made.
 
 ### Compilation & Lint Checks (CRITICAL)
 
