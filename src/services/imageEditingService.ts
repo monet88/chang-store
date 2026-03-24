@@ -64,6 +64,13 @@ export const editImage = async (
     const startTime = Date.now();
     const provider = isLocalModel(model) ? 'Local' : isAntiModel(model) ? 'Anti' : 'Gemini';
 
+    const logPrompt = params.prompt
+        || (params.interleavedParts
+            ?.filter((p) => p.text)
+            .map((p) => p.text)
+            .join(' | ')
+        ) || '';
+
     try {
         let result: ImageFile[];
 
@@ -112,7 +119,7 @@ export const editImage = async (
             provider,
             model,
             feature: 'Image Edit',
-            prompt: params.prompt,
+            prompt: logPrompt,
             duration: Date.now() - startTime,
             status: 'success',
             responseSize: result.reduce((sum, img) => sum + img.base64.length * 0.75, 0),
@@ -124,7 +131,7 @@ export const editImage = async (
             provider,
             model,
             feature: 'Image Edit',
-            prompt: params.prompt,
+            prompt: logPrompt,
             duration: Date.now() - startTime,
             status: 'error',
             error: error instanceof Error ? error.message : 'Unknown error',

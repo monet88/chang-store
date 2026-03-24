@@ -13,7 +13,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
-import { buildVirtualTryOnPrompt } from '../utils/virtual-try-on-prompt-builder';
+import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 
@@ -151,14 +151,14 @@ export const useVirtualTryOn = () => {
       return;
     }
 
+    // Gemini-only guard: interleaved Part[] is not supported by local/anti providers
+    const isNonGeminiModel = imageEditModel.startsWith('local--') || imageEditModel.startsWith('anti--');
+    if (isNonGeminiModel) {
+      setError(t('virtualTryOn.geminiOnlyError') ?? 'Virtual Try-On requires a Gemini model');
+      return;
+    }
+
     const outfitImages = validClothingItems.map((item) => item.image as ImageFile);
-    const prompt = buildVirtualTryOnPrompt({
-      subjectImageCount: 1, // We process jobs per item, so it's 1 subject per request
-      clothingImageCount: validClothingItems.length,
-      backgroundPrompt,
-      extraPrompt,
-      numImages,
-    });
     const jobs = subjectItems.map((item) => ({
       id: item.id,
       subjectImage: item.subjectImage,
@@ -193,13 +193,20 @@ export const useVirtualTryOn = () => {
           });
 
           try {
+            const interleavedParts = buildVirtualTryOnParts({
+              subjectImage: job.subjectImage,
+              clothingImages: outfitImages,
+              extraPrompt,
+              backgroundPrompt,
+            });
             const results = await editImage(
               {
-                images: [job.subjectImage, ...outfitImages],
-                prompt,
+                images: [],
+                prompt: '',
                 numberOfImages: numImages,
                 aspectRatio,
                 resolution,
+                interleavedParts,
               },
               imageEditModel,
               buildImageServiceConfig(setLoadingMessage),
@@ -254,7 +261,7 @@ export const useVirtualTryOn = () => {
       const result = await upscaleImage(
         imageToUpscale,
         imageEditModel,
-        buildImageServiceConfig(() => {}),
+        buildImageServiceConfig(() => { }),
       );
 
       updateSubjectItem(targetItemId, (item) => ({
@@ -279,7 +286,7 @@ export const useVirtualTryOn = () => {
       try {
         chatSessionsRef.current[key] = createImageChatSession(
           imageEditModel,
-          buildImageServiceConfig(() => {}),
+          buildImageServiceConfig(() => { }),
         );
       } catch (sessionErr) {
         setError(getErrorMessage(sessionErr, t));

@@ -131,6 +131,7 @@ export const vi: Translation = {
   },
   virtualTryOn: {
     inputError: 'Vui lòng tải lên ảnh chủ thể và ít nhất một món đồ.',
+    geminiOnlyError: 'Virtual Try-On yêu cầu model Gemini. Vui lòng chọn model Gemini trong cài đặt.',
     generatingStatus: 'Đang tạo thử đồ ảo của bạn...',
     title: 'Thử đồ Ảo',
     step1: 'Bước 1: Tải ảnh lên',

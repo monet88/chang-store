@@ -129,6 +129,7 @@ export const en = {
   },
   virtualTryOn: {
     inputError: 'Please upload a subject image and at least one clothing item.',
+    geminiOnlyError: 'Virtual Try-On requires a Gemini model. Please select a Gemini model in settings.',
     generatingStatus: 'Generating your virtual try-on...',
     title: 'Virtual Try-On',
     step1: 'Step 1: Upload Images',

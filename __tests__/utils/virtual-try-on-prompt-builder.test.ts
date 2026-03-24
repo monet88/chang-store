@@ -1,363 +1,395 @@
 /**
- * Characterization Tests for Virtual Try-On Prompt Builder
+ * Tests for Virtual Try-On Prompt Builder — Interleaved Part[] Output
  *
- * Tests verify that the builder output contains expected sections and rules
- * without changing any prompt semantics. Locks current structure for safe refactoring.
+ * Verifies Part[] structure, input validation, prompt content sections,
+ * garment rules, dual-garment logic, form state integration, and determinism.
  */
 
 import { describe, it, expect, test } from 'vitest';
-import { buildVirtualTryOnPrompt, VirtualTryOnFormState } from '@/utils/virtual-try-on-prompt-builder';
+import { buildVirtualTryOnParts, VirtualTryOnPromptInput } from '@/utils/virtual-try-on-prompt-builder';
+import type { Part } from '@google/genai';
 
-describe('buildVirtualTryOnPrompt', () => {
-  const defaultFormState: VirtualTryOnFormState = {
-    subjectImageCount: 1,
-    clothingImageCount: 1,
-    extraPrompt: '',
-    backgroundPrompt: '',
-    numImages: 1,
-  };
+// --- Test helpers ---
 
-  const dualGarmentFormState: VirtualTryOnFormState = {
-    subjectImageCount: 1,
-    clothingImageCount: 2,
-    extraPrompt: '',
-    backgroundPrompt: '',
-    numImages: 1,
-  };
+const mockImage = (id: string) => ({
+  base64: `mock-base64-${id}`,
+  mimeType: 'image/png' as const,
+});
 
-  describe('structure - required sections', () => {
-    it('should contain IMAGE ROLES section', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('## 1. IMAGE ROLES');
+const defaultInput: VirtualTryOnPromptInput = {
+  subjectImage: mockImage('subject'),
+  clothingImages: [mockImage('clothing-1')],
+  extraPrompt: '',
+  backgroundPrompt: '',
+};
+
+const dualGarmentInput: VirtualTryOnPromptInput = {
+  subjectImage: mockImage('subject'),
+  clothingImages: [mockImage('top'), mockImage('bottom')],
+  extraPrompt: '',
+  backgroundPrompt: '',
+};
+
+const getFullText = (parts: Part[]): string =>
+  parts.filter((p) => p.text).map((p) => p.text).join('\n');
+
+const getTaskText = (parts: Part[]): string => {
+  const textParts = parts.filter((p) => p.text);
+  return textParts[textParts.length - 1]?.text ?? '';
+};
+
+// --- Tests ---
+
+describe('buildVirtualTryOnParts', () => {
+
+  // ====================================================================
+  // Interleaved structure tests
+  // ====================================================================
+  describe('interleaved structure', () => {
+    it('single garment returns exactly 5 parts', () => {
+      const parts = buildVirtualTryOnParts(defaultInput);
+      expect(parts).toHaveLength(5);
     });
 
-    it('should contain ABSOLUTE HIGHEST PRIORITY section', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('## 2. ABSOLUTE HIGHEST PRIORITY');
+    it('dual garment returns exactly 7 parts', () => {
+      const parts = buildVirtualTryOnParts(dualGarmentInput);
+      expect(parts).toHaveLength(7);
     });
 
-    it('should contain INTEGRATION RULES section', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('## 4. INTEGRATION RULES (MUST FOLLOW)');
+    it('first part is SUBJECT text label', () => {
+      const parts = buildVirtualTryOnParts(defaultInput);
+      expect(parts[0]).toHaveProperty('text');
+      expect(parts[0].text).toContain('SUBJECT');
     });
 
-    it('should contain STRICT NEGATIVE CONSTRAINTS section', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('## 7. STRICT NEGATIVE CONSTRAINTS (DO NOT DO)');
+    it('second part is subject inlineData', () => {
+      const parts = buildVirtualTryOnParts(defaultInput);
+      expect(parts[1]).toHaveProperty('inlineData');
+      expect(parts[1].inlineData?.data).toBe('mock-base64-subject');
     });
 
-    it('should contain all 7 numbered sections in order', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
+    it('single garment: third part is CLOTHING SOURCE label', () => {
+      const parts = buildVirtualTryOnParts(defaultInput);
+      expect(parts[2]).toHaveProperty('text');
+      expect(parts[2].text).toContain('CLOTHING SOURCE');
+    });
+
+    it('dual garment: has TOP GARMENT and BOTTOM GARMENT labels', () => {
+      const parts = buildVirtualTryOnParts(dualGarmentInput);
+      expect(parts[2].text).toContain('TOP GARMENT');
+      expect(parts[4].text).toContain('BOTTOM GARMENT');
+    });
+
+    it('dual garment: image data matches input order', () => {
+      const parts = buildVirtualTryOnParts(dualGarmentInput);
+      expect(parts[3].inlineData?.data).toBe('mock-base64-top');
+      expect(parts[5].inlineData?.data).toBe('mock-base64-bottom');
+    });
+
+    it('last part is task text (no inlineData)', () => {
+      const parts = buildVirtualTryOnParts(defaultInput);
+      const lastPart = parts[parts.length - 1];
+      expect(lastPart).toHaveProperty('text');
+      expect(lastPart).not.toHaveProperty('inlineData');
+    });
+  });
+
+  // ====================================================================
+  // Input validation tests
+  // ====================================================================
+  describe('input validation', () => {
+    it('throws on null/falsy subjectImage', () => {
+      expect(() =>
+        buildVirtualTryOnParts({ ...defaultInput, subjectImage: null as unknown as typeof defaultInput.subjectImage })
+      ).toThrow('subjectImage is required');
+    });
+
+    it('throws on empty clothingImages', () => {
+      expect(() =>
+        buildVirtualTryOnParts({ ...defaultInput, clothingImages: [] })
+      ).toThrow('clothingImages must contain at least one item');
+    });
+
+    it('throws on >2 clothingImages', () => {
+      expect(() =>
+        buildVirtualTryOnParts({
+          ...defaultInput,
+          clothingImages: [mockImage('a'), mockImage('b'), mockImage('c')],
+        })
+      ).toThrow('clothingImages must contain 1 or 2 items');
+    });
+  });
+
+  // ====================================================================
+  // Task text - required sections
+  // ====================================================================
+  describe('task text - required sections', () => {
+    it('contains ## TASK', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('## TASK');
+    });
+
+    it('contains ## GARMENT RULES', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('## GARMENT RULES');
+    });
+
+    it('contains ## POSE', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('## POSE');
+    });
+
+    it('contains ## BACKGROUND', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('## BACKGROUND');
+    });
+
+    it('contains ## PROHIBITIONS', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('## PROHIBITIONS');
+    });
+
+    it('contains ## CRITICAL RECAP at the end', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('## CRITICAL RECAP');
+      // RECAP should be the last section — no further ## headers after it
+      const recapIndex = text.indexOf('## CRITICAL RECAP');
+      const afterRecapContent = text.substring(recapIndex + '## CRITICAL RECAP'.length);
+      expect(afterRecapContent).not.toContain('## ');
+    });
+
+    it('sections appear in correct order', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
       const sections = [
-        '## 1. IMAGE ROLES',
-        '## 2. ABSOLUTE HIGHEST PRIORITY',
-        '## 3. CORE TASK',
-        '## 4. INTEGRATION RULES (MUST FOLLOW)',
-        '## 5. POSE & EXPRESSION',
-        '## 6. BACKGROUND',
-        '## 7. STRICT NEGATIVE CONSTRAINTS (DO NOT DO)',
+        '## TASK',
+        '## GARMENT RULES',
+        '## POSE',
+        '## BACKGROUND',
+        '## PROHIBITIONS',
+        '## CRITICAL RECAP',
       ];
 
-      sections.forEach(section => {
-        expect(prompt).toContain(section);
-      });
-
-      // Verify order
       let lastIndex = -1;
       sections.forEach(section => {
-        const currentIndex = prompt.indexOf(section);
+        const currentIndex = text.indexOf(section);
         expect(currentIndex).toBeGreaterThan(lastIndex);
         lastIndex = currentIndex;
       });
     });
   });
 
-  describe('integration rules - critical styling', () => {
-    it('should contain UNTUCKED rule in integration rules', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('MUST always be worn UNTUCKED');
+  // ====================================================================
+  // Garment rules - critical styling
+  // ====================================================================
+  describe('garment rules - critical styling', () => {
+    it('contains [CRITICAL] marker', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('[CRITICAL]');
     });
 
-    it('should have UNTUCKED rule before negative constraints', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      const untuckedIndex = prompt.indexOf('MUST always be worn UNTUCKED');
-      const negativeConstraintsIndex = prompt.indexOf('## 7. STRICT NEGATIVE CONSTRAINTS');
-      expect(untuckedIndex).toBeLessThan(negativeConstraintsIndex);
+    it('contains untucked rule (positive framing)', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('tops hang freely outside the waistband');
     });
 
-    it('should contain "hanging naturally OUTSIDE the pants/skirt waistband"', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('hanging naturally OUTSIDE the pants/skirt waistband');
+    it('contains zero original outfit requirement', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('zero original outfit elements may remain');
     });
 
-    it('should contain "NEVER tuck any top into the bottom garment"', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('NEVER tuck any top into the bottom garment');
-    });
-  });
-
-  describe('negative constraints - critical rule', () => {
-    it('should contain DO NOT tuck constraint in negative section', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      const negativeIndex = prompt.indexOf('## 7. STRICT NEGATIVE CONSTRAINTS');
-      const tuckConstraint = prompt.indexOf('Do NOT tuck tops/shirts/blouses into pants or skirts');
-      expect(tuckConstraint).toBeGreaterThan(negativeIndex);
+    it('contains natural fit requirement', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('fits naturally');
     });
 
-    it('should contain "tops must ALWAYS hang freely outside the waistband"', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('tops must ALWAYS hang freely outside the waistband');
+    it('contains occlusion preservation', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('Preserve occlusions');
+    });
+
+    it('contains lighting match requirement', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('Match lighting, shadows, and color grading');
     });
   });
 
-  describe('form state integration - extraPrompt', () => {
-    it('should append extraPrompt to integration rules when provided', () => {
-      const stateWithExtra = {
-        ...defaultFormState,
-        extraPrompt: 'Make the outfit have a vintage aesthetic',
-      };
-      const prompt = buildVirtualTryOnPrompt(stateWithExtra);
-      expect(prompt).toContain('Make the outfit have a vintage aesthetic');
-      expect(prompt).toContain('## 4. INTEGRATION RULES (MUST FOLLOW)');
+  // ====================================================================
+  // Pose - preserve original
+  // ====================================================================
+  describe('pose - preserve original', () => {
+    it('maintains original pose', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('Maintain the subject\'s original pose');
     });
 
-    it('should inject extraPrompt as a bullet point in integration rules', () => {
-      const stateWithExtra = {
-        ...defaultFormState,
-        extraPrompt: 'Custom styling instruction',
-      };
-      const prompt = buildVirtualTryOnPrompt(stateWithExtra);
-      // Should be added as a bullet after other rules
-      expect(prompt).toMatch(/- Custom styling instruction/);
-    });
-
-    it('should not append extraPrompt when empty or whitespace only', () => {
-      const stateEmpty = { ...defaultFormState, extraPrompt: '' };
-      const stateWhitespace = { ...defaultFormState, extraPrompt: '   ' };
-
-      const promptEmpty = buildVirtualTryOnPrompt(stateEmpty);
-      const promptWhitespace = buildVirtualTryOnPrompt(stateWhitespace);
-
-      // Should not have extra bullet points
-      const emptyLines = promptEmpty.split('\n').filter(line => line.trim().startsWith('- ')).length;
-      const whitespaceLines = promptWhitespace.split('\n').filter(line => line.trim().startsWith('- ')).length;
-
-      expect(emptyLines).toBe(whitespaceLines);
-    });
-
-    it('should trim whitespace from extraPrompt', () => {
-      const stateWithWhitespace = {
-        ...defaultFormState,
-        extraPrompt: '   Trimmed instruction   ',
-      };
-      const prompt = buildVirtualTryOnPrompt(stateWithWhitespace);
-      expect(prompt).toContain('Trimmed instruction');
-      expect(prompt).not.toContain('   Trimmed instruction   ');
+    it('does NOT generate new dynamic pose', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).not.toContain('new dynamic fashion pose');
+      expect(text).not.toContain('magazine-cover ready');
     });
   });
 
-  describe('form state integration - backgroundPrompt', () => {
-    it('should use backgroundPrompt when provided', () => {
-      const stateWithBg = {
-        ...defaultFormState,
-        backgroundPrompt: 'Minimalist white studio',
-      };
-      const prompt = buildVirtualTryOnPrompt(stateWithBg);
-      expect(prompt).toContain('Minimalist white studio');
+  // ====================================================================
+  // Prohibitions
+  // ====================================================================
+  describe('prohibitions', () => {
+    it('contains no-tucking prohibition', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('No tucking tops into pants or skirts');
     });
 
-    it('should render background modification instruction when backgroundPrompt provided', () => {
-      const stateWithBg = {
-        ...defaultFormState,
-        backgroundPrompt: 'Urban street setting',
-      };
-      const prompt = buildVirtualTryOnPrompt(stateWithBg);
-      expect(prompt).toContain('modify it with this description');
-      expect(prompt).toContain('Urban street setting');
+    it('contains no-distortion prohibition', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('No body/face/hair distortion');
     });
 
-    it('should keep original background when backgroundPrompt is empty', () => {
-      const stateNoBg = {
-        ...defaultFormState,
-        backgroundPrompt: '',
-      };
-      const prompt = buildVirtualTryOnPrompt(stateNoBg);
-      expect(prompt).toContain('Keep the original background from the Subject Image exactly as is');
-    });
-
-    it('should keep original background when backgroundPrompt is whitespace only', () => {
-      const stateWhitespaceBg = {
-        ...defaultFormState,
-        backgroundPrompt: '   ',
-      };
-      const prompt = buildVirtualTryOnPrompt(stateWhitespaceBg);
-      expect(prompt).toContain('Keep the original background from the Subject Image exactly as is');
-    });
-
-    it('should trim whitespace from backgroundPrompt', () => {
-      const stateWithWhitespace = {
-        ...defaultFormState,
-        backgroundPrompt: '   Park setting   ',
-      };
-      const prompt = buildVirtualTryOnPrompt(stateWithWhitespace);
-      expect(prompt).toContain('Park setting');
-      expect(prompt).not.toContain('   Park setting   ');
+    it('contains no-watermarks prohibition', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('No text, logos, watermarks, extra people');
     });
   });
 
-  describe('prompt content - core messaging', () => {
-    it('should contain instruction header', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('# INSTRUCTION: VIRTUAL FASHION TRY-ON');
+  // ====================================================================
+  // Critical recap (recency bias)
+  // ====================================================================
+  describe('critical recap (recency bias)', () => {
+    it('contains clothing source recap', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('Clothing 100% from Source');
     });
 
-    it('should preserve Subject/Clothing distinction in IMAGE ROLES', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('Subject Image');
-      expect(prompt).toContain('Clothing Source Image');
+    it('contains waistband recap', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('Tops ALWAYS outside waistband');
     });
 
-    it('should contain face/body preservation requirement', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('preserve the person\'s facial features');
-      expect(prompt).toContain('hairstyle');
-      expect(prompt).toContain('body shape');
-      expect(prompt).toContain('skin tone');
+    it('contains face preservation recap', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('Face/hair/skin preserved exactly');
     });
 
-    it('should contain outfit replacement core task', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('Replace the outfit on the person');
-      expect(prompt).toContain('single source of truth');
-    });
-
-    it('should contain pose generation instructions', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('new dynamic fashion pose');
-      expect(prompt).toContain('confident, chic, and magazine-cover ready');
-    });
-
-    it('should contain removal instruction', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('Completely remove the original outfit');
-    });
-
-    it('should contain occlusion preservation instruction', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('Preserve occlusions');
-      expect(prompt).toContain('hands, hair strands, accessories');
-    });
-
-    it('should contain photorealistic quality requirement', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).toContain('photorealistic');
-      expect(prompt).toContain('2K');
+    it('recap is the last section', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      const recapIndex = text.indexOf('## CRITICAL RECAP');
+      expect(recapIndex).toBeGreaterThan(0);
+      // No more ## headers after RECAP
+      const afterRecap = text.substring(recapIndex + '## CRITICAL RECAP'.length);
+      expect(afterRecap).not.toMatch(/^## /m);
     });
   });
 
+  // ====================================================================
+  // Dual-garment rules
+  // ====================================================================
+  describe('dual-garment rules', () => {
+    it('dual adds waistband-overlap rule', () => {
+      const text = getTaskText(buildVirtualTryOnParts(dualGarmentInput));
+      expect(text).toContain('top garment drapes outside the bottom\'s waistband');
+    });
+
+    it('dual preserves source hem length', () => {
+      const text = getTaskText(buildVirtualTryOnParts(dualGarmentInput));
+      expect(text).toContain('preserving source hem length exactly');
+    });
+
+    it('single does NOT have waistband-overlap rule', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).not.toContain('top garment drapes outside the bottom\'s waistband');
+    });
+  });
+
+  // ====================================================================
+  // Form state - extraPrompt
+  // ====================================================================
+  describe('form state - extraPrompt', () => {
+    it('appends extraPrompt when provided', () => {
+      const input = { ...defaultInput, extraPrompt: 'shirt untucked' };
+      const text = getTaskText(buildVirtualTryOnParts(input));
+      expect(text).toContain('shirt untucked');
+    });
+
+    it('does not append when empty', () => {
+      const withEmpty = { ...defaultInput, extraPrompt: '' };
+      const withWhitespace = { ...defaultInput, extraPrompt: '   ' };
+      const textEmpty = getTaskText(buildVirtualTryOnParts(withEmpty));
+      const textWhitespace = getTaskText(buildVirtualTryOnParts(withWhitespace));
+      expect(textEmpty).toBe(textWhitespace);
+    });
+
+    it('trims whitespace from extraPrompt', () => {
+      const input = { ...defaultInput, extraPrompt: '   trimmed instruction   ' };
+      const text = getTaskText(buildVirtualTryOnParts(input));
+      expect(text).toContain('trimmed instruction');
+      expect(text).not.toContain('   trimmed instruction   ');
+    });
+  });
+
+  // ====================================================================
+  // Form state - backgroundPrompt
+  // ====================================================================
+  describe('form state - backgroundPrompt', () => {
+    it('uses backgroundPrompt when provided', () => {
+      const input = { ...defaultInput, backgroundPrompt: 'Minimalist white studio' };
+      const text = getTaskText(buildVirtualTryOnParts(input));
+      expect(text).toContain('Minimalist white studio');
+      expect(text).toContain('modify it with this description');
+    });
+
+    it('keeps original background when empty', () => {
+      const input = { ...defaultInput, backgroundPrompt: '' };
+      const text = getTaskText(buildVirtualTryOnParts(input));
+      expect(text).toContain('Keep the original background from the Subject Image exactly as is');
+    });
+
+    it('keeps original background when whitespace only', () => {
+      const input = { ...defaultInput, backgroundPrompt: '   ' };
+      const text = getTaskText(buildVirtualTryOnParts(input));
+      expect(text).toContain('Keep the original background from the Subject Image exactly as is');
+    });
+
+    it('trims whitespace from backgroundPrompt', () => {
+      const input = { ...defaultInput, backgroundPrompt: '   Park setting   ' };
+      const text = getTaskText(buildVirtualTryOnParts(input));
+      expect(text).toContain('Park setting');
+      expect(text).not.toContain('   Park setting   ');
+    });
+  });
+
+  // ====================================================================
+  // Determinism
+  // ====================================================================
   describe('determinism', () => {
-    it('should produce identical output for identical inputs', () => {
-      const state = {
-        ...defaultFormState,
+    it('identical inputs produce identical outputs', () => {
+      const input = {
+        ...defaultInput,
         extraPrompt: 'Test extra',
         backgroundPrompt: 'Test background',
       };
-
-      const prompt1 = buildVirtualTryOnPrompt(state);
-      const prompt2 = buildVirtualTryOnPrompt(state);
-
-      expect(prompt1).toBe(prompt2);
-    });
-
-    it('should not contain the input fields in output', () => {
-      const state: VirtualTryOnFormState = {
-        subjectImageCount: 1,
-        clothingImageCount: 2,
-        extraPrompt: 'Extra test string',
-        backgroundPrompt: 'Background test',
-        numImages: 1,
-      };
-
-      const prompt = buildVirtualTryOnPrompt(state);
-
-      // numImages should not appear as a raw number in the prompt
-      expect(prompt).not.toContain('numImages');
-      // These are internal form state fields, not part of the output
-      expect(prompt).not.toContain('subjectImageCount');
-      expect(prompt).not.toContain('clothingImageCount');
+      const parts1 = buildVirtualTryOnParts(input);
+      const parts2 = buildVirtualTryOnParts(input);
+      expect(getFullText(parts1)).toBe(getFullText(parts2));
+      expect(parts1).toHaveLength(parts2.length);
     });
   });
 
-  describe('dual-garment waist-layering rules', () => {
-    it('dual-garment (clothingImageCount=2) binds Image 2 as top, Image 3 as bottom', () => {
-      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
-      expect(prompt).toContain('Image 2 (Top Garment Image)');
-      expect(prompt).toContain('Image 3 (Bottom Garment Image)');
+  // ====================================================================
+  // Legacy negative — old patterns MUST NOT exist
+  // ====================================================================
+  describe('legacy patterns removed', () => {
+    it('does NOT contain old "Do NOT tuck" negative framing', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).not.toContain('Do NOT tuck');
     });
 
-    it('dual-garment adds waistband-overlap language', () => {
-      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
-      expect(prompt).toMatch(/drapes over|overlaps the waistband/);
+    it('does NOT contain old INSTRUCTION header', () => {
+      const fullText = getFullText(buildVirtualTryOnParts(defaultInput));
+      expect(fullText).not.toContain('# INSTRUCTION: VIRTUAL FASHION TRY-ON');
     });
 
-    it('dual-garment preserves source hem length', () => {
-      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
-      expect(prompt).toContain('Preserve the source hem length of the top exactly');
-    });
-
-    it('single-garment (clothingImageCount=1) does not add dual-garment role binding', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).not.toContain('Image 2 (Top Garment Image)');
-    });
-
-    it('single-garment does not claim bottom garment exists', () => {
-      const prompt = buildVirtualTryOnPrompt(defaultFormState);
-      expect(prompt).not.toContain('Image 3 (Bottom Garment Image)');
-    });
-
-    it('extraPrompt cannot override mandatory untucked rule', () => {
-      const stateWithTuckInstruction = {
-        ...dualGarmentFormState,
-        extraPrompt: 'tuck the shirt into the pants',
-      };
-      const prompt = buildVirtualTryOnPrompt(stateWithTuckInstruction);
-      expect(prompt).toContain('MUST always be worn UNTUCKED');
-      expect(prompt).toContain('tuck the shirt into the pants');
-    });
-  });
-
-  describe('supported matrix — top + bottom combinations', () => {
-    it('pants use-case — dual-garment waistband overlap language is present', () => {
-      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
-      expect(prompt).toMatch(/drapes over|overlaps the waistband/);
-    });
-
-    it('skirt use-case — dual-garment role binding (Image 2 top, Image 3 bottom) is present', () => {
-      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
-      expect(prompt).toContain('Image 2 (Top Garment Image)');
-      expect(prompt).toContain('Image 3 (Bottom Garment Image)');
-    });
-
-    it('shorts use-case — hem preservation rule is present', () => {
-      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
-      expect(prompt).toContain('Preserve the source hem length of the top exactly');
-    });
-
-    test.each([
-      ['pants scenario', { ...dualGarmentFormState, extraPrompt: 'model wearing the pants casually' }],
-      ['skirt scenario', { ...dualGarmentFormState, extraPrompt: 'model wearing the skirt formally' }],
-      ['shorts scenario', { ...dualGarmentFormState, extraPrompt: 'model wearing the shorts outdoors' }],
-    ])('%s — UNTUCKED rule persists regardless of extraPrompt', (_label, formState) => {
-      const prompt = buildVirtualTryOnPrompt(formState);
-      expect(prompt).toContain('MUST always be worn UNTUCKED');
-      expect(prompt).toContain(formState.extraPrompt);
-    });
-
-    it('builder does not mention "skirt" or "shorts" by name in the dual-garment layering rule', () => {
-      const prompt = buildVirtualTryOnPrompt(dualGarmentFormState);
-      const dualGarmentSection = prompt.match(/DUAL-GARMENT LAYERING RULE:.*?(?=\n-|\n##|$)/s)?.[0] ?? '';
-      expect(dualGarmentSection).not.toMatch(/\bshorts\b/i);
-      expect(dualGarmentSection).not.toMatch(/\bskirt\b/i);
+    it('does NOT reference numbered sections (old format)', () => {
+      const fullText = getFullText(buildVirtualTryOnParts(defaultInput));
+      expect(fullText).not.toContain('## 1.');
+      expect(fullText).not.toContain('## 2.');
     });
   });
 });

@@ -27,6 +27,8 @@ vi.mock('../../src/contexts/ImageGalleryContext', () => ({
   }),
 }));
 
+let mockModelName = 'gemini-2.5-flash-image';
+
 vi.mock('../../src/contexts/ApiProviderContext', () => ({
   useApi: () => ({
     localApiBaseUrl: null,
@@ -34,7 +36,7 @@ vi.mock('../../src/contexts/ApiProviderContext', () => ({
     antiApiBaseUrl: null,
     antiApiKey: null,
     getModelsForFeature: vi.fn(() => ({
-      imageEditModel: 'gemini-2.5-flash-image',
+      imageEditModel: mockModelName,
     })),
   }),
 }));
@@ -54,6 +56,43 @@ describe('useVirtualTryOn', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     addImageMock.mockReset();
+    mockModelName = 'gemini-2.5-flash-image';
+  });
+
+  describe('Gemini-only guard', () => {
+    it('blocks local-- models and does not call editImage', async () => {
+      mockModelName = 'local--flux-model';
+      const { result } = renderHook(() => useVirtualTryOn());
+
+      act(() => {
+        result.current.handleSubjectImagesUpload([SUBJECT_A]);
+        result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerateImage();
+      });
+
+      expect(editImage).not.toHaveBeenCalled();
+      expect(result.current.error).toBe('virtualTryOn.geminiOnlyError');
+    });
+
+    it('blocks anti-- models and does not call editImage', async () => {
+      mockModelName = 'anti--some-model';
+      const { result } = renderHook(() => useVirtualTryOn());
+
+      act(() => {
+        result.current.handleSubjectImagesUpload([SUBJECT_A]);
+        result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerateImage();
+      });
+
+      expect(editImage).not.toHaveBeenCalled();
+      expect(result.current.error).toBe('virtualTryOn.geminiOnlyError');
+    });
   });
 
   it('tracks multiple subject images as batch items', () => {
@@ -94,15 +133,25 @@ describe('useVirtualTryOn', () => {
     });
 
     expect(editImage).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(editImage).mock.calls[0][0]).toEqual(expect.objectContaining({
-      images: [SUBJECT_A, OUTFIT_A, OUTFIT_B],
-      numberOfImages: 2,
-      aspectRatio: '3:4',
-      resolution: '2K',
-    }));
-    expect(vi.mocked(editImage).mock.calls[1][0]).toEqual(expect.objectContaining({
-      images: [SUBJECT_B, OUTFIT_A, OUTFIT_B],
-    }));
+
+    // New pattern: images=[], prompt='', interleavedParts has the subject + outfit data
+    const call0 = vi.mocked(editImage).mock.calls[0][0];
+    expect(call0.images).toEqual([]);
+    expect(call0.prompt).toBe('');
+    expect(call0.numberOfImages).toBe(2);
+    expect(call0.aspectRatio).toBe('3:4');
+    expect(call0.resolution).toBe('2K');
+    expect(call0.interleavedParts).toBeDefined();
+    // Verify subject-A's base64 is in the interleavedParts (second part = subject image)
+    expect(call0.interleavedParts![1]).toHaveProperty('inlineData');
+    expect(call0.interleavedParts![1].inlineData?.data).toBe('subject-a');
+
+    const call1 = vi.mocked(editImage).mock.calls[1][0];
+    expect(call1.images).toEqual([]);
+    expect(call1.prompt).toBe('');
+    expect(call1.interleavedParts).toBeDefined();
+    // Verify subject-B's base64 is in the interleavedParts
+    expect(call1.interleavedParts![1].inlineData?.data).toBe('subject-b');
 
     expect(result.current.completedCount).toBe(2);
     expect(result.current.failedCount).toBe(0);
