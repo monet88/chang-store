@@ -159,7 +159,7 @@ export const useVirtualTryOn = () => {
     }
 
     const outfitImages = validClothingItems.map((item) => item.image as ImageFile);
-    const jobs = subjectItems.map((item) => ({
+    const jobs: { id: string; subjectImage: ImageFile }[] = subjectItems.map((item) => ({
       id: item.id,
       subjectImage: item.subjectImage,
     }));

@@ -188,7 +188,7 @@ export function useClothingTransfer() {
       label: item.label,
     }));
     const referenceImages = refsWithImages.map((item) => item.image);
-    const jobs = conceptItems.map((item) => ({
+    const jobs: { id: string; conceptImage: ImageFile }[] = conceptItems.map((item) => ({
       id: item.id,
       conceptImage: item.conceptImage,
     }));
