@@ -21,6 +21,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
   const [isGallerySelectionOpen, setIsGallerySelectionOpen] = useState(false);
   const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
+  const dragCounter = useRef(0);
 
   useEffect(() => {
     if (!image && inputRef.current) {
@@ -78,16 +79,24 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
 
   const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(true);
+    dragCounter.current += 1;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(false);
+    dragCounter.current -= 1;
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0;
+      setIsDragging(false);
+    }
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    dragCounter.current = 0;
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {

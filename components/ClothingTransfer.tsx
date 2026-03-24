@@ -82,9 +82,8 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
     : -1;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
-      <div className="xl:[display:contents] flex flex-col gap-6">
-        <div className="flex flex-col gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
+      <div className="flex flex-col gap-6">
           <div className="space-y-2">
             <h2 className="text-xl md:text-2xl font-bold text-center flex-shrink-0">{t('clothingTransfer.title')}</h2>
             <p className="text-xs text-center text-zinc-400">{t('clothingTransfer.providerNotice')}</p>
@@ -189,11 +188,10 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
             </button>
           </div>
         </div>
-      </div>
 
       {/* ── Results Panel ── */}
       <div className="sticky top-8">
-        <div className="relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-4 flex flex-col min-h-[50vh] items-center justify-center">
+        <div className="relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-4 flex flex-col min-h-[50vh] lg:min-h-0 lg:aspect-[4/5] items-center justify-center">
           {conceptItems.length === 0 ? (
             <ResultPlaceholder description={t('clothingTransfer.outputPanelDescription')} />
           ) : (
