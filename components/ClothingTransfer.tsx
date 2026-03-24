@@ -191,7 +191,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
 
       {/* ── Results Panel ── */}
       <div className="sticky top-8">
-        <div className="relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-4 flex flex-col min-h-[50vh] lg:min-h-0 lg:aspect-[4/5] items-center justify-center">
+        <div className="relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-4 flex flex-col items-center justify-center">
           {conceptItems.length === 0 ? (
             <ResultPlaceholder description={t('clothingTransfer.outputPanelDescription')} />
           ) : (
@@ -338,7 +338,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                       <p className="text-sm text-amber-300">{t('clothingTransfer.processingItem')}</p>
                       <div className={`grid ${getGridColsClass(numImages)} gap-3`}>
                         {Array.from({ length: numImages }).map((_, index) => (
-                          <div key={index} className="aspect-[4/5] bg-zinc-800/50 rounded-lg flex items-center justify-center animate-pulse">
+                          <div key={index} className="aspect-[3/4] bg-zinc-800/50 rounded-lg flex items-center justify-center animate-pulse">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400" />
                           </div>
                         ))}
