@@ -123,10 +123,10 @@ describe('ApiProviderContext', () => {
       expect(result.current.googleApiKey).toBe('stored-api-key');
     });
 
-    it('loads model selections from localStorage on mount', () => {
+    it('loads model selections from localStorage on mount when valid', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {
         if (key === 'image_edit_model') return 'gemini-2.5-flash-image';
-        if (key === 'image_generate_model') return 'custom-generate-model';
+        if (key === 'image_generate_model') return 'imagen-custom-generate-model';
         if (key === 'text_generate_model') return 'gemini-2.5-flash';
         return null;
       });
@@ -139,8 +139,25 @@ describe('ApiProviderContext', () => {
       expect(localStorageMock.getItem).toHaveBeenCalledWith('image_generate_model');
       expect(localStorageMock.getItem).toHaveBeenCalledWith('text_generate_model');
       expect(result.current.imageEditModel).toBe('gemini-2.5-flash-image');
-      expect(result.current.imageGenerateModel).toBe('custom-generate-model');
+      expect(result.current.imageGenerateModel).toBe('imagen-custom-generate-model');
       expect(result.current.textGenerateModel).toBe('gemini-2.5-flash');
+    });
+
+    it('falls back to default models if legacy local/anti models are found in localStorage', () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'image_edit_model') return 'local-sdxl';
+        if (key === 'image_generate_model') return 'anti-generate';
+        if (key === 'text_generate_model') return 'llama-3';
+        return null;
+      });
+
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image-preview');
+      expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
+      expect(result.current.textGenerateModel).toBe('gemini-3-flash-preview');
     });
   });
 

@@ -53,13 +53,16 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
-      return safeStorage.getItem(IMAGE_EDIT_MODEL_KEY) || DEFAULT_IMAGE_EDIT_MODEL;
+      const saved = safeStorage.getItem(IMAGE_EDIT_MODEL_KEY);
+      return (saved && saved.startsWith('gemini')) ? saved : DEFAULT_IMAGE_EDIT_MODEL;
   });
   const [imageGenerateModel, setImageGenerateModelState] = useState<ImageGenerateModel>(() => {
-      return safeStorage.getItem(IMAGE_GENERATE_MODEL_KEY) || 'imagen-4.0-generate-001';
+      const saved = safeStorage.getItem(IMAGE_GENERATE_MODEL_KEY);
+      return (saved && (saved.startsWith('imagen') || saved.startsWith('gemini'))) ? saved : 'imagen-4.0-generate-001';
   });
   const [textGenerateModel, setTextGenerateModelState] = useState<TextGenerateModel>(() => {
-      return safeStorage.getItem(TEXT_GENERATE_MODEL_KEY) || 'gemini-3-flash-preview';
+      const saved = safeStorage.getItem(TEXT_GENERATE_MODEL_KEY);
+      return (saved && saved.startsWith('gemini')) ? saved : 'gemini-3-flash-preview';
   });
 
   // Initialize Gemini client with stored key on mount
