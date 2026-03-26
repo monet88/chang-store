@@ -1,10 +1,10 @@
 
 // hooks/useOutfitAnalysis.ts
 import { useState } from 'react';
-import { ImageFile, AnalyzedItem, Feature } from '../types';
+import { ImageFile, AnalyzedItem } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
-import { useApi } from '../contexts/ApiProviderContext';
+
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '../services/imageEditingService';
 import { analyzeOutfit } from '../services/textService';
 import { RedesignPreset } from '../services/gemini/image';
@@ -17,7 +17,7 @@ export const useOutfitAnalysis = () => {
 
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { localApiBaseUrl, localApiKey, getModelsForFeature } = useApi();
+
 
     const handleUpload = async (file: ImageFile | null) => {
         // ... logic

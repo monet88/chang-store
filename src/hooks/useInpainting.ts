@@ -1,10 +1,10 @@
 
 // hooks/useInpainting.ts
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Feature, ImageFile } from '../types';
+import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
-import { useApi } from '../contexts/ApiProviderContext';
+
 import { editImage } from '../services/imageEditingService';
 import { getErrorMessage } from '../utils/imageUtils';
 
@@ -19,7 +19,7 @@ export const useInpainting = () => {
     
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { getModelsForFeature } = useApi();
+
 
     const setupCanvases = useCallback(() => {
         // ... canvas setup logic

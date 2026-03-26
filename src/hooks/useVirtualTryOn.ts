@@ -3,7 +3,6 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   AspectRatio,
   DEFAULT_IMAGE_RESOLUTION,
-  Feature,
   ImageFile,
   ImageResolution,
   VirtualTryOnBatchItem,
@@ -45,16 +44,11 @@ export const useVirtualTryOn = () => {
   const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
 
   const { t } = useLanguage();
-  const { localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, getModelsForFeature } = useApi();
-  const { imageEditModel } = getModelsForFeature(Feature.TryOn);
+  const { imageEditModel } = useApi();
 
   const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
-    localApiBaseUrl,
-    localApiKey,
-    antiApiBaseUrl,
-    antiApiKey,
-  }), [antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey]);
+  }), []);
 
   const createSubjectItem = useCallback((image: ImageFile): VirtualTryOnBatchItem => ({
     id: `vto-${++batchIdCounter.current}`,
@@ -151,12 +145,6 @@ export const useVirtualTryOn = () => {
       return;
     }
 
-    // Gemini-only guard: interleaved Part[] is not supported by local/anti providers
-    const isNonGeminiModel = imageEditModel.startsWith('local--') || imageEditModel.startsWith('anti--');
-    if (isNonGeminiModel) {
-      setError(t('virtualTryOn.geminiOnlyError') ?? 'Virtual Try-On requires a Gemini model');
-      return;
-    }
 
     const outfitImages = validClothingItems.map((item) => item.image as ImageFile);
     const jobs: { id: string; subjectImage: ImageFile }[] = subjectItems.map((item) => ({

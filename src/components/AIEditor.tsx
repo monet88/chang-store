@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
@@ -31,8 +31,7 @@ const MENTION_REGEX = /@img(\d+)/g;
  */
 const AIEditor: React.FC = () => {
   const { t } = useLanguage();
-  const { getModelsForFeature, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey } = useApi();
-  const { imageEditModel } = getModelsForFeature(Feature.AIEditor);
+  const { imageEditModel } = useApi();
 
   // State
   const [images, setImages] = useState<ImageFile[]>([]);
@@ -139,10 +138,6 @@ Return the final edited image.`;
         imageEditModel,
         {
           onStatusUpdate: () => {},
-          localApiBaseUrl,
-          localApiKey,
-          antiApiBaseUrl,
-          antiApiKey,
         }
       );
 
@@ -156,10 +151,6 @@ Return the final edited image.`;
     images,
     prompt,
     imageEditModel,
-    localApiBaseUrl,
-    localApiKey,
-    antiApiBaseUrl,
-    antiApiKey,
     aspectRatio,
     resolution,
     extractMentionedImages,

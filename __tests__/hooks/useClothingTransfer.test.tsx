@@ -29,10 +29,7 @@ vi.mock('../../src/contexts/ImageGalleryContext', () => ({
 
 vi.mock('../../src/contexts/ApiProviderContext', () => ({
   useApi: () => ({
-    localApiBaseUrl: null,
-    localApiKey: null,
-    antiApiBaseUrl: null,
-    antiApiKey: null,
+    imageEditModel: 'gemini-2.5-flash-image',
     getModelsForFeature: vi.fn(() => ({
       imageEditModel: 'gemini-2.5-flash-image',
     })),

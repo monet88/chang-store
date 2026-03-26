@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ImageFile, AnalyzedItem, Feature, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { ImageFile, AnalyzedItem, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '../services/imageEditingService';
 import { analyzeOutfit } from '../services/textService';
 import type { RedesignPreset } from '../services/gemini/image';
@@ -21,14 +21,9 @@ interface RedesignResult {
 
 const OutfitAnalysis: React.FC = () => {
     const { t } = useLanguage();
-    const { getModelsForFeature, antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey, textGenerateModel } = useApi();
-    const { imageEditModel } = getModelsForFeature(Feature.OutfitAnalysis);
+    const { imageEditModel, textGenerateModel } = useApi();
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
-        antiApiBaseUrl,
-        antiApiKey,
-        localApiBaseUrl,
-        localApiKey,
     });
 
     const [step, setStep] = useState(0); // 0: upload, 1: analysis, 2: redesign results
@@ -82,7 +77,7 @@ const OutfitAnalysis: React.FC = () => {
         setLoadingMessage(t('outfitAnalysis.statusAnalyzing'));
         setError(null);
         try {
-            const results = await analyzeOutfit(file, textGenerateModel, { localApiBaseUrl, localApiKey });
+            const results = await analyzeOutfit(file, textGenerateModel);
             setAnalysisResults(results);
             setStep(1);
         } catch (err) {

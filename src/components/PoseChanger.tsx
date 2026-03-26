@@ -5,7 +5,7 @@ import Spinner, { ErrorDisplay, ProgressBar } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generatePoseDescription } from '../services/textService';
-import { Feature, ImageFile, PoseCollection, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { ImageFile, PoseCollection, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -56,14 +56,9 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
   const { t } = useLanguage();
-  const { getModelsForFeature, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, textGenerateModel } = useApi();
-  const { imageEditModel } = getModelsForFeature(Feature.Pose);
+  const { imageEditModel, textGenerateModel } = useApi();
   const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
-    localApiBaseUrl,
-    localApiKey,
-    antiApiBaseUrl,
-    antiApiKey,
   });
 
   const allPrompts = [...selectedLibraryPoses, ...(customPosePrompt.trim() ? [customPosePrompt.trim()] : [])];
@@ -77,7 +72,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
     setIsGeneratingPoseDescription(true);
     setError(null);
     try {
-      const description = await generatePoseDescription(poseReferenceImage, textGenerateModel, { localApiBaseUrl, localApiKey });
+      const description = await generatePoseDescription(poseReferenceImage, textGenerateModel);
       setCustomPosePrompt(description);
       setPoseReferenceImage(null);
     } catch (err) {

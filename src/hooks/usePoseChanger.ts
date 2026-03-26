@@ -1,7 +1,7 @@
 
 // hooks/usePoseChanger.ts
 import { useState } from 'react';
-import { Feature, ImageFile } from '../types';
+import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -17,8 +17,7 @@ export const usePoseChanger = () => {
 
     const { addImage } = useImageGallery();
     const { t } = useLanguage();
-    const { localApiBaseUrl, localApiKey, getModelsForFeature } = useApi();
-    const { imageEditModel, textGenerateModel } = getModelsForFeature(Feature.Pose);
+    const { imageEditModel, textGenerateModel } = useApi();
 
     const handleGenerate = async () => {
         // ... complex generation logic from component

@@ -563,13 +563,9 @@ const getHandleForPoint = (point: Point, rect: Rect): CropInteractionType | null
 export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage }) => {
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { imageEditModel, imageGenerateModel, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey } = useApi();
+    const { imageEditModel, imageGenerateModel } = useApi();
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
-        localApiBaseUrl,
-        localApiKey,
-        antiApiBaseUrl,
-        antiApiKey,
     });
 
     const [view, setView] = useState<'launcher' | 'editor'>(initialImage ? 'editor' : 'launcher');
@@ -837,7 +833,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
         } finally {
             setIsLoading(false);
         }
-    }, [isLoading, currentImage, t, selectionPath, getCanvasAndImageMetrics, imageEditModel, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, addToHistory, handleDeselect]);
+    }, [isLoading, currentImage, t, selectionPath, getCanvasAndImageMetrics, imageEditModel, addToHistory, handleDeselect]);
 
     const handleApplyBasicAdjustments = useCallback(async () => {
         if (!hasBasicAdjustments) return;

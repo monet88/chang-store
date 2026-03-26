@@ -1,14 +1,11 @@
 /**
  * Unit Tests for imageEditingService
  *
- * Tests the unified facade that routes image operations to either:
- * - gemini/image.ts (Gemini API) for 'gemini-*' models
- * - localProviderService.ts for 'local--*' models
+ * Tests the unified facade that routes image operations to the Gemini API.
  *
  * Key test scenarios:
- * 1. Model routing logic based on prefix
+ * 1. Correct parameter passing to Gemini backend
  * 2. Error propagation from underlying services
- * 3. Correct parameter passing to each backend
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -32,12 +29,7 @@ vi.mock('../../src/services/gemini/image', () => ({
   },
 }));
 
-/** Mock localProviderService.ts */
-vi.mock('../../src/services/localProviderService', () => ({
-  editImageLocal: vi.fn(),
-  generateImageLocal: vi.fn(),
-  generateTextLocal: vi.fn(),
-}));
+
 
 /** Mock imageUtils for getImageDimensions */
 vi.mock('../../src/utils/imageUtils', () => ({
@@ -55,7 +47,6 @@ import {
 } from '../../src/services/imageEditingService';
 import { getImageDimensions } from '../../src/utils/imageUtils';
 import * as geminiImageService from '../../src/services/gemini/image';
-import * as localProviderService from '../../src/services/localProviderService';
 
 // ============================================================================
 // Test Constants
@@ -72,12 +63,7 @@ const DEFAULT_CONFIG = {
   onStatusUpdate: vi.fn(),
 };
 
-/** Config with local provider details */
-const LOCAL_CONFIG = {
-  ...DEFAULT_CONFIG,
-  localApiBaseUrl: 'http://localhost:11434',
-  localApiKey: 'local-key',
-};
+
 
 // ============================================================================
 // Test Suite: editImage - Model Routing
@@ -136,80 +122,6 @@ describe('editImage', () => {
         .rejects.toThrow('error.api.safetyBlock');
     });
   });
-
-  // --------------------------------------------------------------------------
-  // Local Provider Routing Tests
-  // --------------------------------------------------------------------------
-
-  describe('Local provider routing (local--* models)', () => {
-    /**
-     * Test: Routes to local provider for local-- models
-     */
-    it('should route to local provider for local-- models', async () => {
-      // Arrange
-      const mockResult = { base64: 'local-result', mimeType: 'image/png' };
-      vi.mocked(localProviderService.editImageLocal).mockResolvedValueOnce(mockResult);
-
-      const params = {
-        images: [TEST_IMAGE],
-        prompt: 'Edit with local',
-        numberOfImages: 1,
-      };
-
-      // Act
-      const result = await editImage(params, 'local--flux-model', LOCAL_CONFIG);
-
-      // Assert
-      expect(localProviderService.editImageLocal).toHaveBeenCalledWith(
-        TEST_IMAGE,
-        'Edit with local',
-        'flux-model',
-        {
-          baseUrl: 'http://localhost:11434',
-          apiKey: 'local-key',
-        },
-        '2048x2048'
-      );
-      expect(result).toEqual([mockResult]);
-    });
-
-    /**
-     * Test: Throws error when local API URL is missing
-     */
-    it('should throw error when local API URL is missing', async () => {
-      // Arrange
-      const params = {
-        images: [TEST_IMAGE],
-        prompt: 'Edit with local',
-      };
-
-      // Act & Assert
-      await expect(editImage(params, 'local--model', DEFAULT_CONFIG))
-        .rejects.toThrow('error.api.localProviderFailed');
-    });
-
-    /**
-     * Test: Generates multiple images for local provider
-     */
-    it('should generate multiple images for local provider when numberOfImages > 1', async () => {
-      // Arrange
-      const mockResult = { base64: 'result', mimeType: 'image/png' };
-      vi.mocked(localProviderService.editImageLocal).mockResolvedValue(mockResult);
-
-      const params = {
-        images: [TEST_IMAGE],
-        prompt: 'Generate multiple',
-        numberOfImages: 3,
-      };
-
-      // Act
-      const result = await editImage(params, 'local--flux-model', LOCAL_CONFIG);
-
-      // Assert
-      expect(localProviderService.editImageLocal).toHaveBeenCalledTimes(3);
-      expect(result).toHaveLength(3);
-    });
-  });
 });
 
 // ============================================================================
@@ -247,36 +159,6 @@ describe('generateImage', () => {
     );
     expect(result).toEqual(mockResult);
   });
-
-  /**
-   * Test: Routes to local provider for local models
-   */
-  it('should route to local provider for local-- models', async () => {
-    // Arrange
-    const mockResult = { base64: 'generated-local', mimeType: 'image/png' };
-    vi.mocked(localProviderService.generateImageLocal).mockResolvedValueOnce(mockResult);
-
-    // Act
-    const result = await generateImage(
-      'A beautiful sunset',
-      '1:1',
-      1,
-      'local--flux-model',
-      LOCAL_CONFIG
-    );
-
-    // Assert
-    expect(localProviderService.generateImageLocal).toHaveBeenCalledWith(
-      'A beautiful sunset',
-      'flux-model',
-      {
-        baseUrl: 'http://localhost:11434',
-        apiKey: 'local-key',
-      },
-      '2048x2048'
-    );
-    expect(result).toEqual([mockResult]);
-  });
 });
 
 // ============================================================================
@@ -305,32 +187,6 @@ describe('upscaleImage', () => {
       '2K',
       expect.stringContaining('Upscale this image to 2K resolution'),
       'gemini-2.5-flash-image',
-    );
-    expect(result).toEqual(mockResult);
-  });
-
-  /**
-   * Test: Routes to local provider for local models
-   */
-  it('should route to local provider for local-- models', async () => {
-    // Arrange
-    const mockResult = { base64: 'upscaled-local', mimeType: 'image/png' };
-    vi.mocked(localProviderService.editImageLocal).mockResolvedValueOnce(mockResult);
-
-    // Act
-    const result = await upscaleImage(TEST_IMAGE, 'local--image-model-1', LOCAL_CONFIG);
-
-    // Assert
-    expect(localProviderService.editImageLocal).toHaveBeenCalledTimes(1);
-    expect(localProviderService.editImageLocal).toHaveBeenCalledWith(
-      TEST_IMAGE,
-      expect.stringContaining('Upscale this image'),
-      'image-model-1',
-      {
-        baseUrl: 'http://localhost:11434',
-        apiKey: 'local-key',
-      },
-      '2048x2048'
     );
     expect(result).toEqual(mockResult);
   });
@@ -366,37 +222,6 @@ describe('extractOutfitItem', () => {
       TEST_IMAGE,
       'red t-shirt',
       'gemini-2.5-flash-image'
-    );
-    expect(result).toEqual(mockResult);
-  });
-
-  /**
-   * Test: Routes to local provider for local models
-   */
-  it('should route to local provider for local-- models', async () => {
-    // Arrange
-    const mockResult = { base64: 'extracted-local', mimeType: 'image/png' };
-    vi.mocked(localProviderService.editImageLocal).mockResolvedValueOnce(mockResult);
-
-    // Act
-    const result = await extractOutfitItem(
-      TEST_IMAGE,
-      'blue jeans',
-      'local--image-model-1',
-      LOCAL_CONFIG
-    );
-
-    // Assert
-    expect(localProviderService.editImageLocal).toHaveBeenCalledTimes(1);
-    expect(localProviderService.editImageLocal).toHaveBeenCalledWith(
-      TEST_IMAGE,
-      expect.stringContaining('blue jeans'),
-      'image-model-1',
-      {
-        baseUrl: 'http://localhost:11434',
-        apiKey: 'local-key',
-      },
-      '2048x2048'
     );
     expect(result).toEqual(mockResult);
   });
@@ -442,33 +267,6 @@ describe('critiqueAndRedesignOutfit', () => {
       undefined // resolution parameter (optional)
     );
     expect(result).toEqual(mockResult);
-  });
-
-  /**
-   * Test: Routes to local provider for local models
-   */
-  it('should use local provider for local-- models', async () => {
-    // Arrange
-    const mockImage = { base64: 'redesigned-local', mimeType: 'image/png' };
-    vi.mocked(localProviderService.generateTextLocal).mockResolvedValueOnce('Local critique');
-    vi.mocked(localProviderService.editImageLocal).mockResolvedValueOnce(mockImage);
-
-    // Act
-    const result = await critiqueAndRedesignOutfit(
-      TEST_IMAGE,
-      'casual',
-      1,
-      'local--image-model-1',
-      LOCAL_CONFIG,
-      'Default',
-      '2K'
-    );
-
-    // Assert
-    expect(localProviderService.generateTextLocal).toHaveBeenCalledTimes(1);
-    expect(localProviderService.editImageLocal).toHaveBeenCalledTimes(1);
-    expect(result.critique).toBe('Local critique');
-    expect(result.redesignedImages).toEqual([mockImage]);
   });
 });
 
@@ -590,39 +388,6 @@ describe('recreateImageWithFace', () => {
       resolution: '4K',
       model: 'gemini-2.5-flash-image',
     });
-    expect(result).toEqual(mockResult);
-  });
-
-  /**
-   * Test: Maps resolution to local provider size when provided
-   */
-  it('should map resolution to local provider size for local-- models', async () => {
-    // Arrange
-    const mockResult = { base64: 'recreated-local', mimeType: 'image/png' };
-    vi.mocked(localProviderService.editImageLocal).mockResolvedValueOnce(mockResult);
-
-    // Act
-    const result = await recreateImageWithFace(
-      'Test prompt',
-      FACE_IMAGE,
-      STYLE_IMAGE,
-      'local--image-model-1',
-      LOCAL_CONFIG,
-      '16:9',
-      '4K'
-    );
-
-    // Assert
-    expect(localProviderService.editImageLocal).toHaveBeenCalledWith(
-      FACE_IMAGE,
-      expect.stringContaining('IMAGE RECREATION WITH NEW SUBJECT'),
-      'image-model-1',
-      expect.objectContaining({
-        baseUrl: 'http://localhost:11434',
-        apiKey: 'local-key',
-      }),
-      '4096x2304'
-    );
     expect(result).toEqual(mockResult);
   });
 });
