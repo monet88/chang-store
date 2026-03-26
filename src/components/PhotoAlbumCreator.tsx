@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
@@ -25,14 +25,9 @@ interface PhotoAlbumCreatorProps {
 
 export const PhotoAlbumCreator: React.FC<PhotoAlbumCreatorProps> = ({ transferredImage, onTransferConsumed }) => {
     const { t } = useLanguage();
-    const { getModelsForFeature, antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey } = useApi();
-    const { imageEditModel } = getModelsForFeature(Feature.PhotoAlbum);
+    const { imageEditModel } = useApi();
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
-        antiApiBaseUrl,
-        antiApiKey,
-        localApiBaseUrl,
-        localApiKey,
     });
 
     const [mode, setMode] = useState<GenerationMode>('fullModel');

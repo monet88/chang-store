@@ -55,3 +55,13 @@
 | 1. Chuyển code gộp vào thư mục src/ | v1.2 | 1/1 | ✅ Complete | 2026-03-24 |
 | 1. Virtual Try-On Prompt Optimization | v1.3 | 4/4 | ✅ Complete | 2026-03-24 |
 
+
+### Phase 1: Remove Local Provider and Anti Provider — keep Gemini only
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 0
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 1 to break down)

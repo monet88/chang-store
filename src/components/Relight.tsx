@@ -3,7 +3,7 @@
 
 
 import React, { useState } from 'react';
-import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
@@ -131,14 +131,9 @@ Your primary task is to relight the provided source image according to the speci
 
 const Relight: React.FC = () => {
     const { t } = useLanguage();
-    const { getModelsForFeature, antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey } = useApi();
-    const { imageEditModel } = getModelsForFeature(Feature.Relight);
+    const { imageEditModel } = useApi();
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
-        antiApiBaseUrl,
-        antiApiKey,
-        localApiBaseUrl,
-        localApiKey,
     });
 
     const [image, setImage] = useState<ImageFile | null>(null);

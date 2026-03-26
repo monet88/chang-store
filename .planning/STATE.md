@@ -58,6 +58,7 @@ None yet.
 ### Roadmap Evolution
 
 - v1.3 completed: Virtual Try-On Prompt Optimization
+- Phase 1 added: Remove Local Provider and Anti Provider — keep Gemini only
 
 ### Quick Tasks Completed
 

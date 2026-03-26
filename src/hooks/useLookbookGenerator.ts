@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import debounce from 'lodash-es/debounce';
-import { Feature, ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -102,14 +102,9 @@ export const useLookbookGenerator = () => {
     const originalImageRef = useRef<ImageFile | null>(null);
 
     const { t } = useLanguage();
-    const { localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, textGenerateModel, getModelsForFeature } = useApi();
-    const { imageEditModel } = getModelsForFeature(Feature.Lookbook);
+    const { imageEditModel, textGenerateModel } = useApi();
     const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
-        localApiBaseUrl,
-        localApiKey,
-        antiApiBaseUrl,
-        antiApiKey,
     });
 
     // Debounced localStorage save - prevents 200ms typing lag
@@ -142,7 +137,7 @@ export const useLookbookGenerator = () => {
             const session = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
             setChatSession(session);
         }
-    }, [generatedLookbook, chatSession, imageEditModel, localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey]);
+    }, [generatedLookbook, chatSession, imageEditModel]);
 
     const updateForm = useCallback((updates: Partial<LookbookFormState>) => {
         setFormState(prev => ({...prev, ...updates}));
@@ -182,14 +177,14 @@ export const useLookbookGenerator = () => {
         setIsGeneratingDescription(true);
         setError(null);
         try {
-            const description = await generateClothingDescription(firstImage, textGenerateModel, { localApiBaseUrl, localApiKey });
+            const description = await generateClothingDescription(firstImage, textGenerateModel);
             updateForm({ clothingDescription: description });
         } catch (err) {
           setError(getErrorMessage(err, t));
         } finally {
             setIsGeneratingDescription(false);
         }
-    }, [formState.clothingImages, t, updateForm, textGenerateModel, localApiBaseUrl, localApiKey]);
+    }, [formState.clothingImages, t, updateForm, textGenerateModel]);
 
     const handleGenerate = useCallback(async () => {
         const { clothingImages, lookbookStyle, foldedPresentationType, garmentType, mannequinBackgroundStyle, fabricTextureImage, fabricTexturePrompt, clothingDescription, negativePrompt } = formState;

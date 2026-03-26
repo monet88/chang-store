@@ -31,10 +31,7 @@ let mockModelName = 'gemini-2.5-flash-image';
 
 vi.mock('../../src/contexts/ApiProviderContext', () => ({
   useApi: () => ({
-    localApiBaseUrl: null,
-    localApiKey: null,
-    antiApiBaseUrl: null,
-    antiApiKey: null,
+    imageEditModel: mockModelName,
     getModelsForFeature: vi.fn(() => ({
       imageEditModel: mockModelName,
     })),
@@ -59,41 +56,7 @@ describe('useVirtualTryOn', () => {
     mockModelName = 'gemini-2.5-flash-image';
   });
 
-  describe('Gemini-only guard', () => {
-    it('blocks local-- models and does not call editImage', async () => {
-      mockModelName = 'local--flux-model';
-      const { result } = renderHook(() => useVirtualTryOn());
 
-      act(() => {
-        result.current.handleSubjectImagesUpload([SUBJECT_A]);
-        result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-      });
-
-      await act(async () => {
-        await result.current.handleGenerateImage();
-      });
-
-      expect(editImage).not.toHaveBeenCalled();
-      expect(result.current.error).toBe('virtualTryOn.geminiOnlyError');
-    });
-
-    it('blocks anti-- models and does not call editImage', async () => {
-      mockModelName = 'anti--some-model';
-      const { result } = renderHook(() => useVirtualTryOn());
-
-      act(() => {
-        result.current.handleSubjectImagesUpload([SUBJECT_A]);
-        result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-      });
-
-      await act(async () => {
-        await result.current.handleGenerateImage();
-      });
-
-      expect(editImage).not.toHaveBeenCalled();
-      expect(result.current.error).toBe('virtualTryOn.geminiOnlyError');
-    });
-  });
 
   it('tracks multiple subject images as batch items', () => {
     const { result } = renderHook(() => useVirtualTryOn());

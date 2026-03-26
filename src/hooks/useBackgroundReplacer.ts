@@ -1,7 +1,7 @@
 
 // hooks/useBackgroundReplacer.ts
 import { useState, useRef, useCallback, useMemo } from 'react';
-import { AspectRatio, Feature, ImageFile, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { AspectRatio, ImageFile, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -12,17 +12,12 @@ import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 
 export const useBackgroundReplacer = () => {
   const { t } = useLanguage();
-  const { localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, getModelsForFeature, textGenerateModel } = useApi();
-  const { imageEditModel } = getModelsForFeature(Feature.Background);
+  const { imageEditModel, textGenerateModel } = useApi();
   const { addImage } = useImageGallery();
 
   const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
-    localApiBaseUrl,
-    localApiKey,
-    antiApiBaseUrl,
-    antiApiKey,
-  }), [antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey]);
+  }), []);
 
   const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);
   const [backgroundImage, setBackgroundImage] = useState<ImageFile | null>(null);
@@ -81,7 +76,7 @@ export const useBackgroundReplacer = () => {
     setIsGeneratingDescription(true);
     setError(null);
     try {
-      const description = await generateImageDescription(backgroundImage, textGenerateModel, { localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey });
+      const description = await generateImageDescription(backgroundImage, textGenerateModel);
       setPromptText(description);
       setBackgroundImage(null);
       setSelectedPredefinedKey('custom');
@@ -90,7 +85,7 @@ export const useBackgroundReplacer = () => {
     } finally {
       setIsGeneratingDescription(false);
     }
-  }, [antiApiBaseUrl, antiApiKey, backgroundImage, localApiBaseUrl, localApiKey, t, textGenerateModel]);
+  }, [backgroundImage, t, textGenerateModel]);
 
   const buildPrompt = useCallback((cameraViewStr: string): string => {
     let framingInstruction = 'Use default framing provided by the model.';

@@ -74,18 +74,26 @@ const STORAGE_KEYS = {
 
 /** Saves session data to localStorage */
 const saveSession = (token: string, expiresAt: number, user: GoogleUser) => {
-  localStorage.setItem(STORAGE_KEYS.CONNECTED, 'true');
-  localStorage.setItem(STORAGE_KEYS.TOKEN, token);
-  localStorage.setItem(STORAGE_KEYS.EXPIRES_AT, expiresAt.toString());
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  try {
+    localStorage.setItem(STORAGE_KEYS.CONNECTED, 'true');
+    localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.EXPIRES_AT, expiresAt.toString());
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  } catch {
+    // Silently fail — session persistence is non-critical
+  }
 };
 
 /** Clears session data from localStorage */
 const clearSession = () => {
-  localStorage.removeItem(STORAGE_KEYS.CONNECTED);
-  localStorage.removeItem(STORAGE_KEYS.TOKEN);
-  localStorage.removeItem(STORAGE_KEYS.EXPIRES_AT);
-  localStorage.removeItem(STORAGE_KEYS.USER);
+  try {
+    localStorage.removeItem(STORAGE_KEYS.CONNECTED);
+    localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.EXPIRES_AT);
+    localStorage.removeItem(STORAGE_KEYS.USER);
+  } catch {
+    // Silently fail
+  }
 };
 
 /** Loads session data from localStorage, returns null if expired or invalid */

@@ -1,10 +1,10 @@
 
 // hooks/useSwapFace.ts
 import { useState } from 'react';
-import { Feature, ImageFile } from '../types';
+import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
-import { useApi } from '../contexts/ApiProviderContext';
+
 import { recreateImageWithFace } from '../services/imageEditingService';
 import { generateStylePromptFromImage } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -16,7 +16,7 @@ export const useSwapFace = () => {
 
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
-    const { localApiBaseUrl, localApiKey, getModelsForFeature } = useApi();
+
 
     const handleAnalyzeStyle = async () => {
         // ... logic

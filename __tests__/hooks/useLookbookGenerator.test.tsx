@@ -305,7 +305,6 @@ describe('useLookbookGenerator', () => {
       expect(generateClothingDescription).toHaveBeenCalledWith(
         TEST_CLOTHING_IMAGE,
         'gemini-2.5-pro',
-        { localApiBaseUrl: null, localApiKey: null }
       );
       expect(result.current.formState.clothingDescription).toBe('A beautiful red dress');
       expect(result.current.isGeneratingDescription).toBe(false);

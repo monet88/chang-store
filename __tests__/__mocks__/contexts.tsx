@@ -44,20 +44,10 @@ interface ImageGalleryContextType {
 interface ApiContextType {
   googleApiKey: string | null;
   setGoogleApiKey: ReturnType<typeof vi.fn>;
-  localApiBaseUrl: string | null;
-  setLocalApiBaseUrl: ReturnType<typeof vi.fn>;
-  localApiKey: string | null;
-  setLocalApiKey: ReturnType<typeof vi.fn>;
-  antiApiBaseUrl: string | null;
-  setAntiApiBaseUrl: ReturnType<typeof vi.fn>;
-  antiApiKey: string | null;
-  setAntiApiKey: ReturnType<typeof vi.fn>;
   imageEditModel: string;
   setImageEditModel: ReturnType<typeof vi.fn>;
   imageGenerateModel: string;
   setImageGenerateModel: ReturnType<typeof vi.fn>;
-  videoGenerateModel: string;
-  setVideoGenerateModel: ReturnType<typeof vi.fn>;
   textGenerateModel: string;
   setTextGenerateModel: ReturnType<typeof vi.fn>;
   getModelsForFeature: ReturnType<typeof vi.fn>;
@@ -151,27 +141,16 @@ export const mockUseApi = (
   const defaults: ApiContextType = {
     googleApiKey: null,
     setGoogleApiKey: vi.fn(),
-    localApiBaseUrl: null,
-    setLocalApiBaseUrl: vi.fn(),
-    localApiKey: null,
-    setLocalApiKey: vi.fn(),
-    antiApiBaseUrl: null,
-    setAntiApiBaseUrl: vi.fn(),
-    antiApiKey: null,
-    setAntiApiKey: vi.fn(),
     imageEditModel: 'gemini-2.5-flash-image',
     setImageEditModel: vi.fn(),
     imageGenerateModel: 'imagen-4.0-generate-001',
     setImageGenerateModel: vi.fn(),
-    videoGenerateModel: '',
-    setVideoGenerateModel: vi.fn(),
     textGenerateModel: 'gemini-2.5-pro',
     setTextGenerateModel: vi.fn(),
     /** Default returns all current models */
     getModelsForFeature: vi.fn((_feature: Feature) => ({
       imageEditModel: overrides.imageEditModel ?? 'gemini-2.5-flash-image',
       imageGenerateModel: overrides.imageGenerateModel ?? 'imagen-4.0-generate-001',
-      videoGenerateModel: overrides.videoGenerateModel ?? '',
       textGenerateModel: overrides.textGenerateModel ?? 'gemini-2.5-pro',
     })),
   };

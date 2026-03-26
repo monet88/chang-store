@@ -18,7 +18,6 @@
 
 import { useState, useCallback, useRef } from 'react';
 import {
-  Feature,
   ImageFile,
   UpscaleMode,
   UpscaleQuality,
@@ -137,8 +136,7 @@ export interface UseUpscaleReturn {
 
 export function useUpscale(): UseUpscaleReturn {
   const { t } = useLanguage();
-  const { getModelsForFeature, antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey } = useApi();
-  const { imageEditModel } = getModelsForFeature(Feature.Upscale);
+  const { imageEditModel } = useApi();
 
   // ---- Core state ----
   const [sessionImages, setSessionImages] = useState<UpscaleSessionImage[]>([]);
@@ -170,12 +168,8 @@ export function useUpscale(): UseUpscaleReturn {
   const buildServiceConfig = useCallback(
     (onStatusUpdate: (msg: string) => void) => ({
       onStatusUpdate,
-      antiApiBaseUrl,
-      antiApiKey,
-      localApiBaseUrl,
-      localApiKey,
     }),
-    [antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey],
+    [],
   );
 
   // ---- Session management ----

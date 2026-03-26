@@ -4,7 +4,6 @@ import {
   ClothingTransferBatchItem,
   ClothingTransferReferenceItem,
   DEFAULT_IMAGE_RESOLUTION,
-  Feature,
   ImageFile,
   ImageResolution,
 } from '../types';
@@ -45,16 +44,11 @@ export function useClothingTransfer() {
 
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
-  const { localApiBaseUrl, localApiKey, antiApiBaseUrl, antiApiKey, getModelsForFeature } = useApi();
-  const { imageEditModel } = getModelsForFeature(Feature.ClothingTransfer);
+  const { imageEditModel } = useApi();
 
   const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
-    localApiBaseUrl,
-    localApiKey,
-    antiApiBaseUrl,
-    antiApiKey,
-  }), [antiApiBaseUrl, antiApiKey, localApiBaseUrl, localApiKey]);
+  }), []);
 
   const createConceptItem = useCallback((image: ImageFile): ClothingTransferBatchItem => ({
     id: `ct-${++batchIdCounter.current}`,

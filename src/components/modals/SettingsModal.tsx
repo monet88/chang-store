@@ -6,99 +6,56 @@ import { isDebugEnabled, setDebugEnabled } from '../../services/debugService';
 import Spinner from '../Spinner';
 import { CloseIcon } from '../Icons';
 import { GoogleDriveSettings } from '../GoogleDriveSettings';
-import { LOCAL_TEXT_MODELS_WITH_PREFIX, LOCAL_IMAGE_MODELS_WITH_PREFIX } from '../../utils/localModels';
-import { ANTI_TEXT_MODELS, ANTI_TEXT_MODELS_WITH_PREFIX, ANTI_IMAGE_MODELS_WITH_PREFIX } from '../../utils/antiModels';
-import { generateTextAnti } from '../../services/antiProviderService';
 
-const ServiceModelSelector: React.FC<{
+const GOOGLE_IMAGE_EDIT_MODELS = [
+    { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image (Preview)' },
+    { id: 'gemini-3.1-flash-image-preview', name: 'Gemini 3.1 Flash Image (Preview)' },
+    { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
+];
+
+const GOOGLE_IMAGE_GENERATE_MODELS = [
+    { id: 'imagen-4.0-ultra-generate-001', name: 'Imagen 4 Ultra' },
+    { id: 'imagen-4.0-generate-001', name: 'Imagen 4' },
+    { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast' },
+];
+
+const GOOGLE_TEXT_GENERATE_MODELS = [
+    { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (Preview)' },
+    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash (Preview)' },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+];
+
+const ModelSelector: React.FC<{
     label: string;
-    services: {id: string, name: string}[];
-    modelsByService: Record<string, {id: string, name: string}[]>;
+    models: { id: string; name: string }[];
     selectedModel: string;
     onModelChange: (modelId: string) => void;
-}> = ({ label, services, modelsByService, selectedModel, onModelChange }) => {
-
-    const parseModelId = (modelId: string): { service: string, model: string } => {
-        if (modelId.startsWith('local--')) return { service: 'local', model: modelId };
-        if (modelId.startsWith('anti--')) return { service: 'anti', model: modelId };
-        return { service: 'google', model: modelId };
-    };
-    
-    const { service: currentService } = parseModelId(selectedModel);
-    const availableModels = modelsByService[currentService] || [];
-
-    const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newService = e.target.value;
-        const firstModelForService = (modelsByService[newService] || [])[0];
-        if (firstModelForService) {
-            onModelChange(firstModelForService.id);
-        }
-    };
-    
-    const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newModelId = e.target.value;
-        console.log('[SettingsModal] Model selection changed:', {
-            label,
-            oldModel: selectedModel,
-            newModel: newModelId,
-            availableModels: availableModels.map(m => m.id)
-        });
-        onModelChange(newModelId);
-    };
-    
-    return (
-        <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">{label}</label>
-            <div className="grid grid-cols-2 gap-2">
-                <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Service</label>
-                    {services.length > 1 ? (
-                        <select value={currentService} onChange={handleServiceChange} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-slate-200 text-sm h-[38px]">
-                            {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                    ) : (
-                        <div className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-slate-400 text-sm h-[38px] flex items-center">
-                            {services[0]?.name || 'N/A'}
-                        </div>
-                    )}
-                </div>
-                <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Model</label>
-                    <select value={selectedModel} onChange={handleModelChange} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-slate-200 text-sm h-[38px]" disabled={availableModels.length === 0}>
-                        {availableModels.length > 0 ? (
-                            availableModels.map(opt => <option key={opt.id} value={opt.id}>{opt.name}</option>)
-                        ) : (
-                            <option>No models available</option>
-                        )}
-                    </select>
-                </div>
-            </div>
-        </div>
-    );
-};
+}> = ({ label, models, selectedModel, onModelChange }) => (
+    <div>
+        <label className="block text-sm font-medium text-slate-300 mb-2">{label}</label>
+        <select
+            value={selectedModel}
+            onChange={e => onModelChange(e.target.value)}
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-slate-200 text-sm h-[38px]"
+        >
+            {models.map(opt => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
+        </select>
+    </div>
+);
 
 
 export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ isOpen, onClose }) => {
     const {
-        antiApiBaseUrl, setAntiApiBaseUrl,
-        antiApiKey, setAntiApiKey,
         imageEditModel, setImageEditModel,
         imageGenerateModel, setImageGenerateModel,
         textGenerateModel, setTextGenerateModel,
     } = useApi();
     const { images } = useImageGallery();
 
-    // Local state for all settings
-    const [antiProviderBaseUrl, setAntiProviderBaseUrl] = useState(antiApiBaseUrl || '');
-    const [antiProviderApiKey, setAntiProviderApiKey] = useState(antiApiKey || '');
-
     const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
     const [localImageGenerateModel, setLocalImageGenerateModel] = useState(imageGenerateModel);
     const [localTextGenerateModel, setLocalTextGenerateModel] = useState(textGenerateModel);
-
-    const [isTestingAntiProvider, setIsTestingAntiProvider] = useState(false);
-    const [antiProviderError, setAntiProviderError] = useState<string | null>(null);
-    const [antiProviderSaveSuccess, setAntiProviderSaveSuccess] = useState(false);
 
     const [debugMode, setDebugMode] = useState(() => isDebugEnabled());
 
@@ -124,47 +81,14 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
         });
         
         // Sync local state with context when modal opens
-        setAntiProviderBaseUrl(antiApiBaseUrl || '');
-        setAntiProviderApiKey(antiApiKey || '');
         setLocalImageEditModel(imageEditModel);
         setLocalImageGenerateModel(imageGenerateModel);
         setLocalTextGenerateModel(textGenerateModel);
 
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [isOpen, onClose, images, antiApiBaseUrl, antiApiKey, imageEditModel, imageGenerateModel, textGenerateModel]);
+    }, [isOpen, onClose, images, imageEditModel, imageGenerateModel, textGenerateModel]);
     
     if (!isOpen) return null;
-
-    const handleAntiProviderTestAndSave = async () => {
-        setIsTestingAntiProvider(true);
-        setAntiProviderError(null);
-        setAntiProviderSaveSuccess(false);
-        try {
-            const trimmedBaseUrl = antiProviderBaseUrl.trim();
-            if (!trimmedBaseUrl) {
-                throw new Error('Base URL is required.');
-            }
-            const selectedAntiModel = localTextGenerateModel.startsWith('anti--')
-                ? localTextGenerateModel.replace('anti--', '')
-                : (ANTI_TEXT_MODELS[0]?.id || 'gemini-3.1-pro-preview');
-
-            await generateTextAnti(
-                'Ping',
-                selectedAntiModel,
-                { baseUrl: trimmedBaseUrl, apiKey: antiProviderApiKey.trim() || null }
-            );
-
-            setAntiApiBaseUrl(trimmedBaseUrl);
-            setAntiApiKey(antiProviderApiKey.trim() || null);
-            setAntiProviderSaveSuccess(true);
-            setTimeout(() => setAntiProviderSaveSuccess(false), 2000);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'An unknown error occurred.';
-            setAntiProviderError(message);
-        } finally {
-            setIsTestingAntiProvider(false);
-        }
-    };
 
     const handleSave = () => {
         setImageEditModel(localImageEditModel);
@@ -193,48 +117,6 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
             window.location.reload();
         }
     };
-    
-    const IMAGE_EDIT_SERVICES = [
-        { id: 'google', name: 'Google' },
-        { id: 'local', name: 'Proxypal Provider' },
-        { id: 'anti', name: 'Anti Provider' },
-    ];
-    const TEXT_GENERATE_SERVICES = [
-        { id: 'google', name: 'Google' },
-        { id: 'local', name: 'Proxypal Provider' },
-        { id: 'anti', name: 'Anti Provider' },
-    ];
-
-    const MODELS_BY_SERVICE = {
-        imageEdit: {
-            'google': [
-                { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image (Preview)' },
-                { id: 'gemini-3.1-flash-image-preview', name: 'Gemini 3.1 Flash Image (Preview)' },
-                { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
-            ],
-            'local': LOCAL_IMAGE_MODELS_WITH_PREFIX,
-            'anti': ANTI_IMAGE_MODELS_WITH_PREFIX,
-        },
-        imageGenerate: {
-            'google': [
-                { id: 'imagen-4.0-ultra-generate-001', name: 'Imagen 4 Ultra' },
-                { id: 'imagen-4.0-generate-001', name: 'Imagen 4' },
-                { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast' },
-            ],
-            'local': LOCAL_IMAGE_MODELS_WITH_PREFIX,
-            'anti': ANTI_IMAGE_MODELS_WITH_PREFIX,
-        },
-        textGenerate: {
-            'google': [
-                { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (Preview)' },
-                { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash (Preview)' },
-                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-                { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-            ],
-            'local': LOCAL_TEXT_MODELS_WITH_PREFIX,
-            'anti': ANTI_TEXT_MODELS_WITH_PREFIX,
-        },
-    };
 
     const storagePercentage = storageQuota > 0 ? (storageUsage / storageQuota) * 100 : 0;
     const usageMB = (storageUsage / 1024 / 1024).toFixed(2);
@@ -254,60 +136,9 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; }> 
                     <section>
                         <h3 className="text-base md:text-lg font-semibold text-amber-400 mb-4">Default Model Selection</h3>
                         <div className="space-y-4">
-                           <ServiceModelSelector label="Text Generation (Analysis/Prompts)" services={TEXT_GENERATE_SERVICES} modelsByService={MODELS_BY_SERVICE.textGenerate} selectedModel={localTextGenerateModel} onModelChange={setLocalTextGenerateModel} />
-                           <ServiceModelSelector label="Image Editing / Variation" services={IMAGE_EDIT_SERVICES} modelsByService={MODELS_BY_SERVICE.imageEdit} selectedModel={localImageEditModel} onModelChange={setLocalImageEditModel} />
-                           <ServiceModelSelector label="Image Generation (Text-to-Image)" services={IMAGE_EDIT_SERVICES} modelsByService={MODELS_BY_SERVICE.imageGenerate} selectedModel={localImageGenerateModel} onModelChange={setLocalImageGenerateModel} />
-                        </div>
-                    </section>
-                
-                    <section>
-                        <h3 className="text-base md:text-lg font-semibold text-amber-400 mb-4">API Keys</h3>
-                        <div className="space-y-4">
-                            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                                <h4 className="font-semibold text-slate-200 mb-2">Anti Provider</h4>
-                                <div className="flex items-center justify-between mb-3">
-                                    <p className="text-xs text-slate-400">
-                                        Default: http://127.0.0.1:8045, API key: sk-monet4292
-                                    </p>
-                                    {(!antiProviderBaseUrl && !antiProviderApiKey) && (
-                                        <button
-                                            onClick={() => {
-                                                setAntiProviderBaseUrl('http://127.0.0.1:8045');
-                                                setAntiProviderApiKey('sk-monet4292');
-                                            }}
-                                            className="text-xs text-amber-400 hover:text-amber-300 underline"
-                                        >
-                                            Fill Defaults
-                                        </button>
-                                    )}
-                                </div>
-                                <div className="space-y-3">
-                                    <input
-                                        type="text"
-                                        value={antiProviderBaseUrl}
-                                        onChange={e => setAntiProviderBaseUrl(e.target.value)}
-                                        placeholder="http://127.0.0.1:8045"
-                                        className="w-full bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm text-slate-200 placeholder-slate-500"
-                                    />
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="password"
-                                            value={antiProviderApiKey}
-                                            onChange={e => setAntiProviderApiKey(e.target.value)}
-                                            placeholder="sk-monet4292 (required)"
-                                            className="flex-grow bg-slate-700/50 border border-slate-600 rounded-md p-2 text-sm"
-                                        />
-                                        <button
-                                            onClick={handleAntiProviderTestAndSave}
-                                            disabled={isTestingAntiProvider || !antiProviderBaseUrl.trim() || !antiProviderApiKey.trim()}
-                                            className="bg-amber-600 text-white font-semibold px-4 py-2 rounded-md text-sm w-40 text-center disabled:bg-slate-600"
-                                        >
-                                            {isTestingAntiProvider ? <Spinner /> : antiProviderSaveSuccess ? 'Saved!' : 'Test & Save'}
-                                        </button>
-                                    </div>
-                                </div>
-                                {antiProviderError && <p className="text-red-400 text-xs mt-2">{`Error: ${antiProviderError}`}</p>}
-                            </div>
+                           <ModelSelector label="Text Generation (Analysis/Prompts)" models={GOOGLE_TEXT_GENERATE_MODELS} selectedModel={localTextGenerateModel} onModelChange={setLocalTextGenerateModel} />
+                           <ModelSelector label="Image Editing / Variation" models={GOOGLE_IMAGE_EDIT_MODELS} selectedModel={localImageEditModel} onModelChange={setLocalImageEditModel} />
+                           <ModelSelector label="Image Generation (Text-to-Image)" models={GOOGLE_IMAGE_GENERATE_MODELS} selectedModel={localImageGenerateModel} onModelChange={setLocalImageGenerateModel} />
                         </div>
                     </section>
 

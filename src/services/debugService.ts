@@ -15,11 +15,19 @@ export interface ApiCallLog {
 
 export function isDebugEnabled(): boolean {
   if (typeof window === 'undefined') return false;
-  return localStorage.getItem(STORAGE_KEY) === 'true';
+  try {
+    return localStorage.getItem(STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
 }
 
 export function setDebugEnabled(enabled: boolean): void {
-  localStorage.setItem(STORAGE_KEY, String(enabled));
+  try {
+    localStorage.setItem(STORAGE_KEY, String(enabled));
+  } catch {
+    // Silently fail — debug toggle is non-critical
+  }
 }
 
 export function logApiCall(log: ApiCallLog): void {
