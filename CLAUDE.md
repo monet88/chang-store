@@ -4,6 +4,15 @@
 
 AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Three AI backends: Google Gemini SDK, Local Provider REST, Anti Provider REST.
 
+## gstack
+Use /gstack-browse from gstack for all web browsing. Never use mcp__claude-in-chrome__* tools.
+Available skills: /gstack-office-hours, /gstack-plan-ceo-review, /gstack-plan-eng-review, /gstack-plan-design-review,
+/gstack-design-consultation, /gstack-review, /gstack-ship, /gstack-land-and-deploy, /gstack-canary, /gstack-benchmark, /gstack-browse,
+/gstack-qa, /gstack-qa-only, /gstack-design-review, /gstack-setup-browser-cookies, /gstack-setup-deploy, /gstack-retro,
+/gstack-investigate, /gstack-document-release, /gstack-codex, /gstack-cso, /gstack-careful, /gstack-freeze, /gstack-guard, /gstack-unfreeze,
+/gstack-upgrade.
+If gstack skills aren't working, run `cd .claude/skills/gstack && ./setup --prefix` to build the binary and register skills.
+
 ## Architecture
 
 ```
