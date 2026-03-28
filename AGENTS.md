@@ -194,4 +194,4 @@ When ending a work session, you MUST complete ALL steps below:
 1. **File issues/todos for remaining work** - Document anything that needs follow-up.
 2. **Run quality gates** (if code changed) - Linter, Typechecker (tsc), Tests.
 3. **Commit work** (if applicable) - Ensure that unfinished work is correctly tracked and not disrupting the `main` application flow.
-4. **Hand off & Brain Sync** - Save decisions to your Neural Memory (`nmem_remember` / `nmem_session`) so context carries over. Provide clear context summary for the next session or agent to pick up where you left off.
+4. **Hand off & Brain Sync** - Save decisions to your Hindsight Memory (`retain` / `recall`) so context carries over. Provide clear context summary for the next session or agent to pick up where you left off.
