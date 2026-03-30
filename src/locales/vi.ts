@@ -158,6 +158,7 @@ export const vi: Translation = {
     resultsForSubject: 'Kết quả cho ảnh chủ thể này',
     processingItem: 'Ảnh chủ thể này đang được xử lý.',
     waitingStatus: 'Đang chờ đến lượt xử lý.',
+    clearSubjects: 'Xóa tất cả',
     outputPanelDescription: 'Tải lên một hoặc nhiều ảnh chủ thể cùng ít nhất một ảnh outfit để xem kết quả riêng cho từng người mẫu tại đây.',
     status: {
       pending: 'Đang chờ',

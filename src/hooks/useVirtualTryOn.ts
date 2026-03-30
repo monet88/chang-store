@@ -139,6 +139,16 @@ export const useVirtualTryOn = () => {
     handleSubjectImagesUpload(image ? [image] : []);
   }, [handleSubjectImagesUpload]);
 
+  const clearSubjectImages = useCallback(() => {
+    setSubjectItems([]);
+    setSelectedSubjectItemId(null);
+    setError(null);
+    setUpscalingStates({});
+    chatSessionsRef.current = {};
+    setRefinePrompts({});
+    setIsRefining({});
+  }, []);
+
   const handleGenerateImage = useCallback(async () => {
     if (!canGenerate) {
       setError(t('virtualTryOn.inputError'));
@@ -225,6 +235,64 @@ export const useVirtualTryOn = () => {
     backgroundPrompt,
     buildImageServiceConfig,
     canGenerate,
+    extraPrompt,
+    imageEditModel,
+    numImages,
+    resolution,
+    subjectItems,
+    t,
+    updateSubjectItem,
+    validClothingItems,
+  ]);
+
+  const handleRegenerateSingle = useCallback(async (itemId: string) => {
+    const targetItem = subjectItems.find((item) => item.id === itemId);
+    if (!targetItem || validClothingItems.length === 0) return;
+
+    const outfitImages = validClothingItems.map((item) => item.image as ImageFile);
+
+    // Reset only this item
+    updateSubjectItem(itemId, { status: 'processing', results: [], error: undefined });
+    setIsLoading(true);
+    setLoadingMessage(t('virtualTryOn.generatingStatus'));
+    setError(null);
+
+    // Clear refine sessions for this item
+    Object.keys(chatSessionsRef.current).forEach((key) => {
+      if (key.startsWith(`${itemId}:`)) delete chatSessionsRef.current[key];
+    });
+
+    try {
+      const interleavedParts = buildVirtualTryOnParts({
+        subjectImage: targetItem.subjectImage,
+        clothingImages: outfitImages,
+        extraPrompt,
+        backgroundPrompt,
+      });
+      const results = await editImage(
+        {
+          images: [],
+          prompt: '',
+          numberOfImages: numImages,
+          aspectRatio,
+          resolution,
+          interleavedParts,
+        },
+        imageEditModel,
+        buildImageServiceConfig(setLoadingMessage),
+      );
+
+      updateSubjectItem(itemId, { status: 'completed', results, error: undefined });
+    } catch (err) {
+      updateSubjectItem(itemId, { status: 'error', results: [], error: getErrorMessage(err, t) });
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage('');
+    }
+  }, [
+    aspectRatio,
+    backgroundPrompt,
+    buildImageServiceConfig,
     extraPrompt,
     imageEditModel,
     numImages,
@@ -359,7 +427,9 @@ export const useVirtualTryOn = () => {
     completedCount,
     failedCount,
     canGenerate,
+    clearSubjectImages,
     handleGenerateImage,
+    handleRegenerateSingle,
     handleUpscale,
     handleRefine,
     handleClothingUpload,

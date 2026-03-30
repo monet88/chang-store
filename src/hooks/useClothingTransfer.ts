@@ -16,7 +16,6 @@ import { buildClothingTransferParts } from '../utils/clothing-transfer-prompt-bu
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 
-const MAX_SHARED_REFERENCE_IMAGES = 2;
 const BATCH_CONCURRENCY = 3;
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 
@@ -124,13 +123,7 @@ export function useClothingTransfer() {
   }, []);
 
   const addReference = useCallback(() => {
-    setReferenceItems((prev) => {
-      if (prev.length >= MAX_SHARED_REFERENCE_IMAGES) {
-        return prev;
-      }
-
-      return [...prev, { id: ++idCounter.current, image: null, label: '' }];
-    });
+    setReferenceItems((prev) => [...prev, { id: ++idCounter.current, image: null, label: '' }]);
   }, []);
 
   const removeReference = useCallback((id: number) => {
@@ -270,6 +263,66 @@ export function useClothingTransfer() {
     validReferences,
   ]);
 
+  const handleRegenerateSingle = useCallback(async (itemId: string) => {
+    const targetItem = conceptItems.find((item) => item.id === itemId);
+    if (!targetItem || validReferences.length === 0) return;
+
+    const refsWithImages = validReferences.map((item) => ({
+      image: item.image as ImageFile,
+      label: item.label,
+    }));
+    const referenceImages = refsWithImages.map((item) => item.image);
+
+    updateConceptItem(itemId, { status: 'processing', results: [], error: undefined });
+    setIsLoading(true);
+    setLoadingMessage(t('clothingTransfer.generatingStatus'));
+    setError(null);
+
+    Object.keys(chatSessionsRef.current).forEach((key) => {
+      if (key.startsWith(`${itemId}:`)) delete chatSessionsRef.current[key];
+    });
+
+    try {
+      const interleavedParts = buildClothingTransferParts(
+        targetItem.conceptImage,
+        refsWithImages,
+        extraPrompt.trim(),
+      );
+      const results = await editImage(
+        {
+          images: [targetItem.conceptImage, ...referenceImages],
+          prompt: '',
+          numberOfImages: numImages,
+          aspectRatio,
+          resolution,
+          interleavedParts,
+        },
+        imageEditModel,
+        buildImageServiceConfig(setLoadingMessage),
+      );
+
+      updateConceptItem(itemId, { status: 'completed', results, error: undefined });
+      results.forEach((image) => addImage(image));
+    } catch (err) {
+      updateConceptItem(itemId, { status: 'error', results: [], error: getErrorMessage(err, t) });
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage('');
+    }
+  }, [
+    addImage,
+    aspectRatio,
+    buildImageServiceConfig,
+    conceptItems,
+    extraPrompt,
+    imageEditModel,
+    numImages,
+    resolution,
+    t,
+    updateConceptItem,
+    validReferences,
+  ]);
+
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number, itemId?: string) => {
     const targetItemId = itemId ?? activeConceptItem?.id;
     if (!imageToUpscale || !targetItemId) {
@@ -358,6 +411,7 @@ export function useClothingTransfer() {
     handleConceptUpload,
     handleConceptImagesUpload,
     handleGenerate,
+    handleRegenerateSingle,
     handleUpscale,
     handleRefine,
     validReferences,

@@ -57,3 +57,4 @@ opencode.json
 # AI orchestration local files
 .sisyphus/
 .beads/
+.gstack/

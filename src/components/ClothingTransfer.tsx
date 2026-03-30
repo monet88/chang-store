@@ -41,6 +41,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
     removeReference,
     handleConceptImagesUpload,
     handleGenerate,
+    handleRegenerateSingle,
     handleUpscale,
     handleRefine,
     completedCount,
@@ -72,7 +73,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
 
           <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
             <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('clothingTransfer.step1')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {referenceItems.map((item, index) => (
                 <div key={item.id} className="space-y-2">
                   <div className="flex items-center justify-end gap-2">
@@ -104,15 +105,13 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                 </div>
               ))}
             </div>
-            {referenceItems.length < 2 && (
-              <button
-                onClick={addReference}
-                className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-zinc-600 py-2 text-xs text-zinc-400 hover:border-amber-500 hover:text-amber-400 transition-colors"
-              >
-                <AddIcon className="w-3.5 h-3.5" />
-                {t('clothingTransfer.addOutfit')}
-              </button>
-            )}
+            <button
+              onClick={addReference}
+              className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-zinc-600 py-2 text-xs text-zinc-400 hover:border-amber-500 hover:text-amber-400 transition-colors"
+            >
+              <AddIcon className="w-3.5 h-3.5" />
+              {t('clothingTransfer.addOutfit')}
+            </button>
           </div>
 
           <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
@@ -218,7 +217,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                               <HoverableImage
                                 image={image}
                                 altText={`${t('clothingTransfer.conceptBatchLabel', { index: itemIdx + 1 })} - ${t('generatedImage.altText')} ${index + 1}`}
-                                onRegenerate={handleGenerate}
+                                onRegenerate={() => handleRegenerateSingle(item.id)}
                                 onUpscale={() => handleUpscale(image, index, item.id)}
                                 isGenerating={isLoading}
                                 isUpscaling={upscalingStates[key]}
