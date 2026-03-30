@@ -163,4 +163,66 @@ describe('useClothingTransfer', () => {
     expect(addImageMock).toHaveBeenCalledWith(UPSCALED);
     expect(result.current.upscalingStates[`${itemId}:0`]).toBe(false);
   });
+
+  it('addReference allows more than 2 references (unlimited)', () => {
+    const { result } = renderHook(() => useClothingTransfer());
+
+    act(() => {
+      result.current.addReference();
+      result.current.addReference();
+      result.current.addReference();
+    });
+
+    // 1 default + 3 added = 4
+    expect(result.current.referenceItems).toHaveLength(4);
+  });
+
+  it('handleRegenerateSingle regenerates only the targeted concept item', async () => {
+    vi.mocked(editImage)
+      .mockResolvedValueOnce([RESULT_A])
+      .mockResolvedValueOnce([RESULT_B])
+      .mockResolvedValueOnce([{ base64: 'regen-b', mimeType: 'image/png' }]);
+
+    const { result } = renderHook(() => useClothingTransfer());
+
+    act(() => {
+      result.current.handleConceptImagesUpload([CONCEPT_A, CONCEPT_B]);
+      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    expect(result.current.conceptItems[0].results).toEqual([RESULT_A]);
+    expect(result.current.conceptItems[1].results).toEqual([RESULT_B]);
+
+    const itemBId = result.current.conceptItems[1].id;
+
+    await act(async () => {
+      await result.current.handleRegenerateSingle(itemBId);
+    });
+
+    // Item A untouched, Item B regenerated
+    expect(result.current.conceptItems[0].results).toEqual([RESULT_A]);
+    expect(result.current.conceptItems[0].status).toBe('completed');
+    expect(result.current.conceptItems[1].results).toEqual([{ base64: 'regen-b', mimeType: 'image/png' }]);
+    expect(result.current.conceptItems[1].status).toBe('completed');
+    expect(editImage).toHaveBeenCalledTimes(3);
+  });
+
+  it('handleRegenerateSingle is a no-op for unknown itemId', async () => {
+    const { result } = renderHook(() => useClothingTransfer());
+
+    act(() => {
+      result.current.handleConceptImagesUpload([CONCEPT_A]);
+      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleRegenerateSingle('nonexistent-id');
+    });
+
+    expect(editImage).not.toHaveBeenCalled();
+  });
 });
