@@ -173,7 +173,6 @@ export const WatermarkRemoverOutput = React.memo<WatermarkRemoverOutputProps>(({
               <HoverableImage
                 image={item.result || item.original}
                 altText={item.status === 'completed' ? t('watermarkRemover.resultAlt') : t('watermarkRemover.originalAlt')}
-                showActions={item.status === 'completed'}
               />
 
               {/* Status overlay for non-completed items */}

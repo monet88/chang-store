@@ -62,7 +62,7 @@ const UpscaleOutputPanel: React.FC<UpscaleOutputPanelProps> = ({
   /** Context-aware download name: upscale-{quality}-{model}-{timestamp} */
   const downloadName = useMemo(() => {
     if (!quality || !model) return undefined;
-    const modelShort = model === 'gemini-2.5-flash-preview-native-audio-dialog' ? 'flash' : 'pro';
+    const modelShort = model === 'gemini-3.1-flash-image-preview' ? 'flash' : 'pro';
     const ts = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
     return `upscale-${quality}-${modelShort}-${ts}`;
   }, [quality, model]);
