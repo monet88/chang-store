@@ -200,7 +200,7 @@ export function useClothingTransfer() {
     try {
       await runBoundedWorkers(
         jobs,
-        jobs.length || 1,
+        Math.min(jobs.length || 1, 3),
         async (job) => {
           updateConceptItem(job.id, {
             status: 'processing',
