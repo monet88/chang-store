@@ -1,18 +1,5 @@
 # AGENTS.md
 
-## Code Search
-
-Use Vera before opening many files or running broad text search when you need to find where logic lives or how a feature works.
-
-- `vera search "query"` for semantic code search. Describe behavior: "JWT validation", not "auth".
-- `vera grep "pattern"` for exact text or regex
-- `vera references <symbol>` for callers and callees
-- `vera overview` for a project summary (languages, entry points, hotspots)
-- `vera search --deep "query"` for RAG-fusion query expansion + merged ranking
-- Narrow results with `--lang`, `--path`, `--type`, or `--scope docs`
-- `vera watch .` to auto-update the index, or `vera update .` after edits (`vera index .` if `.vera/` is missing)
-- For detailed usage, query patterns, and troubleshooting, read the Vera skill file installed by `vera agent install`
-
 AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Three AI backends: Google Gemini SDK, Local Provider REST, Anti Provider REST.
 
 ## Project map
@@ -152,7 +139,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Chang-Store** (1124 symbols, 2077 relationships, 74 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **Chang-Store** (1123 symbols, 2077 relationships, 74 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
