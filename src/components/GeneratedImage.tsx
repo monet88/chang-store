@@ -15,7 +15,7 @@ interface GeneratedImageProps {
     canRedo: boolean;
 }
 
-const GeneratedImage: React.FC<GeneratedImageProps> = ({
+const GeneratedImage: React.FC<GeneratedImageProps> = React.memo(({
     image,
     onRefine,
     isRefining,
@@ -74,6 +74,8 @@ const GeneratedImage: React.FC<GeneratedImageProps> = ({
             </div>
         </div>
     );
-};
+});
+
+GeneratedImage.displayName = 'GeneratedImage';
 
 export default GeneratedImage;
