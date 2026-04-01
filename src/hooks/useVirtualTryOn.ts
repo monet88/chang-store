@@ -15,9 +15,9 @@ import { editImage, upscaleImage, createImageChatSession, ImageChatSession } fro
 import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
+import { downloadImagesAsZip } from '../utils/zipDownload';
 
 const MAX_SHARED_OUTFIT_IMAGES = 2;
-const BATCH_CONCURRENCY = 3;
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 
 export const useVirtualTryOn = () => {
@@ -182,7 +182,7 @@ export const useVirtualTryOn = () => {
     try {
       await runBoundedWorkers(
         jobs,
-        BATCH_CONCURRENCY,
+        jobs.length || 1,
         async (job) => {
           updateSubjectItem(job.id, {
             status: 'processing',
@@ -253,8 +253,6 @@ export const useVirtualTryOn = () => {
 
     // Reset only this item
     updateSubjectItem(itemId, { status: 'processing', results: [], error: undefined });
-    setIsLoading(true);
-    setLoadingMessage(t('virtualTryOn.generatingStatus'));
     setError(null);
 
     // Clear refine sessions for this item
@@ -285,9 +283,6 @@ export const useVirtualTryOn = () => {
       updateSubjectItem(itemId, { status: 'completed', results, error: undefined });
     } catch (err) {
       updateSubjectItem(itemId, { status: 'error', results: [], error: getErrorMessage(err, t) });
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
     }
   }, [
     aspectRatio,
@@ -397,6 +392,21 @@ export const useVirtualTryOn = () => {
     });
   }, []);
 
+  const handleDownloadAll = useCallback(async () => {
+    const successItems = subjectItems.filter((item) => item.status === 'completed' && item.results && item.results.length > 0);
+    if (successItems.length === 0) return;
+    
+    // We need all the generated images
+    const allResults = successItems.flatMap(item => item.results);
+    if (allResults.length === 0) return;
+
+    try {
+      await downloadImagesAsZip(allResults, 'virtual-tryon-batch');
+    } catch (err) {
+      setError(getErrorMessage(err, t));
+    }
+  }, [subjectItems, t]);
+
   return {
     subjectItems,
     subjectImages,
@@ -435,6 +445,7 @@ export const useVirtualTryOn = () => {
     handleClothingUpload,
     addClothingUploader,
     removeClothingUploader,
+    handleDownloadAll,
     anyUpscaling,
     imageEditModel,
     refinePrompts,

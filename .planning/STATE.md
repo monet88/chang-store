@@ -66,6 +66,7 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260323-omi | sắp xếp lại các feature | 2026-03-23 | 0e76059 | [260323-omi-...](./quick/260323-omi-s-p-x-p-l-i-c-c-feature-cho-feature-virt/) |
+| 260402-01l | feature Virtual Try-On, Lookbook AI, Clothing Transfer batch download & parallel | 2026-04-02 | pending | [260402-01l-...](./quick/260402-01l-feature-virtual-try-on-lookbook-ai-cloth/) |
 
 ## Session Continuity
 
