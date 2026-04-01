@@ -9,7 +9,7 @@ interface AspectRatioSelectorProps {
 /** All selectable ratios including Default */
 const RATIOS: ImageAspectRatio[] = ['Default', ...IMAGE_ASPECT_RATIOS];
 
-const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = ({ aspectRatio, setAspectRatio }) => {
+const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = React.memo(({ aspectRatio, setAspectRatio }) => {
   return (
     <div className="flex items-center gap-2 flex-wrap justify-center">
       <span className="text-slate-300 font-medium">Aspect Ratio:</span>
@@ -28,6 +28,8 @@ const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = ({ aspectRatio, 
       </div>
     </div>
   );
-};
+});
+
+AspectRatioSelector.displayName = 'AspectRatioSelector';
 
 export default AspectRatioSelector;

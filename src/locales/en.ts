@@ -156,6 +156,7 @@ export const en = {
     resultsForSubject: 'Outputs for this subject image',
     processingItem: 'This subject image is being processed.',
     waitingStatus: 'Queued and waiting to start.',
+    clearSubjects: 'Clear All',
     outputPanelDescription: 'Upload one or more subject images and at least one outfit image to see per-subject results here.',
     status: {
       pending: 'Pending',

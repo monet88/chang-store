@@ -38,7 +38,9 @@ const VirtualTryOn: React.FC = () => {
     completedCount,
     failedCount,
     canGenerate,
+    clearSubjectImages,
     handleGenerateImage,
+    handleRegenerateSingle,
     handleUpscale,
     handleRefine,
     handleSubjectImagesUpload,
@@ -69,12 +71,23 @@ const VirtualTryOn: React.FC = () => {
           <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('virtualTryOn.step1')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Tooltip content={t('tooltips.tryOnSubject')} position="right" className="w-full">
-              <MultiImageUploader
-                images={subjectImages}
-                id="subject-upload"
-                title={t('virtualTryOn.subjectImagesTitle')}
-                onImagesUpload={handleSubjectImagesUpload}
-              />
+              <div className="space-y-2">
+                <MultiImageUploader
+                  images={subjectImages}
+                  id="subject-upload"
+                  title={t('virtualTryOn.subjectImagesTitle')}
+                  onImagesUpload={handleSubjectImagesUpload}
+                />
+                {subjectImages.length > 0 && (
+                  <button
+                    onClick={clearSubjectImages}
+                    disabled={isLoading}
+                    className="w-full text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {t('virtualTryOn.clearSubjects')}
+                  </button>
+                )}
+              </div>
             </Tooltip>
 
             <div className="flex flex-col gap-3">
@@ -242,7 +255,7 @@ const VirtualTryOn: React.FC = () => {
                               <HoverableImage
                                 image={image}
                                 altText={`${t('virtualTryOn.subjectBatchLabel', { index: itemIdx + 1 })} - ${t('generatedImage.altText')} ${index + 1}`}
-                                onRegenerate={handleGenerateImage}
+                                onRegenerate={() => handleRegenerateSingle(item.id)}
                                 onUpscale={() => handleUpscale(image, index, item.id)}
                                 isGenerating={isLoading}
                                 isUpscaling={upscalingStates[key]}

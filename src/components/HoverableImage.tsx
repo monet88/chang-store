@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
@@ -22,7 +22,7 @@ interface HoverableImageProps {
     containerClassName?: string;
 }
 
-const HoverableImage: React.FC<HoverableImageProps> = ({
+const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
     image,
     altText,
     downloadFileName = 'generated-image.png',
@@ -40,10 +40,11 @@ const HoverableImage: React.FC<HoverableImageProps> = ({
     const { t } = useLanguage();
     const { addImage, images } = useImageGallery();
     const { showToast } = useToast();
-    const imageUrl = `data:${image.mimeType};base64,${image.base64}`;
+
+    const imageUrl = useMemo(() => `data:${image.mimeType};base64,${image.base64}`, [image.mimeType, image.base64]);
 
     /** Check if image is already saved to gallery */
-    const isSavedToGallery = images.some(img => img.base64 === image.base64);
+    const isSavedToGallery = useMemo(() => images.some(img => img.base64 === image.base64), [images, image.base64]);
 
     /** Handle save to gallery click */
     const handleSaveToGallery = (e: React.MouseEvent) => {
@@ -81,7 +82,7 @@ const HoverableImage: React.FC<HoverableImageProps> = ({
         } else {
             openImageViewer(image);
         }
-    }
+    };
 
     return (
         <>
@@ -186,6 +187,8 @@ const HoverableImage: React.FC<HoverableImageProps> = ({
             </div>
         </>
     );
-};
+});
+
+HoverableImage.displayName = 'HoverableImage';
 
 export default HoverableImage;

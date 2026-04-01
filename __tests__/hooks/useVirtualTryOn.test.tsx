@@ -178,4 +178,71 @@ describe('useVirtualTryOn', () => {
     expect(result.current.subjectItems[0].results[0]).toEqual(UPSCALED);
     expect(result.current.upscalingStates[`${itemId}:0`]).toBe(false);
   });
+
+  it('clearSubjectImages resets all subject state', () => {
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.handleSubjectImagesUpload([SUBJECT_A, SUBJECT_B]);
+    });
+    expect(result.current.subjectItems).toHaveLength(2);
+
+    act(() => {
+      result.current.clearSubjectImages();
+    });
+
+    expect(result.current.subjectItems).toHaveLength(0);
+    expect(result.current.subjectImages).toEqual([]);
+    expect(result.current.selectedSubjectItemId).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it('handleRegenerateSingle regenerates only the targeted subject item', async () => {
+    vi.mocked(editImage)
+      .mockResolvedValueOnce([RESULT_A])
+      .mockResolvedValueOnce([RESULT_B])
+      .mockResolvedValueOnce([{ base64: 'regen-b', mimeType: 'image/png' }]);
+
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.handleSubjectImagesUpload([SUBJECT_A, SUBJECT_B]);
+      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerateImage();
+    });
+
+    expect(result.current.subjectItems[0].results).toEqual([RESULT_A]);
+    expect(result.current.subjectItems[1].results).toEqual([RESULT_B]);
+
+    const itemBId = result.current.subjectItems[1].id;
+
+    await act(async () => {
+      await result.current.handleRegenerateSingle(itemBId);
+    });
+
+    // Item A untouched, Item B regenerated
+    expect(result.current.subjectItems[0].results).toEqual([RESULT_A]);
+    expect(result.current.subjectItems[0].status).toBe('completed');
+    expect(result.current.subjectItems[1].results).toEqual([{ base64: 'regen-b', mimeType: 'image/png' }]);
+    expect(result.current.subjectItems[1].status).toBe('completed');
+    expect(editImage).toHaveBeenCalledTimes(3);
+  });
+
+  it('handleRegenerateSingle is a no-op for unknown itemId', async () => {
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.handleSubjectImagesUpload([SUBJECT_A]);
+      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleRegenerateSingle('nonexistent-id');
+    });
+
+    expect(editImage).not.toHaveBeenCalled();
+  });
 });

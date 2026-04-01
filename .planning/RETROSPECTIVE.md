@@ -6,6 +6,44 @@
 - Hook-owned orchestration continues to scale better than pushing workflow logic into shared services too early.
 - Verification hygiene still needs to happen inside phase execution; retroactive audit cleanup adds avoidable overhead.
 - Structural/infra phases execute faster when planned as one-pass cutover rather than staged bridge migrations.
+- Architecture simplification (removing dead provider code) pays immediate dividends in reduced test/hook/service complexity.
+
+---
+
+## Milestone: v1.3 — Virtual Try-On Prompt Optimization
+
+**Shipped:** 2026-04-01
+**Phases:** 2 | **Plans:** 5
+**Files changed:** 54 | **Lines:** +1,241 / -2,998 (net -1,757)
+
+### What Was Built
+- Rewrote Virtual Try-On prompt builder from text `string` to interleaved `Part[]` for native Gemini compliance with optimized prompt content (TASK → GARMENT RULES → POSE → BACKGROUND → PROHIBITIONS → CRITICAL RECAP).
+- Added Gemini-only model guard with i18n error messaging in hooks and service facade.
+- Comprehensive test suite: builder structure tests (5/7 part counts), validation tests, content section tests, form state tests, determinism test, and hook integration tests.
+- Removed all Local Provider and Anti Provider code — 7 files deleted, 34 files cleaned, -2,068 lines net.
+- Wrapped localStorage access in try-catch across `debugService` and `GoogleDriveContext` for SSR safety.
+
+### What Worked
+- Planning the prompt builder rewrite as 4 sequential wave plans (skeleton → implementation → tests → quality gates) kept each plan focused and atomic.
+- The existing `Component → Hook → Service` boundary made provider removal surgical — each layer could be cleaned independently.
+- UAT testing caught real runtime issues before merge and validated the full virtual try-on flow end-to-end.
+
+### What Was Inefficient
+- The v1.3 milestone scope grew mid-flight from "prompt optimization" to include "remove all non-Gemini providers" — the second phase was added after the first was complete. Future milestones should capture full scope upfront or use a separate milestone.
+- No formal REQUIREMENTS.md was created for v1.3, so requirement traceability was informal.
+
+### Patterns Established
+- Interleaved `Part[]` with text labels between images is now the standard pattern for Gemini prompt construction. Apply to other features as they adopt native Gemini format.
+- Model guard pattern (check prefix at hook level, show i18n error, return early) is reusable for any feature that requires a specific provider.
+
+### Key Lessons
+- Removing dead code paths is high-ROI work — the provider removal touched 41 files but eliminated entire categories of test mocks and config branching.
+- When a prompt builder changes return type (string → Part[]), rewriting the test suite from scratch is faster than adapting old tests.
+
+### Cost Observations
+- Model mix: sonnet for executor, opus for planner.
+- Sessions: Phase 1 executed in 1 session (~30 min), Phase 2 across 2 sessions.
+- Notable: Net negative LOC (-1,757 lines) — milestone left codebase smaller and simpler.
 
 ---
 

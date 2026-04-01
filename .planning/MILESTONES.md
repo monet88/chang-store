@@ -1,5 +1,21 @@
 # Project Milestones: Chang-Store
 
+## v1.3 Virtual Try-On Prompt Optimization (Shipped: 2026-04-01)
+
+**Phases completed:** 2 phases, 5 plans
+**Files changed:** 54 | **Lines:** +1,241 / -2,998 (net -1,757)
+**Timeline:** 2026-03-24 → 2026-03-28
+
+**Key accomplishments:**
+
+- Rewrote Virtual Try-On prompt builder from text `string` to interleaved `Part[]` for native Gemini compliance
+- Added Gemini-only model guard with i18n error messaging across hooks and service facade
+- Comprehensive test suite for builder structure, validation, content sections, and hook integration
+- Removed all Local Provider and Anti Provider code — Gemini-only architecture (-2,068 lines, 7 files deleted, 34 files cleaned)
+- All quality gates green: 468/468 tests passing, zero type errors, zero lint errors
+
+---
+
 ## v1.2 src/ Source Root Migration (Shipped: 2026-03-24)
 
 **Phases completed:** 1 phases, 1 plans, 4 tasks
