@@ -44,6 +44,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
     handleRegenerateSingle,
     handleUpscale,
     handleRefine,
+    handleDownloadAll,
     completedCount,
     failedCount,
     canGenerate,
@@ -186,6 +187,15 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                     failed: failedCount,
                   })}
                 </p>
+                {completedCount > 0 && (
+                  <button
+                    onClick={handleDownloadAll}
+                    disabled={isLoading}
+                    className="mt-2 w-full text-xs text-amber-500 hover:text-amber-400 border border-amber-500/30 hover:border-amber-400/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {t('common.downloadBatch')}
+                  </button>
+                )}
                 {error && (
                   <div className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
                     <div className="flex items-start justify-between gap-3">

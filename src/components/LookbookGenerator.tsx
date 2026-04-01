@@ -52,6 +52,7 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
     selectedVersionIndex,
     originalImageRef,
     imageEditModel,
+    handleDownloadAll,
   } = useLookbookGenerator();
 
   const { t } = useLanguage();
@@ -113,6 +114,7 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
           onRefineImage={handleRefineImage}
           onResetRefinement={handleResetRefinement}
           onSendToFeature={onSendToFeature ? handleSendToAlbum : undefined}
+          onDownloadAll={handleDownloadAll}
       />
     </div>
   );

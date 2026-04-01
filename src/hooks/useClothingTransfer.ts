@@ -15,8 +15,8 @@ import { editImage, upscaleImage, createImageChatSession, ImageChatSession } fro
 import { buildClothingTransferParts } from '../utils/clothing-transfer-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
+import { downloadImagesAsZip } from '../utils/zipDownload';
 
-const BATCH_CONCURRENCY = 3;
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 
 export function useClothingTransfer() {
@@ -200,7 +200,7 @@ export function useClothingTransfer() {
     try {
       await runBoundedWorkers(
         jobs,
-        BATCH_CONCURRENCY,
+        Math.min(jobs.length || 1, 3),
         async (job) => {
           updateConceptItem(job.id, {
             status: 'processing',
@@ -274,8 +274,6 @@ export function useClothingTransfer() {
     const referenceImages = refsWithImages.map((item) => item.image);
 
     updateConceptItem(itemId, { status: 'processing', results: [], error: undefined });
-    setIsLoading(true);
-    setLoadingMessage(t('clothingTransfer.generatingStatus'));
     setError(null);
 
     Object.keys(chatSessionsRef.current).forEach((key) => {
@@ -305,9 +303,6 @@ export function useClothingTransfer() {
       results.forEach((image) => addImage(image));
     } catch (err) {
       updateConceptItem(itemId, { status: 'error', results: [], error: getErrorMessage(err, t) });
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
     }
   }, [
     addImage,
@@ -382,6 +377,21 @@ export function useClothingTransfer() {
     }
   }, [addImage, buildImageServiceConfig, imageEditModel, t, updateConceptItem]);
 
+  const handleDownloadAll = useCallback(async () => {
+    const successItems = conceptItems.filter((item) => item.status === 'completed' && item.results && item.results.length > 0);
+    if (successItems.length === 0) return;
+    
+    // We need all the generated images
+    const allResults = successItems.flatMap(item => item.results);
+    if (allResults.length === 0) return;
+
+    try {
+      await downloadImagesAsZip(allResults, 'clothing-transfer-batch');
+    } catch (err) {
+      setError(getErrorMessage(err, t));
+    }
+  }, [conceptItems, t]);
+
   return {
     referenceItems,
     conceptItems,
@@ -414,6 +424,7 @@ export function useClothingTransfer() {
     handleRegenerateSingle,
     handleUpscale,
     handleRefine,
+    handleDownloadAll,
     validReferences,
     anyUpscaling,
     completedCount,
