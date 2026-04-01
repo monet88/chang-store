@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Chang-Store is a browser-based AI fashion studio for creators and fashion teams who need to generate, edit, refine, and compare lookbook-style imagery without leaving the web app. It already supports multiple fashion workflows such as virtual try-on, background replacement, clothing transfer, lookbook generation, and direct image upscaling across Gemini and custom provider backends.
+Chang-Store is a browser-based AI fashion studio for creators and fashion teams who need to generate, edit, refine, and compare lookbook-style imagery without leaving the web app. It supports multiple fashion workflows such as virtual try-on, background replacement, clothing transfer, lookbook generation, and direct image upscaling — all powered exclusively by Google Gemini.
 
 ## Core Value
 
@@ -10,17 +10,17 @@ Users can turn fashion reference images into production-ready visual assets quic
 
 ## Current Milestone: Planning Next Milestone
 
-**Goal:** Define the next milestone after shipping v1.1 batch workflows for Virtual Try-On and Clothing Transfer.
+**Goal:** Define the next milestone after shipping v1.3 (prompt optimization + Gemini-only architecture).
 
 **Target features:**
-- (TBD - pending milestone definition)
+- (TBD — pending milestone definition via `/gsd-new-milestone`)
 
 ## Requirements
 
 ### Validated
 
 - ✓ Users can switch between multiple AI fashion image workflows inside one SPA — baseline
-- ✓ Users can route image operations through Gemini, local, and anti providers from shared settings — baseline
+- ✓ Users can route image operations through Gemini from shared settings — baseline (v1.3: local/anti providers removed)
 - ✓ Users can upload a single image to Upscale, choose quality, and generate an upscaled result — baseline
 - ✓ Users can compare original and upscaled images inside the Upscale screen — baseline
 - ✓ Users can use bilingual UI strings through the shared language context — baseline
@@ -36,6 +36,9 @@ Users can turn fashion reference images into production-ready visual assets quic
 - ✓ User can batch multiple concept images in Clothing Transfer with one shared reference outfit set — v1.1
 - ✓ User can see per-item processing status and partial failures inside both batch features — v1.1
 - ✓ User can keep the existing single-image path while using the new batch-capable feature screens — v1.1
+- ✓ Virtual Try-On uses interleaved Part[] with optimized prompt for native Gemini compliance — v1.3
+- ✓ Gemini-only model guard prevents non-Gemini model selection with i18n error message — v1.3
+- ✓ Codebase runs on Gemini-only architecture with all local/anti provider code removed — v1.3
 
 ### Active
 
@@ -47,16 +50,18 @@ Users can turn fashion reference images into production-ready visual assets quic
 - Batch expansion across unrelated feature screens — shipped scope stayed limited to Virtual Try-On and Clothing Transfer
 - Outfit/reference cross-product generation — current product requirement is one shared set applied to many source images
 - Moving provider calls behind a backend proxy — still important, but not addressed yet
+- Multi-provider support — v1.3 deliberately removed local/anti providers to simplify architecture
 
 ## Context
 
-- The app is a React 19 + TypeScript + Vite browser SPA with provider routing centralized in `src/services/imageEditingService.ts`.
+- The app is a React 19 + TypeScript + Vite browser SPA with Gemini-only provider routing in `src/services/imageEditingService.ts`.
 - Shipped v1.0 milestone, successfully upgrading Upscale into a multi-mode feature with Quick Upscale and an AI Studio pipeline running in parallel.
 - Shipped v1.1 milestone, adding bounded-parallel batch orchestration to Virtual Try-On and Clothing Transfer with per-item result tracking.
-- Shipped v1.2 milestone, consolidating all runtime source under `src/` — `@` alias now resolves to `src/` across TypeScript, Vite, and Vitest; all 23 test files updated; all docs and agent guidance synced.
-- The workflow now supports multi-image sessions across Upscale, Virtual Try-On, and Clothing Transfer while preserving existing provider contracts.
-- Virtual Try-On and Clothing Transfer now share the same batch-session remapping and worker-pool orchestration pattern.
-- Existing repo conventions (thin components, hooks for orchestration, service facades for provider logic, bilingual localized UI strings) were followed throughout shipped milestones.
+- Shipped v1.2 milestone, consolidating all runtime source under `src/` — `@` alias now resolves to `src/` across TypeScript, Vite, and Vitest.
+- Shipped v1.3 milestone: rewrote Virtual Try-On prompt builder to interleaved `Part[]` for native Gemini compliance, added Gemini-only guard, removed all Local/Anti Provider code (-2,068 lines, 7 files deleted). 468/468 tests passing.
+- Architecture is now Gemini-only — no local or anti provider routing remains in services, hooks, or components.
+- Virtual Try-On and Clothing Transfer share batch-session remapping and worker-pool orchestration pattern.
+- Existing repo conventions (thin components, hooks for orchestration, service facades for provider logic, bilingual localized UI strings) followed throughout.
 
 ## Constraints
 
@@ -93,6 +98,9 @@ Upscale this image to 4K resolution. Enhance the details, make the fabric textur
 ```
 
 | One-pass cutover for src/ migration: no bridge files, remove root copies immediately | Clean break prevents dual-source confusion for both humans and AI agents | ✓ Good |
+| Rewrite prompt builder to interleaved Part[] instead of patching string output | Native Gemini format eliminates serialization/deserialization overhead and enables image interleaving | ✓ Good |
+| Remove all Local/Anti Provider code in one pass | Clean architecture reset — maintaining dead code paths was adding complexity to every service/hook/test change | ✓ Good |
+| Gemini-only guard at hook level with i18n error | Prevents silent failures when non-Gemini model is selected; user sees clear guidance | ✓ Good |
 
 ---
-*Last updated: 2026-03-24 after v1.2 milestone*
+*Last updated: 2026-04-01 after v1.3 milestone*
