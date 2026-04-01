@@ -9,6 +9,7 @@ import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage, createImageChatSession, ImageChatSession, RefinementHistoryItem } from '../services/imageEditingService';
 import { generateClothingDescription } from '../services/textService';
+import { downloadImagesAsZip } from '../utils/zipDownload';
 
 // This would contain the large prompt strings
 import { LookbookStyle, GarmentType, FoldedPresentationType, MannequinBackgroundStyleKey, ProductShotSubType } from '../components/LookbookGenerator.prompts';
@@ -393,6 +394,24 @@ export const useLookbookGenerator = () => {
         }
     }, [chatSession]);
 
+    const handleDownloadAll = useCallback(async () => {
+        if (!generatedLookbook) return;
+        
+        const imagesToDownload = [
+            generatedLookbook.main,
+            ...generatedLookbook.variations,
+            ...generatedLookbook.closeups,
+        ];
+        
+        if (imagesToDownload.length === 0) return;
+
+        try {
+            await downloadImagesAsZip(imagesToDownload, 'lookbook-ai-batch');
+        } catch (err) {
+            setError(getErrorMessage(err, t));
+        }
+    }, [generatedLookbook, t]);
+
     return {
         formState,
         updateForm,
@@ -433,5 +452,6 @@ export const useLookbookGenerator = () => {
         setSelectedVersionIndex,
         originalImageRef,
         imageEditModel,
+        handleDownloadAll,
     }
 }

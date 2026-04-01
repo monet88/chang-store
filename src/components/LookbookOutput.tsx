@@ -57,6 +57,7 @@ interface LookbookOutputProps {
   onRefineImage: (prompt: string) => void;
   onResetRefinement: () => void;
   onSendToFeature?: (image: ImageFile) => void;
+  onDownloadAll: () => void;
 }
 
 /**
@@ -87,7 +88,8 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
   isRefining,
   onRefineImage,
   onResetRefinement,
-  onSendToFeature
+  onSendToFeature,
+  onDownloadAll
 }) => {
   const { t } = useLanguage();
 
@@ -153,7 +155,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
       <div className={outputContainerClasses}>
         <div className="flex flex-col h-full gap-4">
           {/* Tabs */}
-          <div className="flex-shrink-0 flex justify-center border-b border-zinc-800 pb-2">
+          <div className="flex-shrink-0 flex justify-center items-center border-b border-zinc-800 pb-2 relative">
             <div className="flex p-1 bg-zinc-900/80 rounded-xl border border-zinc-800">
               {outputTabs.map(tab => (
                 <button
@@ -169,6 +171,13 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                 </button>
               ))}
             </div>
+            <button
+              onClick={onDownloadAll}
+              title={t('common.downloadAll')}
+              className="absolute right-0 top-1 text-xs text-amber-500 hover:text-amber-400 border border-amber-500/30 hover:border-amber-400/50 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              ↓
+            </button>
           </div>
 
           {/* Tab Content */}
