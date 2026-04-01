@@ -36,7 +36,7 @@ interface ImageOptionsPanelProps {
  * />
  * ```
  */
-const ImageOptionsPanel: React.FC<ImageOptionsPanelProps> = ({
+const ImageOptionsPanel: React.FC<ImageOptionsPanelProps> = React.memo(({
   aspectRatio,
   setAspectRatio,
   resolution,
@@ -56,6 +56,8 @@ const ImageOptionsPanel: React.FC<ImageOptionsPanelProps> = ({
       />
     </div>
   );
-};
+});
+
+ImageOptionsPanel.displayName = 'ImageOptionsPanel';
 
 export default ImageOptionsPanel;

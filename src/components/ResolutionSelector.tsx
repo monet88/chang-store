@@ -15,7 +15,7 @@ interface ResolutionSelectorProps {
  * - gemini-3.1-flash-image-preview: 0.5K, 1K, 2K, 4K all available
  * - Other models: all options available
  */
-const ResolutionSelector: React.FC<ResolutionSelectorProps> = ({ resolution, setResolution, model }) => {
+const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ resolution, setResolution, model }) => {
   // Check if model only supports 1K
   const is25FlashModel = model?.includes('gemini-2.5-flash');
 
@@ -61,6 +61,8 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = ({ resolution, set
       </div>
     </div>
   );
-};
+});
+
+ResolutionSelector.displayName = 'ResolutionSelector';
 
 export default ResolutionSelector;
