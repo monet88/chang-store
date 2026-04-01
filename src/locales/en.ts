@@ -78,6 +78,7 @@ export const en = {
     justNow: 'just now',
     minutesAgo: '{{count}}m ago',
     hoursAgo: '{{count}}h ago',
+    downloadAll: 'Download All',
   },
   cameraView: {
     label: 'Camera Angle & Framing',

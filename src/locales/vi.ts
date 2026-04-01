@@ -79,6 +79,7 @@ export const vi: Translation = {
     justNow: 'vừa xong',
     minutesAgo: '{{count}} phút trước',
     hoursAgo: '{{count}} giờ trước',
+    downloadAll: 'Tải Xuống Tất Cả',
   },
   cameraView: {
     label: 'Góc máy & Khung hình',
