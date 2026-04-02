@@ -10,17 +10,12 @@ Users can turn fashion reference images into production-ready visual assets quic
 
 ## Current State
 
-**v1.4 Prompt Library shipped (2026-04-02).**
-The application now features a globally accessible Prompt Library. Users can save, edit, search, and delete custom prompts with titles. It also provides 3 curated presets on first load. Prompt integration across AI features was implemented using a cross-module compatible manual Copy-and-Paste architecture.
+**v1.5 Multi-Person Selective Try-On shipped (2026-04-02).**
+The application now supports multi-person targeted try-on orchestration. Users can selectively place a high-visibility visual marker onto a subject image using an interactive canvas toggle overlay. The engine safely composites the marker onto an off-screen blob just prior to execution, and strict prompt guidelines ensure Gemini exclusively updates the specific person being targeted without bleeding outfit replacements onto other people.
 
-## Current Milestone: v1.5 Multi-Person Selective Try-On
+## Next Milestone Goals
 
-**Goal:** Support Virtual Try-On for group photos by allowing users to place a visual marker on the target person.
-
-**Target features:**
-- Interactive UI to place a visual marker (e.g., a colored dot) on a chosen individual in the source photo.
-- Appending marker visuals/coordinates to the Gemini request.
-- Updating Gemini prompt to strictly isolate the clothing transfer to the marked person.
+*To be defined by /gsd-new-milestone.*
 
 <details>
 <summary>Archived Milestone: v1.4 Prompt Library</summary>
@@ -61,6 +56,10 @@ The application now features a globally accessible Prompt Library. Users can sav
 - ✓ Virtual Try-On uses interleaved Part[] with optimized prompt for native Gemini compliance — v1.3
 - ✓ Gemini-only model guard prevents non-Gemini model selection with i18n error message — v1.3
 - ✓ Codebase runs on Gemini-only architecture with all local/anti provider code removed — v1.3
+- ✓ User can toggle "Multi-person mode" to activate visual targeting mode — v1.5
+- ✓ User can click on subject image to draw a specific geometric marker — v1.5
+- ✓ Engine seamlessly processes marker rendering onto base64 context asynchronously via off-screen canvas — v1.5
+- ✓ Prompt builder invokes strict preservation logic over surrounding personas when marker mode active — v1.5
 
 ### Active
 
@@ -82,6 +81,7 @@ The application now features a globally accessible Prompt Library. Users can sav
 - Shipped v1.2 milestone, consolidating all runtime source under `src/` — `@` alias now resolves to `src/` across TypeScript, Vite, and Vitest.
 - Shipped v1.3 milestone: rewrote Virtual Try-On prompt builder to interleaved `Part[]` for native Gemini compliance, added Gemini-only guard, removed all Local/Anti Provider code (-2,068 lines, 7 files deleted). 468/468 tests passing.
 - Shipped v1.4 milestone: introduced a global Prompt Library modal UI with localStorage persistence, bilingual translations, CRUD functionalities, and curated prompts seamlessly accessible from any AI image editing module via a "Copy" workflow.
+- Shipped v1.5 milestone: orchestrated multi-person Try-On capabilities strictly utilizing Gemini vision targeting, avoiding dependency on traditional local ML mask boundaries.
 - Architecture is now Gemini-only — no local or anti provider routing remains in services, hooks, or components.
 - Virtual Try-On and Clothing Transfer share batch-session remapping and worker-pool orchestration pattern.
 - Existing repo conventions (thin components, hooks for orchestration, service facades for provider logic, bilingual localized UI strings) followed throughout.
@@ -126,6 +126,8 @@ Upscale this image to 4K resolution. Enhance the details, make the fabric textur
 | Gemini-only guard at hook level with i18n error | Prevents silent failures when non-Gemini model is selected; user sees clear guidance | ✓ Good |
 | Require titles for all saved prompts; use for primary library list UI + search filtering | The user requested titles to improve library browsing and limit search noise, making the UI cleaner | ✓ Good |
 | Show prompt expansion UI with explicit Copy/Use buttons rather than 1-click select-and-close. | The user wanted to click to read full content and copy to clipboard. Immediate insert prevents this UX. | ✓ Good |
+| Enforce marker visual representation solely directly over context imagery through HTML off-screen blobs vs. API side-inputs | Gemini natively infers spatial awareness highly reliably when geometric features rest on target image space | ✓ Good |
+| Embed conditional negative prompting rules explicitly preventing peripheral modifications | Acts as a rigid API fence against model hallucination tendencies | ✓ Good |
 
 ## Evolution
 
@@ -145,4 +147,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 (started v1.5)*
+*Last updated: 2026-04-02 after v1.5 milestone*
