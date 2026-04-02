@@ -271,6 +271,7 @@ const WatermarkRemover: React.FC = () => {
     if (item) downloadItem(item);
   }, [items, downloadItem]);
 
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
       {/* Left Panel: Inputs */}

@@ -69,6 +69,12 @@ export const en = {
     usePrompt: 'Use',
     copyPrompt: 'Copy',
     toastSaved: 'Prompt saved',
+    createNew: 'New Prompt',
+    newTitle: 'Prompt Title',
+    newTitlePlaceholder: 'e.g. Remove Hand from Pocket',
+    newText: 'Prompt Text',
+    newTextPlaceholder: 'Enter the detailed instructions here...',
+    saveSuccess: 'Prompt saved',
   },
   toast: {
     imageSaved: 'Image saved to Gallery',
@@ -76,6 +82,8 @@ export const en = {
     alreadySaved: 'Image already in Gallery',
   },
   common: {
+    cancel: 'Cancel',
+    save: 'Save',
     generationFailed: 'Generation Failed',
     outputPanelTitle: 'Your Result Appears Here',
     outputPanelDescription: 'Upload your images and set your options to begin.',
@@ -90,6 +98,7 @@ export const en = {
     minutesAgo: '{{count}}m ago',
     hoursAgo: '{{count}}h ago',
     downloadAll: 'Download All',
+    downloadBatch: 'Download Batch',
   },
   cameraView: {
     label: 'Camera Angle & Framing',

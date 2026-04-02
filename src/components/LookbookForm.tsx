@@ -183,6 +183,7 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
     { key: 'product shot', label: t('lookbook.styleProductShot') },
   ];
 
+
   return (
     <div className="xl:[display:contents] flex flex-col gap-6">
       {/* Column 1 (Visual Assets): Header + Clothing Images + Fabric Texture */}

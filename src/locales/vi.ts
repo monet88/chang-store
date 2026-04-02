@@ -70,6 +70,12 @@ export const vi: Translation = {
     usePrompt: 'Sử dụng',
     copyPrompt: 'Sao chép',
     toastSaved: 'Đã lưu prompt',
+    createNew: 'Tạo prompt mới',
+    newTitle: 'Tiêu đề Prompt',
+    newTitlePlaceholder: 'VD: Xóa tay khỏi túi',
+    newText: 'Nội dung Prompt',
+    newTextPlaceholder: 'Nhập hướng dẫn chi tiết của bạn tại đây...',
+    saveSuccess: 'Đã lưu prompt thành công',
   },
   toast: {
     imageSaved: 'Đã lưu ảnh vào Gallery',
@@ -77,6 +83,8 @@ export const vi: Translation = {
     alreadySaved: 'Ảnh đã có trong Gallery',
   },
   common: {
+    cancel: 'Hủy',
+    save: 'Lưu',
     generationFailed: 'Tạo ảnh thất bại',
     outputPanelTitle: 'Kết quả của bạn sẽ xuất hiện ở đây',
     outputPanelDescription: 'Tải ảnh lên và thiết lập các tùy chọn để bắt đầu.',
@@ -91,6 +99,7 @@ export const vi: Translation = {
     minutesAgo: '{{count}} phút trước',
     hoursAgo: '{{count}} giờ trước',
     downloadAll: 'Tải Xuống Tất Cả',
+    downloadBatch: 'Tải Xuống Batch',
   },
   cameraView: {
     label: 'Góc máy & Khung hình',

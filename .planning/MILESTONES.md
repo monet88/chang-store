@@ -1,5 +1,20 @@
 # Project Milestones: Chang-Store
 
+## v1.4 Prompt Library (Shipped: 2026-04-02)
+
+**Phases completed:** 2 phases, 4 plans
+**Files changed:** 37 | **Lines:** +1,195 / -51
+**Timeline:** 2026-04-01 → 2026-04-02
+
+**Key accomplishments:**
+
+- Designed `usePromptLibrary.ts` providing seamless CRUD operations and `localStorage` syncing, establishing a durable store for user prompts.
+- Built `PromptLibraryModal.tsx`—a responsive, interactive modal with search functionalities, expanded/collapsed views, and integrated localization (EN/VI).
+- Added read-only curated preset prompts on first-load (e.g., *Remove Hand from Pocket*, *Untucked Shirt*, *Combo*) to bootstrap the user experience without setup.
+- Enabled users to add their own custom prompts (with titles), edit existing custom prompts, delete them safely, and immediately copy the text directly to the clipboard.
+- Reduced friction for prompt reusability by introducing a globally accessible Prompt Library FAB (Floating Action Button). Supported a streamlined, manual Copy-and-Paste flow across all AI image manipulation modules.
+
+---
 ## v1.3 Virtual Try-On Prompt Optimization (Shipped: 2026-04-01)
 
 **Phases completed:** 2 phases, 5 plans

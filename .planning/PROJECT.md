@@ -8,7 +8,17 @@ Chang-Store is a browser-based AI fashion studio for creators and fashion teams 
 
 Users can turn fashion reference images into production-ready visual assets quickly, with predictable quality and minimal manual tool-hopping.
 
-## Current Milestone: v1.4 Prompt Library
+## Current State
+
+**v1.4 Prompt Library shipped (2026-04-02).**
+The application now features a globally accessible Prompt Library. Users can save, edit, search, and delete custom prompts with titles. It also provides 3 curated presets on first load. Prompt integration across AI features was implemented using a cross-module compatible manual Copy-and-Paste architecture.
+
+## Next Milestone Goals
+
+- (To be defined in next `/gsd-new-milestone` initialization)
+
+<details>
+<summary>Archived Milestone: v1.4 Prompt Library</summary>
 
 **Goal:** Add a floating prompt library that lets users save, manage, and reuse favorite prompts — pre-loaded with curated fashion editing presets.
 
@@ -18,7 +28,9 @@ Users can turn fashion reference images into production-ready visual assets quic
 - User can save custom prompts from any feature's prompt input
 - 3 pre-loaded curated prompts (Remove Hand from Pocket, Untucked Shirt, Combo)
 - Prompt persistence via localStorage
-- One-tap insert: selecting a prompt auto-fills the active feature's prompt input
+- One-tap insert: selecting a prompt auto-fills the active feature's prompt input (shifted to Copy/Paste)
+
+</details>
 
 ## Requirements
 
@@ -47,7 +59,7 @@ Users can turn fashion reference images into production-ready visual assets quic
 
 ### Active
 
-- (Defined in REQUIREMENTS.md for v1.4)
+- (None. Milestone v1.4 completed. Awaiting v1.5)
 
 ### Out of Scope
 
@@ -64,6 +76,7 @@ Users can turn fashion reference images into production-ready visual assets quic
 - Shipped v1.1 milestone, adding bounded-parallel batch orchestration to Virtual Try-On and Clothing Transfer with per-item result tracking.
 - Shipped v1.2 milestone, consolidating all runtime source under `src/` — `@` alias now resolves to `src/` across TypeScript, Vite, and Vitest.
 - Shipped v1.3 milestone: rewrote Virtual Try-On prompt builder to interleaved `Part[]` for native Gemini compliance, added Gemini-only guard, removed all Local/Anti Provider code (-2,068 lines, 7 files deleted). 468/468 tests passing.
+- Shipped v1.4 milestone: introduced a global Prompt Library modal UI with localStorage persistence, bilingual translations, CRUD functionalities, and curated prompts seamlessly accessible from any AI image editing module via a "Copy" workflow.
 - Architecture is now Gemini-only — no local or anti provider routing remains in services, hooks, or components.
 - Virtual Try-On and Clothing Transfer share batch-session remapping and worker-pool orchestration pattern.
 - Existing repo conventions (thin components, hooks for orchestration, service facades for provider logic, bilingual localized UI strings) followed throughout.

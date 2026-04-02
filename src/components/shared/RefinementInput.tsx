@@ -40,6 +40,7 @@ export const RefinementInput: React.FC<RefinementInputProps> = ({
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();

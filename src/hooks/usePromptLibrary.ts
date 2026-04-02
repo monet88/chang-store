@@ -36,7 +36,15 @@ export function usePromptLibrary() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setPrompts(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        const migrated = parsed.map((p: SavedPrompt) => {
+          if (p.isCurated && !p.title) {
+            const curatedMatch = CURATED_PROMPTS.find((c) => c.id === p.id);
+            if (curatedMatch) return { ...p, title: curatedMatch.title };
+          }
+          return p;
+        });
+        setPrompts(migrated);
       } else {
         setPrompts(CURATED_PROMPTS);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(CURATED_PROMPTS));
@@ -88,10 +96,17 @@ export function usePromptLibrary() {
       .sort((a, b) => b.createdAt - a.createdAt);
   }, [prompts]);
 
+  const editPrompt = useCallback((id: string, newTitle: string, newText: string) => {
+    setPrompts(prev => prev.map(p => 
+      p.id === id ? { ...p, title: newTitle, text: newText } : p
+    ));
+  }, []);
+
   return {
     prompts,
     savePrompt,
     deletePrompt,
     searchPrompts,
+    editPrompt,
   };
 }
