@@ -67,11 +67,11 @@ Style: photorealistic, seamless edit
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| PLIB-01 | — | Pending |
-| PLIB-02 | — | Pending |
-| PLIB-03 | — | Pending |
-| PLIB-04 | — | Pending |
-| PLIB-05 | — | Pending |
-| PLIB-06 | — | Pending |
-| PLIB-07 | — | Pending |
-| PLIB-08 | — | Pending |
+| PLIB-01 | 10 | Pending |
+| PLIB-02 | 10 | Pending |
+| PLIB-03 | 10 | Pending |
+| PLIB-04 | 11 | Pending |
+| PLIB-05 | 10 | Pending |
+| PLIB-06 | 10 | Pending |
+| PLIB-07 | 10 | Pending |
+| PLIB-08 | 10 | Pending |
