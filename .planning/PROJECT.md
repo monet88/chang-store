@@ -8,12 +8,17 @@ Chang-Store is a browser-based AI fashion studio for creators and fashion teams 
 
 Users can turn fashion reference images into production-ready visual assets quickly, with predictable quality and minimal manual tool-hopping.
 
-## Current Milestone: Planning Next Milestone
+## Current Milestone: v1.4 Prompt Library
 
-**Goal:** Define the next milestone after shipping v1.3 (prompt optimization + Gemini-only architecture).
+**Goal:** Add a floating prompt library that lets users save, manage, and reuse favorite prompts — pre-loaded with curated fashion editing presets.
 
 **Target features:**
-- (TBD — pending milestone definition via `/gsd-new-milestone`)
+- Floating action button (FAB) accessible from all feature views for quick prompt access
+- Prompt library UI (modal/drawer) to browse, search, and select saved prompts
+- User can save custom prompts from any feature's prompt input
+- 3 pre-loaded curated prompts (Remove Hand from Pocket, Untucked Shirt, Combo)
+- Prompt persistence via localStorage
+- One-tap insert: selecting a prompt auto-fills the active feature's prompt input
 
 ## Requirements
 
@@ -42,7 +47,7 @@ Users can turn fashion reference images into production-ready visual assets quic
 
 ### Active
 
-- (None yet — define the next milestone before starting implementation)
+- (Defined in REQUIREMENTS.md for v1.4)
 
 ### Out of Scope
 
@@ -103,4 +108,4 @@ Upscale this image to 4K resolution. Enhance the details, make the fabric textur
 | Gemini-only guard at hook level with i18n error | Prevents silent failures when non-Gemini model is selected; user sees clear guidance | ✓ Good |
 
 ---
-*Last updated: 2026-04-01 after v1.3 milestone*
+*Last updated: 2026-04-02 after v1.4 milestone started*
