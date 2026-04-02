@@ -1,0 +1,77 @@
+# Requirements: v1.4 Prompt Library
+
+## Milestone Requirements
+
+### Prompt Library (PLIB)
+
+- [ ] **PLIB-01**: User can open a floating prompt library button (FAB) visible on all feature screens
+- [ ] **PLIB-02**: User can browse a list of saved prompts in a modal/drawer UI
+- [ ] **PLIB-03**: User can search/filter prompts by keyword
+- [ ] **PLIB-04**: User can tap a prompt to auto-fill the active feature's prompt input field
+- [ ] **PLIB-05**: User can save a custom prompt from any feature's prompt input to the library
+- [ ] **PLIB-06**: User can delete a saved prompt from the library
+- [ ] **PLIB-07**: User sees 3 pre-loaded curated prompts on first use (Remove Hand from Pocket, Untucked Shirt, Combo)
+- [ ] **PLIB-08**: Saved prompts persist across browser sessions via localStorage
+
+## Future Requirements
+
+- User can organize prompts into categories/folders
+- User can share prompts via export/import
+- User can edit saved prompts inline
+- Prompt recommendations based on active feature context
+
+## Out of Scope
+
+- Cloud sync / backend storage for prompts — stays client-side in localStorage for v1.4
+- AI-generated prompt suggestions — user creates or uses curated presets only
+- Prompt versioning or history tracking
+
+## Curated Preset Prompts
+
+### 1. Remove Hand from Pocket
+
+```text
+Edit the image to remove the hand that is inside the pocket. Move that hand completely outside and place it hanging naturally by the person's side with fingers slightly curled. Reconstruct the pocket area so it appears empty and flat, with natural fabric folds. Only modify the hand and arm position. Do not change anything else, including identity, clothing, lighting, or background. Style: photorealistic, seamless edit.
+```
+
+### 2. Untucked Shirt
+
+```text
+Edit the image to make the shirt untucked. The shirt should be fully outside the waistband, with the hem visible and naturally draping over the pants or skirt. Preserve the original shirt design, fabric, color, and fit. Add realistic folds and draping consistent with the person's pose. Only modify the shirt position. Do not change anything else, including identity, pose, accessories, lighting, or background. Style: photorealistic, seamless edit.
+```
+
+### 3. Untucked Shirt + Remove Hand (Combo)
+
+```text
+Edit the image with two adjustments:
+
+1. Remove the hand that is inside the pocket:
+- Move that hand completely outside
+- Place it hanging naturally by the person's side with relaxed fingers
+- Reconstruct the pocket area so it appears empty and flat, with natural fabric folds
+
+2. Make the shirt untucked:
+- The shirt should be fully outside the waistband
+- The hem must be visible and drape naturally over the pants or skirt
+- Preserve the original shirt design, fabric, color, and fit
+
+Constraints:
+- Only modify the hand/arm position and the shirt position
+- Keep everything else unchanged, including identity, pose, accessories, lighting, and background
+- Maintain realistic proportions, fabric behavior, and natural folds
+
+Style: photorealistic, seamless edit
+```
+
+## Traceability
+
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| PLIB-01 | — | Pending |
+| PLIB-02 | — | Pending |
+| PLIB-03 | — | Pending |
+| PLIB-04 | — | Pending |
+| PLIB-05 | — | Pending |
+| PLIB-06 | — | Pending |
+| PLIB-07 | — | Pending |
+| PLIB-08 | — | Pending |
