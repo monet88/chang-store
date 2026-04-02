@@ -1,0 +1,26 @@
+# Milestone Requirements: v1.5 Multi-Person Selective Try-On
+
+## Active Requirements
+
+### Visual Marker UI
+- [ ] **TRYON-01**: User can toggle a "Multi-person mode" to explicitly activate the visual marking feature.
+- [ ] **TRYON-02**: While mode is active, user can click/tap on the source image to place a distinct visual marker (e.g., red circle) on the target person.
+- [ ] **TRYON-03**: User can clear or reset the placed marker.
+
+### Engine Integration
+- [ ] **TRYON-04**: System automatically draws the marker onto a duplicate of the source image via an off-screen canvas to send to Gemini.
+- [ ] **TRYON-05**: Prompt builder injects instructions directing Gemini to exclusively replace clothing for the individual designated by the marker.
+
+### Backward Compatibility
+- [ ] **TRYON-06**: When "Multi-person mode" is inactive or no marker is set, the application defaults to the standard 1-person Try-On flow without any prompt or image modifications.
+
+## Future Requirements
+- [ ] Support for selecting multiple specific individuals iteratively within the same session.
+- [ ] Expanding this visual marker paradigm to other features (e.g., Relight or Lookbook).
+
+## Out of Scope
+- Using third-party local segmentation models or bounding box services (Sticking strictly to the Gemini multimodal API).
+- High-fidelity lasso masking (A strict point/click dot is computationally cheaper and sufficient for multimodal context).
+
+## Traceability
+*To be filled by Roadmap generation*

@@ -53,6 +53,11 @@ const VirtualTryOn: React.FC = () => {
     refinePrompts,
     setRefinePrompts,
     isRefining,
+    isMultiPersonMode,
+    setIsMultiPersonMode,
+    markerPosition,
+    setMarkerPosition,
+    clearMarker,
   } = useVirtualTryOn();
 
   const { t } = useLanguage();
@@ -73,23 +78,94 @@ const VirtualTryOn: React.FC = () => {
           <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('virtualTryOn.step1')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Tooltip content={t('tooltips.tryOnSubject')} position="right" className="w-full">
-              <div className="space-y-2">
-                <MultiImageUploader
-                  images={subjectImages}
-                  id="subject-upload"
-                  title={t('virtualTryOn.subjectImagesTitle')}
-                  onImagesUpload={handleSubjectImagesUpload}
-                />
-                {subjectImages.length > 0 && (
-                  <button
-                    onClick={clearSubjectImages}
-                    disabled={isLoading}
-                    className="w-full text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {t('virtualTryOn.clearSubjects')}
-                  </button>
-                )}
-              </div>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <MultiImageUploader
+                      images={subjectImages}
+                      id="subject-upload"
+                      title={t('virtualTryOn.subjectImagesTitle')}
+                      onImagesUpload={handleSubjectImagesUpload}
+                    />
+                    {isMultiPersonMode && subjectImages.length > 0 && (
+                      <div
+                        id="multi-person-overlay"
+                        className="absolute inset-0 cursor-crosshair z-10"
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = e.clientX - rect.left;
+                          const y = e.clientY - rect.top;
+                          const relX = x / rect.width;
+                          const relY = y / rect.height;
+                          setMarkerPosition({ x, y, relX, relY });
+                        }}
+                      />
+                    )}
+                    {isMultiPersonMode && markerPosition && (
+                      <div
+                        id="multi-person-marker"
+                        className="absolute z-20 pointer-events-none"
+                        style={{
+                          left: markerPosition.x,
+                          top: markerPosition.y,
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          backgroundColor: '#ef4444',
+                          border: '2px solid white',
+                          transform: 'translate(-50%, -50%)',
+                          boxShadow: '0 0 0 2px rgba(239,68,68,0.4)',
+                        }}
+                        aria-label="Multi-person target marker"
+                      />
+                    )}
+                  </div>
+                  {subjectImages.length > 0 && (
+                    <button
+                      onClick={clearSubjectImages}
+                      disabled={isLoading}
+                      className="w-full text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {t('virtualTryOn.clearSubjects')}
+                    </button>
+                  )}
+                  {markerPosition && (
+                    <button
+                      id="clear-marker-btn"
+                      onClick={clearMarker}
+                      disabled={isLoading}
+                      className="w-full text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {t('virtualTryOn.clearMarker')}
+                    </button>
+                  )}
+                  <div className="flex items-center justify-between py-2">
+                    <span className={`text-sm font-medium transition-colors ${isMultiPersonMode ? 'text-zinc-200' : 'text-zinc-400'}`}>
+                      {t('virtualTryOn.multiPersonMode')}
+                    </span>
+                    <button
+                      id="multi-person-toggle"
+                      type="button"
+                      role="switch"
+                      aria-checked={isMultiPersonMode}
+                      aria-label={t('virtualTryOn.multiPersonMode')}
+                      onClick={() => setIsMultiPersonMode(!isMultiPersonMode)}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900 ${
+                        isMultiPersonMode ? 'bg-amber-500' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${
+                          isMultiPersonMode ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {isMultiPersonMode && (
+                    <p className="text-xs text-zinc-500 text-center">
+                      {t('virtualTryOn.multiPersonModeHint')}
+                    </p>
+                  )}
+                </div>
             </Tooltip>
 
             <div className="flex flex-col gap-3">

@@ -5,6 +5,7 @@ import {
   DEFAULT_IMAGE_RESOLUTION,
   ImageFile,
   ImageResolution,
+  MarkerPosition,
   VirtualTryOnBatchItem,
   VirtualTryOnClothingItem,
 } from '../types';
@@ -39,6 +40,10 @@ export const useVirtualTryOn = () => {
   const [upscalingStates, setUpscalingStates] = useState<Record<string, boolean>>({});
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Estado de modo multi-persona para selección de objetivo en imágenes con múltiples personas
+  const [isMultiPersonMode, setIsMultiPersonModeState] = useState<boolean>(false);
+  const [markerPosition, setMarkerPosition] = useState<MarkerPosition | null>(null);
 
   // Refine state — per image slot: key = `itemId:index`
   const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
@@ -113,7 +118,22 @@ export const useVirtualTryOn = () => {
 
   const canGenerate = subjectItems.length > 0 && validClothingItems.length > 0;
 
+  // Cuando se desactiva el modo multi-persona, limpiar el marcador automáticamente
+  const setIsMultiPersonMode = useCallback((value: boolean) => {
+    setIsMultiPersonModeState(value);
+    if (!value) {
+      setMarkerPosition(null);
+    }
+  }, []);
+
+  // Limpia el marcador sin cambiar el modo
+  const clearMarker = useCallback(() => {
+    setMarkerPosition(null);
+  }, []);
+
   const handleSubjectImagesUpload = useCallback((images: ImageFile[]) => {
+    // Nueva imagen = nuevo contexto, limpiar marcador obsoleto
+    setMarkerPosition(null);
     let nextItems: VirtualTryOnBatchItem[] = [];
 
     setSubjectItems((prev) => {
@@ -453,5 +473,11 @@ export const useVirtualTryOn = () => {
     refinePrompts,
     setRefinePrompts,
     isRefining,
+    // Multi-person marker state
+    isMultiPersonMode,
+    setIsMultiPersonMode,
+    markerPosition,
+    setMarkerPosition,
+    clearMarker,
   };
 };

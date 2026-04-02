@@ -13,9 +13,14 @@ Users can turn fashion reference images into production-ready visual assets quic
 **v1.4 Prompt Library shipped (2026-04-02).**
 The application now features a globally accessible Prompt Library. Users can save, edit, search, and delete custom prompts with titles. It also provides 3 curated presets on first load. Prompt integration across AI features was implemented using a cross-module compatible manual Copy-and-Paste architecture.
 
-## Next Milestone Goals
+## Current Milestone: v1.5 Multi-Person Selective Try-On
 
-- (To be defined in next `/gsd-new-milestone` initialization)
+**Goal:** Support Virtual Try-On for group photos by allowing users to place a visual marker on the target person.
+
+**Target features:**
+- Interactive UI to place a visual marker (e.g., a colored dot) on a chosen individual in the source photo.
+- Appending marker visuals/coordinates to the Gemini request.
+- Updating Gemini prompt to strictly isolate the clothing transfer to the marked person.
 
 <details>
 <summary>Archived Milestone: v1.4 Prompt Library</summary>
@@ -59,7 +64,7 @@ The application now features a globally accessible Prompt Library. Users can sav
 
 ### Active
 
-- (None. Milestone v1.4 completed. Awaiting v1.5)
+- [ ] Requirements to be defined in this milestone iteration
 
 ### Out of Scope
 
@@ -122,5 +127,22 @@ Upscale this image to 4K resolution. Enhance the details, make the fabric textur
 | Require titles for all saved prompts; use for primary library list UI + search filtering | The user requested titles to improve library browsing and limit search noise, making the UI cleaner | ✓ Good |
 | Show prompt expansion UI with explicit Copy/Use buttons rather than 1-click select-and-close. | The user wanted to click to read full content and copy to clipboard. Immediate insert prevents this UX. | ✓ Good |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-04-02 after v1.4 phase 10 completion*
+*Last updated: 2026-04-02 (started v1.5)*

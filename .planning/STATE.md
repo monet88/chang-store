@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Prompt Library
-status: completed
-stopped_at: Archived milestone v1.4
-last_updated: "2026-04-02T11:05:00.000Z"
+milestone: v1.5
+milestone_name: Multi-Person Selective Try-On
+status: active
+stopped_at: 
+last_updated: "2026-04-02T11:07:00.000Z"
 last_activity: 2026-04-02
 progress:
   total_phases: 2
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Users can turn fashion reference images into production-ready visual assets quickly, with predictable quality and minimal manual tool-hopping.
-**Current focus:** Phase 10 — prompt-library-core
+**Current focus:** Defining requirements
 
 ## Current Position
 
-Phase: 11
-Plan: 11-01-PLAN.md
-Status: Validation completed
-Last activity: 2026-04-02
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-02 — Milestone v1.5 started
 
 Progress: [          ] 0%
 
