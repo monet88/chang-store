@@ -11,7 +11,7 @@ import {
 } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
-import { getErrorMessage } from '../utils/imageUtils';
+import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
 import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
@@ -213,11 +213,17 @@ export const useVirtualTryOn = () => {
           });
 
           try {
+            let finalSubjectImage = job.subjectImage;
+            if (isMultiPersonMode && markerPosition) {
+              finalSubjectImage = await compositeMarkerOnImage(job.subjectImage, markerPosition);
+            }
+
             const interleavedParts = buildVirtualTryOnParts({
-              subjectImage: job.subjectImage,
+              subjectImage: finalSubjectImage,
               clothingImages: outfitImages,
               extraPrompt,
               backgroundPrompt,
+              isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
             });
             const results = await editImage(
               {
@@ -265,6 +271,8 @@ export const useVirtualTryOn = () => {
     t,
     updateSubjectItem,
     validClothingItems,
+    isMultiPersonMode,
+    markerPosition,
   ]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
@@ -283,11 +291,17 @@ export const useVirtualTryOn = () => {
     });
 
     try {
+      let finalSubjectImage = targetItem.subjectImage;
+      if (isMultiPersonMode && markerPosition) {
+        finalSubjectImage = await compositeMarkerOnImage(targetItem.subjectImage, markerPosition);
+      }
+
       const interleavedParts = buildVirtualTryOnParts({
-        subjectImage: targetItem.subjectImage,
+        subjectImage: finalSubjectImage,
         clothingImages: outfitImages,
         extraPrompt,
         backgroundPrompt,
+        isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
       });
       const results = await editImage(
         {

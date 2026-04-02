@@ -1,4 +1,4 @@
-import { ImageFile } from "../types";
+import { ImageFile, MarkerPosition } from "../types";
 
 export const getImageDimensions = (base64: string, mimeType: string): Promise<{ width: number, height: number }> => {
   return new Promise((resolve, reject) => {
@@ -150,5 +150,48 @@ export const cropAndCompressImage = (file: File, targetAspectRatio: number, qual
     }
     
     img.src = objectUrl;
+  });
+};
+
+export const compositeMarkerOnImage = (image: ImageFile, marker: MarkerPosition): Promise<ImageFile> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return reject(new Error('Could not get canvas context'));
+      }
+      
+      ctx.drawImage(img, 0, 0);
+      
+      const x = marker.relX * img.width;
+      const y = marker.relY * img.height;
+      
+      const maxDim = Math.max(img.width, img.height);
+      const radius = Math.min(Math.max(maxDim * 0.015, 10), 40);
+      
+      // Draw white outline
+      ctx.beginPath();
+      ctx.arc(x, y, radius + 4, 0, 2 * Math.PI);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+      
+      // Draw red inner dot
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = '#EF4444';
+      ctx.fill();
+
+      // Ensure mimeType fallback since some test cases might lack it
+      const mimeType = image.mimeType || 'image/jpeg';
+      const dataUrl = canvas.toDataURL(mimeType, 0.95);
+      const base64 = dataUrl.split(',')[1];
+      resolve({ base64, mimeType });
+    };
+    img.onerror = () => reject(new Error('Failed to composite marker image'));
+    img.src = `data:${image.mimeType || 'image/jpeg'};base64,${image.base64}`;
   });
 };
