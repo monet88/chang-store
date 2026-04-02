@@ -17,6 +17,8 @@ import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
+/** Número máximo de imágenes procesadas en paralelo durante batch */
+const BATCH_CONCURRENCY = 3;
 const MAX_SHARED_OUTFIT_IMAGES = 2;
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 
@@ -182,7 +184,7 @@ export const useVirtualTryOn = () => {
     try {
       await runBoundedWorkers(
         jobs,
-        Math.min(jobs.length || 1, 3),
+        BATCH_CONCURRENCY,
         async (job) => {
           updateSubjectItem(job.id, {
             status: 'processing',
