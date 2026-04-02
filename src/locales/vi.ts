@@ -60,6 +60,17 @@ export const vi: Translation = {
     refineButton: 'Tinh chỉnh',
     refiningStatus: 'Đang tinh chỉnh...',
   },
+  promptLibrary: {
+    title: 'Thư viện Prompt',
+    searchPlaceholder: 'Tìm kiếm prompt...',
+    emptyState: 'Không tìm thấy prompt nào',
+    emptyStateBody: 'Hãy thử thay đổi từ khóa tìm kiếm.',
+    curatedBadge: 'Gợi ý',
+    deleteConfirm: 'Bạn có chắc chắn muốn xóa prompt này không?',
+    usePrompt: 'Sử dụng',
+    copyPrompt: 'Sao chép',
+    toastSaved: 'Đã lưu prompt',
+  },
   toast: {
     imageSaved: 'Đã lưu ảnh vào Gallery',
     imagesSaved: 'Đã lưu {{count}} ảnh vào Gallery',

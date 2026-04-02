@@ -106,6 +106,8 @@ Upscale this image to 4K resolution. Enhance the details, make the fabric textur
 | Rewrite prompt builder to interleaved Part[] instead of patching string output | Native Gemini format eliminates serialization/deserialization overhead and enables image interleaving | ✓ Good |
 | Remove all Local/Anti Provider code in one pass | Clean architecture reset — maintaining dead code paths was adding complexity to every service/hook/test change | ✓ Good |
 | Gemini-only guard at hook level with i18n error | Prevents silent failures when non-Gemini model is selected; user sees clear guidance | ✓ Good |
+| Require titles for all saved prompts; use for primary library list UI + search filtering | The user requested titles to improve library browsing and limit search noise, making the UI cleaner | ✓ Good |
+| Show prompt expansion UI with explicit Copy/Use buttons rather than 1-click select-and-close. | The user wanted to click to read full content and copy to clipboard. Immediate insert prevents this UX. | ✓ Good |
 
 ---
-*Last updated: 2026-04-02 after v1.4 milestone started*
+*Last updated: 2026-04-02 after v1.4 phase 10 completion*

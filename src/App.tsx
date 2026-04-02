@@ -1,11 +1,11 @@
 
 
-
 import React, { useState, useCallback, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import { Feature, ImageFile } from './types';
 import { ImageGalleryProvider } from './contexts/ImageGalleryContext';
 import GalleryButton from './components/GalleryButton';
+import PromptLibraryFAB from './components/PromptLibraryFAB';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ApiProvider } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
@@ -32,6 +32,7 @@ const ClothingTransfer = lazy(() => import('./components/ClothingTransfer'));
 
 // --- Lazy-loaded modal components ---
 const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
+const PromptLibraryModal = lazy(() => import('./components/modals/PromptLibraryModal'));
 const PoseLibraryModal = lazy(() => import('./components/modals/PoseLibraryModal'));
 const SettingsModal = lazy(() => import('./components/modals/SettingsModal').then(m => ({ default: m.SettingsModal })));
 
@@ -45,6 +46,7 @@ const FeatureLoadingFallback: React.FC = () => (
 const AppContent: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<Feature>(Feature.TryOn);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [imageToEdit, setImageToEdit] = useState<ImageFile | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -76,6 +78,8 @@ const AppContent: React.FC = () => {
   const handleCloseSettings = useCallback(() => setIsSettingsOpen(false), []);
   const handleOpenGallery = useCallback(() => setIsGalleryOpen(true), []);
   const handleCloseGallery = useCallback(() => setIsGalleryOpen(false), []);
+  const handleOpenPromptLibrary = useCallback(() => setIsPromptLibraryOpen(true), []);
+  const handleClosePromptLibrary = useCallback(() => setIsPromptLibraryOpen(false), []);
   const handleClosePoseLibrary = useCallback(() => setIsPoseLibraryOpen(false), []);
   const handleCloseEditor = useCallback(() => {
     setActiveFeature(Feature.TryOn);
@@ -162,10 +166,12 @@ case Feature.AIEditor:
         </div>
 
         <GalleryButton onClick={handleOpenGallery} />
+        <PromptLibraryFAB onClick={handleOpenPromptLibrary} />
 
         {/* Lazy-loaded modals wrapped in Suspense */}
         <Suspense fallback={null}>
           {isGalleryOpen && <GalleryModal onClose={handleCloseGallery} onEditImage={handleOpenEditor} />}
+          {isPromptLibraryOpen && <PromptLibraryModal isOpen={isPromptLibraryOpen} onClose={handleClosePromptLibrary} />}
           {isSettingsOpen && <SettingsModal isOpen={isSettingsOpen} onClose={handleCloseSettings} />}
         </Suspense>
       </div>

@@ -304,3 +304,15 @@ export interface UpscaleSessionImage {
   /** Simulated preview text describing expected improvements */
   studioPreview?: string | null;
 }
+
+// ============================================
+// PROMPT LIBRARY TYPES
+// ============================================
+
+export interface SavedPrompt {
+  id: string;
+  title: string;
+  text: string;
+  createdAt: number;
+  isCurated?: boolean;
+}

@@ -59,6 +59,17 @@ export const en = {
     refineButton: 'Refine',
     refiningStatus: 'Refining...',
   },
+  promptLibrary: {
+    title: 'Prompt Library',
+    searchPlaceholder: 'Search prompts...',
+    emptyState: 'No prompts found',
+    emptyStateBody: 'Try adjusting your search criteria.',
+    curatedBadge: 'Curated',
+    deleteConfirm: 'Are you sure you want to delete this prompt?',
+    usePrompt: 'Use',
+    copyPrompt: 'Copy',
+    toastSaved: 'Prompt saved',
+  },
   toast: {
     imageSaved: 'Image saved to Gallery',
     imagesSaved: '{{count}} images saved to Gallery',

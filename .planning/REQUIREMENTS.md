@@ -4,14 +4,14 @@
 
 ### Prompt Library (PLIB)
 
-- [ ] **PLIB-01**: User can open a floating prompt library button (FAB) visible on all feature screens
-- [ ] **PLIB-02**: User can browse a list of saved prompts in a modal/drawer UI
-- [ ] **PLIB-03**: User can search/filter prompts by keyword
+- [x] **PLIB-01**: User can open a floating prompt library button (FAB) visible on all feature screens
+- [x] **PLIB-02**: User can browse a list of saved prompts in a modal/drawer UI
+- [x] **PLIB-03**: User can search/filter prompts by keyword
 - [ ] **PLIB-04**: User can tap a prompt to auto-fill the active feature's prompt input field
-- [ ] **PLIB-05**: User can save a custom prompt from any feature's prompt input to the library
-- [ ] **PLIB-06**: User can delete a saved prompt from the library
-- [ ] **PLIB-07**: User sees 3 pre-loaded curated prompts on first use (Remove Hand from Pocket, Untucked Shirt, Combo)
-- [ ] **PLIB-08**: Saved prompts persist across browser sessions via localStorage
+- [x] **PLIB-05**: User can save a custom prompt from any feature's prompt input to the library
+- [x] **PLIB-06**: User can delete a saved prompt from the library
+- [x] **PLIB-07**: User sees 3 pre-loaded curated prompts on first use (Remove Hand from Pocket, Untucked Shirt, Combo)
+- [x] **PLIB-08**: Saved prompts persist across browser sessions via localStorage
 
 ## Future Requirements
 
@@ -67,11 +67,11 @@ Style: photorealistic, seamless edit
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| PLIB-01 | 10 | Pending |
-| PLIB-02 | 10 | Pending |
-| PLIB-03 | 10 | Pending |
+| PLIB-01 | 10 | Complete |
+| PLIB-02 | 10 | Complete |
+| PLIB-03 | 10 | Complete |
 | PLIB-04 | 11 | Pending |
-| PLIB-05 | 10 | Pending |
-| PLIB-06 | 10 | Pending |
-| PLIB-07 | 10 | Pending |
-| PLIB-08 | 10 | Pending |
+| PLIB-05 | 10 | Complete |
+| PLIB-06 | 10 | Complete |
+| PLIB-07 | 10 | Complete |
+| PLIB-08 | 10 | Complete |
