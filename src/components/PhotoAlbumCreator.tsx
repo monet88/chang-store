@@ -47,6 +47,7 @@ export const PhotoAlbumCreator: React.FC<PhotoAlbumCreatorProps> = ({ transferre
 
     const [generatedImages, setGeneratedImages] = useState<GeneratedAlbumImage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [regeneratingStates, setRegeneratingStates] = useState<Record<string, boolean>>({});
     const [error, setError] = useState<string | null>(null);
     const [generationStatus, setGenerationStatus] = useState('');
     const [generationProgress, setGenerationProgress] = useState({ progress: 0, total: 0 });
@@ -77,48 +78,22 @@ export const PhotoAlbumCreator: React.FC<PhotoAlbumCreatorProps> = ({ transferre
         }
     }, [transferredImage]);
 
-    const handleGenerate = async () => {
-        if (mode === 'fullModel' && !originalPhoto) {
-            setError(t('photoAlbum.error.noPhoto'));
-            return;
+    const generateImageForPose = async (pose: string) => {
+        const imagesForApi: ImageFile[] = [];
+        let imageRolesPrompt = '';
+        if (mode === 'fullModel' && originalPhoto) {
+            imagesForApi.push(originalPhoto);
+            imageRolesPrompt = "**Image Role**: The provided image ('Source Image') contains the model, their outfit, footwear, and potentially a background. Your task is to extract the model, their clothing, and footwear, then place them in a new scene.";
+        } else if (mode === 'faceAndOutfit' && faceImage && outfitImage) {
+            imagesForApi.push(faceImage, outfitImage);
+            imageRolesPrompt = "**Image Roles**:\n- **Image 1 ('Face Reference')**: Provides the model's face, hair, and skin tone. This is the source of truth for identity.\n- **Image 2 ('Outfit Image')**: Provides the clothing and footwear to be worn by the model.";
         }
-        if (mode === 'faceAndOutfit' && (!faceImage || !outfitImage)) {
-            setError(t('photoAlbum.error.noFaceOrOutfit'));
-            return;
-        }
-        if (selectedPoses.length === 0) {
-            setError(t('photoAlbum.error.noPose'));
-            return;
-        }
-        setIsLoading(true);
-        setError(null);
-        setGeneratedImages([]);
 
-        const posesToGenerate = POSES.filter(p => selectedPoses.includes(p));
-        const total = posesToGenerate.length;
-        setGenerationProgress({ progress: 0, total });
+        const framingInstruction = cameraView !== 'default'
+            ? t(`framingInstructions.${cameraView}`)
+            : "Use default framing provided by the model.";
 
-        const newImages: GeneratedAlbumImage[] = [];
-
-        for (const [index, pose] of posesToGenerate.entries()) {
-            setGenerationStatus(t('photoAlbum.generatingStatus', { progress: index + 1, total }));
-            setGenerationProgress({ progress: index + 1, total });
-
-            const imagesForApi: ImageFile[] = [];
-            let imageRolesPrompt = '';
-            if (mode === 'fullModel' && originalPhoto) {
-                imagesForApi.push(originalPhoto);
-                imageRolesPrompt = "**Image Role**: The provided image ('Source Image') contains the model, their outfit, footwear, and potentially a background. Your task is to extract the model, their clothing, and footwear, then place them in a new scene.";
-            } else if (mode === 'faceAndOutfit' && faceImage && outfitImage) {
-                imagesForApi.push(faceImage, outfitImage);
-                imageRolesPrompt = "**Image Roles**:\n- **Image 1 ('Face Reference')**: Provides the model's face, hair, and skin tone. This is the source of truth for identity.\n- **Image 2 ('Outfit Image')**: Provides the clothing and footwear to be worn by the model.";
-            }
-
-            const framingInstruction = cameraView !== 'default'
-                ? t(`framingInstructions.${cameraView}`)
-                : "Use default framing provided by the model.";
-
-            const prompt = `
+        const prompt = `
 # INSTRUCTION: CREATE PHOTO ALBUM IMAGE
 
 ## 1. IMAGE ROLES
@@ -145,11 +120,44 @@ ${additionalNotes ? `- Also incorporate this instruction: "${additionalNotes}"` 
 
 ## 5. FINAL OUTPUT
 Generate a single, hyper-realistic, 2K resolution, professional-grade fashion photograph that perfectly combines all the above elements.
-            `.trim();
+        `.trim();
+
+        const [result] = await editImage({ images: imagesForApi, prompt, numberOfImages: 1, aspectRatio, resolution }, imageEditModel, buildImageServiceConfig(setGenerationStatus));
+
+        return { ...result, pose };
+    };
+
+    const handleGenerate = async () => {
+        if (mode === 'fullModel' && !originalPhoto) {
+            setError(t('photoAlbum.error.noPhoto'));
+            return;
+        }
+        if (mode === 'faceAndOutfit' && (!faceImage || !outfitImage)) {
+            setError(t('photoAlbum.error.noFaceOrOutfit'));
+            return;
+        }
+        if (selectedPoses.length === 0) {
+            setError(t('photoAlbum.error.noPose'));
+            return;
+        }
+        setIsLoading(true);
+        setError(null);
+        setGeneratedImages([]);
+        setRegeneratingStates({});
+
+        const posesToGenerate = POSES.filter(p => selectedPoses.includes(p));
+        const total = posesToGenerate.length;
+        setGenerationProgress({ progress: 0, total });
+
+        const newImages: GeneratedAlbumImage[] = [];
+
+        for (const [index, pose] of posesToGenerate.entries()) {
+            setGenerationStatus(t('photoAlbum.generatingStatus', { progress: index + 1, total }));
+            setGenerationProgress({ progress: index + 1, total });
 
             try {
-                const [result] = await editImage({ images: imagesForApi, prompt, numberOfImages: 1, aspectRatio, resolution }, imageEditModel, buildImageServiceConfig(setGenerationStatus));
-                newImages.push({ ...result, pose });
+                const result = await generateImageForPose(pose);
+                newImages.push(result);
                 setGeneratedImages([...newImages]);
             } catch (err) {
                 setError(t('photoAlbum.error.generationFailed', { pose, error: getErrorMessage(err, t) }));
@@ -159,6 +167,20 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
         }
 
         setIsLoading(false);
+    };
+
+    const handleRegenerateSingle = async (pose: string) => {
+        setRegeneratingStates(prev => ({ ...prev, [pose]: true }));
+        setError(null);
+
+        try {
+            const regeneratedImage = await generateImageForPose(pose);
+            setGeneratedImages(prev => prev.map(image => image.pose === pose ? regeneratedImage : image));
+        } catch (err) {
+            setError(t('photoAlbum.error.generationFailed', { pose, error: getErrorMessage(err, t) }));
+        } finally {
+            setRegeneratingStates(prev => ({ ...prev, [pose]: false }));
+        }
     };
 
     return (
@@ -292,7 +314,12 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {generatedImages.map((image, index) => (
                                 <div key={index}>
-                                    <HoverableImage image={image} altText={POSE_LABELS[image.pose] || image.pose} />
+                                    <HoverableImage
+                                        image={image}
+                                        altText={POSE_LABELS[image.pose] || image.pose}
+                                        onRegenerate={() => handleRegenerateSingle(image.pose)}
+                                        isGenerating={isLoading || regeneratingStates[image.pose]}
+                                    />
                                     <p className="text-xs text-zinc-400 mt-1.5 text-center truncate" title={POSE_LABELS[image.pose] || image.pose}>{POSE_LABELS[image.pose] || image.pose}</p>
                                 </div>
                             ))}

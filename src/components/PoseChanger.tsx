@@ -44,6 +44,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
 
   const [generatedImages, setGeneratedImages] = useState<ImageFile[]>([]);
   const [upscalingStates, setUpscalingStates] = useState<Record<number, boolean>>({});
+  const [regeneratingStates, setRegeneratingStates] = useState<Record<number, boolean>>({});
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingPoseDescription, setIsGeneratingPoseDescription] = useState(false);
@@ -95,6 +96,32 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
     return t(instructionKey) || "Use default framing provided by the model.";
   };
 
+  const generateImageForPrompt = async (promptText: string, framingInstruction: string) => {
+    const prompt = `
+          **Task**: Photorealistically change the pose of a model based on a text description, while perfectly preserving the model, their clothing, and the background.
+          **Source Image**: Contains the model and their clothing.
+          **New Pose Description**: "${promptText}".
+          **CRITICAL RULES**:
+          1.  **Analyze Clothing**: First, analyze the clothing in the Source Image to understand its type (e.g., dress, jeans, blouse), fabric properties (e.g., silk, denim, cotton), and fit (e.g., loose, tight, structured).
+          2.  **Preserve Identity**: The model's identity (face, hair, body shape), their entire outfit (design, color, texture), and the entire background from the Source Image MUST be preserved with 100% accuracy.
+          3.  **Apply New Pose**: Re-render the model in a new, physically plausible pose that accurately matches the **New Pose Description**.
+          4.  **Realistic Draping**: This is the most important step. Re-drape the *exact same* clothing onto the model in their new pose. The draping must be physically accurate, showing how the specific fabric would naturally fold, stretch, and hang based on the new body position and gravity. The fit must remain consistent with the original garment.
+          5.  **Camera Framing**: ${framingInstruction}
+          **Final Goal**: A high-resolution (2K), photorealistic image.
+        `.trim();
+
+    const [result] = await editImage({
+      images: [subjectImage!],
+      prompt,
+      negativePrompt,
+      numberOfImages: 1,
+      aspectRatio,
+      resolution,
+    }, imageEditModel, buildImageServiceConfig(() => {}));
+
+    return result;
+  };
+
   const handleGenerate = async () => {
     if (!subjectImage) {
       setError(t('pose.subjectError'));
@@ -104,6 +131,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
     // Reset states
     setError(null);
     setGeneratedImages([]);
+    setRegeneratingStates({});
     const framingInstruction = getFramingInstruction();
 
     // --- Single Generation with Pose Reference Image ---
@@ -158,28 +186,8 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
       for (const [index, promptText] of prompts.entries()) {
         setGenerationStatus(prev => ({ ...prev, progress: index + 1, message: t('pose.generatingStatusMultiple', { progress: index + 1, total: prompts.length }) }));
 
-        const prompt = `
-              **Task**: Photorealistically change the pose of a model based on a text description, while perfectly preserving the model, their clothing, and the background.
-              **Source Image**: Contains the model and their clothing.
-              **New Pose Description**: "${promptText}".
-              **CRITICAL RULES**:
-              1.  **Analyze Clothing**: First, analyze the clothing in the Source Image to understand its type (e.g., dress, jeans, blouse), fabric properties (e.g., silk, denim, cotton), and fit (e.g., loose, tight, structured).
-              2.  **Preserve Identity**: The model's identity (face, hair, body shape), their entire outfit (design, color, texture), and the entire background from the Source Image MUST be preserved with 100% accuracy.
-              3.  **Apply New Pose**: Re-render the model in a new, physically plausible pose that accurately matches the **New Pose Description**.
-              4.  **Realistic Draping**: This is the most important step. Re-drape the *exact same* clothing onto the model in their new pose. The draping must be physically accurate, showing how the specific fabric would naturally fold, stretch, and hang based on the new body position and gravity. The fit must remain consistent with the original garment.
-              5.  **Camera Framing**: ${framingInstruction}
-              **Final Goal**: A high-resolution (2K), photorealistic image.
-            `.trim();
-
         try {
-          const [result] = await editImage({
-            images: [subjectImage],
-            prompt,
-            negativePrompt,
-            numberOfImages: 1,
-            aspectRatio,
-            resolution,
-          }, imageEditModel, buildImageServiceConfig((msg) => setGenerationStatus(prev => ({ ...prev, message: `${t('pose.generatingStatusMultiple', { progress: prev.progress, total: prev.total })} - ${msg}` }))));
+          const result = await generateImageForPrompt(promptText, framingInstruction);
           results.push(result);
           setGeneratedImages([...results]); // Update UI incrementally
         } catch (err) {
@@ -195,6 +203,26 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
         }
       }
       setGenerationStatus({ active: false, progress: 0, total: 0, message: '' });
+    }
+  };
+
+  const handleRegenerateSingle = async (index: number) => {
+    const promptText = allPrompts[index];
+    if (!promptText || !subjectImage || poseReferenceImage) {
+      handleGenerate();
+      return;
+    }
+
+    setRegeneratingStates(prev => ({ ...prev, [index]: true }));
+    setError(null);
+
+    try {
+      const result = await generateImageForPrompt(promptText, getFramingInstruction());
+      setGeneratedImages(prev => prev.map((image, imageIndex) => imageIndex === index ? result : image));
+    } catch (err) {
+      setError(getErrorMessage(err, t));
+    } finally {
+      setRegeneratingStates(prev => ({ ...prev, [index]: false }));
     }
   };
 
@@ -381,9 +409,9 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                       image={image}
                       altText={t('pose.generatedPoseAlt', { index: index + 1 })}
                       downloadFileName={`generated-pose-${index + 1}.png`}
-                      onRegenerate={handleGenerate}
+                      onRegenerate={poseReferenceImage ? handleGenerate : () => handleRegenerateSingle(index)}
                       onUpscale={() => handleUpscale(image, index)}
-                      isGenerating={generationStatus.active || isLoading}
+                      isGenerating={generationStatus.active || isLoading || regeneratingStates[index]}
                       isUpscaling={upscalingStates[index]}
                     />
                   ))}
