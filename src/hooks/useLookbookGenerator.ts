@@ -1,8 +1,4 @@
-
-
-
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import debounce from 'lodash-es/debounce';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -43,6 +39,22 @@ export interface LookbookFormState {
 }
 
 const DRAFT_STORAGE_KEY = 'lookbookGeneratorDraft';
+const DRAFT_SAVE_DEBOUNCE_MS = 1000;
+const MAX_CLOTHING_SLOTS = 8;
+
+interface LookbookDraftState {
+    clothingSlotCount: number;
+    fabricTexturePrompt: string;
+    clothingDescription: string;
+    lookbookStyle: LookbookStyle;
+    garmentType: GarmentType;
+    foldedPresentationType: FoldedPresentationType;
+    mannequinBackgroundStyle: MannequinBackgroundStyleKey;
+    negativePrompt: string;
+    productShotSubType: ProductShotSubType;
+    includeAccessories: boolean;
+    includeFootwear: boolean;
+}
 
 const initialFormState: LookbookFormState = {
   clothingImages: [{ id: Date.now(), image: null }],
@@ -59,6 +71,57 @@ const initialFormState: LookbookFormState = {
   includeFootwear: false,
 };
 
+const createEmptyClothingSlots = (count: number): ClothingItem[] => {
+    const normalizedCount = Math.max(1, Math.min(MAX_CLOTHING_SLOTS, Math.floor(count)));
+    return Array.from({ length: normalizedCount }, (_, index) => ({
+        id: Date.now() + index,
+        image: null,
+    }));
+};
+
+const parseDraftState = (rawDraft: string): LookbookDraftState | null => {
+    try {
+        const parsed = JSON.parse(rawDraft) as Partial<LookbookDraftState> & {
+            clothingImages?: unknown;
+        };
+
+        const legacySlotCount = Array.isArray(parsed.clothingImages) ? parsed.clothingImages.length : 0;
+        const clothingSlotCount = typeof parsed.clothingSlotCount === 'number'
+            ? parsed.clothingSlotCount
+            : legacySlotCount || 1;
+
+        return {
+            clothingSlotCount,
+            fabricTexturePrompt: parsed.fabricTexturePrompt ?? '',
+            clothingDescription: parsed.clothingDescription ?? '',
+            lookbookStyle: parsed.lookbookStyle ?? initialFormState.lookbookStyle,
+            garmentType: parsed.garmentType ?? initialFormState.garmentType,
+            foldedPresentationType: parsed.foldedPresentationType ?? initialFormState.foldedPresentationType,
+            mannequinBackgroundStyle: parsed.mannequinBackgroundStyle ?? initialFormState.mannequinBackgroundStyle,
+            negativePrompt: parsed.negativePrompt ?? '',
+            productShotSubType: parsed.productShotSubType ?? initialFormState.productShotSubType,
+            includeAccessories: parsed.includeAccessories ?? false,
+            includeFootwear: parsed.includeFootwear ?? false,
+        };
+    } catch {
+        return null;
+    }
+};
+
+const toDraftState = (state: LookbookFormState): LookbookDraftState => ({
+    clothingSlotCount: state.clothingImages.length,
+    fabricTexturePrompt: state.fabricTexturePrompt,
+    clothingDescription: state.clothingDescription,
+    lookbookStyle: state.lookbookStyle,
+    garmentType: state.garmentType,
+    foldedPresentationType: state.foldedPresentationType,
+    mannequinBackgroundStyle: state.mannequinBackgroundStyle,
+    negativePrompt: state.negativePrompt,
+    productShotSubType: state.productShotSubType,
+    includeAccessories: state.includeAccessories,
+    includeFootwear: state.includeFootwear,
+});
+
 
 export const useLookbookGenerator = () => {
     // ... all state from the component
@@ -67,12 +130,27 @@ export const useLookbookGenerator = () => {
         if (typeof window === 'undefined') {
             return initialFormState;
         }
+        let saved: string | null = null;
         try {
-            const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
-            return saved ? { ...initialFormState, ...JSON.parse(saved) } : initialFormState;
+            saved = localStorage.getItem(DRAFT_STORAGE_KEY);
         } catch {
             return initialFormState;
         }
+        if (!saved) {
+            return initialFormState;
+        }
+
+        const parsedDraft = parseDraftState(saved);
+        if (!parsedDraft) {
+            return initialFormState;
+        }
+
+        return {
+            ...initialFormState,
+            ...parsedDraft,
+            clothingImages: createEmptyClothingSlots(parsedDraft.clothingSlotCount),
+            fabricTextureImage: null,
+        };
     });
 
     const [generatedLookbook, setGeneratedLookbook] = useState<LookbookSet | null>(null);
@@ -101,6 +179,7 @@ export const useLookbookGenerator = () => {
 
     // Ref for original image before refinements
     const originalImageRef = useRef<ImageFile | null>(null);
+    const draftSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { t } = useLanguage();
     const { imageEditModel, textGenerateModel } = useApi();
@@ -108,29 +187,35 @@ export const useLookbookGenerator = () => {
         onStatusUpdate,
     });
 
-    // Debounced localStorage save - prevents 200ms typing lag
-    const debouncedSave = useMemo(
-        () => debounce((state: LookbookFormState) => {
-            if (typeof window !== 'undefined') {
-                try {
-                    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(state));
-                } catch (error) {
-                    console.error('Failed to save draft to localStorage:', error);
-                    // Silently fail - draft saving is non-critical
-                }
-            }
-        }, 1000), // 1 second debounce - balance between UX and data safety
-        []
-    );
-
     useEffect(() => {
-        debouncedSave(formState);
+        if (typeof window === 'undefined') {
+            return;
+        }
 
-        // Cleanup: cancel pending debounced calls on unmount
+        if (draftSaveTimerRef.current) {
+            clearTimeout(draftSaveTimerRef.current);
+        }
+
+        draftSaveTimerRef.current = setTimeout(() => {
+            try {
+                // Persist only lightweight draft fields; never persist image binaries.
+                localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(toDraftState(formState)));
+            } catch (error) {
+                console.error('Failed to save draft to localStorage:', error);
+                // Silently fail - draft saving is non-critical
+            } finally {
+                draftSaveTimerRef.current = null;
+            }
+        }, DRAFT_SAVE_DEBOUNCE_MS);
+
+        // Cleanup: cancel pending save on unmount or state change
         return () => {
-            debouncedSave.cancel();
+            if (draftSaveTimerRef.current) {
+                clearTimeout(draftSaveTimerRef.current);
+                draftSaveTimerRef.current = null;
+            }
         };
-    }, [formState, debouncedSave]);
+    }, [formState]);
 
     // Initialize chat session if lookbook exists but session doesn't
     useEffect(() => {

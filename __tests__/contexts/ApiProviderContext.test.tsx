@@ -5,7 +5,7 @@
  * Validates API context state management including:
  * - API key management (Google)
  * - Model selection and storage
- * - localStorage persistence for Google API key and model selections
+ * - localStorage persistence for model selections (API key is memory-only)
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -112,15 +112,23 @@ describe('ApiProviderContext', () => {
       expect(result.current.googleApiKey).toBeNull();
     });
 
-    it('loads Google API key from localStorage on mount', () => {
+    it('clears legacy Google API key from localStorage on mount', () => {
+      renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_api_key');
+    });
+
+    it('does not load Google API key from localStorage on mount', () => {
       localStorageMock.getItem.mockReturnValueOnce('stored-api-key');
 
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('google_api_key');
-      expect(result.current.googleApiKey).toBe('stored-api-key');
+      expect(localStorageMock.getItem).not.toHaveBeenCalledWith('google_api_key');
+      expect(result.current.googleApiKey).toBeNull();
     });
 
     it('loads model selections from localStorage on mount when valid', () => {
@@ -162,7 +170,7 @@ describe('ApiProviderContext', () => {
   });
 
   describe('setGoogleApiKey', () => {
-    it('persists key to localStorage when setting a value', () => {
+    it('keeps key in memory only when setting a value', () => {
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
@@ -171,7 +179,7 @@ describe('ApiProviderContext', () => {
         result.current.setGoogleApiKey('new-api-key');
       });
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('google_api_key', 'new-api-key');
+      expect(localStorageMock.setItem).not.toHaveBeenCalledWith('google_api_key', 'new-api-key');
       expect(result.current.googleApiKey).toBe('new-api-key');
     });
 
@@ -187,10 +195,12 @@ describe('ApiProviderContext', () => {
       expect(mockSetGeminiApiKey).toHaveBeenCalledWith('test-key');
     });
 
-    it('removes key from localStorage when setting null', () => {
+    it('clears in-memory key when setting null', () => {
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
+
+      const removeCallsBefore = localStorageMock.removeItem.mock.calls.length;
 
       // First set a key
       act(() => {
@@ -202,7 +212,7 @@ describe('ApiProviderContext', () => {
         result.current.setGoogleApiKey(null);
       });
 
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_api_key');
+      expect(localStorageMock.removeItem.mock.calls.length).toBe(removeCallsBefore);
       expect(result.current.googleApiKey).toBeNull();
       expect(mockSetGeminiApiKey).toHaveBeenLastCalledWith(null);
     });

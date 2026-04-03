@@ -28,8 +28,6 @@ export default defineConfig(({ mode }) => {
           'react-dom',
           'react/jsx-runtime', // Explicitly include JSX runtime
           '@google/genai',
-          'axios',
-          'lodash-es', // Tree-shakeable ES modules version
         ],
         // Force dependency re-optimization on config changes
         force: false,
@@ -56,7 +54,6 @@ export default defineConfig(({ mode }) => {
               // Vendor chunks - separate large dependencies
               'vendor-react': ['react', 'react-dom'],
               'vendor-genai': ['@google/genai'],
-              'vendor-axios': ['axios'],
             }
           }
         },
