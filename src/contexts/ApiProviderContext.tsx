@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
 import { setGeminiApiKey } from '../services/apiClient';
 
@@ -48,9 +48,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     },
   };
 
-  const [googleApiKey, setGoogleApiKeyState] = useState<string | null>(() => {
-      return safeStorage.getItem('google_api_key');
-  });
+  const [googleApiKey, setGoogleApiKeyState] = useState<string | null>(null);
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
       const saved = safeStorage.getItem(IMAGE_EDIT_MODEL_KEY);
@@ -65,21 +63,9 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return (saved && saved.startsWith('gemini')) ? saved : 'gemini-3-flash-preview';
   });
 
-  // Initialize Gemini client with stored key on mount
-  useEffect(() => {
-      if (googleApiKey) {
-          setGeminiApiKey(googleApiKey);
-      }
-  }, []);
-
   const setGoogleApiKey = (key: string | null) => {
     setGoogleApiKeyState(key);
     setGeminiApiKey(key);
-    if (key) {
-        safeStorage.setItem('google_api_key', key);
-    } else {
-        safeStorage.removeItem('google_api_key');
-    }
   };
 
   const setImageEditModel = (model: ImageEditModel) => {
