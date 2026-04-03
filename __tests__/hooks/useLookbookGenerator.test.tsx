@@ -218,20 +218,37 @@ describe('useLookbookGenerator', () => {
     });
 
     /**
-     * Test: localStorage is disabled by design (no persistence)
-     * See CLAUDE.md: "Local storage persistence is disabled"
+     * Test: localStorage persists only lightweight draft fields (no image binaries)
      */
-    it('should NOT persist form changes to localStorage (disabled by design)', async () => {
+    it('should persist lightweight draft without image binaries', async () => {
       const { result } = renderHook(() => useLookbookGenerator());
 
       act(() => {
-        result.current.updateForm({ clothingDescription: 'New desc' });
+        result.current.updateForm({
+          clothingDescription: 'New desc',
+          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          fabricTextureImage: TEST_FABRIC_IMAGE,
+        });
       });
 
-      // Verify localStorage is NOT called (feature disabled)
-      await waitFor(() => {
-        expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 1100));
       });
+
+      expect(mockLocalStorage.setItem).toHaveBeenCalled();
+
+      const calls = mockLocalStorage.setItem.mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall).toBeDefined();
+      const [, serializedDraft] = lastCall as [string, string];
+      const parsedDraft = JSON.parse(serializedDraft);
+
+      expect(parsedDraft.clothingDescription).toBe('New desc');
+      expect(parsedDraft.clothingSlotCount).toBe(1);
+      expect(parsedDraft.clothingImages).toBeUndefined();
+      expect(parsedDraft.fabricTextureImage).toBeUndefined();
+      expect(serializedDraft).not.toContain(TEST_CLOTHING_IMAGE.base64);
+      expect(serializedDraft).not.toContain(TEST_FABRIC_IMAGE.base64);
     });
 
     /**
