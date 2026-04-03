@@ -58,16 +58,20 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
   const { t } = useLanguage();
 
   // Mannequin background styles derived from translations
-  const MANNEQUIN_BACKGROUND_STYLES: { key: MannequinBackgroundStyleKey; label: string }[] = (
-    Object.keys(t('lookbook.mannequinBackgroundStyles', { returnObjects: true })) as MannequinBackgroundStyleKey[]
-  ).map(key => ({
-    key,
-    label: t(`lookbook.mannequinBackgroundStyles.${key}`),
-  }));
+  const MANNEQUIN_BACKGROUND_STYLES = React.useMemo(() => {
+    return (
+      Object.keys(t('lookbook.mannequinBackgroundStyles', { returnObjects: true })) as MannequinBackgroundStyleKey[]
+    ).map(key => ({
+      key,
+      label: t(`lookbook.mannequinBackgroundStyles.${key}`),
+    }));
+  }, [t]);
 
   const handleSendToAlbum = useCallback((image: ImageFile) => {
     onSendToFeature?.(Feature.PhotoAlbum, image);
   }, [onSendToFeature]);
+
+  const handleClearError = useCallback(() => setError(null), [setError]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
@@ -102,7 +106,7 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
           isLoading={isLoading}
           loadingMessage={loadingMessage}
           error={error}
-          onClearError={() => setError(null)}
+          onClearError={handleClearError}
           variationCount={variationCount}
           onVariationCountChange={setVariationCount}
           refinementHistory={refinementHistory}

@@ -1,3 +1,7 @@
 ## 2026-04-01 - Wrap ImageOptionsPanel with React.memo
 **Learning:** Shared UI components used across many views (e.g. 9 features) can cause widespread unnecessary re-renders if they don't use `React.memo`. `ImageOptionsPanel` (and its child components `AspectRatioSelector` and `ResolutionSelector`) were pure presentational components taking props like `aspectRatio` and `resolution`.
 **Action:** Wrapped these components in `React.memo` to prevent them from re-rendering whenever the parent component updates its internal state unrelated to these options.
+
+## 2026-04-12 - Prevent Output Re-renders by Memoizing Form Props
+**Learning:** Passing unmemoized variables and inline functions down from an orchestrator to child components wrapped in `React.memo` breaks memoization. In `LookbookGenerator`, `buildImageServiceConfig`, `MANNEQUIN_BACKGROUND_STYLES`, and the inline error clearing function were causing both the form and the costly image components in `LookbookOutput` to re-render on *every form keystroke*.
+**Action:** Wrap orchestrator functions in `useCallback` and derived arrays in `useMemo` so that they maintain referential equality across renders, allowing `React.memo` to do its job.
