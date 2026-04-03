@@ -128,7 +128,7 @@ Edit existing files in place. Never create variations like `FeatureV2.tsx` or `U
 <important if="you need to use gstack skills for browsing, QA, review, or deployment">
 
 Use `/gstack-browse` for all web browsing. Never use `mcp__claude-in-chrome__*` tools.
-If gstack skills aren't working: `cd .claude/skills/gstack && ./setup --prefix`
+If gstack skills aren't working: `cd .agents/skills/gstack && ./setup --prefix`
 </important>
 
 <important if="you are using a third-party library you are not fully confident about">
@@ -229,21 +229,21 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 
 | Task | Read this skill file |
 |------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-| Work in the Components area (54 symbols) | `.claude/skills/generated/components/SKILL.md` |
-| Work in the Services area (40 symbols) | `.claude/skills/generated/services/SKILL.md` |
-| Work in the Hooks area (30 symbols) | `.claude/skills/generated/hooks/SKILL.md` |
-| Work in the Gemini area (28 symbols) | `.claude/skills/generated/gemini/SKILL.md` |
-| Work in the Contexts area (15 symbols) | `.claude/skills/generated/contexts/SKILL.md` |
-| Work in the Modals area (14 symbols) | `.claude/skills/generated/modals/SKILL.md` |
-| Work in the Scripts area (11 symbols) | `.claude/skills/generated/scripts/SKILL.md` |
-| Work in the Build area (8 symbols) | `.claude/skills/generated/build/SKILL.md` |
-| Work in the Upscale area (7 symbols) | `.claude/skills/generated/upscale/SKILL.md` |
-| Work in the Cluster_9 area (4 symbols) | `.claude/skills/generated/cluster-9/SKILL.md` |
+| Understand architecture / "How does X work?" | `.agents/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.agents/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.agents/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.agents/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.agents/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.agents/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Work in the Components area (54 symbols) | `.agents/skills/components/SKILL.md` |
+| Work in the Services area (40 symbols) | `.agents/skills/services/SKILL.md` |
+| Work in the Hooks area (30 symbols) | `.agents/skills/hooks/SKILL.md` |
+| Work in the Gemini area (28 symbols) | `.agents/skills/gemini/SKILL.md` |
+| Work in the Contexts area (15 symbols) | `.agents/skills/contexts/SKILL.md` |
+| Work in the Modals area (14 symbols) | `.agents/skills/modals/SKILL.md` |
+| Work in the Scripts area (11 symbols) | `.agents/skills/scripts/SKILL.md` |
+| Work in the Build area (8 symbols) | `.agents/skills/build/SKILL.md` |
+| Work in the Upscale area (7 symbols) | `.agents/skills/upscale/SKILL.md` |
+| Work in the Cluster_9 area (4 symbols) | `.agents/skills/cluster-9/SKILL.md` |
 
 <!-- gitnexus:end -->
