@@ -183,9 +183,9 @@ export const useLookbookGenerator = () => {
 
     const { t } = useLanguage();
     const { imageEditModel, textGenerateModel } = useApi();
-    const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+    const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
         onStatusUpdate,
-    });
+    }), []);
 
     useEffect(() => {
         if (typeof window === 'undefined') {
