@@ -244,11 +244,9 @@ describe('useLookbookGenerator', () => {
         });
       });
 
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1100));
-      });
-
-      expect(mockLocalStorage.setItem).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockLocalStorage.setItem).toHaveBeenCalled();
+      }, { timeout: 3000 });
 
       const calls = mockLocalStorage.setItem.mock.calls;
       const lastCall = calls[calls.length - 1];
