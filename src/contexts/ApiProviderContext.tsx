@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
 import { setGeminiApiKey } from '../services/apiClient';
 
@@ -20,6 +20,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const IMAGE_EDIT_MODEL_KEY = 'image_edit_model';
   const IMAGE_GENERATE_MODEL_KEY = 'image_generate_model';
   const TEXT_GENERATE_MODEL_KEY = 'text_generate_model';
+  const LEGACY_GOOGLE_API_KEY = 'google_api_key';
 
   const safeStorage = {
     getItem: (key: string) => {
@@ -62,6 +63,11 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const saved = safeStorage.getItem(TEXT_GENERATE_MODEL_KEY);
       return (saved && saved.startsWith('gemini')) ? saved : 'gemini-3-flash-preview';
   });
+
+  // One-time cleanup for old persisted API keys from previous releases.
+  useEffect(() => {
+    safeStorage.removeItem(LEGACY_GOOGLE_API_KEY);
+  }, []);
 
   const setGoogleApiKey = (key: string | null) => {
     setGoogleApiKeyState(key);

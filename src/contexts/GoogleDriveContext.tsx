@@ -60,6 +60,21 @@ const USER_INFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
 /** Time before expiry to trigger refresh (5 minutes in ms) */
 const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
+const LEGACY_SESSION_STORAGE_KEYS = [
+  'gdrive_connected',
+  'gdrive_access_token',
+  'gdrive_token_expires_at',
+  'gdrive_user',
+] as const;
+
+const clearLegacyPersistedSession = () => {
+  try {
+    LEGACY_SESSION_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // Silently fail - cleanup is best effort.
+  }
+};
+
 // ============================================================================
 // Context
 // ============================================================================
@@ -86,6 +101,10 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   /** Flag to indicate silent refresh (no popup) */
   const isSilentRefreshRef = useRef(false);
+
+  useEffect(() => {
+    clearLegacyPersistedSession();
+  }, []);
 
   // --- User Info Fetching ---
   /**
@@ -294,6 +313,8 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
         console.log('[GoogleDrive] Token revoked');
       });
     }
+
+    clearLegacyPersistedSession();
 
     // Clear state
     setAccessToken(null);

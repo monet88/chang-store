@@ -112,6 +112,14 @@ describe('ApiProviderContext', () => {
       expect(result.current.googleApiKey).toBeNull();
     });
 
+    it('clears legacy Google API key from localStorage on mount', () => {
+      renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_api_key');
+    });
+
     it('does not load Google API key from localStorage on mount', () => {
       localStorageMock.getItem.mockReturnValueOnce('stored-api-key');
 
@@ -192,6 +200,8 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
+      const removeCallsBefore = localStorageMock.removeItem.mock.calls.length;
+
       // First set a key
       act(() => {
         result.current.setGoogleApiKey('temp-key');
@@ -202,7 +212,7 @@ describe('ApiProviderContext', () => {
         result.current.setGoogleApiKey(null);
       });
 
-      expect(localStorageMock.removeItem).not.toHaveBeenCalledWith('google_api_key');
+      expect(localStorageMock.removeItem.mock.calls.length).toBe(removeCallsBefore);
       expect(result.current.googleApiKey).toBeNull();
       expect(mockSetGeminiApiKey).toHaveBeenLastCalledWith(null);
     });

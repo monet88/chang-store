@@ -133,6 +133,23 @@ describe('GoogleDriveContext', () => {
     });
   });
 
+  describe('legacy session cleanup', () => {
+    it('removes legacy persisted Google Drive session keys on mount', () => {
+      const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');
+
+      renderHook(() => useGoogleDrive(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(removeItemSpy).toHaveBeenCalledWith('gdrive_connected');
+      expect(removeItemSpy).toHaveBeenCalledWith('gdrive_access_token');
+      expect(removeItemSpy).toHaveBeenCalledWith('gdrive_token_expires_at');
+      expect(removeItemSpy).toHaveBeenCalledWith('gdrive_user');
+
+      removeItemSpy.mockRestore();
+    });
+  });
+
   describe('signIn', () => {
     it('sets error when GOOGLE_CLIENT_ID is not configured', () => {
       // Remove client ID

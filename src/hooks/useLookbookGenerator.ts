@@ -130,7 +130,12 @@ export const useLookbookGenerator = () => {
         if (typeof window === 'undefined') {
             return initialFormState;
         }
-        const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+        let saved: string | null = null;
+        try {
+            saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+        } catch {
+            return initialFormState;
+        }
         if (!saved) {
             return initialFormState;
         }

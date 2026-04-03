@@ -193,6 +193,19 @@ describe('useLookbookGenerator', () => {
       // Should fallback to default state
       expect(result.current.formState.lookbookStyle).toBe('flat lay');
     });
+
+    /**
+     * Test: Hook handles localStorage access errors gracefully
+     */
+    it('should fallback when localStorage.getItem throws', () => {
+      mockLocalStorage.getItem.mockImplementation(() => {
+        throw new Error('SecurityError');
+      });
+
+      const { result } = renderHook(() => useLookbookGenerator());
+
+      expect(result.current.formState.lookbookStyle).toBe('flat lay');
+    });
   });
 
   // ============================================================================
