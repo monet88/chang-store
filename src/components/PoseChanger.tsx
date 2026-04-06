@@ -257,7 +257,11 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
     }
   }
 
-  const anyLoading = isLoading || generationStatus.active || isGeneratingPoseDescription || Object.values(upscalingStates).some(s => s);
+  const anyLoading = isLoading
+    || generationStatus.active
+    || isGeneratingPoseDescription
+    || Object.values(upscalingStates).some(s => s)
+    || Object.values(regeneratingStates).some(s => s);
   const isGenerateDisabled = anyLoading || !subjectImage || (!poseReferenceImage && totalPrompts === 0);
 
   const getButtonText = () => {

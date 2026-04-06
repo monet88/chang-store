@@ -5,6 +5,14 @@ import userEvent from '@testing-library/user-event';
 const editImageMock = vi.fn();
 const upscaleImageMock = vi.fn();
 const generatePoseDescriptionMock = vi.fn();
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+
+  return { promise, resolve };
+};
 
 const testImage = { base64: 'subject-image', mimeType: 'image/png' };
 
@@ -127,5 +135,40 @@ describe('PoseChanger component', () => {
       numberOfImages: 1,
     });
     expect(editImageMock.mock.calls[2]?.[0]?.prompt).toContain('"pose one"');
+  });
+
+  it('disables the generate button while a single-image regeneration is pending', async () => {
+    const deferredRegeneration = createDeferred<{ base64: string; mimeType: string }[]>();
+
+    editImageMock
+      .mockResolvedValueOnce([{ base64: 'result-1', mimeType: 'image/png' }])
+      .mockResolvedValueOnce([{ base64: 'result-2', mimeType: 'image/png' }])
+      .mockImplementationOnce(() => deferredRegeneration.promise);
+
+    const user = userEvent.setup();
+    const onOpenPoseLibrary = vi.fn((onConfirm: (poses: string[]) => void) => {
+      onConfirm(['pose one', 'pose two']);
+    });
+
+    render(<PoseChanger onOpenPoseLibrary={onOpenPoseLibrary} />);
+
+    await user.click(screen.getByRole('button', { name: 'Subject Image::pose-subject-upload' }));
+    await user.click(screen.getByRole('button', { name: 'Browse Library' }));
+    await user.click(screen.getByRole('button', { name: 'Generate 2 Poses' }));
+
+    await waitFor(() => expect(editImageMock).toHaveBeenCalledTimes(2));
+
+    const generateButton = screen.getByRole('button', { name: 'Generate 2 Poses' });
+
+    await user.click(screen.getByRole('button', { name: 'regenerate-Generated pose 1' }));
+
+    await waitFor(() => {
+      expect(editImageMock).toHaveBeenCalledTimes(3);
+      expect(generateButton).toBeDisabled();
+    });
+
+    deferredRegeneration.resolve([{ base64: 'result-1b', mimeType: 'image/png' }]);
+
+    await waitFor(() => expect(generateButton).not.toBeDisabled());
   });
 });

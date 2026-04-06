@@ -127,13 +127,21 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
         return { ...result, pose };
     };
 
-    const handleGenerate = async () => {
+    const getModeInputError = () => {
         if (mode === 'fullModel' && !originalPhoto) {
-            setError(t('photoAlbum.error.noPhoto'));
-            return;
+            return t('photoAlbum.error.noPhoto');
         }
         if (mode === 'faceAndOutfit' && (!faceImage || !outfitImage)) {
-            setError(t('photoAlbum.error.noFaceOrOutfit'));
+            return t('photoAlbum.error.noFaceOrOutfit');
+        }
+
+        return null;
+    };
+
+    const handleGenerate = async () => {
+        const inputError = getModeInputError();
+        if (inputError) {
+            setError(inputError);
             return;
         }
         if (selectedPoses.length === 0) {
@@ -170,6 +178,12 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
     };
 
     const handleRegenerateSingle = async (pose: string) => {
+        const inputError = getModeInputError();
+        if (inputError) {
+            setError(inputError);
+            return;
+        }
+
         setRegeneratingStates(prev => ({ ...prev, [pose]: true }));
         setError(null);
 

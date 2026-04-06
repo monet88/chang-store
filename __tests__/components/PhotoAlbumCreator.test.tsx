@@ -38,6 +38,10 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
       if (key === 'photoAlbum.additionalNotesPlaceholder') return 'Notes placeholder';
       if (key === 'photoAlbum.footwearInstructions') return 'Keep original footwear';
       if (key === 'photoAlbum.generatingStatus') return `Generating ${params?.progress}/${params?.total}`;
+      if (key === 'photoAlbum.error.noPhoto') return 'Please upload the original photo.';
+      if (key === 'photoAlbum.error.noFaceOrOutfit') return 'Please upload both a face and an outfit image.';
+      if (key === 'photoAlbum.error.noPose') return 'Please select at least one pose.';
+      if (key === 'common.generationFailed') return 'Generation Failed';
       if (key === 'framingInstructions.fullBody') return 'Full body framing';
       return key;
     },
@@ -133,5 +137,57 @@ describe('PhotoAlbumCreator component', () => {
       numberOfImages: 1,
     });
     expect(editImageMock.mock.calls[2]?.[0]?.prompt).toContain('Standing straight, facing camera, arms relaxed');
+  });
+
+  it('blocks regeneration when the current mode no longer has the required images', async () => {
+    editImageMock
+      .mockResolvedValueOnce([{ base64: 'album-1', mimeType: 'image/png' }])
+      .mockResolvedValueOnce([{ base64: 'album-2', mimeType: 'image/png' }]);
+
+    const user = userEvent.setup();
+
+    render(<PhotoAlbumCreator />);
+
+    await user.click(screen.getByRole('button', { name: 'Original Photo::pa-original' }));
+    await user.click(screen.getByLabelText('Pose 1'));
+    await user.click(screen.getByLabelText('Pose 2'));
+    await user.click(screen.getByRole('button', { name: 'Generate (2)' }));
+
+    await waitFor(() => expect(editImageMock).toHaveBeenCalledTimes(2));
+
+    await user.click(screen.getByRole('button', { name: 'Face and Outfit' }));
+    await user.click(screen.getByRole('button', { name: 'regenerate-Pose 1' }));
+
+    await waitFor(() => {
+      expect(editImageMock).toHaveBeenCalledTimes(2);
+      expect(screen.getByText('Generation Failed:Please upload both a face and an outfit image.')).toBeInTheDocument();
+    });
+  });
+
+  it('allows regenerating an existing pose after pose selection is cleared', async () => {
+    editImageMock
+      .mockResolvedValueOnce([{ base64: 'album-1', mimeType: 'image/png' }])
+      .mockResolvedValueOnce([{ base64: 'album-2', mimeType: 'image/png' }])
+      .mockResolvedValueOnce([{ base64: 'album-1b', mimeType: 'image/png' }]);
+
+    const user = userEvent.setup();
+
+    render(<PhotoAlbumCreator />);
+
+    await user.click(screen.getByRole('button', { name: 'Original Photo::pa-original' }));
+    await user.click(screen.getByLabelText('Pose 1'));
+    await user.click(screen.getByLabelText('Pose 2'));
+    await user.click(screen.getByRole('button', { name: 'Generate (2)' }));
+
+    await waitFor(() => expect(editImageMock).toHaveBeenCalledTimes(2));
+
+    await user.click(screen.getByRole('button', { name: 'Clear Selection' }));
+    await user.click(screen.getByRole('button', { name: 'regenerate-Pose 1' }));
+
+    await waitFor(() => expect(editImageMock).toHaveBeenCalledTimes(3));
+    expect(editImageMock.mock.calls[2]?.[0]).toMatchObject({
+      images: [testImage],
+      numberOfImages: 1,
+    });
   });
 });
