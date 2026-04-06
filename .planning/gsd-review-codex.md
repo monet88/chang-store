@@ -13,9 +13,9 @@ This is the strongest of the three plans. It stays inside the approved phase bou
 - Explicit export requirements reduce the chance of partial implementation.
 
 ### Concerns
-- `MEDIUM`: The plan omits a dedicated `setMarkerPosition` or `placeMarker` handler, so Plan 12.02 may be forced to compute and mutate marker state inside the component, which conflicts with the ΓÇ£thin UI wrapperΓÇ¥ rule.
+- `MEDIUM`: The plan omits a dedicated `setMarkerPosition` or `placeMarker` handler, so Plan 12.02 may be forced to compute and mutate marker state inside the component, which conflicts with the "thin UI wrapper" rule.
 - `MEDIUM`: Storing both pixel and normalized coordinates in hook state may create drift if the image is resized after placement. For this phase, rendering should ideally derive pixels from normalized coords at render time.
-- `LOW`: It says ΓÇ£uploading new subject images clears the markerΓÇ¥ but does not mention whether toggling mode on should preserve `null` safely across pre-existing images.
+- `LOW`: It says "uploading new subject images clears the marker" but does not mention whether toggling mode on should preserve `null` safely across pre-existing images.
 - `LOW`: No explicit note about type reuse or whether a dedicated marker type should be added to avoid anonymous object spread across files.
 
 ### Suggestions
@@ -29,7 +29,7 @@ This is the strongest of the three plans. It stays inside the approved phase bou
 
 ---
 
-## Plan 12.02: Multi-Person UI ΓÇö Toggle, Overlay, Clear
+## Plan 12.02: Multi-Person UI - Toggle, Overlay, Clear
 
 ### Summary
 This is the right companion to Plan 12.01 and is directionally correct for the phase goals, but it is underspecified. It names the UI surfaces to add, but it does not define enough behavior to guarantee a clean implementation without business logic leaking into the component. As written, it is a decent high-level execution note, not yet a strong implementation plan.
@@ -63,7 +63,7 @@ This is the right companion to Plan 12.01 and is directionally correct for the p
 ## Plan 01.03: Phase 01 Gap Closure
 
 ### Summary
-This plan is the weakest and should not be accepted as part of Phase 01 in its current form. It goes beyond ΓÇ£gap closureΓÇ¥ and materially changes the approved UI design by altering image-list behavior, layout structure, and image-management UX. Some of its goals may be valid as fixes if a prototype exposed real issues, but as written it introduces scope creep, conflicts with the earlier design decisions, and risks pushing component-level logic into a phase that was supposed to remain a lightweight overlay enhancement.
+This plan is the weakest and should not be accepted as part of Phase 01 in its current form. It goes beyond "gap closure" and materially changes the approved UI design by altering image-list behavior, layout structure, and image-management UX. Some of its goals may be valid as fixes if a prototype exposed real issues, but as written it introduces scope creep, conflicts with the earlier design decisions, and risks pushing component-level logic into a phase that was supposed to remain a lightweight overlay enhancement.
 
 ### Strengths
 - It identifies real classes of UI risk: pointer interception, preview sizing, and overlay anchoring.
@@ -73,16 +73,16 @@ This plan is the weakest and should not be accepted as part of Phase 01 in its c
 ### Concerns
 - `HIGH`: Restricting the input list to only the first image is a product behavior change, not a simple UAT fix. It alters the uploader model and may conflict with existing try-on assumptions.
 - `HIGH`: Hiding `MultiImageUploader` and replacing it with a large single-image presentation is a significant layout redesign, not a small phase-boundary adjustment.
-- `HIGH`: Adding dedicated ΓÇ£Remove ImageΓÇ¥ / ΓÇ£Change ImageΓÇ¥ controls expands scope into uploader UX, which was not part of TRYON-01/02/03.
+- `HIGH`: Adding dedicated "Remove Image" / "Change Image" controls expands scope into uploader UX, which was not part of TRYON-01/02/03.
 - `MEDIUM`: It contradicts the earlier decision that the canvas overlay should be lightweight and sit over the existing `<img>` element. This plan effectively restructures the preview flow.
-- `MEDIUM`: ΓÇ£Attach `id="multi-person-overlay"` exactly to this new single image wrapperΓÇ¥ sounds implementation-specific in a brittle way; IDs should not drive layout architecture unless there is a clear consuming dependency.
+- `MEDIUM`: "Attach `id=\"multi-person-overlay\"` exactly to this new single image wrapper" sounds implementation-specific in a brittle way; IDs should not drive layout architecture unless there is a clear consuming dependency.
 - `LOW`: The marker size change from ~24px to 16px may improve precision but directly conflicts with the approved visual design without justification from accessibility or usability evidence.
 
 ### Suggestions
 - Split this into two buckets: actual defect fixes for overlay hit-testing versus product/layout redesign. Only the first belongs in this phase.
 - Keep the existing uploader visible unless there is a documented requirement change; fix pointer interception with wrapper boundaries and `pointer-events` instead of replacing the preview model.
 - Do not change multi-image behavior in Phase 01 unless the requirement explicitly says multi-person mode only supports one subject image.
-- Treat ΓÇ£Remove ImageΓÇ¥ / ΓÇ£Change ImageΓÇ¥ as a separate follow-up plan if needed.
+- Treat "Remove Image" / "Change Image" as a separate follow-up plan if needed.
 - If marker precision is a concern, validate size through UX testing rather than changing the approved marker spec ad hoc.
 
 ### Risk Assessment
@@ -98,4 +98,4 @@ The best path is:
 2. Approve `12.02` after adding concrete overlay/coordinate behavior notes.
 3. Reject or heavily trim `01.03` so it only addresses true overlay hit-testing defects, not uploader/layout redesign.
 
-The combined plan set achieves the phase goals only if execution stays centered on `12.01 + 12.02`. `01.03` in its current form is the main source of delivery risk because it expands the feature from ΓÇ£toggle + place + clear markerΓÇ¥ into a broader preview and uploader rework.
+The combined plan set achieves the phase goals only if execution stays centered on `12.01 + 12.02`. `01.03` in its current form is the main source of delivery risk because it expands the feature from "toggle + place + clear marker" into a broader preview and uploader rework.
