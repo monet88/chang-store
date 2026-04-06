@@ -139,7 +139,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Chang-Store** (1156 symbols, 2129 relationships, 72 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **Chang-Store** (1159 symbols, 2155 relationships, 75 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -235,15 +235,5 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-| Work in the Components area (54 symbols) | `.claude/skills/generated/components/SKILL.md` |
-| Work in the Services area (40 symbols) | `.claude/skills/generated/services/SKILL.md` |
-| Work in the Hooks area (30 symbols) | `.claude/skills/generated/hooks/SKILL.md` |
-| Work in the Gemini area (28 symbols) | `.claude/skills/generated/gemini/SKILL.md` |
-| Work in the Contexts area (15 symbols) | `.claude/skills/generated/contexts/SKILL.md` |
-| Work in the Modals area (14 symbols) | `.claude/skills/generated/modals/SKILL.md` |
-| Work in the Scripts area (11 symbols) | `.claude/skills/generated/scripts/SKILL.md` |
-| Work in the Build area (8 symbols) | `.claude/skills/generated/build/SKILL.md` |
-| Work in the Upscale area (7 symbols) | `.claude/skills/generated/upscale/SKILL.md` |
-| Work in the Cluster_9 area (4 symbols) | `.claude/skills/generated/cluster-9/SKILL.md` |
 
 <!-- gitnexus:end -->

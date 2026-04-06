@@ -17,8 +17,6 @@ import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
-/** Número máximo de imágenes procesadas en paralelo durante batch */
-const BATCH_CONCURRENCY = 3;
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 
 export function useClothingTransfer() {
@@ -181,6 +179,7 @@ export function useClothingTransfer() {
       id: item.id,
       conceptImage: item.conceptImage,
     }));
+    const batchConcurrency = jobs.length;
 
     setIsLoading(true);
     setLoadingMessage(t('clothingTransfer.generatingStatus'));
@@ -202,7 +201,7 @@ export function useClothingTransfer() {
     try {
       await runBoundedWorkers(
         jobs,
-        BATCH_CONCURRENCY,
+        batchConcurrency,
         async (job) => {
           updateConceptItem(job.id, {
             status: 'processing',
