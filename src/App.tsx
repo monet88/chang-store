@@ -29,6 +29,7 @@ const ImageEditor = lazy(() => import('./components/ImageEditor').then(m => ({ d
 const AIEditor = lazy(() => import('./components/AIEditor'));
 const WatermarkRemover = lazy(() => import('./components/WatermarkRemover'));
 const ClothingTransfer = lazy(() => import('./components/ClothingTransfer'));
+const PatternGenerator = lazy(() => import('./components/PatternGenerator'));
 
 // --- Lazy-loaded modal components ---
 const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
@@ -133,6 +134,8 @@ case Feature.AIEditor:
         return <WatermarkRemover key="watermark-remover" />;
       case Feature.ClothingTransfer:
         return <ClothingTransfer key="clothing-transfer" onSendToFeature={handleSendToFeature} />;
+      case Feature.PatternGenerator:
+        return <PatternGenerator key="pattern-generator" />;
       case Feature.ImageEditor:
         return null; // ImageEditor is rendered separately as a modal
       default:

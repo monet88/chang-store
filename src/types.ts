@@ -11,6 +11,7 @@ export enum Feature {
   AIEditor = 'ai-editor',
   WatermarkRemover = 'watermark-remover',
   ClothingTransfer = 'clothing-transfer',
+  PatternGenerator = 'pattern-generator',
 }
 
 export interface ImageFile {

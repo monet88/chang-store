@@ -14,6 +14,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
     { id: Feature.TryOn, label: t('tabs.tryOn') },
     { id: Feature.Lookbook, label: t('tabs.lookbook') },
     { id: Feature.ClothingTransfer, label: t('tabs.clothingTransfer') },
+    { id: Feature.PatternGenerator, label: t('tabs.patternGenerator') },
     { id: Feature.AIEditor, label: t('tabs.aiEditor') },
     { id: Feature.Background, label: t('tabs.background') },
     { id: Feature.Pose, label: t('tabs.pose') },
