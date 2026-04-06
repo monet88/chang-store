@@ -17,6 +17,7 @@ export interface VirtualTryOnPromptInput {
   clothingImages: ImageFile[];
   extraPrompt: string;
   backgroundPrompt: string;
+  isMultiPersonMode?: boolean;
 }
 
 /**
@@ -72,7 +73,7 @@ function buildTaskText(
   input: VirtualTryOnPromptInput,
   isDualGarment: boolean,
 ): string {
-  const { extraPrompt, backgroundPrompt } = input;
+  const { extraPrompt, backgroundPrompt, isMultiPersonMode } = input;
   const dualGarmentRule = isDualGarment
     ? ' The top garment drapes outside the bottom\'s waistband, preserving source hem length exactly.'
     : '';
@@ -85,8 +86,15 @@ function buildTaskText(
     ? `\n${extraPrompt.trim()}`
     : '';
 
+  const multiPersonSection = isMultiPersonMode
+    ? `\n\n[CRITICAL MULTI-PERSON TARGETING]\nThe input image contains multiple people. A highly visible red dot with a white outline has been painted on ONE specific person. YOU MUST ONLY MODIFY THE PERSON WITH THE RED DOT. Leave all other people (without the red dot) in the image EXACTLY as they are. Do not change their clothing, faces, or pose. Only the targeted person with the red dot gets the new outfit.`
+    : '';
+
+  const multiPersonProhibition = isMultiPersonMode ? '\n- Do not modify anyone except the person with the red dot.' : '';
+  const multiPersonRecap = isMultiPersonMode ? ' ONLY modify the person with the red dot.' : '';
+
   return `## TASK
-Replace the subject's entire outfit with the provided garments while preserving their face, hair, skin tone, and body proportions exactly.
+Replace the subject's entire outfit with the provided garments while preserving their face, hair, skin tone, and body proportions exactly.${multiPersonSection}
 
 ## GARMENT RULES
 [CRITICAL] The output clothing must be 100% from the Source images — zero original outfit elements may remain. All tops hang freely outside the waistband with natural hem drape; never tucked in.${dualGarmentRule}
@@ -104,8 +112,8 @@ ${backgroundSection}
 - No tucking tops into pants or skirts.
 - No text, logos, watermarks, extra people.
 - No body/face/hair distortion.
-- No pattern mirroring, shrinking, or duplication.
+- No pattern mirroring, shrinking, or duplication.${multiPersonProhibition}
 
 ## CRITICAL RECAP
-Clothing 100% from Source — zero blending with original. Tops ALWAYS outside waistband. Face/hair/skin preserved exactly. Photorealistic, professional-grade.`;
+Clothing 100% from Source — zero blending with original. Tops ALWAYS outside waistband. Face/hair/skin preserved exactly.${multiPersonRecap} Photorealistic, professional-grade.`;
 }

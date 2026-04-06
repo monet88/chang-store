@@ -79,21 +79,30 @@ body, maintaining its natural 3D shape, drape, and volume.
 - View: Front-facing, straight-on (0° angle)
 - The garment keeps its natural worn shape — NOT flattened, NOT vacuum-sealed
 - NO visible person, mannequin, or hanger — clothing floats in 3D form
+- Garment count must match the source outfit exactly. Do NOT add or remove pieces.
+- If a detail is clearly visible in any source view, preserve it exactly.
+- If a region is hidden or unresolved across all source views, keep only the most likely continuous garment shape. Do NOT invent new buttons, trims, pockets, labels, logos, embroidery, lining details, or closures.
 \${ACCESSORIES_SECTION}
 \${FOOTWEAR_SECTION}
 
-## 4. PRESERVATION (100% accuracy — this is a reference sample for AI)
+## 4. VIEW RECONCILIATION
+- Cross-check all views before deciding any detail.
+- When views differ because of folds or perspective, trust the clearest supported view.
+- Never blend contradictory details from multiple views into a new hybrid design.
+- Do not "improve" symmetry, clean up construction, or add missing decorative elements.
+
+## 5. PRESERVATION (100% accuracy — this is a reference sample for AI)
 Fabric texture & weave | True colors (zero shift) | All seams & stitching |
 Buttons/zippers (exact count, size, position) | Collar/neckline structure |
 Sleeve length & cuff style | Hem shape & finishing | Pockets (type & position) |
 Labels/tags if visible | Elastic, drawstrings, ribbing |
 Internal lining visible at neckline/cuffs (ghost mannequin effect)
 
-## 5. SHEER/TRANSPARENT FABRICS
+## 6. SHEER/TRANSPARENT FABRICS
 If garment has sheer, lace, or mesh sections — render them transparent,
 showing the white background through the fabric. Maintain true opacity level.
 
-## 6. OUTPUT
+## 7. OUTPUT
 - Background: pure white (#FFFFFF), seamless, zero texture
 - Lighting: flat, even, shadowless — optimize for AI detail recognition
 - Shadow: NONE (or absolute minimal beneath garment base)
@@ -102,10 +111,11 @@ showing the white background through the fabric. Maintain true opacity level.
 - Purpose: This is an AI reference sample, NOT a production catalog photo
   Prioritize detail clarity over artistic presentation.
 
-## 7. PROHIBITIONS
+## 8. PROHIBITIONS
 NO human skin/face/hair/hands/feet | NO mannequin texture or stand visible |
 NO hanger | NO background objects | NO color correction or "improvement" |
-NO artistic lighting or shadows | NO stylization — photorealistic only
+NO artistic lighting or shadows | NO stylization — photorealistic only |
+NO invented hidden garment details
 `;
 
 export const CLEAN_FLAT_LAY_PROMPT = `
@@ -130,21 +140,30 @@ Layout rules:
 - Each piece shows its FULL form — NO overlap between pieces
 - Garments laid flat but with NATURAL fabric volume — subtle folds and
   creases as if just carefully placed down, NOT ironed flat
+- Garment count must match the source outfit exactly. Do NOT add or remove pieces.
+- If a detail is clearly visible in any source view, preserve it exactly.
+- If a region is hidden or unresolved across all source views, keep only the most likely continuous garment shape. Do NOT invent new buttons, trims, pockets, labels, logos, embroidery, lining details, or closures.
 \${ACCESSORIES_SECTION}
 \${FOOTWEAR_SECTION}
 
-## 3. PRESERVATION (100% accuracy — this is a reference sample for AI)
+## 3. VIEW RECONCILIATION
+- Cross-check all views before deciding any detail.
+- When views differ because of folds or perspective, trust the clearest supported view.
+- Never blend contradictory details from multiple views into a new hybrid design.
+- Do not "improve" symmetry, clean up construction, or add missing decorative elements.
+
+## 4. PRESERVATION (100% accuracy — this is a reference sample for AI)
 Fabric texture & weave | True colors (zero shift) | All seams & stitching |
 Buttons/zippers (exact count, size, position) | Collar/neckline structure |
 Sleeve length & cuff style | Hem shape & finishing | Pockets (type & position) |
 Waistband, belt loops, fly closure | Labels/tags if visible |
 Elastic, drawstrings, ribbing
 
-## 4. SHEER/TRANSPARENT FABRICS
+## 5. SHEER/TRANSPARENT FABRICS
 If any piece has sheer, lace, or mesh sections — render them transparent,
 showing the white background through the fabric. Maintain true opacity level.
 
-## 5. OUTPUT
+## 6. OUTPUT
 - Background: pure white (#FFFFFF), seamless, zero texture
 - Lighting: flat, even, shadowless — optimize for AI detail recognition
 - Shadow: NONE (or absolute minimal beneath each piece)
@@ -153,10 +172,11 @@ showing the white background through the fabric. Maintain true opacity level.
 - Purpose: This is an AI reference sample, NOT a production catalog photo
   Prioritize detail clarity over artistic presentation.
 
-## 6. PROHIBITIONS
+## 7. PROHIBITIONS
 NO human skin/face/hair/hands/feet | NO mannequin | NO hanger |
 NO background objects | NO color correction | NO artistic lighting or shadow |
-NO overlap between pieces | NO stylization — photorealistic only
+NO overlap between pieces | NO stylization — photorealistic only |
+NO invented hidden garment details
 `;
 
 export type LookbookStyle = 'flat lay' | 'mannequin' | 'hanger' | 'studio background' | 'minimalist showroom' | 'folded' | 'product shot';

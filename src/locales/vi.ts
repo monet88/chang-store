@@ -187,6 +187,9 @@ export const vi: Translation = {
       completed: 'Hoàn tất',
       error: 'Lỗi',
     },
+    multiPersonMode: 'Chế độ nhiều người',
+    multiPersonModeHint: 'Nhấn vào ảnh để đánh dấu người cần thay đồ',
+    clearMarker: 'Xóa điểm đánh dấu',
   },
   lookbook: {
     descriptionError: 'Vui lòng tải lên ảnh quần áo trước để tạo mô tả.',

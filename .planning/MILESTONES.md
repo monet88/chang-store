@@ -1,5 +1,16 @@
 # Project Milestones: Chang-Store
 
+## v1.5 Multi-Person Selective Try-On (Shipped: 2026-04-02)
+
+**Phases completed:** 2 phases, 3 plans, 0 tasks
+
+**Key accomplishments:**
+
+- Status
+- Status
+
+---
+
 ## v1.4 Prompt Library (Shipped: 2026-04-02)
 
 **Phases completed:** 2 phases, 4 plans

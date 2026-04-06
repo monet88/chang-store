@@ -316,3 +316,19 @@ export interface SavedPrompt {
   createdAt: number;
   isCurated?: boolean;
 }
+
+// ============================================
+// MULTI-PERSON TRY-ON TYPES
+// ============================================
+
+/** Marker position for multi-person try-on targeting */
+export interface MarkerPosition {
+  /** Pixel X relative to the rendered image container */
+  x: number;
+  /** Pixel Y relative to the rendered image container */
+  y: number;
+  /** Normalized X (0–1) relative to image natural width — para uso en Phase 13 engine */
+  relX: number;
+  /** Normalized Y (0–1) relative to image natural height — para uso en Phase 13 engine */
+  relY: number;
+}

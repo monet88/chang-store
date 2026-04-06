@@ -14,7 +14,7 @@ import {
   getOrCreateAppFolder,
   uploadImage,
   listImageFiles,
-  downloadImage,
+  downloadAllImages,
   deleteImage as driveDeleteImage,
 } from '../services/googleDriveService';
 
@@ -228,28 +228,23 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       // List all files
       const files = await listImageFiles(accessToken, folderId);
 
-      // Download each file and build gallery images
-      const galleryImages: GalleryImageFile[] = [];
+      const downloadedImages = await downloadAllImages(
+        accessToken,
+        files.map(file => file.id)
+      );
 
-      for (const file of files) {
-        try {
-          const driveImage = await downloadImage(accessToken, file.id);
+      const galleryImages: GalleryImageFile[] = downloadedImages.map((driveImage) => {
+        // Map base64 to fileId
+        imageToFileIdRef.current.set(driveImage.base64, driveImage.id);
 
-          // Map base64 to fileId
-          imageToFileIdRef.current.set(driveImage.base64, driveImage.id);
-
-          galleryImages.push({
-            base64: driveImage.base64,
-            mimeType: driveImage.mimeType,
-            driveFileId: driveImage.id,
-            feature: driveImage.feature,
-            createdAt: driveImage.createdAt,
-          });
-        } catch (err) {
-          console.error(`[Sync] Failed to download ${file.id}:`, err);
-          // Continue with other files
-        }
-      }
+        return {
+          base64: driveImage.base64,
+          mimeType: driveImage.mimeType,
+          driveFileId: driveImage.id,
+          feature: driveImage.feature,
+          createdAt: driveImage.createdAt,
+        };
+      });
 
       setIsInitialLoadComplete(true);
       setSyncStatus('synced');

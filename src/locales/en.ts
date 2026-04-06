@@ -185,6 +185,9 @@ export const en = {
       completed: 'Completed',
       error: 'Failed',
     },
+    multiPersonMode: 'Multi-person mode',
+    multiPersonModeHint: 'Click on subject image to mark target person',
+    clearMarker: 'Clear marker',
   },
   lookbook: {
     descriptionError: 'Please upload a clothing image first to generate a description.',

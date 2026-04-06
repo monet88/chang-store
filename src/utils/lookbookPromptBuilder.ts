@@ -143,8 +143,9 @@ export const buildLookbookPrompt = (
     const descriptionInstruction = `
 
 **Critical Note on Garment Details (IMPORTANT)**:
-- Rely on the following user-provided description to ensure accuracy of the product details.
-- This description is a supplementary source of truth and should be prioritized to clarify the garment's features in the output image.
+- Use the following user-provided description ONLY to clarify garment details that are already visible in, or strongly supported by, the source image(s).
+- The source image(s) remain the primary source of truth. If this description conflicts with any visible evidence in the source image(s), follow the source image(s).
+- Do NOT invent new trims, pockets, buttons, labels, logos, embroidery, closures, or construction details that are not supported by the source image(s).
 - **Detailed Description**: "${clothingDescription.trim()}"
     `.trim();
     prompt += descriptionInstruction;
@@ -425,13 +426,29 @@ const buildProductShotPrompt = (
     ? GHOST_MANNEQUIN_PROMPT
     : CLEAN_FLAT_LAY_PROMPT;
 
-  const accessoriesSection = includeAccessories
-    ? '- INCLUDE all accessories that are part of the outfit: belts, scarves, ties, brooches, pins. Display them alongside the garment pieces.'
-    : '- EXCLUDE all accessories: no belts, scarves, ties, brooches, jewelry. Extract ONLY the core garment pieces.';
+  const accessoriesSection = subType === 'ghost-mannequin'
+    ? (
+      includeAccessories
+        ? '- INCLUDE only accessories clearly visible in the source outfit, such as belts, scarves, ties, brooches, or pins. Present them as separate product elements near the garment without overlap. Do NOT invent hidden accessory details.'
+        : '- EXCLUDE all removable accessories entirely. Do not include belts, scarves, ties, brooches, pins, or jewelry unless they are inseparable parts of the garment itself.'
+    )
+    : (
+      includeAccessories
+        ? '- INCLUDE only accessories clearly visible in the source outfit, such as belts, scarves, ties, brooches, or pins. Display them as separate laid-out items alongside the garment pieces without overlap. Do NOT invent hidden accessory details.'
+        : '- EXCLUDE all removable accessories entirely. Do not include belts, scarves, ties, brooches, pins, or jewelry unless they are inseparable parts of the garment itself.'
+    );
 
-  const footwearSection = includeFootwear
-    ? '- INCLUDE footwear worn by the model. Display shoes/boots as the bottom-most item in the layout, below all garment pieces.'
-    : '- EXCLUDE footwear entirely. Do NOT include any shoes, boots, or sandals.';
+  const footwearSection = subType === 'ghost-mannequin'
+    ? (
+      includeFootwear
+        ? '- INCLUDE only footwear clearly visible in the source outfit. Present the pair separately below the ghost mannequin garment on the same white background. Do NOT invent unseen sole, heel, or trim details.'
+        : '- EXCLUDE footwear entirely. Do NOT include any shoes, boots, or sandals.'
+    )
+    : (
+      includeFootwear
+        ? '- INCLUDE only footwear clearly visible in the source outfit. Display shoes/boots as the bottom-most separate item in the layout, below all garment pieces. Do NOT invent unseen sole, heel, or trim details.'
+        : '- EXCLUDE footwear entirely. Do NOT include any shoes, boots, or sandals.'
+    );
 
   return basePrompt
     .replace('${ACCESSORIES_SECTION}', accessoriesSection)

@@ -10,8 +10,10 @@ import { AddIcon, DeleteIcon } from './Icons';
 import Tooltip from './Tooltip';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import { CloudUploadIcon } from './Icons';
 
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
+import { compressImage } from '../utils/imageUtils';
 
 
 
@@ -53,6 +55,11 @@ const VirtualTryOn: React.FC = () => {
     refinePrompts,
     setRefinePrompts,
     isRefining,
+    isMultiPersonMode,
+    setIsMultiPersonMode,
+    markerPosition,
+    setMarkerPosition,
+    clearMarker,
   } = useVirtualTryOn();
 
   const { t } = useLanguage();
@@ -63,6 +70,24 @@ const VirtualTryOn: React.FC = () => {
   const toggleRefine = (key: string) =>
     setRefineOpen((prev) => ({ ...prev, [key]: !prev[key] }));
 
+  const handleDirectSubjectChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = event.target.files;
+    if (!fileList || fileList.length === 0) return;
+    const file = fileList[0];
+    if (!file.type.startsWith('image/')) return;
+    try {
+      const compressed = await compressImage(file);
+      handleSubjectImagesUpload([compressed]);
+    } catch {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          handleSubjectImagesUpload([{ base64: reader.result.split(',')[1], mimeType: file.type }]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
@@ -73,23 +98,112 @@ const VirtualTryOn: React.FC = () => {
           <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('virtualTryOn.step1')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Tooltip content={t('tooltips.tryOnSubject')} position="right" className="w-full">
-              <div className="space-y-2">
-                <MultiImageUploader
-                  images={subjectImages}
-                  id="subject-upload"
-                  title={t('virtualTryOn.subjectImagesTitle')}
-                  onImagesUpload={handleSubjectImagesUpload}
-                />
-                {subjectImages.length > 0 && (
-                  <button
-                    onClick={clearSubjectImages}
-                    disabled={isLoading}
-                    className="w-full text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {t('virtualTryOn.clearSubjects')}
-                  </button>
-                )}
-              </div>
+                <div className="space-y-2">
+                  <div className="relative">
+                    {isMultiPersonMode && subjectImages.length > 0 ? (
+                      <div className="relative w-full aspect-[3/4] bg-zinc-900/50 rounded-lg overflow-hidden border border-zinc-700 flex items-center justify-center">
+                        <img 
+                          src={`data:${subjectImages[0].mimeType};base64,${subjectImages[0].base64}`}
+                          alt="Target subject"
+                          className="max-w-full max-h-full object-contain pointer-events-none"
+                        />
+                        <div
+                          id="multi-person-overlay"
+                          className="absolute inset-0 cursor-crosshair z-10"
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const y = e.clientY - rect.top;
+                            const relX = x / rect.width;
+                            const relY = y / rect.height;
+                            setMarkerPosition({ x, y, relX, relY });
+                          }}
+                        />
+                        {markerPosition && (
+                          <div
+                            id="multi-person-marker"
+                            className="absolute z-20 pointer-events-none"
+                            style={{
+                              left: `${markerPosition.relX * 100}%`,
+                              top: `${markerPosition.relY * 100}%`,
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              backgroundColor: '#ef4444',
+                              border: '2px solid white',
+                              transform: 'translate(-50%, -50%)',
+                              boxShadow: '0 0 0 2px rgba(239,68,68,0.4)',
+                            }}
+                            aria-label="Multi-person target marker"
+                          />
+                        )}
+                        <label className="absolute top-2 right-2 z-30 cursor-pointer bg-zinc-800/80 hover:bg-zinc-700/90 text-zinc-200 text-xs py-1.5 px-3 rounded-md backdrop-blur shadow-sm border border-zinc-600 transition-all opacity-80 hover:opacity-100 flex items-center gap-1.5">
+                          <CloudUploadIcon className="w-3.5 h-3.5" />
+                          <span>{t('imageEditor.modal.changeImage')}</span>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={handleDirectSubjectChange}
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      <MultiImageUploader
+                        images={subjectImages}
+                        id="subject-upload"
+                        title={t('virtualTryOn.subjectImagesTitle')}
+                        onImagesUpload={handleSubjectImagesUpload}
+                      />
+                    )}
+                  </div>
+                  {subjectImages.length > 0 && (
+                    <button
+                      onClick={clearSubjectImages}
+                      disabled={isLoading}
+                      className="w-full text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isMultiPersonMode ? t('virtualTryOn.clearMarker') + ' & Image' : t('virtualTryOn.clearSubjects')}
+                    </button>
+                  )}
+                  {isMultiPersonMode && subjectImages.length > 0 && markerPosition && (
+                    <button
+                      id="clear-marker-btn"
+                      onClick={clearMarker}
+                      disabled={isLoading}
+                      className="w-full text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {t('virtualTryOn.clearMarker')}
+                    </button>
+                  )}
+                  <div className="flex items-center justify-between py-2">
+                    <span className={`text-sm font-medium transition-colors ${isMultiPersonMode ? 'text-zinc-200' : 'text-zinc-400'}`}>
+                      {t('virtualTryOn.multiPersonMode')}
+                    </span>
+                    <button
+                      id="multi-person-toggle"
+                      type="button"
+                      role="switch"
+                      aria-checked={isMultiPersonMode}
+                      aria-label={t('virtualTryOn.multiPersonMode')}
+                      onClick={() => setIsMultiPersonMode(!isMultiPersonMode)}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900 ${
+                        isMultiPersonMode ? 'bg-amber-500' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${
+                          isMultiPersonMode ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {isMultiPersonMode && (
+                    <p className="text-xs text-zinc-500 text-center">
+                      {t('virtualTryOn.multiPersonModeHint')}
+                    </p>
+                  )}
+                </div>
             </Tooltip>
 
             <div className="flex flex-col gap-3">

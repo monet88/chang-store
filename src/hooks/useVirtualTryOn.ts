@@ -5,12 +5,13 @@ import {
   DEFAULT_IMAGE_RESOLUTION,
   ImageFile,
   ImageResolution,
+  MarkerPosition,
   VirtualTryOnBatchItem,
   VirtualTryOnClothingItem,
 } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
-import { getErrorMessage } from '../utils/imageUtils';
+import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
 import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
@@ -39,6 +40,10 @@ export const useVirtualTryOn = () => {
   const [upscalingStates, setUpscalingStates] = useState<Record<string, boolean>>({});
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Estado de modo multi-persona para selección de objetivo en imágenes con múltiples personas
+  const [isMultiPersonMode, setIsMultiPersonModeState] = useState<boolean>(false);
+  const [markerPosition, setMarkerPosition] = useState<MarkerPosition | null>(null);
 
   // Refine state — per image slot: key = `itemId:index`
   const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
@@ -113,7 +118,22 @@ export const useVirtualTryOn = () => {
 
   const canGenerate = subjectItems.length > 0 && validClothingItems.length > 0;
 
+  // Cuando se desactiva el modo multi-persona, limpiar el marcador automáticamente
+  const setIsMultiPersonMode = useCallback((value: boolean) => {
+    setIsMultiPersonModeState(value);
+    if (!value) {
+      setMarkerPosition(null);
+    }
+  }, []);
+
+  // Limpia el marcador sin cambiar el modo
+  const clearMarker = useCallback(() => {
+    setMarkerPosition(null);
+  }, []);
+
   const handleSubjectImagesUpload = useCallback((images: ImageFile[]) => {
+    // Nueva imagen = nuevo contexto, limpiar marcador obsoleto
+    setMarkerPosition(null);
     let nextItems: VirtualTryOnBatchItem[] = [];
 
     setSubjectItems((prev) => {
@@ -193,11 +213,17 @@ export const useVirtualTryOn = () => {
           });
 
           try {
+            let finalSubjectImage = job.subjectImage;
+            if (isMultiPersonMode && markerPosition) {
+              finalSubjectImage = await compositeMarkerOnImage(job.subjectImage, markerPosition);
+            }
+
             const interleavedParts = buildVirtualTryOnParts({
-              subjectImage: job.subjectImage,
+              subjectImage: finalSubjectImage,
               clothingImages: outfitImages,
               extraPrompt,
               backgroundPrompt,
+              isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
             });
             const results = await editImage(
               {
@@ -245,6 +271,8 @@ export const useVirtualTryOn = () => {
     t,
     updateSubjectItem,
     validClothingItems,
+    isMultiPersonMode,
+    markerPosition,
   ]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
@@ -263,11 +291,17 @@ export const useVirtualTryOn = () => {
     });
 
     try {
+      let finalSubjectImage = targetItem.subjectImage;
+      if (isMultiPersonMode && markerPosition) {
+        finalSubjectImage = await compositeMarkerOnImage(targetItem.subjectImage, markerPosition);
+      }
+
       const interleavedParts = buildVirtualTryOnParts({
-        subjectImage: targetItem.subjectImage,
+        subjectImage: finalSubjectImage,
         clothingImages: outfitImages,
         extraPrompt,
         backgroundPrompt,
+        isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
       });
       const results = await editImage(
         {
@@ -453,5 +487,11 @@ export const useVirtualTryOn = () => {
     refinePrompts,
     setRefinePrompts,
     isRefining,
+    // Multi-person marker state
+    isMultiPersonMode,
+    setIsMultiPersonMode,
+    markerPosition,
+    setMarkerPosition,
+    clearMarker,
   };
 };
