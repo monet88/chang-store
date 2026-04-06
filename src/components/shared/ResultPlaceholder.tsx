@@ -21,7 +21,8 @@ interface ResultPlaceholderProps {
  * Used consistently across VirtualTryOn, BackgroundReplacer, PoseChanger,
  * Relight, VideoGenerator, LookbookOutput, PhotoAlbumCreator, Upscale, AIEditor.
  */
-const ResultPlaceholder: React.FC<ResultPlaceholderProps> = ({
+// ⚡ Bolt Optimization: Wrapped in React.memo to prevent unnecessary re-renders when parent features update state (e.g. while a generation is loading or inputs change)
+const ResultPlaceholder: React.FC<ResultPlaceholderProps> = React.memo(({
   description,
   title,
   className = ''
@@ -37,6 +38,8 @@ const ResultPlaceholder: React.FC<ResultPlaceholderProps> = ({
       <p className="mt-1 text-sm">{description}</p>
     </div>
   );
-};
+});
+
+ResultPlaceholder.displayName = 'ResultPlaceholder';
 
 export default ResultPlaceholder;
