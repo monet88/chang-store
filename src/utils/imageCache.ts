@@ -157,7 +157,14 @@ export class ImageLRUCache<T extends ImageFile = ImageFile> {
    */
   private calculateImageSize(image: ImageFile): number {
     const base64 = image.base64;
-    const padding = (base64.match(/=/g) || []).length;
+    // Base64 padding can only be 0, 1, or 2 '=' characters at the end of the string.
+    // Using string.endsWith is O(1) compared to regex match which is O(N) where N is string length (several MBs).
+    let padding = 0;
+    if (base64.endsWith('==')) {
+      padding = 2;
+    } else if (base64.endsWith('=')) {
+      padding = 1;
+    }
     return Math.floor((base64.length * 3 / 4) - padding);
   }
 
