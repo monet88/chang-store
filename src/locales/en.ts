@@ -1152,6 +1152,8 @@ Do not include any other text or markdown.
     noPatternSelected: 'No pattern selected',
     outputTitle: 'Generated Patterns',
     placeholderText: 'Upload reference images and generate patterns.',
+    patternAlt: 'Pattern {{index}}',
+    patternPreviewAlt: 'Selected pattern preview {{index}}',
   },
   /** Google Drive sync settings and status messages */
   googleDrive: {

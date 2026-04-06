@@ -10,8 +10,8 @@ import { downloadImagesAsZip } from '../utils/zipDownload';
 
 export function usePatternGenerator() {
   const { t } = useLanguage();
-  const { addImage } = useImageGallery();
   const { imageEditModel } = useApi();
+  const { addImage } = useImageGallery();
 
   const [referenceImages, setReferenceImages] = useState<ImageFile[]>([]);
   const [generatedPatterns, setGeneratedPatterns] = useState<ImageFile[]>([]);

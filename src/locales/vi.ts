@@ -1155,6 +1155,8 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     noPatternSelected: 'Chưa chọn mẫu nào',
     outputTitle: 'Mẫu đã tạo',
     placeholderText: 'Tải lên hình ảnh tham chiếu và tạo mẫu hoa văn.',
+    patternAlt: 'Mẫu hoa văn {{index}}',
+    patternPreviewAlt: 'Xem trước mẫu đã chọn {{index}}',
   },
   /** Cài đặt và thông báo trạng thái đồng bộ Google Drive */
   googleDrive: {

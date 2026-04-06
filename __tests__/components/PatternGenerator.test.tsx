@@ -82,7 +82,7 @@ describe('PatternGenerator component', () => {
     expect(screen.getByRole('button', { name: 'patternGenerator.generateButton' })).toBeEnabled();
   });
 
-  it('Download All .zip button is disabled when only 1 pattern', () => {
+  it('Download All .zip button is not rendered when only 1 pattern', () => {
     vi.mocked(usePatternGenerator).mockReturnValue({
       ...defaultHookReturn,
       generatedPatterns: [patternOne],
@@ -91,7 +91,7 @@ describe('PatternGenerator component', () => {
 
     render(<PatternGenerator />);
 
-    expect(screen.getByRole('button', { name: 'patternGenerator.downloadAll' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'patternGenerator.downloadAll' })).toBeNull();
   });
 
   it('Download All .zip button is enabled when 2+ patterns', () => {

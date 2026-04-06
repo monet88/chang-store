@@ -34,6 +34,18 @@ const PatternGenerator: React.FC = () => {
   } = usePatternGenerator();
   const { t } = useLanguage();
 
+  const getPatternAltText = (index: number) => {
+    const translated = t('patternGenerator.patternAlt', { index });
+    return translated === 'patternGenerator.patternAlt' ? `Pattern ${index}` : translated;
+  };
+
+  const getPatternPreviewAltText = (index: number) => {
+    const translated = t('patternGenerator.patternPreviewAlt', { index });
+    return translated === 'patternGenerator.patternPreviewAlt'
+      ? `Selected pattern preview ${index}`
+      : translated;
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
       <div className="flex flex-col gap-6">
@@ -121,7 +133,7 @@ const PatternGenerator: React.FC = () => {
                     >
                       <HoverableImage
                         image={pattern}
-                        altText={`Pattern ${index + 1}`}
+                        altText={getPatternAltText(index + 1)}
                         containerClassName="w-full aspect-square"
                       />
                     </button>
@@ -147,7 +159,7 @@ const PatternGenerator: React.FC = () => {
                       <HoverableImage
                         key={index}
                         image={selectedPattern}
-                        altText={`Selected pattern preview ${index + 1}`}
+                        altText={getPatternPreviewAltText(index + 1)}
                         containerClassName="w-full aspect-square"
                       />
                     ))}
@@ -187,14 +199,15 @@ const PatternGenerator: React.FC = () => {
                   >
                     {t('patternGenerator.downloadSelected')}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleDownloadAllZip}
-                    disabled={generatedPatterns.length <= 1}
-                    className="rounded-lg border border-zinc-700 py-2 text-sm text-zinc-200 hover:border-zinc-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {t('patternGenerator.downloadAll')}
-                  </button>
+                  {generatedPatterns.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={handleDownloadAllZip}
+                      className="rounded-lg border border-zinc-700 py-2 text-sm text-zinc-200 hover:border-zinc-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {t('patternGenerator.downloadAll')}
+                    </button>
+                  )}
                 </div>
               </div>
             </>
