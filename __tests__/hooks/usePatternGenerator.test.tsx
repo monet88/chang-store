@@ -255,4 +255,36 @@ describe('usePatternGenerator', () => {
 
     expect(downloadImagesAsZip).not.toHaveBeenCalled();
   });
+
+  it('canGenerate is false while a refinement is in progress', async () => {
+    const refineSessionMock = {
+      sendRefinement: vi.fn().mockImplementation(
+        () => new Promise<never>(() => {}),
+      ),
+    };
+
+    vi.mocked(editImage).mockResolvedValueOnce([GENERATED_PATTERN_A]);
+    vi.mocked(createImageChatSession).mockReturnValueOnce(refineSessionMock as never);
+
+    const { result } = renderHook(() => usePatternGenerator());
+
+    act(() => {
+      result.current.setReferenceImages([REFERENCE_IMAGE]);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    act(() => {
+      result.current.setRefinePrompt('Make it bolder');
+    });
+
+    act(() => {
+      void result.current.handleRefine();
+    });
+
+    expect(result.current.isRefining).toBe(true);
+    expect(result.current.canGenerate).toBe(false);
+  });
 });

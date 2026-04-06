@@ -30,7 +30,7 @@ export function usePatternGenerator() {
     onStatusUpdate,
   }), []);
 
-  const canGenerate = referenceImages.length > 0 && !isLoading;
+  const canGenerate = referenceImages.length > 0 && !isLoading && !isRefining;
   const canRefine = generatedPatterns.length > 0
     && generatedPatterns[selectedPatternIndex] !== undefined
     && !isRefining
@@ -44,6 +44,10 @@ export function usePatternGenerator() {
   const handleGenerate = useCallback(async () => {
     if (referenceImages.length === 0) {
       setError(t('patternGenerator.inputError'));
+      return;
+    }
+
+    if (isRefining) {
       return;
     }
 
@@ -77,7 +81,7 @@ export function usePatternGenerator() {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [referenceImages, numImages, imageEditModel, buildImageServiceConfig, addImage, t]);
+  }, [referenceImages, numImages, imageEditModel, buildImageServiceConfig, addImage, t, isRefining]);
 
   const handleRefine = useCallback(async () => {
     const currentImage = generatedPatterns[selectedPatternIndex];
