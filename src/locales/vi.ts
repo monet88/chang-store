@@ -18,6 +18,7 @@ export const vi: Translation = {
     aiEditor: 'AI Editor',
     watermarkRemover: 'Xóa Watermark',
     clothingTransfer: 'Chuyển Trang phục',
+    patternGenerator: 'Tạo mẫu hoa văn',
   },
 
   imageUploader: {
@@ -1133,6 +1134,29 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       completed: 'Hoàn tất',
       error: 'Lỗi',
     },
+  },
+  patternGenerator: {
+    title: 'Tạo mẫu hoa văn',
+    providerNotice: 'Công cụ này hiện chỉ sử dụng Gemini chỉnh sửa hình ảnh.',
+    referenceTitle: 'Hình ảnh tham chiếu',
+    referenceHint: 'Tải lên 1 hoặc nhiều hình ảnh tham chiếu để tạo mẫu hoa văn.',
+    numImagesLabel: 'Số lượng mẫu',
+    generateButton: 'Tạo mẫu hoa văn',
+    generatingStatus: 'Đang tạo mẫu hoa văn...',
+    inputError: 'Vui lòng tải lên ít nhất một hình ảnh tham chiếu.',
+    tilingPreview: 'Xem trước ghép lát',
+    tilingToggle: 'Bật/tắt xem trước ghép lát',
+    refineLabel: 'Tinh chỉnh mẫu',
+    refinePlaceholder: 'vd: "Làm hình học hơn"',
+    refineButton: 'Tinh chỉnh',
+    refiningStatus: 'Đang tinh chỉnh...',
+    downloadSelected: 'Tải mẫu đã chọn',
+    downloadAll: 'Tải tất cả (.zip)',
+    noPatternSelected: 'Chưa chọn mẫu nào',
+    outputTitle: 'Mẫu đã tạo',
+    placeholderText: 'Tải lên hình ảnh tham chiếu và tạo mẫu hoa văn.',
+    patternAlt: 'Mẫu hoa văn {{index}}',
+    patternPreviewAlt: 'Xem trước mẫu đã chọn {{index}}',
   },
   /** Cài đặt và thông báo trạng thái đồng bộ Google Drive */
   googleDrive: {
