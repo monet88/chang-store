@@ -16,7 +16,7 @@ import { WATERMARK_PROMPTS } from '../utils/watermark-prompts';
 import HoverableImage from './HoverableImage';
 import Spinner from './Spinner';
 import ResultPlaceholder from './shared/ResultPlaceholder';
-import type { WatermarkBatchItem } from '../types';
+import { Feature, type WatermarkBatchItem } from '../types';
 
 interface WatermarkRemoverOutputProps {
   items: WatermarkBatchItem[];
@@ -173,6 +173,7 @@ export const WatermarkRemoverOutput = React.memo<WatermarkRemoverOutputProps>(({
               <HoverableImage
                 image={item.result || item.original}
                 altText={item.status === 'completed' ? t('watermarkRemover.resultAlt') : t('watermarkRemover.originalAlt')}
+                downloadPrefix={Feature.WatermarkRemover}
               />
 
               {/* Status overlay for non-completed items */}

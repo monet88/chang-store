@@ -630,7 +630,7 @@ describe('useVirtualTryOn', () => {
       await result.current.handleDownloadAll();
     });
 
-    expect(downloadImagesAsZip).toHaveBeenCalledWith([RESULT_A, RESULT_B], 'virtual-tryon-batch');
+    expect(downloadImagesAsZip).toHaveBeenCalledWith([RESULT_A, RESULT_B], 'try-on-batch');
   });
 
   it('sets error when downloading results as a zip fails', async () => {

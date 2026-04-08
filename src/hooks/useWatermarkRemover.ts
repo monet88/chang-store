@@ -12,13 +12,14 @@
 import { useState, useCallback, useMemo } from 'react';
 import { editImage } from '@/services/gemini/image';
 import { downloadImagesAsZip } from '@/utils/zipDownload';
+import { downloadImageAsJpeg } from '@/utils/imageDownload';
 import { 
   getPromptText, 
   DEFAULT_WATERMARK_MODEL,
   DEFAULT_PROMPT_ID,
   type WatermarkModel 
 } from '@/utils/watermark-prompts';
-import type { ImageFile, WatermarkBatchItem, WatermarkConfig } from '@/types';
+import { Feature, type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '@/types';
 
 // ============================================
 // TYPES
@@ -294,14 +295,10 @@ export function useWatermarkRemover(
 
   const downloadItem = useCallback((item: WatermarkBatchItem) => {
     if (!item.result) return;
-    
-    // Create data URL from base64
-    const dataUrl = `data:${item.result.mimeType};base64,${item.result.base64}`;
-    
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `watermark-removed-${item.id}.png`;
-    link.click();
+
+    void downloadImageAsJpeg(item.result, {
+      baseName: `${Feature.WatermarkRemover}-${item.id}`,
+    });
   }, []);
 
   const downloadAllZip = useCallback(async () => {
@@ -310,7 +307,7 @@ export function useWatermarkRemover(
       .map(i => i.result!);
     
     if (successResults.length > 0) {
-      await downloadImagesAsZip(successResults, 'watermark-removed-batch');
+      await downloadImagesAsZip(successResults, `${Feature.WatermarkRemover}-batch`);
     }
   }, [items]);
 

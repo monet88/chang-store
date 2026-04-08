@@ -6,6 +6,7 @@
  */
 import JSZip from 'jszip';
 import type { ImageFile } from '@/types';
+import { buildDownloadFilename, downloadBlob, imageFileToJpegBlob } from '@/utils/imageDownload';
 
 // ============================================
 // MAIN EXPORT
@@ -18,11 +19,7 @@ import type { ImageFile } from '@/types';
  * @param zipFilename - Name for the ZIP file (without .zip extension)
  * @returns Promise that resolves when download is triggered
  * 
- * @example
- * ```ts
- * await downloadImagesAsZip(processedImages, 'watermark-removed');
- * // Downloads: watermark-removed.zip
- * ```
+ * Every image is converted to JPEG before it is added to the archive.
  */
 export async function downloadImagesAsZip(
   images: ImageFile[],
@@ -34,16 +31,14 @@ export async function downloadImagesAsZip(
   }
 
   const zip = new JSZip();
+  const zipEntryPrefix = getZipEntryPrefix(zipFilename);
 
   // Add each image to the ZIP archive
-  images.forEach((image, index) => {
-    // Determine file extension from mimeType
-    const extension = getExtensionFromMimeType(image.mimeType);
-    const filename = `image-${String(index + 1).padStart(3, '0')}.${extension}`;
-    
-    // Add base64 data to ZIP
-    zip.file(filename, image.base64, { base64: true });
-  });
+  for (const [index, image] of images.entries()) {
+    const filename = buildDownloadFilename(zipEntryPrefix, { index: index + 1 });
+    const jpegBlob = await imageFileToJpegBlob(image);
+    zip.file(filename, jpegBlob);
+  }
 
   // Generate ZIP blob and trigger download
   const blob = await zip.generateAsync({ 
@@ -52,7 +47,7 @@ export async function downloadImagesAsZip(
     compressionOptions: { level: 6 }
   });
   
-  triggerBlobDownload(blob, `${zipFilename}.zip`);
+  downloadBlob(blob, `${zipFilename}.zip`);
 }
 
 // ============================================
@@ -60,42 +55,14 @@ export async function downloadImagesAsZip(
 // ============================================
 
 /**
- * Extract file extension from MIME type
- * 
- * @param mimeType - MIME type string (e.g., 'image/png')
- * @returns File extension without dot (e.g., 'png')
+ * Derive a stable feature prefix for files inside the ZIP.
+ *
+ * A caller can keep a friendly archive name like `clothing-transfer-batch.zip`
+ * while the images inside become `clothing-transfer-001.jpg`, etc.
  */
-function getExtensionFromMimeType(mimeType: string): string {
-  const mimeToExt: Record<string, string> = {
-    'image/png': 'png',
-    'image/jpeg': 'jpg',
-    'image/jpg': 'jpg',
-    'image/webp': 'webp',
-    'image/gif': 'gif',
-    'image/bmp': 'bmp',
-  };
-  
-  return mimeToExt[mimeType.toLowerCase()] || 'png';
-}
-
-/**
- * Trigger browser download for a Blob
- * 
- * @param blob - Blob to download
- * @param filename - Filename for download
- */
-function triggerBlobDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  
-  // Append, click, remove
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  // Clean up object URL
-  URL.revokeObjectURL(url);
+function getZipEntryPrefix(zipFilename: string): string {
+  const normalizedName = zipFilename.replace(/\.zip$/i, '');
+  return normalizedName.endsWith('-batch')
+    ? normalizedName.slice(0, -'-batch'.length)
+    : normalizedName;
 }

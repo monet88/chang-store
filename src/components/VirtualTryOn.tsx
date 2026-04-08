@@ -3,6 +3,7 @@ import ImageUploader from './ImageUploader';
 import MultiImageUploader from './MultiImageUploader';
 import Spinner from './Spinner';
 import HoverableImage from './HoverableImage';
+import { Feature } from '../types';
 
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -380,6 +381,7 @@ const VirtualTryOn: React.FC = () => {
                               <HoverableImage
                                 image={image}
                                 altText={`${t('virtualTryOn.subjectBatchLabel', { index: itemIdx + 1 })} - ${t('generatedImage.altText')} ${index + 1}`}
+                                downloadPrefix={Feature.TryOn}
                                 onRegenerate={() => handleRegenerateSingle(item.id)}
                                 onUpscale={() => handleUpscale(image, index, item.id)}
                                 isGenerating={isLoading}

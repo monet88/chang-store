@@ -3,7 +3,7 @@
 
 
 import React, { useState } from 'react';
-import { ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
@@ -254,7 +254,7 @@ const Relight: React.FC = () => {
                     ) : error ? (
                         <div className="p-4 w-full"><ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} /></div>
                     ) : generatedImage ? (
-                        <HoverableImage image={generatedImage} altText="Relit image" onRegenerate={handleRelight} isGenerating={isLoading} />
+                        <HoverableImage image={generatedImage} altText="Relit image" downloadPrefix={Feature.Relight} onRegenerate={handleRelight} isGenerating={isLoading} />
                     ) : (
                         <ResultPlaceholder description={t('relight.outputPanelDescription')} />
                     )}

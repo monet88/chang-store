@@ -60,7 +60,7 @@ const SavedLookbooks: React.FC = () => {
                                     key={index}
                                     image={image}
                                     altText={`Saved lookbook image ${index + 1}`}
-                                    downloadFileName={`saved-lookbook-${set.id}-${index + 1}.png`}
+                                    downloadFileName={`saved-lookbook-${set.id}-${index + 1}`}
                                 />
                             ))}
                         </div>

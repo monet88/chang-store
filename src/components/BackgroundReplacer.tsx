@@ -8,6 +8,7 @@ import { MagicWandIcon } from './Icons';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import { useBackgroundReplacer } from '../hooks/useBackgroundReplacer';
+import { Feature } from '../types';
 
 const BackgroundReplacer: React.FC = () => {
   const { t } = useLanguage();
@@ -213,6 +214,7 @@ const BackgroundReplacer: React.FC = () => {
                     <HoverableImage
                       image={image}
                       altText={`${t('generatedImage.altText')} ${index + 1}`}
+                      downloadPrefix={Feature.Background}
                       onRegenerate={handleGenerate}
                       onUpscale={() => handleUpscale(image, index)}
                       isGenerating={isLoading}

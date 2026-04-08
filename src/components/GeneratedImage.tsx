@@ -38,7 +38,7 @@ const GeneratedImage: React.FC<GeneratedImageProps> = React.memo(({
     return (
         <div className="w-full h-full flex flex-col gap-4">
             <div className="flex-grow relative">
-                <HoverableImage image={image} altText={t('generatedImage.altText')} />
+                <HoverableImage image={image} altText={t('generatedImage.altText')} downloadPrefix="generated-image" />
             </div>
             <div className="flex-shrink-0 bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4">
                 <div className="flex justify-between items-center">

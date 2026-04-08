@@ -15,7 +15,7 @@ import React, { useMemo } from 'react';
 import ImageComparator from '../ImageComparator';
 import Spinner, { ErrorDisplay } from '../Spinner';
 import ResultPlaceholder from '../shared/ResultPlaceholder';
-import { ImageFile, UpscaleQuality, UpscaleQuickModel, UPSCALE_QUICK_MODEL_LABELS } from '../../types';
+import { Feature, ImageFile, UpscaleQuality, UpscaleQuickModel, UPSCALE_QUICK_MODEL_LABELS } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface UpscaleOutputPanelProps {
@@ -58,14 +58,6 @@ const UpscaleOutputPanel: React.FC<UpscaleOutputPanelProps> = ({
   onClearError,
 }) => {
   const { t } = useLanguage();
-
-  /** Context-aware download name: upscale-{quality}-{model}-{timestamp} */
-  const downloadName = useMemo(() => {
-    if (!quality || !model) return undefined;
-    const modelShort = model === 'gemini-3.1-flash-image-preview' ? 'flash' : 'pro';
-    const ts = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
-    return `upscale-${quality}-${modelShort}-${ts}`;
-  }, [quality, model]);
 
   /** Metadata pills for result */
   const resultMeta = useMemo(() => {
@@ -128,7 +120,7 @@ const UpscaleOutputPanel: React.FC<UpscaleOutputPanelProps> = ({
           )}
 
           <div className="flex-grow relative">
-            <ImageComparator before={original} after={result} downloadName={downloadName} />
+            <ImageComparator before={original} after={result} downloadPrefix={Feature.Upscale} />
           </div>
         </div>
       ) : (

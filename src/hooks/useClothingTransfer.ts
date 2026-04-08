@@ -4,6 +4,7 @@ import {
   ClothingTransferBatchItem,
   ClothingTransferReferenceItem,
   DEFAULT_IMAGE_RESOLUTION,
+  Feature,
   ImageFile,
   ImageResolution,
 } from '../types';
@@ -387,7 +388,7 @@ export function useClothingTransfer() {
     if (allResults.length === 0) return;
 
     try {
-      await downloadImagesAsZip(allResults, 'clothing-transfer-batch');
+      await downloadImagesAsZip(allResults, `${Feature.ClothingTransfer}-batch`);
     } catch (err) {
       setError(getErrorMessage(err, t));
     }

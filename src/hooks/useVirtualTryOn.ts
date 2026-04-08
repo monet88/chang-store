@@ -3,6 +3,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   AspectRatio,
   DEFAULT_IMAGE_RESOLUTION,
+  Feature,
   ImageFile,
   ImageResolution,
   MarkerPosition,
@@ -436,7 +437,7 @@ export const useVirtualTryOn = () => {
     if (allResults.length === 0) return;
 
     try {
-      await downloadImagesAsZip(allResults, 'virtual-tryon-batch');
+      await downloadImagesAsZip(allResults, `${Feature.TryOn}-batch`);
     } catch (err) {
       setError(getErrorMessage(err, t));
     }
