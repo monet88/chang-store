@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -491,7 +491,7 @@ export const useLookbookGenerator = () => {
         if (imagesToDownload.length === 0) return;
 
         try {
-            await downloadImagesAsZip(imagesToDownload, 'lookbook-ai-batch');
+            await downloadImagesAsZip(imagesToDownload, `${Feature.Lookbook}-batch`);
         } catch (err) {
             setError(getErrorMessage(err, t));
         }

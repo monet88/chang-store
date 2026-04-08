@@ -5,7 +5,7 @@ import Spinner, { ErrorDisplay, ProgressBar } from './Spinner';
 import HoverableImage from './HoverableImage';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generatePoseDescription } from '../services/textService';
-import { ImageFile, PoseCollection, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution, PoseCollection } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -412,7 +412,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                       key={index}
                       image={image}
                       altText={t('pose.generatedPoseAlt', { index: index + 1 })}
-                      downloadFileName={`generated-pose-${index + 1}.png`}
+                      downloadPrefix={Feature.Pose}
                       onRegenerate={poseReferenceImage ? handleGenerate : () => handleRegenerateSingle(index)}
                       onUpscale={() => handleUpscale(image, index)}
                       isGenerating={generationStatus.active || isLoading || regeneratingStates[index]}

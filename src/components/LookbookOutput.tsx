@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { ImageFile } from '../types';
+import { Feature, ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import HoverableImage from './HoverableImage';
 import Spinner, { ErrorDisplay } from './Spinner';
@@ -189,6 +189,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                   <HoverableImage
                     image={lookbook.main}
                     altText={t('lookbook.tabGeneratedImage')}
+                    downloadPrefix={Feature.Lookbook}
                     onUpscale={() => onUpscale(lookbook.main, 'main')}
                     isUpscaling={upscalingStates['main']}
                     onSendToFeature={onSendToFeature ? () => onSendToFeature(lookbook.main) : undefined}
@@ -297,6 +298,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                         key={i}
                         image={img}
                         altText={t('lookbook.variationAltText', { index: i + 1 })}
+                        downloadPrefix={Feature.Lookbook}
                         onUpscale={() => onUpscale(img, `var-${i}`)}
                         isUpscaling={upscalingStates[`var-${i}`]}
                         onSendToFeature={onSendToFeature ? () => onSendToFeature(img) : undefined}
@@ -333,6 +335,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                         key={i}
                         image={img}
                         altText={t('lookbook.closeUpAltText', { index: i + 1 })}
+                        downloadPrefix={Feature.Lookbook}
                         onUpscale={() => onUpscale(img, `close-${i}`)}
                         isUpscaling={upscalingStates[`close-${i}`]}
                       />

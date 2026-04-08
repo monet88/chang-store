@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ImageFile, AnalyzedItem, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { AnalyzedItem, AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '../services/imageEditingService';
 import { analyzeOutfit } from '../services/textService';
 import type { RedesignPreset } from '../services/gemini/image';
@@ -262,7 +262,7 @@ const OutfitAnalysis: React.FC = () => {
                 <h2 className="text-xl md:text-2xl font-bold text-center mb-8">{t('outfitAnalysis.analysisTitle')}</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
                     <div className="lg:sticky lg:top-8">
-                        {uploadedImage && <HoverableImage image={uploadedImage} altText={t('outfitAnalysis.uploadedAlt')} />}
+                        {uploadedImage && <HoverableImage image={uploadedImage} altText={t('outfitAnalysis.uploadedAlt')} downloadPrefix={Feature.OutfitAnalysis} />}
                     </div>
                     <div className="flex flex-col gap-6">
                         <div className="overflow-x-auto bg-zinc-900/50 rounded-lg border border-zinc-800">
@@ -384,7 +384,7 @@ const OutfitAnalysis: React.FC = () => {
                     <div>
                         <div className="lg:sticky lg:top-8">
                             <h3 className="text-base md:text-lg font-semibold text-center mb-2 text-zinc-400">{t('outfitAnalysis.originalOutfit')}</h3>
-                            {uploadedImage && <HoverableImage image={uploadedImage} altText={t('outfitAnalysis.uploadedAlt')} />}
+                            {uploadedImage && <HoverableImage image={uploadedImage} altText={t('outfitAnalysis.uploadedAlt')} downloadPrefix={Feature.OutfitAnalysis} />}
                         </div>
                     </div>
                     <div className="space-y-8">
@@ -402,6 +402,7 @@ const OutfitAnalysis: React.FC = () => {
                                                 <HoverableImage
                                                     image={image}
                                                     altText={altText}
+                                                    downloadPrefix={Feature.OutfitAnalysis}
                                                     containerClassName="relative group aspect-square w-full bg-zinc-900"
                                                 />
                                                 <div className="p-3 bg-zinc-900 text-center border-t border-zinc-700/50">

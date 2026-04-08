@@ -180,7 +180,7 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose, onEditImage }) => 
                   <HoverableImage
                     image={image}
                     altText={t('gallery.altText', { index: index + 1 })}
-                    downloadFileName={`gallery-image-${index + 1}.png`}
+                    downloadFileName={`gallery-image-${index + 1}`}
                     onDelete={() => deleteImage(image.base64)}
                     onEdit={() => onEditImage(image)}
                   />

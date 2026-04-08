@@ -6,11 +6,13 @@ import { useToast } from './Toast';
 import Spinner from './Spinner';
 import { CloudUploadIcon, DeleteIcon, DownloadIcon, EditorIcon, FullscreenIcon, GalleryIcon, RegenerateIcon, SendIcon } from './Icons';
 import { useImageViewer } from '../contexts/ImageViewerContext';
+import { downloadImageAsJpeg } from '@/utils/imageDownload';
 
 interface HoverableImageProps {
     image: ImageFile;
     altText: string;
     downloadFileName?: string;
+    downloadPrefix?: string;
     onRegenerate?: () => void;
     onUpscale?: () => void;
     onDelete?: () => void;
@@ -25,7 +27,8 @@ interface HoverableImageProps {
 const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
     image,
     altText,
-    downloadFileName = 'generated-image.png',
+    downloadFileName,
+    downloadPrefix = 'generated-image',
     onRegenerate,
     onUpscale,
     onDelete,
@@ -83,6 +86,16 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
             openImageViewer(image);
         }
     };
+
+    const handleDownloadClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        void downloadImageAsJpeg(
+            image,
+            downloadFileName
+                ? { baseName: downloadFileName }
+                : { prefix: downloadPrefix },
+        );
+    }, [downloadFileName, downloadPrefix, image]);
 
     return (
         <>
@@ -174,14 +187,14 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                                 {isUpscaling ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-400"></div> : <CloudUploadIcon className="w-5 h-5" />}
                             </button>
                         )}
-                         <a
-                            href={imageUrl}
-                            download={downloadFileName}
+                         <button
+                            type="button"
+                            onClick={handleDownloadClick}
                             className="p-2.5 bg-amber-600 rounded-full text-white hover:bg-amber-500 transition-colors"
                             aria-label={t('imageActions.download')}
                         >
                             <DownloadIcon className="w-5 h-5" />
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>

@@ -228,6 +228,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                               <HoverableImage
                                 image={image}
                                 altText={`${t('clothingTransfer.conceptBatchLabel', { index: itemIdx + 1 })} - ${t('generatedImage.altText')} ${index + 1}`}
+                                downloadPrefix={Feature.ClothingTransfer}
                                 onRegenerate={() => handleRegenerateSingle(item.id)}
                                 onUpscale={() => handleUpscale(image, index, item.id)}
                                 isGenerating={isLoading}

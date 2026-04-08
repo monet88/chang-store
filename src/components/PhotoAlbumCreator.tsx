@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
@@ -331,6 +331,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                                     <HoverableImage
                                         image={image}
                                         altText={POSE_LABELS[image.pose] || image.pose}
+                                        downloadPrefix={Feature.PhotoAlbum}
                                         onRegenerate={() => handleRegenerateSingle(image.pose)}
                                         isGenerating={isLoading || regeneratingStates[image.pose]}
                                     />

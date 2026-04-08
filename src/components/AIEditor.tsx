@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { ImageFile, AspectRatio, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
@@ -233,6 +233,7 @@ Return the final edited image.`;
             <HoverableImage
               image={resultImage}
               altText="AI Editor result"
+              downloadPrefix={Feature.AIEditor}
               onRegenerate={handleGenerate}
               isGenerating={isLoading}
             />
