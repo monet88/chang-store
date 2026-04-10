@@ -139,7 +139,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Chang-Store** (1159 symbols, 2155 relationships, 75 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **chang-store** (1367 symbols, 2457 relationships, 88 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -155,7 +155,7 @@ This project is indexed by GitNexus as **Chang-Store** (1159 symbols, 2155 relat
 
 1. `gitnexus_query({query: "<error or symptom>"})` — find execution flows related to the issue
 2. `gitnexus_context({name: "<suspect function>"})` — see all callers, callees, and process participation
-3. `READ gitnexus://repo/Chang-Store/process/{processName}` — trace the full execution flow step by step
+3. `READ gitnexus://repo/chang-store/process/{processName}` — trace the full execution flow step by step
 4. For regressions: `gitnexus_detect_changes({scope: "compare", base_ref: "main"})` — see what your branch changed
 
 ## When Refactoring
@@ -194,10 +194,10 @@ This project is indexed by GitNexus as **Chang-Store** (1159 symbols, 2155 relat
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/Chang-Store/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/Chang-Store/clusters` | All functional areas |
-| `gitnexus://repo/Chang-Store/processes` | All execution flows |
-| `gitnexus://repo/Chang-Store/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/chang-store/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/chang-store/clusters` | All functional areas |
+| `gitnexus://repo/chang-store/processes` | All execution flows |
+| `gitnexus://repo/chang-store/process/{name}` | Step-by-step execution trace |
 
 ## Self-Check Before Finishing
 
@@ -229,11 +229,11 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 
 | Task | Read this skill file |
 |------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Understand architecture / "How does X work?" | `.agents/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.agents/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.agents/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.agents/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.agents/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.agents/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
