@@ -1,6 +1,6 @@
 # Chang-Store — Copilot Workspace Instructions
 
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with multiple AI backends (Google Gemini, Local Provider, Anti Provider).
+AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA with a Gemini-only AI backend.
 
 ## Architecture
 
@@ -14,13 +14,7 @@ Component (thin UI) → Hook (state + logic) → Service Facade → Provider API
 LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
 ```
 
-**Service routing** — model prefix determines backend (`src/services/imageEditingService.ts`):
-
-| Prefix | Backend | Service file |
-|--------|---------|-------------|
-| `local--` | Local Provider (REST) | `localProviderService.ts` |
-| `anti--` | Anti Provider (REST) | `antiProviderService.ts` |
-| _(none)_ | Google Gemini SDK | `gemini/image.ts` |
+**Service routing** — `src/services/imageEditingService.ts` stays the unified facade and delegates into `src/services/gemini/*`.
 
 **Path alias**: `@/*` maps to `src/`.
 

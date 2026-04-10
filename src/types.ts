@@ -277,8 +277,8 @@ export interface UpscaleAnalysisReport {
   preservationRisks: PreservationRiskItem[];
 }
 
-/** Provider support status for AI Studio (Gemini-only) */
-export type StudioSupportStatus = 'supported' | 'unsupported_provider' | 'no_api_key';
+/** Support status for AI Studio (Gemini-only) */
+export type StudioSupportStatus = 'supported' | 'no_api_key';
 
 /** Per-image session state stored in the session array */
 export interface UpscaleSessionImage {

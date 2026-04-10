@@ -368,14 +368,14 @@ function normalizeRiskLevel(level: string): 'high' | 'medium' | 'low' {
 }
 
 // ============================================================================
-// checkStudioSupport — provider/key validation
+// checkStudioSupport — Gemini API key validation
 // ============================================================================
 
 /**
- * Checks if AI Studio is supported with the current configuration.
+ * Checks if AI Studio is ready with the current configuration.
  * AI Studio requires an active Gemini API key.
  *
- * @returns `StudioSupportStatus` — 'supported', 'no_api_key', or 'unsupported_provider'
+ * @returns `StudioSupportStatus` — 'supported' or 'no_api_key'
  */
 export function checkStudioSupport(): StudioSupportStatus {
   try {

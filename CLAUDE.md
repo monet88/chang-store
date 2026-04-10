@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Three AI backends: Google Gemini SDK, Local Provider REST, Anti Provider REST.
+AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only AI backend via the Google Gemini SDK.
 
 ## Project map
 
@@ -29,7 +29,7 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Three AI ba
 
 ## Architecture
 
-`Component (thin UI) → Hook (state + logic) → Service Facade → Provider API`
+`Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API`
 
 No React Router — `App.tsx` switches on `Feature` enum with lazy-loading. Path alias: `@/*` → `src/`.
 
@@ -60,13 +60,7 @@ After any substantive code changes, run `npx tsc --noEmit` and `npm run lint` to
 
 <important if="you are modifying service routing, API calls, or provider integration">
 
-Service routing via model name prefix in `src/services/imageEditingService.ts`:
-
-| Prefix | Backend | File |
-|--------|---------|------|
-| `local--` | Local Provider REST | `localProviderService.ts` |
-| `anti--` | Anti Provider REST | `antiProviderService.ts` |
-| _(none)_ | Google Gemini SDK | `gemini/image.ts` |
+Service routing stays centralized in `src/services/imageEditingService.ts` and fans into Gemini service modules under `src/services/gemini/`.
 
 Never bypass `imageEditingService.ts` for API calls. API keys must come from `ApiProviderContext`, never hook state.
 </important>

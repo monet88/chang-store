@@ -691,7 +691,6 @@ export const vi: Translation = {
     guidanceNextUpscale: 'Sẵn sàng! Kích hoạt nâng cấp để cải thiện ảnh.',
     guidanceNextDone: 'Nâng cấp hoàn tất — xem kết quả trong bảng đầu ra.',
     // Độ tin cậy
-    studioUnsupportedProvider: 'AI Studio yêu cầu Google Gemini. Chuyển nhà cung cấp trong Cài đặt.',
     studioNoApiKey: 'Cấu hình API key Gemini trong Cài đặt để sử dụng AI Studio.',
   },
   imageComparator: {

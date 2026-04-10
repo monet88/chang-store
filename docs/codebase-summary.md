@@ -57,7 +57,7 @@ Chang-Store/
 | File | Responsibility |
 |------|----------------|
 | `src/services/apiClient.ts` | Gemini SDK initialization, API key management |
-| `src/services/imageEditingService.ts` | Unified facade routing by model prefix (`local--`, `anti--`, or Gemini) |
+| `src/services/imageEditingService.ts` | Unified Gemini facade for image edit/generate/upscale flows |
 | `src/services/gemini/image.ts` | Gemini image generation/editing |
 | `src/services/gemini/text.ts` | Gemini text generation |
 | `src/services/gemini/video.ts` | Gemini video generation (Veo) |
@@ -89,7 +89,7 @@ Chang-Store/
 |-----------|---------|
 | `Header.tsx` | Sidebar navigation, feature selection |
 | `GalleryButton.tsx` / `GalleryModal.tsx` | Image gallery with Drive sync |
-| `SettingsModal.tsx` | API key configuration, provider selection (Local/Anti/Google) |
+| `SettingsModal.tsx` | API key configuration and Gemini model selection |
 | `ImageUpload.tsx` | Reusable image upload with preview |
 | `Icons.tsx` | SVG icon library |
 
@@ -106,7 +106,7 @@ App.tsx
 
 Feature Component (Thin UI)
   └── useFeatureHook() (Business Logic)
-        ├── useApi() - model selection & prefix routing
+        ├── useApi() - model selection and API key state
         ├── useLanguage() - translations
         ├── useImageGallery() - save results
         ├── useGoogleDrive() - cloud persistence
@@ -117,7 +117,7 @@ Feature Component (Thin UI)
 
 1. **User Input** -> Component state (via hook)
 2. **Generation Trigger** -> Hook calls `imageEditingService`
-3. **Service Routing** -> Based on model prefix (`local--`, `anti--`, or Gemini)
+3. **Service Routing** -> Through Gemini service facades
 4. **API Response** -> `ImageFile` returned to hook
 5. **State Update** -> Component re-renders with results
 6. **Gallery Save** -> `addImage()` persists to session context + Google Drive sync

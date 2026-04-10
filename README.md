@@ -1,6 +1,6 @@
 # Chang-Store: AI-Powered Virtual Fashion Studio
 
-Chang-Store is a modern Single Page Application (SPA) built with React 19, TypeScript, and Vite. It serves as a virtual fashion studio that leverages multiple AI backends (Google Gemini, Local Provider, Anti Provider) to offer advanced image editing and generative fashion features.
+Chang-Store is a modern Single Page Application (SPA) built with React 19, TypeScript, and Vite. It serves as a virtual fashion studio powered by Google Gemini for advanced image editing and generative fashion features.
 
 ## ✨ Features
 
@@ -15,7 +15,7 @@ Chang-Store is a modern Single Page Application (SPA) built with React 19, TypeS
 - **Frontend**: React 19, Vite 6, TypeScript
 - **Styling**: Tailwind CSS v4, PostCSS
 - **State Management**: React Context & Hooks
-- **AI Integration**: Google Gemini SDK (`@google/genai`), Local & Anti Provider REST APIs
+- **AI Integration**: Google Gemini SDK (`@google/genai`)
 - **Testing**: Vitest, React Testing Library
 - **Tooling**: ESLint, TSX
 
@@ -33,14 +33,13 @@ Make sure to populate the `.env.local` file with the following keys:
 
 - `GEMINI_API_KEY`: Google Gemini API key used for the main AI generative features.
 - `GOOGLE_CLIENT_ID`: Google OAuth client ID required for Google Drive synchronization.
-- `VITE_LOCAL_PROVIDER_BASE_URL` / `VITE_LOCAL_PROVIDER_API_KEY`: Endpoints for local or custom AI models.
 
 ## 🏗 Architecture & Code Patterns
 
-The project follows a scalable provider-based architecture:
+The project follows a Gemini-first service architecture:
 
 ```text
-Component (Thin UI) → Hook (State + Logic) → Service Facade → Provider-specific API
+Component (Thin UI) → Hook (State + Logic) → Service Facade → Gemini API
 ```
 
 ### Provider Hierarchy
@@ -50,10 +49,7 @@ Dependencies are managed strictly by the tree order:
 
 ### Service Routing
 
-Generative image features are seamlessly routed based on custom model prefixes within `src/services/imageEditingService.ts`:
-- **`local--*`**: Passes to `src/services/localProviderService.ts` via custom REST API.
-- **`anti--*`**: Passes to `src/services/antiProviderService.ts` via custom REST API.
-- **(No prefix)**: Defaults to the `src/services/gemini/image.ts` utilizing the official Google Gemini SDK.
+Generative image features go through `src/services/imageEditingService.ts`, which delegates to the Gemini service layer in `src/services/gemini/*`.
 
 ## 🧑‍💻 Development
 

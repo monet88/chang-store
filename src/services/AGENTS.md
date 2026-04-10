@@ -1,7 +1,7 @@
 # SERVICES - API Facade Layer
 
 ## OVERVIEW
-Stateless facades routing requests by model prefix to Gemini, Local Provider, or Anti Provider. No state stored here — all state in contexts/hooks.
+Stateless facades delegating requests into Gemini service modules. No state stored here — all state in contexts/hooks.
 
 ## STRUCTURE
 ```
@@ -10,8 +10,6 @@ services/
 ├── textService.ts              # Text generation facade (same prefix routing)
 ├── upscaleAnalysisService.ts   # Multi-phase upscale: analysis + prompt generation
 ├── apiClient.ts                # Gemini SDK singleton + key management
-├── localProviderService.ts     # Local/Proxypal REST calls
-├── antiProviderService.ts      # Anti Provider REST calls
 ├── debugService.ts             # Debug logging (logApiCall, enabled via localStorage)
 ├── googleDriveService.ts       # Cloud storage sync (optional, requires OAuth)
 └── gemini/
@@ -21,12 +19,7 @@ services/
 ```
 
 ## MODEL ROUTING
-```typescript
-// In imageEditingService.ts + textService.ts
-const LOCAL_PREFIX = 'local--';   // → localProviderService
-const ANTI_PREFIX  = 'anti--';    // → antiProviderService
-// Default (no prefix / gemini-*) → Gemini SDK (gemini/image.ts)
-```
+`imageEditingService.ts` and `textService.ts` are Gemini-only facades over the `gemini/*` modules.
 
 ## WHERE TO LOOK
 | Task | File | Notes |
@@ -41,7 +34,6 @@ const ANTI_PREFIX  = 'anti--';    // → antiProviderService
 
 ## ERROR HANDLING
 - i18n error keys: `error.api.safetyBlock`, `error.api.noContent`, etc.
-- `normalizeError()` in Local/Anti services preserves i18n keys
 - Gemini checks: `promptFeedback.blockReason`, empty candidates, `finishReason`
 - Status updates via `onStatusUpdate` callback in service config object
 

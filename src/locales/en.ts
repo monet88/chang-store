@@ -689,7 +689,6 @@ export const en = {
     guidanceNextUpscale: 'Ready! Trigger upscale to enhance your image.',
     guidanceNextDone: 'Upscale complete — review the result in the output panel.',
     // Reliability
-    studioUnsupportedProvider: 'AI Studio requires Google Gemini. Switch your provider in Settings.',
     studioNoApiKey: 'Configure your Gemini API key in Settings to use AI Studio.',
   },
   imageComparator: {

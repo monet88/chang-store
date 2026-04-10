@@ -33,14 +33,14 @@
 │  │  ┌──────────────────────────────────────────────────────────────┐   │    │
 │  │  │            imageEditingService (Unified Facade)               │   │    │
 │  │  └──────────────────────────────────────────────────────────────┘   │    │
-│  │              │                    │               │                  │    │
-│  │              ▼                    ▼               ▼                  │    │
-│  │  ┌────────────────────┐  ┌────────────────┐  ┌──────────────────┐    │    │
-│  │  │   gemini/*         │  │ Local Provider │  │  Anti Provider   │    │    │
-│  │  │  - image.ts        │  │ (REST)         │  │  (REST)          │    │    │
-│  │  │  - text.ts         │  └────────────────┘  └──────────────────┘    │    │
-│  │  │  - video.ts        │                                              │    │
-│  │  └────────────────────┘                                              │    │
+│  │                              │                                         │    │
+│  │                              ▼                                         │    │
+│  │                  ┌──────────────────────────────┐                      │    │
+│  │                  │          gemini/*            │                      │    │
+│  │                  │         - image.ts           │                      │    │
+│  │                  │         - text.ts            │                      │    │
+│  │                  │         - video.ts           │                      │    │
+│  │                  └──────────────────────────────┘                      │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                                    │                                         │
 │                                    ▼                                         │
@@ -61,10 +61,10 @@
 │  │  Google Gemini  │  │  Google Imagen  │  │   Google Veo    │              │
 │  │  (Text + Image) │  │  (Image Gen)    │  │  (Video Gen)    │              │
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘              │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐              │
-│  │  Local Provider │  │  Anti Provider  │  │  Google Drive   │              │
-│  │  (Custom REST)  │  │  (Custom REST)  │  │  (OAuth/Files)  │              │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘              │
+│  ┌─────────────────┐                                                     │
+│  │  Google Drive   │                                                     │
+│  │  (OAuth/Files)  │                                                     │
+│  └─────────────────┘                                                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -72,7 +72,7 @@
 
 ```
 <LanguageProvider>           // i18n context (locale, t())
-  <ApiProvider>              // API keys, model selection, provider config
+  <ApiProvider>              // Gemini API key + model selection
     <GoogleDriveProvider>    // OAuth state, Drive API integration
       <ImageGalleryProvider> // Gallery state with Drive sync + LRU cache
         <ImageViewerProvider>// Fullscreen viewer state
@@ -104,18 +104,16 @@
                      ▼
            ┌──────────────────────┐
            │ imageEditingService  │
-           │   Route by Prefix    │
+           │   Gemini Facade      │
            └──────────┬───────────┘
                       │
-        ┌─────────────┼─────────────┐
-        ▼             ▼             ▼
-┌───────────────┐ ┌───────────┐ ┌───────────┐
-│ geminiService │ │ localProv │ │ antiProv  │
-│ (default)     │ │ (local--) │ │ (anti--)  │
-└───────┬───────┘ └─────┬─────┘ └─────┬─────┘
-        │               │             │
-        └───────────────┼─────────────┘
-                        ▼
+                      ▼
+           ┌──────────────────────┐
+           │ geminiService layer  │
+           │   (image/text/etc.)  │
+           └──────────┬───────────┘
+                      │
+                      ▼
 ┌───────────────────────────────────────┐
 │         External API Response          │
 │         (ImageFile[] or URL)           │
@@ -136,10 +134,6 @@
 ```typescript
 // ApiProviderContext.tsx
 getModelsForFeature(feature: Feature) {
-  // Prefix-based routing logic
-  // local--model-name -> Local Provider
-  // anti--model-name  -> Anti Provider
-  // default           -> Gemini
   return { imageEditModel, imageGenerateModel, videoGenerateModel };
 }
 ```
@@ -149,18 +143,12 @@ getModelsForFeature(feature: Feature) {
 ```typescript
 // imageEditingService.ts
 export const editImage = async (params, model, config) => {
-  if (model.startsWith('local--')) {
-    return localProvider.editImage(params, model.replace('local--', ''));
-  }
-  if (model.startsWith('anti--')) {
-    return antiProvider.editImage(params, model.replace('anti--', ''));
-  }
-  return geminiImageService.editImage(params);
+  return geminiImageService.editImage({ ...params, model });
 };
 ```
 
 ### 4.3 Persistence Strategy
 
-- **LocalStorage**: Stores API keys, provider base URLs, and feature-specific drafts (debounced).
+- **LocalStorage**: Stores API keys, model preferences, and feature-specific drafts (debounced).
 - **Google Drive**: Stores generated images in a dedicated folder. `ImageGalleryContext` manages a local LRU cache and syncs with Drive in the background.
 - **OAuth**: Managed via `GoogleDriveContext` with automatic token refresh.
