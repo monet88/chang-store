@@ -50,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({ activeFeature, setActiveFeature, isOpen
         </button>
       </div>
 
-      <div className="flex-1 overflow-hidden pt-6">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-6">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
             {t('navigation.toolsEyebrow')}
@@ -59,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({ activeFeature, setActiveFeature, isOpen
             {t('navigation.mediaFirstLabel')}
           </span>
         </div>
-        <nav className="h-full overflow-y-auto pr-1">
+        <nav className="min-h-0 flex-1 overflow-y-auto pb-3 pr-1">
           <Tabs activeFeature={activeFeature} setActiveFeature={setActiveFeature} />
         </nav>
       </div>
