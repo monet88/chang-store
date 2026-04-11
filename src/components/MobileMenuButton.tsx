@@ -1,10 +1,3 @@
-/**
- * Mobile hamburger menu button
- *
- * Visible only on screens < lg (1024px).
- * Toggles sidebar visibility on mobile devices.
- */
-
 import React from 'react';
 
 interface MobileMenuButtonProps {
@@ -14,18 +7,18 @@ interface MobileMenuButtonProps {
 const MobileMenuButton: React.FC<MobileMenuButtonProps> = ({ onClick }) => {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-800/90 backdrop-blur-sm rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+      className="fixed left-4 top-4 z-50 rounded-full border border-white/10 bg-black/70 p-3 text-zinc-200 backdrop-blur-xl transition-colors hover:border-white/20 hover:bg-black/85 hover:text-white lg:hidden"
       aria-label="Toggle menu"
     >
-      {/* Hamburger icon */}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
         stroke="currentColor"
-        className="w-6 h-6"
+        className="h-5 w-5"
       >
         <path
           strokeLinecap="round"

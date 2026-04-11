@@ -170,7 +170,7 @@ Return the final edited image.`;
         </div>
 
         {/* Multi-image uploader */}
-        <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+        <div className="workspace-panel p-5">
           <MultiImageUploader
             images={images}
             onImagesUpload={setImages}

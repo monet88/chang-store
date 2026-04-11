@@ -1,12 +1,8 @@
-
-
 import React, { useState, useCallback, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import { Feature, ImageFile } from './types';
 import { ImageGalleryProvider } from './contexts/ImageGalleryContext';
-import GalleryButton from './components/GalleryButton';
-import PromptLibraryFAB from './components/PromptLibraryFAB';
-import { LanguageProvider } from './contexts/LanguageContext';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ApiProvider } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
 import { GoogleDriveProvider } from './contexts/GoogleDriveContext';
@@ -14,11 +10,10 @@ import { ToastProvider } from './components/Toast';
 import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
 import MobileOverlay from './components/MobileOverlay';
+import UtilityDock from './components/UtilityDock';
 
-// --- Lazy-loaded feature components for code splitting ---
-// These components are loaded on-demand to reduce initial bundle size
 const VirtualTryOn = lazy(() => import('./components/VirtualTryOn'));
-const LookbookGenerator = lazy(() => import('./components/LookbookGenerator').then(m => ({ default: m.LookbookGenerator })));
+const LookbookGenerator = lazy(() => import('./components/LookbookGenerator'));
 const BackgroundReplacer = lazy(() => import('./components/BackgroundReplacer'));
 const PoseChanger = lazy(() => import('./components/PoseChanger'));
 const PhotoAlbumCreator = lazy(() => import('./components/PhotoAlbumCreator').then(m => ({ default: m.PhotoAlbumCreator })));
@@ -31,20 +26,19 @@ const WatermarkRemover = lazy(() => import('./components/WatermarkRemover'));
 const ClothingTransfer = lazy(() => import('./components/ClothingTransfer'));
 const PatternGenerator = lazy(() => import('./components/PatternGenerator'));
 
-// --- Lazy-loaded modal components ---
 const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
 const PromptLibraryModal = lazy(() => import('./components/modals/PromptLibraryModal'));
 const PoseLibraryModal = lazy(() => import('./components/modals/PoseLibraryModal'));
 const SettingsModal = lazy(() => import('./components/modals/SettingsModal').then(m => ({ default: m.SettingsModal })));
 
-/** Loading fallback component for lazy-loaded features */
 const FeatureLoadingFallback: React.FC = () => (
-  <div className="flex items-center justify-center h-full">
+  <div className="flex h-full min-h-[50vh] items-center justify-center">
     <Spinner />
   </div>
 );
 
 const AppContent: React.FC = () => {
+  const { t } = useLanguage();
   const [activeFeature, setActiveFeature] = useState<Feature>(Feature.TryOn);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
@@ -57,7 +51,6 @@ const AppContent: React.FC = () => {
   const [poseConfirmCallback, setPoseConfirmCallback] = useState<{ fn: (poses: string[]) => void } | null>(null);
   const [initialSelectedPoses, setInitialSelectedPoses] = useState<string[]>([]);
 
-  // --- Memoized callbacks to prevent unnecessary re-renders ---
   const handleOpenEditor = useCallback((image: ImageFile) => {
     setImageToEdit(image);
     setActiveFeature(Feature.ImageEditor);
@@ -90,7 +83,6 @@ const AppContent: React.FC = () => {
   const handleToggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
   const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
-  /** Send image to another feature (e.g. Lookbook result → Photo Album as outfit) */
   const handleSendToFeature = useCallback((feature: Feature, image: ImageFile) => {
     setTransferPayload({ feature, image });
     setActiveFeature(feature);
@@ -99,13 +91,81 @@ const AppContent: React.FC = () => {
 
   const clearTransferPayload = useCallback(() => setTransferPayload(null), []);
 
-  // Auto-close sidebar when feature is selected on mobile
   const handleSetActiveFeature = useCallback((feature: Feature) => {
     setActiveFeature(feature);
     setIsSidebarOpen(false);
   }, []);
 
-  /** Renders the active feature component based on current selection */
+  const featureMeta: Record<Feature, { label: string; group: string; description: string }> = {
+    [Feature.TryOn]: {
+      label: t('tabs.tryOn'),
+      group: t('navigation.createLooks.label'),
+      description: t('workspace.flows.tryOn'),
+    },
+    [Feature.Lookbook]: {
+      label: t('tabs.lookbook'),
+      group: t('navigation.createLooks.label'),
+      description: t('workspace.flows.lookbook'),
+    },
+    [Feature.ClothingTransfer]: {
+      label: t('tabs.clothingTransfer'),
+      group: t('navigation.createLooks.label'),
+      description: t('workspace.flows.clothingTransfer'),
+    },
+    [Feature.PatternGenerator]: {
+      label: t('tabs.patternGenerator'),
+      group: t('navigation.createLooks.label'),
+      description: t('workspace.flows.patternGenerator'),
+    },
+    [Feature.AIEditor]: {
+      label: t('tabs.aiEditor'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.aiEditor'),
+    },
+    [Feature.Background]: {
+      label: t('tabs.background'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.background'),
+    },
+    [Feature.Pose]: {
+      label: t('tabs.pose'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.pose'),
+    },
+    [Feature.Relight]: {
+      label: t('tabs.relight'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.relight'),
+    },
+    [Feature.WatermarkRemover]: {
+      label: t('tabs.watermarkRemover'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.watermarkRemover'),
+    },
+    [Feature.ImageEditor]: {
+      label: t('tabs.imageEditor'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.imageEditor'),
+    },
+    [Feature.PhotoAlbum]: {
+      label: t('tabs.photoAlbum'),
+      group: t('navigation.outputStudio.label'),
+      description: t('workspace.flows.photoAlbum'),
+    },
+    [Feature.Upscale]: {
+      label: t('tabs.upscale'),
+      group: t('navigation.outputStudio.label'),
+      description: t('workspace.flows.upscale'),
+    },
+    [Feature.OutfitAnalysis]: {
+      label: t('tabs.outfitAnalysis'),
+      group: t('navigation.analyze.label'),
+      description: t('workspace.flows.outfitAnalysis'),
+    },
+  };
+
+  const currentFeatureMeta = featureMeta[activeFeature] ?? featureMeta[Feature.TryOn];
+
   const renderActiveFeature = () => {
     switch (activeFeature) {
       case Feature.TryOn:
@@ -117,18 +177,20 @@ const AppContent: React.FC = () => {
       case Feature.Pose:
         return <PoseChanger key="pose" onOpenPoseLibrary={handleOpenPoseLibrary} />;
       case Feature.PhotoAlbum:
-        return <PhotoAlbumCreator
-          key="photo-album"
-          transferredImage={transferPayload?.feature === Feature.PhotoAlbum ? transferPayload.image : undefined}
-          onTransferConsumed={clearTransferPayload}
-        />;
+        return (
+          <PhotoAlbumCreator
+            key="photo-album"
+            transferredImage={transferPayload?.feature === Feature.PhotoAlbum ? transferPayload.image : undefined}
+            onTransferConsumed={clearTransferPayload}
+          />
+        );
       case Feature.OutfitAnalysis:
         return <OutfitAnalysis key="outfit-analysis" />;
       case Feature.Relight:
         return <Relight key="relight" />;
       case Feature.Upscale:
         return <Upscale key="upscale" />;
-case Feature.AIEditor:
+      case Feature.AIEditor:
         return <AIEditor key="ai-editor" />;
       case Feature.WatermarkRemover:
         return <WatermarkRemover key="watermark-remover" />;
@@ -137,7 +199,7 @@ case Feature.AIEditor:
       case Feature.PatternGenerator:
         return <PatternGenerator key="pattern-generator" />;
       case Feature.ImageEditor:
-        return null; // ImageEditor is rendered separately as a modal
+        return null;
       default:
         return <VirtualTryOn key="try-on" />;
     }
@@ -145,33 +207,63 @@ case Feature.AIEditor:
 
   return (
     <>
-      <div className="flex w-full min-h-screen bg-transparent">
+      <div className="min-h-screen bg-transparent text-zinc-100">
         <Header
           activeFeature={activeFeature}
           setActiveFeature={handleSetActiveFeature}
-          onOpenSettings={handleOpenSettings}
           isOpen={isSidebarOpen}
           onClose={handleCloseSidebar}
         />
         <MobileMenuButton onClick={handleToggleSidebar} />
         <MobileOverlay isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
-        <div className="flex-1 flex flex-col ml-0 lg:ml-96 min-h-screen">
-          <main className="flex-1 w-full max-w-[1920px] mx-auto px-1 sm:px-4 lg:px-8 py-2 sm:py-4">
-            <div className="relative min-h-full overflow-x-hidden">
-              <Suspense fallback={<FeatureLoadingFallback />}>
-                {renderActiveFeature()}
-              </Suspense>
+
+        <div className="min-h-screen lg:pl-[22rem]">
+          <main className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
+            <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
+              <section className="flex flex-col gap-5 border-b border-white/10 pb-7 sm:flex-row sm:items-end sm:justify-between">
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                    {currentFeatureMeta.group}
+                  </p>
+                  <div className="space-y-2">
+                    <h2 className="text-4xl font-medium tracking-[-0.045em] text-zinc-50 sm:text-5xl">
+                      {currentFeatureMeta.label}
+                    </h2>
+                    <p className="max-w-4xl text-base leading-7 text-zinc-300 sm:text-lg">
+                      {currentFeatureMeta.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="hidden flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400 lg:flex">
+                  <span className="rounded-full border border-white/10 px-3 py-1.5">
+                    {t('workspace.panels.controlRail')}
+                  </span>
+                  <span className="rounded-full border border-white/10 px-3 py-1.5">
+                    {t('workspace.panels.resultStage')}
+                  </span>
+                  <span className="rounded-full border border-white/10 px-3 py-1.5">
+                    {t('navigation.mediaFirstLabel')}
+                  </span>
+                </div>
+              </section>
+
+              <section className="min-h-[60vh]">
+                <Suspense fallback={<FeatureLoadingFallback />}>
+                  {renderActiveFeature()}
+                </Suspense>
+              </section>
             </div>
           </main>
-          <footer className="text-center py-2 text-slate-500 text-xs flex-shrink-0">
-            <p>Powered by Gemini. All images are generated by AI.</p>
-          </footer>
+
         </div>
 
-        <GalleryButton onClick={handleOpenGallery} />
-        <PromptLibraryFAB onClick={handleOpenPromptLibrary} />
+        <UtilityDock
+          onOpenGallery={handleOpenGallery}
+          onOpenPromptLibrary={handleOpenPromptLibrary}
+          onOpenSettings={handleOpenSettings}
+        />
 
-        {/* Lazy-loaded modals wrapped in Suspense */}
         <Suspense fallback={null}>
           {isGalleryOpen && <GalleryModal onClose={handleCloseGallery} onEditImage={handleOpenEditor} />}
           {isPromptLibraryOpen && <PromptLibraryModal isOpen={isPromptLibraryOpen} onClose={handleClosePromptLibrary} />}
@@ -207,9 +299,9 @@ const App: React.FC = () => {
         <ApiProvider>
           <GoogleDriveProvider>
             <ImageGalleryProvider>
-            <ImageViewerProvider>
-              <AppContent />
-            </ImageViewerProvider>
+              <ImageViewerProvider>
+                <AppContent />
+              </ImageViewerProvider>
             </ImageGalleryProvider>
           </GoogleDriveProvider>
         </ApiProvider>

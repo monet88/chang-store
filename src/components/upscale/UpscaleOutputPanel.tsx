@@ -69,7 +69,7 @@ const UpscaleOutputPanel: React.FC<UpscaleOutputPanelProps> = ({
 
   // Glow ring class
   const glowRingClass = showGlow
-    ? 'ring-2 ring-amber-400/60 shadow-[0_0_30px_rgba(251,191,36,0.3)]'
+    ? 'ring-1 ring-white/40'
     : '';
 
   return (
@@ -89,14 +89,14 @@ const UpscaleOutputPanel: React.FC<UpscaleOutputPanelProps> = ({
             onClear={onClearError}
           />
           {errorSuggestion && (
-            <p className="mt-3 text-sm text-amber-400/80 text-center italic">
+            <p className="mt-3 text-sm text-zinc-300 text-center italic">
               💡 {errorSuggestion}
             </p>
           )}
         </div>
       ) : result && original ? (
         <div className="w-full h-full flex flex-col gap-4 absolute inset-0 p-4">
-          <h3 className="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
+          <h3 className="text-xl font-semibold text-center text-zinc-100">
             {t('upscale.comparisonTitle')}
           </h3>
 

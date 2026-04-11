@@ -200,7 +200,7 @@ const Relight: React.FC = () => {
                         <label className="block text-sm font-medium text-zinc-300 text-center mb-2">{t('relight.lightType')}</label>
                         <div className="flex justify-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
                             {(['Natural', '1 Light', '2 Lights', '3 Lights'] as LightType[]).map(lt => (
-                                <button key={lt} onClick={() => setLightType(lt)} className={`px-3 py-1.5 text-xs font-semibold rounded-md ${lightType === lt ? 'bg-amber-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600/80 text-zinc-300'}`}>{lightTypeTranslations[lt]}</button>
+                                <button key={lt} onClick={() => setLightType(lt)} className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-colors ${lightType === lt ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent bg-zinc-700/60 hover:bg-white/5 text-zinc-300 hover:text-zinc-100'}`}>{lightTypeTranslations[lt]}</button>
                             ))}
                         </div>
                     </div>
@@ -210,7 +210,7 @@ const Relight: React.FC = () => {
                                 <label className="block text-sm font-medium text-zinc-300 text-center mb-2">{t('relight.backlightDirection')}</label>
                                 <div className="flex justify-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
                                     {(['Left', 'Center', 'Right'] as BacklightDirection[]).map(dir => (
-                                        <button key={dir} onClick={() => setBacklightDirection(dir)} className={`px-4 py-1.5 text-sm font-semibold rounded-md ${backlightDirection === dir ? 'bg-amber-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600/80 text-zinc-300'}`}>{t(`relight.${dir.toLowerCase()}`)}</button>
+                                        <button key={dir} onClick={() => setBacklightDirection(dir)} className={`px-4 py-1.5 text-sm font-semibold rounded-md border transition-colors ${backlightDirection === dir ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent bg-zinc-700/60 hover:bg-white/5 text-zinc-300 hover:text-zinc-100'}`}>{t(`relight.${dir.toLowerCase()}`)}</button>
                                     ))}
                                 </div>
                             </div>
@@ -225,13 +225,13 @@ const Relight: React.FC = () => {
                         <label className="block text-sm font-medium text-zinc-300 text-center mb-2">{t('relight.quality')}</label>
                         <div className="flex justify-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
                             {(['Standard', '2K', '4K'] as Quality[]).map(q => (
-                                <button key={q} onClick={() => setQuality(q)} className={`px-4 py-1.5 text-sm font-semibold rounded-md ${quality === q ? 'bg-amber-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600/80 text-zinc-300'}`}>{t(`relight.${q.toLowerCase()}`)}</button>
+                                <button key={q} onClick={() => setQuality(q)} className={`px-4 py-1.5 text-sm font-semibold rounded-md border transition-colors ${quality === q ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent bg-zinc-700/60 hover:bg-white/5 text-zinc-300 hover:text-zinc-100'}`}>{t(`relight.${q.toLowerCase()}`)}</button>
                             ))}
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-300 mb-2">{t('relight.additionalPrompt')}</label>
-                        <input type="text" value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} placeholder={t('relight.additionalPromptPlaceholder')} className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-2 text-zinc-200" />
+                        <input type="text" value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} placeholder={t('relight.additionalPromptPlaceholder')} className="workspace-input p-2" />
                     </div>
                     <ImageOptionsPanel
                         aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
@@ -241,7 +241,7 @@ const Relight: React.FC = () => {
                 </div>
 
                 <div className="text-center">
-                    <button onClick={handleRelight} disabled={isLoading || !image} className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105">
+                    <button onClick={handleRelight} disabled={isLoading || !image} className="workspace-button workspace-button-primary px-8 py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
                         {isLoading ? <Spinner /> : t('relight.relightButton')}
                     </button>
                 </div>

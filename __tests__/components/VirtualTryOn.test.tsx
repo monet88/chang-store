@@ -90,9 +90,9 @@ describe('VirtualTryOn component', () => {
   it('renders the multi-subject uploader and disables generate when batch input is incomplete', () => {
     render(<VirtualTryOn />);
 
-    expect(screen.getByText('virtualTryOn.subjectImagesTitle')).toBeInTheDocument();
+    expect(screen.getAllByText('virtualTryOn.subjectImagesTitle').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'virtualTryOn.generateButton' })).toBeDisabled();
-    expect(screen.getByText('virtualTryOn.outputPanelDescription')).toBeInTheDocument();
+    expect(screen.getAllByText('virtualTryOn.outputPanelDescription').length).toBeGreaterThan(0);
   });
 
   it('renders batch results when subject items exist', () => {

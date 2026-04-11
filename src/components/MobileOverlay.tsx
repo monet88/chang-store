@@ -1,10 +1,3 @@
-/**
- * Semi-transparent overlay for mobile sidebar
- *
- * Appears behind sidebar when open on mobile.
- * Click to close sidebar.
- */
-
 import React from 'react';
 
 interface MobileOverlayProps {
@@ -13,13 +6,16 @@ interface MobileOverlayProps {
 }
 
 const MobileOverlay: React.FC<MobileOverlayProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
-    <div
-      className="lg:hidden fixed inset-0 z-20 bg-black/50 backdrop-blur-sm transition-opacity"
+    <button
+      type="button"
+      className="fixed inset-0 z-30 bg-black/70 backdrop-blur-sm lg:hidden"
       onClick={onClose}
-      aria-hidden="true"
+      aria-label="Close navigation"
     />
   );
 };

@@ -87,7 +87,7 @@ const UpscaleEnhanceStep: React.FC<UpscaleEnhanceStepProps> = ({
           disabled={!canUpscale}
           className={`w-full py-3 rounded-xl font-bold text-sm transition-all duration-200 ${
             canUpscale
-              ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:opacity-90 hover:shadow-lg hover:shadow-blue-500/25'
+              ? 'workspace-button-primary border border-white/60 text-zinc-950 hover:bg-white'
               : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
           }`}
         >

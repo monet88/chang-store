@@ -54,20 +54,21 @@ const PatternGenerator: React.FC = () => {
           <p className="text-xs text-center text-zinc-400">{t('patternGenerator.providerNotice')}</p>
         </div>
 
-        <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
-          <h3 className="text-lg font-semibold text-center text-amber-400">{t('patternGenerator.referenceTitle')}</h3>
+        <div className="workspace-panel space-y-4 p-5">
+          <h3 className="text-lg font-semibold text-center text-zinc-100">{t('patternGenerator.referenceTitle')}</h3>
           <p className="text-sm text-center text-zinc-400">{t('patternGenerator.referenceHint')}</p>
           <MultiImageUploader
             images={referenceImages}
             id="pattern-generator-reference-images"
             title={t('patternGenerator.referenceTitle')}
+            hideTitle
             onImagesUpload={setReferenceImages}
           />
 
           <div className="space-y-1">
             <div className="flex items-center justify-between text-sm text-zinc-400">
               <span>{t('patternGenerator.numImagesLabel')}</span>
-              <span className="bg-amber-600 text-white text-xs font-bold rounded-full h-6 w-6 flex-shrink-0 flex items-center justify-center">
+              <span className="bg-zinc-100 text-zinc-950 text-xs font-bold rounded-full h-6 w-6 flex-shrink-0 flex items-center justify-center">
                 {numImages}
               </span>
             </div>
@@ -78,7 +79,7 @@ const PatternGenerator: React.FC = () => {
               step={1}
               value={numImages}
               onChange={(e) => setNumImages(Number(e.target.value))}
-              className="w-full accent-amber-500 cursor-pointer"
+              className="w-full accent-zinc-100 cursor-pointer"
             />
             <div className="flex justify-between text-xs text-zinc-600 select-none">
               <span>1</span><span>2</span><span>3</span><span>4</span>
@@ -88,7 +89,7 @@ const PatternGenerator: React.FC = () => {
           <button
             onClick={handleGenerate}
             disabled={!canGenerate}
-            className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105"
+            className="workspace-button workspace-button-primary w-full px-8 py-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? <Spinner /> : t('patternGenerator.generateButton')}
           </button>
@@ -109,7 +110,7 @@ const PatternGenerator: React.FC = () => {
           )}
 
           {(isLoading || isRefining) && (
-            <p className="text-xs text-amber-300 animate-pulse text-center">
+            <p className="text-xs text-zinc-300 animate-pulse text-center">
               {loadingMessage || (isRefining ? t('patternGenerator.refiningStatus') : t('patternGenerator.generatingStatus'))}
             </p>
           )}
@@ -119,7 +120,7 @@ const PatternGenerator: React.FC = () => {
           ) : (
             <>
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 text-center">
+                <h3 className="text-lg font-semibold text-zinc-100 text-center">
                   {t('patternGenerator.outputTitle')}
                 </h3>
 
@@ -129,7 +130,7 @@ const PatternGenerator: React.FC = () => {
                       key={`${pattern.base64.slice(0, 16)}-${index}`}
                       type="button"
                       onClick={() => setSelectedPatternIndex(index)}
-                      className={`rounded-xl overflow-hidden border transition-colors ${selectedPatternIndex === index ? 'border-amber-400' : 'border-zinc-700 hover:border-zinc-500'}`}
+                      className={`rounded-xl overflow-hidden border transition-colors ${selectedPatternIndex === index ? 'border-white/70' : 'border-zinc-700 hover:border-zinc-500'}`}
                     >
                       <HoverableImage
                         image={pattern}
@@ -147,7 +148,7 @@ const PatternGenerator: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowTilingPreview(!showTilingPreview)}
-                    className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
+                    className="text-xs text-zinc-200 hover:text-white transition-colors"
                   >
                     {t('patternGenerator.tilingToggle')}
                   </button>
@@ -178,13 +179,13 @@ const PatternGenerator: React.FC = () => {
                     onChange={(e) => setRefinePrompt(e.target.value)}
                     placeholder={t('patternGenerator.refinePlaceholder')}
                     rows={3}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                    className="workspace-input px-3 py-2 text-sm"
                   />
                   <button
                     type="button"
                     onClick={handleRefine}
                     disabled={!canRefine || !refinePrompt.trim()}
-                    className="w-full rounded-lg border border-amber-500/40 text-amber-400 py-2 text-sm font-medium hover:border-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="workspace-button w-full px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isRefining ? <Spinner /> : t('patternGenerator.refineButton')}
                   </button>
