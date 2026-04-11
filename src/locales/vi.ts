@@ -1281,12 +1281,66 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     patternPreviewAlt: 'Xem trước mẫu đã chọn {{index}}',
   },
   /** Cài đặt và thông báo trạng thái đồng bộ Google Drive */
+  settingsModal: {
+    eyebrow: 'Thiết lập studio',
+    title: 'Cài đặt ứng dụng',
+    description: 'Cập nhật model mặc định, đồng bộ và chẩn đoán mà không rời khỏi shell biên tập.',
+    closeAria: 'Đóng cài đặt',
+    sections: {
+      models: {
+        title: 'Chọn model mặc định',
+        description: 'Chọn model Gemini và Imagen mặc định cho text, chỉnh sửa ảnh và tạo ảnh.',
+      },
+      cloud: {
+        title: 'Đồng bộ đám mây',
+        description: 'Kết nối Drive để giữ kho thư viện và bản sao lưu studio luôn sẵn sàng.',
+      },
+      data: {
+        title: 'Dữ liệu ứng dụng',
+        description: 'Xem dung lượng trình duyệt, tải bản sao lưu, khôi phục snapshot hoặc đặt lại workspace.',
+      },
+      developer: {
+        title: 'Nhà phát triển',
+        description: 'Bật chẩn đoán khi cần kiểm tra lưu lượng API trong console trình duyệt.',
+      },
+    },
+    fields: {
+      textGeneration: 'Tạo văn bản',
+      imageEditing: 'Chỉnh sửa ảnh',
+      imageGeneration: 'Tạo ảnh',
+    },
+    storage: {
+      title: 'Dung lượng lưu trữ cục bộ',
+      usageHint: 'Đang dùng {{percent}}% hạn mức ước tính của trình duyệt.',
+    },
+    actions: {
+      backup: 'Sao lưu dữ liệu',
+      restore: 'Khôi phục dữ liệu',
+      clear: 'Xóa toàn bộ dữ liệu',
+    },
+    confirmations: {
+      clearAllData: 'Xóa toàn bộ dữ liệu ứng dụng, bao gồm khóa API và thư viện ảnh? Hành động này không thể hoàn tác.',
+    },
+    notifications: {
+      restoreSuccess: 'Đã khôi phục dữ liệu. Trang sẽ tải lại để áp dụng thay đổi.',
+      restoreFailed: 'Khôi phục thất bại: {{message}}',
+      clearSuccess: 'Đã xóa toàn bộ dữ liệu ứng dụng. Trang sẽ tải lại.',
+    },
+    developer: {
+      debugTitle: 'Chế độ debug',
+      debugDescription: 'Ghi log lời gọi API và hoạt động dịch vụ vào console trình duyệt.',
+      toggleDebugAria: 'Bật tắt chế độ debug',
+    },
+    footerHint: 'Các thay đổi model sẽ áp dụng khi bạn lưu panel này.',
+  },
   googleDrive: {
     title: 'Google Drive',
-    description: 'Đồng bộ ảnh thư viện của bạn lên Google Drive để sao lưu và truy cập từ nhiều thiết bị.',
+    description: 'Giữ bản sao lưu thư viện luôn sẵn sàng giữa các phiên và thiết bị.',
     connect: 'Kết nối Google Drive',
     connecting: 'Đang kết nối...',
     disconnect: 'Ngắt kết nối',
+    connected: 'Đã kết nối',
+    dismiss: 'Ẩn',
     privacyNote: 'Chúng tôi chỉ truy cập các tệp do ứng dụng này tạo trong Drive của bạn.',
     lastSynced: 'Lần đồng bộ cuối',
     never: 'Chưa bao giờ',

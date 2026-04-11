@@ -1278,13 +1278,67 @@ Do not include any other text or markdown.
     patternPreviewAlt: 'Selected pattern preview {{index}}',
   },
   /** Google Drive sync settings and status messages */
+  settingsModal: {
+    eyebrow: 'Studio settings',
+    title: 'Application settings',
+    description: 'Update model defaults, sync, and diagnostics without leaving the editorial shell.',
+    closeAria: 'Close settings',
+    sections: {
+      models: {
+        title: 'Default model selection',
+        description: 'Choose the Gemini and Imagen defaults for text, image editing, and image generation.',
+      },
+      cloud: {
+        title: 'Cloud sync',
+        description: 'Connect Drive to keep the gallery archive and studio backups portable.',
+      },
+      data: {
+        title: 'Application data',
+        description: 'Review browser storage, download a backup, restore a snapshot, or reset the workspace.',
+      },
+      developer: {
+        title: 'Developer',
+        description: 'Switch on diagnostics when you need to inspect API traffic in the browser console.',
+      },
+    },
+    fields: {
+      textGeneration: 'Text generation',
+      imageEditing: 'Image editing',
+      imageGeneration: 'Image generation',
+    },
+    storage: {
+      title: 'Local storage usage',
+      usageHint: '{{percent}}% of the estimated browser quota is currently used.',
+    },
+    actions: {
+      backup: 'Backup data',
+      restore: 'Restore data',
+      clear: 'Clear all data',
+    },
+    confirmations: {
+      clearAllData: 'Delete all application data, including API keys and your image gallery? This cannot be undone.',
+    },
+    notifications: {
+      restoreSuccess: 'Data restored successfully. The page will now reload to apply changes.',
+      restoreFailed: 'Restore failed: {{message}}',
+      clearSuccess: 'All application data has been cleared. The page will now reload.',
+    },
+    developer: {
+      debugTitle: 'Debug mode',
+      debugDescription: 'Log API calls and service activity to the browser console.',
+      toggleDebugAria: 'Toggle debug mode',
+    },
+    footerHint: 'Model changes apply when you save this panel.',
+  },
   googleDrive: {
     title: 'Google Drive',
-    description: 'Sync your gallery images to Google Drive for backup and access across devices.',
+    description: 'Keep gallery backups portable across sessions and devices.',
     connect: 'Connect to Google Drive',
     connecting: 'Connecting...',
     disconnect: 'Disconnect',
-    privacyNote: 'We only access the files created by this app in your Drive.',
+    connected: 'Connected',
+    dismiss: 'Dismiss',
+    privacyNote: 'We only access files created by this app in your Drive.',
     lastSynced: 'Last synced',
     never: 'Never',
     justNow: 'Just now',
