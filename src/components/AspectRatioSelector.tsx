@@ -11,15 +11,15 @@ const RATIOS: ImageAspectRatio[] = ['Default', ...IMAGE_ASPECT_RATIOS];
 
 const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = React.memo(({ aspectRatio, setAspectRatio }) => {
   return (
-    <div className="flex items-center gap-2 flex-wrap justify-center">
-      <span className="text-slate-300 font-medium">Aspect Ratio:</span>
-      <div className="flex gap-2 bg-slate-800/50 p-1.5 rounded-lg flex-wrap justify-center">
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      <span className="font-medium text-zinc-300">Aspect Ratio:</span>
+      <div className="flex flex-wrap justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5">
           {RATIOS.map(ratio => (
               <button
                   key={ratio}
                   onClick={() => setAspectRatio(ratio)}
-                  className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                      aspectRatio === ratio ? 'bg-amber-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
+                  className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition-colors duration-200 ${
+                      aspectRatio === ratio ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
                   }`}
               >
                   {ratio}

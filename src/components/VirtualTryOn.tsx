@@ -4,19 +4,21 @@ import MultiImageUploader from './MultiImageUploader';
 import Spinner from './Spinner';
 import HoverableImage from './HoverableImage';
 import { Feature } from '../types';
-
 import { useLanguage } from '../contexts/LanguageContext';
-
-import { AddIcon, DeleteIcon } from './Icons';
+import { AddIcon, DeleteIcon, CloudUploadIcon } from './Icons';
 import Tooltip from './Tooltip';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
-import { CloudUploadIcon } from './Icons';
-
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
 import { compressImage } from '../utils/imageUtils';
 
-
+const panelClass = 'rounded-[28px] border border-white/10 bg-white/[0.04] p-6 sm:p-8';
+const labelClass = 'text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400';
+const sectionTitleClass = 'text-2xl font-medium tracking-[-0.03em] text-zinc-50';
+const helperClass = 'text-base leading-7 text-zinc-300';
+const secondaryButtonClass = 'inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.05] px-5 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-white/25 hover:bg-white/[0.1] hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
+const primaryButtonClass = 'inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#f4f4f2] px-6 py-3.5 text-base font-semibold tracking-[-0.01em] text-[#09090b] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40';
+const textareaClass = 'w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-base leading-7 text-zinc-100 placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20';
 
 const VirtualTryOn: React.FC = () => {
   const {
@@ -64,8 +66,6 @@ const VirtualTryOn: React.FC = () => {
   } = useVirtualTryOn();
 
   const { t } = useLanguage();
-
-  // Track which image slots have the refine bar expanded
   const [refineOpen, setRefineOpen] = React.useState<Record<string, boolean>>({});
 
   const toggleRefine = (key: string) =>
@@ -91,26 +91,57 @@ const VirtualTryOn: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
-      <div className="flex flex-col gap-6">
-        <h2 className="text-xl md:text-2xl font-bold text-center flex-shrink-0">{t('virtualTryOn.title')}</h2>
+    <div className="space-y-6 pb-12">
+      <div className="grid gap-8 xl:grid-cols-[minmax(620px,1fr)_minmax(0,0.85fr)]">
+        <div className="space-y-6">
+          <section className={`${panelClass} space-y-5`}>
+            <div className="space-y-3">
+              <p className={labelClass}>{t('workspace.panels.subjectStage')}</p>
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h3 className={sectionTitleClass}>{t('virtualTryOn.step1')}</h3>
+                  <p className={helperClass}>{t('virtualTryOn.outputPanelDescription')}</p>
+                </div>
+                <div className="inline-flex rounded-full border border-white/10 bg-black/40 p-1">
+                  <button
+                    id="multi-person-toggle-single"
+                    type="button"
+                    onClick={() => setIsMultiPersonMode(false)}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                      !isMultiPersonMode ? 'bg-white text-black' : 'text-zinc-400 hover:text-zinc-100'
+                    }`}
+                  >
+                    {t('workspace.modes.single')}
+                  </button>
+                  <button
+                    id="multi-person-toggle-multi"
+                    type="button"
+                    onClick={() => setIsMultiPersonMode(true)}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                      isMultiPersonMode ? 'bg-white text-black' : 'text-zinc-400 hover:text-zinc-100'
+                    }`}
+                  >
+                    {t('workspace.modes.multi')}
+                  </button>
+                </div>
+              </div>
+            </div>
 
-        <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-          <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('virtualTryOn.step1')}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Tooltip content={t('tooltips.tryOnSubject')} position="right" className="w-full">
-                <div className="space-y-2">
+            <div className="grid gap-7">
+              <Tooltip content={t('tooltips.tryOnSubject')} position="right" className="w-full">
+                <div className="space-y-3">
+                  <p className="text-base font-semibold text-zinc-100">{t('virtualTryOn.subjectImagesTitle')}</p>
                   <div className="relative">
                     {isMultiPersonMode && subjectImages.length > 0 ? (
-                      <div className="relative w-full aspect-[3/4] bg-zinc-900/50 rounded-lg overflow-hidden border border-zinc-700 flex items-center justify-center">
-                        <img 
+                      <div className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-[24px] border border-white/10 bg-black/40">
+                        <img
                           src={`data:${subjectImages[0].mimeType};base64,${subjectImages[0].base64}`}
                           alt="Target subject"
-                          className="max-w-full max-h-full object-contain pointer-events-none"
+                          className="max-h-full max-w-full object-contain pointer-events-none"
                         />
                         <div
                           id="multi-person-overlay"
-                          className="absolute inset-0 cursor-crosshair z-10"
+                          className="absolute inset-0 z-10 cursor-crosshair"
                           onClick={(e) => {
                             const rect = e.currentTarget.getBoundingClientRect();
                             const x = e.clientX - rect.left;
@@ -123,27 +154,20 @@ const VirtualTryOn: React.FC = () => {
                         {markerPosition && (
                           <div
                             id="multi-person-marker"
-                            className="absolute z-20 pointer-events-none"
+                            className="absolute z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-red-500"
                             style={{
                               left: `${markerPosition.relX * 100}%`,
                               top: `${markerPosition.relY * 100}%`,
-                              width: 16,
-                              height: 16,
-                              borderRadius: '50%',
-                              backgroundColor: '#ef4444',
-                              border: '2px solid white',
-                              transform: 'translate(-50%, -50%)',
-                              boxShadow: '0 0 0 2px rgba(239,68,68,0.4)',
                             }}
                             aria-label="Multi-person target marker"
                           />
                         )}
-                        <label className="absolute top-2 right-2 z-30 cursor-pointer bg-zinc-800/80 hover:bg-zinc-700/90 text-zinc-200 text-xs py-1.5 px-3 rounded-md backdrop-blur shadow-sm border border-zinc-600 transition-all opacity-80 hover:opacity-100 flex items-center gap-1.5">
-                          <CloudUploadIcon className="w-3.5 h-3.5" />
+                        <label className="absolute right-3 top-3 z-30 inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-black/65 px-3 py-2 text-xs text-zinc-200 transition-colors hover:border-white/20 hover:bg-black/80">
+                          <CloudUploadIcon className="h-3.5 w-3.5" />
                           <span>{t('imageEditor.modal.changeImage')}</span>
-                          <input 
-                            type="file" 
-                            className="hidden" 
+                          <input
+                            type="file"
+                            className="hidden"
                             accept="image/*"
                             onChange={handleDirectSubjectChange}
                           />
@@ -158,225 +182,231 @@ const VirtualTryOn: React.FC = () => {
                       />
                     )}
                   </div>
+
                   {subjectImages.length > 0 && (
-                    <button
-                      onClick={clearSubjectImages}
-                      disabled={isLoading}
-                      className="w-full text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isMultiPersonMode ? t('virtualTryOn.clearMarker') + ' & Image' : t('virtualTryOn.clearSubjects')}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={clearSubjectImages}
+                        disabled={isLoading}
+                        className={secondaryButtonClass}
+                      >
+                        {isMultiPersonMode ? `${t('virtualTryOn.clearMarker')} & ${t('common.image')}` : t('virtualTryOn.clearSubjects')}
+                      </button>
+                      {isMultiPersonMode && markerPosition && (
+                        <button
+                          id="clear-marker-btn"
+                          type="button"
+                          onClick={clearMarker}
+                          disabled={isLoading}
+                          className={secondaryButtonClass}
+                        >
+                          {t('virtualTryOn.clearMarker')}
+                        </button>
+                      )}
+                    </div>
                   )}
-                  {isMultiPersonMode && subjectImages.length > 0 && markerPosition && (
-                    <button
-                      id="clear-marker-btn"
-                      onClick={clearMarker}
-                      disabled={isLoading}
-                      className="w-full text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {t('virtualTryOn.clearMarker')}
-                    </button>
-                  )}
-                  <div className="flex items-center justify-between py-2">
-                    <span className={`text-sm font-medium transition-colors ${isMultiPersonMode ? 'text-zinc-200' : 'text-zinc-400'}`}>
-                      {t('virtualTryOn.multiPersonMode')}
-                    </span>
-                    <button
-                      id="multi-person-toggle"
-                      type="button"
-                      role="switch"
-                      aria-checked={isMultiPersonMode}
-                      aria-label={t('virtualTryOn.multiPersonMode')}
-                      onClick={() => setIsMultiPersonMode(!isMultiPersonMode)}
-                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900 ${
-                        isMultiPersonMode ? 'bg-amber-500' : 'bg-zinc-700'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${
-                          isMultiPersonMode ? 'translate-x-4' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                  </div>
+
                   {isMultiPersonMode && (
-                    <p className="text-xs text-zinc-500 text-center">
+                    <p className="text-base leading-7 text-zinc-400">
                       {t('virtualTryOn.multiPersonModeHint')}
                     </p>
                   )}
                 </div>
-            </Tooltip>
-
-            <div className="flex flex-col gap-3">
-              <p className="text-xs text-center text-zinc-500">{t('virtualTryOn.sharedOutfitHint')}</p>
-              {clothingItems.map((item, index) => (
-                <div key={item.id} className="relative group">
-                  <Tooltip content={t('tooltips.tryOnClothing')} position="top">
-                    <ImageUploader
-                      image={item.image}
-                      id={`clothing-${item.id}`}
-                      title={t('virtualTryOn.clothingItemTitle', { index: index + 1 })}
-                      onImageUpload={(file) => handleClothingUpload(file, item.id)}
-                    />
-                  </Tooltip>
-                  {clothingItems.length > 1 && (
-                    <button
-                      onClick={() => removeClothingUploader(item.id)}
-                      className="absolute -top-2 -right-2 z-10 p-1 bg-red-600 rounded-full text-white hover:bg-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <DeleteIcon className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <Tooltip content={t('tooltips.tryOnAddClothing')} position="bottom" className="w-full">
-                <button
-                  onClick={addClothingUploader}
-                  disabled={clothingItems.length >= 2}
-                  className="w-full bg-zinc-700/80 text-zinc-200 font-semibold py-2.5 px-4 rounded-lg hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <AddIcon className="w-5 h-5" />
-                  <span>{t('virtualTryOn.addItem')}</span>
-                </button>
               </Tooltip>
-              <p className="text-xs text-zinc-500 mt-1 text-center">{t('virtualTryOn.clothingUploadHint')}</p>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-base font-semibold text-zinc-100">{t('virtualTryOn.step2')}</p>
+                  <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.sharedOutfitHint')}</p>
+                </div>
+                {clothingItems.map((item, index) => (
+                  <div key={item.id} className="relative group">
+                    <Tooltip content={t('tooltips.tryOnClothing')} position="top">
+                      <ImageUploader
+                        image={item.image}
+                        id={`clothing-${item.id}`}
+                        title={t('virtualTryOn.clothingItemTitle', { index: index + 1 })}
+                        onImageUpload={(file) => handleClothingUpload(file, item.id)}
+                      />
+                    </Tooltip>
+                    {clothingItems.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeClothingUploader(item.id)}
+                        className="absolute right-3 top-9 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <DeleteIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <Tooltip content={t('tooltips.tryOnAddClothing')} position="bottom" className="w-full">
+                  <button
+                    type="button"
+                    onClick={addClothingUploader}
+                    disabled={clothingItems.length >= 2}
+                    className={`${secondaryButtonClass} w-full gap-2`}
+                  >
+                    <AddIcon className="h-4 w-4" />
+                    <span>{t('virtualTryOn.addItem')}</span>
+                  </button>
+                </Tooltip>
+                <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.clothingUploadHint')}</p>
+              </div>
             </div>
-          </div>
-        </div>
+          </section>
 
-        <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-          <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('virtualTryOn.step2')}</h3>
-          <div className="space-y-4">
-            <Tooltip content={t('tooltips.tryOnBackground')} position="bottom" className="w-full">
-              <label htmlFor="background-prompt" className="block text-sm font-medium text-center text-zinc-300 mb-2">
-                {t('virtualTryOn.backgroundPromptLabel')}
-              </label>
-              <textarea
-                id="background-prompt"
-                value={backgroundPrompt}
-                onChange={(e) => setBackgroundPrompt(e.target.value)}
-                placeholder={t('virtualTryOn.backgroundPromptPlaceholder')}
-                rows={2}
-                className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-              />
-              <p className="text-xs text-zinc-500 mt-1 text-center">{t('virtualTryOn.backgroundPromptDescription')}</p>
-            </Tooltip>
+          <section className={`${panelClass} space-y-5`}>
+            <div className="space-y-2">
+              <p className={labelClass}>{t('workspace.panels.stylingInputs')}</p>
+              <h3 className={sectionTitleClass}>{t('virtualTryOn.step2')}</h3>
+              <p className={helperClass}>{t('workspace.flows.tryOn')}</p>
+            </div>
 
-            <Tooltip content={t('tooltips.tryOnInstructions')} position="bottom" className="w-full">
-              <label htmlFor="extra-prompt" className="block text-sm font-medium text-center text-zinc-300 mb-2">
-                {t('virtualTryOn.extraPromptLabel')}
-              </label>
-              <textarea
-                id="extra-prompt"
-                value={extraPrompt}
-                onChange={(e) => setExtraPrompt(e.target.value)}
-                placeholder={t('virtualTryOn.extraPromptPlaceholder')}
-                rows={2}
-                className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-              />
-              <p className="text-xs text-zinc-500 mt-1 text-center">{t('virtualTryOn.extraPromptDescription')}</p>
-            </Tooltip>
-
-            <div className="space-y-3">
-              <ImageOptionsPanel
-                aspectRatio={aspectRatio}
-                setAspectRatio={setAspectRatio}
-                resolution={resolution}
-                setResolution={setResolution}
-                model={imageEditModel}
-              />
-
-              <Tooltip content={t('tooltips.tryOnImageCount')} position="top">
-                <label htmlFor="num-images-slider" className="block text-sm font-medium text-center text-zinc-300 mb-2">
-                  {t('virtualTryOn.numberOfImages')}
-                </label>
-                <div className="flex items-center gap-3 max-w-xs mx-auto">
-                  <input
-                    id="num-images-slider"
-                    type="range"
-                    min="1"
-                    max="4"
-                    step="1"
-                    value={numImages}
-                    onChange={(e) => setNumImages(Number(e.target.value))}
-                    className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
+            <div className="space-y-5">
+              <Tooltip content={t('tooltips.tryOnBackground')} position="bottom" className="w-full">
+                <div className="space-y-2">
+                  <label htmlFor="background-prompt" className="text-base font-semibold text-zinc-100">
+                    {t('virtualTryOn.backgroundPromptLabel')}
+                  </label>
+                  <textarea
+                    id="background-prompt"
+                    value={backgroundPrompt}
+                    onChange={(e) => setBackgroundPrompt(e.target.value)}
+                    placeholder={t('virtualTryOn.backgroundPromptPlaceholder')}
+                    rows={3}
+                    className={textareaClass}
                   />
-                  <span className="bg-amber-600 text-white text-xs font-bold rounded-full h-6 w-6 flex-shrink-0 flex items-center justify-center">
-                    {numImages}
-                  </span>
+                  <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.backgroundPromptDescription')}</p>
                 </div>
               </Tooltip>
+
+              <Tooltip content={t('tooltips.tryOnInstructions')} position="bottom" className="w-full">
+                <div className="space-y-2">
+                  <label htmlFor="extra-prompt" className="text-base font-semibold text-zinc-100">
+                    {t('virtualTryOn.extraPromptLabel')}
+                  </label>
+                  <textarea
+                    id="extra-prompt"
+                    value={extraPrompt}
+                    onChange={(e) => setExtraPrompt(e.target.value)}
+                    placeholder={t('virtualTryOn.extraPromptPlaceholder')}
+                    rows={3}
+                    className={textareaClass}
+                  />
+                  <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.extraPromptDescription')}</p>
+                </div>
+              </Tooltip>
+
+              <div className="space-y-4">
+                <ImageOptionsPanel
+                  aspectRatio={aspectRatio}
+                  setAspectRatio={setAspectRatio}
+                  resolution={resolution}
+                  setResolution={setResolution}
+                  model={imageEditModel}
+                />
+
+                <Tooltip content={t('tooltips.tryOnImageCount')} position="top">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm text-zinc-300">
+                      <label htmlFor="num-images-slider" className="font-medium">
+                        {t('virtualTryOn.numberOfImages')}
+                      </label>
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-zinc-100">
+                        {numImages}
+                      </span>
+                    </div>
+                    <input
+                      id="num-images-slider"
+                      type="range"
+                      min="1"
+                      max="4"
+                      step="1"
+                      value={numImages}
+                      onChange={(e) => setNumImages(Number(e.target.value))}
+                      className="w-full cursor-pointer"
+                    />
+                  </div>
+                </Tooltip>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateImage}
+                  disabled={isLoading || anyUpscaling || !canGenerate}
+                  className={`${primaryButtonClass} w-full`}
+                >
+                  {isLoading ? <Spinner /> : t('virtualTryOn.generateButton')}
+                </button>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
 
-        <div className="text-center flex-shrink-0 pb-2">
-          <h3 className="text-lg font-semibold text-center text-amber-400 mb-4">{t('virtualTryOn.step3')}</h3>
-          <Tooltip content={t('tooltips.tryOnGenerate')} position="top">
-            <button
-              onClick={handleGenerateImage}
-              disabled={isLoading || anyUpscaling || !canGenerate}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105"
-            >
-              {isLoading ? <Spinner /> : t('virtualTryOn.generateButton')}
-            </button>
-          </Tooltip>
-        </div>
-      </div>
-
-      <div className="sticky top-8">
-        <div className="relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-4 flex flex-col items-center justify-center">
+        <section className={`${panelClass} sticky top-8 min-h-[70vh]`}>
           {subjectItems.length === 0 ? (
-            <ResultPlaceholder description={t('virtualTryOn.outputPanelDescription')} />
+            <div className="flex h-full min-h-[64vh] items-center justify-center">
+              <ResultPlaceholder description={t('virtualTryOn.outputPanelDescription')} />
+            </div>
           ) : (
-            <div className="flex flex-col h-full gap-3 w-full overflow-hidden">
-              <div className="flex-shrink-0 space-y-2">
-                <h3 className="text-lg font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
-                  {t('virtualTryOn.batchResultsTitle')}
-                </h3>
-                <p className="text-xs text-center text-zinc-400">
-                  {t('virtualTryOn.batchProgress', {
-                    completed: completedCount,
-                    total: subjectItems.length,
-                    failed: failedCount,
-                  })}
-                </p>
+            <div className="flex h-full flex-col gap-5">
+              <div className="flex flex-col gap-3 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="space-y-2">
+                  <p className={labelClass}>{t('workspace.panels.resultStage')}</p>
+                  <h3 className={sectionTitleClass}>{t('virtualTryOn.batchResultsTitle')}</h3>
+                  <p className="text-base leading-7 text-zinc-400">
+                    {t('virtualTryOn.batchProgress', {
+                      completed: completedCount,
+                      total: subjectItems.length,
+                      failed: failedCount,
+                    })}
+                  </p>
+                </div>
+
                 {completedCount > 0 && (
                   <button
+                    type="button"
                     onClick={handleDownloadAll}
                     disabled={isLoading}
-                    className="w-full text-xs text-amber-500 hover:text-amber-400 border border-amber-500/30 hover:border-amber-400/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={secondaryButtonClass}
                   >
                     {t('common.downloadBatch')}
                   </button>
                 )}
-                {error && (
-                  <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                    <div className="flex items-start justify-between gap-3">
-                      <span>{error}</span>
-                      <button type="button" onClick={() => setError(null)} className="text-xs text-red-200 hover:text-white">
-                        {t('common.close')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {isLoading && (
-                  <p className="text-xs text-center text-amber-300 animate-pulse">
-                    {loadingMessage || t('virtualTryOn.generatingStatus')}
-                  </p>
-                )}
               </div>
 
-              {/* Flat 3-column grid — ALL subjects at once */}
-              <div className="grid grid-cols-3 gap-3 overflow-y-auto pr-1">
+              {error && (
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                  <div className="flex items-start justify-between gap-3">
+                    <span>{error}</span>
+                    <button type="button" onClick={() => setError(null)} className="text-xs text-red-100 hover:text-white">
+                      {t('common.close')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {isLoading && (
+                <p className="text-sm text-zinc-400">
+                  {loadingMessage || t('virtualTryOn.generatingStatus')}
+                </p>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 overflow-y-auto pr-1 sm:grid-cols-2 2xl:grid-cols-3">
                 {subjectItems.flatMap((item, itemIdx) =>
                   item.results.length > 0
                     ? item.results.map((image, index) => {
                         const key = `${item.id}:${index}`;
                         const isOpen = !!refineOpen[key];
                         const isCurrentlyRefining = !!isRefining[key];
+
                         return (
-                          <div key={key} className="animate-fade-in flex flex-col gap-1" style={{ animationDelay: `${(itemIdx * 4 + index) * 60}ms` }}>
+                          <div
+                            key={key}
+                            className="animate-fade-in flex flex-col gap-3 rounded-[24px] border border-white/10 bg-black/30 p-3"
+                            style={{ animationDelay: `${(itemIdx * 4 + index) * 60}ms` }}
+                          >
                             <div className="relative">
                               <HoverableImage
                                 image={image}
@@ -388,43 +418,46 @@ const VirtualTryOn: React.FC = () => {
                                 isUpscaling={upscalingStates[key]}
                               />
                               {subjectItems.length > 1 && (
-                                <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-md px-1.5 py-0.5">
-                                  <div className="w-4 h-4 rounded overflow-hidden border border-zinc-600">
-                                    <img src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`} alt="" className="w-full h-full object-cover" />
+                                <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full border border-white/10 bg-black/70 px-2 py-1 text-[10px] text-zinc-300 backdrop-blur-sm">
+                                  <div className="h-4 w-4 overflow-hidden rounded-full border border-white/10">
+                                    <img src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`} alt="" className="h-full w-full object-cover" />
                                   </div>
-                                  <span className="text-[10px] text-zinc-300 font-medium">#{itemIdx + 1}</span>
+                                  <span>#{itemIdx + 1}</span>
                                 </div>
                               )}
                             </div>
+
                             <button
+                              type="button"
                               onClick={() => toggleRefine(key)}
-                              className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md transition-all w-fit ${
-                                isOpen ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/80'
-                              }`}
+                              className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
                             >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
-                              </svg>
-                              {isOpen ? t('imageActions.refineButton') : '✏️ ' + t('imageActions.refineButton')}
+                              {t('imageActions.refineButton')}
                             </button>
+
                             {isOpen && (
-                              <div className="flex gap-1.5 animate-fade-in">
+                              <div className="flex gap-2">
                                 <input
                                   type="text"
                                   value={refinePrompts[key] || ''}
                                   onChange={(e) => setRefinePrompts((prev) => ({ ...prev, [key]: e.target.value }))}
-                                  onKeyDown={(e) => { if (e.key === 'Enter') handleRefine(image, index, item.id, refinePrompts[key] || ''); }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleRefine(image, index, item.id, refinePrompts[key] || '');
+                                    }
+                                  }}
                                   placeholder={t('imageActions.refinePromptPlaceholder')}
                                   autoFocus
-                                  className="flex-1 min-w-0 bg-zinc-800/70 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                                  className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                                   disabled={isCurrentlyRefining}
                                 />
                                 <button
+                                  type="button"
                                   onClick={() => handleRefine(image, index, item.id, refinePrompts[key] || '')}
                                   disabled={isCurrentlyRefining || !(refinePrompts[key] || '').trim()}
-                                  className="flex-shrink-0 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                                  className={primaryButtonClass}
                                 >
-                                  {isCurrentlyRefining ? <Spinner /> : '↵'}
+                                  {isCurrentlyRefining ? <Spinner /> : t('imageActions.refineButton')}
                                 </button>
                               </div>
                             )}
@@ -433,17 +466,22 @@ const VirtualTryOn: React.FC = () => {
                       })
                     : item.status === 'processing' || item.status === 'pending'
                       ? [
-                          <div key={`${item.id}-skeleton`} className={`aspect-[3/4] rounded-lg flex flex-col items-center justify-center gap-2 relative ${item.status === 'processing' ? 'bg-zinc-800/50 animate-pulse' : 'bg-zinc-800/30 border border-zinc-800'}`}>
+                          <div
+                            key={`${item.id}-skeleton`}
+                            className={`flex aspect-[3/4] flex-col items-center justify-center gap-3 rounded-[24px] border border-white/10 bg-black/30 p-4 ${
+                              item.status === 'processing' ? 'animate-pulse' : ''
+                            }`}
+                          >
                             {item.status === 'processing' ? (
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400" />
+                              <div className="animate-spin rounded-full border-b-2 border-white h-8 w-8" />
                             ) : (
-                              <p className="text-xs text-zinc-500">{t('virtualTryOn.waitingStatus')}</p>
+                              <p className="text-sm text-zinc-500">{t('virtualTryOn.waitingStatus')}</p>
                             )}
-                            <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-md px-1.5 py-0.5">
-                              <div className="w-4 h-4 rounded overflow-hidden border border-zinc-600">
-                                <img src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`} alt="" className="w-full h-full object-cover" />
+                            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/70 px-2 py-1 text-[10px] text-zinc-300">
+                              <div className="h-4 w-4 overflow-hidden rounded-full border border-white/10">
+                                <img src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`} alt="" className="h-full w-full object-cover" />
                               </div>
-                              <span className="text-[10px] text-zinc-300 font-medium">#{itemIdx + 1}</span>
+                              <span>#{itemIdx + 1}</span>
                             </div>
                           </div>,
                         ]
@@ -452,7 +490,7 @@ const VirtualTryOn: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

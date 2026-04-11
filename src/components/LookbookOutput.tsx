@@ -1,10 +1,3 @@
-/**
- * LookbookOutput - Display generated lookbook images with tabs
- *
- * Extracted from LookbookGenerator.tsx for better separation of concerns.
- * Memoized to prevent re-renders when form changes.
- */
-
 import React, { useCallback } from 'react';
 import { Feature, ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -15,23 +8,14 @@ import ResultPlaceholder from './shared/ResultPlaceholder';
 import RefinementInput from './shared/RefinementInput';
 import { RefinementHistoryItem } from '../services/imageEditingService';
 
-/**
- * Lookbook set interface
- */
 export interface LookbookSet {
   main: ImageFile;
   variations: ImageFile[];
   closeups: ImageFile[];
 }
 
-/**
- * Output tab type
- */
 type OutputTab = 'main' | 'variations' | 'closeup';
 
-/**
- * Props for LookbookOutput component
- */
 interface LookbookOutputProps {
   lookbook: LookbookSet | null;
   activeTab: OutputTab;
@@ -60,10 +44,13 @@ interface LookbookOutputProps {
   onDownloadAll: () => void;
 }
 
-/**
- * LookbookOutput component
- * Displays generated lookbook images with tabs for main, variations, and close-ups
- */
+const panelClass = 'sticky top-8 rounded-[28px] border border-white/10 bg-white/[0.03] p-5 sm:p-6';
+const labelClass = 'text-[11px] font-medium uppercase tracking-[0.24em] text-zinc-500';
+const tabButton = (active: boolean) => `rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+  active ? 'bg-white text-black' : 'text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
+}`;
+const secondaryButtonClass = 'inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
+
 export const LookbookOutput = React.memo<LookbookOutputProps>(({
   lookbook,
   activeTab,
@@ -89,7 +76,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
   onRefineImage,
   onResetRefinement,
   onSendToFeature,
-  onDownloadAll
+  onDownloadAll,
 }) => {
   const { t } = useLanguage();
 
@@ -97,205 +84,181 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
     onVariationCountChange(Number(e.target.value));
   }, [onVariationCountChange]);
 
-  const outputContainerClasses = `relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-2 sm:p-4 min-h-[50vh] flex flex-col ${
-    lookbook ? '' : 'items-center justify-center'
-  }`;
-
   const outputTabs: { id: OutputTab; label: string }[] = [
     { id: 'main', label: t('lookbook.tabGeneratedImage') },
     { id: 'variations', label: t('lookbook.tabVariations') },
     { id: 'closeup', label: t('lookbook.tabCloseup') },
   ];
 
-  // Loading state
   if (isLoading || isGeneratingVariations || isGeneratingCloseUp) {
     return (
-      <div className="sticky top-8">
-        <div className={outputContainerClasses}>
-          <div className="flex flex-col items-center justify-center gap-4 text-center h-full">
-            <Spinner />
-            <p className="text-zinc-400">{loadingMessage}</p>
-          </div>
+      <div className={panelClass}>
+        <div className="flex min-h-[55vh] flex-col items-center justify-center gap-4 text-center">
+          <Spinner />
+          <p className="text-sm text-zinc-400">{loadingMessage}</p>
         </div>
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <div className="sticky top-8">
-        <div className={outputContainerClasses}>
-          <div className="p-4 w-full h-full flex items-center justify-center">
-            <ErrorDisplay
-              title={t('common.generationFailed')}
-              message={error}
-              onClear={onClearError}
-            />
-          </div>
+      <div className={panelClass}>
+        <div className="flex min-h-[55vh] items-center justify-center">
+          <ErrorDisplay
+            title={t('common.generationFailed')}
+            message={error}
+            onClear={onClearError}
+          />
         </div>
       </div>
     );
   }
 
-  // No lookbook generated yet
   if (!lookbook) {
     return (
-      <div className="sticky top-8">
-        <div className={outputContainerClasses}>
+      <div className={panelClass}>
+        <div className="flex min-h-[55vh] items-center justify-center">
           <ResultPlaceholder description={t('lookbook.outputPanelDescription')} />
         </div>
       </div>
     );
   }
 
-  // Lookbook available - show tabs and content
   return (
-    <div className="sticky top-8">
-      <div className={outputContainerClasses}>
-        <div className="flex flex-col h-full gap-4">
-          {/* Tabs */}
-          <div className="flex-shrink-0 flex justify-center items-center border-b border-zinc-800 pb-2 relative">
-            <div className="flex p-1 bg-zinc-900/80 rounded-xl border border-zinc-800">
-              {outputTabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
-                  className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    activeTab === tab.id
-                      ? 'bg-zinc-800 text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={onDownloadAll}
-              title={t('common.downloadAll')}
-              className="absolute right-0 top-1 text-xs text-amber-500 hover:text-amber-400 border border-amber-500/30 hover:border-amber-400/50 rounded-lg px-3 py-1.5 transition-colors"
-            >
-              ↓
-            </button>
+    <div className={panelClass}>
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-2">
+            <p className={labelClass}>{t('workspace.panels.outputCanvas')}</p>
+            <h3 className="text-xl font-medium tracking-[-0.03em] text-zinc-50">
+              {t('lookbook.tabGeneratedImage')}
+            </h3>
+            <p className="text-sm leading-6 text-zinc-500">
+              {t('workspace.flows.lookbook')}
+            </p>
           </div>
+          <button type="button" onClick={onDownloadAll} className={secondaryButtonClass}>
+            {t('common.downloadAll')}
+          </button>
+        </div>
 
-          {/* Tab Content */}
-          <div className={`flex-grow relative ${activeTab === 'main' ? 'overflow-visible' : 'overflow-y-auto'}`}>
-            {/* Main Tab */}
-            {activeTab === 'main' && (
-              <div className="animate-fade-in flex flex-col gap-4">
-                <div className="relative w-full aspect-[4/5] max-h-[70vh] mx-auto">
+        <div className="flex flex-wrap gap-2 rounded-[20px] border border-white/10 bg-black/30 p-2">
+          {outputTabs.map((tab) => (
+            <button key={tab.id} type="button" onClick={() => onTabChange(tab.id)} className={tabButton(activeTab === tab.id)}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="min-h-[48vh]">
+          {activeTab === 'main' && (
+            <div className="space-y-5">
+              <div className="rounded-[28px] border border-white/10 bg-black/30 p-3">
+                <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[24px]">
                   <HoverableImage
                     image={lookbook.main}
                     altText={t('lookbook.tabGeneratedImage')}
                     downloadPrefix={Feature.Lookbook}
                     onUpscale={() => onUpscale(lookbook.main, 'main')}
-                    isUpscaling={upscalingStates['main']}
+                    isUpscaling={upscalingStates.main}
                     onSendToFeature={onSendToFeature ? () => onSendToFeature(lookbook.main) : undefined}
-                    containerClassName="w-full h-full rounded-xl overflow-hidden shadow-2xl border border-zinc-800"
+                    containerClassName="h-full w-full overflow-hidden rounded-[24px]"
                   />
                 </div>
-                <RefinementInput
-                  onRefine={onRefineImage}
-                  onReset={onResetRefinement}
-                  history={refinementHistory}
-                  isRefining={isRefining}
-                  disabled={!lookbook?.main}
-                />
-                
-                {/* Version History Picker */}
-                {refinementVersions.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <p className="text-xs text-zinc-400 font-medium">{t('generatedImage.versionHistory')}</p>
-                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                      {/* Original version */}
+              </div>
+
+              <RefinementInput
+                onRefine={onRefineImage}
+                onReset={onResetRefinement}
+                history={refinementHistory}
+                isRefining={isRefining}
+                disabled={!lookbook.main}
+              />
+
+              {refinementVersions.length > 0 && (
+                <div className="space-y-3">
+                  <p className={labelClass}>{t('generatedImage.versionHistory')}</p>
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    <button
+                      type="button"
+                      onClick={() => onSelectVersion(-1)}
+                      className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border transition-colors ${
+                        selectedVersionIndex === -1 ? 'border-white/30 bg-white/[0.06]' : 'border-white/10 bg-black/30'
+                      }`}
+                      title={t('generatedImage.originalVersion')}
+                    >
+                      {originalImage && (
+                        <img
+                          src={`data:${originalImage.mimeType};base64,${originalImage.base64}`}
+                          alt={t('generatedImage.originalShort')}
+                          className="h-full w-full object-cover opacity-60"
+                        />
+                      )}
+                      <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-2 text-[10px] uppercase tracking-[0.18em] text-white">
+                        {t('generatedImage.originalShort')}
+                      </div>
+                    </button>
+
+                    {refinementVersions.map((version, index) => (
                       <button
-                        onClick={() => onSelectVersion(-1)}
-                        className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                          selectedVersionIndex === -1 
-                            ? 'border-amber-500 ring-2 ring-amber-500/30' 
-                            : 'border-zinc-700 hover:border-zinc-500'
+                        key={version.timestamp}
+                        type="button"
+                        onClick={() => onSelectVersion(index)}
+                        className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border transition-colors ${
+                          selectedVersionIndex === index ? 'border-white/30 bg-white/[0.06]' : 'border-white/10 bg-black/30'
                         }`}
-                        title={t('generatedImage.originalVersion')}
+                        title={version.prompt}
                       >
-                        {originalImage && (
-                          <img
-                            src={`data:${originalImage.mimeType};base64,${originalImage.base64}`}
-                            alt="Original"
-                            className="w-full h-full object-cover opacity-50"
-                          />
-                        )}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                          <span className="text-[10px] text-white font-medium">Original</span>
+                        <img
+                          src={`data:${version.image.mimeType};base64,${version.image.base64}`}
+                          alt={`Version ${index + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-2 text-[10px] uppercase tracking-[0.18em] text-white">
+                          v{index + 1}
                         </div>
                       </button>
-                      
-                      {/* Refined versions */}
-                      {refinementVersions.map((version, index) => (
-                        <button
-                          key={version.timestamp}
-                          onClick={() => onSelectVersion(index)}
-                          className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all group ${
-                            selectedVersionIndex === index 
-                              ? 'border-amber-500 ring-2 ring-amber-500/30' 
-                              : 'border-zinc-700 hover:border-zinc-500'
-                          }`}
-                          title={version.prompt}
-                        >
-                          <img
-                            src={`data:${version.image.mimeType};base64,${version.image.base64}`}
-                            alt={`Version ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1">
-                            <span className="text-[10px] text-white font-medium">v{index + 1}</span>
-                          </div>
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-1">
-                            <span className="text-[8px] text-white text-center line-clamp-3">{version.prompt}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Variations Tab */}
-            {activeTab === 'variations' && (
-              <div className="animate-fade-in flex flex-col gap-4">
-                <div className="flex items-center justify-center gap-4">
-                  <label htmlFor="variation-slider" className="text-sm text-zinc-300">
-                    {t('lookbook.variationsLabel')}:
-                  </label>
-                  <input
-                    id="variation-slider"
-                    type="range"
-                    min="1"
-                    max="4"
-                    step="1"
-                    value={variationCount}
-                    onChange={handleVariationCountChange}
-                  />
-                  <span className="bg-zinc-700 text-white font-bold rounded-full h-7 w-7 flex items-center justify-center text-sm">
-                    {variationCount}
-                  </span>
-                  <Tooltip content={t('tooltips.lookbookVariations')} position="bottom">
-                    <button
-                      onClick={onGenerateVariations}
-                      disabled={isGeneratingVariations || isGeneratingCloseUp}
-                      className="bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg text-sm disabled:bg-zinc-600"
-                    >
-                      {isGeneratingVariations ? <Spinner /> : t('lookbook.generateVariationsButton')}
-                    </button>
-                  </Tooltip>
                 </div>
-                {lookbook.variations.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    {lookbook.variations.map((img, i) => (
+              )}
+            </div>
+          )}
+
+          {activeTab === 'variations' && (
+            <div className="space-y-5">
+              <div className="flex flex-col gap-3 rounded-[24px] border border-white/10 bg-black/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-2">
+                  <p className={labelClass}>{t('lookbook.tabVariations')}</p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      id="variation-slider"
+                      type="range"
+                      min="1"
+                      max="4"
+                      step="1"
+                      value={variationCount}
+                      onChange={handleVariationCountChange}
+                      className="w-40 cursor-pointer"
+                    />
+                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs text-zinc-100">
+                      {variationCount}
+                    </span>
+                  </div>
+                </div>
+                <Tooltip content={t('tooltips.lookbookVariations')} position="bottom">
+                  <button type="button" onClick={onGenerateVariations} disabled={isGeneratingVariations || isGeneratingCloseUp} className={secondaryButtonClass}>
+                    {t('lookbook.generateVariationsButton')}
+                  </button>
+                </Tooltip>
+              </div>
+
+              {lookbook.variations.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {lookbook.variations.map((img, i) => (
+                    <div key={i} className="rounded-[24px] border border-white/10 bg-black/30 p-3">
                       <HoverableImage
-                        key={i}
                         image={img}
                         altText={t('lookbook.variationAltText', { index: i + 1 })}
                         downloadPrefix={Feature.Lookbook}
@@ -303,53 +266,54 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                         isUpscaling={upscalingStates[`var-${i}`]}
                         onSendToFeature={onSendToFeature ? () => onSendToFeature(img) : undefined}
                       />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center text-zinc-500 p-8">
-                    <h4 className="font-semibold">{t('lookbook.variationsPlaceholderTitle')}</h4>
-                    <p className="text-xs mt-1">{t('lookbook.variationsPlaceholderDescription')}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Close-up Tab */}
-            {activeTab === 'closeup' && (
-              <div className="animate-fade-in flex flex-col gap-4">
-                <div className="text-center">
-                  <Tooltip content={t('tooltips.lookbookCloseups')} position="bottom">
-                    <button
-                      onClick={onGenerateCloseUp}
-                      disabled={isGeneratingCloseUp || isGeneratingVariations}
-                      className="bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg text-sm disabled:bg-zinc-600"
-                    >
-                      {isGeneratingCloseUp ? <Spinner /> : t('lookbook.generateCloseUpButton')}
-                    </button>
-                  </Tooltip>
+                    </div>
+                  ))}
                 </div>
-                {lookbook.closeups.length > 0 ? (
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                    {lookbook.closeups.map((img, i) => (
+              ) : (
+                <div className="flex min-h-[18rem] items-center justify-center rounded-[24px] border border-white/10 bg-black/30 p-8 text-center text-zinc-500">
+                  <div>
+                    <h4 className="font-medium text-zinc-200">{t('lookbook.variationsPlaceholderTitle')}</h4>
+                    <p className="mt-2 text-sm">{t('lookbook.variationsPlaceholderDescription')}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'closeup' && (
+            <div className="space-y-5">
+              <div className="flex justify-end">
+                <Tooltip content={t('tooltips.lookbookCloseups')} position="bottom">
+                  <button type="button" onClick={onGenerateCloseUp} disabled={isGeneratingCloseUp || isGeneratingVariations} className={secondaryButtonClass}>
+                    {t('lookbook.generateCloseUpButton')}
+                  </button>
+                </Tooltip>
+              </div>
+
+              {lookbook.closeups.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {lookbook.closeups.map((img, i) => (
+                    <div key={i} className="rounded-[24px] border border-white/10 bg-black/30 p-3">
                       <HoverableImage
-                        key={i}
                         image={img}
                         altText={t('lookbook.closeUpAltText', { index: i + 1 })}
                         downloadPrefix={Feature.Lookbook}
                         onUpscale={() => onUpscale(img, `close-${i}`)}
                         isUpscaling={upscalingStates[`close-${i}`]}
                       />
-                    ))}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex min-h-[18rem] items-center justify-center rounded-[24px] border border-white/10 bg-black/30 p-8 text-center text-zinc-500">
+                  <div>
+                    <h4 className="font-medium text-zinc-200">{t('lookbook.closeupPlaceholderTitle')}</h4>
+                    <p className="mt-2 text-sm">{t('lookbook.closeupPlaceholderDescription')}</p>
                   </div>
-                ) : (
-                  <div className="text-center text-zinc-500 p-8">
-                    <h4 className="font-semibold">{t('lookbook.closeupPlaceholderTitle')}</h4>
-                    <p className="text-xs mt-1">{t('lookbook.closeupPlaceholderDescription')}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

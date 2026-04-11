@@ -1,9 +1,3 @@
-/**
- * LookbookGenerator - Main orchestrator component
- *
- * Thin orchestrator that uses useLookbookGenerator hook as single source of truth.
- */
-
 import React, { useCallback } from 'react';
 import { useLookbookGenerator } from '../hooks/useLookbookGenerator';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -57,11 +51,10 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
 
   const { t } = useLanguage();
 
-  // Mannequin background styles derived from translations
-  const MANNEQUIN_BACKGROUND_STYLES = React.useMemo(() => {
+  const mannequinBackgroundStyles = React.useMemo(() => {
     return (
       Object.keys(t('lookbook.mannequinBackgroundStyles', { returnObjects: true })) as MannequinBackgroundStyleKey[]
-    ).map(key => ({
+    ).map((key) => ({
       key,
       label: t(`lookbook.mannequinBackgroundStyles.${key}`),
     }));
@@ -74,26 +67,25 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
   const handleClearError = useCallback(() => setError(null), [setError]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
-      {/* Form columns: at xl display:contents makes the 2 inner divs direct grid items */}
-      <LookbookForm
-        formState={formState}
-        onFormChange={updateForm}
-        onGenerateDescription={handleGenerateDescription}
-        onGenerate={handleGenerate}
-        onClearForm={handleClearForm}
-        isGeneratingDescription={isGeneratingDescription}
-        isLoading={isLoading}
-        aspectRatio={aspectRatio}
-        setAspectRatio={setAspectRatio}
-        resolution={resolution}
-        setResolution={setResolution}
-        imageEditModel={imageEditModel}
-        mannequinBackgroundStyles={MANNEQUIN_BACKGROUND_STYLES}
-      />
+    <div className="space-y-6 pb-12">
+      <div className="grid gap-6 xl:grid-cols-[minmax(420px,0.86fr)_minmax(0,1.14fr)] items-start">
+        <LookbookForm
+          formState={formState}
+          onFormChange={updateForm}
+          onGenerateDescription={handleGenerateDescription}
+          onGenerate={handleGenerate}
+          onClearForm={handleClearForm}
+          isGeneratingDescription={isGeneratingDescription}
+          isLoading={isLoading}
+          aspectRatio={aspectRatio}
+          setAspectRatio={setAspectRatio}
+          resolution={resolution}
+          setResolution={setResolution}
+          imageEditModel={imageEditModel}
+          mannequinBackgroundStyles={mannequinBackgroundStyles}
+        />
 
-      {/* Right Column: Output */}
-      <LookbookOutput
+        <LookbookOutput
           lookbook={generatedLookbook}
           activeTab={activeOutputTab}
           onTabChange={setActiveOutputTab}
@@ -119,7 +111,10 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
           onResetRefinement={handleResetRefinement}
           onSendToFeature={onSendToFeature ? handleSendToAlbum : undefined}
           onDownloadAll={handleDownloadAll}
-      />
+        />
+      </div>
     </div>
   );
 };
+
+export default LookbookGenerator;

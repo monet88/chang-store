@@ -89,7 +89,7 @@ describe('ClothingTransfer component', () => {
   it('renders the multi-concept uploader and disables generate when inputs are incomplete', () => {
     render(<ClothingTransfer />);
 
-    expect(screen.getByText('clothingTransfer.conceptImagesTitle')).toBeInTheDocument();
+    expect(screen.getAllByText('clothingTransfer.conceptImagesTitle').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'clothingTransfer.generateButton' })).toBeDisabled();
     expect(screen.getByText('clothingTransfer.outputPanelDescription')).toBeInTheDocument();
   });

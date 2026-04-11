@@ -25,50 +25,31 @@
       animation: fade-in 0.3s ease-out forwards;
     }
 
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle at top, rgba(245, 158, 11, 0.07), transparent 50%);
-      pointer-events: none;
-      z-index: -1;
-    }
-
-    /* Custom scrollbar for a more polished look */
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
     }
 
     ::-webkit-scrollbar-track {
-      background: rgba(30, 41, 59, 0.5);
-      /* bg-slate-800/50 */
+      background: rgba(255, 255, 255, 0.04);
     }
 
     ::-webkit-scrollbar-thumb {
-      background: #475569;
-      /* bg-slate-600 */
-      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 9999px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: #64748B;
-      /* bg-slate-500 */
+      background: rgba(255, 255, 255, 0.26);
     }
 
-    /* Styles for Image Comparator */
     .comparator-container {
       position: relative;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      border-radius: 0.75rem;
-      /* rounded-lg */
-      background-color: #0f172a;
-      /* bg-slate-900 */
+      border-radius: 1rem;
+      background-color: #09090b;
     }
 
     .comparator-image-wrapper {
@@ -94,10 +75,12 @@
       position: absolute;
       bottom: 1rem;
       padding: 0.25rem 0.75rem;
-      background-color: rgba(0, 0, 0, 0.6);
+      background-color: rgba(0, 0, 0, 0.62);
       color: white;
-      font-size: 0.875rem;
-      font-weight: 600;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
       border-radius: 9999px;
       pointer-events: none;
     }
@@ -128,13 +111,12 @@
       position: absolute;
       top: 0;
       left: 50%;
-      width: 4px;
+      width: 2px;
       height: 100%;
-      background: white;
+      background: rgba(255, 255, 255, 0.82);
       transform: translateX(-50%);
       pointer-events: none;
       z-index: 5;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
 
     .comparator-handle::after {
@@ -144,9 +126,8 @@
       left: 50%;
       width: 44px;
       height: 44px;
-      background-color: rgba(30, 41, 59, 0.8);
-      /* slate-800/80 */
-      border: 2px solid white;
+      background-color: rgba(9, 9, 11, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.28);
       border-radius: 50%;
       transform: translate(-50%, -50%);
       background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='white'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M15 19l-7-7 7-7M9 5l7 7-7 7' /%3e%3c/svg%3e");
@@ -172,18 +153,16 @@
       border: none;
     }
 
-    /* Custom Styles for Range Input */
     input[type="range"]:not(.comparator-slider) {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
       height: 6px;
-      background: #334155;
-      /* bg-slate-700 */
-      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
       outline: none;
-      opacity: 0.7;
-      transition: opacity .2s;
+      opacity: 0.85;
+      transition: opacity .2s ease;
     }
 
     input[type="range"]:not(.comparator-slider):hover {
@@ -193,25 +172,21 @@
     input[type="range"]:not(.comparator-slider)::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px;
-      height: 18px;
-      background: #F59E0B;
-      /* amber-500 */
+      width: 16px;
+      height: 16px;
+      background: #f4f4f2;
       cursor: pointer;
       border-radius: 50%;
-      border: 2px solid #F1F5F9;
-      /* slate-100 */
+      border: 1px solid rgba(0, 0, 0, 0.35);
     }
 
     input[type="range"]:not(.comparator-slider)::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      background: #F59E0B;
-      /* amber-500 */
+      width: 16px;
+      height: 16px;
+      background: #f4f4f2;
       cursor: pointer;
       border-radius: 50%;
-      border: 2px solid #F1F5F9;
-      /* slate-100 */
+      border: 1px solid rgba(0, 0, 0, 0.35);
     }
   </style>
   <script type="importmap">
@@ -225,11 +200,10 @@
   }
 }
 </script>
-  <!-- Google Identity Services for OAuth -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
-<body class="bg-slate-950 text-slate-200" style="font-family: 'Be Vietnam Pro', sans-serif;">
+<body class="bg-[#050505] text-zinc-100 antialiased">
   <div id="root"></div>
   <script type="module" src="/src/index.tsx"></script>
 </body>

@@ -6,22 +6,24 @@ const LanguageSwitcher: React.FC = () => {
   const { language, setLanguage } = useLanguage();
 
   return (
-    <div className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-full border border-slate-700/50">
+    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/30 p-1">
       <button
+        type="button"
         onClick={() => setLanguage('en')}
-        className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all duration-200 ${language === 'en'
-            ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/20'
-            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/30'
+        className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] transition-all duration-200 ${language === 'en'
+            ? 'bg-white text-black'
+            : 'text-zinc-500 hover:bg-white/6 hover:text-zinc-100'
           }`}
         aria-pressed={language === 'en'}
       >
         EN
       </button>
       <button
+        type="button"
         onClick={() => setLanguage('vi')}
-        className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all duration-200 ${language === 'vi'
-            ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/20'
-            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/30'
+        className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] transition-all duration-200 ${language === 'vi'
+            ? 'bg-white text-black'
+            : 'text-zinc-500 hover:bg-white/6 hover:text-zinc-100'
           }`}
         aria-pressed={language === 'vi'}
       >
