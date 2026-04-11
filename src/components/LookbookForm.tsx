@@ -62,7 +62,7 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
   mannequinBackgroundStyles,
 }) => {
   const { t } = useLanguage();
-  const [useMultiUpload, setUseMultiUpload] = useState(false);
+  const [useMultiUpload, setUseMultiUpload] = useState(true);
 
   const {
     clothingImages,

@@ -68,7 +68,7 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="grid gap-6 xl:grid-cols-[minmax(420px,0.86fr)_minmax(0,1.14fr)] items-start">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start">
         <LookbookForm
           formState={formState}
           onFormChange={updateForm}
