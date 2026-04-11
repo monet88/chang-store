@@ -111,7 +111,7 @@ const BackgroundReplacer: React.FC = () => {
             id="predefined-bg-select"
             value={selectedPredefinedKey}
             onChange={handlePredefinedChange}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 appearance-none"
+            className="workspace-input p-3 appearance-none"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
               backgroundPosition: 'right 0.5rem center',
@@ -137,7 +137,7 @@ const BackgroundReplacer: React.FC = () => {
             }}
             placeholder={t('background.describePlaceholder')}
             rows={3}
-            className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+            className="workspace-input p-3"
           />
         </div>
 
@@ -149,7 +149,7 @@ const BackgroundReplacer: React.FC = () => {
             onChange={(e) => setNegativePrompt(e.target.value)}
             placeholder={t('background.negativePromptPlaceholder')}
             rows={2}
-            className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+            className="workspace-input p-3"
           />
           <p className="text-xs text-zinc-500 mt-1">{t('common.negativePromptHelp')}</p>
         </div>
@@ -159,7 +159,7 @@ const BackgroundReplacer: React.FC = () => {
           <div className="flex justify-center">
             <div className="flex flex-wrap justify-center gap-2 p-1.5 bg-zinc-800/50 rounded-lg">
               {cameraViewOptions.map((opt) => (
-                <button key={opt.key} onClick={() => setCameraView(opt.key)} className={`px-4 py-2 text-xs font-semibold rounded-md transition-colors duration-200 ${cameraView === opt.key ? 'bg-amber-600 text-white' : 'text-zinc-300 hover:bg-zinc-700/50'}`}>
+                <button key={opt.key} onClick={() => setCameraView(opt.key)} className={`px-4 py-2 text-xs font-semibold rounded-md border transition-colors duration-200 ${cameraView === opt.key ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>
                   {opt.label}
                 </button>
               ))}
@@ -176,7 +176,7 @@ const BackgroundReplacer: React.FC = () => {
           <button
             onClick={handleGenerate}
             disabled={isLoading || Object.values(upscalingStates).some((s) => s) || !subjectImage || (!backgroundImage && !promptText)}
-            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105"
+            className="workspace-button workspace-button-primary px-8 py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? <Spinner /> : t('background.generateButton')}
           </button>
@@ -188,13 +188,13 @@ const BackgroundReplacer: React.FC = () => {
         <div className="relative w-full min-h-[400px] lg:min-h-0 lg:h-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-2 sm:p-4 flex flex-col">
           {isLoading ? (
             <div className="flex flex-col h-full gap-4">
-              <h3 className="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 animate-pulse">
+              <h3 className="text-xl font-semibold text-center text-zinc-100 animate-pulse">
                 {loadingMessage || t('background.generatingStatus')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                 {Array.from({ length: 2 }).map((_, index) => (
                   <div key={index} className="aspect-[4/5] bg-zinc-800/50 rounded-lg flex items-center justify-center animate-pulse">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-200"></div>
                   </div>
                 ))}
               </div>
@@ -205,7 +205,7 @@ const BackgroundReplacer: React.FC = () => {
             </div>
           ) : generatedImages.length > 0 ? (
             <div className="flex flex-col h-full gap-4">
-              <h3 className="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
+              <h3 className="text-xl font-semibold text-center text-zinc-100">
                 {t('generatedImage.outputTitle')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
@@ -228,13 +228,13 @@ const BackgroundReplacer: React.FC = () => {
                         onChange={(e) => setRefinePrompts((prev) => ({ ...prev, [String(index)]: e.target.value }))}
                         onKeyDown={(e) => { if (e.key === 'Enter') handleRefine(image, index, refinePrompts[String(index)] || ''); }}
                         placeholder={t('imageActions.refinePromptPlaceholder')}
-                        className="flex-1 min-w-0 bg-zinc-800/50 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                        className="workspace-input flex-1 min-w-0 px-2.5 py-1.5 text-xs"
                         disabled={isRefining[String(index)]}
                       />
                       <button
                         onClick={() => handleRefine(image, index, refinePrompts[String(index)] || '')}
                         disabled={isRefining[String(index)] || !(refinePrompts[String(index)] || '').trim()}
-                        className="flex-shrink-0 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                        className="workspace-button workspace-button-primary min-h-0 flex-shrink-0 px-3 py-1.5 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isRefining[String(index)] ? <Spinner /> : t('imageActions.refineButton')}
                       </button>

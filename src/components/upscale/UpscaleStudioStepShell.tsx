@@ -144,7 +144,7 @@ const UpscaleStudioStepShell: React.FC<UpscaleStudioStepShellProps> = ({
               aria-current={isCurrent ? 'step' : undefined}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 ${
                 isCurrent
-                  ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md'
+                  ? 'border border-white/60 bg-zinc-100 text-zinc-950'
                   : isCompleted
                     ? 'text-emerald-400 hover:bg-zinc-700/50 cursor-pointer'
                     : 'text-zinc-600 cursor-not-allowed'

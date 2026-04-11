@@ -54,7 +54,7 @@ const UpscaleSessionImageRail: React.FC<UpscaleSessionImageRailProps> = ({
               aria-pressed={isActive}
               className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                 isActive
-                  ? 'border-amber-500 ring-2 ring-amber-500/30 scale-105'
+                  ? 'border-white/70 ring-1 ring-white/30 scale-105'
                   : 'border-zinc-700 hover:border-zinc-500'
               }`}
             >
@@ -91,7 +91,7 @@ const UpscaleSessionImageRail: React.FC<UpscaleSessionImageRailProps> = ({
       <button
         onClick={() => inputRef.current?.click()}
         aria-label={t('upscale.addImage')}
-        className="w-16 h-16 flex-shrink-0 rounded-lg border-2 border-dashed border-zinc-700 hover:border-amber-500/50 flex items-center justify-center text-zinc-500 hover:text-amber-400 transition-all duration-200"
+        className="w-16 h-16 flex-shrink-0 rounded-lg border-2 border-dashed border-zinc-700 hover:border-white/40 flex items-center justify-center text-zinc-500 hover:text-zinc-100 transition-all duration-200"
       >
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

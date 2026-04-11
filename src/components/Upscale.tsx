@@ -153,7 +153,7 @@ const Upscale: React.FC = () => {
         {/* Re-upscale confirmation dialog — overlay on output panel */}
         {showReupscaleConfirm && (
           <div className="absolute inset-0 z-30 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center p-6">
-            <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 max-w-sm text-center shadow-2xl">
+            <div className="bg-zinc-900 border border-white/10 rounded-xl p-6 max-w-sm text-center">
               <h4 className="text-lg font-semibold text-white mb-2">
                 {t('upscale.confirmReupscale.title')}
               </h4>
@@ -169,7 +169,7 @@ const Upscale: React.FC = () => {
                 </button>
                 <button
                   onClick={confirmReupscale}
-                  className="px-5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold hover:opacity-90 transition-opacity"
+                  className="workspace-button workspace-button-primary min-h-0 px-5 py-2 text-sm font-semibold"
                 >
                   {t('upscale.confirmReupscale.confirm')}
                 </button>

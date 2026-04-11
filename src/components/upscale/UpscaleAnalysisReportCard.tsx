@@ -87,7 +87,7 @@ const UpscaleAnalysisReportCard: React.FC<UpscaleAnalysisReportCardProps> = ({ r
         <Section title={t('upscale.reportGarments')} icon="👗" defaultOpen>
           {report.garments.map((g, i) => (
             <div key={i} className="flex gap-2">
-              <span className="text-violet-400 font-medium shrink-0">{g.name}</span>
+              <span className="text-zinc-100 font-medium shrink-0">{g.name}</span>
               <span className="text-zinc-500">·</span>
               <span className="text-zinc-400 text-xs">{g.type}</span>
               <span className="text-zinc-500">—</span>
@@ -100,7 +100,7 @@ const UpscaleAnalysisReportCard: React.FC<UpscaleAnalysisReportCardProps> = ({ r
         <Section title={t('upscale.reportMaterials')} icon="🧵">
           {report.materials.map((m, i) => (
             <div key={i} className="text-xs">
-              <span className="text-violet-400 font-medium">{m.garment}</span>
+              <span className="text-zinc-100 font-medium">{m.garment}</span>
               <span className="text-zinc-500"> — </span>
               {m.fabric}, {m.texture} texture, {m.weight} weight, {m.sheen} sheen
             </div>
