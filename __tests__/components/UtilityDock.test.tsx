@@ -9,6 +9,8 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'workspace.utility.title': 'Studio utilities',
         'workspace.utility.description': 'Open your archive, saved prompts, and workspace settings.',
         'workspace.utility.settings': 'Settings',
+        'workspace.utility.expand': 'Expand studio utilities',
+        'workspace.utility.collapse': 'Collapse studio utilities',
         'tooltips.headerSettings': 'Open settings',
       };
 
@@ -36,7 +38,7 @@ vi.mock('../../src/components/PromptLibraryFAB', () => ({
 import UtilityDock from '../../src/components/UtilityDock';
 
 describe('UtilityDock', () => {
-  it('renders grouped utility actions and fires callbacks', async () => {
+  it('stays collapsed by default, expands vertically, and fires callbacks', async () => {
     const user = userEvent.setup();
     const onOpenGallery = vi.fn();
     const onOpenPromptLibrary = vi.fn();
@@ -50,7 +52,18 @@ describe('UtilityDock', () => {
       />,
     );
 
+    const toggle = screen.getByRole('button', { name: 'Expand studio utilities' });
+
     expect(screen.getByText('Studio utilities')).toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Open your archive, saved prompts, and workspace settings.')).not.toBeInTheDocument();
+    expect(screen.queryByText('gallery-action')).not.toBeInTheDocument();
+    expect(screen.queryByText('prompt-action')).not.toBeInTheDocument();
+
+    await user.click(toggle);
+
+    expect(screen.getByRole('button', { name: 'Collapse studio utilities' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Open your archive, saved prompts, and workspace settings.')).toBeInTheDocument();
     expect(screen.getByText('gallery-action')).toBeInTheDocument();
     expect(screen.getByText('prompt-action')).toBeInTheDocument();
     expect(screen.getAllByText('Settings')[0]).toBeInTheDocument();

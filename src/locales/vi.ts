@@ -53,6 +53,8 @@ export const vi: Translation = {
       gallery: 'Gallery',
       prompts: 'Prompt',
       settings: 'Cài đặt',
+      expand: 'Mở rộng tiện ích studio',
+      collapse: 'Thu gọn tiện ích studio',
     },
     intro: 'Không gian điện ảnh',
     toolbarDescription: 'Đi từ ảnh nguồn đến kết quả tinh chỉnh với shell gọn hơn, nhóm tính năng rõ hơn và review theo hướng media-first.',

@@ -53,6 +53,8 @@ export const en = {
       gallery: 'Gallery',
       prompts: 'Prompts',
       settings: 'Settings',
+      expand: 'Expand studio utilities',
+      collapse: 'Collapse studio utilities',
     },
     intro: 'Cinematic workspace',
     toolbarDescription: 'Move from source imagery to refined outputs with a calmer shell, clearer grouping, and media-first review.',

@@ -8,6 +8,8 @@ const { featureStub, passthrough, translations } = vi.hoisted(() => {
     'workspace.utility.title': 'Studio utilities',
     'workspace.utility.description': 'Open your archive, saved prompts, and workspace settings.',
     'workspace.utility.settings': 'Settings',
+    'workspace.utility.expand': 'Expand studio utilities',
+    'workspace.utility.collapse': 'Collapse studio utilities',
     'tooltips.headerSettings': 'Open settings',
   };
 
@@ -162,12 +164,21 @@ vi.mock('../src/components/modals/SettingsModal', () => ({
 import App from '../src/App';
 
 describe('App utility dock regression', () => {
-  it('mounts the dock in the live app shell and opens utility modals', async () => {
+  it('mounts the dock in the live app shell and opens utility modals after expanding it', async () => {
     const user = userEvent.setup();
 
     render(<App />);
 
-    expect(await screen.findByText('Studio utilities')).toBeInTheDocument();
+    const toggle = await screen.findByRole('button', { name: 'Expand studio utilities' });
+    expect(screen.getByText('Studio utilities')).toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Open your archive, saved prompts, and workspace settings.')).not.toBeInTheDocument();
+    expect(screen.queryByText('gallery-action')).not.toBeInTheDocument();
+
+    await user.click(toggle);
+
+    expect(screen.getByRole('button', { name: 'Collapse studio utilities' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Open your archive, saved prompts, and workspace settings.')).toBeInTheDocument();
     expect(screen.getByText('gallery-action')).toBeInTheDocument();
     expect(screen.getByText('prompt-action')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open settings' })).toBeInTheDocument();
