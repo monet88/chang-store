@@ -11,6 +11,10 @@ const GalleryButton: React.FC<GalleryButtonProps> = ({ onClick }) => {
   const { images } = useImageGallery();
   const { t } = useLanguage();
 
+  const galleryCountLabel = images.length > 0
+    ? t(images.length === 1 ? 'gallery.itemCountSingular' : 'gallery.itemCountPlural', { count: images.length })
+    : t('gallery.title');
+
   return (
     <button
       type="button"
@@ -26,7 +30,7 @@ const GalleryButton: React.FC<GalleryButtonProps> = ({ onClick }) => {
           {t('workspace.utility.gallery')}
         </span>
         <span className="text-sm font-medium tracking-[-0.01em]">
-          {images.length > 0 ? `${images.length} item${images.length === 1 ? '' : 's'}` : t('gallery.title')}
+          {galleryCountLabel}
         </span>
       </span>
       {images.length > 0 && (

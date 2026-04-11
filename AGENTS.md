@@ -90,7 +90,7 @@ Usage: `const { t } = useLanguage(); t('key.path')`
 
 <important if="you are writing styles or modifying UI appearance">
 
-Tailwind only — no inline styles, no `@apply`. Dark glassmorphism theme per `docs/design-guidelines.md`.
+Tailwind only — no inline styles, no `@apply`. Follow the Runway-inspired design contract in `docs/design-guidelines.md` as the canonical UI source of truth.
 </important>
 
 <important if="you are refactoring or touching components that import services directly">

@@ -189,7 +189,7 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
             <span className="mt-1 block text-xs leading-5 text-zinc-500">{t('lookbook.fabricTextureHelp')}</span>
           </span>
           <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
-            {hasFabricOverride ? t('common.save') : 'Optional'}
+            {hasFabricOverride ? t('common.save') : t('common.optional')}
             <span aria-hidden="true">⌄</span>
           </span>
         </summary>

@@ -198,6 +198,7 @@ export const vi: Translation = {
     cancel: 'Hủy',
     clear: 'Xóa',
     save: 'Lưu',
+    optional: 'Tùy chọn',
     generationFailed: 'Tạo ảnh thất bại',
     outputPanelTitle: 'Kết quả của bạn sẽ xuất hiện ở đây',
     outputPanelDescription: 'Tải ảnh lên và thiết lập các tùy chọn để bắt đầu.',
@@ -252,6 +253,8 @@ export const vi: Translation = {
   },
   gallery: {
     openAria: 'Mở thư viện ảnh ({{count}} ảnh)',
+    itemCountSingular: '{{count}} ảnh',
+    itemCountPlural: '{{count}} ảnh',
     title: 'Thư viện ảnh',
     closeAria: 'Đóng thư viện',
     emptyMessage: 'Các ảnh bạn tạo và tải lên sẽ xuất hiện ở đây.',

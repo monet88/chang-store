@@ -32,6 +32,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
         { id: Feature.Pose, label: t('tabs.pose') },
         { id: Feature.Relight, label: t('tabs.relight') },
         { id: Feature.WatermarkRemover, label: t('tabs.watermarkRemover') },
+        { id: Feature.ImageEditor, label: t('tabs.imageEditor') },
       ],
     },
     {

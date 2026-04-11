@@ -23,6 +23,7 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'tabs.pose': 'Pose AI',
         'tabs.relight': 'Relight',
         'tabs.watermarkRemover': 'Watermark Remover',
+        'tabs.imageEditor': 'Image Editor',
         'tabs.photoAlbum': 'Photo Album',
         'tabs.upscale': 'Upscale',
         'tabs.outfitAnalysis': 'Redesign',
@@ -53,8 +54,12 @@ describe('Tabs', () => {
     expect(screen.getByText('Output studio')).toBeInTheDocument();
     expect(screen.getByText('Analyze')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Lookbook AI/i }));
+    expect(screen.getByRole('button', { name: /Image Editor/i })).toBeInTheDocument();
 
+    await user.click(screen.getByRole('button', { name: /Lookbook AI/i }));
     expect(setActiveFeature).toHaveBeenCalledWith(Feature.Lookbook);
+
+    await user.click(screen.getByRole('button', { name: /Image Editor/i }));
+    expect(setActiveFeature).toHaveBeenCalledWith(Feature.ImageEditor);
   });
 });

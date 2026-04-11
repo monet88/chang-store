@@ -136,7 +136,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                 <span className="mt-1 block text-sm font-medium text-zinc-200">{t('clothingTransfer.extraPromptLabel')}</span>
               </span>
               <span className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
-                {extraPrompt.trim() ? t('common.save') : 'Optional'} <span aria-hidden="true">⌄</span>
+                {extraPrompt.trim() ? t('common.save') : t('common.optional')} <span aria-hidden="true">⌄</span>
               </span>
             </summary>
             <div className="space-y-2 border-t border-white/8 px-4 py-4">

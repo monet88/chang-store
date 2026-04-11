@@ -197,6 +197,7 @@ export const en = {
     cancel: 'Cancel',
     clear: 'Clear',
     save: 'Save',
+    optional: 'Optional',
     generationFailed: 'Generation Failed',
     outputPanelTitle: 'Your Result Appears Here',
     outputPanelDescription: 'Upload your images and set your options to begin.',
@@ -250,6 +251,8 @@ export const en = {
   },
   gallery: {
     openAria: 'Open image gallery ({{count}} images)',
+    itemCountSingular: '{{count}} item',
+    itemCountPlural: '{{count}} items',
     title: 'Image Gallery',
     closeAria: 'Close gallery',
     emptyMessage: 'Your generated and uploaded images will appear here.',
