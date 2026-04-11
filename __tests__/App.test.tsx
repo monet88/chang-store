@@ -3,15 +3,34 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-const translations: Record<string, string> = {
-  'workspace.utility.title': 'Studio utilities',
-  'workspace.utility.description': 'Open your archive, saved prompts, and workspace settings.',
-  'workspace.utility.settings': 'Settings',
-  'tooltips.headerSettings': 'Open settings',
-};
+const { featureStub, passthrough, translations } = vi.hoisted(() => {
+  const translations: Record<string, string> = {
+    'workspace.utility.title': 'Studio utilities',
+    'workspace.utility.description': 'Open your archive, saved prompts, and workspace settings.',
+    'workspace.utility.settings': 'Settings',
+    'tooltips.headerSettings': 'Open settings',
+  };
 
-const passthrough = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-const featureStub = (label: string) => () => <div>{label}</div>;
+  function Passthrough({ children }: { children: React.ReactNode }) {
+    return <>{children}</>;
+  }
+
+  const passthrough = Passthrough;
+  const featureStub = (label: string) => {
+    function FeatureStub() {
+      return <div>{label}</div>;
+    }
+
+    FeatureStub.displayName = `FeatureStub(${label})`;
+    return FeatureStub;
+  };
+
+  return {
+    translations,
+    passthrough,
+    featureStub,
+  };
+});
 
 vi.mock('../src/contexts/LanguageContext', () => ({
   LanguageProvider: passthrough,
