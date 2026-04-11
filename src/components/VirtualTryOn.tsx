@@ -178,6 +178,7 @@ const VirtualTryOn: React.FC = () => {
                         images={subjectImages}
                         id="subject-upload"
                         title={t('virtualTryOn.subjectImagesTitle')}
+                        hideTitle
                         onImagesUpload={handleSubjectImagesUpload}
                       />
                     )}

@@ -121,6 +121,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                 images={conceptImages}
                 id="concept-upload"
                 title={t('clothingTransfer.conceptImagesTitle')}
+                hideTitle
                 onImagesUpload={handleConceptImagesUpload}
               />
             </div>
