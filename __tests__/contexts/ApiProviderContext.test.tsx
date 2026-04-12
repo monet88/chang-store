@@ -27,7 +27,7 @@ vi.mock('@/services/apiClient', () => ({
 /** localStorage mock implementation */
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
-  return {
+  const mock = {
     getItem: vi.fn((key: string) => store[key] ?? null),
     setItem: vi.fn((key: string, value: string) => {
       store[key] = value;
@@ -38,10 +38,24 @@ const localStorageMock = (() => {
     clear: vi.fn(() => {
       store = {};
     }),
+    resetMocks: () => {
+      mock.getItem.mockImplementation((key: string) => store[key] ?? null);
+      mock.setItem.mockImplementation((key: string, value: string) => {
+        store[key] = value;
+      });
+      mock.removeItem.mockImplementation((key: string) => {
+        delete store[key];
+      });
+      mock.clear.mockImplementation(() => {
+        store = {};
+      });
+    },
   };
+
+  return mock;
 })();
 
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, configurable: true });
 
 // -----------------------------------------------------------------------------
 // Test Utilities
@@ -64,6 +78,7 @@ const createWrapper = () => {
 describe('ApiProviderContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorageMock.resetMocks();
     localStorageMock.clear();
   });
 
@@ -134,7 +149,7 @@ describe('ApiProviderContext', () => {
     it('loads model selections from localStorage on mount when valid', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {
         if (key === 'image_edit_model') return 'gemini-2.5-flash-image';
-        if (key === 'image_generate_model') return 'imagen-custom-generate-model';
+        if (key === 'image_generate_model') return 'imagen-4.0-ultra-generate-001';
         if (key === 'text_generate_model') return 'gemini-2.5-flash';
         return null;
       });
@@ -147,7 +162,7 @@ describe('ApiProviderContext', () => {
       expect(localStorageMock.getItem).toHaveBeenCalledWith('image_generate_model');
       expect(localStorageMock.getItem).toHaveBeenCalledWith('text_generate_model');
       expect(result.current.imageEditModel).toBe('gemini-2.5-flash-image');
-      expect(result.current.imageGenerateModel).toBe('imagen-custom-generate-model');
+      expect(result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
       expect(result.current.textGenerateModel).toBe('gemini-2.5-flash');
     });
 
@@ -166,6 +181,9 @@ describe('ApiProviderContext', () => {
       expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image-preview');
       expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
       expect(result.current.textGenerateModel).toBe('gemini-3-flash-preview');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-3.1-flash-image-preview');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'imagen-4.0-generate-001');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3-flash-preview');
     });
   });
 
@@ -269,6 +287,86 @@ describe('ApiProviderContext', () => {
       expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-2.5-flash-image');
       expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'imagen-4.0-ultra-generate-001');
       expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-2.5-flash');
+    });
+
+    it('rehydrates persisted model selections after remounting the provider', () => {
+      const firstMount = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        firstMount.result.current.setImageEditModel('gemini-2.5-flash-image');
+        firstMount.result.current.setImageGenerateModel('imagen-4.0-ultra-generate-001');
+        firstMount.result.current.setTextGenerateModel('gemini-2.5-flash');
+      });
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-2.5-flash-image');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'imagen-4.0-ultra-generate-001');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-2.5-flash');
+
+      firstMount.unmount();
+      localStorageMock.getItem.mockClear();
+      localStorageMock.setItem.mockClear();
+      localStorageMock.removeItem.mockClear();
+
+      const secondMount = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('image_edit_model');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('image_generate_model');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('text_generate_model');
+      expect(secondMount.result.current.imageEditModel).toBe('gemini-2.5-flash-image');
+      expect(secondMount.result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
+      expect(secondMount.result.current.textGenerateModel).toBe('gemini-2.5-flash');
+    });
+
+    it('falls back safely when localStorage reads or cleanup throw', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      localStorageMock.getItem.mockImplementation(() => {
+        throw new Error('read failed');
+      });
+      localStorageMock.removeItem.mockImplementation(() => {
+        throw new Error('remove failed');
+      });
+
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image-preview');
+      expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
+      expect(result.current.textGenerateModel).toBe('gemini-3-flash-preview');
+      expect(consoleWarnSpy).toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('keeps in-memory model updates even when localStorage writes fail', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      localStorageMock.setItem.mockImplementation(() => {
+        throw new Error('write failed');
+      });
+
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(() => {
+        act(() => {
+          result.current.setImageEditModel('gemini-2.5-flash-image');
+          result.current.setImageGenerateModel('imagen-4.0-ultra-generate-001');
+          result.current.setTextGenerateModel('gemini-2.5-pro');
+        });
+      }).not.toThrow();
+
+      expect(result.current.imageEditModel).toBe('gemini-2.5-flash-image');
+      expect(result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
+      expect(result.current.textGenerateModel).toBe('gemini-2.5-pro');
+      expect(consoleWarnSpy).toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
     });
   });
 

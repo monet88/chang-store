@@ -1,9 +1,10 @@
 import React, { useState, useCallback, lazy, Suspense } from 'react';
 import Header from './components/Header';
+import { GlobalModelSelector } from './components/GlobalModelSelector';
 import { Feature, ImageFile } from './types';
 import { ImageGalleryProvider } from './contexts/ImageGalleryContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
-import { ApiProvider } from './contexts/ApiProviderContext';
+import { ApiProvider, useApi } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
 import { GoogleDriveProvider } from './contexts/GoogleDriveContext';
 import { ToastProvider } from './components/Toast';
@@ -11,6 +12,8 @@ import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
 import MobileOverlay from './components/MobileOverlay';
 import UtilityDock from './components/UtilityDock';
+import { type ModelSelectionType } from './config/modelRegistry';
+import { resolveModelSelectionScope } from './config/modelSelectionRules';
 
 const VirtualTryOn = lazy(() => import('./components/VirtualTryOn'));
 const LookbookGenerator = lazy(() => import('./components/LookbookGenerator'));
@@ -39,6 +42,14 @@ const FeatureLoadingFallback: React.FC = () => (
 
 const AppContent: React.FC = () => {
   const { t } = useLanguage();
+  const {
+    imageEditModel,
+    setImageEditModel,
+    imageGenerateModel,
+    setImageGenerateModel,
+    textGenerateModel,
+    setTextGenerateModel,
+  } = useApi();
   const [activeFeature, setActiveFeature] = useState<Feature>(Feature.TryOn);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
@@ -165,6 +176,19 @@ const AppContent: React.FC = () => {
   };
 
   const currentFeatureMeta = featureMeta[activeFeature] ?? featureMeta[Feature.TryOn];
+  const activeModelSelectionScope = resolveModelSelectionScope(activeFeature);
+
+  const selectedModelBySelectionType: Record<ModelSelectionType, string> = {
+    imageEdit: imageEditModel,
+    imageGenerate: imageGenerateModel,
+    textGenerate: textGenerateModel,
+  };
+
+  const modelSetterBySelectionType: Record<ModelSelectionType, (modelId: string) => void> = {
+    imageEdit: setImageEditModel,
+    imageGenerate: setImageGenerateModel,
+    textGenerate: setTextGenerateModel,
+  };
 
   const renderActiveFeature = () => {
     switch (activeFeature) {
@@ -235,16 +259,30 @@ const AppContent: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="hidden flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400 lg:flex">
-                  <span className="rounded-full border border-white/10 px-3 py-1.5">
-                    {t('workspace.panels.controlRail')}
-                  </span>
-                  <span className="rounded-full border border-white/10 px-3 py-1.5">
-                    {t('workspace.panels.resultStage')}
-                  </span>
-                  <span className="rounded-full border border-white/10 px-3 py-1.5">
-                    {t('navigation.mediaFirstLabel')}
-                  </span>
+                <div className="flex w-full flex-col gap-3 sm:max-w-md sm:items-end">
+                  {activeModelSelectionScope && (
+                    <GlobalModelSelector
+                      title={t('modelSelector.title')}
+                      description={t('modelSelector.description')}
+                      ariaLabel={t(activeModelSelectionScope.labelKey)}
+                      label={t(activeModelSelectionScope.labelKey)}
+                      selectedModel={selectedModelBySelectionType[activeModelSelectionScope.selectionType]}
+                      options={activeModelSelectionScope.options}
+                      onChange={modelSetterBySelectionType[activeModelSelectionScope.selectionType]}
+                    />
+                  )}
+
+                  <div className="hidden flex-wrap justify-end gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400 lg:flex">
+                    <span className="rounded-full border border-white/10 px-3 py-1.5">
+                      {t('workspace.panels.controlRail')}
+                    </span>
+                    <span className="rounded-full border border-white/10 px-3 py-1.5">
+                      {t('workspace.panels.resultStage')}
+                    </span>
+                    <span className="rounded-full border border-white/10 px-3 py-1.5">
+                      {t('navigation.mediaFirstLabel')}
+                    </span>
+                  </div>
                 </div>
               </section>
 

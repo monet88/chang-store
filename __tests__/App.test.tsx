@@ -10,6 +10,11 @@ const { featureStub, passthrough, translations } = vi.hoisted(() => {
     'workspace.utility.settings': 'Settings',
     'workspace.utility.expand': 'Expand studio utilities',
     'workspace.utility.collapse': 'Collapse studio utilities',
+    'modelSelector.title': 'Active task model',
+    'modelSelector.description': 'Change the model for the current workspace task without opening settings.',
+    'modelSelector.scopes.imageEdit': 'Image editing model',
+    'modelSelector.scopes.imageGenerate': 'Image generation model',
+    'modelSelector.scopes.textGenerate': 'Text generation model',
     'tooltips.headerSettings': 'Open settings',
   };
 
@@ -34,6 +39,16 @@ const { featureStub, passthrough, translations } = vi.hoisted(() => {
   };
 });
 
+const {
+  mockSetImageEditModel,
+  mockSetImageGenerateModel,
+  mockSetTextGenerateModel,
+} = vi.hoisted(() => ({
+  mockSetImageEditModel: vi.fn(),
+  mockSetImageGenerateModel: vi.fn(),
+  mockSetTextGenerateModel: vi.fn(),
+}));
+
 vi.mock('../src/contexts/LanguageContext', () => ({
   LanguageProvider: passthrough,
   useLanguage: () => ({
@@ -47,6 +62,14 @@ vi.mock('../src/contexts/ImageGalleryContext', () => ({
 
 vi.mock('../src/contexts/ApiProviderContext', () => ({
   ApiProvider: passthrough,
+  useApi: () => ({
+    imageEditModel: 'gemini-3.1-flash-image-preview',
+    setImageEditModel: mockSetImageEditModel,
+    imageGenerateModel: 'imagen-4.0-generate-001',
+    setImageGenerateModel: mockSetImageGenerateModel,
+    textGenerateModel: 'gemini-3-flash-preview',
+    setTextGenerateModel: mockSetTextGenerateModel,
+  }),
 }));
 
 vi.mock('../src/contexts/ImageViewerContext', () => ({
@@ -62,7 +85,20 @@ vi.mock('../src/components/Toast', () => ({
 }));
 
 vi.mock('../src/components/Header', () => ({
-  default: () => <div>header-shell</div>,
+  default: ({ setActiveFeature }: { setActiveFeature: (feature: string) => void }) => (
+    <div>
+      header-shell
+      <button type="button" onClick={() => setActiveFeature('try-on')}>
+        feature-try-on
+      </button>
+      <button type="button" onClick={() => setActiveFeature('image-editor')}>
+        feature-image-editor
+      </button>
+      <button type="button" onClick={() => setActiveFeature('outfit-analysis')}>
+        feature-outfit-analysis
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('../src/components/MobileMenuButton', () => ({
@@ -191,5 +227,25 @@ describe('App utility dock regression', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open settings' }));
     expect(await screen.findByText('settings-modal')).toBeInTheDocument();
+  });
+
+  it('switches the shared active-task model selector scope and setter by feature', async () => {
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
+    await user.selectOptions(screen.getByLabelText('Image editing model'), 'gemini-2.5-flash-image');
+    expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
+
+    await user.click(screen.getByText('feature-image-editor'));
+    expect(screen.getByLabelText('Image generation model')).toHaveValue('imagen-4.0-generate-001');
+    await user.selectOptions(screen.getByLabelText('Image generation model'), 'imagen-4.0-fast-generate-001');
+    expect(mockSetImageGenerateModel).toHaveBeenCalledWith('imagen-4.0-fast-generate-001');
+
+    await user.click(screen.getByText('feature-outfit-analysis'));
+    expect(screen.getByLabelText('Text generation model')).toHaveValue('gemini-3-flash-preview');
+    await user.selectOptions(screen.getByLabelText('Text generation model'), 'gemini-2.5-pro');
+    expect(mockSetTextGenerateModel).toHaveBeenCalledWith('gemini-2.5-pro');
   });
 });

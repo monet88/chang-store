@@ -100,6 +100,13 @@ export const en = {
       watermarkRemover: 'Clean final imagery with minimal chrome around the task.',
       imageEditor: 'Open precision editing when a result needs manual correction.',
     },
+    activeModel: {
+      labels: {
+        imageEdit: 'Image editing model',
+        imageGenerate: 'Image generation model',
+        textGenerate: 'Text generation model',
+      },
+    },
     panels: {
       controlRail: 'Control rail',
       resultStage: 'Result stage',
@@ -115,6 +122,15 @@ export const en = {
     modes: {
       single: 'Single subject',
       multi: 'Multi subject',
+    },
+  },
+  modelSelector: {
+    title: 'Active task model',
+    description: 'Change the model for the current workspace task without opening settings.',
+    scopes: {
+      imageEdit: 'Image editing model',
+      imageGenerate: 'Image generation model',
+      textGenerate: 'Text generation model',
     },
   },
   tabs: {
@@ -1286,7 +1302,7 @@ Do not include any other text or markdown.
     sections: {
       models: {
         title: 'Default model selection',
-        description: 'Choose the Gemini and Imagen defaults for text, image editing, and image generation.',
+        description: 'Review the registry-backed defaults for text, image editing, and image generation.',
       },
       cloud: {
         title: 'Cloud sync',

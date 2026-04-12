@@ -100,6 +100,13 @@ export const vi: Translation = {
       watermarkRemover: 'Làm sạch ảnh cuối với chrome tối giản quanh tác vụ.',
       imageEditor: 'Mở chỉnh sửa chi tiết khi kết quả cần can thiệp thủ công.',
     },
+    activeModel: {
+      labels: {
+        imageEdit: 'Model chỉnh sửa ảnh',
+        imageGenerate: 'Model tạo ảnh',
+        textGenerate: 'Model tạo văn bản',
+      },
+    },
     panels: {
       controlRail: 'Thanh điều khiển',
       resultStage: 'Sân khấu kết quả',
@@ -115,6 +122,15 @@ export const vi: Translation = {
     modes: {
       single: 'Một chủ thể',
       multi: 'Nhiều chủ thể',
+    },
+  },
+  modelSelector: {
+    title: 'Model cho tác vụ hiện tại',
+    description: 'Đổi model cho tác vụ đang mở trong workspace mà không cần vào phần cài đặt.',
+    scopes: {
+      imageEdit: 'Model chỉnh sửa ảnh',
+      imageGenerate: 'Model tạo ảnh',
+      textGenerate: 'Model tạo văn bản',
     },
   },
   tabs: {
@@ -1289,7 +1305,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     sections: {
       models: {
         title: 'Chọn model mặc định',
-        description: 'Chọn model Gemini và Imagen mặc định cho text, chỉnh sửa ảnh và tạo ảnh.',
+        description: 'Xem lại các model mặc định từ registry cho text, chỉnh sửa ảnh và tạo ảnh.',
       },
       cloud: {
         title: 'Đồng bộ đám mây',

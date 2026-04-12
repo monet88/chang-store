@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getModelsBySelectionType, type RegisteredModel } from '../../config/modelRegistry';
 import { useApi } from '../../contexts/ApiProviderContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getLocalStorageUsage, backupData, restoreData, clearAppData } from '../../utils/storage';
@@ -7,26 +8,10 @@ import { isDebugEnabled, setDebugEnabled } from '../../services/debugService';
 import { CloseIcon } from '../Icons';
 import { GoogleDriveSettings } from '../GoogleDriveSettings';
 
-const GOOGLE_IMAGE_EDIT_MODELS = [
-  { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image (Preview)' },
-  { id: 'gemini-3.1-flash-image-preview', name: 'Gemini 3.1 Flash Image (Preview)' },
-  { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
-];
-
-const GOOGLE_IMAGE_GENERATE_MODELS = [
-  { id: 'imagen-4.0-ultra-generate-001', name: 'Imagen 4 Ultra' },
-  { id: 'imagen-4.0-generate-001', name: 'Imagen 4' },
-  { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast' },
-];
-
-const GOOGLE_TEXT_GENERATE_MODELS = [
-  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (Preview)' },
-  { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash (Preview)' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-];
-
 const sectionTitleClassName = 'text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400';
+const IMAGE_EDIT_MODELS = getModelsBySelectionType('imageEdit');
+const IMAGE_GENERATE_MODELS = getModelsBySelectionType('imageGenerate');
+const TEXT_GENERATE_MODELS = getModelsBySelectionType('textGenerate');
 
 const SectionCard: React.FC<{
   title: string;
@@ -44,27 +29,28 @@ const SectionCard: React.FC<{
 
 const ModelSelector: React.FC<{
   label: string;
-  models: { id: string; name: string }[];
+  models: RegisteredModel[];
   selectedModel: string;
   onModelChange: (modelId: string) => void;
 }> = ({ label, models, selectedModel, onModelChange }) => (
-  <div className="space-y-2">
-    <label className={sectionTitleClassName}>{label}</label>
+  <label className="block space-y-2">
+    <span className={sectionTitleClassName}>{label}</span>
     <div className="relative">
       <select
+        aria-label={label}
         value={selectedModel}
         onChange={(e) => onModelChange(e.target.value)}
-        className="workspace-input min-h-[46px] appearance-none px-4 py-3 pr-10 text-sm text-zinc-100"
+        className="workspace-input min-h-[46px] w-full appearance-none px-4 py-3 pr-10 text-sm text-zinc-100"
       >
         {models.map((opt) => (
-          <option key={opt.id} value={opt.id}>
-            {opt.name}
+          <option key={opt.modelId} value={opt.modelId}>
+            {opt.label}
           </option>
         ))}
       </select>
       <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-zinc-500">⌄</span>
     </div>
-  </div>
+  </label>
 );
 
 export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -187,19 +173,19 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                 <div className="space-y-4">
                   <ModelSelector
                     label={t('settingsModal.fields.textGeneration')}
-                    models={GOOGLE_TEXT_GENERATE_MODELS}
+                    models={TEXT_GENERATE_MODELS}
                     selectedModel={localTextGenerateModel}
                     onModelChange={setLocalTextGenerateModel}
                   />
                   <ModelSelector
                     label={t('settingsModal.fields.imageEditing')}
-                    models={GOOGLE_IMAGE_EDIT_MODELS}
+                    models={IMAGE_EDIT_MODELS}
                     selectedModel={localImageEditModel}
                     onModelChange={setLocalImageEditModel}
                   />
                   <ModelSelector
                     label={t('settingsModal.fields.imageGeneration')}
-                    models={GOOGLE_IMAGE_GENERATE_MODELS}
+                    models={IMAGE_GENERATE_MODELS}
                     selectedModel={localImageGenerateModel}
                     onModelChange={setLocalImageGenerateModel}
                   />
