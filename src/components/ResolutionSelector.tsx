@@ -29,13 +29,13 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
   // If 2.5-flash model, show locked 1K indicator
   if (is25FlashModel) {
     return (
-      <div className="flex items-center gap-2 flex-wrap justify-center">
-        <span className="text-slate-300 font-medium">Quality:</span>
-        <div className="flex gap-2 bg-slate-800/50 p-1.5 rounded-lg">
-          <span className="px-3 py-1.5 text-sm font-semibold rounded-md bg-amber-600 text-white">
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <span className="font-medium text-zinc-300">Quality:</span>
+        <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5">
+          <span className="rounded-xl bg-white px-3 py-1.5 text-sm font-semibold text-zinc-950">
             1K
           </span>
-          <span className="px-3 py-1.5 text-xs text-slate-500 italic">
+          <span className="px-3 py-1.5 text-xs italic text-zinc-500">
             (2.5-flash: 1K only)
           </span>
         </div>
@@ -44,15 +44,15 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
   }
 
   return (
-    <div className="flex items-center gap-2 flex-wrap justify-center">
-      <span className="text-slate-300 font-medium">Quality:</span>
-      <div className="flex gap-2 bg-slate-800/50 p-1.5 rounded-lg flex-wrap justify-center">
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      <span className="font-medium text-zinc-300">Quality:</span>
+      <div className="flex flex-wrap justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5">
           {IMAGE_RESOLUTIONS.map(res => (
               <button
                   key={res}
                   onClick={() => setResolution(res)}
-                  className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                      resolution === res ? 'bg-amber-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
+                  className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition-colors duration-200 ${
+                      resolution === res ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
                   }`}
               >
                   {res}

@@ -313,7 +313,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
           </div>
 
           <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-            <h3 className="text-base md:text-lg font-semibold text-center text-amber-400 mb-4">{t('pose.orTitle')}</h3>
+            <h3 className="text-base md:text-lg font-semibold text-center text-zinc-100 mb-4">{t('pose.orTitle')}</h3>
             <div className="flex flex-col gap-4">
               <div>
                 <label htmlFor="pose-prompt" className="block text-sm font-medium text-zinc-300 mb-2">{t('pose.customPoseLabel')}</label>
@@ -323,7 +323,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                   onChange={(e) => { setCustomPosePrompt(e.target.value); if (poseReferenceImage) setPoseReferenceImage(null); }}
                   placeholder={t('pose.customPosePlaceholder')}
                   rows={2}
-                  className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                  className="workspace-input p-3"
                 />
               </div>
 
@@ -339,7 +339,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                   </p>
                   <button
                     onClick={() => onOpenPoseLibrary(handleConfirmSelection, selectedLibraryPoses)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold py-2 px-4 rounded-full hover:opacity-90 transition-opacity"
+                    className="workspace-button workspace-button-primary min-h-0 px-4 py-2 text-sm font-semibold"
                   >
                     <PhotoAlbumIcon className="w-5 h-5" />
                     {t('pose.browseLibraryButton')}
@@ -358,7 +358,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                 onChange={(e) => setNegativePrompt(e.target.value)}
                 placeholder={t('pose.negativePromptPlaceholder')}
                 rows={2}
-                className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                className="workspace-input p-3"
               />
             </div>
             <div>
@@ -366,7 +366,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
               <div className="flex justify-center">
                 <div className="flex flex-wrap justify-center gap-1 p-1 bg-zinc-800/50 rounded-lg">
                   {cameraViewOptions.map(opt => (
-                    <button key={opt.key} onClick={() => setCameraView(opt.key)} className={`px-2 py-1.5 text-xs font-semibold rounded-md transition-colors duration-200 ${cameraView === opt.key ? 'bg-amber-600 text-white' : 'text-zinc-300 hover:bg-zinc-700/50'}`}>
+                    <button key={opt.key} onClick={() => setCameraView(opt.key)} className={`px-2 py-1.5 text-xs font-semibold rounded-md border transition-colors duration-200 ${cameraView === opt.key ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -382,7 +382,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
 
 
           <div className="text-center">
-            <button onClick={handleGenerate} disabled={isGenerateDisabled} className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105">
+            <button onClick={handleGenerate} disabled={isGenerateDisabled} className="workspace-button workspace-button-primary px-8 py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
               {generationStatus.active || isLoading ? <Spinner /> : getButtonText()}
             </button>
           </div>
@@ -405,7 +405,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
               </div>
             ) : generatedImages.length > 0 ? (
               <div className="w-full h-full overflow-y-auto pr-2">
-                <h3 className="text-xl font-semibold text-center mb-4 text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">{t('pose.generatedPosesTitle', { count: generatedImages.length })}</h3>
+                <h3 className="text-xl font-semibold text-center mb-4 text-zinc-100">{t('pose.generatedPosesTitle', { count: generatedImages.length })}</h3>
                 <div className={`grid gap-4 ${generatedImages.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                   {generatedImages.map((image, index) => (
                     <HoverableImage

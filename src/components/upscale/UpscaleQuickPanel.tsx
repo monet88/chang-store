@@ -90,8 +90,8 @@ const UpscaleQuickPanel: React.FC<UpscaleQuickPanelProps> = ({
                   onClick={() => onQualityChange(q)}
                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
                     quality === q
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white'
-                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                      ? 'border border-white/60 bg-zinc-100 text-zinc-950'
+                      : 'border border-transparent bg-zinc-800 text-zinc-300 hover:bg-white/5 hover:text-zinc-100'
                   }`}
                 >
                   {QUALITY_LABELS[q]}
@@ -112,8 +112,8 @@ const UpscaleQuickPanel: React.FC<UpscaleQuickPanelProps> = ({
                   onClick={() => onModelChange(m)}
                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
                     model === m
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white'
-                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                      ? 'border border-white/60 bg-zinc-100 text-zinc-950'
+                      : 'border border-transparent bg-zinc-800 text-zinc-300 hover:bg-white/5 hover:text-zinc-100'
                   }`}
                 >
                   {UPSCALE_QUICK_MODEL_LABELS[m]}
@@ -127,7 +127,7 @@ const UpscaleQuickPanel: React.FC<UpscaleQuickPanelProps> = ({
             <button
               onClick={onRequestUpscale}
               disabled={isLoading}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105"
+              className="workspace-button workspace-button-primary px-8 py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <Spinner />

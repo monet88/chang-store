@@ -15,9 +15,9 @@ interface UpscaleModeSwitchProps {
   disabled?: boolean;
 }
 
-const MODE_OPTIONS: { value: UpscaleMode; labelKey: string; icon: string }[] = [
-  { value: 'quick', labelKey: 'upscale.modeQuick', icon: '⚡' },
-  { value: 'studio', labelKey: 'upscale.modeStudio', icon: '🎨' },
+const MODE_OPTIONS: { value: UpscaleMode; labelKey: string }[] = [
+  { value: 'quick', labelKey: 'upscale.modeQuick' },
+  { value: 'studio', labelKey: 'upscale.modeStudio' },
 ];
 
 const UpscaleModeSwitch: React.FC<UpscaleModeSwitchProps> = ({ mode, onSwitch, disabled }) => {
@@ -31,13 +31,12 @@ const UpscaleModeSwitch: React.FC<UpscaleModeSwitchProps> = ({ mode, onSwitch, d
           onClick={() => onSwitch(opt.value)}
           disabled={disabled}
           aria-pressed={mode === opt.value}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
+          className={`flex-1 flex items-center justify-center py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
             mode === opt.value
-              ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/20'
-              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+              ? 'border border-white/60 bg-zinc-100 text-zinc-950'
+              : 'border border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
           } disabled:opacity-50 disabled:cursor-not-allowed`}
         >
-          <span>{opt.icon}</span>
           <span>{t(opt.labelKey)}</span>
         </button>
       ))}

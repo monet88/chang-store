@@ -62,7 +62,7 @@ const UpscaleAnalyzeStep: React.FC<UpscaleAnalyzeStepProps> = ({
               ? 'bg-zinc-700/50 text-zinc-400 cursor-wait'
               : hasReport
                 ? 'bg-zinc-700/60 border border-zinc-600/50 text-zinc-300 hover:bg-zinc-700'
-                : 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg hover:shadow-violet-500/25 hover:opacity-90'
+                : 'workspace-button-primary border border-white/60 text-zinc-950 hover:bg-white'
           }`}
         >
           {isAnalyzing ? (
@@ -71,9 +71,9 @@ const UpscaleAnalyzeStep: React.FC<UpscaleAnalyzeStepProps> = ({
               {t('upscale.analyzingStatus')}
             </span>
           ) : hasReport ? (
-            <>🔄 {t('upscale.reanalyzeConfirmYes')}</>
+            t('upscale.reanalyzeConfirmYes')
           ) : (
-            <>🔍 {t('upscale.analyzeButton')}</>
+            t('upscale.analyzeButton')
           )}
         </button>
       )}

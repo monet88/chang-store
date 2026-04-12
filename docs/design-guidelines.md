@@ -1,292 +1,100 @@
-# Design Guidelines - Chang-Store
+# Chang Studio UI Redesign Contract
 
-**Last Updated**: 2024-12-24 | **Version**: 1.0
+**Last Updated**: 2026-04-10
+**Status**: Active design authority for the Runway-inspired redesign
 
----
+## 1. Product framing
+Chang Studio is not a marketing landing page. It is a cinematic fashion workspace where the image result is the primary interface and controls support the workflow without competing for attention.
 
-## 1. Design Philosophy
+### Core principles
+1. **Media first** — generated results, references, and refinements get the strongest hierarchy.
+2. **Editorial restraint** — dark neutral surfaces, tight typography, almost no decorative color.
+3. **Workflow grouping** — navigation clusters tools by job, not by implementation history.
+4. **Low-chrome controls** — forms live in rails/panels with subtle borders and no default shadows.
+5. **Progressive rollout** — shell and proving flows establish the system before secondary features migrate.
 
-**Dark Glassmorphism** - Premium, modern aesthetic with depth through layered transparency, subtle gradients, and purposeful animations.
+## 2. Visual system
 
-### Core Principles
+### Palette
+- Background base: `#050505`
+- Elevated backdrop: `rgba(255,255,255,0.03)`
+- Stronger surface: `rgba(255,255,255,0.05)`
+- Default border: `rgba(255,255,255,0.08)`
+- Strong border: `rgba(255,255,255,0.14)`
+- Primary text: `#f4f4f5`
+- Secondary text: `#9f9fa9`
+- Structural label text: `#6d6d77`
 
-1. **Mobile-First** - Design for 320px, scale up
-2. **Accessibility** - WCAG 2.1 AA minimum
-3. **Performance** - 60fps animations, lazy loading
-4. **Consistency** - Design tokens for all values
-5. **Delight** - Thoughtful micro-interactions
+### Depth
+- Default depth comes from scale, spacing, and media, **not** box-shadow.
+- Shadows are not part of the shell language.
+- Borders stay subtle and are only used for containment.
 
----
-
-## 2. Color System
-
-### Primary Palette
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `primary` | `#6366F1` | CTAs, active states, links |
-| `primary-hover` | `#7C3AED` | Hover on primary elements |
-| `primary-glow` | `rgba(99, 102, 241, 0.2)` | Glow effects, shadows |
-
-### Background Gradient
-
-```css
-background: radial-gradient(
-  ellipse at top,
-  #312E81 0%,    /* Deep indigo */
-  #1E1B4B 30%,   /* Purple-navy */
-  #0F172A 60%,   /* Dark navy */
-  #000000 100%   /* Black */
-);
-```
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `bg-start` | `#0F172A` | Nav background |
-| `bg-mid` | `#1E1B4B` | Gradient midpoint |
-| `bg-end` | `#000000` | Page bottom |
-
-### Surface Colors
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `surface-card` | `rgba(30, 41, 59, 0.6)` | Default glass cards |
-| `surface-elevated` | `rgba(30, 41, 59, 0.8)` | Elevated cards, modals |
-
-### Text Colors
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `text-primary` | `#FFFFFF` | Headings, body text |
-| `text-secondary` | `#94A3B8` | Captions, descriptions |
-| `text-muted` | `#64748B` | Placeholders, disabled |
-
-### Border Colors
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `border` | `rgba(255, 255, 255, 0.1)` | Default borders |
-| `border-hover` | `rgba(255, 255, 255, 0.2)` | Hover state borders |
-
----
+### Radius
+- Interactive controls: `12px–16px`
+- Panels / stages: `24px–28px`
+- Pills / metadata chips: `999px`
 
 ## 3. Typography
+- Primary typeface: **Plus Jakarta Sans**
+- Display tracking: `-0.04em` to `-0.06em`
+- Eyebrows / micro labels: uppercase with `0.22em–0.28em` tracking
+- Body copy should stay compact and calm (`14px–16px`, line-height `1.5–1.6`)
 
-### Font Family
+## 4. Layout model
 
-**Plus Jakarta Sans** - Modern geometric sans-serif with Vietnamese support.
+### Shell
+- Desktop: fixed editorial rail on the left + wide content canvas on the right
+- Mobile: overlay rail triggered by a compact menu button
+- Utility actions belong inside the rail, not as floating FABs
 
-```html
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-```
+### Priority flow template
+Every proving flow should map to:
+1. **Hero intro** — what the tool is for
+2. **Control rail** — uploads, prompts, generation settings
+3. **Result stage** — hero image/grid, progress, refine/export actions
 
-Fallback: `system-ui, -apple-system, sans-serif`
+### Responsive behavior
+- **Mobile**: intro → controls → result stage stacked vertically
+- **Tablet**: control rail above or beside result stage depending on density
+- **Desktop**: sticky control rail + large result stage
 
-### Type Scale
+## 5. Component rules
+- Buttons should default to monochrome surfaces; white/high-contrast fills are reserved for primary actions.
+- Textareas and inputs use subtle dark surfaces with light borders.
+- Group selectors should feel like editorial chips, not bright segmented controls.
+- Result areas must expose download/refine/state feedback without heavy banners or glow effects.
 
-| Token | Size | Weight | Line Height | Usage |
-|-------|------|--------|-------------|-------|
-| `heading` | 24px | 700 | 1.2 | Page titles |
-| `subheading` | 16px | 600 | 1.4 | Section headers |
-| `body` | 14px | 400 | 1.5 | Body text |
-| `caption` | 12px | 500 | 1.4 | Labels, chips |
-| `tiny` | 11px | 500 | 1.3 | Nav labels |
+## 6. Navigation rules
+Group features by workflow:
+- **Create looks** — Try On, Lookbook, Clothing Transfer, Pattern Generator
+- **Edit images** — AI Editor, Background, Pose, Relight, Watermark Remover, Image Editor
+- **Output studio** — Photo Album, Upscale
+- **Analyze** — Outfit Analysis
 
----
+## 7. Do / don't
 
-## 4. Spacing
+### Do
+- Keep the result canvas visually dominant.
+- Use uppercase labels for structure.
+- Let whitespace and media establish hierarchy.
+- Keep surfaces quiet and consistent across shell and proving flows.
 
-**8pt Grid System**
+### Don't
+- Do not reintroduce global zoom scaling.
+- Do not force the whole app down to `12px` root text.
+- Do not use amber gradients and glow as the default shell language.
+- Do not bring back floating utility FABs in the redesigned shell.
+- Do not add new dependencies to achieve styling.
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `1` | 4px | Tight spacing |
-| `2` | 8px | Icon gaps |
-| `3` | 12px | Card gaps |
-| `4` | 16px | Section padding |
-| `5` | 20px | Page margins |
-| `6` | 24px | Section spacing |
-| `8` | 32px | Large gaps |
+## 8. Rollout contract
+1. Shell + navigation
+2. Shared primitives / token migration
+3. Priority flows: Try On, Lookbook, Clothing Transfer
+4. Secondary feature adoption using the same templates
 
----
-
-## 5. Border Radius
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `card` | 16px | Standard cards |
-| `card-lg` | 20px | Modals, large cards |
-| `button` | 12px | Buttons, inputs |
-| `chip` | 8px | Chips, tags |
-| `full` | 9999px | Avatars, pills |
-
----
-
-## 6. Shadows
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `card` | `0 4px 24px rgba(0, 0, 0, 0.3)` | Default elevation |
-| `elevated` | `0 8px 32px rgba(99, 102, 241, 0.2)` | Active/focused |
-| `glow` | `0 0 20px rgba(99, 102, 241, 0.4)` | CTA emphasis |
-
----
-
-## 7. Glass Morphism
-
-### Default Glass Card
-```css
-.glass-card {
-  background: rgba(30, 41, 59, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-}
-```
-
-### Elevated Glass
-```css
-.glass-elevated {
-  background: rgba(30, 41, 59, 0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.2);
-}
-```
-
----
-
-## 8. Components
-
-### Buttons
-
-| Variant | Background | Text | Usage |
-|---------|------------|------|-------|
-| Primary | `#6366F1` | White | CTAs, submit |
-| Secondary | Glass card | Text primary | Cancel, alt actions |
-| Ghost | Transparent | Text primary | Tertiary actions |
-| Danger | `#EF4444` | White | Destructive |
-
-**Sizes**: sm (32px), md (40px), lg (48px)
-
-### Cards
-
-- Padding: 16px default
-- Touch target: Minimum 44x44px
-- Interactive: Scale 0.98 on tap
-
-### Chips
-
-- Height: 36px (md), 28px (sm)
-- Selected: Primary background
-- Unselected: Border only
-
-### Inputs
-
-- Height: 44px
-- Icon left (optional)
-- Focus ring: Primary 50% opacity
-
----
-
-## 9. Animation
-
-### Timing
-
-| Duration | Usage |
-|----------|-------|
-| 150ms | Button feedback, hover |
-| 250ms | Page transitions |
-| 400ms | Modals, overlays |
-
-### Easing
-
-```js
-const easing = {
-  standard: [0.4, 0, 0.2, 1],
-  enter: [0, 0, 0.2, 1],
-  exit: [0.4, 0, 1, 1]
-};
-```
-
-### Reduced Motion
-
-Always check `prefers-reduced-motion`:
-```js
-@media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; }
-}
-```
-
----
-
-## 10. Accessibility
-
-### Color Contrast
-
-- Normal text: 4.5:1 minimum
-- Large text (18px+): 3:1 minimum
-- Interactive: Clear focus indicators
-
-### Touch Targets
-
-- Minimum: 44x44px
-- Recommended: 48x48px for primary
-
-### Keyboard
-
-- All interactive elements focusable
-- Visible focus ring
-- Escape closes modals
-
----
-
-## 11. Responsive Breakpoints
-
-| Name | Width | Usage |
-|------|-------|-------|
-| Mobile | < 640px | Primary target |
-| Tablet | 640-1024px | Adjust grids |
-| Desktop | > 1024px | Multi-column |
-
----
-
-## 12. Icons
-
-**Lucide React** - Consistent 24px icons, 2px stroke.
-
-Common icons:
-- `Home`, `Sparkles`, `FolderOpen`, `User` - Navigation
-- `ArrowLeft`, `X`, `ChevronRight` - Actions
-- `Plus`, `Minus`, `Bell` - UI elements
-
----
-
-## 13. File Structure
-
-```
-components/
-  ui/                  # Primitives (Button, Card, etc.)
-  mobile/
-    layout/            # AppShell, Header, BottomNav
-    home/              # Home screen sections
-    prompt/            # Prompt input screen
-  motion/              # Animation wrappers
-
-lib/
-  animations/          # Variants, transitions
-  utils/               # cn(), helpers
-
-styles/
-  globals.css          # Tailwind + custom utilities
-```
-
----
-
-## Changelog
-
-| Date | Version | Changes |
-|------|---------|---------|
-| 2024-12-24 | 1.0 | Initial design system for AI Image Gen App |
+## 9. Verification expectations
+- TypeScript passes
+- ESLint passes
+- Existing tests pass, with focused regressions added for shell and proving flows
+- Desktop/tablet/mobile visual QA confirms media-first hierarchy and calmer chrome

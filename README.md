@@ -69,6 +69,6 @@ npm run build
 
 ## 📐 Design Guidelines
 
-The application adheres to a dark **glassmorphism** design theme. For further UI details, refer to `docs/design-guidelines.md`.
+The canonical UI source of truth is `docs/design-guidelines.md`; follow its Runway-inspired redesign contract for visual styling and interaction patterns.
 
 *Localization (i18n)* is managed via `src/locales/en.ts` functioning as the main source of truth. Always use `const { t } = useLanguage(); t('key.path')` inside components for text representation.

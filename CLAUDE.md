@@ -90,7 +90,7 @@ Usage: `const { t } = useLanguage(); t('key.path')`
 
 <important if="you are writing styles or modifying UI appearance">
 
-Tailwind only — no inline styles, no `@apply`. Dark glassmorphism theme per `docs/design-guidelines.md`.
+Tailwind only — no inline styles, no `@apply`. Follow the Runway-inspired design contract in `docs/design-guidelines.md` as the canonical UI source of truth.
 </important>
 
 <important if="you are refactoring or touching components that import services directly">
@@ -133,7 +133,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **chang-store** (1367 symbols, 2457 relationships, 88 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **chang-store** (1396 symbols, 2496 relationships, 87 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
