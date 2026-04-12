@@ -67,18 +67,26 @@ const baseHookState = {
   completedCount: 0,
   failedCount: 0,
   canGenerate: false,
+  clearSubjectImages: vi.fn(),
   handleGenerateImage: vi.fn(),
+  handleRegenerateSingle: vi.fn(),
   handleUpscale: vi.fn(),
   handleRefine: vi.fn(),
   handleSubjectImagesUpload: vi.fn(),
   handleClothingUpload: vi.fn(),
   addClothingUploader: vi.fn(),
   removeClothingUploader: vi.fn(),
+  handleDownloadAll: vi.fn(),
   anyUpscaling: false,
   imageEditModel: 'gemini-2.5-flash-image',
   refinePrompts: {},
   setRefinePrompts: vi.fn(),
   isRefining: {},
+  isMultiPersonMode: false,
+  setIsMultiPersonMode: vi.fn(),
+  markerPosition: null,
+  setMarkerPosition: vi.fn(),
+  clearMarker: vi.fn(),
 };
 
 describe('VirtualTryOn component', () => {
@@ -117,5 +125,18 @@ describe('VirtualTryOn component', () => {
     expect(screen.getByText('virtualTryOn.batchResultsTitle')).toBeInTheDocument();
     // Flat grid: result image rendered directly (no session rail)
     expect(screen.getByText(/generatedImage.altText/)).toBeInTheDocument();
+  });
+
+  it('keeps the multi-person target marker transparent to pointer events', () => {
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      isMultiPersonMode: true,
+      subjectImages: [{ base64: 'subject', mimeType: 'image/png' }],
+      markerPosition: { x: 40, y: 80, relX: 0.25, relY: 0.5 },
+    });
+
+    const { container } = render(<VirtualTryOn />);
+
+    expect(container.querySelector('#multi-person-marker')).toHaveClass('pointer-events-none');
   });
 });

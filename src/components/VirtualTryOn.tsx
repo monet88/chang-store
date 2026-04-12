@@ -154,7 +154,7 @@ const VirtualTryOn: React.FC = () => {
                         {markerPosition && (
                           <div
                             id="multi-person-marker"
-                            className="absolute z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-red-500"
+                            className="pointer-events-none absolute z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-red-500"
                             style={{
                               left: `${markerPosition.relX * 100}%`,
                               top: `${markerPosition.relY * 100}%`,
