@@ -6,8 +6,7 @@
 @source "../**/*.ts";
 @source "../index.html";
 
-:root {
-  color-scheme: dark;
+@theme {
   --workspace-bg: #050505;
   --workspace-surface: rgba(17, 19, 23, 0.82);
   --workspace-stage: rgba(12, 14, 17, 0.9);
@@ -22,75 +21,110 @@
   --workspace-radius-sm: 10px;
   --workspace-radius-md: 18px;
   --workspace-radius-lg: 24px;
-  font-family: 'Be Vietnam Pro', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--workspace-bg);
-  color: var(--workspace-text);
 }
 
-html {
-  min-height: 100%;
-  font-size: 12px;
-  scroll-behavior: smooth;
-  background: var(--workspace-bg);
+@layer base {
+  :root {
+    color-scheme: dark;
+    font-family: 'Be Vietnam Pro', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--workspace-bg);
+    color: var(--workspace-text);
+  }
+
+  html {
+    min-height: 100%;
+    font-size: 12px;
+    scroll-behavior: smooth;
+    background: var(--workspace-bg);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 32%),
+      linear-gradient(180deg, #050505 0%, #09090b 100%);
+    color: var(--workspace-text);
+    letter-spacing: -0.01em;
+    text-rendering: optimizeLegibility;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: radial-gradient(circle at center, black 38%, transparent 100%);
+    opacity: 0.24;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--workspace-ring);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: rgba(244, 244, 242, 0.18);
+    color: #ffffff;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 32%),
-    linear-gradient(180deg, #050505 0%, #09090b 100%);
-  color: var(--workspace-text);
-  letter-spacing: -0.01em;
-  text-rendering: optimizeLegibility;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: radial-gradient(circle at center, black 38%, transparent 100%);
-  opacity: 0.24;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
-
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--workspace-ring);
-  outline-offset: 2px;
-}
-
-::selection {
-  background: rgba(244, 244, 242, 0.18);
-  color: #ffffff;
-}
-
-.workspace-shell {
+@utility workspace-shell {
   background: rgba(10, 12, 15, 0.82);
   border: 1px solid var(--workspace-border);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
-.workspace-panel {
+@utility workspace-panel {
   background: var(--workspace-surface);
   border: 1px solid var(--workspace-border);
   border-radius: var(--workspace-radius-md);
@@ -98,7 +132,7 @@ select:focus-visible {
   -webkit-backdrop-filter: blur(16px);
 }
 
-.workspace-stage {
+@utility workspace-stage {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
   border: 1px solid var(--workspace-border);
   border-radius: var(--workspace-radius-lg);
@@ -106,7 +140,7 @@ select:focus-visible {
   -webkit-backdrop-filter: blur(20px);
 }
 
-.workspace-label {
+@utility workspace-label {
   color: var(--workspace-text-muted);
   font-size: 0.72rem;
   font-weight: 600;
@@ -114,51 +148,53 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
-.workspace-title {
+@utility workspace-title {
   letter-spacing: -0.045em;
 }
 
-.workspace-subtitle {
+@utility workspace-subtitle {
   color: var(--workspace-text-muted);
   font-size: 0.98rem;
   line-height: 1.6;
 }
 
-.workspace-input {
+@utility workspace-input {
   width: 100%;
   border-radius: var(--workspace-radius-sm);
   border: 1px solid var(--workspace-border);
   background: rgba(255, 255, 255, 0.03);
   color: var(--workspace-text);
   transition: border-color 160ms ease, background 160ms ease;
+
+  &::placeholder {
+    color: var(--workspace-text-faint);
+  }
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  &:focus {
+    border-color: var(--workspace-border-strong);
+    background: rgba(255, 255, 255, 0.05);
+    outline: none;
+  }
 }
 
-.workspace-input::placeholder {
-  color: var(--workspace-text-faint);
+@utility compact-uploader {
+  & > div > div {
+    min-height: 11rem;
+  }
+
+  & label {
+    color: var(--workspace-text-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
 }
 
-.workspace-input:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.workspace-input:focus {
-  border-color: var(--workspace-border-strong);
-  background: rgba(255, 255, 255, 0.05);
-  outline: none;
-}
-
-.compact-uploader > div > div {
-  min-height: 11rem;
-}
-
-.compact-uploader label {
-  color: var(--workspace-text-muted);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.workspace-button {
+@utility workspace-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -169,35 +205,35 @@ select:focus-visible {
   background: rgba(255, 255, 255, 0.03);
   color: var(--workspace-text);
   transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, color 160ms ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
 }
 
-.workspace-button:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-.workspace-button:active {
-  transform: translateY(1px);
-}
-
-.workspace-button-primary {
+@utility workspace-button-primary {
   background: #f4f4f2;
   border-color: rgba(255, 255, 255, 0.55);
   color: #09090b;
+
+  &:hover {
+    background: #ffffff;
+    border-color: rgba(255, 255, 255, 0.85);
+  }
+
+  &:disabled {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--workspace-text-faint);
+  }
 }
 
-.workspace-button-primary:hover {
-  background: #ffffff;
-  border-color: rgba(255, 255, 255, 0.85);
-}
-
-.workspace-button-primary:disabled {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: var(--workspace-text-faint);
-}
-
-.workspace-chip {
+@utility workspace-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -207,7 +243,7 @@ select:focus-visible {
   color: var(--workspace-text-muted);
 }
 
-.runway-panel {
+@utility runway-panel {
   background: var(--workspace-surface);
   border: 1px solid var(--workspace-border);
   border-radius: var(--workspace-radius-md);
@@ -216,7 +252,7 @@ select:focus-visible {
   -webkit-backdrop-filter: blur(16px);
 }
 
-.runway-stage {
+@utility runway-stage {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
   border: 1px solid var(--workspace-border);
   border-radius: var(--workspace-radius-lg);
@@ -225,7 +261,7 @@ select:focus-visible {
   -webkit-backdrop-filter: blur(18px);
 }
 
-.runway-eyebrow {
+@utility runway-eyebrow {
   color: var(--workspace-text-muted);
   font-size: 0.72rem;
   font-weight: 600;
@@ -233,17 +269,17 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
-.runway-hero-title {
+@utility runway-hero-title {
   line-height: 0.95;
   letter-spacing: -0.045em;
 }
 
-.runway-description {
+@utility runway-description {
   color: var(--workspace-text-muted);
   line-height: 1.6;
 }
 
-.runway-action {
+@utility runway-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -253,18 +289,18 @@ select:focus-visible {
   background: #f4f4f2;
   color: #09090b;
   transition: background 160ms ease, border-color 160ms ease, transform 160ms ease, opacity 160ms ease;
+
+  &:hover {
+    background: #ffffff;
+    border-color: rgba(255, 255, 255, 0.82);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
 }
 
-.runway-action:hover {
-  background: #ffffff;
-  border-color: rgba(255, 255, 255, 0.82);
-}
-
-.runway-action:active {
-  transform: translateY(1px);
-}
-
-.runway-action-secondary {
+@utility runway-action-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -274,38 +310,9 @@ select:focus-visible {
   background: rgba(255, 255, 255, 0.03);
   color: var(--workspace-text);
   transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
-}
 
-.runway-action-secondary:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.28);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
   }
 }

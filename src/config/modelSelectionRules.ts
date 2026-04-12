@@ -1,6 +1,5 @@
 import { Feature } from '../types';
 import {
-  getDefaultModelForSelectionType,
   getModelsBySelectionType,
   type ModelSelectionType,
   type RegisteredModel,
@@ -9,7 +8,6 @@ import {
 export interface ModelSelectionScope {
   selectionType: ModelSelectionType;
   labelKey: string;
-  defaultModelId: string;
   options: RegisteredModel[];
 }
 
@@ -44,7 +42,6 @@ export function resolveModelSelectionScope(feature: Feature): ModelSelectionScop
   return {
     selectionType,
     labelKey: MODEL_SELECTION_LABEL_KEY[selectionType],
-    defaultModelId: getDefaultModelForSelectionType(selectionType),
     options: getModelsBySelectionType(selectionType),
   };
 }

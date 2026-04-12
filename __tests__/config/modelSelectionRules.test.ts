@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Feature } from '@/types';
 import {
-  getDefaultModelForSelectionType,
   getModelCapabilities,
   getModelOptionsBySelectionType,
 } from '@/config/modelRegistry';
@@ -15,14 +14,12 @@ describe('model selection rules', () => {
     expect(tryOnScope).toMatchObject({
       selectionType: 'imageEdit',
       labelKey: 'modelSelector.scopes.imageEdit',
-      defaultModelId: getDefaultModelForSelectionType('imageEdit'),
     });
     expect(tryOnScope?.options).toHaveLength(getModelOptionsBySelectionType('imageEdit').length);
 
     expect(backgroundScope).toMatchObject({
       selectionType: 'imageEdit',
       labelKey: 'modelSelector.scopes.imageEdit',
-      defaultModelId: getDefaultModelForSelectionType('imageEdit'),
     });
     expect(backgroundScope?.options).toHaveLength(getModelOptionsBySelectionType('imageEdit').length);
   });
@@ -33,7 +30,6 @@ describe('model selection rules', () => {
     expect(imageEditorScope).toMatchObject({
       selectionType: 'imageGenerate',
       labelKey: 'modelSelector.scopes.imageGenerate',
-      defaultModelId: getDefaultModelForSelectionType('imageGenerate'),
     });
     expect(imageEditorScope?.options).toHaveLength(getModelOptionsBySelectionType('imageGenerate').length);
   });
@@ -44,7 +40,6 @@ describe('model selection rules', () => {
     expect(outfitAnalysisScope).toMatchObject({
       selectionType: 'textGenerate',
       labelKey: 'modelSelector.scopes.textGenerate',
-      defaultModelId: getDefaultModelForSelectionType('textGenerate'),
     });
     expect(outfitAnalysisScope?.options).toHaveLength(getModelOptionsBySelectionType('textGenerate').length);
   });

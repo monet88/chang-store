@@ -70,6 +70,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
   const [storageQuota, setStorageQuota] = useState(200 * 1024 * 1024);
 
   const restoreInputRef = useRef<HTMLInputElement>(null);
+  const wasOpenRef = useRef(false);
 
   const handleDebugToggle = () => {
     const newValue = !debugMode;
@@ -84,17 +85,29 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
     };
     window.addEventListener('keydown', handleEsc);
 
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
     getLocalStorageUsage().then(({ usage, quota }) => {
       setStorageUsage(usage);
       if (quota > 0) setStorageQuota(quota);
     });
+  }, [isOpen, images]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      return;
+    }
+    if (wasOpenRef.current) return;
+
+    wasOpenRef.current = true;
     setLocalImageEditModel(imageEditModel);
     setLocalImageGenerateModel(imageGenerateModel);
     setLocalTextGenerateModel(textGenerateModel);
-
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [isOpen, onClose, images, imageEditModel, imageGenerateModel, textGenerateModel]);
+  }, [isOpen, imageEditModel, imageGenerateModel, textGenerateModel]);
 
   if (!isOpen) return null;
 

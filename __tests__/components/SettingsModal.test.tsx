@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { SettingsModal } from '@/components/modals/SettingsModal';
 import { getModelOptionsBySelectionType } from '@/config/modelRegistry';
 
@@ -31,6 +31,8 @@ const translations: Record<string, string> = {
   'settingsModal.footerHint': 'Model changes apply when you save this panel.',
 };
 
+let galleryImages: unknown[] = [];
+
 vi.mock('@/contexts/LanguageContext', () => ({
   useLanguage: () => ({
     t: (key: string) => translations[key] ?? key,
@@ -50,7 +52,7 @@ vi.mock('@/contexts/ApiProviderContext', () => ({
 
 vi.mock('@/contexts/ImageGalleryContext', () => ({
   useImageGallery: () => ({
-    images: [],
+    images: galleryImages,
   }),
 }));
 
@@ -71,6 +73,10 @@ vi.mock('@/components/GoogleDriveSettings', () => ({
 }));
 
 describe('SettingsModal', () => {
+  beforeEach(() => {
+    galleryImages = [];
+  });
+
   it('renders registry-backed model options for each selection type', async () => {
     render(<SettingsModal isOpen onClose={vi.fn()} />);
 
@@ -89,5 +95,23 @@ describe('SettingsModal', () => {
     expect(screen.getByRole('option', { name: 'Gemini 3.1 Flash Image (Preview)' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Imagen 4 Ultra' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Gemini 2.5 Pro' })).toBeInTheDocument();
+  });
+
+  it('does not reset unsaved model selections when gallery images change while open', async () => {
+    const { rerender } = render(<SettingsModal isOpen onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('google-drive-settings')).toBeInTheDocument();
+    });
+
+    const imageEditSelect = screen.getByLabelText('Image editing');
+    fireEvent.change(imageEditSelect, { target: { value: 'gemini-2.5-flash-image' } });
+
+    expect(imageEditSelect).toHaveValue('gemini-2.5-flash-image');
+
+    galleryImages = [{ id: 'gallery-image-1' }];
+    rerender(<SettingsModal isOpen onClose={vi.fn()} />);
+
+    expect(screen.getByLabelText('Image editing')).toHaveValue('gemini-2.5-flash-image');
   });
 });
