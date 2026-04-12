@@ -125,8 +125,6 @@ export const vi: Translation = {
     },
   },
   modelSelector: {
-    title: 'Model cho tác vụ hiện tại',
-    description: 'Đổi model cho tác vụ đang mở trong workspace mà không cần vào phần cài đặt.',
     scopes: {
       imageEdit: 'Model chỉnh sửa ảnh',
       imageGenerate: 'Model tạo ảnh',

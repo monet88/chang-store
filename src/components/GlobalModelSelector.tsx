@@ -2,9 +2,7 @@ import React from 'react';
 import { type RegisteredModel } from '../config/modelRegistry';
 
 interface GlobalModelSelectorProps {
-  title: string;
   label: string;
-  description?: string;
   ariaLabel: string;
   selectedModel: string;
   options: RegisteredModel[];
@@ -12,20 +10,13 @@ interface GlobalModelSelectorProps {
 }
 
 export const GlobalModelSelector: React.FC<GlobalModelSelectorProps> = ({
-  title,
   label,
-  description,
   ariaLabel,
   selectedModel,
   options,
   onChange,
 }) => (
-  <div className="w-full max-w-md rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
-    <div className="mb-3 space-y-1">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-zinc-500">{title}</p>
-      {description && <p className="text-sm leading-6 text-zinc-400">{description}</p>}
-    </div>
-
+  <div className="w-full max-w-md rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-3 backdrop-blur-xl">
     <div className="space-y-2">
       <label className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">{label}</label>
       <div className="relative">

@@ -125,8 +125,6 @@ export const en = {
     },
   },
   modelSelector: {
-    title: 'Active task model',
-    description: 'Change the model for the current workspace task without opening settings.',
     scopes: {
       imageEdit: 'Image editing model',
       imageGenerate: 'Image generation model',

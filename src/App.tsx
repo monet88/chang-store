@@ -262,8 +262,6 @@ const AppContent: React.FC = () => {
                 <div className="flex w-full flex-col gap-3 sm:max-w-md sm:items-end">
                   {activeModelSelectionScope && (
                     <GlobalModelSelector
-                      title={t('modelSelector.title')}
-                      description={t('modelSelector.description')}
                       ariaLabel={t(activeModelSelectionScope.labelKey)}
                       label={t(activeModelSelectionScope.labelKey)}
                       selectedModel={selectedModelBySelectionType[activeModelSelectionScope.selectionType]}

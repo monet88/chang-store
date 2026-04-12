@@ -10,8 +10,6 @@ const { featureStub, passthrough, translations } = vi.hoisted(() => {
     'workspace.utility.settings': 'Settings',
     'workspace.utility.expand': 'Expand studio utilities',
     'workspace.utility.collapse': 'Collapse studio utilities',
-    'modelSelector.title': 'Active task model',
-    'modelSelector.description': 'Change the model for the current workspace task without opening settings.',
     'modelSelector.scopes.imageEdit': 'Image editing model',
     'modelSelector.scopes.imageGenerate': 'Image generation model',
     'modelSelector.scopes.textGenerate': 'Text generation model',
