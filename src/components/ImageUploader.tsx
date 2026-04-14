@@ -115,11 +115,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
         <label htmlFor={id} className="mb-2 block text-base font-semibold text-zinc-100">{title}</label>
         <div
           className={`relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[24px] border border-dashed bg-black/35 transition-colors duration-300 ${isDragging ? 'border-white/40 bg-white/[0.08]' : 'border-white/12'
-            } ${!image ? 'hover:border-white/30 hover:bg-white/[0.04]' : ''}`}
+            } ${!image ? 'cursor-pointer hover:border-white/30 hover:bg-white/[0.04]' : ''}`}
           onDragOver={handleDragOver}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onClick={() => !image && inputRef.current?.click()}
         >
           <input
             id={id}
@@ -143,8 +144,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-3 text-center text-zinc-400">
               <div
-                className="flex cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/[0.04] p-3 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
-                onClick={() => inputRef.current?.click()}
+                className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] p-3 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
                 aria-label={isDragging ? t('imageUploader.drop') : t('imageUploader.upload')}
               >
                 <CloudUploadIcon className="mx-auto h-10 w-10 text-zinc-300" />
