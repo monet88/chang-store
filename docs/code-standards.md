@@ -179,15 +179,13 @@ export const getErrorMessage = (err: unknown, t: TranslationFn): string => {
 
 ## 6. Service Layer Pattern
 
-### 6.1 Unified Facade (Prefix Routing)
+### 6.1 Unified Facade
 
-`imageEditingService.ts` routes based on model prefix:
+`imageEditingService.ts` centralizes Gemini image operations:
 
 ```typescript
 export const editImage = async (params, model, config) => {
-  if (model.startsWith('local--')) return localProvider.editImage(...);
-  if (model.startsWith('anti--')) return antiProvider.editImage(...);
-  return geminiImageService.editImage(params);
+  return geminiImageService.editImage({ ...params, model });
 };
 ```
 

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Three AI backends: Google Gemini SDK, Local Provider REST, Anti Provider REST.
+AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only AI backend via the Google Gemini SDK.
 
 ## Project map
 
@@ -29,7 +29,7 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Three AI ba
 
 ## Architecture
 
-`Component (thin UI) → Hook (state + logic) → Service Facade → Provider API`
+`Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API`
 
 No React Router — `App.tsx` switches on `Feature` enum with lazy-loading. Path alias: `@/*` → `src/`.
 
@@ -60,13 +60,7 @@ After any substantive code changes, run `npx tsc --noEmit` and `npm run lint` to
 
 <important if="you are modifying service routing, API calls, or provider integration">
 
-Service routing via model name prefix in `src/services/imageEditingService.ts`:
-
-| Prefix | Backend | File |
-|--------|---------|------|
-| `local--` | Local Provider REST | `localProviderService.ts` |
-| `anti--` | Anti Provider REST | `antiProviderService.ts` |
-| _(none)_ | Google Gemini SDK | `gemini/image.ts` |
+Service routing stays centralized in `src/services/imageEditingService.ts` and fans into Gemini service modules under `src/services/gemini/`.
 
 Never bypass `imageEditingService.ts` for API calls. API keys must come from `ApiProviderContext`, never hook state.
 </important>
@@ -96,7 +90,7 @@ Usage: `const { t } = useLanguage(); t('key.path')`
 
 <important if="you are writing styles or modifying UI appearance">
 
-Tailwind only — no inline styles, no `@apply`. Dark glassmorphism theme per `docs/design-guidelines.md`.
+Tailwind only — no inline styles, no `@apply`. Follow the Runway-inspired design contract in `docs/design-guidelines.md` as the canonical UI source of truth.
 </important>
 
 <important if="you are refactoring or touching components that import services directly">
@@ -139,7 +133,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Chang-Store** (1159 symbols, 2155 relationships, 75 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **chang-store** (1396 symbols, 2496 relationships, 87 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -155,7 +149,7 @@ This project is indexed by GitNexus as **Chang-Store** (1159 symbols, 2155 relat
 
 1. `gitnexus_query({query: "<error or symptom>"})` — find execution flows related to the issue
 2. `gitnexus_context({name: "<suspect function>"})` — see all callers, callees, and process participation
-3. `READ gitnexus://repo/Chang-Store/process/{processName}` — trace the full execution flow step by step
+3. `READ gitnexus://repo/chang-store/process/{processName}` — trace the full execution flow step by step
 4. For regressions: `gitnexus_detect_changes({scope: "compare", base_ref: "main"})` — see what your branch changed
 
 ## When Refactoring
@@ -194,10 +188,10 @@ This project is indexed by GitNexus as **Chang-Store** (1159 symbols, 2155 relat
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/Chang-Store/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/Chang-Store/clusters` | All functional areas |
-| `gitnexus://repo/Chang-Store/processes` | All execution flows |
-| `gitnexus://repo/Chang-Store/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/chang-store/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/chang-store/clusters` | All functional areas |
+| `gitnexus://repo/chang-store/processes` | All execution flows |
+| `gitnexus://repo/chang-store/process/{name}` | Step-by-step execution trace |
 
 ## Self-Check Before Finishing
 

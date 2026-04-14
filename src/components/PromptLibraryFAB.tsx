@@ -3,23 +3,34 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { BookmarkIcon } from './Icons';
 
 interface PromptLibraryFABProps {
-    onClick: () => void;
+  onClick: () => void;
+  label?: string;
 }
 
-const PromptLibraryFAB: React.FC<PromptLibraryFABProps> = ({ onClick }) => {
-    const { t } = useLanguage();
+const PromptLibraryFAB: React.FC<PromptLibraryFABProps> = ({ onClick, label }) => {
+  const { t } = useLanguage();
 
-    return (
-        <button
-            onClick={onClick}
-            // Positioned above the Gallery button (bottom-24 vs bottom-6)
-            className="fixed bottom-24 right-6 z-40 bg-[#818CF8] text-white rounded-full p-3.5 shadow-lg shadow-[#818CF8]/30 hover:bg-[#6366F1] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950 focus:ring-[#818CF8] flex items-center justify-center transform hover:scale-105 group"
-            aria-label={t('promptLibrary.title')}
-            title={t('promptLibrary.title')}
-        >
-            <BookmarkIcon className="w-6 h-6" />
-        </button>
-    );
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="workspace-button min-w-[8.75rem] justify-start gap-3 rounded-2xl px-4 py-3 text-left"
+      aria-label={t('promptLibrary.title')}
+      title={t('promptLibrary.title')}
+    >
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/30">
+        <BookmarkIcon className="h-5 w-5" />
+      </span>
+      <span className="flex flex-col">
+        <span className="workspace-label mb-1 block">
+          {label || t('workspace.utility.prompts')}
+        </span>
+        <span className="text-sm font-medium tracking-[-0.01em]">
+          {t('promptLibrary.title')}
+        </span>
+      </span>
+    </button>
+  );
 };
 
 export default PromptLibraryFAB;

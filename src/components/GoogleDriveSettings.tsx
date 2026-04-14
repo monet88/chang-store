@@ -15,18 +15,9 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { CloudIcon, RefreshIcon, WarningIcon, CheckCircleIcon } from './Icons';
 import Spinner from './Spinner';
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Formats a Date into a relative time string
- * @param date - Date to format
- * @param t - Translation function
- */
 function formatRelativeTime(
   date: Date | null,
-  t: (key: string, params?: Record<string, string | number>) => string
+  t: (key: string, params?: Record<string, string | number>) => string,
 ): string {
   if (!date) return t('googleDrive.never');
 
@@ -41,9 +32,12 @@ function formatRelativeTime(
   return t('googleDrive.hoursAgo', { count: diffHours });
 }
 
-// ============================================================================
-// Component
-// ============================================================================
+const statusToneMap = {
+  idle: 'text-zinc-400',
+  syncing: 'text-zinc-200',
+  synced: 'text-emerald-300',
+  error: 'text-red-300',
+} as const;
 
 export const GoogleDriveSettings: React.FC = () => {
   const { t } = useLanguage();
@@ -66,56 +60,51 @@ export const GoogleDriveSettings: React.FC = () => {
     clearSyncError,
   } = useImageGallery();
 
-  // --- Sync Status Icon ---
   const renderSyncStatusIcon = () => {
     if (isLoadingFromDrive || syncStatus === 'syncing') {
       return <Spinner />;
     }
     if (syncStatus === 'error' || syncError) {
-      return <WarningIcon className="w-4 h-4 text-red-400" />;
+      return <WarningIcon className="h-4 w-4 text-red-300" />;
     }
     if (syncStatus === 'synced') {
-      return <CheckCircleIcon className="w-4 h-4 text-green-400" />;
+      return <CheckCircleIcon className="h-4 w-4 text-emerald-300" />;
     }
-    return <CloudIcon className="w-4 h-4 text-slate-400" />;
+    return <CloudIcon className="h-4 w-4 text-zinc-400" />;
   };
 
-  // --- Sync Status Text ---
   const getSyncStatusText = (): string => {
     if (isLoadingFromDrive) return t('googleDrive.status.syncing');
     return t(`googleDrive.status.${syncStatus}`);
   };
 
-  // --- Handle Force Sync ---
   const handleForceSync = async () => {
     await forceSync();
   };
 
-  // --- Handle Clear Errors ---
   const handleClearErrors = () => {
     clearError();
     clearSyncError();
   };
 
   return (
-    <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-2">
-        <CloudIcon className="w-5 h-5 text-amber-400" />
-        <h4 className="font-semibold text-slate-200">{t('googleDrive.title')}</h4>
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] px-4 py-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/30 text-zinc-100">
+          <CloudIcon className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="workspace-label mb-1">{t('googleDrive.title')}</p>
+          <p className="text-sm leading-6 text-zinc-400">{t('googleDrive.description')}</p>
+        </div>
       </div>
 
-      <p className="text-xs text-slate-400 mb-4">
-        {t('googleDrive.description')}
-      </p>
-
-      {/* Disconnected State */}
       {!isConnected && (
-        <div className="space-y-3">
+        <div className="space-y-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
           <button
             onClick={signIn}
             disabled={isAuthenticating}
-            className="w-full bg-amber-600 text-white font-semibold py-2.5 px-4 rounded-lg text-sm hover:bg-amber-500 transition-colors disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="workspace-button workspace-button-primary w-full px-4 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isAuthenticating ? (
               <>
@@ -124,90 +113,74 @@ export const GoogleDriveSettings: React.FC = () => {
               </>
             ) : (
               <>
-                <CloudIcon className="w-4 h-4" />
+                <CloudIcon className="h-4 w-4" />
                 <span>{t('googleDrive.connect')}</span>
               </>
             )}
           </button>
 
           {authError && (
-            <div className="flex items-start gap-2 p-2 bg-red-900/30 rounded-lg border border-red-800">
-              <WarningIcon className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-red-300">{authError}</p>
+            <div className="flex items-start gap-2 rounded-[1rem] border border-red-500/20 bg-red-500/10 p-3">
+              <WarningIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-300" />
+              <p className="text-xs leading-5 text-red-200">{authError}</p>
             </div>
           )}
 
-          <p className="text-xs text-slate-500 text-center">
-            {t('googleDrive.privacyNote')}
-          </p>
+          <p className="text-xs leading-5 text-zinc-500">{t('googleDrive.privacyNote')}</p>
         </div>
       )}
 
-      {/* Connected State */}
       {isConnected && user && (
-        <div className="space-y-4">
-          {/* User Info */}
-          <div className="flex items-center gap-3 p-3 bg-slate-700/50 rounded-lg">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
             {user.picture ? (
-              <img
-                src={user.picture}
-                alt={user.name}
-                className="w-10 h-10 rounded-full"
-              />
+              <img src={user.picture} alt={user.name} className="h-11 w-11 rounded-full object-cover" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
-                <span className="text-lg font-semibold text-slate-300">
-                  {user.name.charAt(0).toUpperCase()}
-                </span>
+              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]">
+                <span className="text-sm font-semibold text-zinc-200">{user.name.charAt(0).toUpperCase()}</span>
               </div>
             )}
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-slate-200 truncate">{user.name}</p>
-              <p className="text-xs text-slate-400 truncate">{user.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-zinc-100 truncate">{user.name}</p>
+              <p className="text-xs text-zinc-500 truncate">{user.email}</p>
             </div>
+            <span className="workspace-chip px-3 py-1 text-xs font-medium text-zinc-300">{t('googleDrive.connected')}</span>
           </div>
 
-          {/* Sync Status */}
-          <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-            <div className="flex items-center gap-2">
-              {renderSyncStatusIcon()}
-              <span className="text-sm text-slate-300">{getSyncStatusText()}</span>
-            </div>
-            <div className="text-xs text-slate-400">
-              {t('googleDrive.lastSynced')}: {formatRelativeTime(lastSynced, t)}
-            </div>
-          </div>
-
-          {/* Sync Error */}
-          {syncError && (
-            <div className="flex items-start justify-between gap-2 p-2 bg-red-900/30 rounded-lg border border-red-800">
-              <div className="flex items-start gap-2">
-                <WarningIcon className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-red-300">{syncError}</p>
+          <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                {renderSyncStatusIcon()}
+                <span className={`text-sm font-medium ${statusToneMap[syncStatus]}`}>{getSyncStatusText()}</span>
               </div>
-              <button
-                onClick={handleClearErrors}
-                className="text-xs text-red-400 hover:text-red-300 underline"
-              >
-                Dismiss
+              <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">
+                {t('googleDrive.lastSynced')}: {formatRelativeTime(lastSynced, t)}
+              </p>
+            </div>
+          </div>
+
+          {syncError && (
+            <div className="flex items-start justify-between gap-3 rounded-[1rem] border border-red-500/20 bg-red-500/10 p-3">
+              <div className="flex items-start gap-2">
+                <WarningIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-300" />
+                <p className="text-xs leading-5 text-red-200">{syncError}</p>
+              </div>
+              <button onClick={handleClearErrors} className="text-xs font-medium uppercase tracking-[0.14em] text-red-200 transition hover:text-white">
+                {t('googleDrive.dismiss')}
               </button>
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-2">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <button
               onClick={handleForceSync}
               disabled={syncStatus === 'syncing' || isLoadingFromDrive}
-              className="flex-1 bg-slate-700 text-white font-medium py-2 px-4 rounded-lg text-sm hover:bg-slate-600 transition-colors disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="workspace-button px-4 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <RefreshIcon className="w-4 h-4" />
+              <RefreshIcon className="h-4 w-4" />
               <span>{t('googleDrive.syncNow')}</span>
             </button>
-            <button
-              onClick={signOut}
-              className="bg-slate-700 text-red-400 font-medium py-2 px-4 rounded-lg text-sm hover:bg-slate-600 transition-colors"
-            >
+            <button onClick={signOut} className="workspace-button px-4 py-3 text-sm font-medium text-red-300 hover:text-red-200">
               {t('googleDrive.disconnect')}
             </button>
           </div>

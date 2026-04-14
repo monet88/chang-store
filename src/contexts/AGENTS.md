@@ -6,7 +6,7 @@
 ## WHERE TO LOOK
 | Task | Context | Hook | Notes |
 |------|---------|------|-------|
-| API keys / model selection | `ApiProviderContext.tsx` | `useApi()` | localStorage sync; fallback to `VITE_LOCAL_PROVIDER_*` env vars |
+| API keys / model selection | `ApiProviderContext.tsx` | `useApi()` | localStorage sync for Gemini model preferences |
 | Image gallery cache | `ImageGalleryContext.tsx` | `useImageGallery()` | In-memory LRU cache + Drive sync queue |
 | i18n translation | `LanguageContext.tsx` | `useLanguage()` | `t('key.path')`; default lang `vi` |
 | Google Drive auth | `GoogleDriveContext.tsx` | `useGoogleDrive()` | OAuth, token refresh, session persistence |
@@ -21,7 +21,7 @@ LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → I
 
 ## CONVENTIONS
 - localStorage sync happens inside providers (not components or hooks)
-- `ApiProviderContext` supports fallback to `VITE_LOCAL_PROVIDER_*` env vars
+- `ApiProviderContext` owns Gemini API key + model selection persistence
 - Gallery is in-memory only — no localStorage for images
 - Drive sync queues operations without blocking UI
 - Persistence: localStorage for settings/drafts, Google Drive for images

@@ -208,8 +208,8 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
 
                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
                     <div className="flex justify-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg mb-4">
-                        <button onClick={() => setMode('fullModel')} className={`flex-1 px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${mode === 'fullModel' ? 'bg-amber-600 text-white' : 'text-zinc-300 hover:bg-zinc-700/50'}`}>{t('photoAlbum.mode.fullModel')}</button>
-                        <button onClick={() => setMode('faceAndOutfit')} className={`flex-1 px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${mode === 'faceAndOutfit' ? 'bg-amber-600 text-white' : 'text-zinc-300 hover:bg-zinc-700/50'}`}>{t('photoAlbum.mode.faceAndOutfit')}</button>
+                        <button onClick={() => setMode('fullModel')} className={`flex-1 px-4 py-1.5 text-sm font-semibold rounded-md border transition-colors duration-200 ${mode === 'fullModel' ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>{t('photoAlbum.mode.fullModel')}</button>
+                        <button onClick={() => setMode('faceAndOutfit')} className={`flex-1 px-4 py-1.5 text-sm font-semibold rounded-md border transition-colors duration-200 ${mode === 'faceAndOutfit' ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>{t('photoAlbum.mode.faceAndOutfit')}</button>
                     </div>
 
                     {mode === 'fullModel' ? (
@@ -225,7 +225,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                 </div>
 
                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
-                    <h3 className="text-base md:text-lg font-semibold text-center text-amber-400">{t('photoAlbum.addons')}</h3>
+                    <h3 className="text-base md:text-lg font-semibold text-center text-zinc-100">{t('photoAlbum.addons')}</h3>
 
                     <ImageOptionsPanel
                         aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
@@ -273,13 +273,13 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                 <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
                     <label className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.choosePoses')}</label>
                     <div className="flex justify-between items-center mb-2">
-                        <button onClick={() => setSelectedPoses(POSES)} className="text-xs text-amber-400 hover:underline">{t('photoAlbum.selectAll')}</button>
+                        <button onClick={() => setSelectedPoses(POSES)} className="text-xs text-zinc-200 hover:text-white hover:underline">{t('photoAlbum.selectAll')}</button>
                         <button onClick={() => setSelectedPoses([])} className="text-xs text-zinc-400 hover:underline">{t('photoAlbum.clearSelection')}</button>
                     </div>
                     <div className="max-h-48 overflow-y-auto space-y-2 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
                         {POSES.map(poseId => (
                             <label key={poseId} className="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" checked={selectedPoses.includes(poseId)} onChange={() => setSelectedPoses(prev => prev.includes(poseId) ? prev.filter(p => p !== poseId) : [...prev, poseId])} className="w-4 h-4 rounded text-amber-500 bg-zinc-700 border-zinc-600 focus:ring-amber-500" />
+                                <input type="checkbox" checked={selectedPoses.includes(poseId)} onChange={() => setSelectedPoses(prev => prev.includes(poseId) ? prev.filter(p => p !== poseId) : [...prev, poseId])} className="w-4 h-4 rounded accent-zinc-200 bg-zinc-700 border-zinc-600 focus:ring-white/30" />
                                 <span className="text-sm text-zinc-300">{POSE_LABELS[poseId] || poseId}</span>
                             </label>
                         ))}
@@ -288,7 +288,7 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
                 </div>
 
                 <div className="text-center">
-                    <button onClick={handleGenerate} disabled={isLoading} className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105">
+                    <button onClick={handleGenerate} disabled={isLoading} className="workspace-button workspace-button-primary px-8 py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
                         {isLoading ? <Spinner /> : t('photoAlbum.generateButton', { count: selectedPoses.length })}
                     </button>
                 </div>

@@ -11,9 +11,7 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "vitest --run --passWithNoTests",
-    "test:ui": "vitest --ui",
-    "test:local-models": "node scripts/local-model-smoke-test.mjs",
-    "test:local-features": "node scripts/local-feature-smoke-test.mjs"
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",

@@ -1,7 +1,7 @@
 /**
  * UpscalePreviewSimulation — Advisory preview of expected upscale improvements.
  *
- * Displays the simulated preview text with distinct amber/warning styling
+ * Displays the simulated preview text with restrained warning styling
  * to make it clear this is NOT a guaranteed result (PRV-02).
  * Renders each line with formatting and includes a prominent disclaimer.
  */
@@ -22,16 +22,16 @@ const UpscalePreviewSimulation: React.FC<UpscalePreviewSimulationProps> = ({ pre
   const lines = preview.split('\n').filter((line) => line.trim().length > 0);
 
   return (
-    <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4">
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
       {/* Header badge */}
       <div className="flex items-center gap-2 mb-3">
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/20 px-2.5 py-1 text-xs font-bold text-amber-400 uppercase tracking-wider">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-bold text-zinc-200 uppercase tracking-wider">
           ⚠️ {t('upscale.previewTitle')}
         </span>
       </div>
 
       {/* Disclaimer */}
-      <p className="text-xs text-amber-400/70 mb-3 italic">
+      <p className="text-xs text-zinc-400 mb-3 italic">
         {t('upscale.previewDisclaimer')}
       </p>
 
@@ -42,7 +42,7 @@ const UpscalePreviewSimulation: React.FC<UpscalePreviewSimulationProps> = ({ pre
             key={index}
             className={`text-sm leading-relaxed ${
               line.startsWith('⚠️')
-                ? 'text-amber-300'
+                ? 'text-zinc-100'
                 : line.startsWith('🔍') || line.startsWith('🧵') || line.startsWith('💡')
                   ? 'text-zinc-300'
                   : 'text-zinc-400'
@@ -54,7 +54,7 @@ const UpscalePreviewSimulation: React.FC<UpscalePreviewSimulationProps> = ({ pre
       </div>
 
       {/* Advisory footer */}
-      <p className="mt-3 pt-3 border-t border-amber-500/10 text-xs text-amber-400/50">
+      <p className="mt-3 pt-3 border-t border-white/10 text-xs text-zinc-500">
         {t('upscale.previewAdvisory')}
       </p>
     </div>

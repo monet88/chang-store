@@ -120,8 +120,8 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                             disabled={isSavedToGallery}
                             className={`p-2 rounded-full transition-colors ${
                                 isSavedToGallery
-                                    ? 'bg-green-600/70 text-white cursor-default'
-                                    : 'bg-slate-900/50 text-white hover:bg-amber-600/80'
+                                    ? 'bg-white text-black cursor-default'
+                                    : 'bg-slate-900/50 text-white hover:bg-white/90 hover:text-black'
                             }`}
                             aria-label={isSavedToGallery ? t('imageActions.savedToGallery') : t('imageActions.saveToGallery')}
                             title={isSavedToGallery ? t('imageActions.savedToGallery') : t('imageActions.saveToGallery')}
@@ -174,7 +174,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                                 className="p-2.5 bg-slate-700/80 rounded-full text-white hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 aria-label={t('imageActions.regenerate')}
                             >
-                                {isGenerating ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-400"></div> : <RegenerateIcon className="w-5 h-5" />}
+                                {isGenerating ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-100"></div> : <RegenerateIcon className="w-5 h-5" />}
                             </button>
                         )}
                         {onUpscale && (
@@ -184,13 +184,13 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                                 className="p-2.5 bg-slate-700/80 rounded-full text-white hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 aria-label={t('imageActions.upscale')}
                             >
-                                {isUpscaling ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-400"></div> : <CloudUploadIcon className="w-5 h-5" />}
+                                {isUpscaling ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-100"></div> : <CloudUploadIcon className="w-5 h-5" />}
                             </button>
                         )}
                          <button
                             type="button"
                             onClick={handleDownloadClick}
-                            className="p-2.5 bg-amber-600 rounded-full text-white hover:bg-amber-500 transition-colors"
+                            className="rounded-full bg-white p-2.5 text-black transition-colors hover:bg-zinc-200"
                             aria-label={t('imageActions.download')}
                         >
                             <DownloadIcon className="w-5 h-5" />

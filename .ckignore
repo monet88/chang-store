@@ -63,3 +63,4 @@
 *.yml
 
 # Add your custom patterns below this line
+*.md

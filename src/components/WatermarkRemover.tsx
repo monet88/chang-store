@@ -277,7 +277,7 @@ const WatermarkRemover: React.FC = () => {
       {/* Left Panel: Inputs */}
       <div className="flex flex-col gap-6">
         {/* Upload Section */}
-        <section className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+        <section className="workspace-panel p-5">
           <h2 className="text-lg font-semibold text-white mb-4">
             {t('watermarkRemover.title')}
           </h2>

@@ -13,7 +13,6 @@ __tests__/
 ├── services/
 │   ├── apiClient.test.ts
 │   ├── imageEditingService.test.ts
-│   ├── localProviderService.test.ts
 │   ├── googleDriveService.test.ts
 │   ├── upscaleAnalysisService.test.ts
 │   └── gemini/
@@ -28,7 +27,8 @@ __tests__/
 ├── components/
 │   ├── VirtualTryOn.test.tsx
 │   ├── ClothingTransfer.test.tsx
-│   └── Upscale.test.tsx
+│   ├── Upscale.test.tsx
+│   └── UpscaleGuidanceCard.test.tsx
 ├── contexts/
 │   ├── ApiProviderContext.test.tsx
 │   ├── ImageGalleryContext.test.tsx

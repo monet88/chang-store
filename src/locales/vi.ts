@@ -3,7 +3,133 @@ import { Translation } from './en';
 export const vi: Translation = {
   header: {
     title: 'Fashion Expert',
-    description: 'Công cụ AI cho thiết kế và trực quan hóa thời trang. Tạo lookbook, thử trang phục, thay đổi nền, và hơn thế nữa.',
+    description: 'Không gian làm việc AI điện ảnh cho việc tạo, tinh chỉnh và xuất ảnh thời trang.',
+  },
+  navigation: {
+    workspaceEyebrow: 'Workspace',
+    toolsEyebrow: 'Nhóm công cụ',
+    utilityEyebrow: 'Tiện ích studio',
+    mediaFirstLabel: 'Media-first',
+    language: 'Ngôn ngữ',
+    menu: 'Menu',
+    openMenu: 'Mở menu workspace',
+    closeMenu: 'Đóng menu workspace',
+    openFeature: 'Mở',
+    promptLibrary: 'Thư viện prompt',
+    galleryArchive: 'Kho lưu trữ',
+    settings: 'Cài đặt studio',
+    createLooks: {
+      label: 'Tạo concept',
+      description: 'Tạo try-on, lookbook và concept trang phục với kết quả luôn ở trung tâm.',
+    },
+    editImages: {
+      label: 'Chỉnh sửa ảnh',
+      description: 'Tinh chỉnh ánh sáng, nền, pose và dọn ảnh với các bề mặt chỉnh sửa tập trung.',
+    },
+    outputStudio: {
+      label: 'Output studio',
+      description: 'Tập hợp, upscale và chuẩn bị bộ ảnh hoàn thiện để xuất file và lưu trữ.',
+    },
+    analyze: {
+      label: 'Phân tích',
+      description: 'Đánh giá silhouette, styling và hướng outfit mà không rời khỏi nhịp editorial của workspace.',
+    },
+  },
+  workspace: {
+    eyebrow: 'Workspace điện ảnh',
+    title: 'Tạo, tinh chỉnh và hoàn thiện fashion imagery trong một studio thống nhất.',
+    description: 'Điều hướng theo workflow, giữ kết quả ở trung tâm, và chuyển giữa tạo mới, chỉnh sửa, xuất file mà không rời khỏi canvas.',
+    navTitle: 'Không gian làm việc',
+    navDescription: 'Di chuyển giữa các công cụ tạo mới, chỉnh sửa, đầu ra và phân tích.',
+    navSections: {
+      create: 'Tạo concept',
+      edit: 'Chỉnh sửa ảnh',
+      output: 'Output studio',
+      analyze: 'Phân tích',
+    },
+    utility: {
+      title: 'Studio utilities',
+      description: 'Mở kho lưu trữ, prompt đã lưu, và cài đặt không gian làm việc.',
+      gallery: 'Gallery',
+      prompts: 'Prompt',
+      settings: 'Cài đặt',
+      expand: 'Mở rộng tiện ích studio',
+      collapse: 'Thu gọn tiện ích studio',
+    },
+    intro: 'Không gian điện ảnh',
+    toolbarDescription: 'Đi từ ảnh nguồn đến kết quả tinh chỉnh với shell gọn hơn, nhóm tính năng rõ hơn và review theo hướng media-first.',
+    utilities: {
+      archive: 'Kho studio',
+      promptLibrary: 'Thư viện prompt',
+      settings: 'Thiết lập workspace',
+    },
+    language: {
+      label: 'Ngôn ngữ',
+      hint: 'Đổi ngôn ngữ giao diện mà không rời khỏi studio.',
+    },
+    groups: {
+      createLooks: {
+        title: 'Tạo Look',
+        description: 'Tạo ảnh thời trang và các biến thể ý tưởng.',
+      },
+      editImages: {
+        title: 'Chỉnh Ảnh',
+        description: 'Retouch, relight và thay đổi ảnh nguồn.',
+      },
+      outputStudio: {
+        title: 'Output Studio',
+        description: 'Đóng gói, nâng chất lượng và xuất ảnh hoàn thiện.',
+      },
+      analyze: {
+        title: 'Phân Tích',
+        description: 'Đánh giá trang phục và quyết định styling.',
+      },
+    },
+    flows: {
+      tryOn: 'Sắp xếp chủ thể, trang phục và art direction quanh một khu kết quả chuyên dụng.',
+      lookbook: 'Tạo câu chuyện lookbook theo phong cách editorial với control rail phụ và output canvas nổi bật.',
+      clothingTransfer: 'Chuyển cảm hứng từ outfit tham chiếu thành concept mới, vẫn giữ refinement sát lưới kết quả.',
+      patternGenerator: 'Phát triển hoạ tiết và motif lặp lại cho các bộ sưu tập tiếp theo.',
+      aiEditor: 'Thực hiện các chỉnh sửa có hướng dẫn trên ảnh hero mà không rời workspace.',
+      background: 'Thay bối cảnh trong khi vẫn giữ phần review ảnh là trung tâm.',
+      pose: 'Lặp lại hướng tạo dáng nhưng vẫn duy trì tính liên tục của kết quả.',
+      photoAlbum: 'Sắp xếp ảnh hoàn thiện thành một bộ output sẵn sàng cho studio.',
+      outfitAnalysis: 'Phân tích outfit và tín hiệu styling trong một không gian review yên tĩnh hơn.',
+      relight: 'Điều chỉnh ánh sáng và mood trong khi output canvas vẫn là trọng tâm.',
+      upscale: 'Chuẩn bị ảnh độ phân giải cuối cùng trong output studio.',
+      watermarkRemover: 'Làm sạch ảnh cuối với chrome tối giản quanh tác vụ.',
+      imageEditor: 'Mở chỉnh sửa chi tiết khi kết quả cần can thiệp thủ công.',
+    },
+    activeModel: {
+      labels: {
+        imageEdit: 'Model chỉnh sửa ảnh',
+        imageGenerate: 'Model tạo ảnh',
+        textGenerate: 'Model tạo văn bản',
+      },
+    },
+    panels: {
+      controlRail: 'Thanh điều khiển',
+      resultStage: 'Sân khấu kết quả',
+      subjectStage: 'Khu chủ thể',
+      stylingInputs: 'Nhập styling',
+      outputCanvas: 'Canvas kết quả',
+      visualSources: 'Nguồn ảnh',
+      configuration: 'Cấu hình',
+      referenceWardrobe: 'Tủ đồ tham chiếu',
+      conceptStage: 'Khu concept',
+      generationSettings: 'Thiết lập tạo ảnh',
+    },
+    modes: {
+      single: 'Một chủ thể',
+      multi: 'Nhiều chủ thể',
+    },
+  },
+  modelSelector: {
+    scopes: {
+      imageEdit: 'Model chỉnh sửa ảnh',
+      imageGenerate: 'Model tạo ảnh',
+      textGenerate: 'Model tạo văn bản',
+    },
   },
   tabs: {
     tryOn: 'Thử đồ Ảo',
@@ -47,6 +173,7 @@ export const vi: Translation = {
     refineReset: 'Đặt lại về Ảnh gốc',
     versionHistory: 'Lịch sử phiên bản',
     originalVersion: 'Ảnh gốc trước khi tinh chỉnh',
+    originalShort: 'Gốc',
   },
   imageActions: {
     regenerate: 'Tạo lại',
@@ -85,7 +212,9 @@ export const vi: Translation = {
   },
   common: {
     cancel: 'Hủy',
+    clear: 'Xóa',
     save: 'Lưu',
+    optional: 'Tùy chọn',
     generationFailed: 'Tạo ảnh thất bại',
     outputPanelTitle: 'Kết quả của bạn sẽ xuất hiện ở đây',
     outputPanelDescription: 'Tải ảnh lên và thiết lập các tùy chọn để bắt đầu.',
@@ -140,6 +269,8 @@ export const vi: Translation = {
   },
   gallery: {
     openAria: 'Mở thư viện ảnh ({{count}} ảnh)',
+    itemCountSingular: '{{count}} ảnh',
+    itemCountPlural: '{{count}} ảnh',
     title: 'Thư viện ảnh',
     closeAria: 'Đóng thư viện',
     emptyMessage: 'Các ảnh bạn tạo và tải lên sẽ xuất hiện ở đây.',
@@ -156,6 +287,7 @@ export const vi: Translation = {
     geminiOnlyError: 'Virtual Try-On yêu cầu model Gemini. Vui lòng chọn model Gemini trong cài đặt.',
     generatingStatus: 'Đang tạo thử đồ ảo của bạn...',
     title: 'Thử đồ Ảo',
+    editorialDescription: 'Sắp xếp chủ thể, outfit và art direction trong control rail gọn hơn, trong khi lưới kết quả vẫn giữ vai trò hero.',
     step1: 'Bước 1: Tải ảnh lên',
     subjectImagesTitle: 'Ảnh chủ thể (Nhiều người mẫu)',
     subjectImageTitle: 'Ảnh chủ thể (Người)',
@@ -200,6 +332,9 @@ export const vi: Translation = {
     generatingStatusHelp: 'Việc này có thể mất một phút. Kết quả chất lượng cao rất đáng để chờ đợi!',
     title: 'Lookbook AI',
     description: 'Tạo những bức ảnh chuyên nghiệp, sẵn sàng cho thương mại điện tử về các mặt hàng quần áo của bạn.',
+    editorialDescription: 'Tạo câu chuyện lookbook theo kiểu editorial với nguồn ảnh bên trái, control rail tập trung ở giữa và output canvas nổi bật ở bên phải.',
+    singleUpload: 'Tải từng ảnh',
+    multiUpload: 'Tải nhiều ảnh',
     uploadTitle: 'Tải lên ảnh Quần áo',
     clothingItemTitle: 'Góc nhìn #{{index}}',
     addView: 'Thêm góc nhìn khác',
@@ -250,6 +385,7 @@ export const vi: Translation = {
     closeupPlaceholderTitle: 'Chưa có ảnh Cận cảnh',
     closeupPlaceholderDescription: 'Tạo ảnh cận cảnh để làm nổi bật kết cấu vải, nút và chi tiết đường may.',
     outputPanelDescription: 'Ảnh lookbook chuyên nghiệp của bạn sẽ xuất hiện ở đây.',
+    outputHeroTitle: 'Canvas Lookbook',
     tabGeneratedImage: 'Ảnh chính',
     tabVariations: 'Biến thể',
     tabCloseup: 'Cận cảnh',
@@ -691,7 +827,6 @@ export const vi: Translation = {
     guidanceNextUpscale: 'Sẵn sàng! Kích hoạt nâng cấp để cải thiện ảnh.',
     guidanceNextDone: 'Nâng cấp hoàn tất — xem kết quả trong bảng đầu ra.',
     // Độ tin cậy
-    studioUnsupportedProvider: 'AI Studio yêu cầu Google Gemini. Chuyển nhà cung cấp trong Cài đặt.',
     studioNoApiKey: 'Cấu hình API key Gemini trong Cài đặt để sử dụng AI Studio.',
   },
   imageComparator: {
@@ -1103,6 +1238,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
   /** Tính năng Chuyển Trang phục — thay đổi trang phục trong ảnh styled */
   clothingTransfer: {
     title: 'Chuyển Trang phục',
+    editorialDescription: 'Chuyển outfit tham chiếu thành concept mới với khu tham chiếu, sân khấu concept và lưới refinement nằm trong cùng một workspace.',
     providerNotice: 'Công cụ này hiện chỉ dùng chỉnh sửa ảnh bằng Gemini.',
     step1: 'Bước 1: Tải ảnh Trang phục Tham chiếu',
     step2: 'Bước 2: Tải ảnh Concept',
@@ -1159,12 +1295,66 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     patternPreviewAlt: 'Xem trước mẫu đã chọn {{index}}',
   },
   /** Cài đặt và thông báo trạng thái đồng bộ Google Drive */
+  settingsModal: {
+    eyebrow: 'Thiết lập studio',
+    title: 'Cài đặt ứng dụng',
+    description: 'Cập nhật model mặc định, đồng bộ và chẩn đoán mà không rời khỏi shell biên tập.',
+    closeAria: 'Đóng cài đặt',
+    sections: {
+      models: {
+        title: 'Chọn model mặc định',
+        description: 'Xem lại các model mặc định từ registry cho text, chỉnh sửa ảnh và tạo ảnh.',
+      },
+      cloud: {
+        title: 'Đồng bộ đám mây',
+        description: 'Kết nối Drive để giữ kho thư viện và bản sao lưu studio luôn sẵn sàng.',
+      },
+      data: {
+        title: 'Dữ liệu ứng dụng',
+        description: 'Xem dung lượng trình duyệt, tải bản sao lưu, khôi phục snapshot hoặc đặt lại workspace.',
+      },
+      developer: {
+        title: 'Nhà phát triển',
+        description: 'Bật chẩn đoán khi cần kiểm tra lưu lượng API trong console trình duyệt.',
+      },
+    },
+    fields: {
+      textGeneration: 'Tạo văn bản',
+      imageEditing: 'Chỉnh sửa ảnh',
+      imageGeneration: 'Tạo ảnh',
+    },
+    storage: {
+      title: 'Dung lượng lưu trữ cục bộ',
+      usageHint: 'Đang dùng {{percent}}% hạn mức ước tính của trình duyệt.',
+    },
+    actions: {
+      backup: 'Sao lưu dữ liệu',
+      restore: 'Khôi phục dữ liệu',
+      clear: 'Xóa toàn bộ dữ liệu',
+    },
+    confirmations: {
+      clearAllData: 'Xóa toàn bộ dữ liệu ứng dụng, bao gồm khóa API và thư viện ảnh? Hành động này không thể hoàn tác.',
+    },
+    notifications: {
+      restoreSuccess: 'Đã khôi phục dữ liệu. Trang sẽ tải lại để áp dụng thay đổi.',
+      restoreFailed: 'Khôi phục thất bại: {{message}}',
+      clearSuccess: 'Đã xóa toàn bộ dữ liệu ứng dụng. Trang sẽ tải lại.',
+    },
+    developer: {
+      debugTitle: 'Chế độ debug',
+      debugDescription: 'Ghi log lời gọi API và hoạt động dịch vụ vào console trình duyệt.',
+      toggleDebugAria: 'Bật tắt chế độ debug',
+    },
+    footerHint: 'Các thay đổi model sẽ áp dụng khi bạn lưu panel này.',
+  },
   googleDrive: {
     title: 'Google Drive',
-    description: 'Đồng bộ ảnh thư viện của bạn lên Google Drive để sao lưu và truy cập từ nhiều thiết bị.',
+    description: 'Giữ bản sao lưu thư viện luôn sẵn sàng giữa các phiên và thiết bị.',
     connect: 'Kết nối Google Drive',
     connecting: 'Đang kết nối...',
     disconnect: 'Ngắt kết nối',
+    connected: 'Đã kết nối',
+    dismiss: 'Ẩn',
     privacyNote: 'Chúng tôi chỉ truy cập các tệp do ứng dụng này tạo trong Drive của bạn.',
     lastSynced: 'Lần đồng bộ cuối',
     never: 'Chưa bao giờ',

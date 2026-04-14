@@ -1,39 +1,23 @@
-/**
- * LookbookForm - Form UI for lookbook generation
- *
- * Extracted from LookbookGenerator.tsx for better separation of concerns.
- * Memoized to prevent re-renders when output changes.
- */
-
 import React, { useCallback, useState } from 'react';
 import { ImageFile, AspectRatio, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import ImageUploader from './ImageUploader';
 import MultiImageUploader from './MultiImageUploader';
-import Tooltip from './Tooltip';
 import Spinner from './Spinner';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import { AddIcon, DeleteIcon, MagicWandIcon } from './Icons';
 import {
   LookbookStyle,
   GarmentType,
-  FoldedPresentationType,
   MannequinBackgroundStyleKey,
-  ProductShotSubType
 } from './LookbookGenerator.prompts';
 import { LookbookFormState } from '../utils/lookbookPromptBuilder';
 
-/**
- * Clothing item interface (used in LookbookFormState)
- */
 export interface ClothingItem {
   id: number;
   image: ImageFile | null;
 }
 
-/**
- * Props for LookbookForm component
- */
 interface LookbookFormProps {
   formState: LookbookFormState;
   onFormChange: (updates: Partial<LookbookFormState>) => void;
@@ -50,10 +34,18 @@ interface LookbookFormProps {
   mannequinBackgroundStyles: Array<{ key: MannequinBackgroundStyleKey; label: string }>;
 }
 
-/**
- * LookbookForm component
- * Handles all form inputs and user interactions for lookbook generation
- */
+const panelClass = 'rounded-[28px] border border-white/10 bg-white/[0.03] p-5 sm:p-6';
+const labelClass = 'text-[11px] font-medium uppercase tracking-[0.24em] text-zinc-500';
+const sectionTitleClass = 'text-xl font-medium tracking-[-0.03em] text-zinc-50';
+const helperClass = 'text-sm leading-6 text-zinc-400';
+const textareaClass = 'w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm leading-6 text-zinc-100 placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20';
+const choiceWrapClass = 'flex flex-wrap gap-2 rounded-[20px] border border-white/10 bg-black/30 p-2';
+const choiceButton = (active: boolean) => `rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+  active ? 'bg-white text-black' : 'text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
+}`;
+const secondaryButtonClass = 'inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
+const primaryButtonClass = 'inline-flex items-center justify-center rounded-full bg-[#f4f4f2] px-5 py-3 text-sm font-semibold tracking-[-0.01em] text-[#09090b] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40';
+
 export const LookbookForm = React.memo<LookbookFormProps>(({
   formState,
   onFormChange,
@@ -67,11 +59,10 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
   resolution,
   setResolution,
   imageEditModel,
-  mannequinBackgroundStyles
+  mannequinBackgroundStyles,
 }) => {
   const { t } = useLanguage();
-  // Local state for upload mode toggle
-  const [useMultiUpload, setUseMultiUpload] = useState(false);
+  const [useMultiUpload, setUseMultiUpload] = useState(true);
 
   const {
     clothingImages,
@@ -85,95 +76,41 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
     negativePrompt,
     productShotSubType,
     includeAccessories,
-    includeFootwear
+    includeFootwear,
   } = formState;
 
-  // Memoized handlers
   const handleClothingUpload = useCallback((file: ImageFile | null, id: number) => {
-    const newClothingImages = clothingImages.map(item =>
-      item.id === id ? { ...item, image: file } : item
+    const newClothingImages = clothingImages.map((item) =>
+      item.id === id ? { ...item, image: file } : item,
     );
     onFormChange({ clothingImages: newClothingImages });
   }, [clothingImages, onFormChange]);
 
-  /**
-   * Handle multi-upload: convert ImageFile[] to ClothingItem[]
-   */
   const handleMultiClothingUpload = useCallback((files: ImageFile[]) => {
-    const newClothingImages = files.map(file => ({
+    const newClothingImages = files.map((file) => ({
       id: Date.now() + Math.random(),
-      image: file
+      image: file,
     }));
     onFormChange({ clothingImages: newClothingImages });
   }, [onFormChange]);
 
   const addClothingUploader = useCallback(() => {
     onFormChange({
-      clothingImages: [...clothingImages, { id: Date.now(), image: null }]
+      clothingImages: [...clothingImages, { id: Date.now(), image: null }],
     });
   }, [clothingImages, onFormChange]);
 
   const removeClothingUploader = useCallback((id: number) => {
     onFormChange({
-      clothingImages: clothingImages.filter(item => item.id !== id)
+      clothingImages: clothingImages.filter((item) => item.id !== id),
     });
   }, [clothingImages, onFormChange]);
 
-  const handleFabricTextureUpload = useCallback((file: ImageFile | null) => {
-    onFormChange({ fabricTextureImage: file });
-  }, [onFormChange]);
-
-  const handleFabricTexturePromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onFormChange({ fabricTexturePrompt: e.target.value });
-  }, [onFormChange]);
-
-  const handleClothingDescriptionChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onFormChange({ clothingDescription: e.target.value });
-  }, [onFormChange]);
-
-  const handleNegativePromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onFormChange({ negativePrompt: e.target.value });
-  }, [onFormChange]);
-
-  const handleStyleChange = useCallback((style: LookbookStyle) => {
-    const updates: Partial<LookbookFormState> = { lookbookStyle: style };
-    // Auto-select product shot sub-type based on current garment type
-    if (style === 'product shot') {
-      updates.productShotSubType = garmentType === 'one-piece'
-        ? 'ghost-mannequin'
-        : 'clean-flat-lay';
-    }
-    onFormChange(updates);
-  }, [onFormChange, garmentType]);
-
-  const handlePresentationTypeChange = useCallback((type: FoldedPresentationType) => {
-    onFormChange({ foldedPresentationType: type });
-  }, [onFormChange]);
-
-  const handleGarmentTypeChange = useCallback((type: GarmentType) => {
-    onFormChange({ garmentType: type });
-  }, [onFormChange]);
-
-  const handleMannequinBackgroundChange = useCallback((style: MannequinBackgroundStyleKey) => {
-    onFormChange({ mannequinBackgroundStyle: style });
-  }, [onFormChange]);
-
-  const handleProductShotSubTypeChange = useCallback((subType: ProductShotSubType) => {
-    onFormChange({ productShotSubType: subType });
-  }, [onFormChange]);
-
-  const handleIncludeAccessoriesChange = useCallback((checked: boolean) => {
-    onFormChange({ includeAccessories: checked });
-  }, [onFormChange]);
-
-  const handleIncludeFootwearChange = useCallback((checked: boolean) => {
-    onFormChange({ includeFootwear: checked });
-  }, [onFormChange]);
-
-  const validClothingImages = clothingImages.filter(item => item.image !== null);
+  const validClothingImages = clothingImages.filter((item) => item.image !== null);
   const anyLoading = isLoading || isGeneratingDescription;
+  const hasFabricOverride = Boolean(fabricTextureImage || fabricTexturePrompt.trim());
 
-  const lookbookStyles: { key: LookbookStyle, label: string }[] = [
+  const lookbookStyles: { key: LookbookStyle; label: string }[] = [
     { key: 'flat lay', label: t('lookbook.styleFlatLay') },
     { key: 'mannequin', label: t('lookbook.styleMannequin') },
     { key: 'hanger', label: t('lookbook.styleHanger') },
@@ -183,342 +120,266 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
     { key: 'product shot', label: t('lookbook.styleProductShot') },
   ];
 
-
   return (
-    <div className="xl:[display:contents] flex flex-col gap-6">
-      {/* Column 1 (Visual Assets): Header + Clothing Images + Fabric Texture */}
-      <div className="flex flex-col gap-6">
-        {/* Header */}
-        <div className="flex items-center justify-center text-center gap-4">
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold mb-1">{t('lookbook.title')}</h2>
-            <p className="text-zinc-400">{t('lookbook.description')}</p>
+    <div className="space-y-6">
+      <section className={`${panelClass} space-y-5`}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-2">
+            <p className={labelClass}>{t('workspace.panels.visualSources')}</p>
+            <h3 className={sectionTitleClass}>{t('lookbook.uploadTitle')}</h3>
+            <p className={helperClass}>{t('lookbook.editorialDescription')}</p>
           </div>
-          <button
-            onClick={onClearForm}
-            className="text-xs text-zinc-400 hover:text-white bg-zinc-700/50 hover:bg-zinc-700 px-3 py-1.5 rounded-md transition-colors"
-          >
-            Clear
+          <button type="button" onClick={onClearForm} className={secondaryButtonClass}>
+            {t('common.clear')}
           </button>
         </div>
 
-        {/* Clothing Images Section */}
-        <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base md:text-lg font-semibold text-amber-400">
-              {t('lookbook.uploadTitle')}
-            </h3>
-            {/* Toggle button for upload mode */}
-            <button
-              onClick={() => setUseMultiUpload(!useMultiUpload)}
-              className="text-xs text-zinc-400 hover:text-amber-400 bg-zinc-700/50 hover:bg-zinc-700 px-3 py-1.5 rounded-md transition-colors"
-            >
-              {useMultiUpload ? 'Single Upload' : 'Multi Upload'}
+        <button
+          type="button"
+          onClick={() => setUseMultiUpload(!useMultiUpload)}
+          className={secondaryButtonClass}
+        >
+          {useMultiUpload ? t('lookbook.singleUpload') : t('lookbook.multiUpload')}
+        </button>
+
+        {useMultiUpload ? (
+          <MultiImageUploader
+            images={clothingImages.filter((item) => item.image !== null).map((item) => item.image!)}
+            onImagesUpload={handleMultiClothingUpload}
+            title={t('lookbook.uploadTitle')}
+            id="clothing-multi-upload"
+          />
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-5">
+              {clothingImages.map((item, index) => (
+                <div key={item.id} className="relative group rounded-[24px] border border-white/10 bg-black/30 p-3">
+                  <ImageUploader
+                    image={item.image}
+                    id={`clothing-${item.id}`}
+                    title={t('lookbook.clothingItemTitle', { index: index + 1 })}
+                    onImageUpload={(file) => handleClothingUpload(file, item.id)}
+                  />
+                  {clothingImages.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeClothingUploader(item.id)}
+                      className="absolute right-3 top-12 rounded-full border border-white/10 bg-black/60 p-1.5 text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100"
+                      aria-label="Remove view"
+                    >
+                      <DeleteIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button type="button" onClick={addClothingUploader} className={`${secondaryButtonClass} w-full gap-2`}>
+              <AddIcon className="h-4 w-4" />
+              {t('lookbook.addView')}
             </button>
           </div>
+        )}
+      </section>
 
-          {useMultiUpload ? (
-            /* Multi-upload mode */
-            <MultiImageUploader
-              images={clothingImages.filter(item => item.image !== null).map(item => item.image!)}
-              onImagesUpload={handleMultiClothingUpload}
-              title=""
-              id="clothing-multi-upload"
+      <details className="overflow-hidden rounded-[20px] border border-white/10 bg-black/25" open={hasFabricOverride || undefined}>
+        <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 text-left marker:hidden hover:bg-white/[0.03]">
+          <span>
+            <span className={labelClass}>{t('lookbook.fabricTextureTitle')}</span>
+            <span className="mt-1 block text-xs leading-5 text-zinc-500">{t('lookbook.fabricTextureHelp')}</span>
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
+            {hasFabricOverride ? t('common.save') : t('common.optional')}
+            <span aria-hidden="true">⌄</span>
+          </span>
+        </summary>
+
+        <div className="grid gap-4 border-t border-white/8 px-4 py-4 md:grid-cols-[14rem_minmax(0,1fr)]">
+          <div className="compact-uploader">
+            <ImageUploader
+              image={fabricTextureImage}
+              id="fabric-texture-upload"
+              title={t('lookbook.fabricTextureUploadTitle')}
+              onImageUpload={(file) => onFormChange({ fabricTextureImage: file })}
             />
-          ) : (
-            /* Single upload mode (original grid) */
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                {clothingImages.map((item, index) => (
-                  <div key={item.id} className="relative group">
-                    <Tooltip content={t('tooltips.lookbookClothing')} position="top">
-                      <ImageUploader
-                        image={item.image}
-                        id={`clothing-${item.id}`}
-                        title={t('lookbook.clothingItemTitle', { index: index + 1 })}
-                        onImageUpload={(file) => handleClothingUpload(file, item.id)}
-                      />
-                    </Tooltip>
-                    {clothingImages.length > 1 && (
-                      <button
-                        onClick={() => removeClothingUploader(item.id)}
-                        className="absolute -top-2 -right-2 z-10 p-1 bg-red-600 rounded-full text-white hover:bg-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label="Remove view"
-                      >
-                        <DeleteIcon className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <Tooltip content={t('tooltips.lookbookAddView')} position="bottom" className="w-full">
-                <button
-                  onClick={addClothingUploader}
-                  className="w-full mt-4 bg-zinc-700/80 text-zinc-200 font-semibold py-2.5 px-4 rounded-lg hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center gap-2"
-                >
-                  <AddIcon className="w-5 h-5" />
-                  <span>{t('lookbook.addView')}</span>
-                </button>
-              </Tooltip>
-            </>
-          )}
-        </div>
-
-        {/* Fabric Texture Section */}
-        <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-4">
-          <h3 className="text-base md:text-lg font-semibold text-center text-amber-400">
-            {t('lookbook.fabricTextureTitle')}
-          </h3>
-          {/* At xl (narrow 3-col column) stack vertically; at md+ side-by-side otherwise */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6 items-start">
-            <Tooltip content={t('tooltips.lookbookFabricTexture')} position="right">
-              <ImageUploader
-                image={fabricTextureImage}
-                id="fabric-texture-upload"
-                title={t('lookbook.fabricTextureUploadTitle')}
-                onImageUpload={handleFabricTextureUpload}
-              />
-            </Tooltip>
-            <Tooltip content={t('tooltips.lookbookFabricDescription')} position="left" className="w-full">
-              <label htmlFor="fabric-texture-prompt" className="block text-sm font-medium text-zinc-300 mb-2">
-                {t('lookbook.fabricTexturePromptLabel')}
-              </label>
-              <textarea
-                id="fabric-texture-prompt"
-                value={fabricTexturePrompt}
-                onChange={handleFabricTexturePromptChange}
-                placeholder={t('lookbook.fabricTexturePromptPlaceholder')}
-                rows={4}
-                className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-              />
-            </Tooltip>
           </div>
-          <p className="text-xs text-zinc-500 text-center">{t('lookbook.fabricTextureHelp')}</p>
-        </div>
-      </div>
-
-      {/* Column 2 (Configuration): Description + Negative Prompt + Style Selection + Options + Generate */}
-      <div className="flex flex-col gap-6">
-        {/* Clothing Description Section */}
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <label htmlFor="clothing-description" className="block text-sm font-medium text-zinc-300">
-              {t('lookbook.clothingDescriptionLabel')}
+          <div className="space-y-2">
+            <label htmlFor="fabric-texture-prompt" className="text-sm font-medium text-zinc-200">
+              {t('lookbook.fabricTexturePromptLabel')}
             </label>
-            <Tooltip content={t('tooltips.lookbookGenerateDescription')} position="left">
+            <textarea
+              id="fabric-texture-prompt"
+              value={fabricTexturePrompt}
+              onChange={(e) => onFormChange({ fabricTexturePrompt: e.target.value })}
+              placeholder={t('lookbook.fabricTexturePromptPlaceholder')}
+              rows={4}
+              className={textareaClass}
+            />
+          </div>
+        </div>
+      </details>
+
+      <section className={`${panelClass} space-y-5`}>
+        <div className="space-y-2">
+          <p className={labelClass}>{t('workspace.panels.controlRail')}</p>
+          <h3 className={sectionTitleClass}>{t('workspace.panels.configuration')}</h3>
+          <p className={helperClass}>{t('workspace.flows.lookbook')}</p>
+        </div>
+
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label htmlFor="clothing-description" className="text-sm font-medium text-zinc-200">
+                {t('lookbook.clothingDescriptionLabel')}
+              </label>
               <button
+                type="button"
                 onClick={onGenerateDescription}
                 disabled={isGeneratingDescription || validClothingImages.length === 0}
-                className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors"
+                className={secondaryButtonClass}
                 aria-label={t('lookbook.generateDescriptionAria')}
               >
                 {isGeneratingDescription ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-400"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
                 ) : (
                   <>
-                    <MagicWandIcon className="w-4 h-4" />
-                    <span>{t('lookbook.generateDescriptionButton')}</span>
+                    <MagicWandIcon className="mr-2 h-4 w-4" />
+                    {t('lookbook.generateDescriptionButton')}
                   </>
                 )}
               </button>
-            </Tooltip>
+            </div>
+            <textarea
+              id="clothing-description"
+              value={clothingDescription}
+              onChange={(e) => onFormChange({ clothingDescription: e.target.value })}
+              placeholder={t('lookbook.clothingDescriptionPlaceholder')}
+              rows={3}
+              className={textareaClass}
+            />
+            <p className="text-sm leading-6 text-zinc-500">{t('lookbook.clothingDescriptionHelp')}</p>
           </div>
-          <textarea
-            id="clothing-description"
-            value={clothingDescription}
-            onChange={handleClothingDescriptionChange}
-            placeholder={t('lookbook.clothingDescriptionPlaceholder')}
-            rows={2}
-            className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-          />
-          <p className="text-xs text-zinc-500 mt-1">{t('lookbook.clothingDescriptionHelp')}</p>
-        </div>
 
-        {/* Negative Prompt Section */}
-        <Tooltip content={t('tooltips.lookbookNegativePrompt')} position="top" className="w-full">
-          <label htmlFor="negative-prompt-lookbook" className="block text-sm font-medium text-zinc-300 mb-2">
-            {t('common.negativePromptLabel')}
-          </label>
-          <textarea
-            id="negative-prompt-lookbook"
-            value={negativePrompt}
-            onChange={handleNegativePromptChange}
-            placeholder={t('lookbook.negativePromptPlaceholder')}
-            rows={2}
-            className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-          />
-          <p className="text-xs text-zinc-500 mt-1">{t('common.negativePromptHelp')}</p>
-        </Tooltip>
+          <div className="space-y-2">
+            <label htmlFor="negative-prompt-lookbook" className="text-sm font-medium text-zinc-200">
+              {t('common.negativePromptLabel')}
+            </label>
+            <textarea
+              id="negative-prompt-lookbook"
+              value={negativePrompt}
+              onChange={(e) => onFormChange({ negativePrompt: e.target.value })}
+              placeholder={t('lookbook.negativePromptPlaceholder')}
+              rows={3}
+              className={textareaClass}
+            />
+            <p className="text-sm leading-6 text-zinc-500">{t('common.negativePromptHelp')}</p>
+          </div>
 
-        {/* Style Selection Section */}
-        <div className="space-y-4">
-          <Tooltip content={t('tooltips.lookbookStyle')} position="bottom">
-            <div className="flex flex-col items-center gap-2">
-              <span className="text-zinc-300 font-medium">{t('lookbook.styleLabel')}:</span>
-              <div className="flex flex-wrap justify-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
-                {lookbookStyles.map(style => (
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-zinc-200">{t('lookbook.styleLabel')}</p>
+              <div className={choiceWrapClass}>
+                {lookbookStyles.map((style) => (
                   <button
                     key={style.key}
-                    onClick={() => handleStyleChange(style.key)}
-                    className={`px-4 py-1.5 text-sm font-semibold rounded-md capitalize transition-colors duration-200 ${
-                      lookbookStyle === style.key
-                        ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white'
-                        : 'text-zinc-300 hover:bg-zinc-700/50'
-                    }`}
+                    type="button"
+                    onClick={() => {
+                      const updates: Partial<LookbookFormState> = { lookbookStyle: style.key };
+                      if (style.key === 'product shot') {
+                        updates.productShotSubType = garmentType === 'one-piece' ? 'ghost-mannequin' : 'clean-flat-lay';
+                      }
+                      onFormChange(updates);
+                    }}
+                    className={choiceButton(lookbookStyle === style.key)}
                   >
                     {style.label}
                   </button>
                 ))}
               </div>
             </div>
-          </Tooltip>
 
-          {/* Conditional: Folded Presentation Type */}
-          {lookbookStyle === 'folded' && (
-            <div className="flex flex-col items-center gap-2 pt-4 border-t border-zinc-700/50 animate-fade-in">
-              <span className="text-zinc-300 font-medium">{t('lookbook.presentationTypeLabel')}:</span>
-              <div className="flex gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
-                <button
-                  onClick={() => handlePresentationTypeChange('boxed')}
-                  className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                    foldedPresentationType === 'boxed'
-                      ? 'bg-amber-600 text-white'
-                      : 'text-zinc-300 hover:bg-zinc-700/50'
-                  }`}
-                >
-                  {t('lookbook.presentationTypeBoxed')}
-                </button>
-                <button
-                  onClick={() => handlePresentationTypeChange('folded')}
-                  className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                    foldedPresentationType === 'folded'
-                      ? 'bg-amber-600 text-white'
-                      : 'text-zinc-300 hover:bg-zinc-700/50'
-                  }`}
-                >
-                  {t('lookbook.presentationTypeFolded')}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Conditional: Garment Type */}
-          {['hanger', 'flat lay', 'minimalist showroom', 'folded', 'product shot'].includes(lookbookStyle) && (
-            <div className="flex flex-col items-center gap-2 pt-4 border-t border-zinc-700/50 animate-fade-in">
-              <span className="text-zinc-300 font-medium">{t('lookbook.garmentTypeLabel')}:</span>
-              <div className="flex gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
-                <button
-                  onClick={() => handleGarmentTypeChange('one-piece')}
-                  className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                    garmentType === 'one-piece'
-                      ? 'bg-amber-600 text-white'
-                      : 'text-zinc-300 hover:bg-zinc-700/50'
-                  }`}
-                >
-                  {t('lookbook.garmentTypeOnePiece')}
-                </button>
-                <button
-                  onClick={() => handleGarmentTypeChange('two-piece')}
-                  className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                    garmentType === 'two-piece'
-                      ? 'bg-amber-600 text-white'
-                      : 'text-zinc-300 hover:bg-zinc-700/50'
-                  }`}
-                >
-                  {t('lookbook.garmentTypeTwoPiece')}
-                </button>
-                <button
-                  onClick={() => handleGarmentTypeChange('three-piece')}
-                  className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                    garmentType === 'three-piece'
-                      ? 'bg-amber-600 text-white'
-                      : 'text-zinc-300 hover:bg-zinc-700/50'
-                  }`}
-                >
-                  {t('lookbook.garmentTypeThreePiece')}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Conditional: Mannequin Background Style */}
-          {lookbookStyle === 'mannequin' && (
-            <div className="flex flex-col items-center gap-2 pt-4 border-t border-zinc-700/50 animate-fade-in">
-              <span className="text-zinc-300 font-medium">{t('lookbook.mannequinBackgroundStyleLabel')}:</span>
-              <div className="flex flex-wrap justify-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
-                {mannequinBackgroundStyles.map(style => (
-                  <button
-                    key={style.key}
-                    onClick={() => handleMannequinBackgroundChange(style.key)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md capitalize transition-colors duration-200 ${
-                      mannequinBackgroundStyle === style.key
-                        ? 'bg-amber-600 text-white'
-                        : 'text-zinc-300 hover:bg-zinc-700/50'
-                    }`}
-                  >
-                    {style.label}
+            {lookbookStyle === 'folded' && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-zinc-200">{t('lookbook.presentationTypeLabel')}</p>
+                <div className={choiceWrapClass}>
+                  <button type="button" onClick={() => onFormChange({ foldedPresentationType: 'boxed' })} className={choiceButton(foldedPresentationType === 'boxed')}>
+                    {t('lookbook.presentationTypeBoxed')}
                   </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Conditional: Product Shot Sub-Type & Options */}
-          {lookbookStyle === 'product shot' && (
-            <div className="flex flex-col items-center gap-4 pt-4 border-t border-zinc-700/50 animate-fade-in">
-              {/* Sub-type radio */}
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-zinc-300 font-medium">{t('lookbook.productShotSubTypeLabel')}:</span>
-                <div className="flex gap-2 bg-zinc-800/50 p-1.5 rounded-lg">
-                  <button
-                    onClick={() => handleProductShotSubTypeChange('ghost-mannequin')}
-                    className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                      productShotSubType === 'ghost-mannequin'
-                        ? 'bg-amber-600 text-white'
-                        : 'text-zinc-300 hover:bg-zinc-700/50'
-                    }`}
-                  >
-                    {t('lookbook.productShotGhostMannequin')}
-                  </button>
-                  <button
-                    onClick={() => handleProductShotSubTypeChange('clean-flat-lay')}
-                    className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                      productShotSubType === 'clean-flat-lay'
-                        ? 'bg-amber-600 text-white'
-                        : 'text-zinc-300 hover:bg-zinc-700/50'
-                    }`}
-                  >
-                    {t('lookbook.productShotCleanFlatLay')}
+                  <button type="button" onClick={() => onFormChange({ foldedPresentationType: 'folded' })} className={choiceButton(foldedPresentationType === 'folded')}>
+                    {t('lookbook.presentationTypeFolded')}
                   </button>
                 </div>
               </div>
+            )}
 
-              {/* Checkboxes */}
-              <div className="flex gap-6">
-                <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeAccessories}
-                    onChange={(e) => handleIncludeAccessoriesChange(e.target.checked)}
-                    className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-amber-500 focus:ring-amber-500"
-                  />
-                  {t('lookbook.includeAccessories')}
-                </label>
-                <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeFootwear}
-                    onChange={(e) => handleIncludeFootwearChange(e.target.checked)}
-                    className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-amber-500 focus:ring-amber-500"
-                  />
-                  {t('lookbook.includeFootwear')}
-                </label>
+            {['hanger', 'flat lay', 'minimalist showroom', 'folded', 'product shot'].includes(lookbookStyle) && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-zinc-200">{t('lookbook.garmentTypeLabel')}</p>
+                <div className={choiceWrapClass}>
+                  {(['one-piece', 'two-piece', 'three-piece'] as GarmentType[]).map((type) => (
+                    <button key={type} type="button" onClick={() => onFormChange({ garmentType: type })} className={choiceButton(garmentType === type)}>
+                      {t(`lookbook.garmentType${type === 'one-piece' ? 'OnePiece' : type === 'two-piece' ? 'TwoPiece' : 'ThreePiece'}`)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Image Options Panel */}
-          <div className="pt-4 border-t border-zinc-700/50 animate-fade-in space-y-3">
+            {lookbookStyle === 'mannequin' && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-zinc-200">{t('lookbook.mannequinBackgroundStyleLabel')}</p>
+                <div className={choiceWrapClass}>
+                  {mannequinBackgroundStyles.map((style) => (
+                    <button
+                      key={style.key}
+                      type="button"
+                      onClick={() => onFormChange({ mannequinBackgroundStyle: style.key })}
+                      className={choiceButton(mannequinBackgroundStyle === style.key)}
+                    >
+                      {style.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {lookbookStyle === 'product shot' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-zinc-200">{t('lookbook.productShotSubTypeLabel')}</p>
+                  <div className={choiceWrapClass}>
+                    <button type="button" onClick={() => onFormChange({ productShotSubType: 'ghost-mannequin' })} className={choiceButton(productShotSubType === 'ghost-mannequin')}>
+                      {t('lookbook.productShotGhostMannequin')}
+                    </button>
+                    <button type="button" onClick={() => onFormChange({ productShotSubType: 'clean-flat-lay' })} className={choiceButton(productShotSubType === 'clean-flat-lay')}>
+                      {t('lookbook.productShotCleanFlatLay')}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={includeAccessories}
+                      onChange={(e) => onFormChange({ includeAccessories: e.target.checked })}
+                      className="h-4 w-4 rounded border-white/20 bg-black/30 text-white focus:ring-white/20"
+                    />
+                    {t('lookbook.includeAccessories')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={includeFootwear}
+                      onChange={(e) => onFormChange({ includeFootwear: e.target.checked })}
+                      className="h-4 w-4 rounded border-white/20 bg-black/30 text-white focus:ring-white/20"
+                    />
+                    {t('lookbook.includeFootwear')}
+                  </label>
+                </div>
+              </div>
+            )}
+
             <ImageOptionsPanel
               aspectRatio={aspectRatio}
               setAspectRatio={setAspectRatio}
@@ -529,19 +390,17 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
           </div>
         </div>
 
-        {/* Generate Button */}
-        <div className="text-center pt-2">
-          <Tooltip content={t('tooltips.lookbookGenerate')} position="top">
-            <button
-              onClick={onGenerate}
-              disabled={anyLoading || validClothingImages.length === 0}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 transition-all transform hover:scale-105"
-            >
-              {isLoading ? <Spinner /> : t('lookbook.generateButton')}
-            </button>
-          </Tooltip>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={anyLoading || validClothingImages.length === 0}
+            className={primaryButtonClass}
+          >
+            {isLoading ? <Spinner /> : t('lookbook.generateButton')}
+          </button>
         </div>
-      </div>
+      </section>
     </div>
   );
 });

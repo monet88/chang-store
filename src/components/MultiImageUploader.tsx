@@ -25,6 +25,8 @@ interface MultiImageUploaderProps {
   onImagesUpload: (files: ImageFile[]) => void;
   /** Title for the uploader */
   title: string;
+  /** Keep the title accessible without rendering a duplicate visible heading */
+  hideTitle?: boolean;
   /** Unique ID for the component */
   id: string;
   /** Maximum number of images allowed (optional) */
@@ -39,6 +41,7 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
   images,
   onImagesUpload,
   title,
+  hideTitle = false,
   id,
   maxImages
 }) => {
@@ -166,15 +169,15 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
 
   return (
     <div className="w-full">
-      <label htmlFor={id} className="block text-sm font-medium text-zinc-300 mb-2">
+      <label htmlFor={id} className={hideTitle ? 'sr-only' : 'mb-2 block text-base font-semibold text-zinc-100'}>
         {title}
       </label>
 
       {/* Upload Area */}
       <div
-        className={`relative w-full bg-zinc-800/50 rounded-lg border-2 border-dashed transition-colors duration-300 flex items-center justify-center overflow-hidden min-h-[120px] ${
-          isDragging ? 'border-amber-500 bg-amber-500/10' : 'border-zinc-700'
-        } hover:border-amber-500 cursor-pointer`}
+        className={`relative flex min-h-[11rem] w-full cursor-pointer items-center justify-center overflow-hidden rounded-[24px] border border-dashed bg-black/35 transition-colors duration-300 ${
+          isDragging ? 'border-white/40 bg-white/[0.08]' : 'border-white/12'
+        } hover:border-white/30 hover:bg-white/[0.04]`}
         onDragOver={handleDragOver}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -190,15 +193,14 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
           className="hidden"
           onChange={handleFileChange}
         />
-        <div className="text-center text-zinc-400 p-4">
-          <CloudUploadIcon className="mx-auto h-10 w-10 mb-2" />
-          <p className="text-sm font-medium mb-1">
-            {isDragging ? t('imageUploader.drop') : t('imageUploader.upload')}
-          </p>
-          <p className="text-xs opacity-70">
-            {t('imageUploader.fileTypes')}
-          </p>
-          <p className="text-xs opacity-70 mt-1">
+        <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-4 text-center text-zinc-400">
+          <div
+            className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] p-3 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+            aria-label={isDragging ? t('imageUploader.drop') : t('imageUploader.upload')}
+          >
+            <CloudUploadIcon className="mx-auto h-10 w-10 text-zinc-300" />
+          </div>
+          <p className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
             {maxImages
               ? t('common.selectMultipleImagesMax', { max: maxImages, count: images.length })
               : t('common.selectMultipleImages')}
@@ -208,13 +210,13 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
 
       {/* Preview Grid */}
       {images.length > 0 && (
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4">
           {images.map((image, index) => {
             const preview = `data:${image.mimeType};base64,${image.base64}`;
             return (
               <div
                 key={`${id}-preview-${index}`}
-                className="relative aspect-square w-full bg-zinc-800/50 rounded-lg border border-zinc-700 overflow-hidden group"
+                className="group relative aspect-square w-full overflow-hidden rounded-[18px] border border-white/10 bg-black/30"
               >
                 <img
                   src={preview}
@@ -226,13 +228,13 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
                     e.stopPropagation();
                     handleRemoveImage(index);
                   }}
-                  className="absolute top-1 right-1 p-1 bg-black/60 rounded-full text-white hover:bg-red-500/90 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                  className="absolute right-2 top-2 rounded-full border border-white/10 bg-black/60 p-1.5 text-white opacity-0 transition-all duration-200 hover:bg-red-500/80 group-hover:opacity-100"
                   aria-label={`${t('imageUploader.removeAria')} ${index + 1}`}
                 >
                   <DeleteIcon className="w-4 h-4" />
                 </button>
                 {/* Tag overlay - always visible for @mention reference */}
-                <div className="absolute top-1 left-1 bg-black/70 text-amber-400 text-xs font-mono px-1.5 py-0.5 rounded">
+                <div className="absolute left-2 top-2 rounded-full border border-white/10 bg-black/70 px-2 py-0.5 font-mono text-[10px] text-zinc-100">
                   @img{index + 1}
                 </div>
               </div>
@@ -243,7 +245,7 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
 
       {/* Image count */}
       {images.length > 0 && (
-        <p className="text-xs text-zinc-500 mt-2 text-center">
+        <p className="mt-2 text-center text-xs text-zinc-500">
           {maxImages
             ? t('common.imagesCount', { count: images.length, max: maxImages })
             : t('common.imagesSelected', { count: images.length })}

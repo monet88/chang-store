@@ -3,7 +3,7 @@
  *
  * Shows a numbered step-by-step guide for the Gemini upscale workflow
  * and adapts the recommended next action based on current state.
- * Displays feature-scoped errors when the provider is unsupported (REL-01).
+ * Displays feature-scoped errors when Gemini configuration is incomplete.
  */
 
 import React from 'react';
@@ -15,7 +15,7 @@ interface UpscaleGuidanceCardProps {
   hasReport: boolean;
   /** Whether a studio upscale result exists */
   hasResult: boolean;
-  /** Current provider support status */
+  /** Current Gemini support status */
   studioSupportStatus: StudioSupportStatus;
 }
 
@@ -39,13 +39,8 @@ const UpscaleGuidanceCard: React.FC<UpscaleGuidanceCardProps> = ({
 
   const nextAction = getNextAction();
 
-  // Feature-scoped error for unsupported provider
+  // Feature-scoped error for missing Gemini configuration
   if (studioSupportStatus !== 'supported') {
-    const errorMessage =
-      studioSupportStatus === 'no_api_key'
-        ? t('upscale.studioNoApiKey')
-        : t('upscale.studioUnsupportedProvider');
-
     return (
       <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4">
         <div className="flex items-center gap-2 mb-2">
@@ -54,7 +49,7 @@ const UpscaleGuidanceCard: React.FC<UpscaleGuidanceCardProps> = ({
             {t('upscale.guidanceTitle')}
           </h4>
         </div>
-        <p className="text-sm text-red-300">{errorMessage}</p>
+        <p className="text-sm text-red-300">{t('upscale.studioNoApiKey')}</p>
       </div>
     );
   }
