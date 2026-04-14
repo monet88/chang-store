@@ -12,7 +12,7 @@ import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
 import MobileOverlay from './components/MobileOverlay';
 import UtilityDock from './components/UtilityDock';
-import { type ModelSelectionType } from './config/modelRegistry';
+import { type ModelSelectionType, getModelsBySelectionType } from './config/modelRegistry';
 import { resolveModelSelectionScope } from './config/modelSelectionRules';
 
 const VirtualTryOn = lazy(() => import('./components/VirtualTryOn'));
@@ -259,16 +259,30 @@ const AppContent: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex w-full flex-col gap-3 sm:max-w-md sm:items-end">
-                  {activeModelSelectionScope && (
-                    <GlobalModelSelector
-                      ariaLabel={t(activeModelSelectionScope.labelKey)}
-                      label={t(activeModelSelectionScope.labelKey)}
-                      selectedModel={selectedModelBySelectionType[activeModelSelectionScope.selectionType]}
-                      options={activeModelSelectionScope.options}
-                      onChange={modelSetterBySelectionType[activeModelSelectionScope.selectionType]}
-                    />
-                  )}
+                <div className="flex w-full flex-col gap-3 sm:max-w-2xl sm:items-end">
+                  <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+                    {activeModelSelectionScope && (
+                      <div className="w-full sm:w-64 shrink-0">
+                        <GlobalModelSelector
+                          ariaLabel={t(activeModelSelectionScope.labelKey)}
+                          label={t(activeModelSelectionScope.labelKey)}
+                          selectedModel={selectedModelBySelectionType[activeModelSelectionScope.selectionType]}
+                          options={activeModelSelectionScope.options}
+                          onChange={modelSetterBySelectionType[activeModelSelectionScope.selectionType]}
+                        />
+                      </div>
+                    )}
+
+                    <div className="w-full sm:w-64 shrink-0">
+                      <GlobalModelSelector
+                        ariaLabel={t('settingsModal.fields.textGeneration')}
+                        label={t('settingsModal.fields.textGeneration')}
+                        selectedModel={textGenerateModel}
+                        options={getModelsBySelectionType('textGenerate')}
+                        onChange={setTextGenerateModel}
+                      />
+                    </div>
+                  </div>
 
                   <div className="hidden flex-wrap justify-end gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400 lg:flex">
                     <span className="rounded-full border border-white/10 px-3 py-1.5">
