@@ -96,6 +96,12 @@ const TEXT_GENERATE_MODELS: RegisteredModel[] = [
   },
   {
     providerId: 'google',
+    modelId: 'gemini-3.1-flash-lite-preview',
+    label: 'Gemini 3.1 Flash-Lite (Preview)',
+    selectionType: 'textGenerate',
+  },
+  {
+    providerId: 'google',
     modelId: 'gemini-2.5-pro',
     label: 'Gemini 2.5 Pro',
     selectionType: 'textGenerate',
