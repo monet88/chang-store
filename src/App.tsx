@@ -284,17 +284,6 @@ const AppContent: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="hidden flex-wrap justify-end gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400 lg:flex">
-                    <span className="rounded-full border border-white/10 px-3 py-1.5">
-                      {t('workspace.panels.controlRail')}
-                    </span>
-                    <span className="rounded-full border border-white/10 px-3 py-1.5">
-                      {t('workspace.panels.resultStage')}
-                    </span>
-                    <span className="rounded-full border border-white/10 px-3 py-1.5">
-                      {t('navigation.mediaFirstLabel')}
-                    </span>
-                  </div>
                 </div>
               </section>
 
