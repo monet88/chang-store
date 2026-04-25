@@ -1,50 +1,53 @@
-# HOOKS - Feature Logic Layer
+<!-- Parent: ../AGENTS.md -->
+<!-- Generated: 2026-04-26 | Updated: 2026-04-26 -->
 
-## OVERVIEW
-15 hooks: one per feature + 2 shared canvas/drawing hooks. All business logic, state, validation, and service orchestration lives here. Never import from contexts inside services — only hooks mediate.
+# hooks
 
-## WHERE TO LOOK
-| Task | Hook | Notes |
-|------|------|-------|
-| Image editing | `useImageEditor.ts` | Canvas history, undo/redo, tool switching |
-| Lookbook flow | `useLookbookGenerator.ts` | Draft persistence + variations + chat refinement |
-| Try-on flow | `useVirtualTryOn.ts` | Batch processing + per-item upscaling |
-| Clothing transfer | `useClothingTransfer.ts` | Batch processing with Gemini override |
-| Upscaling | `useUpscale.ts` | Multi-phase: analysis → prompt → upscale |
-| Face swap | `useSwapFace.ts` | Style analysis + face transfer |
-| Pose change | `usePoseChanger.ts` | Reference image + pose description |
-| Background | `useBackgroundReplacer.ts` | AI description + replacement |
-| Outfit analysis | `useOutfitAnalysis.ts` | Step-based wizard + redesign presets |
-| Batch watermark | `useWatermarkRemover.ts` | Concurrency control + retry + ZIP download |
-| Canvas drawing | `useCanvasDrawing.ts` | Metrics, marching ants, animation cleanup (shared) |
-| Inpainting | `useInpainting.ts` | Mask drawing + prompt |
-| Drive sync | `useGoogleDriveSync.ts` | Queue-based upload/delete + retry |
-| Relighting | `useRelight.ts` | Single image relighting |
-| Photo album | `usePhotoAlbum.ts` | `fullModel`/`faceAndOutfit` modes |
+## Purpose
+Tầng logic của ứng dụng. Mỗi feature hook chịu trách nhiệm state, validation, orchestration, error handling, và giao tiếp với contexts/services; UI components chỉ tiêu thụ dữ liệu từ đây.
 
-## CONVENTIONS
-- Every feature hook: `useLanguage()` + `useApi()` + optional `useImageGallery()`
-- Error pattern: `try { ... } catch (err) { setError(getErrorMessage(err, t)); } finally { setIsLoading(false); }`
-- Build service config via `buildImageServiceConfig(onStatusUpdate)` helper
-- Validate inputs before calling services
-- Feature model routing: `getModelsForFeature(Feature.Xxx)`
-- Batch hooks: `useRef` for ID counters, bounded concurrency (3 workers via `run-bounded-workers.ts`)
-- Lookbook persists drafts in localStorage with debounce
+## Key Files
+| File | Description |
+|------|-------------|
+| `useVirtualTryOn.ts` | Batch try-on workflow với per-item processing và gallery integration. |
+| `useLookbookGenerator.ts` | Lookbook generation, refinement, draft persistence, và variations flow. |
+| `useUpscale.ts` | Multi-phase upscale orchestration cho Studio và Quick modes. |
+| `useGoogleDriveSync.ts` | Queue-based Google Drive sync flow cho gallery operations. |
+| `useImageEditor.ts` | State orchestration cho editor workflow và image editing controls. |
+| `usePatternGenerator.ts` | Logic cho pattern generation flow và prompt-driven image outputs. |
+| `useCanvasDrawing.ts` | Shared drawing/mask logic cho canvas-based flows. |
 
-## ANTI-PATTERNS
-- No JSX/UI in hooks — return `{ state, handlers }` only
-- No direct external API calls — route through `services/`
-- No API key storage in state — use `ApiProviderContext`
-- Canvas hooks MUST return cleanup in `useEffect` (cancelAnimationFrame)
-- Never skip `finally` — always reset `isLoading` and `loadingMessage`
+## Subdirectories
+Không có thư mục con đáng kể trong phạm vi sản phẩm.
 
-## COMPLEX STATE MACHINES
-- `useImageEditor`: Canvas history stack, undo/redo, tool switching, adjustment layers
-- `useVirtualTryOn` / `useClothingTransfer`: Bounded concurrency, per-item status tracking
-- `useLookbookGenerator`: Debounced localStorage, refinement versioning
-- `useGoogleDriveSync`: Async queue via refs (avoids stale closures), local↔Drive ID mapping
-- `useUpscale`: Multi-phase workflow with per-image studio state
+## For AI Agents
 
-## NOTES
-- `useWatermarkRemover` takes `addToGallery` as param (not context) — intentional for batch ops
-- No reducers — all state via `useState`/`useRef`
+### Working In This Directory
+- Hooks phải giữ toàn bộ business logic; đừng đẩy logic ngược lên component.
+- Mọi async flow nên theo mẫu `try/catch/finally` với `getErrorMessage(err, t)` để giữ i18n nhất quán.
+- Không lưu API key hoặc provider config trong local hook state; lấy từ `ApiProviderContext`.
+- Khi thêm feature hook mới, ghép cặp rõ ràng với component cùng tên ở `src/components/`.
+
+### Testing Requirements
+- Kiểm thử hành vi trong `__tests__/hooks/` bằng `renderHook` + `act`.
+- Nếu thay đổi side effects hoặc service interactions, thêm cả success path lẫn rejection path.
+- Sau thay đổi logic lớn, chạy `npm run test` cho suite liên quan.
+
+### Common Patterns
+- Hooks thường dùng `useLanguage()`, `useApi()`, và khi cần thì `useImageGallery()`.
+- Batch workflows dùng `useRef` cho counters/queues và helper `run-bounded-workers.ts`.
+- Hook return shape thường gom vào `state` và `handlers` để component tiêu thụ gọn hơn.
+
+## Dependencies
+
+### Internal
+- `../components/` là lớp UI tiêu thụ hooks.
+- `../services/` cho API/service facade calls.
+- `../contexts/` cho global state và persistence-backed behavior.
+- `../utils/` cho prompt builders, error formatting, và concurrency helpers.
+
+### External
+- React hooks API.
+- Vitest/RTL trong `__tests__/hooks/` để xác minh hành vi.
+
+<!-- MANUAL: Add durable notes below this line; regeneration should preserve them. -->

@@ -1,22 +1,12 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import ImageUploader from './ImageUploader';
 import Spinner, { ErrorDisplay, ProgressBar } from './Spinner';
 import HoverableImage from './HoverableImage';
-import { editImage, upscaleImage } from '../services/imageEditingService';
-import { generatePoseDescription } from '../services/textService';
-import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution, PoseCollection } from '../types';
+import { Feature } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useApi } from '../contexts/ApiProviderContext';
-import { getErrorMessage } from '../utils/imageUtils';
+import { usePoseChanger } from '../hooks/usePoseChanger';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import ResultPlaceholder from './shared/ResultPlaceholder';
-
-const ImageIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-  </svg>
-);
 
 const PhotoAlbumIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
@@ -36,255 +26,45 @@ interface PoseChangerProps {
 }
 
 const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
-  const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);
-  const [poseReferenceImage, setPoseReferenceImage] = useState<ImageFile | null>(null);
-
-  const [customPosePrompt, setCustomPosePrompt] = useState('');
-  const [selectedLibraryPoses, setSelectedLibraryPoses] = useState<string[]>([]);
-
-  const [generatedImages, setGeneratedImages] = useState<ImageFile[]>([]);
-  const [upscalingStates, setUpscalingStates] = useState<Record<number, boolean>>({});
-  const [regeneratingStates, setRegeneratingStates] = useState<Record<number, boolean>>({});
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGeneratingPoseDescription, setIsGeneratingPoseDescription] = useState(false);
-  const [generationStatus, setGenerationStatus] = useState({ active: false, progress: 0, total: 0, message: '' });
-  const [error, setError] = useState<string | null>(null);
-
-  const [negativePrompt, setNegativePrompt] = useState('');
-  const [cameraView, setCameraView] = useState<string>('fullBody');
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
-  const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
-
   const { t } = useLanguage();
-  const { imageEditModel, textGenerateModel } = useApi();
-  const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
-    onStatusUpdate,
-  });
-
-  const allPrompts = [...selectedLibraryPoses, ...(customPosePrompt.trim() ? [customPosePrompt.trim()] : [])];
-  const totalPrompts = allPrompts.length;
-
-  const handleGeneratePoseDescription = async () => {
-    if (!poseReferenceImage) {
-      setError(t('pose.poseReferenceMissingError'));
-      return;
-    }
-    setIsGeneratingPoseDescription(true);
-    setError(null);
-    try {
-      const description = await generatePoseDescription(poseReferenceImage, textGenerateModel);
-      setCustomPosePrompt(description);
-      setPoseReferenceImage(null);
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setIsGeneratingPoseDescription(false);
-    }
-  };
-
-  const getFramingInstruction = () => {
-    if (cameraView === 'default') {
-      return "Use default framing provided by the model.";
-    }
-    const keyMap: Record<string, string> = {
-      fullBody: 'fullBody',
-      halfBody: 'halfBody',
-      kneesUp: 'kneesUp',
-    };
-    const instructionKey = `framingInstructions.${keyMap[cameraView]}`;
-    return t(instructionKey) || "Use default framing provided by the model.";
-  };
-
-  const generateImageForPrompt = async (promptText: string, framingInstruction: string) => {
-    const prompt = `
-          **Task**: Photorealistically change the pose of a model based on a text description, while perfectly preserving the model, their clothing, and the background.
-          **Source Image**: Contains the model and their clothing.
-          **New Pose Description**: "${promptText}".
-          **CRITICAL RULES**:
-          1.  **Analyze Clothing**: First, analyze the clothing in the Source Image to understand its type (e.g., dress, jeans, blouse), fabric properties (e.g., silk, denim, cotton), and fit (e.g., loose, tight, structured).
-          2.  **Preserve Identity**: The model's identity (face, hair, body shape), their entire outfit (design, color, texture), and the entire background from the Source Image MUST be preserved with 100% accuracy.
-          3.  **Apply New Pose**: Re-render the model in a new, physically plausible pose that accurately matches the **New Pose Description**.
-          4.  **Realistic Draping**: This is the most important step. Re-drape the *exact same* clothing onto the model in their new pose. The draping must be physically accurate, showing how the specific fabric would naturally fold, stretch, and hang based on the new body position and gravity. The fit must remain consistent with the original garment.
-          5.  **Camera Framing**: ${framingInstruction}
-          **Final Goal**: A high-resolution (2K), photorealistic image.
-        `.trim();
-
-    const [result] = await editImage({
-      images: [subjectImage!],
-      prompt,
-      negativePrompt,
-      numberOfImages: 1,
-      aspectRatio,
-      resolution,
-    }, imageEditModel, buildImageServiceConfig(() => {}));
-
-    return result;
-  };
-
-  const handleGenerate = async () => {
-    if (!subjectImage) {
-      setError(t('pose.subjectError'));
-      return;
-    }
-
-    // Reset states
-    setError(null);
-    setGeneratedImages([]);
-    setRegeneratingStates({});
-    const framingInstruction = getFramingInstruction();
-
-    // --- Single Generation with Pose Reference Image ---
-    if (poseReferenceImage) {
-      setIsLoading(true);
-      setGenerationStatus({ active: true, progress: 1, total: 1, message: t('pose.generatingStatusOne') });
-      const imagesForApi: ImageFile[] = [subjectImage, poseReferenceImage];
-      const prompt = `
-          **Task**: Photorealistically transfer the pose from a 'Pose Reference Image' onto the model in a 'Subject Image', while perfectly preserving the model, their clothing, and the background.
-          **Image Roles**:
-          -   **First Image ('Subject Image')**: Contains the model, clothing, and background to be preserved.
-          -   **Second Image ('Pose Reference Image')**: Provides the target pose.
-          **CRITICAL RULES**:
-          1.  **Extract Pose**: Analyze the 'Pose Reference Image' to understand the exact body position.
-          2.  **Preserve Subject, Clothing, and Background**: The model's identity, their entire outfit, and the entire background from the 'Subject Image' MUST be preserved with 100% accuracy.
-          3.  **Apply Pose**: Re-render the model from the 'Subject Image' in the exact pose extracted from the 'Pose Reference Image'.
-          4.  **Photorealistic Integration**: The model's body must be anatomically correct, clothing redraped realistically, and lighting must match.
-          5.  **Camera Framing**: ${framingInstruction}
-          ${customPosePrompt.trim() ? `**Additional Text Instruction**: While applying the pose from the reference image, also incorporate this detail: "${customPosePrompt.trim()}".` : ''}
-          **Strict Negative Constraints**: DO NOT copy clothing, background, or identity from the 'Pose Reference Image'.
-          **Final Goal**: A high-resolution (2K), photorealistic image where the model from the 'Subject Image' is now in the pose from the 'Pose Reference Image'.
-        `.trim();
-
-      try {
-        const [result] = await editImage({
-          images: imagesForApi,
-          prompt,
-          negativePrompt,
-          numberOfImages: 1,
-          aspectRatio,
-          resolution,
-        }, imageEditModel, buildImageServiceConfig((msg) => setGenerationStatus(prev => ({ ...prev, message: msg }))));
-        setGeneratedImages([result]);
-      } catch (err) {
-        setError(getErrorMessage(err, t));
-      } finally {
-        setIsLoading(false);
-        setGenerationStatus({ active: false, progress: 0, total: 0, message: '' });
-      }
-
-      // --- Multiple Generation with Text Prompts ---
-    } else {
-      const prompts = allPrompts;
-      if (prompts.length === 0) {
-        setError(t('pose.promptError'));
-        return;
-      }
-
-      setGenerationStatus({ active: true, progress: 0, total: prompts.length, message: '' });
-
-      const results: ImageFile[] = [];
-      for (const [index, promptText] of prompts.entries()) {
-        setGenerationStatus(prev => ({ ...prev, progress: index + 1, message: t('pose.generatingStatusMultiple', { progress: index + 1, total: prompts.length }) }));
-
-        try {
-          const result = await generateImageForPrompt(promptText, framingInstruction);
-          results.push(result);
-          setGeneratedImages([...results]); // Update UI incrementally
-        } catch (err) {
-          const errorMessage = t('pose.batchError', {
-            index: index + 1,
-            total: prompts.length,
-            prompt: promptText.substring(0, 30),
-            error: getErrorMessage(err, t)
-          });
-          setError(errorMessage);
-          setGenerationStatus({ active: false, progress: 0, total: 0, message: '' });
-          return; // Stop on first error
-        }
-      }
-      setGenerationStatus({ active: false, progress: 0, total: 0, message: '' });
-    }
-  };
-
-  const handleRegenerateSingle = async (index: number) => {
-    const promptText = allPrompts[index];
-    if (!promptText || !subjectImage || poseReferenceImage) {
-      handleGenerate();
-      return;
-    }
-
-    setRegeneratingStates(prev => ({ ...prev, [index]: true }));
-    setError(null);
-
-    try {
-      const result = await generateImageForPrompt(promptText, getFramingInstruction());
-      setGeneratedImages(prev => prev.map((image, imageIndex) => imageIndex === index ? result : image));
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setRegeneratingStates(prev => ({ ...prev, [index]: false }));
-    }
-  };
-
-  const handleUpscale = async (imageToUpscale: ImageFile, index: number) => {
-    setUpscalingStates(prev => ({ ...prev, [index]: true }));
-    setError(null);
-    try {
-      const result = await upscaleImage(
-        imageToUpscale,
-        imageEditModel,
-        buildImageServiceConfig(() => { })
-      );
-      setGeneratedImages(prev => prev.map((img, i) => i === index ? result : img));
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setUpscalingStates(prev => ({ ...prev, [index]: false }));
-    }
-  };
-
-  const handlePoseReferenceUpload = (file: ImageFile | null) => {
-    setPoseReferenceImage(file);
-    if (file) {
-      setSelectedLibraryPoses([]); // Clear library selection
-    }
-  }
-
-  const handleConfirmSelection = (poses: string[]) => {
-    setSelectedLibraryPoses(poses);
-    if (poses.length > 0) {
-      setPoseReferenceImage(null); // Mutually exclusive with reference image
-    }
-  }
-
-  const anyLoading = isLoading
-    || generationStatus.active
-    || isGeneratingPoseDescription
-    || Object.values(upscalingStates).some(s => s)
-    || Object.values(regeneratingStates).some(s => s);
-  const isGenerateDisabled = anyLoading || !subjectImage || (!poseReferenceImage && totalPrompts === 0);
-
-  const getButtonText = () => {
-    if (isLoading) return t('pose.generatingOne');
-    if (generationStatus.active) return t('pose.generatingMultiple', { progress: generationStatus.progress, total: generationStatus.total });
-    if (poseReferenceImage) return t('pose.generateButton');
-    if (totalPrompts > 1) return t('pose.generateMultipleButton', { count: totalPrompts });
-    if (totalPrompts === 1) return t('pose.generateOneButton');
-    return t('pose.generateButton');
-  };
-
-  const cameraViewOptions = [
-    { key: 'default', label: t('cameraView.options.default') },
-    { key: 'fullBody', label: t('cameraView.options.fullBody') },
-    { key: 'halfBody', label: t('cameraView.options.halfBody') },
-    { key: 'kneesUp', label: t('cameraView.options.kneesUp') },
-  ];
-
+  const {
+    subjectImage,
+    setSubjectImage,
+    poseReferenceImage,
+    customPosePrompt,
+    selectedLibraryPoses,
+    generatedImages,
+    upscalingStates,
+    regeneratingStates,
+    isLoading,
+    isGeneratingPoseDescription,
+    generationStatus,
+    error,
+    negativePrompt,
+    setNegativePrompt,
+    cameraView,
+    setCameraView,
+    cameraViewOptions,
+    aspectRatio,
+    setAspectRatio,
+    resolution,
+    setResolution,
+    imageEditModel,
+    isGenerateDisabled,
+    buttonText,
+    handleCustomPosePromptChange,
+    handleGeneratePoseDescription,
+    handleGenerate,
+    handleRegenerateSingle,
+    handleUpscale,
+    handlePoseReferenceUpload,
+    handleConfirmSelection,
+    clearError,
+  } = usePoseChanger();
 
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
-        {/* Left Column: Controls */}
         <div className="flex flex-col gap-6">
           <h2 className="text-xl md:text-2xl font-bold text-center">{t('pose.title')}</h2>
 
@@ -320,7 +100,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                 <textarea
                   id="pose-prompt"
                   value={customPosePrompt}
-                  onChange={(e) => { setCustomPosePrompt(e.target.value); if (poseReferenceImage) setPoseReferenceImage(null); }}
+                  onChange={(event) => handleCustomPosePromptChange(event.target.value)}
                   placeholder={t('pose.customPosePlaceholder')}
                   rows={2}
                   className="workspace-input p-3"
@@ -355,7 +135,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
               <textarea
                 id="negative-prompt-pose"
                 value={negativePrompt}
-                onChange={(e) => setNegativePrompt(e.target.value)}
+                onChange={(event) => setNegativePrompt(event.target.value)}
                 placeholder={t('pose.negativePromptPlaceholder')}
                 rows={2}
                 className="workspace-input p-3"
@@ -365,9 +145,13 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
               <label className="block text-sm font-medium text-zinc-300 mb-2 text-center">{t('cameraView.label')}</label>
               <div className="flex justify-center">
                 <div className="flex flex-wrap justify-center gap-1 p-1 bg-zinc-800/50 rounded-lg">
-                  {cameraViewOptions.map(opt => (
-                    <button key={opt.key} onClick={() => setCameraView(opt.key)} className={`px-2 py-1.5 text-xs font-semibold rounded-md border transition-colors duration-200 ${cameraView === opt.key ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>
-                      {opt.label}
+                  {cameraViewOptions.map((option) => (
+                    <button
+                      key={option.key}
+                      onClick={() => setCameraView(option.key)}
+                      className={`px-2 py-1.5 text-xs font-semibold rounded-md border transition-colors duration-200 ${cameraView === option.key ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}
+                    >
+                      {option.label}
                     </button>
                   ))}
                 </div>
@@ -380,15 +164,13 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
             />
           </div>
 
-
           <div className="text-center">
             <button onClick={handleGenerate} disabled={isGenerateDisabled} className="workspace-button workspace-button-primary px-8 py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
-              {generationStatus.active || isLoading ? <Spinner /> : getButtonText()}
+              {generationStatus.active || isLoading ? <Spinner /> : buttonText}
             </button>
           </div>
         </div>
 
-        {/* Right Column: Output */}
         <div className="lg:sticky lg:top-8">
           <div className="relative w-full min-h-[400px] lg:min-h-0 lg:aspect-[4/5] bg-zinc-900/50 rounded-2xl border border-zinc-800 p-2 sm:p-4 flex flex-col items-center justify-center">
             {isLoading || generationStatus.active ? (
@@ -401,7 +183,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
               </div>
             ) : error ? (
               <div className="p-4">
-                <ErrorDisplay title={t('common.generationFailed')} message={error} onClear={() => setError(null)} />
+                <ErrorDisplay title={t('common.generationFailed')} message={error} onClear={clearError} />
               </div>
             ) : generatedImages.length > 0 ? (
               <div className="w-full h-full overflow-y-auto pr-2">

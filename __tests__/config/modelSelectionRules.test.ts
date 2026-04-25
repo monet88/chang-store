@@ -47,7 +47,7 @@ describe('model selection rules', () => {
   it('exposes registry-backed options for all shared selection scopes', () => {
     expect(getModelOptionsBySelectionType('imageEdit')).toHaveLength(3);
     expect(getModelOptionsBySelectionType('imageGenerate')).toHaveLength(3);
-    expect(getModelOptionsBySelectionType('textGenerate')).toHaveLength(4);
+    expect(getModelOptionsBySelectionType('textGenerate')).toHaveLength(5);
   });
 
   it('preserves existing capability checks for Gemini and Imagen models', () => {

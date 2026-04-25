@@ -1,60 +1,58 @@
-# COMPONENTS - UI Layer
+<!-- Parent: ../AGENTS.md -->
+<!-- Generated: 2026-04-26 | Updated: 2026-04-26 -->
 
-## OVERVIEW
-~50 React components: 12 AI feature components + shared UI + modals + upscale sub-components. Thin wrappers — all logic in `hooks/`.
+# components
 
-## STRUCTURE
-```
-components/
-├── [Feature].tsx (12)     # VirtualTryOn, LookbookGenerator, BackgroundReplacer, ClothingTransfer...
-├── shared/                # RefinementInput, ResultPlaceholder, ImageBatchSessionRail
-├── modals/                # GalleryModal, SettingsModal, PoseLibraryModal, ImageSelectionModal → see AGENTS.md
-├── upscale/               # 11 step-based sub-components → see upscale/AGENTS.md
-├── ImageEditor*.tsx (3)   # Canvas + Toolbar + Modal (orchestrator pattern, ~1235 lines)
-├── Mobile*.tsx (2)        # MobileOverlay, MobileMenuButton
-├── Toast.tsx              # ToastProvider + useToast — inline context, NOT in contexts/
-├── LookbookGenerator.prompts.ts  # Prompt string constants (co-located with component)
-└── predefinedContent.ts          # Static data: predefined backgrounds/poses
-```
+## Purpose
+UI layer của ứng dụng: feature screens, shared controls, modal surfaces, và các presentation-only building blocks. Phần lớn file ở đây là thin wrappers lấy state/handlers từ hooks và render workspace theo hướng media-first.
 
-## WHERE TO LOOK
-| Task | File | Notes |
-|------|------|-------|
-| Add feature UI | `FeatureName.tsx` + lazy import in `App.tsx` | Must pair with hook |
-| Image upload | `ImageUploader.tsx`, `MultiImageUploader.tsx` | Shared uploaders |
-| Gallery display | `modals/GalleryModal.tsx` | Uses `useImageGallery()` |
-| Settings/API keys | `modals/SettingsModal.tsx` | Model selection, API key config |
-| Image editing | `ImageEditor.tsx` → `ImageEditorCanvas.tsx` | Orchestrator → canvas |
-| Upscale UI | `upscale/*.tsx` | Step-based studio + quick panels |
-| Batch session rail | `shared/ImageBatchSessionRail.tsx` | Shared across batch features |
-| Selectors | `AspectRatioSelector`, `ResolutionSelector`, `QualitySelector` | Composed in `ImageOptionsPanel` |
-| Toast notifications | `Toast.tsx` | ToastProvider + useToast hook here |
-| Icons | `Icons.tsx` | 40+ SVG icon components |
+## Key Files
+| File | Description |
+|------|-------------|
+| `Header.tsx` | Workspace header và feature navigation shell. |
+| `UtilityDock.tsx` | Entry point cho gallery, prompt library, và studio utilities. |
+| `GlobalModelSelector.tsx` | Bộ chọn model theo selection scope đang active. |
+| `VirtualTryOn.tsx` | Feature screen cho try-on workflow, dùng hook tương ứng để điều phối logic. |
+| `PatternGenerator.tsx` | Feature screen cho pattern generation flow mới hơn. |
+| `ImageEditor.tsx` | Feature surface lớn nhất, đóng vai trò orchestrator cho editor canvas/toolbar. |
+| `Toast.tsx` | Toast provider và `useToast()` nằm inline tại đây, không ở `contexts/`. |
+| `LookbookGenerator.prompts.ts` | Prompt constants co-located với lookbook UI flow. |
+| `predefinedContent.ts` | Dữ liệu tĩnh cho backgrounds/poses và lựa chọn dựng sẵn. |
 
-## CONVENTIONS
-```typescript
-export const FeatureName: React.FC = () => {
-  const { state, handlers } = useFeatureName();  // ALL logic in hook
-  return <UI state={state} onAction={handlers.action} />;
-};
-```
-- PascalCase `.tsx` filenames; `.ts` for pure logic files
-- `React.FC` type annotation on all components
-- Props interface defined above component
-- Tailwind only — no inline styles, no `@apply`
-- CSS `display` toggling (block/none) to preserve state across tab switches
+## Subdirectories
+| Directory | Purpose |
+|-----------|---------|
+| `modals/` | Dialog surfaces như gallery, settings, prompt library, và pose selection (xem `modals/AGENTS.md`). |
+| `shared/` | Reusable UI pieces dùng xuyên nhiều features (xem `shared/AGENTS.md`). |
+| `upscale/` | Step-based sub-components cho upscale workflow (xem `upscale/AGENTS.md`). |
 
-## ANTI-PATTERNS
-- **NEVER** put business logic in components — extract to hook
-- **NEVER** call services directly from components — go through hooks
-- **DO NOT** create feature component without a corresponding hook
+## For AI Agents
 
-## KNOWN VIOLATIONS (tech debt)
-These import services directly — should route through hooks:
-`AIEditor`, `ImageEditor`, `LookbookOutput`, `SettingsModal`, `Relight`, `PoseChanger`, `PhotoAlbumCreator`, `OutfitAnalysis`, `shared/RefinementInput`
+### Working In This Directory
+- Giữ components mỏng: state, validation, API calls, và gallery integration phải nằm trong hook ghép cặp.
+- Không gọi services trực tiếp từ component mới; route qua hook.
+- Khi thêm feature component, đồng bộ với `src/hooks/`, `src/App.tsx`, và `src/locales/`.
+- Dùng Tailwind classes; tránh inline styles và tránh đưa business logic vào JSX.
 
-## COMPLEXITY HOTSPOTS
-| File | Lines | Note |
-|------|-------|------|
-| `ImageEditor.tsx` | ~1235 | Orchestrator; Canvas/Toolbar already extracted |
-| `Icons.tsx` | ~400 | Acceptable — single SVG library |
+### Testing Requirements
+- Rendering và interaction bề mặt nên được test trong `__tests__/components/`.
+- Nếu component chỉ là wrapper, phần lớn logic nên được test ở hook tương ứng.
+- Với thay đổi UI lớn, kiểm tra manual feature flow trong app ngoài test suite.
+
+### Common Patterns
+- Components thường dùng `React.FC` theo convention hiện có của project.
+- Parent feature component lấy `{ state, handlers }` từ hook rồi đẩy xuống presentational children.
+- `App.tsx` lazy-load gần như toàn bộ feature screens và modal surfaces.
+
+## Dependencies
+
+### Internal
+- `../hooks/` cho state và business logic.
+- `../contexts/` cho global state như language, API config, gallery, và viewer.
+- `../config/` cho model selector UI.
+
+### External
+- `react` cho component model.
+- Tailwind utility classes qua pipeline của project.
+
+<!-- MANUAL: Add durable notes below this line; regeneration should preserve them. -->
