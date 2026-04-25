@@ -300,6 +300,26 @@ Deliverables:
 
 Exit criteria: the baseline covers every exception target and has an accepted contract plus smoke matrix.
 
+##### P0 Baseline Inventory — 2026-04-26
+
+This baseline freezes the current exception surface before any roadmap rewiring. Runtime service/config imports count imports that execute at runtime from `src/services/**` or `src/config/**`; type-only imports are tracked separately because they describe contract coupling without adding runtime calls.
+
+| Target | Existing hook/contract owner | Runtime service/config imports | Type-only service/config imports | Component-owned orchestration handlers | Frozen contract | Smoke owner |
+|---|---|---:|---:|---|---|---|
+| `PoseChanger` (`src/components/PoseChanger.tsx`) | `usePoseChanger` exists but is incomplete before P1 | 2 (`imageEditingService`, `textService`) | 0 | `buildImageServiceConfig`, `handleGeneratePoseDescription`, `generateImageForPrompt`, `handleGenerate`, `handleRegenerateSingle`, `handleUpscale`, pose-reference/library selection handlers | `PoseChanger` supplies UI bindings; `usePoseChanger` owns state, prompt construction, validation, service calls, loading/error, generate/regenerate/upscale side effects; services remain behind `imageEditingService.ts` and `textService.ts` | P1: Pose reference generate, text/library generate, single regenerate, upscale smoke |
+| `SettingsModal` (`src/components/modals/SettingsModal.tsx`) | `ApiProviderContext`, `ImageGalleryContext`, storage/debug adapters | 2 (`modelRegistry`, `debugService`) | 1 (`RegisteredModel` from `modelRegistry`) | `handleDebugToggle`, `handleSave`, `handleRestore`, `handleClear`, provider/model option filtering | Settings UI binds provider/storage/debug actions; focused hook/adapter boundary must own model filtering, persistence, backup/restore/clear, and debug toggles | P2: provider/model persistence, storage backup/restore/clear, debug toggle, provider order snapshot |
+| `ImageEditor` (`src/components/ImageEditor.tsx`) | `useImageEditor` exists but component still owns canvas/API orchestration | 1 (`imageEditingService`) | 0 | `buildImageServiceConfig`, `handleApply*`, `handleGenerateAIEdit`, `handleApplyAccessory`, canvas/history handlers | `ImageEditor` keeps canvas/UI interaction; `useImageEditor` owns API orchestration, history side effects, loading/error, and editor action contracts | P3A: edit pipeline, AI generate pipeline, runtime service imports = 0 |
+| `AIEditor` (`src/components/AIEditor.tsx`) | No dedicated hook yet; intended to reuse editor boundary after P3A | 1 (`imageEditingService`) | 0 | `handleGenerate`, prompt mention extraction, API prompt construction | Component remains a multi-image/prompt UI; future hook owns prompt validation, mention resolution, API call, loading/error, and result state | P3B: refine/edit smoke through P3A boundary, runtime service imports = 0 |
+| `OutfitAnalysis` (`src/components/OutfitAnalysis.tsx`) | `useOutfitAnalysis` exists but is incomplete before P4 | 2 (`imageEditingService`, `textService`) | 1 (`RedesignPreset` from `gemini/image`) | `buildImageServiceConfig`, `handleUpload`, `handleGenerateRedesigns`, `handleExtractItem`, preset selection | Component binds analysis/redesign UI; hook owns upload analysis, redesign generation, extraction, loading/error, and gallery side effects | P4: outfit analysis generate/regenerate/extract smoke |
+| `PhotoAlbumCreator` (`src/components/PhotoAlbumCreator.tsx`) | `usePhotoAlbum` exists but is incomplete before P4 | 1 (`imageEditingService`) | 0 | `buildImageServiceConfig`, `generateImageForPose`, `handleGenerate`, `handleRegenerateSingle`, mode/start-over handlers | Component binds album controls; `usePhotoAlbum` owns pose prompt generation, batch progress, regenerate, loading/error, and gallery side effects | P4: photo album generate/regenerate smoke |
+| `Relight` (`src/components/Relight.tsx`) | `useRelight` exists but is incomplete before P4 | 1 (`imageEditingService`) | 0 | `generateRelightPrompt`, `buildImageServiceConfig`, `handleRelight` | Component binds lighting controls; `useRelight` owns prompt construction, service call, loading/error, and result state | P4: relight generate/regenerate smoke |
+| `LookbookOutput` (`src/components/LookbookOutput.tsx`) | `useLookbookGenerator` owns generation; output component owns downstream UI | 0 | 1 (`RefinementHistoryItem` from `imageEditingService`) | `handleVariationCountChange`; refinement actions are callback props | Output remains presentational; P5 moves shared refinement/history shape out of service boundary or exposes it through a hook/type contract | P5: lookbook/refinement compatibility smoke |
+| `shared/RefinementInput` (`src/components/shared/RefinementInput.tsx`) | Parent lookbook/refinement contract | 0 | 1 (`RefinementHistoryItem` from `imageEditingService`) | `handleSubmit`, `handleReset`, history toggle/input handling | Component stays presentational; P5 removes service-owned type coupling while preserving refinement callback props | P5: refinement submit/reset/history smoke |
+
+Frozen phase contract: components bind UI and callbacks only; hooks/adapters own validation, orchestration, service/config access, loading/error, and side effects; service facades remain the only runtime provider/API entry points. Each phase must update this inventory with before/after runtime counts and must not increase scoped runtime service/config imports.
+
+Smoke matrix owner: P1 is owned by `usePoseChanger`; P2 by the settings provider/storage/debug boundary; P3A by `useImageEditor`; P3B by the editor boundary reused by `AIEditor`; P4 by `useOutfitAnalysis`, `usePhotoAlbum`, and `useRelight`; P5 by `useLookbookGenerator` plus the downstream refinement type contract.
+
 #### P1 — `PoseChanger`
 
 Scope: `src/components/PoseChanger.tsx` and the existing `src/hooks/usePoseChanger.ts`.
@@ -320,7 +340,7 @@ Deliverables:
 - preserve provider nesting order,
 - verify provider/model persistence, storage recovery, and debug behavior.
 
-Exit criteria: provider, storage, and debug regression checks all pass, and `P3B`/`P4` can safely depend on stable settings propagation.
+Exit criteria: provider, storage, and debug regression checks all pass; runtime service/config imports in `SettingsModal` reach zero or are confined behind the focused hook/adapter boundary; and `P3B`/`P4` can safely depend on stable settings propagation.
 
 #### P3A — `ImageEditor`
 

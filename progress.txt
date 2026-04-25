@@ -1,0 +1,50 @@
+# Ralph Progress — P0/P1 Refactor Roadmap
+
+## 2026-04-26 — Setup
+
+- Refined Ralph PRD at `.omc/prd.json` into three task-specific stories: P0 baseline, P1 PoseChanger hook refactor, and verification gates.
+- Read `docs/ARCHITECTURE.md`; scoped this run strictly to P0 and P1. P2-P5 remain inventory-only and out of implementation scope.
+- GitNexus impact analysis before edits:
+  - `PoseChanger` in `src/components/PoseChanger.tsx`: LOW risk, 0 direct callers/processes affected in index.
+  - `usePoseChanger` in `src/hooks/usePoseChanger.ts`: LOW risk, 0 direct callers/processes affected in index.
+- Existing diff before work: one user/pre-existing line change in `docs/ARCHITECTURE.md` P2 exit criteria. Preserve it.
+
+## 2026-04-26 — US-001 P0 baseline
+
+- Added `P0 Baseline Inventory — 2026-04-26` to `docs/ARCHITECTURE.md`.
+- Covered all known architectural exception targets from the roadmap: `PoseChanger`, `SettingsModal`, `ImageEditor`, `AIEditor`, `OutfitAnalysis`, `PhotoAlbumCreator`, `Relight`, `LookbookOutput`, and `shared/RefinementInput`.
+- Recorded runtime service/config imports separately from type-only service/config imports.
+- Mapped component-owned orchestration handlers and froze component/hook/service contracts plus smoke ownership for P1-P5.
+- Left P2-P5 implementation untouched; they are inventory-only in this Ralph run.
+
+## 2026-04-26 — US-002 P1 PoseChanger hook refactor
+
+- Replaced the incomplete `src/hooks/usePoseChanger.ts` stub with the full PoseChanger state and orchestration contract.
+- Moved `buildImageServiceConfig`, pose description generation, text-prompt pose generation, reference-image pose generation, single-result regeneration, upscale, prompt construction, framing resolution, loading/error state, and mutually exclusive reference/library selection into `usePoseChanger`.
+- Rewrote `src/components/PoseChanger.tsx` to import `usePoseChanger` and bind UI props/events only.
+- Removed unused `ImageIcon` from `PoseChanger` after GitNexus impact confirmed LOW risk and 0 upstream callers.
+- Confirmed with `npx tsc --noEmit --pretty false`: TypeScript no errors.
+- Confirmed with grep: `src/components/PoseChanger.tsx` has no runtime `../services` or `../config` imports; only i18n keys containing `generatePoseDescription` remain.
+- Regression note: initial `npm run test -- --runInBand` failed because Vitest does not support Jest's `--runInBand`; reran the actual acceptance command instead.
+- `npm run test` initially exposed unrelated harness drift: tests under `.claude/worktrees/**` were included, and `modelSelectionRules.test.ts` expected 4 text models while `modelRegistry.ts` now registers 5. Updated `vitest.config.ts` to exclude worktree artifacts and updated the stale test expectation to 5.
+
+## 2026-04-26 — US-003 verification evidence
+
+- `npx tsc --noEmit`: pass; TypeScript reported no errors.
+- `npm run lint`: pass; ESLint completed without reported errors.
+- `npm run test`: pass; Vitest reported 37 test files passed and 563 tests passed.
+- Fresh grep for `from '../services`, `from '../config`, `editImage`, `upscaleImage`, `generatePoseDescription`, `buildImageServiceConfig`, and `generateImageForPrompt` in `src/components/PoseChanger.tsx`: no runtime service/config import matches; only i18n key text matched the broader search.
+- GitNexus `detect_changes(scope=all)`: medium risk; affected processes are the intended PoseChanger generation/framing flows. Pre-existing `AGENTS.md` and `CLAUDE.md` modifications remain outside this Ralph implementation scope.
+- Browser QA via gstack browse against `http://127.0.0.1:3000`: opened PoseChanger (`Tạo dáng AI`), observed no console errors, confirmed controls render, generate button is disabled without subject image, entering a text pose changes button text to `Tạo 1 Dáng` while staying disabled until a subject image is provided.
+- Browser QA screenshot saved at `.omc/posechanger-qa.png`.
+
+## 2026-04-26 — Post-review deslop and final regression
+
+- Ran bounded `ai-slop-cleaner` pass on the Ralph changed-file set only; no P2-P5 implementation was introduced.
+- Simplified repeated generation idle-state literals in `src/hooks/usePoseChanger.ts` with `IDLE_GENERATION_STATUS`, preserving the hook return contract and PoseChanger UI bindings.
+- Post-deslop LSP diagnostics: no error diagnostics in `src/hooks/usePoseChanger.ts` or `src/components/PoseChanger.tsx`.
+- Post-deslop grep for runtime service/config imports and moved orchestration names in `src/components/PoseChanger.tsx`: no runtime service/config import matches; only i18n key text matched `generatePoseDescription`.
+- Post-deslop `npx tsc --noEmit`: pass; TypeScript reported no errors.
+- Post-deslop `npm run lint`: pass; ESLint completed with exit code 0.
+- Post-deslop `npm run test`: pass; Vitest reported 37 test files passed and 563 tests passed.
+- Final GitNexus `detect_changes(scope=all)`: medium risk, with affected processes limited to intended PoseChanger generation/framing flows. Pre-existing `AGENTS.md` and `CLAUDE.md` modifications remain outside this Ralph implementation scope.

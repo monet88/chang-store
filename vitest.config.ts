@@ -25,6 +25,8 @@ export default defineConfig({
     setupFiles: './setupTests.ts',
     /** Test file patterns to include */
     include: ['**/*.test.ts', '**/*.test.tsx'],
+    /** Ignore generated artifacts and agent worktrees */
+    exclude: ['**/node_modules/**', '**/dist/**', '**/coverage/**', '**/.claude/worktrees/**'],
     /** Coverage configuration */
     coverage: {
       /** Use v8 for native coverage collection */
