@@ -133,7 +133,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Chang-Store** (1196 symbols, 2284 relationships, 88 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **Chang-Store** (1209 symbols, 2298 relationships, 88 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -231,3 +231,11 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+## GBrain Configuration (configured by /setup-gbrain)
+- Engine: postgres
+- Config file: ~/.gbrain/config.json (mode 0600)
+- Setup date: 2026-04-25
+- MCP registered: yes
+- Memory sync: artifacts-only
+- Current repo policy: read-write
