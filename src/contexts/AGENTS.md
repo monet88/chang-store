@@ -1,32 +1,49 @@
-# CONTEXTS - Global State Layer
+<!-- Parent: ../AGENTS.md -->
+<!-- Generated: 2026-04-26 | Updated: 2026-04-26 -->
 
-## OVERVIEW
-5 React context providers here + 1 inline context in `components/Toast.tsx`. Each file exports a provider + custom hook.
+# contexts
 
-## WHERE TO LOOK
-| Task | Context | Hook | Notes |
-|------|---------|------|-------|
-| API keys / model selection | `ApiProviderContext.tsx` | `useApi()` | localStorage sync for Gemini model preferences |
-| Image gallery cache | `ImageGalleryContext.tsx` | `useImageGallery()` | In-memory LRU cache + Drive sync queue |
-| i18n translation | `LanguageContext.tsx` | `useLanguage()` | `t('key.path')`; default lang `vi` |
-| Google Drive auth | `GoogleDriveContext.tsx` | `useGoogleDrive()` | OAuth, token refresh, session persistence |
-| Image viewer modal | `ImageViewerContext.tsx` | `useImageViewer()` | Modal state + prev/next navigation |
-| Toast notifications | `components/Toast.tsx` | `useToast()` | NOT here — lives in `components/` |
+## Purpose
+Global React providers cho language, API/model preferences, Google Drive auth, image gallery state, và image viewer state. Đây là lớp persistence/shared state giữa nhiều features.
 
-## PROVIDER STACK (App.tsx)
-```
-LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
-```
-> Order matters — each may depend on parent. `ToastProvider` is in `components/Toast.tsx`, not here.
+## Key Files
+| File | Description |
+|------|-------------|
+| `LanguageContext.tsx` | i18n state và `t('key.path')` lookup. |
+| `ApiProviderContext.tsx` | API key access và model selection persistence. |
+| `GoogleDriveContext.tsx` | OAuth/session state cho Google Drive sync. |
+| `ImageGalleryContext.tsx` | In-memory gallery state và sync coordination. |
+| `ImageViewerContext.tsx` | Shared viewer modal state và navigation. |
 
-## CONVENTIONS
-- localStorage sync happens inside providers (not components or hooks)
-- `ApiProviderContext` owns Gemini API key + model selection persistence
-- Gallery is in-memory only — no localStorage for images
-- Drive sync queues operations without blocking UI
-- Persistence: localStorage for settings/drafts, Google Drive for images
+## Subdirectories
+Không có thư mục con đáng kể trong phạm vi sản phẩm.
 
-## ANTI-PATTERNS
-- Do not bypass `ApiProviderContext` for keys/models
-- Do not persist large binary data in localStorage
-- Side-effectful logic belongs in providers, not in consuming components
+## For AI Agents
+
+### Working In This Directory
+- Tôn trọng provider stack order trong `src/App.tsx`; thay đổi thứ tự có thể phá dependency chain.
+- Không chuyển `ToastProvider` vào đây; nó sống ở `src/components/Toast.tsx` theo thiết kế hiện tại.
+- Persistence logic và side effects nên ở provider, không ở consuming component.
+- Không lưu binary image data vào localStorage; gallery images giữ in-memory.
+
+### Testing Requirements
+- Provider behavior và guard errors nằm trong `__tests__/contexts/`.
+- Khi sửa persistence/session behavior, test cả load-from-storage lẫn update path.
+- Chạy `npx tsc --noEmit` nếu đổi shared context contracts.
+
+### Common Patterns
+- Mỗi file thường export provider + hook tiêu thụ tương ứng (`useApi`, `useLanguage`, ...).
+- localStorage sync nằm bên trong provider cho settings và preferences.
+- Contexts là điểm kết nối giữa feature hooks và app-wide shared state.
+
+## Dependencies
+
+### Internal
+- `../hooks/` và `../components/` tiêu thụ context hooks.
+- `../services/` được dùng từ bên trong provider cho sync/integration flows.
+
+### External
+- React context API.
+- Browser localStorage và Google browser APIs khi cần persistence/auth.
+
+<!-- MANUAL: Add durable notes below this line; regeneration should preserve them. -->

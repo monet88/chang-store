@@ -1,39 +1,104 @@
-# AGENTS.md
+<!-- Generated: 2026-04-26 | Updated: 2026-04-26 -->
 
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only AI backend via the Google Gemini SDK.
+# Chang-Store
 
-## Project map
+## Purpose
+AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite SPA with a Gemini-only AI backend via the Google Gemini SDK. The app supports fashion image creation, editing, analysis, upscaling, gallery review, and Google Drive-backed archive workflows.
+
+## Key Files
+| File | Description |
+|------|-------------|
+| `CLAUDE.md` | Project-specific operating instructions for AI agents, including architecture, feature checklist, verification, and GitNexus rules. |
+| `package.json` | npm scripts, dependencies, and dev tooling for React/Vite/Vitest/ESLint. |
+| `vite.config.ts` | Vite configuration and `@/*` path alias setup. |
+| `vitest.config.ts` | Vitest/jsdom coverage configuration. |
+| `eslint.config.js` | ESLint 9 configuration for TypeScript/React code. |
+| `index.html` | Vite HTML entry template. |
+| `setupTests.ts` | Global test setup importing `@testing-library/jest-dom`. |
+| `README.md` | Human-facing project overview and setup notes. |
+| `release-manifest.json` | Large generated/release metadata artifact; inspect carefully before editing. |
+
+## Subdirectories
+| Directory | Purpose |
+|-----------|---------|
+| `src/` | Main application source code: app shell, components, hooks, services, contexts, config, locales, and utilities (see `src/AGENTS.md`). |
+| `__tests__/` | Vitest + React Testing Library suites mirroring source structure (see `__tests__/AGENTS.md`). |
+| `docs/` | Architecture docs, vendor/API references, and planning artifacts (see `docs/AGENTS.md`). |
+| `plans/` | Planning reports, templates, and session artifacts; currently git-ignored locally (see `plans/AGENTS.md`). |
+| `types/` | Ambient TypeScript declarations for browser/vendor globals (see `types/AGENTS.md`). |
+
+## Project Map
 
 | Directory | Role |
 |-----------|------|
-| `src/components/` | UI layer — thin wrappers (~50 files, incl. `upscale/`, `modals/`) |
-| `src/hooks/` | Feature logic + state (one hook per feature) |
-| `src/services/` | API facades (stateless), incl. `gemini/` |
-| `src/contexts/` | Global state providers |
-| `src/utils/` | Pure helpers, prompt builders (`*-prompt-builder.ts`) |
-| `src/config/` | Model capability registry (`modelRegistry.ts`) |
-| `src/locales/` | i18n: `en.ts` (source of truth) + `vi.ts` |
-| `__tests__/` | Mirrors `src/` |
-| `docs/` | Architecture, design guidelines, code standards, API refs |
+| `src/components/` | UI layer — thin wrappers, feature screens, `upscale/`, `modals/`, and shared UI. |
+| `src/hooks/` | Feature logic + state; one hook per feature where possible. |
+| `src/services/` | API facades (stateless), including provider-specific Gemini modules. |
+| `src/contexts/` | Global state providers. |
+| `src/utils/` | Pure helpers, prompt builders, image utilities, cache, storage, and ZIP/download helpers. |
+| `src/config/` | Model capability registry and model selection rules. |
+| `src/locales/` | i18n dictionaries: `en.ts` is source of truth and `vi.ts` mirrors it. |
+| `__tests__/` | Mirrors `src/` for components, hooks, services, contexts, config, and utils. |
+| `docs/` | Architecture and API/vendor references. |
 
-## WHERE TO LOOK
+## Where To Look
 
 | Task | Location |
 |------|----------|
-| Add a feature | `src/types.ts` → `src/components/` → `src/hooks/` → `src/App.tsx` → `src/locales/en.ts` |
+| Add a feature | `src/types.ts` → `src/components/` → `src/hooks/` → `src/App.tsx` → `src/locales/en.ts` → `src/locales/vi.ts` |
 | Service routing | `src/services/imageEditingService.ts` (unified facade) |
+| Provider-specific Gemini logic | `src/services/gemini/` |
 | Global state | `src/contexts/` (see `src/contexts/AGENTS.md`) |
-| i18n strings | `src/locales/en.ts` |
-| Model registry | `src/config/modelRegistry.ts` |
+| i18n strings | `src/locales/en.ts` first, then `src/locales/vi.ts` |
+| Model registry | `src/config/modelRegistry.ts` and `src/config/modelSelectionRules.ts` |
 | Image processing | `src/utils/imageUtils.ts` |
+| Prompt builders | `src/utils/*-prompt-builder.ts` and selected co-located prompt files |
+| Tests | `__tests__/` matching the source layer being changed |
 
 ## Architecture
 
 `Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API`
 
-No React Router — `App.tsx` switches on `Feature` enum with lazy-loading. Path alias: `@/*` → `src/`.
+No React Router — `src/App.tsx` switches on `Feature` enum with lazy-loading. Path alias: `@/*` maps to `src/`.
 
-Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | OutfitAnalysis | Relight | Upscale | ImageEditor | AIEditor | WatermarkRemover | ClothingTransfer`
+Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | OutfitAnalysis | Relight | Upscale | ImageEditor | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator`.
+
+Provider nesting order matters:
+`LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent`
+
+`ToastProvider` lives in `src/components/Toast.tsx`, not in `src/contexts/`.
+
+## For AI Agents
+
+### Working In This Repository
+- Start with this file and `CLAUDE.md`, then read the nearest nested `AGENTS.md` before modifying a directory.
+- Keep components as thin UI wrappers; all state, validation, API calls, and gallery integration belong in paired hooks.
+- Never call services directly from new components; route through hooks and existing facades.
+- Do not bypass `src/services/imageEditingService.ts` for feature image API calls.
+- Do not store API keys in hooks or component state; use `ApiProviderContext`.
+- Do not create duplicate “V2/new” files; edit existing files in place.
+- Do not delete files or run destructive git commands without explicit user permission.
+- Before editing a function/class/method, follow the project GitNexus impact-analysis requirement below.
+
+### Testing Requirements
+- After substantive code changes, run `npx tsc --noEmit` and `npm run lint`.
+- Use `npm run test` for Vitest run-once, or target a specific test file with `npm run test -- path/to/file.test.tsx`.
+- Documentation-only changes do not require TypeScript/lint/test runs, but parent-link and hierarchy validation should pass.
+- Do not suppress type errors with `@ts-ignore` or `any` unless absolutely necessary.
+
+### Common Patterns
+- Hooks use `useLanguage()` + `useApi()` + optional `useImageGallery()`.
+- Mandatory async hook error pattern: `try { ... } catch (err) { setError(getErrorMessage(err, t)); } finally { setIsLoading(false); }`.
+- Feature model routing goes through `resolveModelSelectionScope()` / `getModelsBySelectionType()` and the registry in `src/config/`.
+- Batch hooks use bounded concurrency helpers such as `run-bounded-workers.ts`.
+- Tailwind only — no inline styles and no `@apply`.
+- i18n usage: `const { t } = useLanguage(); t('key.path')`.
+
+### Known Tech Debt
+These components import services directly and should be handled carefully during refactors:
+`AIEditor`, `ImageEditor`, `LookbookOutput`, `SettingsModal`, `Relight`, `PoseChanger`, `PhotoAlbumCreator`, `OutfitAnalysis`, `shared/RefinementInput`.
+
+## Important Workflows
 
 <important if="you need to run commands to build, test, lint, or type-check">
 
@@ -90,7 +155,7 @@ Usage: `const { t } = useLanguage(); t('key.path')`
 
 <important if="you are writing styles or modifying UI appearance">
 
-Tailwind only — no inline styles, no `@apply`. Follow the Runway-inspired design contract in `docs/design-guidelines.md` as the canonical UI source of truth.
+Tailwind only — no inline styles, no `@apply`. Follow the existing Runway-inspired design patterns in the app and the canonical design docs when available.
 </important>
 
 <important if="you are refactoring or touching components that import services directly">
@@ -130,10 +195,22 @@ If gstack skills aren't working: `cd .agents/skills/gstack && ./setup --prefix`
 Search online for latest documentation via Context7 MCP or web search. Do not hallucinate APIs.
 </important>
 
+## Dependencies
+
+### Internal
+- `src/components/`, `src/hooks/`, `src/services/`, `src/contexts/`, `src/utils/`, `src/config/`, and `src/locales/` form the main layered application.
+- `__tests__/` mirrors those layers for verification.
+- `docs/ARCHITECTURE.md` provides a graph-derived system overview.
+
+### External
+- React 19, React DOM, Vite, TypeScript, Vitest, ESLint, Tailwind CSS.
+- `@google/genai` for Gemini AI integration.
+- `jszip` for ZIP export workflows.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Chang-Store** (1196 symbols, 2284 relationships, 88 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **Chang-Store** (1209 symbols, 2298 relationships, 88 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -231,3 +308,5 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+<!-- MANUAL: Add durable notes below this line; regeneration should preserve them. -->
