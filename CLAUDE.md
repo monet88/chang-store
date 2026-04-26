@@ -182,7 +182,7 @@ This project is indexed by GitNexus as **chang-store** (2883 symbols, 3960 relat
 ## GBrain Configuration (configured by /setup-gbrain)
 - Engine: postgres
 - Config file: ~/.gbrain/config.json (mode 0600)
-- Setup date: 2026-04-25
+- Setup date: 2026-04-26
 - MCP registered: yes
 - Memory sync: artifacts-only
 - Current repo policy: read-write
