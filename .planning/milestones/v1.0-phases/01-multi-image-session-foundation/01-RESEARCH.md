@@ -34,7 +34,7 @@
 <research_summary>
 ## Summary
 
-Phase 1 should not introduce new runtime infrastructure. The repo already has the right primitives: a thin-feature pattern in `docs/code-standards.md`, reusable upload and output components, shared provider/model resolution in `contexts/ApiProviderContext.tsx`, and existing session image storage in `contexts/ImageGalleryContext.tsx`. The correct move is to refactor `components/Upscale.tsx` from a one-file utility into a thin screen backed by a dedicated `useUpscale` hook and a small set of focused presentational children under `components/upscale/`.
+Phase 1 should not introduce new runtime infrastructure. The repo already has the right primitives: a thin-feature pattern in `CLAUDE.md`, reusable upload and output components, shared provider/model resolution in `contexts/ApiProviderContext.tsx`, and existing session image storage in `contexts/ImageGalleryContext.tsx`. The correct move is to refactor `components/Upscale.tsx` from a one-file utility into a thin screen backed by a dedicated `useUpscale` hook and a small set of focused presentational children under `components/upscale/`.
 
 The standard implementation pattern for this codebase is local feature orchestration, not a new global store. Multi-image session state, active-image selection, Quick Upscale draft state, and AI Studio shell progression should stay feature-local inside `useUpscale`. Shared logic already solved elsewhere should be reused rather than rebuilt: `ImageUploader` for image intake, gallery selection modal for pulling existing images, `ImageComparator` for the shared result panel, and localized error handling through `getErrorMessage(err, t)`.
 
@@ -202,7 +202,7 @@ Verified patterns from the current repo:
 
 ### Feature Hook Split
 ```typescript
-// Source: docs/code-standards.md
+// Source: CLAUDE.md
 export const useFeatureName = () => {
   const [input, setInput] = useState<ImageFile | null>(null);
   const [results, setResults] = useState<ImageFile[]>([]);

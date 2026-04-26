@@ -27,7 +27,7 @@ created: 2026-03-24
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
 | 01-01-01 | 01 | 1 | src runtime cutover | structural/typecheck | `npx tsc --noEmit` | `src/index.tsx`, `src/App.tsx`, `src/types.ts` | ○ planned |
 | 01-01-02 | 01 | 1 | alias + repo-root test retarget | unit/component | `npm run test -- VirtualTryOn ClothingTransfer useVirtualTryOn useClothingTransfer` | `__tests__/components/VirtualTryOn.test.tsx`, `__tests__/hooks/useVirtualTryOn.test.tsx` | ○ planned |
-| 01-01-03 | 01 | 1 | stale root-path cleanup | lint/search | `npm run lint` | `AGENTS.md`, `CLAUDE.md`, `docs/codebase-summary.md` | ○ planned |
+| 01-01-03 | 01 | 1 | stale root-path cleanup | lint/search | `npm run lint` | `AGENTS.md`, `CLAUDE.md`, `docs/ARCHITECTURE.md` | ○ planned |
 | 01-01-04 | 01 | 1 | full migration regression | full regression | `npm run test && npm run build` | moved runtime tree under `src/` | ○ planned |
 
 *Status: ✅ green · ❌ red · ⚠️ flaky · ○ planned*
@@ -43,7 +43,7 @@ created: 2026-03-24
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | App still boots from `src/` with the same provider chain | runtime cutover | Browser bootstrap and lazy feature loading are easiest to confirm in a real dev session | Run `npm run dev`, open the app, switch several features, and confirm the shell loads normally |
-| Docs and AGENTS guidance point future work at `src/` instead of repo root | doc sync | This is a content-accuracy check, not just a compile check | Read `AGENTS.md`, `CLAUDE.md`, and `docs/codebase-summary.md` after the migration and confirm path guidance matches the new tree |
+| Docs and AGENTS guidance point future work at `src/` instead of repo root | doc sync | This is a content-accuracy check, not just a compile check | Read `AGENTS.md`, `CLAUDE.md`, and `docs/ARCHITECTURE.md` after the migration and confirm path guidance matches the new tree |
 
 ## Validation Sign-Off
 

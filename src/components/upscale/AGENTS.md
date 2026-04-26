@@ -1,39 +1,52 @@
-# UPSCALE - Step-Based UI Sub-components
+<!-- Parent: ../AGENTS.md -->
+<!-- Generated: 2026-04-26 | Updated: 2026-04-26 -->
 
-## OVERVIEW
-11 components implementing Upscale's two-mode workflow: **Studio** (multi-phase analysis → prompt → enhance) and **Quick** (one-shot). Parent: `src/components/Upscale.tsx`. Logic: `src/hooks/useUpscale.ts`.
+# upscale
 
-## STRUCTURE
-```
-upscale/
-├── UpscaleStudioStepShell.tsx    # Step container/progress shell
-├── UpscaleAnalyzeStep.tsx        # Phase 1: image quality analysis
-├── UpscaleAnalysisReportCard.tsx # Phase 1 result display
-├── UpscaleEnhanceStep.tsx        # Phase 2: upscaling with prompt
-├── UpscaleOutputPanel.tsx        # Result display + download
-├── UpscalePromptPackage.tsx      # Prompt preview/edit UI
-├── UpscaleGuidanceCard.tsx       # Contextual help card
-├── UpscaleModeSwitch.tsx         # Toggle Studio ↔ Quick mode
-├── UpscalePreviewSimulation.tsx  # Before/after preview
-├── UpscaleQuickPanel.tsx         # Quick mode one-shot UI
-└── UpscaleSessionImageRail.tsx   # Session image history rail
-```
+## Purpose
+Tập hợp sub-components cho feature Upscale, chia workflow thành các bước phân tích, chỉnh prompt, enhance, preview, và output review. Logic trung tâm vẫn nằm trong `src/hooks/useUpscale.ts`, còn các file ở đây thiên về step UI và composition.
 
-## WHERE TO LOOK
-| Task | File |
-|------|------|
-| Add analysis step UI | `UpscaleAnalyzeStep.tsx` + `UpscaleAnalysisReportCard.tsx` |
-| Modify enhance step | `UpscaleEnhanceStep.tsx` |
-| Mode switching logic | `UpscaleModeSwitch.tsx` (UI only — state in `useUpscale`) |
-| Result output | `UpscaleOutputPanel.tsx` |
-| Session history | `UpscaleSessionImageRail.tsx` |
+## Key Files
+| File | Description |
+|------|-------------|
+| `UpscaleStudioStepShell.tsx` | Layout shell và progress framing cho studio flow. |
+| `UpscaleAnalyzeStep.tsx` | Bước phân tích chất lượng ảnh đầu vào. |
+| `UpscaleAnalysisReportCard.tsx` | Hiển thị kết quả phân tích và guidance. |
+| `UpscaleEnhanceStep.tsx` | Bước chạy upscale với prompt package. |
+| `UpscaleQuickPanel.tsx` | One-shot quick mode UI. |
+| `UpscaleOutputPanel.tsx` | Xem và tải output sau khi enhance. |
+| `UpscalePromptPackage.tsx` | Preview/chỉnh prompt package trước khi upscale. |
+| `UpscaleSessionImageRail.tsx` | Lịch sử ảnh trong phiên upscale. |
 
-## CONVENTIONS
-- All state/logic lives in `useUpscale.ts` — these are display-only
-- Props flow down from `Upscale.tsx` (parent orchestrator)
-- Step components receive step-specific slices of hook state
-- No local state except UI-only concerns (hover, tooltip visibility)
+## Subdirectories
+Không có thư mục con đáng kể trong phạm vi sản phẩm.
 
-## ANTI-PATTERNS
-- Never add business logic here — belongs in `useUpscale.ts`
-- Never import from services — all data flows through props from parent
+## For AI Agents
+
+### Working In This Directory
+- Không thêm service calls trực tiếp vào đây; tất cả state/handlers phải đi qua `useUpscale.ts` và `Upscale.tsx`.
+- Chỉ giữ local state cho concerns thuần UI như hover hoặc disclosure nhỏ.
+- Nếu thêm step mới, cập nhật parent orchestrator và đảm bảo naming mô tả đúng phase.
+- Giữ distinction rõ giữa Studio mode và Quick mode trong component boundaries.
+
+### Testing Requirements
+- Bề mặt render và user interaction nhẹ nên nằm trong `__tests__/components/`.
+- Logic phân nhánh sâu của workflow nên được test ở `useUpscale` hook thay vì ở từng child component.
+- Với thay đổi UI lớn, kiểm tra manual flow qua cả Studio và Quick modes.
+
+### Common Patterns
+- Parent component truyền xuống slices của hook state thay vì để children tự fetch dữ liệu.
+- Step-based composition giúp giữ `Upscale.tsx` dễ điều phối hơn dù workflow nhiều pha.
+- Các card/panel ở đây thiên về hiển thị trạng thái hơn là quyết định nghiệp vụ.
+
+## Dependencies
+
+### Internal
+- `../Upscale.tsx` là parent feature screen.
+- `../../hooks/useUpscale.ts` là nguồn logic chính.
+
+### External
+- React component composition.
+- Tailwind-based UI styling.
+
+<!-- MANUAL: Add durable notes below this line; regeneration should preserve them. -->

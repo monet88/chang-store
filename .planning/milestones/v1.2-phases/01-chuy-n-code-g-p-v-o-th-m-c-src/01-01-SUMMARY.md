@@ -30,7 +30,7 @@ key-files:
     - AGENTS.md
     - CLAUDE.md
     - README.md
-    - docs/codebase-summary.md
+    - docs/ARCHITECTURE.md
     - .planning/codebase/STRUCTURE.md
     - .planning/codebase/STACK.md
     - .planning/codebase/CONVENTIONS.md
@@ -89,7 +89,7 @@ Each task was committed atomically:
 - `vite.config.ts`, `vitest.config.ts` — `@` alias points to `src/`
 - `vitest.config.ts` — coverage.include paths prefixed with `src/`
 - All 23 test files under `__tests__/` — import paths rewritten
-- `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/codebase-summary.md` — path references updated
+- `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/ARCHITECTURE.md` — path references updated
 - `.planning/codebase/STRUCTURE.md`, `STACK.md`, `CONVENTIONS.md` — source root guidance updated
 - `__tests__/AGENTS.md` — test import conventions updated
 - `.github/copilot-instructions.md` — alias and path references synced

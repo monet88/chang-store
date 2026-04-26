@@ -2,7 +2,7 @@
 
 ## 1. Runtime and documentation drift
 
-- Root docs such as `ARCHITECTURE.md`, `CODEBASE.md`, `docs/system-architecture.md`, `docs/codebase-summary.md`, and `docs/code-standards.md` still describe AIVideoAuto-specific types, services, and routing that are not present in current runtime source.
+- Root docs such as `ARCHITECTURE.md`, `CODEBASE.md`, `docs/ARCHITECTURE.md`, and `CLAUDE.md` still describe AIVideoAuto-specific types, services, and routing that are not present in current runtime source.
 - `repomix-output.xml` also contains older source snapshots and can mislead planning if treated as canonical.
 - Any future planning that reads those files without checking live source will infer the wrong provider model.
 
