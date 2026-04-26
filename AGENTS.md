@@ -16,7 +16,6 @@ AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite SPA wi
 | `index.html` | Vite HTML entry template. |
 | `setupTests.ts` | Global test setup importing `@testing-library/jest-dom`. |
 | `README.md` | Human-facing project overview and setup notes. |
-| `release-manifest.json` | Large generated/release metadata artifact; inspect carefully before editing. |
 
 ## Subdirectories
 | Directory | Purpose |
@@ -24,7 +23,7 @@ AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite SPA wi
 | `src/` | Main application source code: app shell, components, hooks, services, contexts, config, locales, and utilities (see `src/AGENTS.md`). |
 | `__tests__/` | Vitest + React Testing Library suites mirroring source structure (see `__tests__/AGENTS.md`). |
 | `docs/` | Architecture docs, vendor/API references, and planning artifacts (see `docs/AGENTS.md`). |
-| `plans/` | Planning reports, templates, and session artifacts; currently git-ignored locally (see `plans/AGENTS.md`). |
+| `plans/` | Planning reports, templates, and session artifacts tracked in this repo. |
 | `types/` | Ambient TypeScript declarations for browser/vendor globals (see `types/AGENTS.md`). |
 
 ## Project Map
@@ -210,9 +209,9 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **chang-store** (2883 symbols, 3960 relationships, 85 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **chang-store** (2936 symbols, 4021 relationships, 87 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+> If any GitNexus tool warns the index is stale, run `gitnexus analyze` in terminal first.
 
 ## Always Do
 

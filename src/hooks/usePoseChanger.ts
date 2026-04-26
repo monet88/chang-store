@@ -176,13 +176,12 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
       return;
     }
 
-    setError(null);
-    setGeneratedImages([]);
-    setRegeneratingStates({});
-
     const framingInstruction = getFramingInstruction();
 
     if (poseReferenceImage) {
+      setError(null);
+      setGeneratedImages([]);
+      setRegeneratingStates({});
       setIsLoading(true);
       setGenerationStatus({ active: true, progress: 1, total: 1, message: t('pose.generatingStatusOne') });
 
@@ -215,6 +214,9 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
       return;
     }
 
+    setError(null);
+    setGeneratedImages([]);
+    setRegeneratingStates({});
     setGenerationStatus({ active: true, progress: 0, total: allPrompts.length, message: '' });
 
     let results: ImageFile[] = [];

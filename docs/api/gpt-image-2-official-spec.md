@@ -25,7 +25,7 @@ The parameters below apply primarily to `/v1/images/edits`. (For `/v1/images/gen
 | Parameter | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
 | **`model`** | `string` | **Yes** | The model ID. Must be `"gpt-image-2"`. |
-| **`image`** | `file` or array of `file` | **Yes** | The reference image(s) to edit or draw inspiration from. Must be binary file data. Supports up to **10 images** (passed as an array of file uploads: `image[]` or multiple `image` fields depending on the HTTP client). Max 50MB per image. |
+| **`image`** | `file` or array of `file` | **Yes** | The reference image(s) to edit or draw inspiration from. Must be binary file data. Supports up to **16 images** (passed as an array of file uploads: `image[]` or multiple `image` fields depending on the HTTP client). Max 50MB per image. |
 | **`prompt`** | `string` | **Yes** | A text description of the desired image or the changes to make. |
 | **`mask`** | `file` | No | An image mask. Must have an alpha (transparent) channel indicating the area to edit. Max 50MB, and must have the same dimensions as the `image`. |
 | **`size`** | `string` | No | The desired output dimensions. Default is `"auto"`.<br><br>**Popular Sizes:**<br>- `"1024x1024"` (Square)<br>- `"1536x1024"` (Landscape)<br>- `"1024x1536"` (Portrait)<br>- `"3840x2160"` (4K Landscape)<br><br>**Constraints:**<br>- Max edge <= `3840px`.<br>- Edges must be multiples of `16`.<br>- Aspect ratio (long:short) <= `3:1`.<br>- Total pixels between `655,360` and `8,294,400`. |

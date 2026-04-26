@@ -104,6 +104,38 @@ describe('usePoseChanger', () => {
     expect(result.current.generationStatus.active).toBe(false);
   });
 
+  it('keeps existing generated images when regenerate falls back with no prompts', async () => {
+    const SECOND_GENERATED_IMAGE = { base64: 'generated-second', mimeType: 'image/png' };
+    vi.mocked(editImage)
+      .mockResolvedValueOnce([GENERATED_IMAGE])
+      .mockResolvedValueOnce([SECOND_GENERATED_IMAGE]);
+    const { result } = renderHook(() => usePoseChanger());
+
+    act(() => {
+      result.current.setSubjectImage(SUBJECT_IMAGE);
+      result.current.handleConfirmSelection(['standing pose', 'walking pose']);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    act(() => {
+      result.current.handleConfirmSelection([]);
+    });
+
+    await act(async () => {
+      await result.current.handleRegenerateSingle(0);
+    });
+
+    expect(result.current.generatedImages).toEqual([
+      GENERATED_IMAGE,
+      SECOND_GENERATED_IMAGE,
+    ]);
+    expect(result.current.error).toBe('pose.promptError');
+    expect(editImage).toHaveBeenCalledTimes(2);
+  });
+
   it('upscales only the selected generated image and resets its loading state', async () => {
     const SECOND_GENERATED_IMAGE = { base64: 'generated-second', mimeType: 'image/png' };
     vi.mocked(editImage)
