@@ -63,7 +63,7 @@ try { ... } catch (err) { setError(getErrorMessage(err, t)); } finally { setIsLo
 ## Conventions
 
 - **Tailwind only** — no inline styles, no `@apply`
-- **Dark glassmorphism** theme — see `docs/design-guidelines.md`
+- **Dark glassmorphism** theme — follow existing app patterns and `CLAUDE.md` styling rules
 - **i18n**: `const { t } = useLanguage(); t('key.path')` — `locales/en.ts` is source of truth
 - **No business logic in components** — extract to hooks
 - **No direct API calls from hooks** — go through service facades
@@ -86,10 +86,10 @@ try { ... } catch (err) { setError(getErrorMessage(err, t)); } finally { setIsLo
 
 ## Detailed Docs (link, don't duplicate)
 
-- **Architecture**: `docs/system-architecture.md`
-- **Design system**: `docs/design-guidelines.md`
-- **Code standards**: `docs/code-standards.md`
-- **Codebase summary**: `docs/codebase-summary.md`
+- **Architecture**: `docs/ARCHITECTURE.md`
+- **Design guidance**: existing app patterns and `CLAUDE.md` styling rules
+- **Code standards**: `CLAUDE.md`
+- **Codebase summary**: `docs/ARCHITECTURE.md`
 - **API docs**: `docs/api/` (Gemini, Imagen, Nano Banana)
 
 ## Anti-Patterns

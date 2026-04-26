@@ -118,7 +118,7 @@ Any doc or agent instruction that says source lives at repo root, that `src/` is
 **How to avoid:** move/update directory-level AGENTS files with their parent source trees and sync top-level docs in the same phase.
 
 ### Pitfall 4: Mixed-root docs linger after code passes
-**What goes wrong:** the runtime is under `src/`, but `AGENTS.md`, `CLAUDE.md`, and `docs/codebase-summary.md` still describe repo-root source.
+**What goes wrong:** the runtime is under `src/`, but `AGENTS.md`, `CLAUDE.md`, and `docs/ARCHITECTURE.md` still describe repo-root source.
 **How to avoid:** make doc sync a first-class task with grep-verifiable stale-string cleanup.
 </common_pitfalls>
 

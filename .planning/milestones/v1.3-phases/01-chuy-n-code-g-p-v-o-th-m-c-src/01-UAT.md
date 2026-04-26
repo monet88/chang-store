@@ -37,7 +37,7 @@ result: pass
 notes: Confirmed by orchestrator — no root-level source dirs remain.
 
 ### 6. Docs describe src/ as application root
-expected: `AGENTS.md` says `@/* maps to src/` and `Source code lives under src/`. `docs/codebase-summary.md` shows src/ as parent of components/, hooks/, etc. Grep for stale phrases returns zero hits.
+expected: `AGENTS.md` says `@/* maps to src/` and `Source code lives under src/`. `docs/ARCHITECTURE.md` shows src/ as parent of components/, hooks/, etc. Grep for stale phrases returns zero hits.
 result: pass
 notes: Confirmed by orchestrator — stale doc grep returned zero hits.
 

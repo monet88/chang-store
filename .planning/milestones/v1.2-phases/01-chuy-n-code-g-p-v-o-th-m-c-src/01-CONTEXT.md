@@ -53,8 +53,8 @@ Relocate the Chang-Store application runtime so `src/` becomes the real source r
 - `__tests__/AGENTS.md` — current repo-root test layout that remains intentionally out of `src/` for this phase.
 
 ### Architecture and code standards
-- `docs/code-standards.md` — code organization, naming, TypeScript, testing, and maintenance expectations the refactor must preserve.
-- `docs/system-architecture.md` — current application architecture and provider layering that the refactor must not change.
+- `CLAUDE.md` — code organization, naming, TypeScript, testing, and maintenance expectations the refactor must preserve.
+- `docs/ARCHITECTURE.md` — current application architecture and provider layering that the refactor must not change.
 
 ### Current codebase maps
 - `.planning/codebase/CONVENTIONS.md` — current naming, import, error-handling, and testing conventions that should survive the relocation.
