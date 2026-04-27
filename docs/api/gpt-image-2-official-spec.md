@@ -1,10 +1,14 @@
-# Official OpenAI API Specification for GPT-Image-2
+# Local OpenAI-Compatible API Specification for GPT-Image-2
 
-This document provides the official standard OpenAI API specification for image generation (Text-to-Image) and image editing (Image-to-Image) using the `gpt-image-2` model.
+This document captures the local OpenAI-compatible proxy shape used for image generation (Text-to-Image) and image editing (Image-to-Image) with the `gpt-image-2` model. Examples point at `http://localhost:8080/v1`; replace the sample bearer token with your local proxy credential before use.
 
 ---
 
 ## 1. Endpoints
+
+> [!NOTE]
+> The endpoint host in this file is intentionally local. It is not the public OpenAI production host.
+
 
 ### 1.1 Image Generation (Text-to-Image)
 - **Endpoint**: `POST http://localhost:8080/v1/images/generations`

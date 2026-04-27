@@ -93,10 +93,9 @@ Usage: `const { t } = useLanguage(); t('key.path')`
 Tailwind only — no inline styles, no `@apply`. Follow the existing Runway-inspired patterns in the app as the canonical UI source of truth.
 </important>
 
-<important if="you are refactoring or touching components that import services directly">
+<important if="you are refactoring or touching service boundaries">
 
-Known tech debt — these components import services directly (should go through hooks):
-`AIEditor`, `ImageEditor`, `LookbookOutput`, `SettingsModal`, `Relight`, `PoseChanger`, `PhotoAlbumCreator`, `OutfitAnalysis`, `shared/RefinementInput`
+UI service-import debt has been cleaned up. Components must not import `src/services/*` directly; add or extend a paired hook instead. Boundary coverage lives in `__tests__/components/ui-boundary-imports.test.ts`.
 </important>
 
 <important if="you are about to delete files, run destructive git commands, or perform irreversible operations">
