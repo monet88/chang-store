@@ -93,8 +93,6 @@ export const useOutfitAnalysis = () => {
     setError(null);
     setRedesignResults([]);
 
-    const allPresets: RedesignPreset[] = PRESETS.map((preset) => preset.key);
-
     // Scenario 1: Single style selected -> generate 'generationCount' variations of it.
     if (selectedPresets.length === 1) {
       const preset = selectedPresets[0];
@@ -130,7 +128,7 @@ export const useOutfitAnalysis = () => {
       generationTasks = [...selectedPresets];
       const remainingSlots = generationCount - selectedPresets.length;
       for (let i = 0; i < remainingSlots; i++) {
-        const randomPreset = allPresets[Math.floor(Math.random() * allPresets.length)];
+        const randomPreset = selectedPresets[i % selectedPresets.length];
         generationTasks.push(randomPreset);
       }
     } else {

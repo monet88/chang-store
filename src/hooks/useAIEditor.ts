@@ -7,6 +7,12 @@ import { getErrorMessage } from '../utils/imageUtils';
 
 const MENTION_REGEX = /@img(\d+)/g;
 
+interface MentionedImageSelection {
+  images: ImageFile[];
+  invalidRefs: string[];
+  hasMentions: boolean;
+}
+
 export interface UseAIEditorReturn {
   images: ImageFile[];
   setImages: (images: ImageFile[]) => void;
@@ -37,13 +43,20 @@ export const useAIEditor = (): UseAIEditorReturn => {
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
   const extractMentionedImages = useCallback(
-    (promptText: string): ImageFile[] => {
+    (promptText: string): MentionedImageSelection => {
       const matches = [...promptText.matchAll(MENTION_REGEX)];
-      const indices = [...new Set(matches.map((match) => Number.parseInt(match[1], 10) - 1))]
-        .filter((index) => index >= 0 && index < images.length)
+      const mentionedNumbers = [...new Set(matches.map((match) => Number.parseInt(match[1], 10)))]
         .sort((left, right) => left - right);
+      const validNumbers = mentionedNumbers.filter((number) => number >= 1 && number <= images.length);
+      const invalidRefs = mentionedNumbers
+        .filter((number) => number < 1 || number > images.length)
+        .map((number) => `@img${number}`);
 
-      return indices.map((index) => images[index]);
+      return {
+        images: validNumbers.map((number) => images[number - 1]),
+        invalidRefs,
+        hasMentions: matches.length > 0,
+      };
     },
     [images],
   );
@@ -102,8 +115,13 @@ Return the final edited image.`;
     setError(null);
 
     try {
-      const mentionedImages = extractMentionedImages(prompt);
-      const imagesToSend = mentionedImages.length > 0 ? mentionedImages : images;
+      const mentionedSelection = extractMentionedImages(prompt);
+      if (mentionedSelection.invalidRefs.length > 0) {
+        setError(t('aiEditor.error.invalidImageReferences', { refs: mentionedSelection.invalidRefs.join(', ') }));
+        return;
+      }
+
+      const imagesToSend = mentionedSelection.hasMentions ? mentionedSelection.images : images;
       const apiPrompt = buildApiPrompt(prompt, imagesToSend);
 
       const [result] = await editImage(

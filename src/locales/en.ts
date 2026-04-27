@@ -1113,6 +1113,7 @@ Do not include any other text or markdown.
     error: {
       noImages: 'Please upload at least one image.',
       noPrompt: 'Please enter an editing prompt.',
+      invalidImageReferences: 'Invalid image reference(s): {{refs}}. Use @img1 through the number of uploaded images.',
     },
     outputPanelDescription: 'Your AI-edited image will appear here.',
   },

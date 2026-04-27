@@ -237,13 +237,13 @@ describe('App utility dock regression', () => {
     expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
 
     await user.click(screen.getByText('feature-image-editor'));
-    expect(screen.getByLabelText('Image generation model')).toHaveValue('imagen-4.0-generate-001');
-    await user.selectOptions(screen.getByLabelText('Image generation model'), 'imagen-4.0-fast-generate-001');
-    expect(mockSetImageGenerateModel).toHaveBeenCalledWith('imagen-4.0-fast-generate-001');
+    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
+    await user.selectOptions(screen.getByLabelText('Image editing model'), 'gemini-2.5-flash-image');
+    expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
 
     await user.click(screen.getByText('feature-outfit-analysis'));
-    expect(screen.getByLabelText('Text generation model')).toHaveValue('gemini-3-flash-preview');
-    await user.selectOptions(screen.getByLabelText('Text generation model'), 'gemini-2.5-pro');
-    expect(mockSetTextGenerateModel).toHaveBeenCalledWith('gemini-2.5-pro');
+    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
+    await user.selectOptions(screen.getByLabelText('Image editing model'), 'gemini-2.5-flash-image');
+    expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
   });
 });

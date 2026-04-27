@@ -1116,6 +1116,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     error: {
       noImages: 'Vui lòng tải lên ít nhất một ảnh.',
       noPrompt: 'Vui lòng nhập mô tả chỉnh sửa.',
+      invalidImageReferences: 'Tham chiếu ảnh không hợp lệ: {{refs}}. Hãy dùng @img1 đến số ảnh đã tải lên.',
     },
     outputPanelDescription: 'Ảnh đã chỉnh sửa AI sẽ xuất hiện ở đây.',
   },

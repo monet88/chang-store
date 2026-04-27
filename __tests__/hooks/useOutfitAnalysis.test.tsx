@@ -332,6 +332,34 @@ describe('useOutfitAnalysis', () => {
     });
   });
 
+  it('uses only selected presets when extra redesign slots are requested', async () => {
+    // Arrange
+    vi.mocked(analyzeOutfit).mockResolvedValue(MOCK_ANALYZED_ITEMS);
+    vi.mocked(critiqueAndRedesignOutfit).mockResolvedValue(MOCK_REDESIGN_RESULT);
+    const { result } = renderHook(() => useOutfitAnalysis());
+
+    await act(async () => {
+      await result.current.handleUpload(TEST_IMAGE);
+    });
+
+    act(() => {
+      result.current.handleTogglePreset('casual');
+      result.current.handleTogglePreset('luxury');
+      result.current.setGenerationCount(5);
+    });
+
+    // Act
+    await act(async () => {
+      await result.current.handleGenerateRedesigns();
+    });
+
+    // Assert
+    const presets = vi.mocked(critiqueAndRedesignOutfit).mock.calls.map((call) => call[1]);
+    expect(new Set(presets)).toEqual(new Set(['casual', 'luxury']));
+    expect(presets).not.toContain('smart-casual');
+    expect(presets).not.toContain('asian-style');
+  });
+
   // --------------------------------------------------------------------------
   // Hook Re-render Stability Tests
   // --------------------------------------------------------------------------
