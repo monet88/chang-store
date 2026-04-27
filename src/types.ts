@@ -19,6 +19,18 @@ export interface ImageFile {
   mimeType: string;
 }
 
+export interface RefinementHistoryItem {
+  prompt: string;
+  timestamp: number;
+}
+
+export type RedesignPreset = 'casual' | 'smart-casual' | 'luxury' | 'asian-style';
+
+export interface SelectableModel {
+  modelId: string;
+  label: string;
+}
+
 // ============================================
 // IMAGE GENERATION OPTIONS (Single Source of Truth)
 // ============================================

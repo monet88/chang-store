@@ -1,11 +1,11 @@
 import React from 'react';
-import { type RegisteredModel } from '../config/modelRegistry';
+import { type SelectableModel } from '../types';
 
 interface GlobalModelSelectorProps {
   label: string;
   ariaLabel: string;
   selectedModel: string;
-  options: RegisteredModel[];
+  options: SelectableModel[];
   onChange: (modelId: string) => void;
 }
 
