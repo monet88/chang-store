@@ -1,6 +1,7 @@
 
-import { Part, Modality, Type } from "@google/genai";
+import { Part, Modality } from "@google/genai";
 import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel, UpscaleQuality } from '../../types';
+import type { RedesignPreset } from '../../types';
 import { getGeminiClient } from '../apiClient';
 import { getModelCapabilities } from '../../config/modelRegistry';
 
@@ -275,8 +276,6 @@ export const extractOutfitItem = async (
         throw new Error(errorMessage.startsWith('error.') ? errorMessage : `error.api.extractionFailed:${errorMessage}`);
   }
 };
-
-export type RedesignPreset = 'casual' | 'smart-casual' | 'luxury' | 'asian-style';
 
 export const PRESET_PROMPTS: Record<RedesignPreset, string> = {
     'casual': `
