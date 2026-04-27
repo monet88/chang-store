@@ -105,4 +105,33 @@ describe('useAIEditor', () => {
     );
     expect(vi.mocked(editImage).mock.calls[0][0].prompt).not.toContain('MULTI-IMAGE EDITING');
   });
+
+  it('ignores re-entrant generate calls while a request is pending', async () => {
+    let resolveEdit!: (images: ImageFile[]) => void;
+    vi.mocked(editImage).mockImplementationOnce(() => new Promise((resolve) => {
+      resolveEdit = resolve;
+    }));
+    const { result } = renderHook(() => useAIEditor());
+
+    act(() => {
+      result.current.setImages([FIRST_IMAGE]);
+      result.current.setPrompt('Make this image feel more editorial');
+    });
+
+    let firstGenerate!: Promise<void>;
+    let secondGenerate!: Promise<void>;
+    await act(async () => {
+      firstGenerate = result.current.handleGenerate();
+      secondGenerate = result.current.handleGenerate();
+      await Promise.resolve();
+    });
+
+    expect(editImage).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveEdit([OUTPUT_IMAGE]);
+      await firstGenerate;
+      await secondGenerate;
+    });
+  });
 });

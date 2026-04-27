@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { editImage } from '../services/imageEditingService';
@@ -39,6 +39,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<ImageFile | null>(null);
+  const generationInFlightRef = useRef(false);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
@@ -101,6 +102,8 @@ Return the final edited image.`;
   );
 
   const handleGenerate = useCallback(async (): Promise<void> => {
+    if (generationInFlightRef.current) return;
+
     if (images.length === 0) {
       setError(t('aiEditor.error.noImages'));
       return;
@@ -111,6 +114,7 @@ Return the final edited image.`;
       return;
     }
 
+    generationInFlightRef.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -142,6 +146,7 @@ Return the final edited image.`;
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
+      generationInFlightRef.current = false;
       setIsLoading(false);
     }
   }, [
