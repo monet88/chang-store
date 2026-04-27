@@ -330,6 +330,26 @@ describe('useOutfitAnalysis', () => {
         })
       ).resolves.not.toThrow();
     });
+
+    it('should expose extracted item images after successful extraction', async () => {
+      // Arrange
+      vi.mocked(analyzeOutfit).mockResolvedValue(MOCK_ANALYZED_ITEMS);
+      vi.mocked(extractOutfitItem).mockResolvedValueOnce(MOCK_EXTRACTED_ITEM);
+      const { result } = renderHook(() => useOutfitAnalysis());
+
+      await act(async () => {
+        await result.current.handleUpload(TEST_IMAGE);
+      });
+
+      // Act
+      await act(async () => {
+        await result.current.handleExtractItem(MOCK_ANALYZED_ITEMS[0]);
+      });
+
+      // Assert
+      expect(result.current.extractedItems[MOCK_ANALYZED_ITEMS[0].item]).toEqual(MOCK_EXTRACTED_ITEM);
+      expect(result.current.extractionStatus[MOCK_ANALYZED_ITEMS[0].item]).toBe('done');
+    });
   });
 
   it('uses only selected presets when extra redesign slots are requested', async () => {

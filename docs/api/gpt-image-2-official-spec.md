@@ -97,7 +97,7 @@ The parameters below apply primarily to `/v1/images/edits`. (For `/v1/images/gen
 **cURL**
 ```bash
 curl -X POST "http://localhost:8080/v1/images/generations" \
-  -H "Authorization: Bearer sk-65e56cc5c794a3018e65d55a749413006336823bf97a4f96c4d3c95d41e84d9e" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
   -H "Content-type: application/json" \
   -d '{
     "model": "gpt-image-2",
@@ -110,10 +110,11 @@ curl -X POST "http://localhost:8080/v1/images/generations" \
 
 **Python**
 ```python
+import os
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="sk-65e56cc5c794a3018e65d55a749413006336823bf97a4f96c4d3c95d41e84d9e",
+    api_key=os.environ["OPENAI_API_KEY"],
     base_url="http://localhost:8080/v1"
 )
 
@@ -142,7 +143,7 @@ When creating a new image based on multiple reference images, you must use the `
 **cURL**
 ```bash
 curl -X POST "http://localhost:8080/v1/images/edits" \
-  -H "Authorization: Bearer sk-65e56cc5c794a3018e65d55a749413006336823bf97a4f96c4d3c95d41e84d9e" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
   -F "model=gpt-image-2" \
   -F "prompt=Generate a photorealistic image of a gift basket on a white background labeled 'Relax & Unwind', containing all the items in the reference pictures." \
   -F "image[]=@body-lotion.png" \
@@ -154,10 +155,11 @@ curl -X POST "http://localhost:8080/v1/images/edits" \
 
 **Python**
 ```python
+import os
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="sk-65e56cc5c794a3018e65d55a749413006336823bf97a4f96c4d3c95d41e84d9e",
+    api_key=os.environ["OPENAI_API_KEY"],
     base_url="http://localhost:8080/v1"
 )
 
@@ -184,7 +186,7 @@ import fs from "fs";
 import OpenAI, { toFile } from "openai";
 
 const client = new OpenAI({
-  apiKey: "sk-65e56cc5c794a3018e65d55a749413006336823bf97a4f96c4d3c95d41e84d9e",
+  apiKey: process.env.OPENAI_API_KEY,
   baseURL: "http://localhost:8080/v1"
 });
 
@@ -226,7 +228,7 @@ If you prefer to receive the raw image data immediately (to save network request
 **cURL**
 ```bash
 curl -X POST "http://localhost:8080/v1/images/generations" \
-  -H "Authorization: Bearer sk-65e56cc5c794a3018e65d55a749413006336823bf97a4f96c4d3c95d41e84d9e" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
   -H "Content-type: application/json" \
   -d '{
     "model": "gpt-image-2",
@@ -241,10 +243,11 @@ curl -X POST "http://localhost:8080/v1/images/generations" \
 **Python**
 ```python
 import base64
+import os
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="sk-65e56cc5c794a3018e65d55a749413006336823bf97a4f96c4d3c95d41e84d9e",
+    api_key=os.environ["OPENAI_API_KEY"],
     base_url="http://localhost:8080/v1"
 )
 

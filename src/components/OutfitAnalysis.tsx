@@ -23,6 +23,7 @@ const OutfitAnalysis: React.FC = () => {
     loadingMessage,
     error,
     extractionStatus,
+    extractedItems,
     PRESETS,
     setGenerationCount,
     setAspectRatio,
@@ -93,6 +94,7 @@ const OutfitAnalysis: React.FC = () => {
                 <tbody>
                   {analysisResults.map((item, index) => {
                     const status = extractionStatus[item.item];
+                    const extractedImage = extractedItems[item.item];
                     return (
                       <tr key={index} className="border-b border-zinc-700">
                         <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">{item.item}</th>
@@ -101,8 +103,15 @@ const OutfitAnalysis: React.FC = () => {
                         <td className="px-6 py-4">
                           {status === 'loading' ? (
                             <div className="flex items-center justify-center"><Spinner /></div>
-                          ) : status === 'done' ? (
-                            <span className="text-green-400 font-semibold">{t('outfitAnalysis.extracted')}</span>
+                          ) : extractedImage ? (
+                            <div className="w-24">
+                              <HoverableImage
+                                image={extractedImage}
+                                altText={t('outfitAnalysis.extractedAlt', { item: item.item })}
+                                downloadPrefix={Feature.OutfitAnalysis}
+                                containerClassName="relative group aspect-square w-full rounded-lg overflow-hidden border border-zinc-700 bg-zinc-900"
+                              />
+                            </div>
                           ) : (
                             <button onClick={() => handleExtractItem(item)} className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors disabled:text-zinc-500 disabled:cursor-not-allowed">
                               <LayoutIcon className="w-4 h-4" />

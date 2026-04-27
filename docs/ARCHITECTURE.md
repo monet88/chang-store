@@ -192,5 +192,5 @@ The service layer remains the integration boundary for external APIs. Gemini-spe
 2. `src/hooks/` paired hooks for orchestration and feature state.
 3. `src/services/imageEditingService.ts` and `src/services/gemini/` for AI provider routing.
 4. `src/config/modelRegistry.ts` for model capability and selection behavior.
-5. `src/contexts/` for provider, gallery, Drive, language, toast, and viewer state.
+5. `src/contexts/` for provider, gallery, Drive, language, and viewer state; `src/components/Toast.tsx` owns toast state.
 6. `src/utils/imageDownload.ts` and `src/utils/zipDownload.ts` for export/download boundaries.

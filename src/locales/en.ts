@@ -693,6 +693,7 @@ export const en = {
     action: 'Action',
     extracted: 'Extracted!',
     extract: 'Extract',
+    extractedAlt: 'Extracted {{item}}',
     styleSelectionError: 'Please select at least one redesign style.',
     generatingRedesigns: 'Generating redesigns...',
     statusGeneratingStyle: 'Generating "{{style}}" ({{progress}}/{{total}})...',

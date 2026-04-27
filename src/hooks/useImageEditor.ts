@@ -32,6 +32,16 @@ const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => (
   onStatusUpdate,
 });
 
+const getUnmaskedActionKey = (actionKey: string): string => {
+  if (actionKey === 'aiEditMasked') return 'aiEditFull';
+  if (actionKey.endsWith('Masked')) return actionKey.slice(0, -'Masked'.length);
+  return actionKey;
+};
+
+const getMaskedActionKey = (actionKey: string): string => (
+  actionKey.endsWith('Masked') ? actionKey : `${actionKey}Masked`
+);
+
 export const useImageEditorServiceActions = ({
   isLoading,
   currentImage,
@@ -57,15 +67,13 @@ export const useImageEditorServiceActions = ({
       setLoadingMessage(`Performing: ${actionKey}...`);
 
       let finalImages: ImageFile[] = [currentImage];
-      let finalActionKey = actionKey;
+      let finalActionKey = getUnmaskedActionKey(actionKey);
 
       if (selectionPath) {
-        const potentialMaskedKey = `${actionKey}Masked`;
+        const potentialMaskedKey = getMaskedActionKey(actionKey);
         const maskedTemplate = t(`imageEditor.modal.apiPrompts.${potentialMaskedKey}`);
 
         if (maskedTemplate && maskedTemplate !== `imageEditor.modal.apiPrompts.${potentialMaskedKey}`) {
-          finalActionKey = potentialMaskedKey;
-
           const maskCanvas = document.createElement('canvas');
           const metrics = getCanvasAndImageMetrics();
           if (metrics) {
@@ -83,7 +91,8 @@ export const useImageEditorServiceActions = ({
               maskCtx.fillStyle = 'white';
               maskCtx.fill(imageSpacePath);
               const maskBase64 = maskCanvas.toDataURL('image/png').split(',')[1];
-              finalImages.push({ base64: maskBase64, mimeType: 'image/png' });
+              finalImages = [...finalImages, { base64: maskBase64, mimeType: 'image/png' }];
+              finalActionKey = potentialMaskedKey;
             }
           }
         }
@@ -126,7 +135,7 @@ export const useImageEditorServiceActions = ({
 
   const handleGenerateAIEdit = useCallback(
     async (prompt: string) => {
-      if (!prompt.trim()) return;
+      if (isLoading || !prompt.trim()) return;
 
       if (!currentImage) {
         setIsLoading(true);
@@ -157,6 +166,7 @@ export const useImageEditorServiceActions = ({
     [
       currentImage,
       imageGenerateModel,
+      isLoading,
       loadNewImage,
       performApiAction,
       selectionPath,

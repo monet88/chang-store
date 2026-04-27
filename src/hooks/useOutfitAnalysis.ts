@@ -34,6 +34,7 @@ export const useOutfitAnalysis = () => {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [extractionStatus, setExtractionStatus] = useState<Record<string, 'loading' | 'done'>>({});
+  const [extractedItems, setExtractedItems] = useState<Record<string, ImageFile>>({});
 
   const PRESETS: { key: RedesignPreset; label: string }[] = [
     { key: 'casual', label: t('outfitAnalysis.presets.casual') },
@@ -53,6 +54,7 @@ export const useOutfitAnalysis = () => {
     setLoadingMessage('');
     setError(null);
     setExtractionStatus({});
+    setExtractedItems({});
   };
 
   const handleBack = () => {
@@ -187,15 +189,21 @@ export const useOutfitAnalysis = () => {
     setError(null);
     try {
       const itemToExtract = `${item.item} - ${item.description}`;
-      await extractOutfitItem(
+      const extractedImage = await extractOutfitItem(
         uploadedImage,
         itemToExtract,
         imageEditModel,
         buildImageServiceConfig(() => {}),
       );
+      setExtractedItems((prev) => ({ ...prev, [key]: extractedImage }));
       setExtractionStatus((prev) => ({ ...prev, [key]: 'done' }));
     } catch (err) {
       setError(getErrorMessage(err, t));
+      setExtractedItems((prev) => {
+        const nextItems = { ...prev };
+        delete nextItems[key];
+        return nextItems;
+      });
       setExtractionStatus((prev) => {
         const newStatus = { ...prev };
         delete newStatus[key];
@@ -228,6 +236,7 @@ export const useOutfitAnalysis = () => {
     loadingMessage,
     error,
     extractionStatus,
+    extractedItems,
     PRESETS,
 
     setGenerationCount,

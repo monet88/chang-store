@@ -98,9 +98,11 @@ describe('useAIEditor', () => {
     expect(editImage).toHaveBeenCalledWith(
       expect.objectContaining({
         images: [FIRST_IMAGE, SECOND_IMAGE],
+        prompt: expect.stringContaining('# INSTRUCTION: IMAGE EDITING'),
       }),
       'gemini-2.5-flash-image',
       expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
     );
+    expect(vi.mocked(editImage).mock.calls[0][0].prompt).not.toContain('MULTI-IMAGE EDITING');
   });
 });

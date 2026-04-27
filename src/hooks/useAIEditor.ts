@@ -122,7 +122,7 @@ Return the final edited image.`;
       }
 
       const imagesToSend = mentionedSelection.hasMentions ? mentionedSelection.images : images;
-      const apiPrompt = buildApiPrompt(prompt, imagesToSend);
+      const apiPrompt = buildApiPrompt(prompt, mentionedSelection.images);
 
       const [result] = await editImage(
         {

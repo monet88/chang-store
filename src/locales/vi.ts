@@ -695,6 +695,7 @@ export const vi: Translation = {
     action: 'Hành động',
     extracted: 'Đã tách!',
     extract: 'Tách',
+    extractedAlt: '{{item}} đã tách',
     styleSelectionError: 'Vui lòng chọn ít nhất một phong cách thiết kế lại.',
     generatingRedesigns: 'Đang tạo các thiết kế lại...',
     statusGeneratingStyle: 'Đang tạo "{{style}}" ({{progress}}/{{total}})...',
