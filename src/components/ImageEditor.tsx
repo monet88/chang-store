@@ -14,13 +14,12 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ImageFile, AspectRatio as AspectRatioType } from '../types';
-import { editImage, generateImage } from '../services/imageEditingService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import Spinner from './Spinner';
-import { getErrorMessage } from '../utils/imageUtils';
 import { useCanvasDrawing } from '../hooks/useCanvasDrawing';
+import { useImageEditorServiceActions } from '../hooks/useImageEditor';
 import { ImageEditorCanvas } from './ImageEditorCanvas';
 import { ImageEditorToolbar } from './ImageEditorToolbar';
 // FIX: Added all missing icons to the import from './Icons'
@@ -564,16 +563,13 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
     const { t } = useLanguage();
     const { addImage } = useImageGallery();
     const { imageEditModel, imageGenerateModel } = useApi();
-    const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
-        onStatusUpdate,
-    });
 
     const [view, setView] = useState<'launcher' | 'editor'>(initialImage ? 'editor' : 'launcher');
     const [history, setHistory] = useState<ImageFile[]>(initialImage ? [initialImage] : []);
     const [currentIndex, setCurrentIndex] = useState(initialImage ? 0 : -1);
     const [isLoading, setIsLoading] = useState(false);
-    const [loadingMessage, setLoadingMessage] = useState('');
-    const [error, setError] = useState<string | null>(null);
+    const [, setLoadingMessage] = useState('');
+    const [, setError] = useState<string | null>(null);
     const [activeTool, setActiveTool] = useState<Tool | null>(null);
     const [brushColor, setBrushColor] = useState('#ffffff');
     const [brushSize, setBrushSize] = useState(20);
@@ -607,10 +603,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
     const [perspectivePoints, setPerspectivePoints] = useState<Point[]>([]);
     const [draggingHandleIndex, setDraggingHandleIndex] = useState<number | null>(null);
     
-    const [isChangeImagePopoverOpen, setIsChangeImagePopoverOpen] = useState(false);
+    const [, setIsChangeImagePopoverOpen] = useState(false);
     const [isGallerySelectionOpen, setIsGallerySelectionOpen] = useState(false);
-    const changeImageButtonRef = useRef<HTMLButtonElement>(null);
-    const changeImagePopoverRef = useRef<HTMLDivElement>(null);
     const changeImageFileInputRef = useRef<HTMLInputElement>(null);
 
     const [lineDashOffset, setLineDashOffset] = useState(0);
@@ -661,7 +655,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
             dy = size * Math.sign(dy || 1);
         }
 
-        let x, y, width, height;
+        let x: number;
+        let y: number;
+        let width: number;
+        let height: number;
 
         if (altHeld) {
             width = dx * 2;
@@ -781,59 +778,22 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
       setPerspectivePoints([]);
     }, []);
 
-    const performApiAction = useCallback(async (actionKey: string, params: Record<string, any> = {}) => {
-        if (isLoading || !currentImage) return;
-
-        setIsLoading(true);
-        setError(null);
-        setLoadingMessage(`Performing: ${actionKey}...`);
-
-        let finalImages: ImageFile[] = [currentImage];
-        let finalActionKey = actionKey;
-        
-        if (selectionPath) {
-            const potentialMaskedKey = `${actionKey}Masked`;
-            const maskedTemplate = t(`imageEditor.modal.apiPrompts.${potentialMaskedKey}`);
-            
-            if (maskedTemplate && maskedTemplate !== `imageEditor.modal.apiPrompts.${potentialMaskedKey}`) {
-                finalActionKey = potentialMaskedKey; 
-
-                const maskCanvas = document.createElement('canvas');
-                const metrics = getCanvasAndImageMetrics();
-                if (metrics) {
-                    maskCanvas.width = metrics.iw;
-                    maskCanvas.height = metrics.ih;
-                    const maskCtx = maskCanvas.getContext('2d');
-                    if (maskCtx) {
-                        maskCtx.fillStyle = 'black';
-                        maskCtx.fillRect(0, 0, metrics.iw, metrics.ih);
-                        
-                        const transform = new DOMMatrix().translate(-metrics.dx, -metrics.dy).scale(1 / metrics.scale);
-                        const imageSpacePath = new Path2D();
-                        imageSpacePath.addPath(selectionPath, transform);
-                        
-                        maskCtx.fillStyle = 'white';
-                        maskCtx.fill(imageSpacePath);
-                        const maskBase64 = maskCanvas.toDataURL('image/png').split(',')[1];
-                        finalImages.push({ base64: maskBase64, mimeType: 'image/png' });
-                    }
-                }
-            }
-        }
-        
-        const taskPromptTemplate = t(`imageEditor.modal.apiPrompts.${finalActionKey}`);
-        let taskPrompt = Object.entries(params).reduce((p, [key, value]) => p.replace(new RegExp(`{{${key}}}`, 'g'), String(value)), taskPromptTemplate);
-        
-        try {
-            const [result] = await editImage({ images: finalImages, prompt: taskPrompt, numberOfImages: 1 }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
-            addToHistory(result);
-            handleDeselect();
-        } catch (err) {
-            setError(getErrorMessage(err, t));
-        } finally {
-            setIsLoading(false);
-        }
-    }, [isLoading, currentImage, t, selectionPath, getCanvasAndImageMetrics, imageEditModel, addToHistory, handleDeselect]);
+    const { performApiAction, handleGenerateAIEdit, handleApplyAccessory } = useImageEditorServiceActions({
+      isLoading,
+      currentImage,
+      selectionPath,
+      getCanvasAndImageMetrics,
+      imageEditModel,
+      imageGenerateModel,
+      t,
+      setIsLoading,
+      setError,
+      setLoadingMessage,
+      addToHistory,
+      handleDeselect,
+      loadNewImage,
+      setView,
+    });
 
     const handleApplyBasicAdjustments = useCallback(async () => {
         if (!hasBasicAdjustments) return;
@@ -860,76 +820,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
     }, [hasEffectsAdjustments, adjustments, performApiAction]);
 
 
-    const handleGenerateAIEdit = async (prompt: string) => {
-        if (!prompt.trim()) return;
-        if (!currentImage) {
-            setIsLoading(true);
-            setError(null);
-            setLoadingMessage('Generating new image...');
-            try {
-                const [result] = await generateImage(prompt, '1:1', 1, imageGenerateModel, buildImageServiceConfig(setLoadingMessage));
-                loadNewImage(result);
-                setView('editor');
-            } catch (err) {
-                setError(getErrorMessage(err, t));
-            } finally {
-                setIsLoading(false);
-            }
-            return;
-        }
-        const actionKey = selectionPath ? 'aiEditMasked' : 'aiEditFull';
-        await performApiAction(actionKey, { prompt });
-    };
-
     const handleImmediateAction = (action: 'rotate' | 'flip-horizontal' | 'flip-vertical') => {
         performApiAction(action);
-    };
-    
-    const handleApplyAccessory = async (type: string, accessoryImageFile: ImageFile) => {
-        if (!currentImage || isLoading) return;
-        
-        const accessoryName = t(`imageEditor.modal.rightPanel.accessories.${type}`);
-        const placementInstruction = t(`imageEditor.modal.rightPanel.accessoryPrompts.${type}`);
-        
-        let prompt = `Take the accessory ('${accessoryName}') from the second image and place it photorealistically onto the person in the first image. The accessory ${placementInstruction}. The final image must be high-resolution and seamlessly edited.`;
-        let finalImages: ImageFile[] = [currentImage, accessoryImageFile];
-
-        if (selectionPath) {
-             const metrics = getCanvasAndImageMetrics();
-            if (metrics) {
-                const maskCanvas = document.createElement('canvas');
-                maskCanvas.width = metrics.iw;
-                maskCanvas.height = metrics.ih;
-                const maskCtx = maskCanvas.getContext('2d');
-                if (maskCtx) {
-                    maskCtx.fillStyle = 'black';
-                    maskCtx.fillRect(0, 0, metrics.iw, metrics.ih);
-                    const transform = new DOMMatrix().translate(-metrics.dx, -metrics.dy).scale(1 / metrics.scale);
-                    const imageSpacePath = new Path2D();
-                    imageSpacePath.addPath(selectionPath, transform);
-                    maskCtx.fillStyle = 'white';
-                    maskCtx.fill(imageSpacePath);
-                    const maskBase64 = maskCanvas.toDataURL('image/png').split(',')[1];
-                    finalImages.push({ base64: maskBase64, mimeType: 'image/png' });
-                    
-                    prompt = `# INSTRUCTION: MASKED ACCESSORY PLACEMENT\n\n## IMAGE ROLES:\n- Image 1 (Source): The original image.\n- Image 2 (Accessory): The accessory to be placed.\n- Image 3 (Mask): A black and white mask. The **white area** specifies the *only* region where the accessory can be placed.\n\n## REQUEST:\nTake the accessory from Image 2 and place it photorealistically onto the person in Image 1, strictly within the white area of the mask (Image 3). The accessory is a '${accessoryName}' and it should be ${placementInstruction}. The final image must be high-resolution and seamlessly edited.`;
-                }
-            }
-        }
-        
-        setIsLoading(true);
-        setError(null);
-        setLoadingMessage(t('imageEditor.modal.rightPanel.applyingAccessory'));
-
-        try {
-            const [result] = await editImage({ images: finalImages, prompt, numberOfImages: 1 }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
-            addToHistory(result);
-            handleDeselect();
-        } catch(err) {
-            setError(getErrorMessage(err, t));
-        } finally {
-            setIsLoading(false);
-        }
     };
 
     const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -978,7 +870,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage 
         }
     };
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const handleMouseMove = () => {
         // Implementation omitted for brevity
     };
     
