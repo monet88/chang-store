@@ -149,10 +149,13 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
 
   const handleRestore = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-      const file = event.target.files?.[0];
+      const input = event.currentTarget;
+      const file = input.files?.[0];
       if (!file) {
         return;
       }
+
+      input.value = '';
 
       try {
         await restoreData(file);

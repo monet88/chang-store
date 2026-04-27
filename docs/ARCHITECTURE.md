@@ -66,7 +66,7 @@ flowchart TD
 
 ## Key Execution Flows
 
-### 1. Watermark removal download naming → sanitized filename segment
+### 1. Watermark removal single-image download naming → sanitized filename segment
 
 GitNexus process: `WatermarkRemover → SanitizeSegment`
 
@@ -78,18 +78,17 @@ Trace:
 2. `useWatermarkRemover` — `src/hooks/useWatermarkRemover.ts`
 3. `downloadImageAsJpeg` — `src/utils/imageDownload.ts`
 4. `resolveBaseName` — `src/utils/imageDownload.ts`
-5. `buildDownloadFilename` — `src/utils/imageDownload.ts`
-6. `sanitizeSegment` — `src/utils/imageDownload.ts`
+5. `sanitizeSegment` — `src/utils/imageDownload.ts`
 
 Why it matters:
 
-- This is a clean UI-to-hook-to-utility flow across component, hook, and download helper layers.
-- Filename construction is centralized in `src/utils/imageDownload.ts`, so download behavior stays consistent across features.
-- Sanitization sits at the system boundary where user-visible filenames leave the app.
+- The single-image download path passes an explicit `baseName`, so `resolveBaseName` sanitizes that value directly.
+- Filename sanitization still stays centralized in `src/utils/imageDownload.ts`, keeping user-visible download names consistent.
+- This documents the runtime branch WatermarkRemover actually exercises, not just the broader utility call graph.
 
-### 2. Watermark removal download naming → random filename token
+### 2. Watermark removal batch ZIP naming → entry prefix normalization
 
-GitNexus process: `WatermarkRemover → CreateRandomToken`
+GitNexus process: `WatermarkRemover → GetZipEntryPrefix`
 
 Type: `cross_community`
 
@@ -97,16 +96,14 @@ Trace:
 
 1. `WatermarkRemover` — `src/components/WatermarkRemover.tsx`
 2. `useWatermarkRemover` — `src/hooks/useWatermarkRemover.ts`
-3. `downloadImageAsJpeg` — `src/utils/imageDownload.ts`
-4. `resolveBaseName` — `src/utils/imageDownload.ts`
-5. `buildDownloadFilename` — `src/utils/imageDownload.ts`
-6. `createRandomToken` — `src/utils/imageDownload.ts`
+3. `downloadImagesAsZip` — `src/utils/zipDownload.ts`
+4. `getZipEntryPrefix` — `src/utils/zipDownload.ts`
 
 Why it matters:
 
-- The same feature path also depends on collision-resistant filename token generation.
-- `buildDownloadFilename` is a shared choke point for output naming, base-name resolution, sanitization, and uniqueness.
-- Changes to image download naming can affect multiple feature surfaces that share this utility path.
+- Batch download naming goes through ZIP-specific prefix normalization, not the single-image random-token branch.
+- `getZipEntryPrefix` keeps archive names friendly while image entries stay stable and feature-specific.
+- This captures the other real naming path WatermarkRemover uses in production.
 
 ### 3. Pose generation → text pose prompt construction
 
