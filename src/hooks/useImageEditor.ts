@@ -64,7 +64,7 @@ export const useImageEditorServiceActions = ({
 
       setIsLoading(true);
       setError(null);
-      setLoadingMessage(`Performing: ${actionKey}...`);
+      setLoadingMessage(t('imageEditor.modal.loading.performingAction', { action: actionKey }));
 
       let finalImages: ImageFile[] = [currentImage];
       let finalActionKey = getUnmaskedActionKey(actionKey);
@@ -100,7 +100,7 @@ export const useImageEditorServiceActions = ({
 
       const taskPromptTemplate = t(`imageEditor.modal.apiPrompts.${finalActionKey}`);
       const taskPrompt = Object.entries(params).reduce(
-        (prompt, [key, value]) => prompt.replace(new RegExp(`{{${key}}}`, 'g'), String(value)),
+        (prompt, [key, value]) => prompt.replace(new RegExp(`{{${key}}}`, 'g'), () => String(value)),
         taskPromptTemplate,
       );
 
@@ -140,7 +140,7 @@ export const useImageEditorServiceActions = ({
       if (!currentImage) {
         setIsLoading(true);
         setError(null);
-        setLoadingMessage('Generating new image...');
+        setLoadingMessage(t('imageEditor.modal.loading.generatingNewImage'));
         try {
           const [result] = await generateImage(
             prompt,

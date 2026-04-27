@@ -987,6 +987,10 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
         colorPicker: 'Chấm màu',
         colorSwatch: 'Màu cọ',
       },
+      loading: {
+        performingAction: 'Đang thực hiện: {{action}}...',
+        generatingNewImage: 'Đang tạo ảnh mới...',
+      },
       rightPanel: {
         magic: 'Phép thuật',
         removeBackground: 'Xóa nền',

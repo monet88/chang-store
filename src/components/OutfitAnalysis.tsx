@@ -5,7 +5,7 @@ import Spinner from './Spinner';
 import HoverableImage from './HoverableImage';
 import { BackIcon, CloseIcon, LayoutIcon, ReloadIcon, VisibleIcon } from './Icons';
 import ImageOptionsPanel from './ImageOptionsPanel';
-import { useOutfitAnalysis } from '../hooks/useOutfitAnalysis';
+import { getAnalyzedItemKey, useOutfitAnalysis } from '../hooks/useOutfitAnalysis';
 
 const OutfitAnalysis: React.FC = () => {
   const {
@@ -93,8 +93,9 @@ const OutfitAnalysis: React.FC = () => {
                 </thead>
                 <tbody>
                   {analysisResults.map((item, index) => {
-                    const status = extractionStatus[item.item];
-                    const extractedImage = extractedItems[item.item];
+                    const itemKey = getAnalyzedItemKey(item, index);
+                    const status = extractionStatus[itemKey];
+                    const extractedImage = extractedItems[itemKey];
                     return (
                       <tr key={index} className="border-b border-zinc-700">
                         <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">{item.item}</th>
@@ -113,7 +114,7 @@ const OutfitAnalysis: React.FC = () => {
                               />
                             </div>
                           ) : (
-                            <button onClick={() => handleExtractItem(item)} className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors disabled:text-zinc-500 disabled:cursor-not-allowed">
+                            <button onClick={() => handleExtractItem(item, index)} className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors disabled:text-zinc-500 disabled:cursor-not-allowed">
                               <LayoutIcon className="w-4 h-4" />
                               <span>{t('outfitAnalysis.extract')}</span>
                             </button>

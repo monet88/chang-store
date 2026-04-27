@@ -984,6 +984,10 @@ Do not include any other text or markdown.
         colorPicker: 'Color Picker',
         colorSwatch: 'Brush Color',
       },
+      loading: {
+        performingAction: 'Performing: {{action}}...',
+        generatingNewImage: 'Generating new image...',
+      },
       rightPanel: {
         magic: 'Magic',
         removeBackground: 'Remove Background',

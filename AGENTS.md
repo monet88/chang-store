@@ -93,9 +93,8 @@ Provider nesting order matters:
 - Tailwind only — no inline styles and no `@apply`.
 - i18n usage: `const { t } = useLanguage(); t('key.path')`.
 
-### Known Tech Debt
-These components import services directly and should be handled carefully during refactors:
-`AIEditor`, `ImageEditor`, `LookbookOutput`, `SettingsModal`, `Relight`, `PoseChanger`, `PhotoAlbumCreator`, `OutfitAnalysis`, `shared/RefinementInput`.
+### Service Boundary Status
+UI service-import debt has been cleaned up. Components must not import services directly; use paired hooks and the `src/services/imageEditingService.ts` facade.
 
 ## Important Workflows
 

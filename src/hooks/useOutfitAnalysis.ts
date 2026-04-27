@@ -16,6 +16,8 @@ const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => (
   onStatusUpdate,
 });
 
+export const getAnalyzedItemKey = (item: AnalyzedItem, index: number): string => `${index}:${item.item}:${item.description}`;
+
 export const useOutfitAnalysis = () => {
   const { t } = useLanguage();
   const { imageEditModel, textGenerateModel } = useApi();
@@ -63,8 +65,12 @@ export const useOutfitAnalysis = () => {
   };
 
   const handleUpload = async (file: ImageFile | null) => {
+    setExtractionStatus({});
+    setExtractedItems({});
+
     if (!file) {
       setUploadedImage(null);
+      setAnalysisResults([]);
       return;
     }
     setUploadedImage(file);
@@ -181,10 +187,10 @@ export const useOutfitAnalysis = () => {
     setIsLoading(false);
   };
 
-  const handleExtractItem = async (item: AnalyzedItem) => {
+  const handleExtractItem = async (item: AnalyzedItem, index: number) => {
     if (!uploadedImage) return;
 
-    const key = item.item;
+    const key = getAnalyzedItemKey(item, index);
     setExtractionStatus((prev) => ({ ...prev, [key]: 'loading' }));
     setError(null);
     try {

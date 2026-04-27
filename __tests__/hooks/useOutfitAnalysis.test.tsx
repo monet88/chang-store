@@ -73,7 +73,7 @@ vi.mock('@/utils/imageUtils', () => ({
 }));
 
 // Import hook and mocked services after mocking
-import { useOutfitAnalysis } from '../../src/hooks/useOutfitAnalysis';
+import { getAnalyzedItemKey, useOutfitAnalysis } from '../../src/hooks/useOutfitAnalysis';
 import { analyzeOutfit } from '@/services/textService';
 import { critiqueAndRedesignOutfit, extractOutfitItem } from '@/services/imageEditingService';
 import { getErrorMessage } from '@/utils/imageUtils';
@@ -119,6 +119,11 @@ const MOCK_REDESIGN_RESULT = {
 /** Mock extracted item image */
 const MOCK_EXTRACTED_ITEM: ImageFile = {
   base64: 'ZXh0cmFjdGVkLWl0ZW0=',
+  mimeType: 'image/png',
+};
+
+const MOCK_EXTRACTED_ITEM_ALT: ImageFile = {
+  base64: 'ZXh0cmFjdGVkLWl0ZW0tMg==',
   mimeType: 'image/png',
 };
 
@@ -292,7 +297,7 @@ describe('useOutfitAnalysis', () => {
       // Act & Assert - should not throw
       await expect(
         act(async () => {
-          await result.current.handleExtractItem(MOCK_ANALYZED_ITEMS[0]);
+          await result.current.handleExtractItem(MOCK_ANALYZED_ITEMS[0], 0);
         })
       ).resolves.not.toThrow();
     });
@@ -305,7 +310,7 @@ describe('useOutfitAnalysis', () => {
       const { result } = renderHook(() => useOutfitAnalysis());
 
       // Act
-      const returnValue = result.current.handleExtractItem(MOCK_ANALYZED_ITEMS[0]);
+      const returnValue = result.current.handleExtractItem(MOCK_ANALYZED_ITEMS[0], 0);
 
       // Assert
       expect(returnValue).toBeInstanceOf(Promise);
@@ -326,7 +331,7 @@ describe('useOutfitAnalysis', () => {
       // Act & Assert - should not throw
       await expect(
         act(async () => {
-          await result.current.handleExtractItem(customItem);
+          await result.current.handleExtractItem(customItem, 0);
         })
       ).resolves.not.toThrow();
     });
@@ -343,12 +348,52 @@ describe('useOutfitAnalysis', () => {
 
       // Act
       await act(async () => {
-        await result.current.handleExtractItem(MOCK_ANALYZED_ITEMS[0]);
+        await result.current.handleExtractItem(MOCK_ANALYZED_ITEMS[0], 0);
       });
 
       // Assert
-      expect(result.current.extractedItems[MOCK_ANALYZED_ITEMS[0].item]).toEqual(MOCK_EXTRACTED_ITEM);
-      expect(result.current.extractionStatus[MOCK_ANALYZED_ITEMS[0].item]).toBe('done');
+      const itemKey = getAnalyzedItemKey(MOCK_ANALYZED_ITEMS[0], 0);
+      expect(result.current.extractedItems[itemKey]).toEqual(MOCK_EXTRACTED_ITEM);
+      expect(result.current.extractionStatus[itemKey]).toBe('done');
+    });
+
+    it('should keep extracted images separate for duplicate item names', async () => {
+      // Arrange
+      const duplicateItems: AnalyzedItem[] = [
+        {
+          item: 'White T-Shirt',
+          description: 'Layered cotton crew neck',
+          possibleBrands: ['Uniqlo'],
+        },
+        {
+          item: 'White T-Shirt',
+          description: 'Oversized linen tee',
+          possibleBrands: ['COS'],
+        },
+      ];
+      vi.mocked(analyzeOutfit).mockResolvedValue(duplicateItems);
+      vi.mocked(extractOutfitItem)
+        .mockResolvedValueOnce(MOCK_EXTRACTED_ITEM)
+        .mockResolvedValueOnce(MOCK_EXTRACTED_ITEM_ALT);
+      const { result } = renderHook(() => useOutfitAnalysis());
+
+      await act(async () => {
+        await result.current.handleUpload(TEST_IMAGE);
+      });
+
+      // Act
+      await act(async () => {
+        await result.current.handleExtractItem(duplicateItems[0], 0);
+        await result.current.handleExtractItem(duplicateItems[1], 1);
+      });
+
+      // Assert
+      const firstKey = getAnalyzedItemKey(duplicateItems[0], 0);
+      const secondKey = getAnalyzedItemKey(duplicateItems[1], 1);
+      expect(result.current.extractedItems[firstKey]).toEqual(MOCK_EXTRACTED_ITEM);
+      expect(result.current.extractedItems[secondKey]).toEqual(MOCK_EXTRACTED_ITEM_ALT);
+      expect(result.current.extractionStatus[firstKey]).toBe('done');
+      expect(result.current.extractionStatus[secondKey]).toBe('done');
     });
   });
 

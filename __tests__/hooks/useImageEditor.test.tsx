@@ -43,14 +43,19 @@ const createParams = (overrides: Partial<Parameters<typeof useImageEditorService
   getCanvasAndImageMetrics: vi.fn(() => ({ dx: 0, dy: 0, scale: 1, iw: 10, ih: 10 })),
   imageEditModel: 'gemini-2.5-flash-image',
   imageGenerateModel: 'imagen-4.0-generate-001',
-  t: vi.fn((key: string) => {
+  t: vi.fn((key: string, params?: Record<string, unknown>) => {
     const prompts: Record<string, string> = {
       'imageEditor.modal.apiPrompts.aiEditFull': 'full {{prompt}}',
       'imageEditor.modal.apiPrompts.aiEditMasked': 'masked {{prompt}}',
       'imageEditor.modal.apiPrompts.removeBackground': 'remove background',
       'imageEditor.modal.apiPrompts.removeBackgroundMasked': 'remove background masked',
+      'imageEditor.modal.loading.performingAction': 'Performing: {{action}}...',
+      'imageEditor.modal.loading.generatingNewImage': 'Generating new image...',
     };
-    return prompts[key] ?? key;
+    return Object.entries(params ?? {}).reduce(
+      (prompt, [paramKey, value]) => prompt.replace(new RegExp(`{{${paramKey}}}`, 'g'), String(value)),
+      prompts[key] ?? key,
+    );
   }),
   setIsLoading: vi.fn(),
   setError: vi.fn(),
@@ -122,6 +127,45 @@ describe('useImageEditorServiceActions', () => {
       'gemini-2.5-flash-image',
       expect.any(Object),
     );
+  });
+
+  it('preserves dollar replacement syntax in user prompts', async () => {
+    const params = createParams();
+    const { result } = renderHook(() => useImageEditorServiceActions(params));
+
+    await act(async () => {
+      await result.current.handleGenerateAIEdit('change price to $& and keep $100');
+    });
+
+    expect(editImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'full change price to $& and keep $100',
+      }),
+      'gemini-2.5-flash-image',
+      expect.any(Object),
+    );
+  });
+
+  it('uses localized loading messages for edit actions', async () => {
+    const params = createParams();
+    const { result } = renderHook(() => useImageEditorServiceActions(params));
+
+    await act(async () => {
+      await result.current.performApiAction('removeBackground');
+    });
+
+    expect(params.setLoadingMessage).toHaveBeenCalledWith('Performing: removeBackground...');
+  });
+
+  it('uses localized loading messages for text-to-image generation', async () => {
+    const params = createParams({ currentImage: null });
+    const { result } = renderHook(() => useImageEditorServiceActions(params));
+
+    await act(async () => {
+      await result.current.handleGenerateAIEdit('new editorial scene');
+    });
+
+    expect(params.setLoadingMessage).toHaveBeenCalledWith('Generating new image...');
   });
 
   it('does not start text-to-image generation while already loading', async () => {
