@@ -47,10 +47,12 @@ const AppContent: React.FC = () => {
     setTextGenerateModel,
   } = useApi();
   
-  // Load initial active feature from session storage
-  const [activeFeature, setActiveFeature] = useState<Feature>(() => 
-    getSessionState<Feature>('activeFeature', Feature.TryOn)
-  );
+  const [activeFeature, setActiveFeature] = useState<Feature>(() => {
+    const savedFeature = getSessionState<string>('activeFeature', Feature.TryOn);
+    return Object.values(Feature).includes(savedFeature as Feature)
+      ? (savedFeature as Feature)
+      : Feature.TryOn;
+  });
   
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);

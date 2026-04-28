@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const { featureStub, passthrough, translations } = vi.hoisted(() => {
@@ -182,6 +182,11 @@ vi.mock('../src/components/modals/SettingsModal', () => ({
 import App from '../src/App';
 
 describe('App utility dock regression', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
   it('mounts the dock in the live app shell and opens utility modals after expanding it', async () => {
     const user = userEvent.setup();
 
@@ -227,5 +232,18 @@ describe('App utility dock regression', () => {
     expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Image generation model')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Text generation model')).not.toBeInTheDocument();
+  });
+
+  it('falls back to try-on when session storage contains retired feature ids', async () => {
+    localStorage.setItem('cs_session_activeFeature', JSON.stringify('image-editor'));
+
+    render(<App />);
+
+    expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();
+    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
+
+    await waitFor(() => {
+      expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('try-on'));
+    });
   });
 });
