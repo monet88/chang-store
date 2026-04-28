@@ -1,4 +1,4 @@
-import React, { useState, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import { GlobalModelSelector } from './components/GlobalModelSelector';
 import { Feature, ImageFile } from './types';
@@ -12,8 +12,7 @@ import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
 import MobileOverlay from './components/MobileOverlay';
 import UtilityDock from './components/UtilityDock';
-import { type ModelSelectionType, getModelsBySelectionType } from './config/modelRegistry';
-import { resolveModelSelectionScope } from './config/modelSelectionRules';
+import { useModelSelection } from './hooks/useModelSelection';
 
 const VirtualTryOn = lazy(() => import('./components/VirtualTryOn'));
 const LookbookGenerator = lazy(() => import('./components/LookbookGenerator'));
@@ -29,6 +28,7 @@ const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
 const PromptLibraryModal = lazy(() => import('./components/modals/PromptLibraryModal'));
 const PoseLibraryModal = lazy(() => import('./components/modals/PoseLibraryModal'));
 const SettingsModal = lazy(() => import('./components/modals/SettingsModal').then(m => ({ default: m.SettingsModal })));
+import { saveSessionState, getSessionState } from './utils/storage';
 
 const FeatureLoadingFallback: React.FC = () => (
   <div className="flex h-full min-h-[50vh] items-center justify-center">
@@ -46,7 +46,12 @@ const AppContent: React.FC = () => {
     textGenerateModel,
     setTextGenerateModel,
   } = useApi();
-  const [activeFeature, setActiveFeature] = useState<Feature>(Feature.TryOn);
+  
+  // Load initial active feature from session storage
+  const [activeFeature, setActiveFeature] = useState<Feature>(() => 
+    getSessionState<Feature>('activeFeature', Feature.TryOn)
+  );
+  
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -56,6 +61,10 @@ const AppContent: React.FC = () => {
   const [isPoseLibraryOpen, setIsPoseLibraryOpen] = useState(false);
   const [poseConfirmCallback, setPoseConfirmCallback] = useState<{ fn: (poses: string[]) => void } | null>(null);
   const [initialSelectedPoses, setInitialSelectedPoses] = useState<string[]>([]);
+
+  useEffect(() => {
+    saveSessionState('activeFeature', activeFeature);
+  }, [activeFeature]);
 
   const handleOpenPoseLibrary = useCallback((onConfirm: (poses: string[]) => void, initialPoses: string[]) => {
     setPoseConfirmCallback({ fn: onConfirm });
@@ -140,19 +149,20 @@ const AppContent: React.FC = () => {
   };
 
   const currentFeatureMeta = featureMeta[activeFeature] ?? featureMeta[Feature.TryOn];
-  const activeModelSelectionScope = resolveModelSelectionScope(activeFeature);
-
-  const selectedModelBySelectionType: Record<ModelSelectionType, string> = {
-    imageEdit: imageEditModel,
-    imageGenerate: imageGenerateModel,
-    textGenerate: textGenerateModel,
-  };
-
-  const modelSetterBySelectionType: Record<ModelSelectionType, (modelId: string) => void> = {
-    imageEdit: setImageEditModel,
-    imageGenerate: setImageGenerateModel,
-    textGenerate: setTextGenerateModel,
-  };
+  const {
+    activeModelSelectionScope,
+    textGenerationOptions,
+    getSelectedModelBySelectionType,
+    getModelSetterBySelectionType,
+  } = useModelSelection({
+    activeFeature,
+    imageEditModel,
+    imageGenerateModel,
+    textGenerateModel,
+    setImageEditModel,
+    setImageGenerateModel,
+    setTextGenerateModel,
+  });
 
   const renderActiveFeature = () => {
     switch (activeFeature) {
@@ -222,9 +232,9 @@ const AppContent: React.FC = () => {
                         <GlobalModelSelector
                           ariaLabel={t(activeModelSelectionScope.labelKey)}
                           label={t(activeModelSelectionScope.labelKey)}
-                          selectedModel={selectedModelBySelectionType[activeModelSelectionScope.selectionType]}
+                          selectedModel={getSelectedModelBySelectionType(activeModelSelectionScope.selectionType)}
                           options={activeModelSelectionScope.options}
-                          onChange={modelSetterBySelectionType[activeModelSelectionScope.selectionType]}
+                          onChange={getModelSetterBySelectionType(activeModelSelectionScope.selectionType)}
                         />
                       </div>
                     )}
@@ -234,7 +244,7 @@ const AppContent: React.FC = () => {
                         ariaLabel={t('settingsModal.fields.textGeneration')}
                         label={t('settingsModal.fields.textGeneration')}
                         selectedModel={textGenerateModel}
-                        options={getModelsBySelectionType('textGenerate')}
+                        options={textGenerationOptions}
                         onChange={setTextGenerateModel}
                       />
                     </div>

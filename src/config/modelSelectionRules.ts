@@ -1,14 +1,13 @@
-import { Feature } from '../types';
+import { Feature, SelectableModel } from '../types';
 import {
   getModelsBySelectionType,
   type ModelSelectionType,
-  type RegisteredModel,
 } from './modelRegistry';
 
 export interface ModelSelectionScope {
   selectionType: ModelSelectionType;
   labelKey: string;
-  options: RegisteredModel[];
+  options: SelectableModel[];
 }
 
 const MODEL_SELECTION_LABEL_KEY: Record<ModelSelectionType, string> = {
@@ -38,6 +37,9 @@ export function resolveModelSelectionScope(feature: Feature): ModelSelectionScop
   return {
     selectionType,
     labelKey: MODEL_SELECTION_LABEL_KEY[selectionType],
-    options: getModelsBySelectionType(selectionType),
+    options: getModelsBySelectionType(selectionType).map(({ modelId, label }) => ({
+      modelId,
+      label,
+    })),
   };
 }

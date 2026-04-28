@@ -1,14 +1,14 @@
 # ARCHITECTURE
 
-> Generated from the GitNexus knowledge graph for `Chang-Store`.
-> GitNexus local snapshot at generation time: 155 files, 1209 symbols, 88 execution flows.
-> Indexed commit: `22a00e6` (up to date with the local repository when this document was refreshed).
+> Generated from the GitNexus knowledge graph for `chang-store`.
+> Snapshot: 165 files, 2,814 symbols, 87 execution flows.
+> Indexed commit: `7eb916e`.
 
 ## Overview
 
-Chang-Store is an AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite SPA. The architecture centers on a layered flow from presentation components into hooks, service facades, provider-specific integrations, and global state contexts.
+Chang-Store is an AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite single-page application. The product architecture is organized around feature surfaces that collect user intent, hooks that own state and orchestration, service facades that isolate external calls, provider-specific Gemini modules, and shared contexts that preserve cross-feature state.
 
-The knowledge graph shows a codebase organized around a few strongly cohesive areas:
+The intended runtime flow is:
 
 - `Components` — presentation layer and feature entry points
 - `Hooks` — feature logic and orchestration
@@ -19,13 +19,21 @@ The knowledge graph shows a codebase organized around a few strongly cohesive ar
 - `Modals` — UI overlays and settings surfaces
 - `Build` — tooling and runtime setup
 
-At a high level, the application behaves like this:
-
-`Component → Hook → Service/Provider call → Config lookup / API client → Context side effects`
+GitNexus shows that the strongest module boundaries are `Components`, `Services`, `Hooks`, `Gemini`, `Config`, and `Contexts`. Most feature work starts in a component, moves into a feature hook, then reaches shared utilities or service layers for AI calls, downloads, persistence, or model selection.
 
 ## Functional Areas
 
-### 1. Components
+| Area | Symbols | Cohesion | Role |
+|---|---:|---:|---|
+| Components | 58 | 94% | Feature entry points and UI composition. Components should stay thin and bind state/handlers from hooks. |
+| Services | 41 | 96% | Stateless API facades and external-service adapters. Central place for Gemini, Drive, and image-operation routing. |
+| Hooks | 34 | 88% | Feature orchestration, state transitions, validation, loading/error handling, and side effects. |
+| Gemini | 23 | 92% | Provider-specific AI image/text operations behind service facades. |
+| Config | 18 | 85% | Model registry, capability lookup, and model-candidate construction. |
+| Contexts | 13 | 90% | Global app state: language, API provider config, gallery, Drive sync, image viewer. |
+| Modals | 13 | 100% | Focused overlay surfaces such as settings and dialogs. |
+| Build | 8 | 100% | Vite/build/tooling infrastructure. |
+| Upscale | 7 | 100% | Specialized image-upscale workflow and analysis path. |
 
 The `Components` cluster is the primary UI surface and contains feature entry points such as `VirtualTryOn`, `PoseChanger`, and other task-specific screens. These components either act as thin wrappers over hooks or, in some older flows, still hold orchestration logic directly.
 
@@ -134,21 +142,21 @@ flowchart TD
 
 ## Key Execution Flows
 
-### 1. Edit image → model candidate selection
+### 1. Watermark removal single-image download naming → sanitized filename segment
 
-GitNexus process: `EditImage → BuildModelCandidates` (`intra_community`)
+GitNexus process: `WatermarkRemover → SanitizeSegment`
+
+Type: `cross_community`
 
 Trace:
-1. `editImage` — `src/services/gemini/image.ts`
-2. `generateSingleImage` — `src/services/gemini/image.ts`
-3. `getModelCapabilities` — `src/config/modelRegistry.ts`
-4. `getRegisteredModel` — `src/config/modelRegistry.ts`
-5. `buildModelCandidates` — `src/config/modelRegistry.ts`
+
+1. `WatermarkRemover` — `src/components/WatermarkRemover.tsx`
+2. `useWatermarkRemover` — `src/hooks/useWatermarkRemover.ts`
+3. `downloadImageAsJpeg` — `src/utils/imageDownload.ts`
+4. `resolveBaseName` — `src/utils/imageDownload.ts`
+5. `sanitizeSegment` — `src/utils/imageDownload.ts`
 
 Why it matters:
-- This flow shows that image generation/editing is not just a direct Gemini call.
-- The provider layer delegates into a model capability registry before final model candidate construction.
-- `src/config/modelRegistry.ts` is a central architecture node for AI routing decisions.
 
 ### 2. Gallery persistence → Google Drive
 
@@ -169,21 +177,23 @@ Why it matters:
 
 GitNexus process: `PoseChanger → BuildImageServiceConfig`
 
+Type: `intra_community`
+
 Trace:
+
 1. `PoseChanger` — `src/components/PoseChanger.tsx`
-2. `handleRegenerateSingle` — `src/components/PoseChanger.tsx`
-3. `handleGenerate` — `src/components/PoseChanger.tsx`
-4. `generateImageForPrompt` — `src/components/PoseChanger.tsx`
-5. `buildImageServiceConfig` — `src/components/PoseChanger.tsx`
+2. `handleRegenerateSingle` — `src/hooks/usePoseChanger.ts`
+3. `handleGenerate` — `src/hooks/usePoseChanger.ts`
+4. `generateImageForPrompt` — `src/hooks/usePoseChanger.ts`
+5. `buildImageServiceConfig` — `src/hooks/usePoseChanger.ts`
 
 Why it matters:
-- This is an important exception to the preferred architectural pattern.
-- GitNexus shows orchestration staying inside the component instead of cleanly passing through a dedicated hook.
-- It identifies `PoseChanger` as a good candidate for future refactoring toward the standard component → hook pattern.
 
-## Known Architectural Exceptions
+- This flow shows pose feature API configuration is owned by the hook rather than the component.
+- Generation and regeneration reuse the same service-config path, reducing divergence between output flows.
+- API-provider concerns stay below the UI layer.
 
-These items currently deviate from the preferred `Component → Hook → Service` architecture and are ordered below by refactor priority.
+### 5. Pattern generation ZIP download → sanitized filename segment
 
 1. `PoseChanger` (`src/components/PoseChanger.tsx`) — highest priority because generation orchestration remains a major user-facing flow.
 2. `SettingsModal` — high priority because it touches shared provider and model configuration, so layering mistakes here can leak across multiple features.
@@ -191,11 +201,11 @@ These items currently deviate from the preferred `Component → Hook → Service
 4. `PhotoAlbumCreator` — medium priority because it is a feature-specific generation flow with meaningful orchestration.
 5. `LookbookOutput`, `shared/RefinementInput` — lower priority because they are downstream output/refinement surfaces and can follow after the higher-leverage orchestration refactors above.
 
-## Refactor Roadmap
+Type: `cross_community`
 
 The remaining roadmap is to move component-heavy flows toward the target `Component → Hook → Service` architecture without recreating the removed Image Editor, Relight, Upscale, or Outfit Analysis surfaces.
 
-### Verification & Rollback Contract
+The current pose traces show `PoseChanger` delegates generation handlers and service-config construction into `src/hooks/usePoseChanger.ts`. This matches the documented architecture rule that components should be thin UI wrappers and hooks should own feature logic.
 
 Required gates for substantive refactors:
 1. `npx tsc --noEmit` passes.
@@ -204,11 +214,7 @@ Required gates for substantive refactors:
 4. `npm run build` passes at major cross-feature gates.
 5. Runtime service imports in scoped components do not increase; phase targets require runtime service imports to reach zero where specified.
 
-Rollback triggers:
-- build or test gates fail twice in a row,
-- a parity flow breaks,
-- provider/model settings behavior regresses,
-- or a phase introduces a new architectural exception.
+### Context-backed persistence
 
 Rollback action: revert the current phase rewiring, restore the previous boundary temporarily, record the blocker and root cause, then reopen the phase with a smaller scope.
 
@@ -252,10 +258,9 @@ Based on the GitNexus graph, the most important architectural properties of Chan
 
 ## Recommended Reading Order
 
-If you want to understand the current architecture quickly, start here:
-
-1. GitNexus `context` snapshot
-2. `Components`, `Hooks`, `Services`, `Config`, and `Contexts` clusters
-3. `EditImage → BuildModelCandidates`
-4. `ImageGalleryProvider → DriveRequest`
-5. `PoseChanger → BuildImageServiceConfig`
+1. `src/components/` feature entry points for UI shape.
+2. `src/hooks/` paired hooks for orchestration and feature state.
+3. `src/services/imageEditingService.ts` and `src/services/gemini/` for AI provider routing.
+4. `src/config/modelRegistry.ts` for model capability and selection behavior.
+5. `src/contexts/` for provider, gallery, Drive, language, and viewer state; `src/components/Toast.tsx` owns toast state.
+6. `src/utils/imageDownload.ts` and `src/utils/zipDownload.ts` for export/download boundaries.

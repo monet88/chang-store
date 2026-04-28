@@ -9,12 +9,10 @@
  * - Display single result image
  */
 
-import React, { useState, useCallback } from 'react';
-import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
+import React from 'react';
+import { Feature } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useApi } from '../contexts/ApiProviderContext';
-import { editImage } from '../services/imageEditingService';
-import { getErrorMessage } from '../utils/imageUtils';
+import { useAIEditor } from '../hooks/useAIEditor';
 import MultiImageUploader from './MultiImageUploader';
 import MentionTextarea from './MentionTextarea';
 import ImageOptionsPanel from './ImageOptionsPanel';
@@ -22,142 +20,28 @@ import HoverableImage from './HoverableImage';
 import Spinner, { ErrorDisplay } from './Spinner';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 
-/** Regex to extract @img mentions from prompt */
-const MENTION_REGEX = /@img(\d+)/g;
-
 /**
  * AIEditor component
  * Provides multi-image editing with @mention reference system
  */
 const AIEditor: React.FC = () => {
   const { t } = useLanguage();
-  const { imageEditModel } = useApi();
-
-  // State
-  const [images, setImages] = useState<ImageFile[]>([]);
-  const [prompt, setPrompt] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [resultImage, setResultImage] = useState<ImageFile | null>(null);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
-  const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
-
-  /**
-   * Extract mentioned images from prompt
-   * Returns unique images in mention order
-   */
-  const extractMentionedImages = useCallback((promptText: string): ImageFile[] => {
-    const matches = [...promptText.matchAll(MENTION_REGEX)];
-    // Get unique indices (1-based in prompt, convert to 0-based), sorted ascending
-    // Sorting ensures images sent to API match @img1, @img2... order in prompt
-    const indices = [...new Set(matches.map(m => parseInt(m[1]) - 1))]
-      .filter(i => i >= 0 && i < images.length)
-      .sort((a, b) => a - b);
-    return indices.map(i => images[i]);
-  }, [images]);
-
-  /**
-   * Build API prompt with image roles based on mentions
-   */
-  const buildApiPrompt = useCallback((userPrompt: string, mentionedImages: ImageFile[]): string => {
-    if (mentionedImages.length === 0) {
-      // Fallback: use all images, no specific roles
-      return `# INSTRUCTION: IMAGE EDITING
-
-## USER REQUEST:
-${userPrompt}
-
-## OUTPUT:
-Return the edited image as the final result.`;
-    }
-
-    // Build image roles - images are sorted by original index, so position matches tag
-    const imageRoles = mentionedImages.map((img, idx) => {
-      const originalIndex = images.indexOf(img);
-      const tag = `@img${originalIndex + 1}`;
-      return `- Image ${idx + 1} is ${tag}`;
-    }).join('\n');
-
-    return `# INSTRUCTION: MULTI-IMAGE EDITING
-
-## IMAGE ROLES:
-${imageRoles}
-
-## USER REQUEST:
-${userPrompt}
-
-## CRITICAL RULES:
-1. Analyze all provided images based on the user's request
-2. Apply edits as described, using referenced images appropriately
-3. Maintain image quality and natural appearance
-
-## OUTPUT:
-Return the final edited image.`;
-  }, [images]);
-
-  /**
-   * Handle generate button click
-   */
-  const handleGenerate = useCallback(async () => {
-    // Validation
-    if (images.length === 0) {
-      setError(t('aiEditor.error.noImages'));
-      return;
-    }
-    if (!prompt.trim()) {
-      setError(t('aiEditor.error.noPrompt'));
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Extract mentioned images or use all if no mentions
-      const mentionedImages = extractMentionedImages(prompt);
-      const imagesToSend = mentionedImages.length > 0 ? mentionedImages : images;
-      const apiPrompt = buildApiPrompt(prompt, imagesToSend);
-
-      console.log('🎨 AIEditor Request:', {
-        aspectRatio,
-        resolution,
-        model: imageEditModel,
-        totalImages: images.length,
-        mentionedImages: mentionedImages.length,
-        imagesToSend: imagesToSend.length,
-      });
-
-      const [result] = await editImage(
-        {
-          images: imagesToSend,
-          prompt: apiPrompt,
-          numberOfImages: 1,
-          aspectRatio,
-          resolution,
-        },
-        imageEditModel,
-        {
-          onStatusUpdate: () => {},
-        }
-      );
-
-      setResultImage(result);
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
+  const {
     images,
+    setImages,
     prompt,
-    imageEditModel,
+    setPrompt,
+    isLoading,
+    error,
+    resultImage,
     aspectRatio,
+    setAspectRatio,
     resolution,
-    extractMentionedImages,
-    buildApiPrompt,
-    t,
-  ]);
-
+    setResolution,
+    imageEditModel,
+    handleGenerate,
+    clearError,
+  } = useAIEditor();
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
@@ -249,7 +133,7 @@ Return the final edited image.`;
             <ErrorDisplay
               title={t('common.generationFailed')}
               message={error}
-              onClear={() => setError(null)}
+              onClear={clearError}
             />
           )}
         </div>

@@ -93,9 +93,8 @@ Provider nesting order matters:
 - Tailwind only — no inline styles and no `@apply`.
 - i18n usage: `const { t } = useLanguage(); t('key.path')`.
 
-### Known Tech Debt
-These components import services directly and should be handled carefully during refactors:
-`AIEditor`, `LookbookOutput`, `SettingsModal`, `PoseChanger`, `PhotoAlbumCreator`, `shared/RefinementInput`.
+### Service Boundary Status
+UI service-import debt has been cleaned up. Components must not import services directly; use paired hooks and the `src/services/imageEditingService.ts` facade.
 
 ## Important Workflows
 
@@ -157,10 +156,9 @@ Usage: `const { t } = useLanguage(); t('key.path')`
 Tailwind only — no inline styles, no `@apply`. Follow the existing Runway-inspired design patterns in the app and the canonical design docs when available.
 </important>
 
-<important if="you are refactoring or touching components that import services directly">
+<important if="you are refactoring or touching service boundaries">
 
-Known tech debt — these components import services directly (should go through hooks):
-`AIEditor`, `LookbookOutput`, `SettingsModal`, `PoseChanger`, `PhotoAlbumCreator`, `shared/RefinementInput`
+UI service-import debt has been cleaned up. Components must not import `src/services/*` directly; add or extend a paired hook instead. Boundary coverage lives in `__tests__/components/ui-boundary-imports.test.ts`.
 </important>
 
 <important if="you are about to delete files, run destructive git commands, or perform irreversible operations">
@@ -209,9 +207,9 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **chang-store** (2937 symbols, 4021 relationships, 87 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **chang-store** (2931 symbols, 4042 relationships, 90 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-> If any GitNexus tool warns the index is stale, run `gitnexus analyze` in terminal first.
+> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
 ## Always Do
 

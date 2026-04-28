@@ -1,4 +1,5 @@
 import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, UpscaleQuality } from '../types';
+import type { ImageResolution } from '../types';
 import * as geminiImageService from './gemini/image';
 import { getImageDimensions } from '../utils/imageUtils';
 import { logApiCall } from './debugService';
@@ -146,7 +147,7 @@ export const recreateImageWithFace = async (
     model: ImageEditModel,
     config: ApiConfig,
     aspectRatio?: AspectRatio,
-    resolution?: import('../types').ImageResolution
+    resolution?: ImageResolution
 ): Promise<ImageFile> => {
     const startTime = Date.now();
 
@@ -220,7 +221,7 @@ export const recreateImageWithFace = async (
 };
 
 // Re-export types for compatibility
-export type { RefinementHistoryItem } from './gemini/chat';
+export type { RefinementHistoryItem } from '../types';
 import { createImageChatSession as createImageChatSessionGemini } from './gemini/chat';
 
 // Unified ImageChatSession interface

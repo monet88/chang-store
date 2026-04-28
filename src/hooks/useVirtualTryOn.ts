@@ -168,6 +168,8 @@ export const useVirtualTryOn = () => {
     chatSessionsRef.current = {};
     setRefinePrompts({});
     setIsRefining({});
+    setAspectRatio('3:4');
+    setResolution(DEFAULT_IMAGE_RESOLUTION);
   }, []);
 
   const handleGenerateImage = useCallback(async () => {

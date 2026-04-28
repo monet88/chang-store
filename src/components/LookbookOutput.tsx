@@ -1,12 +1,11 @@
 import React, { useCallback } from 'react';
-import { Feature, ImageFile } from '../types';
+import { Feature, ImageFile, RefinementHistoryItem } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import HoverableImage from './HoverableImage';
 import Spinner, { ErrorDisplay } from './Spinner';
 import Tooltip from './Tooltip';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import RefinementInput from './shared/RefinementInput';
-import { RefinementHistoryItem } from '../services/imageEditingService';
 
 export interface LookbookSet {
   main: ImageFile;

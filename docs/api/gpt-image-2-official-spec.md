@@ -1,18 +1,22 @@
-# Official OpenAI API Specification for GPT-Image-2
+# Local OpenAI-Compatible API Specification for GPT-Image-2
 
-This document provides the official standard OpenAI API specification for image generation (Text-to-Image) and image editing (Image-to-Image) using the `gpt-image-2` model.
+This document captures the local OpenAI-compatible proxy shape used for image generation (Text-to-Image) and image editing (Image-to-Image) with the `gpt-image-2` model. Examples point at `http://localhost:8080/v1`; replace the sample bearer token with your local proxy credential before use.
 
 ---
 
 ## 1. Endpoints
 
+> [!NOTE]
+> The endpoint host in this file is intentionally local. It is not the public OpenAI production host.
+
+
 ### 1.1 Image Generation (Text-to-Image)
-- **Endpoint**: `POST https://api.openai.com/v1/images/generations`
+- **Endpoint**: `POST http://localhost:8080/v1/images/generations`
 - **Content-Type**: `application/json`
 - **Purpose**: Create a completely new image from a text prompt.
 
 ### 1.2 Image Edits (Image-to-Image / Reference)
-- **Endpoint**: `POST https://api.openai.com/v1/images/edits`
+- **Endpoint**: `POST http://localhost:8080/v1/images/edits`
 - **Content-Type**: `multipart/form-data`
 - **Purpose**: Create or edit an image based on one or more reference images, with or without a mask.
 
@@ -92,7 +96,7 @@ The parameters below apply primarily to `/v1/images/edits`. (For `/v1/images/gen
 
 **cURL**
 ```bash
-curl -X POST "https://api.openai.com/v1/images/generations" \
+curl -X POST "http://localhost:8080/v1/images/generations" \
   -H "Authorization: Bearer $OPENAI_API_KEY" \
   -H "Content-type: application/json" \
   -d '{
@@ -106,9 +110,13 @@ curl -X POST "https://api.openai.com/v1/images/generations" \
 
 **Python**
 ```python
+import os
 from openai import OpenAI
 
-client = OpenAI()
+client = OpenAI(
+    api_key=os.environ["OPENAI_API_KEY"],
+    base_url="http://localhost:8080/v1"
+)
 
 response = client.images.generate(
     model="gpt-image-2",
@@ -134,7 +142,7 @@ When creating a new image based on multiple reference images, you must use the `
 
 **cURL**
 ```bash
-curl -X POST "https://api.openai.com/v1/images/edits" \
+curl -X POST "http://localhost:8080/v1/images/edits" \
   -H "Authorization: Bearer $OPENAI_API_KEY" \
   -F "model=gpt-image-2" \
   -F "prompt=Generate a photorealistic image of a gift basket on a white background labeled 'Relax & Unwind', containing all the items in the reference pictures." \
@@ -147,9 +155,13 @@ curl -X POST "https://api.openai.com/v1/images/edits" \
 
 **Python**
 ```python
+import os
 from openai import OpenAI
 
-client = OpenAI()
+client = OpenAI(
+    api_key=os.environ["OPENAI_API_KEY"],
+    base_url="http://localhost:8080/v1"
+)
 
 prompt = "Generate a photorealistic image of a gift basket on a white background labeled 'Relax & Unwind', containing all the items in the reference pictures."
 
@@ -173,7 +185,10 @@ print(response.data[0].url)
 import fs from "fs";
 import OpenAI, { toFile } from "openai";
 
-const client = new OpenAI();
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "http://localhost:8080/v1"
+});
 
 async function main() {
   const prompt = "Generate a photorealistic image of a gift basket on a white background labeled 'Relax & Unwind', containing all the items in the reference pictures.";
@@ -212,7 +227,7 @@ If you prefer to receive the raw image data immediately (to save network request
 
 **cURL**
 ```bash
-curl -X POST "https://api.openai.com/v1/images/generations" \
+curl -X POST "http://localhost:8080/v1/images/generations" \
   -H "Authorization: Bearer $OPENAI_API_KEY" \
   -H "Content-type: application/json" \
   -d '{
@@ -228,9 +243,13 @@ curl -X POST "https://api.openai.com/v1/images/generations" \
 **Python**
 ```python
 import base64
+import os
 from openai import OpenAI
 
-client = OpenAI()
+client = OpenAI(
+    api_key=os.environ["OPENAI_API_KEY"],
+    base_url="http://localhost:8080/v1"
+)
 
 response = client.images.generate(
     model="gpt-image-2",
