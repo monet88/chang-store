@@ -44,8 +44,8 @@ import {
   extractOutfitItem,
   critiqueAndRedesignOutfit,
   type EditImageParams,
-  type RedesignPreset,
 } from '@/services/gemini/image';
+import type { RedesignPreset } from '@/types';
 
 // ============================================================================
 // Test Fixtures

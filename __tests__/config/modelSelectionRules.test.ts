@@ -24,24 +24,24 @@ describe('model selection rules', () => {
     expect(backgroundScope?.options).toHaveLength(getModelOptionsBySelectionType('imageEdit').length);
   });
 
-  it('maps image-editor to the image-generation scope', () => {
+  it('maps image-editor to the image-editing scope for existing-image actions', () => {
     const imageEditorScope = resolveModelSelectionScope(Feature.ImageEditor);
 
     expect(imageEditorScope).toMatchObject({
-      selectionType: 'imageGenerate',
-      labelKey: 'modelSelector.scopes.imageGenerate',
+      selectionType: 'imageEdit',
+      labelKey: 'modelSelector.scopes.imageEdit',
     });
-    expect(imageEditorScope?.options).toHaveLength(getModelOptionsBySelectionType('imageGenerate').length);
+    expect(imageEditorScope?.options).toHaveLength(getModelOptionsBySelectionType('imageEdit').length);
   });
 
-  it('maps outfit analysis to the text-generation scope', () => {
+  it('maps outfit analysis to the image-editing scope for redesign and extraction actions', () => {
     const outfitAnalysisScope = resolveModelSelectionScope(Feature.OutfitAnalysis);
 
     expect(outfitAnalysisScope).toMatchObject({
-      selectionType: 'textGenerate',
-      labelKey: 'modelSelector.scopes.textGenerate',
+      selectionType: 'imageEdit',
+      labelKey: 'modelSelector.scopes.imageEdit',
     });
-    expect(outfitAnalysisScope?.options).toHaveLength(getModelOptionsBySelectionType('textGenerate').length);
+    expect(outfitAnalysisScope?.options).toHaveLength(getModelOptionsBySelectionType('imageEdit').length);
   });
 
   it('exposes registry-backed options for all shared selection scopes', () => {

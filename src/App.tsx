@@ -12,8 +12,7 @@ import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
 import MobileOverlay from './components/MobileOverlay';
 import UtilityDock from './components/UtilityDock';
-import { type ModelSelectionType, getModelsBySelectionType } from './config/modelRegistry';
-import { resolveModelSelectionScope } from './config/modelSelectionRules';
+import { useModelSelection } from './hooks/useModelSelection';
 
 const VirtualTryOn = lazy(() => import('./components/VirtualTryOn'));
 const LookbookGenerator = lazy(() => import('./components/LookbookGenerator'));
@@ -176,19 +175,20 @@ const AppContent: React.FC = () => {
   };
 
   const currentFeatureMeta = featureMeta[activeFeature] ?? featureMeta[Feature.TryOn];
-  const activeModelSelectionScope = resolveModelSelectionScope(activeFeature);
-
-  const selectedModelBySelectionType: Record<ModelSelectionType, string> = {
-    imageEdit: imageEditModel,
-    imageGenerate: imageGenerateModel,
-    textGenerate: textGenerateModel,
-  };
-
-  const modelSetterBySelectionType: Record<ModelSelectionType, (modelId: string) => void> = {
-    imageEdit: setImageEditModel,
-    imageGenerate: setImageGenerateModel,
-    textGenerate: setTextGenerateModel,
-  };
+  const {
+    activeModelSelectionScope,
+    textGenerationOptions,
+    getSelectedModelBySelectionType,
+    getModelSetterBySelectionType,
+  } = useModelSelection({
+    activeFeature,
+    imageEditModel,
+    imageGenerateModel,
+    textGenerateModel,
+    setImageEditModel,
+    setImageGenerateModel,
+    setTextGenerateModel,
+  });
 
   const renderActiveFeature = () => {
     switch (activeFeature) {
@@ -266,9 +266,9 @@ const AppContent: React.FC = () => {
                         <GlobalModelSelector
                           ariaLabel={t(activeModelSelectionScope.labelKey)}
                           label={t(activeModelSelectionScope.labelKey)}
-                          selectedModel={selectedModelBySelectionType[activeModelSelectionScope.selectionType]}
+                          selectedModel={getSelectedModelBySelectionType(activeModelSelectionScope.selectionType)}
                           options={activeModelSelectionScope.options}
-                          onChange={modelSetterBySelectionType[activeModelSelectionScope.selectionType]}
+                          onChange={getModelSetterBySelectionType(activeModelSelectionScope.selectionType)}
                         />
                       </div>
                     )}
@@ -278,7 +278,7 @@ const AppContent: React.FC = () => {
                         ariaLabel={t('settingsModal.fields.textGeneration')}
                         label={t('settingsModal.fields.textGeneration')}
                         selectedModel={textGenerateModel}
-                        options={getModelsBySelectionType('textGenerate')}
+                        options={textGenerationOptions}
                         onChange={setTextGenerateModel}
                       />
                     </div>

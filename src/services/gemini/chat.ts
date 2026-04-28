@@ -1,11 +1,7 @@
 import { Part, Modality } from "@google/genai";
 import { ImageFile } from '../../types';
+import type { RefinementHistoryItem } from '../../types';
 import { getGeminiClient } from '../apiClient';
-
-export interface RefinementHistoryItem {
-  prompt: string;
-  timestamp: number;
-}
 
 export interface ImageChatSession {
   sendRefinement(prompt: string, currentImage: ImageFile): Promise<ImageFile>;

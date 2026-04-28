@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
+import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution, RefinementHistoryItem } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, upscaleImage, createImageChatSession, ImageChatSession, RefinementHistoryItem } from '../services/imageEditingService';
+import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { generateClothingDescription } from '../services/textService';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
@@ -166,7 +166,7 @@ export const useLookbookGenerator = () => {
     const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
     const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
     const [isGeneratingCloseUp, setIsGeneratingCloseUp] = useState(false);
-    
+
     const [error, setError] = useState<string | null>(null);
     const [variationCount, setVariationCount] = useState<number>(2);
     const [activeOutputTab, setActiveOutputTab] = useState<'main' | 'variations' | 'closeup'>('main');
@@ -273,30 +273,30 @@ export const useLookbookGenerator = () => {
     }, [formState.clothingImages, t, updateForm, textGenerateModel]);
 
     const handleGenerate = useCallback(async () => {
-        const { clothingImages, lookbookStyle, foldedPresentationType, garmentType, mannequinBackgroundStyle, fabricTextureImage, fabricTexturePrompt, clothingDescription, negativePrompt } = formState;
+        const { clothingImages, fabricTextureImage, negativePrompt } = formState;
         const validClothingImages = clothingImages.filter(item => item.image !== null);
         if (validClothingImages.length === 0) {
           setError(t('lookbook.inputError'));
           return;
         }
-    
+
         setIsLoading(true);
         setLoadingMessage(t('lookbook.generatingStatus'));
         setError(null);
         setGeneratedLookbook(null);
-    
+
         const imagesForApi: ImageFile[] = validClothingImages.map(item => item.image as ImageFile);
-    
+
         if (fabricTextureImage) {
             imagesForApi.push(fabricTextureImage);
         }
-    
+
         const prompt = buildLookbookPrompt(
             formState as PromptFormState,
             imagesForApi,
             fabricTextureImage
         );
-        
+
         try {
           const results = await editImage({
             images: imagesForApi,
@@ -308,12 +308,12 @@ export const useLookbookGenerator = () => {
           }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
           if (results.length > 0) {
             const generatedImage = results[0];
-            
+
             // Store original for version selection
             originalImageRef.current = generatedImage;
             setRefinementVersions([]);
             setSelectedVersionIndex(-1);
-            
+
             setGeneratedLookbook({ main: generatedImage, variations: [], closeups: [] });
             setActiveOutputTab('main');
 
@@ -329,7 +329,7 @@ export const useLookbookGenerator = () => {
           setLoadingMessage('');
         }
     }, [formState, imageEditModel, buildImageServiceConfig, aspectRatio, resolution, t]);
-    
+
     const handleUpscale = useCallback(async (imageToUpscale: ImageFile, imageKey: string) => {
         setUpscalingStates(prev => ({ ...prev, [imageKey]: true }));
         setError(null);
@@ -339,7 +339,7 @@ export const useLookbookGenerator = () => {
                 imageEditModel,
                 buildImageServiceConfig(() => {})
             );
-            
+
             setGeneratedLookbook(prev => {
                 if (!prev) return null;
                 const newState = { ...prev };
@@ -348,7 +348,7 @@ export const useLookbookGenerator = () => {
                 } else {
                     const variationIndex = prev.variations.findIndex(v => v.base64 === imageToUpscale.base64);
                     if (variationIndex > -1) newState.variations[variationIndex] = result;
-    
+
                     const closeupIndex = prev.closeups.findIndex(c => c.base64 === imageToUpscale.base64);
                     if (closeupIndex > -1) newState.closeups[closeupIndex] = result;
                 }
@@ -360,7 +360,7 @@ export const useLookbookGenerator = () => {
             setUpscalingStates(prev => ({ ...prev, [imageKey]: false }));
         }
     }, [imageEditModel, buildImageServiceConfig, t]);
-    
+
     const handleGenerateVariations = useCallback(async () => {
         if (!generatedLookbook) {
             setError(t('lookbook.variationError'));
@@ -368,10 +368,10 @@ export const useLookbookGenerator = () => {
         }
         setIsGeneratingVariations(true);
         setError(null);
-    
+
         const baseImage = generatedLookbook.main;
         const prompt = buildVariationPrompt(formState.lookbookStyle, variationCount);
-        
+
         try {
             const newVariations = await editImage({
                 images: [baseImage],
@@ -398,12 +398,12 @@ export const useLookbookGenerator = () => {
         setIsGeneratingCloseUp(true);
         setError(null);
         setGeneratedLookbook(prev => prev ? { ...prev, closeups: [] } : null);
-    
+
         const baseImage = generatedLookbook.main;
-        
+
         const closeUpPrompts = buildCloseUpPrompts();
         const combinedNegativePrompt = buildCloseUpNegativePrompt(formState.negativePrompt);
-    
+
         try {
             const closeups: ImageFile[] = [];
             for (const closeUpPrompt of closeUpPrompts) {
@@ -481,13 +481,13 @@ export const useLookbookGenerator = () => {
 
     const handleDownloadAll = useCallback(async () => {
         if (!generatedLookbook) return;
-        
+
         const imagesToDownload = [
             generatedLookbook.main,
             ...generatedLookbook.variations,
             ...generatedLookbook.closeups,
         ];
-        
+
         if (imagesToDownload.length === 0) return;
 
         try {

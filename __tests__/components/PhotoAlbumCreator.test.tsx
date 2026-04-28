@@ -190,4 +190,20 @@ describe('PhotoAlbumCreator component', () => {
       numberOfImages: 1,
     });
   });
+
+  it('consumes a transferred outfit image only once when the callback identity changes', () => {
+    const consumed = vi.fn();
+    const transferredImage = { base64: 'transferred-outfit', mimeType: 'image/png' };
+    const { rerender } = render(
+      <PhotoAlbumCreator transferredImage={transferredImage} onTransferConsumed={() => consumed('first')} />,
+    );
+
+    expect(consumed).toHaveBeenCalledTimes(1);
+    expect(consumed).toHaveBeenCalledWith('first');
+    expect(screen.getByRole('button', { name: 'Face and Outfit' })).toHaveClass('bg-zinc-100');
+
+    rerender(<PhotoAlbumCreator transferredImage={transferredImage} onTransferConsumed={() => consumed('second')} />);
+
+    expect(consumed).toHaveBeenCalledTimes(1);
+  });
 });

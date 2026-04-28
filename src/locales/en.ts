@@ -693,6 +693,7 @@ export const en = {
     action: 'Action',
     extracted: 'Extracted!',
     extract: 'Extract',
+    extractedAlt: 'Extracted {{item}}',
     styleSelectionError: 'Please select at least one redesign style.',
     generatingRedesigns: 'Generating redesigns...',
     statusGeneratingStyle: 'Generating "{{style}}" ({{progress}}/{{total}})...',
@@ -983,6 +984,10 @@ Do not include any other text or markdown.
         colorPicker: 'Color Picker',
         colorSwatch: 'Brush Color',
       },
+      loading: {
+        performingAction: 'Performing: {{action}}...',
+        generatingNewImage: 'Generating new image...',
+      },
       rightPanel: {
         magic: 'Magic',
         removeBackground: 'Remove Background',
@@ -1113,6 +1118,7 @@ Do not include any other text or markdown.
     error: {
       noImages: 'Please upload at least one image.',
       noPrompt: 'Please enter an editing prompt.',
+      invalidImageReferences: 'Invalid image reference(s): {{refs}}. Use @img1 through the number of uploaded images.',
     },
     outputPanelDescription: 'Your AI-edited image will appear here.',
   },
@@ -1335,6 +1341,8 @@ Do not include any other text or markdown.
     notifications: {
       restoreSuccess: 'Data restored successfully. The page will now reload to apply changes.',
       restoreFailed: 'Restore failed: {{message}}',
+      invalidFileType: 'Invalid file type. Only JSON files are supported.',
+      fileTooLarge: 'File is too large. Maximum size allowed is 50MB.',
       clearSuccess: 'All application data has been cleared. The page will now reload.',
     },
     developer: {

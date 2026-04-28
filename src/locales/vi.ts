@@ -695,6 +695,7 @@ export const vi: Translation = {
     action: 'Hành động',
     extracted: 'Đã tách!',
     extract: 'Tách',
+    extractedAlt: '{{item}} đã tách',
     styleSelectionError: 'Vui lòng chọn ít nhất một phong cách thiết kế lại.',
     generatingRedesigns: 'Đang tạo các thiết kế lại...',
     statusGeneratingStyle: 'Đang tạo "{{style}}" ({{progress}}/{{total}})...',
@@ -986,6 +987,10 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
         colorPicker: 'Chấm màu',
         colorSwatch: 'Màu cọ',
       },
+      loading: {
+        performingAction: 'Đang thực hiện: {{action}}...',
+        generatingNewImage: 'Đang tạo ảnh mới...',
+      },
       rightPanel: {
         magic: 'Phép thuật',
         removeBackground: 'Xóa nền',
@@ -1116,6 +1121,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     error: {
       noImages: 'Vui lòng tải lên ít nhất một ảnh.',
       noPrompt: 'Vui lòng nhập mô tả chỉnh sửa.',
+      invalidImageReferences: 'Tham chiếu ảnh không hợp lệ: {{refs}}. Hãy dùng @img1 đến số ảnh đã tải lên.',
     },
     outputPanelDescription: 'Ảnh đã chỉnh sửa AI sẽ xuất hiện ở đây.',
   },
@@ -1338,6 +1344,8 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     notifications: {
       restoreSuccess: 'Đã khôi phục dữ liệu. Trang sẽ tải lại để áp dụng thay đổi.',
       restoreFailed: 'Khôi phục thất bại: {{message}}',
+      invalidFileType: 'Loại tệp không hợp lệ. Chỉ hỗ trợ tệp JSON.',
+      fileTooLarge: 'Tệp quá lớn. Dung lượng tối đa cho phép là 50MB.',
       clearSuccess: 'Đã xóa toàn bộ dữ liệu ứng dụng. Trang sẽ tải lại.',
     },
     developer: {

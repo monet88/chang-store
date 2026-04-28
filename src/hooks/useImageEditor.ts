@@ -1,87 +1,252 @@
-
-// hooks/useImageEditor.ts
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { ImageFile, AspectRatio as AspectRatioType } from '../types';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
-import { useApi } from '../contexts/ApiProviderContext';
-import { editImage, generateImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import { useCallback, type Dispatch, type SetStateAction } from 'react';
+import { ImageFile } from '../types';
+import { editImage, generateImage } from '../services/imageEditingService';
 import { getErrorMessage } from '../utils/imageUtils';
 
-// This is a large hook due to the complexity of the editor.
-// In a further refactor, it could be split into multiple hooks.
-export const useImageEditor = (initialImage: ImageFile | null, onClose: () => void) => {
-    // History State
-    const [history, setHistory] = useState<ImageFile[]>(initialImage ? [initialImage] : []);
-    const [currentIndex, setCurrentIndex] = useState(initialImage ? 0 : -1);
-
-    // UI/Loading State
-    const [isLoading, setIsLoading] = useState(false);
-    const [loadingMessage, setLoadingMessage] = useState('');
-    const [error, setError] = useState<string | null>(null);
-
-    // Tool State
-    const [activeTool, setActiveTool] = useState<any | null>(null);
-    const [brushColor, setBrushColor] = useState('#ffffff');
-    const [brushSize, setBrushSize] = useState(20);
-    const [brushOpacity, setBrushOpacity] = useState(100);
-
-    // Adjustment State
-    const [adjustments, setAdjustments] = useState<any>({}); // Simplified for brevity
-    const [hsl, setHsl] = useState<any>({}); // Simplified
-    const [activeHslColor, setActiveHslColor] = useState('red');
-    
-    // Canvas & Interaction State
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const imageRef = useRef<HTMLImageElement>(new Image());
-    // ... other refs and interaction states
-
-    // Refine state — keyed by image slot index (string)
-    const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
-    const [refinePrompts, setRefinePrompts] = useState<Record<string, string>>({});
-    const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
-
-    const { t } = useLanguage();
-    const { addImage } = useImageGallery();
-    const { imageEditModel, imageGenerateModel } = useApi();
-    
-    const currentImage = history[currentIndex] || null;
-
-    // ... all functions and effects from the ImageEditor component
-    // (loadNewImage, addToHistory, handleUndo, handleRedo, performApiAction, canvas handlers, etc.)
-
-    const loadNewImage = useCallback((newImage: ImageFile) => {
-        // ... implementation
-    }, []);
-
-    const performApiAction = useCallback(async (actionKey: string, params: Record<string, any> = {}) => {
-       // ... implementation
-    }, [isLoading, currentImage, /* ... other dependencies */]);
-
-    // ... many more functions
-
-    return {
-        // State
-        currentImage,
-        isLoading,
-        error,
-        activeTool,
-        // ... all other states
-
-        // Refs
-        canvasRef,
-        // ... other refs
-
-        // Handlers
-        loadNewImage,
-        performApiAction,
-        setActiveTool,
-        // ... all other handlers
-
-        // Refine state
-        refinePrompts,
-        setRefinePrompts,
-        isRefining,
-        chatSessionsRef,
-    };
+interface CanvasMetrics {
+  dx: number;
+  dy: number;
+  scale: number;
+  iw: number;
+  ih: number;
 }
+
+interface UseImageEditorServiceActionsParams {
+  isLoading: boolean;
+  currentImage: ImageFile | null;
+  selectionPath: Path2D | null;
+  getCanvasAndImageMetrics: () => CanvasMetrics | null;
+  imageEditModel: string;
+  imageGenerateModel: string;
+  t: (key: string, params?: Record<string, unknown>) => string;
+  setIsLoading: (isLoading: boolean) => void;
+  setError: (error: string | null) => void;
+  setLoadingMessage: (message: string) => void;
+  addToHistory: (image: ImageFile) => void;
+  handleDeselect: () => void;
+  loadNewImage: (image: ImageFile) => void;
+  setView: Dispatch<SetStateAction<'launcher' | 'editor'>>;
+}
+
+const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
+  onStatusUpdate,
+});
+
+const getUnmaskedActionKey = (actionKey: string): string => {
+  if (actionKey === 'aiEditMasked') return 'aiEditFull';
+  if (actionKey.endsWith('Masked')) return actionKey.slice(0, -'Masked'.length);
+  return actionKey;
+};
+
+const getMaskedActionKey = (actionKey: string): string => (
+  actionKey.endsWith('Masked') ? actionKey : `${actionKey}Masked`
+);
+
+export const useImageEditorServiceActions = ({
+  isLoading,
+  currentImage,
+  selectionPath,
+  getCanvasAndImageMetrics,
+  imageEditModel,
+  imageGenerateModel,
+  t,
+  setIsLoading,
+  setError,
+  setLoadingMessage,
+  addToHistory,
+  handleDeselect,
+  loadNewImage,
+  setView,
+}: UseImageEditorServiceActionsParams) => {
+  const performApiAction = useCallback(
+    async (actionKey: string, params: Record<string, string | number> = {}) => {
+      if (isLoading || !currentImage) return;
+
+      setIsLoading(true);
+      setError(null);
+      setLoadingMessage(t('imageEditor.modal.loading.performingAction', { action: actionKey }));
+
+      let finalImages: ImageFile[] = [currentImage];
+      let finalActionKey = getUnmaskedActionKey(actionKey);
+
+      if (selectionPath) {
+        const potentialMaskedKey = getMaskedActionKey(actionKey);
+        const maskedTemplate = t(`imageEditor.modal.apiPrompts.${potentialMaskedKey}`);
+
+        if (maskedTemplate && maskedTemplate !== `imageEditor.modal.apiPrompts.${potentialMaskedKey}`) {
+          const maskCanvas = document.createElement('canvas');
+          const metrics = getCanvasAndImageMetrics();
+          if (metrics) {
+            maskCanvas.width = metrics.iw;
+            maskCanvas.height = metrics.ih;
+            const maskCtx = maskCanvas.getContext('2d');
+            if (maskCtx) {
+              maskCtx.fillStyle = 'black';
+              maskCtx.fillRect(0, 0, metrics.iw, metrics.ih);
+
+              const transform = new DOMMatrix().translate(-metrics.dx, -metrics.dy).scale(1 / metrics.scale);
+              const imageSpacePath = new Path2D();
+              imageSpacePath.addPath(selectionPath, transform);
+
+              maskCtx.fillStyle = 'white';
+              maskCtx.fill(imageSpacePath);
+              const maskBase64 = maskCanvas.toDataURL('image/png').split(',')[1];
+              finalImages = [...finalImages, { base64: maskBase64, mimeType: 'image/png' }];
+              finalActionKey = potentialMaskedKey;
+            }
+          }
+        }
+      }
+
+      const taskPromptTemplate = t(`imageEditor.modal.apiPrompts.${finalActionKey}`);
+      const taskPrompt = Object.entries(params).reduce(
+        (prompt, [key, value]) => prompt.replace(new RegExp(`{{${key}}}`, 'g'), () => String(value)),
+        taskPromptTemplate,
+      );
+
+      try {
+        const [result] = await editImage(
+          { images: finalImages, prompt: taskPrompt, numberOfImages: 1 },
+          imageEditModel,
+          buildImageServiceConfig(setLoadingMessage),
+        );
+        addToHistory(result);
+        handleDeselect();
+      } catch (err) {
+        setError(getErrorMessage(err, t));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      addToHistory,
+      currentImage,
+      getCanvasAndImageMetrics,
+      handleDeselect,
+      imageEditModel,
+      isLoading,
+      selectionPath,
+      setError,
+      setIsLoading,
+      setLoadingMessage,
+      t,
+    ],
+  );
+
+  const handleGenerateAIEdit = useCallback(
+    async (prompt: string) => {
+      if (isLoading || !prompt.trim()) return;
+
+      if (!currentImage) {
+        setIsLoading(true);
+        setError(null);
+        setLoadingMessage(t('imageEditor.modal.loading.generatingNewImage'));
+        try {
+          const [result] = await generateImage(
+            prompt,
+            '1:1',
+            1,
+            imageGenerateModel,
+            buildImageServiceConfig(setLoadingMessage),
+          );
+          loadNewImage(result);
+          setView('editor');
+        } catch (err) {
+          setError(getErrorMessage(err, t));
+        } finally {
+          setIsLoading(false);
+        }
+
+        return;
+      }
+
+      const actionKey = selectionPath ? 'aiEditMasked' : 'aiEditFull';
+      await performApiAction(actionKey, { prompt });
+    },
+    [
+      currentImage,
+      imageGenerateModel,
+      isLoading,
+      loadNewImage,
+      performApiAction,
+      selectionPath,
+      setError,
+      setIsLoading,
+      setLoadingMessage,
+      setView,
+      t,
+    ],
+  );
+
+  const handleApplyAccessory = useCallback(
+    async (type: string, accessoryImageFile: ImageFile) => {
+      if (!currentImage || isLoading) return;
+
+      const accessoryName = t(`imageEditor.modal.rightPanel.accessories.${type}`);
+      const placementInstruction = t(`imageEditor.modal.rightPanel.accessoryPrompts.${type}`);
+
+      let prompt = `Take the accessory ('${accessoryName}') from the second image and place it photorealistically onto the person in the first image. The accessory ${placementInstruction}. The final image must be high-resolution and seamlessly edited.`;
+      const finalImages: ImageFile[] = [currentImage, accessoryImageFile];
+
+      if (selectionPath) {
+        const metrics = getCanvasAndImageMetrics();
+        if (metrics) {
+          const maskCanvas = document.createElement('canvas');
+          maskCanvas.width = metrics.iw;
+          maskCanvas.height = metrics.ih;
+          const maskCtx = maskCanvas.getContext('2d');
+          if (maskCtx) {
+            maskCtx.fillStyle = 'black';
+            maskCtx.fillRect(0, 0, metrics.iw, metrics.ih);
+            const transform = new DOMMatrix().translate(-metrics.dx, -metrics.dy).scale(1 / metrics.scale);
+            const imageSpacePath = new Path2D();
+            imageSpacePath.addPath(selectionPath, transform);
+            maskCtx.fillStyle = 'white';
+            maskCtx.fill(imageSpacePath);
+            const maskBase64 = maskCanvas.toDataURL('image/png').split(',')[1];
+            finalImages.push({ base64: maskBase64, mimeType: 'image/png' });
+
+            prompt = `# INSTRUCTION: MASKED ACCESSORY PLACEMENT\n\n## IMAGE ROLES:\n- Image 1 (Source): The original image.\n- Image 2 (Accessory): The accessory to be placed.\n- Image 3 (Mask): A black and white mask. The **white area** specifies the *only* region where the accessory can be placed.\n\n## REQUEST:\nTake the accessory from Image 2 and place it photorealistically onto the person in Image 1, strictly within the white area of the mask (Image 3). The accessory is a '${accessoryName}' and it should be ${placementInstruction}. The final image must be high-resolution and seamlessly edited.`;
+          }
+        }
+      }
+
+      setIsLoading(true);
+      setError(null);
+      setLoadingMessage(t('imageEditor.modal.rightPanel.applyingAccessory'));
+
+      try {
+        const [result] = await editImage(
+          { images: finalImages, prompt, numberOfImages: 1 },
+          imageEditModel,
+          buildImageServiceConfig(setLoadingMessage),
+        );
+        addToHistory(result);
+        handleDeselect();
+      } catch (err) {
+        setError(getErrorMessage(err, t));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      addToHistory,
+      currentImage,
+      getCanvasAndImageMetrics,
+      handleDeselect,
+      imageEditModel,
+      isLoading,
+      selectionPath,
+      setError,
+      setIsLoading,
+      setLoadingMessage,
+      t,
+    ],
+  );
+
+  return {
+    performApiAction,
+    handleGenerateAIEdit,
+    handleApplyAccessory,
+  };
+};

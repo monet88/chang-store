@@ -1,17 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { getModelsBySelectionType, type RegisteredModel } from '../../config/modelRegistry';
-import { useApi } from '../../contexts/ApiProviderContext';
+import React from 'react';
+import { type SelectableModel } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { getLocalStorageUsage, backupData, restoreData, clearAppData } from '../../utils/storage';
-import { useImageGallery } from '../../contexts/ImageGalleryContext';
-import { isDebugEnabled, setDebugEnabled } from '../../services/debugService';
+import { useSettingsModal } from '../../hooks/useSettingsModal';
 import { CloseIcon } from '../Icons';
 import { GoogleDriveSettings } from '../GoogleDriveSettings';
 
 const sectionTitleClassName = 'text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400';
-const IMAGE_EDIT_MODELS = getModelsBySelectionType('imageEdit');
-const IMAGE_GENERATE_MODELS = getModelsBySelectionType('imageGenerate');
-const TEXT_GENERATE_MODELS = getModelsBySelectionType('textGenerate');
 
 const SectionCard: React.FC<{
   title: string;
@@ -29,7 +23,7 @@ const SectionCard: React.FC<{
 
 const ModelSelector: React.FC<{
   label: string;
-  models: RegisteredModel[];
+  models: SelectableModel[];
   selectedModel: string;
   onModelChange: (modelId: string) => void;
 }> = ({ label, models, selectedModel, onModelChange }) => (
@@ -56,95 +50,31 @@ const ModelSelector: React.FC<{
 export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
   const {
-    imageEditModel, setImageEditModel,
-    imageGenerateModel, setImageGenerateModel,
-    textGenerateModel, setTextGenerateModel,
-  } = useApi();
-  const { images } = useImageGallery();
-
-  const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
-  const [localImageGenerateModel, setLocalImageGenerateModel] = useState(imageGenerateModel);
-  const [localTextGenerateModel, setLocalTextGenerateModel] = useState(textGenerateModel);
-  const [debugMode, setDebugMode] = useState(() => isDebugEnabled());
-  const [storageUsage, setStorageUsage] = useState(0);
-  const [storageQuota, setStorageQuota] = useState(200 * 1024 * 1024);
-
-  const restoreInputRef = useRef<HTMLInputElement>(null);
-  const wasOpenRef = useRef(false);
-
-  const handleDebugToggle = () => {
-    const newValue = !debugMode;
-    setDebugMode(newValue);
-    setDebugEnabled(newValue);
-  };
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleEsc);
-
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    getLocalStorageUsage().then(({ usage, quota }) => {
-      setStorageUsage(usage);
-      if (quota > 0) setStorageQuota(quota);
-    });
-  }, [isOpen, images]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      wasOpenRef.current = false;
-      return;
-    }
-    if (wasOpenRef.current) return;
-
-    wasOpenRef.current = true;
-    setLocalImageEditModel(imageEditModel);
-    setLocalImageGenerateModel(imageGenerateModel);
-    setLocalTextGenerateModel(textGenerateModel);
-  }, [isOpen, imageEditModel, imageGenerateModel, textGenerateModel]);
+    imageEditModels,
+    imageGenerateModels,
+    textGenerateModels,
+    localImageEditModel,
+    localImageGenerateModel,
+    localTextGenerateModel,
+    setLocalImageEditModel,
+    setLocalImageGenerateModel,
+    setLocalTextGenerateModel,
+    debugMode,
+    handleDebugToggle,
+    restoreInputRef,
+    handleRestore,
+    handleClear,
+    handleSave,
+    handleBackup,
+    usageMB,
+    quotaMB,
+    storagePercentage,
+  } = useSettingsModal({
+    isOpen,
+    onClose,
+  });
 
   if (!isOpen) return null;
-
-  const handleSave = () => {
-    setImageEditModel(localImageEditModel);
-    setImageGenerateModel(localImageGenerateModel);
-    setTextGenerateModel(localTextGenerateModel);
-    onClose();
-  };
-
-  const handleRestore = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      await restoreData(file);
-      alert(t('settingsModal.notifications.restoreSuccess'));
-      window.location.reload();
-    } catch (error) {
-      alert(
-        t('settingsModal.notifications.restoreFailed', {
-          message: error instanceof Error ? error.message : String(error),
-        }),
-      );
-    }
-  };
-
-  const handleClear = () => {
-    if (window.confirm(t('settingsModal.confirmations.clearAllData'))) {
-      clearAppData();
-      alert(t('settingsModal.notifications.clearSuccess'));
-      window.location.reload();
-    }
-  };
-
-  const storagePercentage = storageQuota > 0 ? (storageUsage / storageQuota) * 100 : 0;
-  const usageMB = (storageUsage / 1024 / 1024).toFixed(2);
-  const quotaMB = (storageQuota / 1024 / 1024).toFixed(2);
 
   return (
     <div
@@ -186,19 +116,19 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                 <div className="space-y-4">
                   <ModelSelector
                     label={t('settingsModal.fields.textGeneration')}
-                    models={TEXT_GENERATE_MODELS}
+                    models={textGenerateModels}
                     selectedModel={localTextGenerateModel}
                     onModelChange={setLocalTextGenerateModel}
                   />
                   <ModelSelector
                     label={t('settingsModal.fields.imageEditing')}
-                    models={IMAGE_EDIT_MODELS}
+                    models={imageEditModels}
                     selectedModel={localImageEditModel}
                     onModelChange={setLocalImageEditModel}
                   />
                   <ModelSelector
                     label={t('settingsModal.fields.imageGeneration')}
-                    models={IMAGE_GENERATE_MODELS}
+                    models={imageGenerateModels}
                     selectedModel={localImageGenerateModel}
                     onModelChange={setLocalImageGenerateModel}
                   />
@@ -232,11 +162,13 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                         style={{ width: `${Math.min(storagePercentage, 100)}%` }}
                       />
                     </div>
-                    <p className="mt-3 text-xs leading-5 text-zinc-500">{t('settingsModal.storage.usageHint', { percent: storagePercentage.toFixed(1) })}</p>
+                    <p className="mt-3 text-xs leading-5 text-zinc-500">
+                      {t('settingsModal.storage.usageHint', { percent: storagePercentage.toFixed(1) })}
+                    </p>
                   </div>
 
                   <div className="grid gap-2 sm:grid-cols-3">
-                    <button onClick={backupData} className="workspace-button px-4 py-3 text-sm font-medium">
+                    <button onClick={handleBackup} className="workspace-button px-4 py-3 text-sm font-medium">
                       {t('settingsModal.actions.backup')}
                     </button>
                     <button onClick={() => restoreInputRef.current?.click()} className="workspace-button px-4 py-3 text-sm font-medium">

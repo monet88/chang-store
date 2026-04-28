@@ -1,5 +1,5 @@
 import React, { useState, useRef, KeyboardEvent, ChangeEvent } from 'react';
-import { RefinementHistoryItem } from '../../services/imageEditingService';
+import { RefinementHistoryItem } from '../../types';
 import Spinner from '../Spinner';
 import Tooltip from '../Tooltip';
 import { ChevronDownIcon, ChevronUpIcon, HistoryIcon, RefreshIcon, MagicWandIcon } from '../Icons';
