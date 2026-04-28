@@ -142,6 +142,10 @@ Return the final edited image.`;
         },
       );
 
+      if (!result) {
+        throw new Error('error.api.noImageGenerated');
+      }
+
       setResultImage(result);
     } catch (err) {
       setError(getErrorMessage(err, t));

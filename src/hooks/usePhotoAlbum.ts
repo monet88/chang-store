@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -46,6 +46,7 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
   const [error, setError] = useState<string | null>(null);
   const [generationStatus, setGenerationStatus] = useState('');
   const [generationProgress, setGenerationProgress] = useState({ progress: 0, total: 0 });
+  const consumedTransferredImageRef = useRef<ImageFile | undefined>(undefined);
 
   const POSE_LABELS: Record<string, string> = t('photoAlbum.poseLabels', { returnObjects: true });
   const POSES: string[] = PHOTO_ALBUM_POSES.map((pose) => pose.id);
@@ -59,11 +60,14 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
   const SKIN_TONES: Record<string, string> = t('photoAlbum.skinTones', { returnObjects: true });
 
   useEffect(() => {
-    if (transferredImage) {
-      setOutfitImage(transferredImage);
-      setMode('faceAndOutfit');
-      onTransferConsumed?.();
+    if (!transferredImage || consumedTransferredImageRef.current === transferredImage) {
+      return;
     }
+
+    consumedTransferredImageRef.current = transferredImage;
+    setOutfitImage(transferredImage);
+    setMode('faceAndOutfit');
+    onTransferConsumed?.();
   }, [onTransferConsumed, transferredImage]);
 
   const handleStartOver = () => {

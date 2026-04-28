@@ -106,6 +106,24 @@ describe('useAIEditor', () => {
     expect(vi.mocked(editImage).mock.calls[0][0].prompt).not.toContain('MULTI-IMAGE EDITING');
   });
 
+  it('reports an error when the image edit service returns no image', async () => {
+    vi.mocked(editImage).mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useAIEditor());
+
+    act(() => {
+      result.current.setImages([FIRST_IMAGE]);
+      result.current.setPrompt('Make this image feel more editorial');
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    expect(result.current.resultImage).toBeNull();
+    expect(result.current.error).toBe('error.api.noImageGenerated');
+    expect(result.current.isLoading).toBe(false);
+  });
+
   it('ignores re-entrant generate calls while a request is pending', async () => {
     let resolveEdit!: (images: ImageFile[]) => void;
     vi.mocked(editImage).mockImplementationOnce(() => new Promise((resolve) => {
