@@ -1344,6 +1344,8 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     notifications: {
       restoreSuccess: 'Đã khôi phục dữ liệu. Trang sẽ tải lại để áp dụng thay đổi.',
       restoreFailed: 'Khôi phục thất bại: {{message}}',
+      invalidFileType: 'Loại tệp không hợp lệ. Chỉ hỗ trợ tệp JSON.',
+      fileTooLarge: 'Tệp quá lớn. Dung lượng tối đa cho phép là 50MB.',
       clearSuccess: 'Đã xóa toàn bộ dữ liệu ứng dụng. Trang sẽ tải lại.',
     },
     developer: {

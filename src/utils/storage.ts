@@ -39,6 +39,6 @@ export const restoreData = (file: File): Promise<void> => {
     });
 };
 
-export const clearAppData = () => {
+export const clearAppData = async (): Promise<void> => {
     // No-op
 };

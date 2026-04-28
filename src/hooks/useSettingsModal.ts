@@ -5,6 +5,7 @@ import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { isDebugEnabled, setDebugEnabled } from '../services/debugService';
 import { SelectableModel } from '../types';
+import { useToast } from '../components/Toast';
 import { backupData, clearAppData, getLocalStorageUsage, restoreData } from '../utils/storage';
 
 interface UseSettingsModalParams {
@@ -66,6 +67,7 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     setTextGenerateModel,
   } = useApi();
   const { images } = useImageGallery();
+  const { showToast } = useToast();
 
   const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
   const [localImageGenerateModel, setLocalImageGenerateModel] = useState(imageGenerateModel);
@@ -155,6 +157,20 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
         return;
       }
 
+      // Validation: Only JSON files allowed
+      if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+        showToast(t('settingsModal.notifications.invalidFileType'));
+        input.value = '';
+        return;
+      }
+
+      // Validation: Size limit 50MB
+      if (file.size > 50 * 1024 * 1024) {
+        showToast(t('settingsModal.notifications.fileTooLarge'));
+        input.value = '';
+        return;
+      }
+
       input.value = '';
 
       try {
@@ -162,22 +178,22 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
         alert(t('settingsModal.notifications.restoreSuccess'));
         window.location.reload();
       } catch (error) {
-        alert(
+        showToast(
           t('settingsModal.notifications.restoreFailed', {
             message: error instanceof Error ? error.message : String(error),
           }),
         );
       }
     },
-    [t],
+    [t, showToast],
   );
 
-  const handleClear = useCallback(() => {
+  const handleClear = useCallback(async () => {
     if (!window.confirm(t('settingsModal.confirmations.clearAllData'))) {
       return;
     }
 
-    clearAppData();
+    await clearAppData();
     alert(t('settingsModal.notifications.clearSuccess'));
     window.location.reload();
   }, [t]);

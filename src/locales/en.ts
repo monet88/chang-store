@@ -1341,6 +1341,8 @@ Do not include any other text or markdown.
     notifications: {
       restoreSuccess: 'Data restored successfully. The page will now reload to apply changes.',
       restoreFailed: 'Restore failed: {{message}}',
+      invalidFileType: 'Invalid file type. Only JSON files are supported.',
+      fileTooLarge: 'File is too large. Maximum size allowed is 50MB.',
       clearSuccess: 'All application data has been cleared. The page will now reload.',
     },
     developer: {
