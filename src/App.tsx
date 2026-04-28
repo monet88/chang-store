@@ -1,4 +1,4 @@
-import React, { useState, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import { GlobalModelSelector } from './components/GlobalModelSelector';
 import { Feature, ImageFile } from './types';
@@ -32,6 +32,7 @@ const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
 const PromptLibraryModal = lazy(() => import('./components/modals/PromptLibraryModal'));
 const PoseLibraryModal = lazy(() => import('./components/modals/PoseLibraryModal'));
 const SettingsModal = lazy(() => import('./components/modals/SettingsModal').then(m => ({ default: m.SettingsModal })));
+import { saveSessionState, getSessionState } from './utils/storage';
 
 const FeatureLoadingFallback: React.FC = () => (
   <div className="flex h-full min-h-[50vh] items-center justify-center">
@@ -49,7 +50,12 @@ const AppContent: React.FC = () => {
     textGenerateModel,
     setTextGenerateModel,
   } = useApi();
-  const [activeFeature, setActiveFeature] = useState<Feature>(Feature.TryOn);
+  
+  // Load initial active feature from session storage
+  const [activeFeature, setActiveFeature] = useState<Feature>(() => 
+    getSessionState<Feature>('activeFeature', Feature.TryOn)
+  );
+  
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -60,6 +66,11 @@ const AppContent: React.FC = () => {
   const [isPoseLibraryOpen, setIsPoseLibraryOpen] = useState(false);
   const [poseConfirmCallback, setPoseConfirmCallback] = useState<{ fn: (poses: string[]) => void } | null>(null);
   const [initialSelectedPoses, setInitialSelectedPoses] = useState<string[]>([]);
+
+  // Auto-save active feature whenever it changes
+  useEffect(() => {
+    saveSessionState('activeFeature', activeFeature);
+  }, [activeFeature]);
 
   const handleOpenEditor = useCallback((image: ImageFile) => {
     setImageToEdit(image);

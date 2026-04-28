@@ -130,6 +130,22 @@ export class ImageLRUCache<T extends ImageFile = ImageFile> {
   }
 
   /**
+   * Hydrate cache with existing images
+   * Resets cache and adds provided images, preserving order
+   * @param images - Images to load into cache
+   */
+  hydrate(images: T[]): void {
+    this.items = [];
+    this.currentBytes = 0;
+    
+    // Add images in reverse order so the first item in 'images' 
+    // ends up at the front (most recent) of 'this.items'
+    for (let i = images.length - 1; i >= 0; i--) {
+      this.add(images[i]);
+    }
+  }
+
+  /**
    * Get cache metrics for monitoring
    * @returns Metrics object with both numeric and formatted values
    */

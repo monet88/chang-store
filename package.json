@@ -1,7 +1,7 @@
 {
   "name": "chang-store",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
+    "idb-keyval": "^6.2.2",
     "jszip": "^3.10.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"

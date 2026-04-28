@@ -1,15 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
-
-type PoseCollection = {
-    title: string;
-    poses: {
-        title: string;
-        label: string;
-        imageUrl: string;
-    }[];
-}
+import { POSE_COLLECTIONS, PoseCollection } from '../../data/poseLibrary';
 
 const CloseIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" {...props}>
@@ -42,7 +34,7 @@ interface PoseLibraryModalProps {
 
 const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, onConfirm, initialSelectedPoses }) => {
     const { t } = useLanguage();
-    const collections: PoseCollection[] = t('poseChanger.poseCollections', { returnObjects: true });
+    const collections = POSE_COLLECTIONS;
     const [activeCollectionTitle, setActiveCollectionTitle] = useState(collections[0].title);
     const [currentPoseIndex, setCurrentPoseIndex] = useState(0);
     const [selectedPoses, setSelectedPoses] = useState<string[]>(initialSelectedPoses);
