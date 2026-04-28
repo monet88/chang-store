@@ -2,9 +2,10 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockUseApi, mockUseImageGallery, mockUseLanguage } from '../__mocks__/contexts';
 
-const { restoreDataMock, setDebugEnabledMock } = vi.hoisted(() => ({
+const { restoreDataMock, setDebugEnabledMock, showToastMock } = vi.hoisted(() => ({
   restoreDataMock: vi.fn(),
   setDebugEnabledMock: vi.fn(),
+  showToastMock: vi.fn(),
 }));
 
 vi.mock('../../src/contexts/LanguageContext', () =>
@@ -14,6 +15,11 @@ vi.mock('../../src/contexts/LanguageContext', () =>
 );
 vi.mock('../../src/contexts/ApiProviderContext', () => mockUseApi());
 vi.mock('../../src/contexts/ImageGalleryContext', () => mockUseImageGallery());
+vi.mock('../../src/components/Toast', () => ({
+  useToast: () => ({
+    showToast: showToastMock,
+  }),
+}));
 vi.mock('../../src/utils/storage', () => ({
   getLocalStorageUsage: vi.fn().mockResolvedValue({ usage: 0, quota: 1024 }),
   backupData: vi.fn(),
@@ -62,6 +68,6 @@ describe('useSettingsModal', () => {
 
     expect(restoreDataMock).toHaveBeenCalledWith(file);
     expect(input.value).toBe('');
-    expect(alertMock).toHaveBeenCalledWith('settingsModal.notifications.restoreFailed');
+    expect(showToastMock).toHaveBeenCalledWith('settingsModal.notifications.restoreFailed');
   });
 });

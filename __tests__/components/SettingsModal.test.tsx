@@ -55,6 +55,11 @@ vi.mock('@/contexts/ImageGalleryContext', () => ({
     images: galleryImages,
   }),
 }));
+vi.mock('@/components/Toast', () => ({
+  useToast: () => ({
+    showToast: vi.fn(),
+  }),
+}));
 
 vi.mock('@/utils/storage', () => ({
   getLocalStorageUsage: vi.fn().mockResolvedValue({ usage: 0, quota: 1024 }),
