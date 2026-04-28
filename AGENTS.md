@@ -3,7 +3,7 @@
 # Chang-Store
 
 ## Purpose
-AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite SPA with a Gemini-only AI backend via the Google Gemini SDK. The app supports fashion image creation, editing, analysis, upscaling, gallery review, and Google Drive-backed archive workflows.
+AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite SPA with a Gemini-only AI backend via the Google Gemini SDK. The app supports fashion image creation, editing, gallery review, and Google Drive-backed archive workflows.
 
 ## Key Files
 | File | Description |
@@ -30,7 +30,7 @@ AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite SPA wi
 
 | Directory | Role |
 |-----------|------|
-| `src/components/` | UI layer — thin wrappers, feature screens, `upscale/`, `modals/`, and shared UI. |
+| `src/components/` | UI layer — thin wrappers, feature screens, `modals/`, and shared UI. |
 | `src/hooks/` | Feature logic + state; one hook per feature where possible. |
 | `src/services/` | API facades (stateless), including provider-specific Gemini modules. |
 | `src/contexts/` | Global state providers. |
@@ -60,7 +60,7 @@ AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite SPA wi
 
 No React Router — `src/App.tsx` switches on `Feature` enum with lazy-loading. Path alias: `@/*` maps to `src/`.
 
-Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | OutfitAnalysis | Relight | Upscale | ImageEditor | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator`.
+Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator`.
 
 Provider nesting order matters:
 `LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent`
@@ -95,7 +95,7 @@ Provider nesting order matters:
 
 ### Known Tech Debt
 These components import services directly and should be handled carefully during refactors:
-`AIEditor`, `ImageEditor`, `LookbookOutput`, `SettingsModal`, `Relight`, `PoseChanger`, `PhotoAlbumCreator`, `OutfitAnalysis`, `shared/RefinementInput`.
+`AIEditor`, `LookbookOutput`, `SettingsModal`, `PoseChanger`, `PhotoAlbumCreator`, `shared/RefinementInput`.
 
 ## Important Workflows
 
@@ -160,7 +160,7 @@ Tailwind only — no inline styles, no `@apply`. Follow the existing Runway-insp
 <important if="you are refactoring or touching components that import services directly">
 
 Known tech debt — these components import services directly (should go through hooks):
-`AIEditor`, `ImageEditor`, `LookbookOutput`, `SettingsModal`, `Relight`, `PoseChanger`, `PhotoAlbumCreator`, `OutfitAnalysis`, `shared/RefinementInput`
+`AIEditor`, `LookbookOutput`, `SettingsModal`, `PoseChanger`, `PhotoAlbumCreator`, `shared/RefinementInput`
 </important>
 
 <important if="you are about to delete files, run destructive git commands, or perform irreversible operations">
@@ -209,7 +209,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **chang-store** (2936 symbols, 4021 relationships, 87 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **chang-store** (2937 symbols, 4021 relationships, 87 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `gitnexus analyze` in terminal first.
 

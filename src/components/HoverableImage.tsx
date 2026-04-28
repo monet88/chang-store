@@ -4,7 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useToast } from './Toast';
 import Spinner from './Spinner';
-import { CloudUploadIcon, DeleteIcon, DownloadIcon, EditorIcon, FullscreenIcon, GalleryIcon, RegenerateIcon, SendIcon } from './Icons';
+import { CloudUploadIcon, DeleteIcon, DownloadIcon, FullscreenIcon, GalleryIcon, RegenerateIcon, SendIcon } from './Icons';
 import { useImageViewer } from '../contexts/ImageViewerContext';
 import { downloadImageAsJpeg } from '@/utils/imageDownload';
 
@@ -16,7 +16,6 @@ interface HoverableImageProps {
     onRegenerate?: () => void;
     onUpscale?: () => void;
     onDelete?: () => void;
-    onEdit?: () => void;
     onClick?: () => void;
     onSendToFeature?: () => void;
     isGenerating?: boolean;
@@ -32,7 +31,6 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
     onRegenerate,
     onUpscale,
     onDelete,
-    onEdit,
     onClick,
     onSendToFeature,
     isGenerating,
@@ -69,13 +67,6 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
         e.stopPropagation();
         if (onDelete) {
             onDelete();
-        }
-    };
-
-    const handleEditClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (onEdit) {
-            onEdit();
         }
     };
 
@@ -128,15 +119,6 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                         >
                             <GalleryIcon className="w-5 h-5" />
                         </button>
-                         {onEdit && (
-                            <button 
-                                onClick={handleEditClick}
-                                className="p-2 bg-slate-900/50 rounded-full text-white hover:bg-slate-800/80 transition-colors"
-                                aria-label={t('imageActions.edit')}
-                            >
-                                <EditorIcon className="w-5 h-5" />
-                            </button>
-                        )}
                         {onDelete && (
                             <button 
                                 onClick={handleDeleteClick}

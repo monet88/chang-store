@@ -6,7 +6,7 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only
 
 | Directory | Role |
 |-----------|------|
-| `src/components/` | UI layer — thin wrappers (~50 files, incl. `upscale/`, `modals/`) |
+| `src/components/` | UI layer — thin wrappers, feature screens, shared UI, and `modals/` |
 | `src/hooks/` | Feature logic + state (one hook per feature) |
 | `src/services/` | API facades (stateless), incl. `gemini/` |
 | `src/contexts/` | Global state providers |
@@ -33,7 +33,7 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only
 
 No React Router — `App.tsx` switches on `Feature` enum with lazy-loading. Path alias: `@/*` → `src/`.
 
-Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | OutfitAnalysis | Relight | Upscale | ImageEditor | AIEditor | WatermarkRemover | ClothingTransfer`
+Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator`
 
 <important if="you need to run commands to build, test, lint, or type-check">
 
@@ -96,7 +96,7 @@ Tailwind only — no inline styles, no `@apply`. Follow the existing Runway-insp
 <important if="you are refactoring or touching components that import services directly">
 
 Known tech debt — these components import services directly (should go through hooks):
-`AIEditor`, `ImageEditor`, `LookbookOutput`, `SettingsModal`, `Relight`, `PoseChanger`, `PhotoAlbumCreator`, `OutfitAnalysis`, `shared/RefinementInput`
+`AIEditor`, `LookbookOutput`, `SettingsModal`, `PoseChanger`, `PhotoAlbumCreator`, `shared/RefinementInput`
 </important>
 
 <important if="you are about to delete files, run destructive git commands, or perform irreversible operations">
@@ -138,7 +138,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **chang-store** (2936 symbols, 4021 relationships, 87 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **chang-store** (2937 symbols, 4021 relationships, 87 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `gitnexus analyze` in terminal first.
 

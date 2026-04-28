@@ -24,24 +24,8 @@ describe('model selection rules', () => {
     expect(backgroundScope?.options).toHaveLength(getModelOptionsBySelectionType('imageEdit').length);
   });
 
-  it('maps image-editor to the image-generation scope', () => {
-    const imageEditorScope = resolveModelSelectionScope(Feature.ImageEditor);
-
-    expect(imageEditorScope).toMatchObject({
-      selectionType: 'imageGenerate',
-      labelKey: 'modelSelector.scopes.imageGenerate',
-    });
-    expect(imageEditorScope?.options).toHaveLength(getModelOptionsBySelectionType('imageGenerate').length);
-  });
-
-  it('maps outfit analysis to the text-generation scope', () => {
-    const outfitAnalysisScope = resolveModelSelectionScope(Feature.OutfitAnalysis);
-
-    expect(outfitAnalysisScope).toMatchObject({
-      selectionType: 'textGenerate',
-      labelKey: 'modelSelector.scopes.textGenerate',
-    });
-    expect(outfitAnalysisScope?.options).toHaveLength(getModelOptionsBySelectionType('textGenerate').length);
+  it('omits model selector for watermark remover', () => {
+    expect(resolveModelSelectionScope(Feature.WatermarkRemover)).toBeNull();
   });
 
   it('exposes registry-backed options for all shared selection scopes', () => {

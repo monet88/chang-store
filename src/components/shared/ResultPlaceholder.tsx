@@ -19,7 +19,7 @@ interface ResultPlaceholderProps {
  *
  * Shows a centered icon, title, and description when no result is available.
  * Used consistently across VirtualTryOn, BackgroundReplacer, PoseChanger,
- * Relight, VideoGenerator, LookbookOutput, PhotoAlbumCreator, Upscale, AIEditor.
+ * LookbookOutput, PhotoAlbumCreator, and AIEditor.
  */
 // ⚡ Bolt Optimization: Wrapped in React.memo to prevent unnecessary re-renders when parent features update state (e.g. while a generation is loading or inputs change)
 const ResultPlaceholder: React.FC<ResultPlaceholderProps> = React.memo(({

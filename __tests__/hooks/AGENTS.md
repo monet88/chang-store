@@ -11,9 +11,7 @@ Hook-level tests cho state machines, async operations, service calls, gallery si
 |------|-------------|
 | `useVirtualTryOn.test.tsx` | Batch try-on, service calls, và result handling behavior. |
 | `useLookbookGenerator.test.tsx` | Lookbook draft/refinement state và generation flow. |
-| `useUpscale.test.tsx` | Studio/Quick upscale workflow state transitions. |
 | `useClothingTransfer.test.tsx` | Clothing transfer hook orchestration và error cases. |
-| `useOutfitAnalysis.test.tsx` | Outfit analysis workflow behavior. |
 | `usePatternGenerator.test.tsx` | Pattern generator hook state và generation behavior. |
 
 ## Subdirectories

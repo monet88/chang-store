@@ -19,14 +19,6 @@ vi.mock('../../src/services/gemini/image', () => ({
   editImage: vi.fn(),
   generateImageFromText: vi.fn(),
   upscaleImage: vi.fn(),
-  extractOutfitItem: vi.fn(),
-  critiqueAndRedesignOutfit: vi.fn(),
-  PRESET_PROMPTS: {
-    casual: 'Casual prompt',
-    'smart-casual': 'Smart casual prompt',
-    luxury: 'Luxury prompt',
-    'asian-style': 'Asian style prompt',
-  },
 }));
 
 
@@ -41,8 +33,6 @@ import {
   editImage,
   generateImage,
   upscaleImage,
-  extractOutfitItem,
-  critiqueAndRedesignOutfit,
   recreateImageWithFace,
 } from '../../src/services/imageEditingService';
 import { getImageDimensions } from '../../src/utils/imageUtils';
@@ -187,84 +177,6 @@ describe('upscaleImage', () => {
       '2K',
       expect.stringContaining('Upscale this image to 2K resolution'),
       'gemini-2.5-flash-image',
-    );
-    expect(result).toEqual(mockResult);
-  });
-});
-
-// ============================================================================
-// Test Suite: extractOutfitItem
-// ============================================================================
-
-describe('extractOutfitItem', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  /**
-   * Test: Routes to gemini for gemini models
-   */
-  it('should route to gemini/image.extractOutfitItem for gemini models', async () => {
-    // Arrange
-    const mockResult = { base64: 'extracted', mimeType: 'image/png' };
-    vi.mocked(geminiImageService.extractOutfitItem).mockResolvedValueOnce(mockResult);
-
-    // Act
-    const result = await extractOutfitItem(
-      TEST_IMAGE,
-      'red t-shirt',
-      'gemini-2.5-flash-image',
-      DEFAULT_CONFIG
-    );
-
-    // Assert
-    expect(geminiImageService.extractOutfitItem).toHaveBeenCalledWith(
-      TEST_IMAGE,
-      'red t-shirt',
-      'gemini-2.5-flash-image'
-    );
-    expect(result).toEqual(mockResult);
-  });
-});
-
-// ============================================================================
-// Test Suite: critiqueAndRedesignOutfit
-// ============================================================================
-
-describe('critiqueAndRedesignOutfit', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  /**
-   * Test: Routes to gemini for gemini models
-   */
-  it('should route to gemini/image.critiqueAndRedesignOutfit for gemini models', async () => {
-    // Arrange
-    const mockResult = {
-      critique: 'Nice outfit',
-      redesignedImages: [{ base64: 'redesigned', mimeType: 'image/png' }],
-    };
-    vi.mocked(geminiImageService.critiqueAndRedesignOutfit).mockResolvedValueOnce(mockResult);
-
-    // Act
-    const result = await critiqueAndRedesignOutfit(
-      TEST_IMAGE,
-      'casual',
-      1,
-      'gemini-2.5-flash-image',
-      DEFAULT_CONFIG,
-      'Default'
-    );
-
-    // Assert
-    expect(geminiImageService.critiqueAndRedesignOutfit).toHaveBeenCalledWith(
-      TEST_IMAGE,
-      'casual',
-      1,
-      'gemini-2.5-flash-image',
-      'Default',
-      undefined // resolution parameter (optional)
     );
     expect(result).toEqual(mockResult);
   });

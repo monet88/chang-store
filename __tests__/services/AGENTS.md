@@ -4,7 +4,7 @@
 # services tests
 
 ## Purpose
-Tests cho service facade routing, Gemini provider behavior, Google Drive service behavior, API client setup, và upscale analysis service. Đây là lớp đảm bảo hooks không phải biết chi tiết provider implementation.
+Tests cho service facade routing, Gemini provider behavior, Google Drive service behavior, và API client setup. Đây là lớp đảm bảo hooks không phải biết chi tiết provider implementation.
 
 ## Key Files
 | File | Description |
@@ -12,7 +12,6 @@ Tests cho service facade routing, Gemini provider behavior, Google Drive service
 | `imageEditingService.test.ts` | Routing và parameter forwarding qua image editing facade. |
 | `apiClient.test.ts` | Gemini client creation/key behavior. |
 | `googleDriveService.test.ts` | Drive API requests và error handling. |
-| `upscaleAnalysisService.test.ts` | Upscale analysis orchestration và response handling. |
 
 ## Subdirectories
 | Directory | Purpose |

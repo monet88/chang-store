@@ -12,8 +12,6 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'navigation.editImages.description': 'Edit description',
         'navigation.outputStudio.label': 'Output studio',
         'navigation.outputStudio.description': 'Output description',
-        'navigation.analyze.label': 'Analyze',
-        'navigation.analyze.description': 'Analyze description',
         'tabs.tryOn': 'Virtual Try-On',
         'tabs.lookbook': 'Lookbook AI',
         'tabs.clothingTransfer': 'Clothing Transfer',
@@ -21,12 +19,8 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'tabs.aiEditor': 'AI Editor',
         'tabs.background': 'Backgrounds',
         'tabs.pose': 'Pose AI',
-        'tabs.relight': 'Relight',
         'tabs.watermarkRemover': 'Watermark Remover',
-        'tabs.imageEditor': 'Image Editor',
         'tabs.photoAlbum': 'Photo Album',
-        'tabs.upscale': 'Upscale',
-        'tabs.outfitAnalysis': 'Redesign',
       };
 
       return translations[key] ?? key;
@@ -52,14 +46,16 @@ describe('Tabs', () => {
     expect(screen.getByText('Create looks')).toBeInTheDocument();
     expect(screen.getByText('Edit images')).toBeInTheDocument();
     expect(screen.getByText('Output studio')).toBeInTheDocument();
-    expect(screen.getByText('Analyze')).toBeInTheDocument();
 
-    expect(screen.getByRole('button', { name: /Image Editor/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Image Editor/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Relight/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Upscale/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Redesign/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Lookbook AI/i }));
     expect(setActiveFeature).toHaveBeenCalledWith(Feature.Lookbook);
 
-    await user.click(screen.getByRole('button', { name: /Image Editor/i }));
-    expect(setActiveFeature).toHaveBeenCalledWith(Feature.ImageEditor);
+    await user.click(screen.getByRole('button', { name: /Watermark Remover/i }));
+    expect(setActiveFeature).toHaveBeenCalledWith(Feature.WatermarkRemover);
   });
 });

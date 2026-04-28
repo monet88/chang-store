@@ -89,11 +89,11 @@ vi.mock('../src/components/Header', () => ({
       <button type="button" onClick={() => setActiveFeature('try-on')}>
         feature-try-on
       </button>
-      <button type="button" onClick={() => setActiveFeature('image-editor')}>
-        feature-image-editor
+      <button type="button" onClick={() => setActiveFeature('pattern-generator')}>
+        feature-pattern-generator
       </button>
-      <button type="button" onClick={() => setActiveFeature('outfit-analysis')}>
-        feature-outfit-analysis
+      <button type="button" onClick={() => setActiveFeature('watermark-remover')}>
+        feature-watermark-remover
       </button>
     </div>
   ),
@@ -145,22 +145,6 @@ vi.mock('../src/components/PoseChanger', () => ({
 
 vi.mock('../src/components/PhotoAlbumCreator', () => ({
   PhotoAlbumCreator: featureStub('photo-album-creator'),
-}));
-
-vi.mock('../src/components/OutfitAnalysis', () => ({
-  default: featureStub('outfit-analysis'),
-}));
-
-vi.mock('../src/components/Relight', () => ({
-  default: featureStub('relight'),
-}));
-
-vi.mock('../src/components/Upscale', () => ({
-  default: featureStub('upscale'),
-}));
-
-vi.mock('../src/components/ImageEditor', () => ({
-  ImageEditor: featureStub('image-editor'),
 }));
 
 vi.mock('../src/components/AIEditor', () => ({
@@ -236,14 +220,12 @@ describe('App utility dock regression', () => {
     await user.selectOptions(screen.getByLabelText('Image editing model'), 'gemini-2.5-flash-image');
     expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
 
-    await user.click(screen.getByText('feature-image-editor'));
-    expect(screen.getByLabelText('Image generation model')).toHaveValue('imagen-4.0-generate-001');
-    await user.selectOptions(screen.getByLabelText('Image generation model'), 'imagen-4.0-fast-generate-001');
-    expect(mockSetImageGenerateModel).toHaveBeenCalledWith('imagen-4.0-fast-generate-001');
+    await user.click(screen.getByText('feature-pattern-generator'));
+    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
 
-    await user.click(screen.getByText('feature-outfit-analysis'));
-    expect(screen.getByLabelText('Text generation model')).toHaveValue('gemini-3-flash-preview');
-    await user.selectOptions(screen.getByLabelText('Text generation model'), 'gemini-2.5-pro');
-    expect(mockSetTextGenerateModel).toHaveBeenCalledWith('gemini-2.5-pro');
+    await user.click(screen.getByText('feature-watermark-remover'));
+    expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Image generation model')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Text generation model')).not.toBeInTheDocument();
   });
 });

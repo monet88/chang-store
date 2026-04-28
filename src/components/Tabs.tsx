@@ -30,9 +30,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
         { id: Feature.AIEditor, label: t('tabs.aiEditor') },
         { id: Feature.Background, label: t('tabs.background') },
         { id: Feature.Pose, label: t('tabs.pose') },
-        { id: Feature.Relight, label: t('tabs.relight') },
         { id: Feature.WatermarkRemover, label: t('tabs.watermarkRemover') },
-        { id: Feature.ImageEditor, label: t('tabs.imageEditor') },
       ],
     },
     {
@@ -41,15 +39,6 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
       description: t('navigation.outputStudio.description'),
       items: [
         { id: Feature.PhotoAlbum, label: t('tabs.photoAlbum') },
-        { id: Feature.Upscale, label: t('tabs.upscale') },
-      ],
-    },
-    {
-      key: 'analyze',
-      title: t('navigation.analyze.label'),
-      description: t('navigation.analyze.description'),
-      items: [
-        { id: Feature.OutfitAnalysis, label: t('tabs.outfitAnalysis') },
       ],
     },
   ];

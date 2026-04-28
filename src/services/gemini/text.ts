@@ -1,6 +1,6 @@
 
-import { Part, Type } from "@google/genai";
-import { ImageFile, AnalyzedItem } from '../../types';
+import { Part } from "@google/genai";
+import { ImageFile } from '../../types';
 import { getGeminiClient } from '../apiClient';
 
 export const generateText = async (prompt: string, model: string = 'gemini-2.5-pro'): Promise<string> => {
@@ -191,82 +191,6 @@ export const generatePoseDescription = async (image: ImageFile): Promise<string>
     console.error("Error generating pose description with Gemini API:", error);
     const errorMessage = error instanceof Error ? error.message : "error.unknown";
     throw new Error(errorMessage.startsWith('error.') ? errorMessage : `error.api.poseDescriptionFailed:${errorMessage}`);
-  }
-};
-
-export const analyzeOutfit = async (image: ImageFile): Promise<AnalyzedItem[]> => {
-  const ai = getGeminiClient();
-  try {
-    const imagePart: Part = {
-      inlineData: {
-        data: image.base64,
-        mimeType: image.mimeType,
-      },
-    };
-    const textPart: Part = {
-      text: `Analyze the provided image of a person's outfit. Identify each distinct clothing item and accessory (e.g., shirt, pants, shoes, watch, handbag). For each item, provide a concise description and suggest 2-3 high-end or popular brand names that might offer a similar style. Structure the output as a JSON array.`,
-    };
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: { parts: [imagePart, textPart] },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              item: {
-                type: Type.STRING,
-                description: 'The name of the clothing item or accessory (e.g., "White T-Shirt", "Leather Handbag").',
-              },
-              description: {
-                type: Type.STRING,
-                description: 'A concise description of the item, including material, style, and color.',
-              },
-              possibleBrands: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.STRING,
-                },
-                description: 'A list of 2-3 popular or high-end brands known for similar styles.',
-              },
-            },
-            required: ['item', 'description', 'possibleBrands'],
-          },
-        },
-      },
-    });
-
-    const jsonText = response.text;
-    if (!jsonText) {
-      throw new Error('error.api.noContent');
-    }
-
-    let cleanJson = jsonText.trim();
-    if (cleanJson.startsWith('```json')) {
-        cleanJson = cleanJson.substring(7);
-    }
-    if (cleanJson.endsWith('```')) {
-        cleanJson = cleanJson.substring(0, cleanJson.length - 3);
-    }
-    
-    const data = JSON.parse(cleanJson);
-    if (!Array.isArray(data)) {
-        throw new Error('error.api.invalidAnalysis');
-    }
-
-    if (data.some(item => !item.item || !item.description || !item.possibleBrands)) {
-        throw new Error('error.api.invalidAnalysis');
-    }
-
-    return data as AnalyzedItem[];
-
-  } catch (error) {
-    console.error("Error analyzing outfit with Gemini API:", error);
-    const errorMessage = error instanceof Error ? error.message : "error.unknown";
-    throw new Error(errorMessage.startsWith('error.') ? errorMessage : `error.api.analysisFailed:${errorMessage}`);
   }
 };
 

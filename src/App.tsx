@@ -20,10 +20,6 @@ const LookbookGenerator = lazy(() => import('./components/LookbookGenerator'));
 const BackgroundReplacer = lazy(() => import('./components/BackgroundReplacer'));
 const PoseChanger = lazy(() => import('./components/PoseChanger'));
 const PhotoAlbumCreator = lazy(() => import('./components/PhotoAlbumCreator').then(m => ({ default: m.PhotoAlbumCreator })));
-const OutfitAnalysis = lazy(() => import('./components/OutfitAnalysis'));
-const Relight = lazy(() => import('./components/Relight'));
-const Upscale = lazy(() => import('./components/Upscale'));
-const ImageEditor = lazy(() => import('./components/ImageEditor').then(m => ({ default: m.ImageEditor })));
 const AIEditor = lazy(() => import('./components/AIEditor'));
 const WatermarkRemover = lazy(() => import('./components/WatermarkRemover'));
 const ClothingTransfer = lazy(() => import('./components/ClothingTransfer'));
@@ -54,19 +50,12 @@ const AppContent: React.FC = () => {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [imageToEdit, setImageToEdit] = useState<ImageFile | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [transferPayload, setTransferPayload] = useState<{ feature: Feature; image: ImageFile } | null>(null);
 
   const [isPoseLibraryOpen, setIsPoseLibraryOpen] = useState(false);
   const [poseConfirmCallback, setPoseConfirmCallback] = useState<{ fn: (poses: string[]) => void } | null>(null);
   const [initialSelectedPoses, setInitialSelectedPoses] = useState<string[]>([]);
-
-  const handleOpenEditor = useCallback((image: ImageFile) => {
-    setImageToEdit(image);
-    setActiveFeature(Feature.ImageEditor);
-    setIsGalleryOpen(false);
-  }, []);
 
   const handleOpenPoseLibrary = useCallback((onConfirm: (poses: string[]) => void, initialPoses: string[]) => {
     setPoseConfirmCallback({ fn: onConfirm });
@@ -86,11 +75,6 @@ const AppContent: React.FC = () => {
   const handleOpenPromptLibrary = useCallback(() => setIsPromptLibraryOpen(true), []);
   const handleClosePromptLibrary = useCallback(() => setIsPromptLibraryOpen(false), []);
   const handleClosePoseLibrary = useCallback(() => setIsPoseLibraryOpen(false), []);
-  const handleCloseEditor = useCallback(() => {
-    setActiveFeature(Feature.TryOn);
-    setImageToEdit(null);
-  }, []);
-
   const handleToggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
   const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
@@ -143,35 +127,15 @@ const AppContent: React.FC = () => {
       group: t('navigation.editImages.label'),
       description: t('workspace.flows.pose'),
     },
-    [Feature.Relight]: {
-      label: t('tabs.relight'),
-      group: t('navigation.editImages.label'),
-      description: t('workspace.flows.relight'),
-    },
     [Feature.WatermarkRemover]: {
       label: t('tabs.watermarkRemover'),
       group: t('navigation.editImages.label'),
       description: t('workspace.flows.watermarkRemover'),
     },
-    [Feature.ImageEditor]: {
-      label: t('tabs.imageEditor'),
-      group: t('navigation.editImages.label'),
-      description: t('workspace.flows.imageEditor'),
-    },
     [Feature.PhotoAlbum]: {
       label: t('tabs.photoAlbum'),
       group: t('navigation.outputStudio.label'),
       description: t('workspace.flows.photoAlbum'),
-    },
-    [Feature.Upscale]: {
-      label: t('tabs.upscale'),
-      group: t('navigation.outputStudio.label'),
-      description: t('workspace.flows.upscale'),
-    },
-    [Feature.OutfitAnalysis]: {
-      label: t('tabs.outfitAnalysis'),
-      group: t('navigation.analyze.label'),
-      description: t('workspace.flows.outfitAnalysis'),
     },
   };
 
@@ -208,12 +172,6 @@ const AppContent: React.FC = () => {
             onTransferConsumed={clearTransferPayload}
           />
         );
-      case Feature.OutfitAnalysis:
-        return <OutfitAnalysis key="outfit-analysis" />;
-      case Feature.Relight:
-        return <Relight key="relight" />;
-      case Feature.Upscale:
-        return <Upscale key="upscale" />;
       case Feature.AIEditor:
         return <AIEditor key="ai-editor" />;
       case Feature.WatermarkRemover:
@@ -222,8 +180,6 @@ const AppContent: React.FC = () => {
         return <ClothingTransfer key="clothing-transfer" onSendToFeature={handleSendToFeature} />;
       case Feature.PatternGenerator:
         return <PatternGenerator key="pattern-generator" />;
-      case Feature.ImageEditor:
-        return null;
       default:
         return <VirtualTryOn key="try-on" />;
     }
@@ -304,7 +260,7 @@ const AppContent: React.FC = () => {
         />
 
         <Suspense fallback={null}>
-          {isGalleryOpen && <GalleryModal onClose={handleCloseGallery} onEditImage={handleOpenEditor} />}
+          {isGalleryOpen && <GalleryModal onClose={handleCloseGallery} />}
           {isPromptLibraryOpen && <PromptLibraryModal isOpen={isPromptLibraryOpen} onClose={handleClosePromptLibrary} />}
           {isSettingsOpen && <SettingsModal isOpen={isSettingsOpen} onClose={handleCloseSettings} />}
         </Suspense>
@@ -317,13 +273,6 @@ const AppContent: React.FC = () => {
             onClose={handleClosePoseLibrary}
             onConfirm={handlePoseLibraryConfirm}
             initialSelectedPoses={initialSelectedPoses}
-          />
-        )}
-
-        {activeFeature === Feature.ImageEditor && (
-          <ImageEditor
-            onClose={handleCloseEditor}
-            initialImage={imageToEdit}
           />
         )}
       </Suspense>
