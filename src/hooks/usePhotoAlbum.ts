@@ -60,7 +60,12 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
   const SKIN_TONES: Record<string, string> = t('photoAlbum.skinTones', { returnObjects: true });
 
   useEffect(() => {
-    if (!transferredImage || consumedTransferredImageRef.current === transferredImage) {
+    if (!transferredImage) {
+      consumedTransferredImageRef.current = undefined;
+      return;
+    }
+
+    if (consumedTransferredImageRef.current === transferredImage) {
       return;
     }
 

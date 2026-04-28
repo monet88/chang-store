@@ -117,6 +117,7 @@ Return the final edited image.`;
     generationInFlightRef.current = true;
     setIsLoading(true);
     setError(null);
+    setResultImage(null);
 
     try {
       const mentionedSelection = extractMentionedImages(prompt);
