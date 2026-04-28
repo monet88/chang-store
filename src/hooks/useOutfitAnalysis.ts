@@ -52,6 +52,8 @@ export const useOutfitAnalysis = () => {
     setRedesignResults([]);
     setSelectedPresets([]);
     setGenerationCount(1);
+    setAspectRatio('Default');
+    setResolution(DEFAULT_IMAGE_RESOLUTION);
     setIsLoading(false);
     setLoadingMessage('');
     setError(null);

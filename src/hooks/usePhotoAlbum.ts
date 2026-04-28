@@ -79,6 +79,8 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
     setGeneratedImages([]);
     setError(null);
     setIsLoading(false);
+    setAspectRatio('9:16');
+    setResolution(DEFAULT_IMAGE_RESOLUTION);
   };
 
   const generateImageForPose = async (pose: string): Promise<GeneratedAlbumImage> => {
