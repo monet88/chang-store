@@ -20,11 +20,14 @@ Phiên bản tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Refactor: tách service flows từ components vào hooks (PoseChanger, ImageEditor, BackgroundReplacer, etc.)
 - Refactor: isolate UI model boundary — components không import services trực tiếp
 - Centralize shared Gemini type contracts
+- Centralize `AdjustmentState`, `HSLState`, `GalleryImageFile` to `types.ts` to resolve circular dependencies
 - CI logs chỉ hiển thị actionable failures
 - Gemini-only architecture reflected trong code và docs
 - Rename `.claude/` → `.agents/`
 
 ### Fixed
+- IndexedDB persistence race condition during initialization (`isHydrated` guard)
+- Image editor UI overflow restoration and hover overlay positioning
 - AI editor duplicate generation
 - Service boundary review blockers
 - Dropdown option text color visibility

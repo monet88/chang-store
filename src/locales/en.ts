@@ -926,6 +926,7 @@ Do not include any other text or markdown.
         generatingNewImage: 'Generating new image...',
       },
       rightPanel: {
+        clickToUpload: 'Click to upload',
         magic: 'Magic',
         removeBackground: 'Remove Background',
         invertColor: 'Invert Color',
@@ -989,6 +990,7 @@ Do not include any other text or markdown.
         crop: {
           aspectRatio: 'Aspect Ratio',
           free: 'Free',
+          perspectiveInstructions: 'Click 4 points on the image to define corners. Drag handles to adjust. Press Enter to apply or Esc to cancel.',
           apply: 'Apply Crop',
           cancel: 'Cancel Crop',
         },

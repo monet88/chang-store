@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ImageFile } from '../types';
+import { ImageFile, GalleryImageFile } from '../types';
 import { useGoogleDrive } from '../contexts/GoogleDriveContext';
 import {
   getOrCreateAppFolder,
@@ -42,7 +42,7 @@ interface QueueOperation {
 }
 
 /** Extended ImageFile with Drive metadata */
-export interface GalleryImageFile extends ImageFile {
+export interface OldGalleryImageFile extends ImageFile {
   /** Google Drive file ID (undefined if not yet synced) */
   driveFileId?: string;
   /** Feature that generated this image */

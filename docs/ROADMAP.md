@@ -1,7 +1,7 @@
 # Roadmap
 
 > Hướng đi chiến lược cho Chang-Store — AI-Powered Virtual Fashion Studio.  
-> Cập nhật: 28/04/2026 · Phiên bản hiện tại: v1.0.2 (tag v1.5)
+> Cập nhật: 28/04/2026 · Phiên bản hiện tại: v1.0.3 (tag v1.5)
 
 ---
 

@@ -14,10 +14,11 @@ export const ImageSelectionModal: React.FC<{
 
     useEffect(() => {
         if (!isOpen) return;
+        const previousOverflow = document.body.style.overflow;
         const handleEsc = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
         window.addEventListener('keydown', handleEsc);
         document.body.style.overflow = 'hidden';
-        return () => { window.removeEventListener('keydown', handleEsc); document.body.style.overflow = 'auto'; };
+        return () => { window.removeEventListener('keydown', handleEsc); document.body.style.overflow = previousOverflow; };
     }, [isOpen, onClose]);
     
     if (!isOpen) return null;
@@ -36,7 +37,7 @@ export const ImageSelectionModal: React.FC<{
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-w-7xl mx-auto">
                         {images.map((image, index) => (
-                           <button key={`${index}-${image.base64.substring(0, 20)}`} onClick={() => onSelect(image)} className="aspect-square bg-zinc-800 rounded-lg overflow-hidden group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:ring-amber-500 transition-transform transform hover:scale-105" aria-label={`${t('imageSelectionModal.select')} ${t('gallery.altText', { index: index + 1 })}`}>
+                           <button key={`${index}-${image.base64.substring(0, 20)}`} onClick={() => onSelect(image)} className="relative aspect-square bg-zinc-800 rounded-lg overflow-hidden group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:ring-amber-500 transition-transform transform hover:scale-105" aria-label={`${t('imageSelectionModal.select')} ${t('gallery.altText', { index: index + 1 })}`}>
                                 <img src={`data:${image.mimeType};base64,${image.base64}`} alt={t('gallery.altText', { index: index + 1 })} className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <span className="text-white font-bold">{t('imageSelectionModal.select')}</span>

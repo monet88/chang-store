@@ -1,5 +1,5 @@
 import { get, set, del, clear, keys } from 'idb-keyval';
-import { GalleryImageFile } from '../hooks/useGoogleDriveSync';
+import { GalleryImageFile } from '../types';
 
 const GALLERY_STORE_KEY = 'chang-store-gallery-images';
 

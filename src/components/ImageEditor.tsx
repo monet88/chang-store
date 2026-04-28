@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ImageFile, AspectRatio as AspectRatioType, Feature } from '../types';
+import { ImageFile, AspectRatio as AspectRatioType, Feature, AdjustmentState, HSLState, INITIAL_ADJUSTMENTS, INITIAL_HSL } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -21,10 +21,6 @@ import { ImageEditorToolbar } from './ImageEditorToolbar';
 import { 
     RightPanel, 
     Tool, 
-    AdjustmentState, 
-    HSLState, 
-    INITIAL_ADJUSTMENTS, 
-    INITIAL_HSL 
 } from './ImageEditorSidebar';
 import { ImageSelectionModal } from './ImageEditorUIHelpers';
 import { 

@@ -19,6 +19,40 @@ export interface ImageFile {
   mimeType: string;
 }
 
+/** Extended ImageFile with Drive metadata */
+export interface GalleryImageFile extends ImageFile {
+  /** Google Drive file ID (undefined if not yet synced) */
+  driveFileId?: string;
+  /** Feature that generated this image */
+  feature?: string;
+  /** Creation timestamp */
+  createdAt?: Date;
+}
+
+export interface AdjustmentState {
+    exposure: number; contrast: number; temperature: number; tint: number;
+    vibrance: number; saturation: number; grain: number; clarity: number;
+    dehaze: number; blur: number;
+}
+
+export interface HSLColor { hue: number; saturation: number; luminance: number; }
+export type HSLState = Record<string, HSLColor>;
+
+export const INITIAL_ADJUSTMENTS: AdjustmentState = {
+    exposure: 0, contrast: 0, temperature: 0, tint: 0,
+    vibrance: 0, saturation: 0, grain: 0, clarity: 0,
+    dehaze: 0, blur: 0,
+};
+
+export const INITIAL_HSL: HSLState = {
+    red: { hue: 0, saturation: 0, luminance: 0 },
+    yellow: { hue: 0, saturation: 0, luminance: 0 },
+    green: { hue: 0, saturation: 0, luminance: 0 },
+    cyan: { hue: 0, saturation: 0, luminance: 0 },
+    blue: { hue: 0, saturation: 0, luminance: 0 },
+    magenta: { hue: 0, saturation: 0, luminance: 0 },
+};
+
 
 
 export interface RefinementHistoryItem {

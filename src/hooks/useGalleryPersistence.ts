@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from 'react';
-import { GalleryImageFile } from './useGoogleDriveSync';
+import { GalleryImageFile } from '../types';
 import { galleryDB } from '../utils/galleryDB';
 import { ImageLRUCache } from '../utils/imageCache';
 

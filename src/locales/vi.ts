@@ -929,6 +929,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
         generatingNewImage: 'Đang tạo ảnh mới...',
       },
       rightPanel: {
+        clickToUpload: 'Nhấn để tải lên',
         magic: 'Phép thuật',
         removeBackground: 'Xóa nền',
         invertColor: 'Đảo màu',
@@ -992,6 +993,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
         crop: {
           aspectRatio: 'Tỷ lệ khung hình',
           free: 'Tự do',
+          perspectiveInstructions: 'Nhấn 4 điểm trên ảnh để xác định các góc. Kéo các điểm để điều chỉnh. Nhấn Enter để áp dụng hoặc Esc để hủy.',
           apply: 'Áp dụng Cắt',
           cancel: 'Hủy Cắt',
         },

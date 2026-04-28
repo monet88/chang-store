@@ -16,13 +16,12 @@ import React, {
   useRef,
   ReactNode,
 } from 'react';
-import { ImageFile } from '../types';
+import { ImageFile, GalleryImageFile } from '../types';
 import { ImageLRUCache } from '../utils/imageCache';
 import { useGoogleDrive } from './GoogleDriveContext';
 import {
   useGoogleDriveSync,
   SyncStatus,
-  GalleryImageFile,
 } from '../hooks/useGoogleDriveSync';
 import { useGalleryPersistence } from '../hooks/useGalleryPersistence';
 
@@ -105,12 +104,14 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [hasLoadedFromDrive, setHasLoadedFromDrive] = useState(false);
 
   // --- Persistence ---
-  const { persistGallery } = useGalleryPersistence(imageCache, setImages);
+  const { isHydrated, persistGallery } = useGalleryPersistence(imageCache, setImages);
 
-  // Auto-persist to IndexedDB when images state changes
+  // Auto-persist to IndexedDB when images state changes, but only after initial hydration
   useEffect(() => {
-    persistGallery(images);
-  }, [images, persistGallery]);
+    if (isHydrated) {
+      persistGallery(images);
+    }
+  }, [images, persistGallery, isHydrated]);
 
   // --- Refs for stable access in callbacks ---
   const isConnectedRef = useRef(isConnected);

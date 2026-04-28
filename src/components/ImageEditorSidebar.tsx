@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { AspectRatio as AspectRatioType, ImageFile, Feature } from '../types';
+import { AspectRatio as AspectRatioType, ImageFile, Feature, AdjustmentState, HSLColor, HSLState, INITIAL_ADJUSTMENTS, INITIAL_HSL } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import Spinner from './Spinner';
@@ -15,29 +15,6 @@ export type Tool =
     | 'lasso' | 'marquee' | 'ellipse' | 'pen'
     | 'brush' | 'eraser' | 'color-picker';
 
-export interface AdjustmentState {
-    exposure: number; contrast: number; temperature: number; tint: number;
-    vibrance: number; saturation: number; grain: number; clarity: number;
-    dehaze: number; blur: number;
-}
-
-export interface HSLColor { hue: number; saturation: number; luminance: number; }
-export type HSLState = Record<string, HSLColor>;
-
-export const INITIAL_ADJUSTMENTS: AdjustmentState = {
-    exposure: 0, contrast: 0, temperature: 0, tint: 0,
-    vibrance: 0, saturation: 0, grain: 0, clarity: 0,
-    dehaze: 0, blur: 0,
-};
-
-export const INITIAL_HSL: HSLState = {
-    red: { hue: 0, saturation: 0, luminance: 0 },
-    yellow: { hue: 0, saturation: 0, luminance: 0 },
-    green: { hue: 0, saturation: 0, luminance: 0 },
-    cyan: { hue: 0, saturation: 0, luminance: 0 },
-    blue: { hue: 0, saturation: 0, luminance: 0 },
-    magenta: { hue: 0, saturation: 0, luminance: 0 },
-};
 
 // --- Components ---
 
@@ -111,6 +88,7 @@ export const SimpleImageUploader: React.FC<{
     onUpload: (file: ImageFile | null) => void;
     title: string;
 }> = ({ image, onUpload, title }) => {
+    const { t } = useLanguage();
     const inputRef = useRef<HTMLInputElement>(null);
 
     const processFile = (file: File) => {
@@ -167,7 +145,7 @@ export const SimpleImageUploader: React.FC<{
                 ) : (
                     <div className="text-center text-zinc-400 p-2">
                         <CloudUploadIcon className="mx-auto h-8 w-8" />
-                        <p className="mt-1 text-xs">Click to upload</p>
+                        <p className="mt-1 text-xs">{t('imageEditor.modal.rightPanel.clickToUpload')}</p>
                     </div>
                 )}
             </div>
@@ -252,7 +230,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         if (activeTool === 'perspectiveCrop') {
             return (
                 <PanelSection title={t('imageEditor.modal.tools.perspectiveCrop')}>
-                     <p className="text-xs text-zinc-400">Click 4 points on the image to define corners. Drag handles to adjust. Press Enter to apply or Esc to cancel.</p>
+                     <p className="text-xs text-zinc-400">{t('imageEditor.modal.rightPanel.crop.perspectiveInstructions')}</p>
                     <div className="flex gap-2 mt-4">
                         <button onClick={onApplyPerspectiveCrop} className="flex-1 bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm">{t('imageEditor.modal.rightPanel.crop.apply')}</button>
                         <button onClick={onCancelPerspectiveCrop} className="flex-1 bg-zinc-600 text-white font-semibold py-2 rounded-lg text-sm">{t('imageEditor.modal.rightPanel.crop.cancel')}</button>

@@ -1,5 +1,5 @@
 import { ImageFile } from '../types';
-import { AdjustmentState, HSLState } from '../components/ImageEditorSidebar';
+import { AdjustmentState, HSLState } from '../types';
 
 export const basicAdjustmentsToPrompt = (adjusts: AdjustmentState): string => {
     const parts: string[] = [];
