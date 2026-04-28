@@ -1,7 +1,25 @@
-
-
-
 import { ImageFile, LookbookSet } from '../types';
+
+/**
+ * Session persistence utilities
+ */
+export const saveSessionState = (key: string, data: any): void => {
+  try {
+    localStorage.setItem(`cs_session_${key}`, JSON.stringify(data));
+  } catch (error) {
+    console.error(`[Storage] Failed to save session ${key}:`, error);
+  }
+};
+
+export const getSessionState = <T>(key: string, defaultValue: T): T => {
+  try {
+    const saved = localStorage.getItem(`cs_session_${key}`);
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch (error) {
+    console.error(`[Storage] Failed to get session ${key}:`, error);
+    return defaultValue;
+  }
+};
 
 export const getSavedLookbookSets = (): LookbookSet[] => {
   return [];

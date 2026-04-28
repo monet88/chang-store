@@ -1,19 +1,13 @@
-
-
-
-
 /**
  * ImageEditor - Main Orchestrator Component
  *
- * Refactored from 1329-line monolith to focused orchestrator (~300 lines).
- * Delegates canvas rendering to ImageEditorCanvas, toolbar to ImageEditorToolbar/LeftToolbar,
- * and canvas logic to useCanvasDrawing hook.
- *
- * Phase 02b refactor: Critical canvas cleanup to prevent memory leaks.
+ * Refactored from 1329-line monolith to focused orchestrator.
+ * Delegates canvas rendering to ImageEditorCanvas, toolbar to ImageEditorToolbar,
+ * sidebar to ImageEditorSidebar, and UI helpers to ImageEditorUIHelpers.
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ImageFile, AspectRatio as AspectRatioType } from '../types';
+import { ImageFile, AspectRatio as AspectRatioType, Feature } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -22,546 +16,51 @@ import { useCanvasDrawing } from '../hooks/useCanvasDrawing';
 import { useImageEditorServiceActions } from '../hooks/useImageEditor';
 import { ImageEditorCanvas } from './ImageEditorCanvas';
 import { ImageEditorToolbar } from './ImageEditorToolbar';
-// FIX: Added all missing icons to the import from './Icons'
-import { BrushIcon, GalleryIcon, CloseIcon, ColorPickerIcon, CropIcon, EllipseIcon, EraserIcon, FlipHorizontalIcon, FlipVerticalIcon, SelectionIcon, MagicWandIcon, MarqueeIcon, NewFileIcon, PerspectiveCropIcon, RotateIcon, CloudUploadIcon, UndoIcon, RedoIcon } from './Icons';
 
-// --- Type Definitions ---
-type Tool = 
-    | 'crop' | 'perspectiveCrop' | 'rotate' | 'flip-horizontal' | 'flip-vertical'
-    | 'lasso' | 'marquee' | 'ellipse' | 'pen'
-    | 'brush' | 'eraser' | 'color-picker';
+// Extracted Components & Utilities
+import { 
+    RightPanel, 
+    Tool, 
+    AdjustmentState, 
+    HSLState, 
+    INITIAL_ADJUSTMENTS, 
+    INITIAL_HSL 
+} from './ImageEditorSidebar';
+import { ImageSelectionModal } from './ImageEditorUIHelpers';
+import { 
+    basicAdjustmentsToPrompt, 
+    colorAdjustmentsToPrompt, 
+    effectsAdjustmentsToPrompt,
+    createBlankImage,
+    getFilterString,
+    getHandleForPoint,
+    Point,
+    Rect,
+    CropInteractionType
+} from '../utils/imageEditorUtils';
+import { 
+    CloseIcon, 
+    GalleryIcon, 
+    NewFileIcon, 
+    UndoIcon, 
+    RedoIcon,
+    CloudUploadIcon
+} from './Icons';
 
-interface AdjustmentState {
-    exposure: number; contrast: number; temperature: number; tint: number;
-    vibrance: number; saturation: number; grain: number; clarity: number;
-    dehaze: number; blur: number;
-}
-interface HSLColor { hue: number; saturation: number; luminance: number; }
-type HSLState = Record<string, HSLColor>;
-
-type Point = { x: number; y: number };
-type Rect = { x: number; y: number; width: number; height: number };
-type CropHandle = 'tl' | 'tr' | 'bl' | 'br' | 't' | 'b' | 'l' | 'r';
-type CropInteractionType = 'move' | `resize-${CropHandle}` | 'drawing';
-type CropInteraction = {
+interface CropInteraction {
   type: CropInteractionType;
   startPoint: Point;
   startRect: Rect;
-};
-
-
-// --- Initial State Constants ---
-const INITIAL_ADJUSTMENTS: AdjustmentState = {
-    exposure: 0, contrast: 0, temperature: 0, tint: 0,
-    vibrance: 0, saturation: 0, grain: 0, clarity: 0,
-    dehaze: 0, blur: 0,
-};
-const INITIAL_HSL: HSLState = {
-    red: { hue: 0, saturation: 0, luminance: 0 },
-    yellow: { hue: 0, saturation: 0, luminance: 0 },
-    green: { hue: 0, saturation: 0, luminance: 0 },
-    cyan: { hue: 0, saturation: 0, luminance: 0 },
-    blue: { hue: 0, saturation: 0, luminance: 0 },
-    magenta: { hue: 0, saturation: 0, luminance: 0 },
-};
-
-// --- Helper Functions ---
-const basicAdjustmentsToPrompt = (adjusts: AdjustmentState): string => {
-    const parts: string[] = [];
-    if (adjusts.exposure !== 0) parts.push(`exposure by ${adjusts.exposure}`);
-    if (adjusts.contrast !== 0) parts.push(`contrast by ${adjusts.contrast}`);
-    if (adjusts.temperature !== 0) parts.push(`color temperature by ${adjusts.temperature}`);
-    if (adjusts.tint !== 0) parts.push(`tint by ${adjusts.tint}`);
-    if (adjusts.vibrance !== 0) parts.push(`vibrance by ${adjusts.vibrance}`);
-    if (adjusts.saturation !== 0) parts.push(`saturation by ${adjusts.saturation}`);
-    if (parts.length === 0) return '';
-    return `Apply image adjustments: ${parts.join(', ')}.`;
-};
-
-const colorAdjustmentsToPrompt = (hslState: HSLState): string => {
-    const parts: string[] = [];
-    for (const [color, values] of Object.entries(hslState)) {
-        if (values.hue !== 0 || values.saturation !== 0 || values.luminance !== 0) {
-            const colorParts: string[] = [];
-            if (values.hue !== 0) colorParts.push(`hue by ${values.hue}`);
-            if (values.saturation !== 0) colorParts.push(`saturation by ${values.saturation}`);
-            if (values.luminance !== 0) colorParts.push(`luminance by ${values.luminance}`);
-            parts.push(`for ${color} tones, adjust ${colorParts.join(', ')}`);
-        }
-    }
-    if (parts.length === 0) return '';
-    return `Apply HSL color adjustments: ${parts.join(', ')}.`;
-};
-
-const effectsAdjustmentsToPrompt = (adjusts: AdjustmentState): string => {
-    const parts: string[] = [];
-    if (adjusts.grain > 0) parts.push(`add ${adjusts.grain}% film grain`);
-    if (adjusts.clarity > 0) parts.push(`increase clarity by ${adjusts.clarity}%`);
-    if (adjusts.dehaze > 0) parts.push(`dehaze by ${adjusts.dehaze}%`);
-    if (adjusts.blur > 0) parts.push(`apply a blur effect of ${adjusts.blur / 10}%`);
-    if (parts.length === 0) return '';
-    return `Apply effects: ${parts.join(', ')}.`;
-};
-
-
-const createBlankImage = (width: number, height: number, color: string = 'white'): ImageFile => {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, width, height);
-    }
-    const dataUrl = canvas.toDataURL('image/png');
-    const base64 = dataUrl.split(',')[1];
-    return { base64, mimeType: 'image/png' };
-};
-
-const SimpleImageUploader: React.FC<{
-    image: ImageFile | null;
-    onUpload: (file: ImageFile | null) => void;
-    title: string;
-}> = ({ image, onUpload, title }) => {
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    const processFile = (file: File) => {
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = (reader.result as string).split(',')[1];
-                const newImage = { base64: base64String, mimeType: file.type };
-                onUpload(newImage);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            processFile(file);
-        }
-    };
-
-    const handleClear = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onUpload(null);
-        if (inputRef.current) {
-            inputRef.current.value = "";
-        }
-    };
-
-    return (
-        <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">{title}</label>
-            <div 
-                onClick={() => inputRef.current?.click()}
-                className="relative aspect-video w-full bg-zinc-800/50 rounded-lg border-2 border-dashed border-zinc-700 hover:border-amber-500 transition-colors cursor-pointer flex items-center justify-center overflow-hidden"
-            >
-                <input
-                    ref={inputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileChange}
-                />
-                {image ? (
-                    <>
-                        <img src={`data:${image.mimeType};base64,${image.base64}`} alt="Accessory preview" className="object-contain h-full w-full" />
-                        <button 
-                            onClick={handleClear}
-                            className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-red-500/80"
-                        >
-                            <CloseIcon className="w-4 h-4" />
-                        </button>
-                    </>
-                ) : (
-                    <div className="text-center text-zinc-400 p-2">
-                        <CloudUploadIcon className="mx-auto h-8 w-8" />
-                        <p className="mt-1 text-xs">Click to upload</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-
-// --- Right Panel ---
-const PanelSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div>
-        <h3 className="text-sm font-semibold text-amber-400 mb-3 border-b border-zinc-700/50 pb-2">{title}</h3>
-        <div className="space-y-4">{children}</div>
-    </div>
-);
-
-const CollapsibleSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-        <div>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex justify-between items-center text-left"
-                aria-expanded={isOpen}
-            >
-                <h3 className="text-sm font-semibold text-amber-400">{title}</h3>
-                <svg
-                    className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
-            <div className="border-b border-zinc-700/50 mt-2"></div>
-            {isOpen && (
-                <div className="pt-3 space-y-4 animate-fade-in">
-                    {children}
-                </div>
-            )}
-        </div>
-    );
-};
-
-
-const Slider: React.FC<{
-  label: string;
-  value: number;
-  onChange: (newValue: number) => void;
-  onReset: () => void;
-  min?: number;
-  max?: number;
-  step?: number;
-}> = ({ label, value, onChange, onReset, min = -100, max = 100, step = 1 }) => (
-    <div>
-        <div className="flex justify-between items-center mb-1">
-            <label className="text-xs text-zinc-400">{label}</label>
-            <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-cyan-400 w-10 text-right">{value.toFixed(0)}</span>
-                <button onDoubleClick={onReset} className="text-zinc-500 hover:text-white text-[10px] font-semibold" title="Double-click to reset">RESET</button>
-            </div>
-        </div>
-        <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={(e) => onChange(Number(e.target.value))}
-            onDoubleClick={onReset}
-            className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
-        />
-    </div>
-);
-
-interface RightPanelProps {
-    activeTool: Tool | null;
-    onGenerateAIEdit: (prompt: string) => Promise<void>;
-    onPerformApiAction: (promptKey: string, params?: Record<string, any>) => Promise<void>;
-    isLoading: boolean;
-    adjustments: AdjustmentState;
-    setAdjustments: React.Dispatch<React.SetStateAction<AdjustmentState>>;
-    hsl: HSLState;
-    setHsl: React.Dispatch<React.SetStateAction<HSLState>>;
-    activeHslColor: string;
-    setActiveHslColor: (color: string) => void;
-    brushSize: number;
-    setBrushSize: (size: number) => void;
-    brushOpacity: number;
-    setBrushOpacity: (opacity: number) => void;
-    aspectRatio: AspectRatioType;
-    setAspectRatio: (ratio: AspectRatioType) => void;
-    onApplyCrop: () => void;
-    onCancelCrop: () => void;
-    onApplyPerspectiveCrop: () => void;
-    onCancelPerspectiveCrop: () => void;
-    selectionPath: Path2D | null;
-    onDeselect: () => void;
-    onApplyAccessory: (type: string, accessoryImageFile: ImageFile) => Promise<void>;
-    onApplyBasicAdjustments: () => void;
-    hasBasicAdjustments: boolean;
-    onApplyColorAdjustments: () => void;
-    hasColorAdjustments: boolean;
-    onApplyEffectsAdjustments: () => void;
-    hasEffectsAdjustments: boolean;
 }
 
-const RightPanel: React.FC<RightPanelProps> = ({
-    activeTool, onGenerateAIEdit, onPerformApiAction, isLoading, adjustments, setAdjustments, hsl, setHsl, activeHslColor, setActiveHslColor,
-    brushSize, setBrushSize, brushOpacity, setBrushOpacity,
-    aspectRatio, setAspectRatio, onApplyCrop, onCancelCrop,
-    onApplyPerspectiveCrop, onCancelPerspectiveCrop,
-    selectionPath, onDeselect,
-    onApplyAccessory,
-    onApplyBasicAdjustments, hasBasicAdjustments,
-    onApplyColorAdjustments, hasColorAdjustments,
-    onApplyEffectsAdjustments, hasEffectsAdjustments
-}) => {
-    const { t } = useLanguage();
-    const [aiEditPrompt, setAiEditPrompt] = useState('');
-    const [accessoryType, setAccessoryType] = useState('glasses');
-    const [accessoryImage, setAccessoryImage] = useState<ImageFile | null>(null);
-
-    const handleAdjustmentChange = (key: keyof AdjustmentState, value: number) => {
-        setAdjustments(prev => ({ ...prev, [key]: value }));
-    };
-
-    const handleHslChange = (color: string, property: keyof HSLColor, value: number) => {
-        setHsl(prev => ({ ...prev, [color]: { ...prev[color], [property]: value } }));
-    };
-
-    const resetAdjustment = (key: keyof AdjustmentState) => handleAdjustmentChange(key, 0);
-
-    const renderToolOptions = () => {
-        if (activeTool === 'crop') {
-            return (
-                <PanelSection title={t('imageEditor.modal.rightPanel.crop.aspectRatio')}>
-                    <div className="grid grid-cols-3 gap-2">
-                        {(['Default', '1:1', '4:3', '3:4', '16:9', '9:16'] as AspectRatioType[]).map(r => (
-                            <button key={r} onClick={() => setAspectRatio(r)} className={`px-2 py-1 text-xs rounded-md ${aspectRatio === r ? 'bg-amber-600 text-white' : 'bg-zinc-700 text-zinc-300'}`}>{r}</button>
-                        ))}
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                        <button onClick={onApplyCrop} className="flex-1 bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm">{t('imageEditor.modal.rightPanel.crop.apply')}</button>
-                        <button onClick={onCancelCrop} className="flex-1 bg-zinc-600 text-white font-semibold py-2 rounded-lg text-sm">{t('imageEditor.modal.rightPanel.crop.cancel')}</button>
-                    </div>
-                </PanelSection>
-            );
-        }
-        if (activeTool === 'perspectiveCrop') {
-            return (
-                <PanelSection title={t('imageEditor.modal.tools.perspectiveCrop')}>
-                     <p className="text-xs text-zinc-400">Click 4 points on the image to define corners. Drag handles to adjust. Press Enter to apply or Esc to cancel.</p>
-                    <div className="flex gap-2 mt-4">
-                        <button onClick={onApplyPerspectiveCrop} className="flex-1 bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm">{t('imageEditor.modal.rightPanel.crop.apply')}</button>
-                        <button onClick={onCancelPerspectiveCrop} className="flex-1 bg-zinc-600 text-white font-semibold py-2 rounded-lg text-sm">{t('imageEditor.modal.rightPanel.crop.cancel')}</button>
-                    </div>
-                </PanelSection>
-            )
-        }
-        if (['brush', 'eraser'].includes(activeTool!)) {
-            return (
-                <PanelSection title={t('imageEditor.modal.rightPanel.toolOptions')}>
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.brushSize')} value={brushSize} onChange={setBrushSize} onReset={() => setBrushSize(20)} min={1} max={200} />
-                    {activeTool === 'brush' && (
-                        <Slider label={t('imageEditor.modal.rightPanel.sliders.brushOpacity')} value={brushOpacity} onChange={setBrushOpacity} onReset={() => setBrushOpacity(100)} min={0} />
-                    )}
-                </PanelSection>
-            );
-        }
-        return null;
-    };
-    
-    const renderSelectionOptions = () => {
-         return (
-            <PanelSection title={t('imageEditor.modal.rightPanel.selectionOptions')}>
-                <button onClick={onDeselect} className="w-full bg-zinc-600 text-white font-semibold py-2 rounded-lg text-sm">{t('imageEditor.modal.rightPanel.selection.deselect')}</button>
-            </PanelSection>
-        );
-    }
-    
-    return (
-        <div className="w-80 flex-shrink-0 bg-zinc-900/50 rounded-lg border border-zinc-700 p-4 flex flex-col">
-            
-            {(activeTool || selectionPath) && (
-                <div className="pb-4 mb-4 border-b border-zinc-700/50">
-                    {activeTool && renderToolOptions()}
-                    {selectionPath && !activeTool && renderSelectionOptions()}
-                </div>
-            )}
-            
-            <div className="space-y-6 overflow-y-auto pr-2 -mr-4 flex-grow">
-                <PanelSection title={t('imageEditor.modal.rightPanel.magic')}>
-                    <div className="space-y-4">
-                        <button onClick={() => onPerformApiAction('removeBackground')} disabled={isLoading} className="w-full bg-zinc-700/80 text-zinc-200 font-semibold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                            <MagicWandIcon className="w-5 h-5 text-purple-400" /> {t('imageEditor.modal.rightPanel.removeBackground')}
-                        </button>
-                        <button onClick={() => onPerformApiAction('invertColor')} disabled={isLoading} className="w-full bg-zinc-700/80 text-zinc-200 font-semibold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                            {t('imageEditor.modal.rightPanel.invertColor')}
-                        </button>
-                        <div>
-                            <label className="text-xs font-medium text-zinc-400">{t('imageEditor.modal.rightPanel.aiEdit')}</label>
-                            <div className="flex gap-2 mt-1">
-                                <input
-                                    type="text"
-                                    value={aiEditPrompt}
-                                    onChange={e => setAiEditPrompt(e.target.value)}
-                                    placeholder={selectionPath ? t('imageEditor.aiInpaintPlaceholder') : t('imageEditor.modal.rightPanel.aiEditPlaceholder')}
-                                    className="flex-grow bg-zinc-800 border border-zinc-600 rounded-md p-2 text-sm text-zinc-200"
-                                />
-                                <button onClick={() => onGenerateAIEdit(aiEditPrompt)} disabled={isLoading || !aiEditPrompt.trim()} className="bg-amber-600 text-white px-4 rounded-md font-semibold text-sm disabled:bg-zinc-600">
-                                    {isLoading ? <Spinner /> : t('imageEditor.modal.rightPanel.generate')}
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-xs font-medium text-zinc-400">{t('imageEditor.modal.rightPanel.accessoryTryOn')}</label>
-                            <div className="mt-1 space-y-2">
-                                <select value={accessoryType} onChange={e => setAccessoryType(e.target.value)} className="w-full bg-zinc-800 border border-zinc-600 rounded-md p-2 text-sm text-zinc-200 appearance-none" style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a1a1aa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}>
-                                    {Object.keys(t('imageEditor.modal.rightPanel.accessories', { returnObjects: true })).map(key => (
-                                        <option key={key} value={key}>{t(`imageEditor.modal.rightPanel.accessories.${key}`)}</option>
-                                    ))}
-                                </select>
-                                <SimpleImageUploader image={accessoryImage} onUpload={setAccessoryImage} title={t('imageEditor.modal.rightPanel.accessoryImage')} />
-                                <button onClick={() => accessoryImage && onApplyAccessory(accessoryType, accessoryImage)} disabled={!accessoryImage || isLoading} className="w-full bg-cyan-600 text-white font-semibold py-2 rounded-lg text-sm disabled:bg-zinc-600">
-                                    {isLoading ? <Spinner /> : t('imageEditor.modal.rightPanel.applyAccessory')}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </PanelSection>
-
-                <CollapsibleSection title={t('imageEditor.modal.rightPanel.basic')}>
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.exposure')} value={adjustments.exposure} onChange={v => handleAdjustmentChange('exposure', v)} onReset={() => resetAdjustment('exposure')} />
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.contrast')} value={adjustments.contrast} onChange={v => handleAdjustmentChange('contrast', v)} onReset={() => resetAdjustment('contrast')} />
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.temperature')} value={adjustments.temperature} onChange={v => handleAdjustmentChange('temperature', v)} onReset={() => resetAdjustment('temperature')} />
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.tint')} value={adjustments.tint} onChange={v => handleAdjustmentChange('tint', v)} onReset={() => resetAdjustment('tint')} />
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.vibrance')} value={adjustments.vibrance} onChange={v => handleAdjustmentChange('vibrance', v)} onReset={() => resetAdjustment('vibrance')} />
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.saturation')} value={adjustments.saturation} onChange={v => handleAdjustmentChange('saturation', v)} onReset={() => resetAdjustment('saturation')} />
-                    <div className="mt-4 pt-4 border-t border-zinc-700/50">
-                        <button
-                            onClick={onApplyBasicAdjustments}
-                            disabled={!hasBasicAdjustments || isLoading}
-                            className="w-full bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isLoading ? <Spinner /> : (selectionPath ? t('imageEditor.modal.rightPanel.applyToSelection') : t('imageEditor.modal.rightPanel.applyAdjustments'))}
-                        </button>
-                    </div>
-                </CollapsibleSection>
-                
-                <CollapsibleSection title={t('imageEditor.modal.rightPanel.color')}>
-                    <div className="flex flex-wrap gap-1 mb-4">
-                        {Object.keys(INITIAL_HSL).map(color => (
-                            <button key={color} onClick={() => setActiveHslColor(color)} className={`w-6 h-6 rounded-full border-2 ${activeHslColor === color ? 'border-white' : 'border-transparent'}`} style={{ backgroundColor: color }} title={t(`imageEditor.modal.rightPanel.hsl.${color}`)} />
-                        ))}
-                    </div>
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.hue')} value={hsl[activeHslColor].hue} onChange={v => handleHslChange(activeHslColor, 'hue', v)} onReset={() => handleHslChange(activeHslColor, 'hue', 0)} />
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.saturation')} value={hsl[activeHslColor].saturation} onChange={v => handleHslChange(activeHslColor, 'saturation', v)} onReset={() => handleHslChange(activeHslColor, 'saturation', 0)} />
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.luminance')} value={hsl[activeHslColor].luminance} onChange={v => handleHslChange(activeHslColor, 'luminance', v)} onReset={() => handleHslChange(activeHslColor, 'luminance', 0)} />
-                     <div className="mt-4 pt-4 border-t border-zinc-700/50">
-                        <button
-                            onClick={onApplyColorAdjustments}
-                            disabled={!hasColorAdjustments || isLoading}
-                            className="w-full bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isLoading ? <Spinner /> : (selectionPath ? t('imageEditor.modal.rightPanel.applyToSelection') : t('imageEditor.modal.rightPanel.applyAdjustments'))}
-                        </button>
-                    </div>
-                </CollapsibleSection>
-                
-                <CollapsibleSection title={t('imageEditor.modal.rightPanel.effects')}>
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.grain')} value={adjustments.grain} onChange={v => handleAdjustmentChange('grain', v)} onReset={() => resetAdjustment('grain')} min={0} />
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.clarity')} value={adjustments.clarity} onChange={v => handleAdjustmentChange('clarity', v)} onReset={() => resetAdjustment('clarity')} min={0} />
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.dehaze')} value={adjustments.dehaze} onChange={v => handleAdjustmentChange('dehaze', v)} onReset={() => resetAdjustment('dehaze')} min={0} />
-                    <Slider label={t('imageEditor.modal.rightPanel.sliders.blur')} value={adjustments.blur} onChange={v => handleAdjustmentChange('blur', v)} onReset={() => resetAdjustment('blur')} min={0} />
-                    <div className="mt-4 pt-4 border-t border-zinc-700/50">
-                        <button
-                            onClick={onApplyEffectsAdjustments}
-                            disabled={!hasEffectsAdjustments || isLoading}
-                            className="w-full bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isLoading ? <Spinner /> : (selectionPath ? t('imageEditor.modal.rightPanel.applyToSelection') : t('imageEditor.modal.rightPanel.applyAdjustments'))}
-                        </button>
-                    </div>
-                </CollapsibleSection>
-            </div>
-        </div>
-    );
-};
-
-const ImageSelectionModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (image: ImageFile) => void;
-}> = ({ isOpen, onClose, onSelect }) => {
-    const { images } = useImageGallery();
-    const { t } = useLanguage();
-
-    useEffect(() => {
-        if (!isOpen) return;
-        const handleEsc = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
-        window.addEventListener('keydown', handleEsc);
-        document.body.style.overflow = 'hidden';
-        return () => { window.removeEventListener('keydown', handleEsc); document.body.style.overflow = 'auto'; };
-    }, [isOpen, onClose]);
-    
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex flex-col p-4 animate-fade-in" onClick={onClose} role="dialog" aria-modal="true">
-            <div className="flex justify-between items-center p-4 text-white w-full max-w-7xl mx-auto flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                <h2 className="text-xl md:text-2xl font-bold">{t('imageSelectionModal.title')} ({images.length})</h2>
-                <button onClick={onClose} className="p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors" aria-label={t('gallery.closeAria')}>
-                    <CloseIcon className="w-8 h-8" />
-                </button>
-            </div>
-            <div className="flex-grow overflow-y-auto p-4" onClick={(e) => e.stopPropagation()}>
-                {images.length === 0 ? (
-                    <div className="flex items-center justify-center h-full"><p className="text-zinc-400 text-xl">{t('gallery.emptyMessage')}</p></div>
-                ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-w-7xl mx-auto">
-                        {images.map((image, index) => (
-                           <button key={`${index}-${image.base64.substring(0, 20)}`} onClick={() => onSelect(image)} className="aspect-square bg-zinc-800 rounded-lg overflow-hidden group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:ring-amber-500 transition-transform transform hover:scale-105" aria-label={`${t('imageSelectionModal.select')} ${t('gallery.altText', { index: index + 1 })}`}>
-                                <img src={`data:${image.mimeType};base64,${image.base64}`} alt={t('gallery.altText', { index: index + 1 })} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="text-white font-bold">{t('imageSelectionModal.select')}</span>
-                                </div>
-                           </button>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-
-// --- Main Component ---
 interface ImageEditorProps {
-    onClose: () => void;
-    initialImage?: ImageFile | null;
-}
-
-const getFilterString = (adjusts: AdjustmentState): string => {
-    const filters = [];
-    if (adjusts.exposure !== 0) filters.push(`brightness(${1 + adjusts.exposure / 100})`);
-    if (adjusts.contrast !== 0) filters.push(`contrast(${1 + adjusts.contrast / 100})`);
-    if (adjusts.saturation !== 0) filters.push(`saturate(${1 + adjusts.saturation / 100})`);
-    if (adjusts.blur > 0) filters.push(`blur(${adjusts.blur / 20}px)`);
-    // Note: CSS filters for temp, tint, vibrance, etc. are complex. We handle them with overlays.
-    return filters.join(' ');
-};
-
-const getHandleForPoint = (point: Point, rect: Rect): CropInteractionType | null => {
-    const handleRadius = 10;
-    const { x, y, width, height } = rect;
-
-    const onTopEdge = Math.abs(point.y - y) < handleRadius;
-    const onBottomEdge = Math.abs(point.y - (y + height)) < handleRadius;
-    const onLeftEdge = Math.abs(point.x - x) < handleRadius;
-    const onRightEdge = Math.abs(point.x - (x + width)) < handleRadius;
-    
-    const onHorizontalMid = point.x > x + handleRadius && point.x < x + width - handleRadius;
-    const onVerticalMid = point.y > y + handleRadius && point.y < y + height - handleRadius;
-
-    if (onTopEdge && onLeftEdge) return 'resize-tl';
-    if (onTopEdge && onRightEdge) return 'resize-tr';
-    if (onBottomEdge && onLeftEdge) return 'resize-bl';
-    if (onBottomEdge && onRightEdge) return 'resize-br';
-
-    if (onTopEdge && onHorizontalMid) return 'resize-t';
-    if (onBottomEdge && onHorizontalMid) return 'resize-b';
-    if (onLeftEdge && onVerticalMid) return 'resize-l';
-    if (onRightEdge && onVerticalMid) return 'resize-r';
-
-    if (point.x > x && point.x < x + width && point.y > y && point.y < y + height) return 'move';
-    return null;
+  onClose: () => void;
+  initialImage?: ImageFile;
 }
 
 export const ImageEditor: React.FC<ImageEditorProps> = ({ onClose, initialImage }) => {
     const { t } = useLanguage();
-    const { addImage } = useImageGallery();
+    const { images, addImage } = useImageGallery();
     const { imageEditModel, imageGenerateModel } = useApi();
 
     const [view, setView] = useState<'launcher' | 'editor'>(initialImage ? 'editor' : 'launcher');

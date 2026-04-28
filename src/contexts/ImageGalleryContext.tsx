@@ -24,6 +24,7 @@ import {
   SyncStatus,
   GalleryImageFile,
 } from '../hooks/useGoogleDriveSync';
+import { useGalleryPersistence } from '../hooks/useGalleryPersistence';
 
 // ============================================================================
 // Types
@@ -102,6 +103,14 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [images, setImages] = useState<GalleryImageFile[]>([]);
   const [isLoadingFromDrive, setIsLoadingFromDrive] = useState(false);
   const [hasLoadedFromDrive, setHasLoadedFromDrive] = useState(false);
+
+  // --- Persistence ---
+  const { persistGallery } = useGalleryPersistence(imageCache, setImages);
+
+  // Auto-persist to IndexedDB when images state changes
+  useEffect(() => {
+    persistGallery(images);
+  }, [images, persistGallery]);
 
   // --- Refs for stable access in callbacks ---
   const isConnectedRef = useRef(isConnected);

@@ -19,6 +19,8 @@ export interface ImageFile {
   mimeType: string;
 }
 
+
+
 export interface RefinementHistoryItem {
   prompt: string;
   timestamp: number;
