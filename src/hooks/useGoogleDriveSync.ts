@@ -41,15 +41,6 @@ interface QueueOperation {
   retries: number;
 }
 
-/** Extended ImageFile with Drive metadata */
-export interface OldGalleryImageFile extends ImageFile {
-  /** Google Drive file ID (undefined if not yet synced) */
-  driveFileId?: string;
-  /** Feature that generated this image */
-  feature?: string;
-  /** Creation timestamp */
-  createdAt?: Date;
-}
 
 /** Hook return type */
 export interface UseGoogleDriveSyncReturn {
