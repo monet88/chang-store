@@ -158,11 +158,6 @@ function findWrongSourceTypeViolations(usages: ImportUsage[]): Violation[] {
       reason: 'RefinementHistoryItem must come from src/types.ts (not services)',
     },
     {
-      typeName: 'RedesignPreset',
-      invalidSource: /\/src\/services(?:\/|$)/,
-      reason: 'RedesignPreset must come from src/types.ts (not services)',
-    },
-    {
       typeName: 'RegisteredModel',
       invalidSource: /\/src\/config(?:\/|$)/,
       reason: 'RegisteredModel must not be imported in UI layer',

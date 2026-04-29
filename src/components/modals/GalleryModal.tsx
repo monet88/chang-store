@@ -10,7 +10,6 @@ import { useImageGallery } from '../../contexts/ImageGalleryContext';
 import { useGoogleDrive } from '../../contexts/GoogleDriveContext';
 import HoverableImage from '../HoverableImage';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { ImageFile } from '../../types';
 import { CloseIcon, CloudIcon, CheckCircleIcon, WarningIcon, RefreshIcon } from '../Icons';
 import Spinner from '../Spinner';
 
@@ -20,7 +19,6 @@ import Spinner from '../Spinner';
 
 interface GalleryModalProps {
   onClose: () => void;
-  onEditImage: (image: ImageFile) => void;
 }
 
 // ============================================================================
@@ -84,7 +82,7 @@ const SyncStatusPill: React.FC<{
 // Main Component
 // ============================================================================
 
-const GalleryModal: React.FC<GalleryModalProps> = ({ onClose, onEditImage }) => {
+const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
   const {
     images,
     deleteImage,
@@ -182,7 +180,6 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose, onEditImage }) => 
                     altText={t('gallery.altText', { index: index + 1 })}
                     downloadFileName={`gallery-image-${index + 1}`}
                     onDelete={() => deleteImage(image.base64)}
-                    onEdit={() => onEditImage(image)}
                   />
                 </div>
               </div>

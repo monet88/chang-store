@@ -164,7 +164,7 @@ const VirtualTryOn: React.FC = () => {
                         )}
                         <label className="absolute right-3 top-3 z-30 inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-black/65 px-3 py-2 text-xs text-zinc-200 transition-colors hover:border-white/20 hover:bg-black/80">
                           <CloudUploadIcon className="h-3.5 w-3.5" />
-                          <span>{t('imageEditor.modal.changeImage')}</span>
+                          <span>{t('common.changeImage')}</span>
                           <input
                             type="file"
                             className="hidden"

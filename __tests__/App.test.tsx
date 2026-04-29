@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const { featureStub, passthrough, translations } = vi.hoisted(() => {
@@ -89,11 +89,11 @@ vi.mock('../src/components/Header', () => ({
       <button type="button" onClick={() => setActiveFeature('try-on')}>
         feature-try-on
       </button>
-      <button type="button" onClick={() => setActiveFeature('image-editor')}>
-        feature-image-editor
+      <button type="button" onClick={() => setActiveFeature('pattern-generator')}>
+        feature-pattern-generator
       </button>
-      <button type="button" onClick={() => setActiveFeature('outfit-analysis')}>
-        feature-outfit-analysis
+      <button type="button" onClick={() => setActiveFeature('watermark-remover')}>
+        feature-watermark-remover
       </button>
     </div>
   ),
@@ -147,22 +147,6 @@ vi.mock('../src/components/PhotoAlbumCreator', () => ({
   PhotoAlbumCreator: featureStub('photo-album-creator'),
 }));
 
-vi.mock('../src/components/OutfitAnalysis', () => ({
-  default: featureStub('outfit-analysis'),
-}));
-
-vi.mock('../src/components/Relight', () => ({
-  default: featureStub('relight'),
-}));
-
-vi.mock('../src/components/Upscale', () => ({
-  default: featureStub('upscale'),
-}));
-
-vi.mock('../src/components/ImageEditor', () => ({
-  ImageEditor: featureStub('image-editor'),
-}));
-
 vi.mock('../src/components/AIEditor', () => ({
   default: featureStub('ai-editor'),
 }));
@@ -198,6 +182,11 @@ vi.mock('../src/components/modals/SettingsModal', () => ({
 import App from '../src/App';
 
 describe('App utility dock regression', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
   it('mounts the dock in the live app shell and opens utility modals after expanding it', async () => {
     const user = userEvent.setup();
 
@@ -236,14 +225,61 @@ describe('App utility dock regression', () => {
     await user.selectOptions(screen.getByLabelText('Image editing model'), 'gemini-2.5-flash-image');
     expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
 
-    await user.click(screen.getByText('feature-image-editor'));
+    await user.click(screen.getByText('feature-pattern-generator'));
     expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
-    await user.selectOptions(screen.getByLabelText('Image editing model'), 'gemini-2.5-flash-image');
-    expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
 
-    await user.click(screen.getByText('feature-outfit-analysis'));
+    await user.click(screen.getByText('feature-watermark-remover'));
+    expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Image generation model')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('settingsModal.fields.textGeneration')).toBeInTheDocument();
+  });
+
+  it('falls back to try-on when session storage contains retired feature ids', async () => {
+    localStorage.setItem('cs_session_activeFeature', JSON.stringify('image-editor'));
+
+    render(<App />);
+
+    expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();
     expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
-    await user.selectOptions(screen.getByLabelText('Image editing model'), 'gemini-2.5-flash-image');
-    expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
+
+    await waitFor(() => {
+      expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('try-on'));
+    });
+  });
+
+  it('persists active feature across repeated switches and survives re-render', async () => {
+    const user = userEvent.setup();
+
+    const { unmount } = render(<App />);
+
+    await user.click(screen.getByText('feature-pattern-generator'));
+    expect(await screen.findByText('pattern-generator')).toBeInTheDocument();
+    expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('pattern-generator'));
+
+    await user.click(screen.getByText('feature-try-on'));
+    expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();
+    expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('try-on'));
+
+    unmount();
+
+    render(<App />);
+    expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();
+    expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('try-on'));
+  });
+
+  it('persists model selector scope correctly after feature switch and restore', async () => {
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    expect(screen.getByLabelText('Image editing model')).toBeInTheDocument();
+
+    await user.click(screen.getByText('feature-watermark-remover'));
+    expect(await screen.findByText('watermark-remover')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
+
+    await user.click(screen.getByText('feature-try-on'));
+    expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();
+    expect(screen.getByLabelText('Image editing model')).toBeInTheDocument();
   });
 });

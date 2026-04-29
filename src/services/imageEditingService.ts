@@ -1,5 +1,5 @@
 import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, UpscaleQuality } from '../types';
-import type { ImageResolution, RedesignPreset } from '../types';
+import type { ImageResolution } from '../types';
 import * as geminiImageService from './gemini/image';
 import { getImageDimensions } from '../utils/imageUtils';
 import { logApiCall } from './debugService';
@@ -132,86 +132,6 @@ export const upscaleImage = async (
             model: resolvedModel,
             feature: 'Upscale',
             prompt,
-            duration: Date.now() - startTime,
-            status: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        throw error;
-    }
-};
-
-export const extractOutfitItem = async (
-    image: ImageFile,
-    itemDescription: string,
-    model: ImageEditModel,
-    config: ApiConfig
-): Promise<ImageFile> => {
-    const startTime = Date.now();
-    const prompt = `From the provided image, precisely extract only the following clothing item: "${itemDescription}". Place the extracted item on a clean, neutral, white background. The output must be only the item itself, with no other parts of the original image or person visible. Ensure the item is fully visible and not cropped.`;
-
-    try {
-        const result = await geminiImageService.extractOutfitItem(image, itemDescription, model);
-
-        logApiCall({
-            provider: 'Gemini',
-            model,
-            feature: 'Extract Outfit',
-            prompt,
-            duration: Date.now() - startTime,
-            status: 'success',
-            responseSize: result.base64.length * 0.75,
-        });
-
-        return result;
-    } catch (error) {
-        logApiCall({
-            provider: 'Gemini',
-            model,
-            feature: 'Extract Outfit',
-            prompt,
-            duration: Date.now() - startTime,
-            status: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        throw error;
-    }
-};
-
-export const critiqueAndRedesignOutfit = async (
-  image: ImageFile,
-  preset: RedesignPreset,
-  numberOfImages: number = 1,
-  model: ImageEditModel,
-  config: ApiConfig,
-  aspectRatio: AspectRatio = 'Default',
-  resolution?: ImageResolution
-): Promise<{ critique: string; redesignedImages: ImageFile[] }> => {
-    const startTime = Date.now();
-    const fullPrompt = geminiImageService.PRESET_PROMPTS[preset];
-
-    try {
-        const result = await geminiImageService.critiqueAndRedesignOutfit(image, preset, numberOfImages, model, aspectRatio, resolution);
-
-        const responseSize = result.critique.length +
-            result.redesignedImages.reduce((sum, img) => sum + img.base64.length * 0.75, 0);
-
-        logApiCall({
-            provider: 'Gemini',
-            model,
-            feature: 'Outfit Redesign',
-            prompt: fullPrompt,
-            duration: Date.now() - startTime,
-            status: 'success',
-            responseSize,
-        });
-
-        return result;
-    } catch (error) {
-        logApiCall({
-            provider: 'Gemini',
-            model,
-            feature: 'Outfit Redesign',
-            prompt: fullPrompt,
             duration: Date.now() - startTime,
             status: 'error',
             error: error instanceof Error ? error.message : 'Unknown error',

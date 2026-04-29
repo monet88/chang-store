@@ -6,7 +6,7 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only
 
 | Directory | Role |
 |-----------|------|
-| `src/components/` | UI layer — thin wrappers (~50 files, incl. `upscale/`, `modals/`) |
+| `src/components/` | UI layer — thin wrappers, feature screens, shared UI, and `modals/` |
 | `src/hooks/` | Feature logic + state (one hook per feature) |
 | `src/services/` | API facades (stateless), incl. `gemini/` |
 | `src/contexts/` | Global state providers |
@@ -33,7 +33,7 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only
 
 No React Router — `App.tsx` switches on `Feature` enum with lazy-loading. Path alias: `@/*` → `src/`.
 
-Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | OutfitAnalysis | Relight | Upscale | ImageEditor | AIEditor | WatermarkRemover | ClothingTransfer`
+Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator`
 
 <important if="you need to run commands to build, test, lint, or type-check">
 
@@ -137,7 +137,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **chang-store** (2931 symbols, 4042 relationships, 90 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **chang-store** (2481 symbols, 3360 relationships, 72 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

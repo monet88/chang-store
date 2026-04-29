@@ -8,7 +8,11 @@ Chang-Store is a modern Single Page Application (SPA) built with React 19, TypeS
 - **Lookbook Generation**: Automatically curate and generate fashion lookbooks.
 - **Background Replacement**: Easily swap image backgrounds for varied aesthetics.
 - **Pose Changing**: Control and change the poses of subjects in fashion shots.
-- **Upscaling & Editing**: AI-powered upscaling and diverse image editing tools.
+- **Photo Album**: Generate complete photo albums with frames, backgrounds, and poses.
+- **AI Editor**: Prompt-driven AI image generation with refinement and editing.
+- **Pattern Generator**: Create fashion patterns from text descriptions.
+- **Clothing Transfer**: Transfer clothing between images with generative AI.
+- **Watermark Removal**: Remove watermarks from images with batch processing support.
 
 ## 🚀 Tech Stack
 

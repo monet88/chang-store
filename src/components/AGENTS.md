@@ -14,7 +14,7 @@ UI layer của ứng dụng: feature screens, shared controls, modal surfaces, v
 | `GlobalModelSelector.tsx` | Bộ chọn model theo selection scope đang active. |
 | `VirtualTryOn.tsx` | Feature screen cho try-on workflow, dùng hook tương ứng để điều phối logic. |
 | `PatternGenerator.tsx` | Feature screen cho pattern generation flow mới hơn. |
-| `ImageEditor.tsx` | Feature surface lớn nhất, đóng vai trò orchestrator cho editor canvas/toolbar. |
+| `AIEditor.tsx` | Multi-image AI editing surface for prompt-driven edits. |
 | `Toast.tsx` | Toast provider và `useToast()` nằm inline tại đây, không ở `contexts/`. |
 | `LookbookGenerator.prompts.ts` | Prompt constants co-located với lookbook UI flow. |
 | `predefinedContent.ts` | Dữ liệu tĩnh cho backgrounds/poses và lựa chọn dựng sẵn. |
@@ -24,7 +24,6 @@ UI layer của ứng dụng: feature screens, shared controls, modal surfaces, v
 |-----------|---------|
 | `modals/` | Dialog surfaces như gallery, settings, prompt library, và pose selection (xem `modals/AGENTS.md`). |
 | `shared/` | Reusable UI pieces dùng xuyên nhiều features (xem `shared/AGENTS.md`). |
-| `upscale/` | Step-based sub-components cho upscale workflow (xem `upscale/AGENTS.md`). |
 
 ## For AI Agents
 

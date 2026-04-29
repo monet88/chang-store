@@ -1,12 +1,11 @@
 /**
  * Unit tests for services/gemini/text.ts
  *
- * Tests all 7 exported functions:
+ * Tests all 6 exported functions:
  * - generateText: Text generation with optional model
  * - generateImageDescription: Image description for fashion photoshoot
  * - generateClothingDescription: Clothing item analysis
  * - generatePoseDescription: Pose analysis for AI recreation
- * - analyzeOutfit: Outfit analysis returning AnalyzedItem[]
  * - generateStylePromptFromImage: Style prompt generation from reference image
  * - analyzeScene: Scene analysis for video generation
  *
@@ -16,7 +15,7 @@
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import type { ImageFile, AnalyzedItem } from '@/types';
+import type { ImageFile } from '@/types';
 
 // ============================================================================
 // Mock Setup
@@ -42,7 +41,6 @@ import {
   generateImageDescription,
   generateClothingDescription,
   generatePoseDescription,
-  analyzeOutfit,
   generateStylePromptFromImage,
   analyzeScene,
 } from '@/services/gemini/text';
@@ -131,58 +129,6 @@ function createNoTextResponse() {
     text: undefined,
   };
 }
-
-/**
- * Creates a JSON response (for analyzeOutfit)
- * @param data - The JSON data to stringify
- */
-function createJsonResponse(data: unknown) {
-  const jsonText = JSON.stringify(data);
-  return {
-    candidates: [
-      {
-        finishReason: 'STOP',
-        content: {
-          parts: [{ text: jsonText }],
-        },
-      },
-    ],
-    text: jsonText,
-  };
-}
-
-/**
- * Creates a JSON response wrapped in markdown code block
- * @param data - The JSON data to stringify
- */
-function createMarkdownJsonResponse(data: unknown) {
-  const jsonText = '```json\n' + JSON.stringify(data) + '\n```';
-  return {
-    candidates: [
-      {
-        finishReason: 'STOP',
-        content: {
-          parts: [{ text: jsonText }],
-        },
-      },
-    ],
-    text: jsonText,
-  };
-}
-
-/** Sample valid analyzed items for outfit analysis */
-const sampleAnalyzedItems: AnalyzedItem[] = [
-  {
-    item: 'White T-Shirt',
-    description: 'A classic white cotton t-shirt with crew neck',
-    possibleBrands: ['Uniqlo', 'H&M', 'Zara'],
-  },
-  {
-    item: 'Blue Jeans',
-    description: 'Slim-fit blue denim jeans with light wash',
-    possibleBrands: ["Levi's", 'Diesel', 'G-Star'],
-  },
-];
 
 // ============================================================================
 // Test Suites
@@ -629,184 +575,6 @@ describe('services/gemini/text.ts', () => {
       // Act & Assert
       await expect(generatePoseDescription(sampleImage)).rejects.toThrow(
         'error.api.poseDescriptionFailed:Service down'
-      );
-    });
-  });
-
-  // ==========================================================================
-  // analyzeOutfit Tests
-  // ==========================================================================
-  describe('analyzeOutfit', () => {
-    it('should successfully parse valid JSON response', async () => {
-      // Arrange
-      mockGenerateContent.mockResolvedValueOnce(
-        createJsonResponse(sampleAnalyzedItems)
-      );
-
-      // Act
-      const result = await analyzeOutfit(sampleImage);
-
-      // Assert
-      expect(result).toEqual(sampleAnalyzedItems);
-      expect(result).toHaveLength(2);
-      expect(result[0].item).toBe('White T-Shirt');
-      expect(result[0].possibleBrands).toContain('Uniqlo');
-    });
-
-    it('should use gemini-2.5-flash model', async () => {
-      // Arrange
-      mockGenerateContent.mockResolvedValueOnce(
-        createJsonResponse(sampleAnalyzedItems)
-      );
-
-      // Act
-      await analyzeOutfit(sampleImage);
-
-      // Assert
-      expect(mockGenerateContent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          model: 'gemini-2.5-flash',
-          config: expect.objectContaining({
-            responseMimeType: 'application/json',
-          }),
-        })
-      );
-    });
-
-    it('should clean markdown code block wrapper from JSON', async () => {
-      // Arrange
-      mockGenerateContent.mockResolvedValueOnce(
-        createMarkdownJsonResponse(sampleAnalyzedItems)
-      );
-
-      // Act
-      const result = await analyzeOutfit(sampleImage);
-
-      // Assert
-      expect(result).toEqual(sampleAnalyzedItems);
-    });
-
-    it('should throw error.api.noContent when no text response', async () => {
-      // Arrange
-      mockGenerateContent.mockResolvedValueOnce(createNoTextResponse());
-
-      // Act & Assert
-      await expect(analyzeOutfit(sampleImage)).rejects.toThrow(
-        'error.api.noContent'
-      );
-    });
-
-    it('should throw error.api.invalidAnalysis when response is not an array', async () => {
-      // Arrange
-      mockGenerateContent.mockResolvedValueOnce(
-        createJsonResponse({ item: 'Not an array' })
-      );
-
-      // Act & Assert
-      await expect(analyzeOutfit(sampleImage)).rejects.toThrow(
-        'error.api.invalidAnalysis'
-      );
-    });
-
-    it('should throw error.api.invalidAnalysis when item field is missing', async () => {
-      // Arrange
-      const invalidItems = [
-        {
-          description: 'Missing item field',
-          possibleBrands: ['Brand1'],
-        },
-      ];
-      mockGenerateContent.mockResolvedValueOnce(createJsonResponse(invalidItems));
-
-      // Act & Assert
-      await expect(analyzeOutfit(sampleImage)).rejects.toThrow(
-        'error.api.invalidAnalysis'
-      );
-    });
-
-    it('should throw error.api.invalidAnalysis when description field is missing', async () => {
-      // Arrange
-      const invalidItems = [
-        {
-          item: 'Shirt',
-          possibleBrands: ['Brand1'],
-        },
-      ];
-      mockGenerateContent.mockResolvedValueOnce(createJsonResponse(invalidItems));
-
-      // Act & Assert
-      await expect(analyzeOutfit(sampleImage)).rejects.toThrow(
-        'error.api.invalidAnalysis'
-      );
-    });
-
-    it('should throw error.api.invalidAnalysis when possibleBrands field is missing', async () => {
-      // Arrange
-      const invalidItems = [
-        {
-          item: 'Shirt',
-          description: 'A nice shirt',
-        },
-      ];
-      mockGenerateContent.mockResolvedValueOnce(createJsonResponse(invalidItems));
-
-      // Act & Assert
-      await expect(analyzeOutfit(sampleImage)).rejects.toThrow(
-        'error.api.invalidAnalysis'
-      );
-    });
-
-    it('should throw when JSON is malformed', async () => {
-      // Arrange
-      mockGenerateContent.mockResolvedValueOnce({
-        candidates: [
-          {
-            finishReason: 'STOP',
-            content: { parts: [{ text: 'not valid json {' }] },
-          },
-        ],
-        text: 'not valid json {',
-      });
-
-      // Act & Assert
-      await expect(analyzeOutfit(sampleImage)).rejects.toThrow(
-        'error.api.analysisFailed:'
-      );
-    });
-
-    it('should handle empty array response', async () => {
-      // Arrange
-      mockGenerateContent.mockResolvedValueOnce(createJsonResponse([]));
-
-      // Act
-      const result = await analyzeOutfit(sampleImage);
-
-      // Assert
-      expect(result).toEqual([]);
-      expect(result).toHaveLength(0);
-    });
-
-    it('should wrap unknown errors with error.api.analysisFailed prefix', async () => {
-      // Arrange
-      mockGenerateContent.mockRejectedValueOnce(
-        new Error('Unexpected error')
-      );
-
-      // Act & Assert
-      await expect(analyzeOutfit(sampleImage)).rejects.toThrow(
-        'error.api.analysisFailed:Unexpected error'
-      );
-    });
-
-    it('should preserve error.* prefixed errors', async () => {
-      // Arrange
-      mockGenerateContent.mockRejectedValueOnce(
-        new Error('error.api.quotaExceeded')
-      );
-
-      // Act & Assert
-      await expect(analyzeOutfit(sampleImage)).rejects.toThrow(
-        'error.api.quotaExceeded'
       );
     });
   });

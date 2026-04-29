@@ -15,10 +15,7 @@
   - Scope: `src/App.tsx` (feature state), mỗi hook (form state)
 
 ### Component Size
-- [ ] **Split `ImageEditor.tsx`** (58KB) thành sub-components
-  - Canvas controls → `ImageEditorCanvas.tsx` (đã có nhưng chỉ 5KB)
-  - Toolbar → `ImageEditorToolbar.tsx` (đã có nhưng chỉ 7KB)
-  - Main editor body vẫn quá lớn — cần thêm decomposition
+- [x] ~~**Split `ImageEditor.tsx`**~~ — Feature removed entirely (v1.0.4). ImageEditor, ImageEditorCanvas, ImageEditorToolbar deleted along with retired features (OutfitAnalysis, Relight, Upscale, ImageEditor).
 
 ### Data Architecture
 - [ ] **Extract pose data từ locale files** — `poseChanger.poseCollections` trong `en.ts` chứa hàng trăm dòng pose data + GitHub URLs
@@ -68,7 +65,7 @@
 
 ### Quality
 - [ ] **Zod validation cho Gemini outputs** — generative APIs hallucinate JSON
-  - Files: `src/services/gemini/text.ts`, `src/services/upscaleAnalysisService.ts`
+  - Files: `src/services/gemini/text.ts`
   - Add: `zod` dependency, schema definitions cho mỗi structured response
 - [ ] **ADRs** — Architecture Decision Records
   - Tạo `docs/decisions/` directory
@@ -90,7 +87,7 @@
 
 ### Feature Tiering
 - [ ] Phân loại sidebar: Core / Supporting / Labs sections
-- [ ] Merge AI Editor + Image Editor → single unified editor
+- [x] ~~Merge AI Editor + Image Editor → single unified editor~~ — ImageEditor removed (v1.0.4), AI Editor is the unified editor
 - [ ] Evaluate Virtual Try-On vs. Clothing Transfer overlap
 
 ### Testing

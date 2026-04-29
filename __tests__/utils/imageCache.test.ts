@@ -93,6 +93,76 @@ describe('ImageLRUCache', () => {
       expect(metrics.itemCount).toBe(0);
       expect(metrics.totalBytes).toBe(0);
     });
+
+    describe('remove', () => {
+      it('should remove image by base64', () => {
+        const img1 = createSmallImage('a');
+        const img2 = createSmallImage('b');
+        cache.add(img1);
+        cache.add(img2);
+
+        cache.remove(img1.base64);
+
+        const images = cache.getAll();
+        expect(images).toHaveLength(1);
+        expect(images[0]).toBe(img2);
+
+        const metrics = cache.getMetrics();
+        expect(metrics.itemCount).toBe(1);
+      });
+
+      it('should do nothing when base64 not found', () => {
+        cache.add(createSmallImage('a'));
+
+        cache.remove('non-existent-base64');
+
+        expect(cache.getAll()).toHaveLength(1);
+      });
+
+      it('should do nothing on empty cache', () => {
+        cache.remove('any-base64');
+
+        expect(cache.getAll()).toEqual([]);
+        expect(cache.getMetrics().itemCount).toBe(0);
+      });
+    });
+
+    describe('hydrate', () => {
+      it('should replace cache contents with provided images in order', () => {
+        cache.add(createSmallImage('old'));
+        const img1 = createSmallImage('a');
+        const img2 = createSmallImage('b');
+
+        cache.hydrate([img1, img2]);
+
+        const images = cache.getAll();
+        expect(images).toHaveLength(2);
+        expect(images[0]).toBe(img1);
+        expect(images[1]).toBe(img2);
+      });
+
+      it('should clear cache when hydrating with empty array', () => {
+        cache.add(createSmallImage('old'));
+
+        cache.hydrate([]);
+
+        expect(cache.getAll()).toEqual([]);
+        expect(cache.getMetrics().itemCount).toBe(0);
+      });
+
+      it('should preserve more recent items at front with multiple images', () => {
+        const img1 = createSmallImage('a');
+        const img2 = createSmallImage('b');
+        const img3 = createSmallImage('c');
+
+        cache.hydrate([img1, img2, img3]);
+
+        const images = cache.getAll();
+        expect(images[0]).toBe(img1);
+        expect(images[1]).toBe(img2);
+        expect(images[2]).toBe(img3);
+      });
+    });
   });
 
   // --------------------------------------------------------------------------
@@ -323,6 +393,16 @@ describe('ImageLRUCache', () => {
 
       const metrics = cache.getMetrics();
       expect(metrics.totalBytes).toBeLessThanOrEqual(5 * 1024);
+    });
+
+    it('should skip adding image larger than max cache size', () => {
+      cache = new ImageLRUCache({ maxBytes: 1024 }); // 1KB limit
+
+      // Add image larger than 1KB
+      cache.add(createTestImage(5, 'oversized'));
+
+      expect(cache.getAll()).toHaveLength(0);
+      expect(cache.getMetrics().itemCount).toBe(0);
     });
 
     it('should handle custom config partial override', () => {

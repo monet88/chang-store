@@ -1,11 +1,10 @@
-import { ImageFile, AnalyzedItem, TextGenerateModel } from '../types';
+import { ImageFile, TextGenerateModel } from '../types';
 import * as geminiTextService from './gemini/text';
 import { logApiCall } from './debugService';
 
 const IMAGE_DESCRIPTION_PROMPT = 'Describe this image as a photorealistic background for a fashion photoshoot. Focus on lighting, environment, mood, and key elements. Be concise and descriptive.';
 const CLOTHING_DESCRIPTION_PROMPT = 'Analyze the provided image of a clothing or accessory item. Provide a detailed and concise description covering its category (e.g., dress, shirt, necklace), material (e.g., silk, cotton, denim, gold), pattern (e.g., floral, striped, solid), color, and any notable design features (e.g., v-neck, puff sleeves, intricate details). Focus only on describing the single main item in a way that helps an AI model recreate it accurately.';
 const POSE_DESCRIPTION_PROMPT = 'Analyze the pose of the person in this image. Describe it in detail, focusing on the position of the head, torso, arms, and legs. Be concise and descriptive, suitable for an AI to recreate the pose.';
-const OUTFIT_ANALYSIS_PROMPT = `Analyze the provided image of a person's outfit. Identify each distinct clothing item and accessory (e.g., shirt, pants, shoes, watch, handbag). For each item, provide a concise description and suggest 2-3 high-end or popular brand names that might offer a similar style. Structure the output as a JSON array.`;
 const STYLE_PROMPT_FROM_IMAGE = `# ROLE
 You are an expert Art Director AI. Your task is to analyze a reference image and generate a detailed, descriptive text prompt that another AI can use to recreate the image's style, mood, and composition with a different subject.
 
@@ -47,25 +46,6 @@ Generate a comprehensive yet factual description of what is seen in the image â€
 # OUTPUT FORMAT
 Return one clean paragraph in natural English â€” concise but complete.
 Do not include stylistic opinions or hypothetical scenes.`;
-
-const parseOutfitAnalysis = (jsonText: string): AnalyzedItem[] => {
-  let cleanJson = jsonText.trim();
-  if (cleanJson.startsWith('```json')) {
-    cleanJson = cleanJson.substring(7);
-  }
-  if (cleanJson.endsWith('```')) {
-    cleanJson = cleanJson.substring(0, cleanJson.length - 3);
-  }
-
-  const data = JSON.parse(cleanJson);
-  if (!Array.isArray(data)) {
-    throw new Error('error.api.invalidAnalysis');
-  }
-  if (data.some(item => !item.item || !item.description || !item.possibleBrands)) {
-    throw new Error('error.api.invalidAnalysis');
-  }
-  return data as AnalyzedItem[];
-};
 
 export const generateText = async (
   prompt: string,
@@ -195,40 +175,6 @@ export const generatePoseDescription = async (
       model,
       feature: 'Pose Description',
       prompt: POSE_DESCRIPTION_PROMPT,
-      duration: Date.now() - startTime,
-      status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-};
-
-export const analyzeOutfit = async (
-  image: ImageFile,
-  model: string,
-): Promise<AnalyzedItem[]> => {
-  const startTime = Date.now();
-
-  try {
-    const result = await geminiTextService.analyzeOutfit(image);
-
-    logApiCall({
-      provider: 'Gemini',
-      model,
-      feature: 'Outfit Analysis',
-      prompt: OUTFIT_ANALYSIS_PROMPT,
-      duration: Date.now() - startTime,
-      status: 'success',
-      responseSize: JSON.stringify(result).length,
-    });
-
-    return result;
-  } catch (error) {
-    logApiCall({
-      provider: 'Gemini',
-      model,
-      feature: 'Outfit Analysis',
-      prompt: OUTFIT_ANALYSIS_PROMPT,
       duration: Date.now() - startTime,
       status: 'error',
       error: error instanceof Error ? error.message : 'Unknown error',
