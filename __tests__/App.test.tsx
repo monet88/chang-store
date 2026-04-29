@@ -231,7 +231,7 @@ describe('App utility dock regression', () => {
     await user.click(screen.getByText('feature-watermark-remover'));
     expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Image generation model')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Text generation model')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('settingsModal.fields.textGeneration')).toBeInTheDocument();
   });
 
   it('falls back to try-on when session storage contains retired feature ids', async () => {

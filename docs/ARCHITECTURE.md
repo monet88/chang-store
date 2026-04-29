@@ -33,7 +33,6 @@ GitNexus shows that the strongest module boundaries are `Components`, `Services`
 | Contexts | 13 | 90% | Global app state: language, API provider config, gallery, Drive sync, image viewer. |
 | Modals | 13 | 100% | Focused overlay surfaces such as settings and dialogs. |
 | Build | 8 | 100% | Vite/build/tooling infrastructure. |
-| Upscale | 7 | 100% | Specialized image-upscale workflow and analysis path. |
 
 The `Components` cluster is the primary UI surface and contains feature entry points such as `VirtualTryOn`, `PoseChanger`, and other task-specific screens. These components either act as thin wrappers over hooks or, in some older flows, still hold orchestration logic directly.
 
@@ -195,17 +194,17 @@ Why it matters:
 
 ### 5. Pattern generation ZIP download → sanitized filename segment
 
-1. `PoseChanger` (`src/components/PoseChanger.tsx`) — highest priority because generation orchestration remains a major user-facing flow.
-2. `SettingsModal` — high priority because it touches shared provider and model configuration, so layering mistakes here can leak across multiple features.
-3. `AIEditor` — high-to-medium priority because it still owns prompt validation and service-dependent generation behavior directly in the component.
-4. `PhotoAlbumCreator` — medium priority because it is a feature-specific generation flow with meaningful orchestration.
-5. `LookbookOutput`, `shared/RefinementInput` — lower priority because they are downstream output/refinement surfaces and can follow after the higher-leverage orchestration refactors above.
+1. `PatternGenerator` (`src/components/PatternGenerator.tsx`) — user clicks "Download All as ZIP"
+2. `handleDownloadAllZip` — `src/hooks/usePatternGenerator.ts`
+3. `downloadImagesAsZip` — `src/utils/zipDownload.ts`
+4. `getZipEntryPrefix` — `src/utils/zipDownload.ts` (strips `.zip` and `-batch` suffix)
+5. `buildDownloadFilename` — `src/utils/imageDownload.ts` (produces `pattern-generator-001.jpg`, etc.)
 
-Type: `cross_community`
+Why it matters:
 
-The remaining roadmap is to move component-heavy flows toward the target `Component → Hook → Service` architecture without recreating the removed Image Editor, Relight, Upscale, or Outfit Analysis surfaces.
-
-The current pose traces show `PoseChanger` delegates generation handlers and service-config construction into `src/hooks/usePoseChanger.ts`. This matches the documented architecture rule that components should be thin UI wrappers and hooks should own feature logic.
+- This flow shows the ZIP download path stays entirely in the hook, matching the `Component → Hook → Service` architecture.
+- The filename sanitization (`getZipEntryPrefix`) ensures clean entry names inside the archive regardless of the caller-supplied archive name.
+- Image-to-JPEG conversion happens inside the utility layer, not the hook, keeping the hook focused on orchestration.
 
 Required gates for substantive refactors:
 1. `npx tsc --noEmit` passes.

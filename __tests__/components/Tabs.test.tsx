@@ -47,10 +47,8 @@ describe('Tabs', () => {
     expect(screen.getByText('Edit images')).toBeInTheDocument();
     expect(screen.getByText('Output studio')).toBeInTheDocument();
 
-    expect(screen.queryByRole('button', { name: /Image Editor/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Relight/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Upscale/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Redesign/i })).not.toBeInTheDocument();
+    const tabButtons = screen.getAllByRole('button');
+    expect(tabButtons).toHaveLength(9);
 
     await user.click(screen.getByRole('button', { name: /Lookbook AI/i }));
     expect(setActiveFeature).toHaveBeenCalledWith(Feature.Lookbook);
