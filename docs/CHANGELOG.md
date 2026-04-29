@@ -4,6 +4,27 @@ Tất cả thay đổi đáng chú ý của dự án được ghi nhận tại �
 Format tuân thủ [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
 Phiên bản tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] — 2026-04-29
+
+### Removed
+- **ImageEditor feature** — toàn bộ component (1229 dòng), 3 sub-components (Canvas, Toolbar, Modal), hook (`useImageEditor`, `useCanvasDrawing`), và state `imageToEdit` từ App
+- **OutfitAnalysis feature** — component, hook (`useOutfitAnalysis`), service (`upscaleAnalysisService`), và type `AnalyzedItem`
+- **Relight feature** — component và hook (`useRelight`)
+- **Upscale feature** — component, hook (`useUpscale`), 12 sub-components trong `src/components/upscale/`, type `UpscaleMode`, `UpscaleStudioStep`
+- 4 giá trị Feature enum: `ImageEditor`, `OutfitAnalysis`, `Relight`, `Upscale`
+- 322 dòng i18n keys/locale mỗi ngôn ngữ (en, vi)
+- Type `RedesignPreset` và `UPSCALE_QUICK_MODELS` (không còn consumer)
+- `extractOutfitItem`, `critiqueAndRedesignOutfit` từ `imageEditingService` và `gemini/image`
+- `analyzeOutfit`, `parseOutfitAnalysis` từ `textService` và `gemini/text`
+- `onEditImage` prop từ `GalleryModal`, `onEdit` button từ `HoverableImage`
+- `EditorIcon` import từ HoverableImage
+
+### Fixed
+- Session hydration hardened: saved feature ID được validate với `Object.values(Feature).includes()` trước khi restore, fallback về `TryOn` cho retired feature ID
+
+### Changed
+- `imageActions.edit` i18n key bị xóa (orphan sau khi xóa onEdit button)
+
 ## [Unreleased] — post-v1.5
 
 ### Added
@@ -11,13 +32,13 @@ Phiên bản tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Text generation model selector trên workspace header
 - Pattern Generator feature (hook, prompt builder, component, tests)
 - Settings modal hook với file validation, async storage, localization
-- Hooks cho Outfit Analysis, Photo Album, Virtual Try-On, AI Editor
+- Hooks cho Photo Album, Virtual Try-On, AI Editor
 - UI import boundary enforcement test (`ui-boundary-imports.test.ts`)
 - Unit tests cho SettingsModal component và useSettingsModal hook
 
 ### Changed
 - **Runway UI redesign** — toàn bộ workspace (#23)
-- Refactor: tách service flows từ components vào hooks (PoseChanger, ImageEditor, BackgroundReplacer, etc.)
+- Refactor: tách service flows từ components vào hooks (PoseChanger, BackgroundReplacer, etc.)
 - Refactor: isolate UI model boundary — components không import services trực tiếp
 - Centralize shared Gemini type contracts
 - Centralize `AdjustmentState`, `HSLState`, `GalleryImageFile` to `types.ts` to resolve circular dependencies
@@ -27,7 +48,6 @@ Phiên bản tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Fixed
 - IndexedDB persistence race condition during initialization (`isHydrated` guard)
-- Image editor UI overflow restoration and hover overlay positioning
 - AI editor duplicate generation
 - Service boundary review blockers
 - Dropdown option text color visibility
