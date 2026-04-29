@@ -231,9 +231,9 @@ Rollback action: revert the current phase rewiring, restore the previous boundar
 | Target | Existing hook/contract owner | Runtime service/config imports | Scope |
 |---|---|---:|---|
 | `PoseChanger` (`src/components/PoseChanger.tsx`) | `usePoseChanger` | 0 | Preserve hook-owned generation and upscale side effects. |
-| `SettingsModal` (`src/components/modals/SettingsModal.tsx`) | `ApiProviderContext`, `ImageGalleryContext`, storage/debug adapters | 2 | Move model filtering, persistence, backup/restore/clear, and debug toggles behind a focused boundary. |
-| `AIEditor` (`src/components/AIEditor.tsx`) | No dedicated hook yet | 1 | Move prompt validation, mention resolution, API call, loading/error, and result state into a hook boundary. |
-| `PhotoAlbumCreator` (`src/components/PhotoAlbumCreator.tsx`) | `usePhotoAlbum` exists but is incomplete | 1 | Move pose prompt generation, batch progress, regenerate, loading/error, and gallery side effects into the hook. |
+| `SettingsModal` (`src/components/modals/SettingsModal.tsx`) | `useSettingsModal` | 0 | Keep the modal presentational while the hook owns model filtering, persistence, backup/restore/clear, and debug toggles. |
+| `AIEditor` (`src/components/AIEditor.tsx`) | `useAIEditor` | 0 | Keep prompt validation, mention resolution, API calls, loading/error, and result state inside the hook boundary. |
+| `PhotoAlbumCreator` (`src/components/PhotoAlbumCreator.tsx`) | `usePhotoAlbum` | 0 | Keep pose prompt generation, batch progress, regenerate, loading/error, and related orchestration inside the hook boundary. |
 | `LookbookOutput` (`src/components/LookbookOutput.tsx`) | `useLookbookGenerator` owns generation; output component owns downstream UI | 0 | Keep output presentational and reduce service-owned type coupling. |
 | `shared/RefinementInput` (`src/components/shared/RefinementInput.tsx`) | Parent lookbook/refinement contract | 0 | Keep refinement input presentational and preserve callback props. |
 
