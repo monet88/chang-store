@@ -56,8 +56,6 @@ export interface RefinementHistoryItem {
   timestamp: number;
 }
 
-export type RedesignPreset = 'casual' | 'smart-casual' | 'luxury' | 'asian-style';
-
 export interface SelectableModel {
   modelId: string;
   label: string;

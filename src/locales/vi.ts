@@ -162,7 +162,6 @@ export const vi: Translation = {
     regenerate: 'Tạo lại',
     upscale: 'Nâng cấp',
     download: 'Tải xuống',
-    edit: 'Chỉnh sửa',
     saveToGallery: 'Lưu vào Gallery',
     savedToGallery: 'Đã lưu',
     saveAllToGallery: 'Lưu tất cả',

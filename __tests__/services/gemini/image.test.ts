@@ -41,7 +41,6 @@ import {
   upscaleImage,
   type EditImageParams,
 } from '@/services/gemini/image';
-import type { RedesignPreset } from '@/types';
 
 // ============================================================================
 // Test Fixtures

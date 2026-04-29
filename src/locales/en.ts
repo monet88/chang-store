@@ -161,7 +161,6 @@ export const en = {
     regenerate: 'Regenerate',
     upscale: 'Upscale',
     download: 'Download',
-    edit: 'Edit',
     saveToGallery: 'Save to Gallery',
     savedToGallery: 'Saved',
     saveAllToGallery: 'Save All',
