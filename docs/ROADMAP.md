@@ -1,7 +1,7 @@
 # Roadmap
 
 > Hướng đi chiến lược cho Chang-Store — AI-Powered Virtual Fashion Studio.  
-> Cập nhật: 28/04/2026 · Phiên bản hiện tại: v1.0.3 (tag v1.5)
+> Cập nhật: 29/04/2026 · Phiên bản hiện tại: v1.0.4 (tag v1.5)
 
 ---
 
@@ -17,8 +17,7 @@ v1.0 (MVP) ──→ v1.5 (Features) ──→ v2.0 (Foundation) ──→ v3.0 
 ## ✅ Đã Hoàn Thành
 
 ### v1.0 — MVP Foundation (2026-03-16)
-- [x] 13 AI features: Try-On, Lookbook, Background, Pose, PhotoAlbum, OutfitAnalysis, Relight, Upscale, ImageEditor, AIEditor, WatermarkRemover, ClothingTransfer, PatternGenerator
-- [x] AI Studio Upscale với analysis, preview simulation, reliability checks
+- [x] 9 AI features: Try-On, Lookbook, Background, Pose, PhotoAlbum, AIEditor, WatermarkRemover, ClothingTransfer, PatternGenerator
 - [x] Gemini-only architecture (remove multi-provider)
 - [x] Google Drive sync integration
 - [x] Full i18n (English + Vietnamese)
@@ -76,7 +75,7 @@ v1.0 (MVP) ──→ v1.5 (Features) ──→ v2.0 (Foundation) ──→ v3.0 
 - [ ] ADRs (Architecture Decision Records)
 
 ### Phase 4: Component Decomposition
-- [ ] Split `ImageEditor.tsx` (58KB) thành sub-components
+- [x] ~~Split `ImageEditor.tsx`~~ — Feature removed entirely (v1.0.4)
 - [ ] Split `LookbookForm.tsx`, `WatermarkRemover.tsx`, `ClothingTransfer.tsx`
 - [ ] Extract pose data từ locale files vào data modules
 
@@ -96,7 +95,7 @@ v1.0 (MVP) ──→ v1.5 (Features) ──→ v2.0 (Foundation) ──→ v3.0 
 ### Phase 2: Feature Tiering
 - [ ] Phân loại features: Core / Supporting / Labs
 - [ ] Sidebar navigation theo tier — Core features nổi bật, Labs ẩn
-- [ ] Merge overlapping: AI Editor + Image Editor → 1 tool
+- [x] ~~Merge overlapping: AI Editor + Image Editor → 1 tool~~ — ImageEditor removed (v1.0.4), AI Editor is the unified editor
 - [ ] Evaluate: Try-On vs. Clothing Transfer overlap
 
 ### Phase 3: Quality & Trust
@@ -130,7 +129,7 @@ v1.0 (MVP) ──→ v1.5 (Features) ──→ v2.0 (Foundation) ──→ v3.0 
 
 | Metric | Current | v2.0 Target | v3.0 Target |
 |--------|---------|-------------|-------------|
-| Features | 13 | 13 (tiered) | ~8 (merged) |
+| Features | 9 | 9 (tiered) | ~8 (merged) |
 | Prod dependencies | 4 | 5 (+idb) | 6 (+zod) |
 | Test coverage | Moderate | High (boundaries + integration) | Comprehensive |
 | Component max size | 58KB | <20KB | <15KB |

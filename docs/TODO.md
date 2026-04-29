@@ -65,7 +65,7 @@
 
 ### Quality
 - [ ] **Zod validation cho Gemini outputs** — generative APIs hallucinate JSON
-  - Files: `src/services/gemini/text.ts`, `src/services/upscaleAnalysisService.ts`
+  - Files: `src/services/gemini/text.ts`
   - Add: `zod` dependency, schema definitions cho mỗi structured response
 - [ ] **ADRs** — Architecture Decision Records
   - Tạo `docs/decisions/` directory
@@ -87,7 +87,7 @@
 
 ### Feature Tiering
 - [ ] Phân loại sidebar: Core / Supporting / Labs sections
-- [ ] Merge AI Editor + Image Editor → single unified editor
+- [x] ~~Merge AI Editor + Image Editor → single unified editor~~ — ImageEditor removed (v1.0.4), AI Editor is the unified editor
 - [ ] Evaluate Virtual Try-On vs. Clothing Transfer overlap
 
 ### Testing
