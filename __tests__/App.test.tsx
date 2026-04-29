@@ -246,4 +246,40 @@ describe('App utility dock regression', () => {
       expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('try-on'));
     });
   });
+
+  it('persists active feature across repeated switches and survives re-render', async () => {
+    const user = userEvent.setup();
+
+    const { unmount } = render(<App />);
+
+    await user.click(screen.getByText('feature-pattern-generator'));
+    expect(await screen.findByText('pattern-generator')).toBeInTheDocument();
+    expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('pattern-generator'));
+
+    await user.click(screen.getByText('feature-try-on'));
+    expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();
+    expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('try-on'));
+
+    unmount();
+
+    render(<App />);
+    expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();
+    expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('try-on'));
+  });
+
+  it('persists model selector scope correctly after feature switch and restore', async () => {
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    expect(screen.getByLabelText('Image editing model')).toBeInTheDocument();
+
+    await user.click(screen.getByText('feature-watermark-remover'));
+    expect(await screen.findByText('watermark-remover')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
+
+    await user.click(screen.getByText('feature-try-on'));
+    expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();
+    expect(screen.getByLabelText('Image editing model')).toBeInTheDocument();
+  });
 });

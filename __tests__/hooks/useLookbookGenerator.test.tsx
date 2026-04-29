@@ -48,6 +48,11 @@ vi.mock('../../src/utils/imageUtils', () => ({
   getErrorMessage: vi.fn((err: Error) => err.message),
 }));
 
+/** Mock ZIP download helper */
+vi.mock('../../src/utils/zipDownload', () => ({
+  downloadImagesAsZip: vi.fn(),
+}));
+
 /** Mock contexts */
 vi.mock('../../src/contexts/LanguageContext', () => mockUseLanguage());
 vi.mock('../../src/contexts/ImageGalleryContext', () => mockUseImageGallery());
@@ -68,8 +73,9 @@ vi.mock('../../src/components/LookbookGenerator.prompts', () => ({
 
 // Import hook and mocked services after mocking
 import { useLookbookGenerator } from '../../src/hooks/useLookbookGenerator';
-import { editImage, upscaleImage } from '../../src/services/imageEditingService';
+import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { generateClothingDescription } from '../../src/services/textService';
+import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 
 // ============================================================================
 // Test Constants
@@ -96,6 +102,16 @@ const GENERATED_IMAGE = {
 /** Sample upscaled result image */
 const UPSCALED_IMAGE = {
   base64: 'dXBzY2FsZWQtcmVzdWx0',
+  mimeType: 'image/png',
+};
+
+const REFINED_IMAGE = {
+  base64: 'cmVmaW5lZC1pbWFnZQ==',
+  mimeType: 'image/png',
+};
+
+const VARIATION_IMAGE = {
+  base64: 'dmFyaWF0aW9uLWltYWdl',
   mimeType: 'image/png',
 };
 
@@ -128,6 +144,12 @@ const mockLocalStorage = (() => {
 // ============================================================================
 
 describe('useLookbookGenerator', () => {
+  const refineSessionMock = {
+    sendRefinement: vi.fn(),
+    getHistory: vi.fn(),
+    reset: vi.fn(),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockLocalStorage.clear();
@@ -135,6 +157,10 @@ describe('useLookbookGenerator', () => {
       value: mockLocalStorage,
       writable: true,
     });
+    refineSessionMock.sendRefinement.mockReset();
+    refineSessionMock.getHistory.mockReset();
+    refineSessionMock.reset.mockReset();
+    refineSessionMock.getHistory.mockReturnValue([]);
   });
 
   afterEach(() => {
@@ -775,6 +801,228 @@ describe('useLookbookGenerator', () => {
       });
 
       expect(result.current.generatedLookbook?.variations[0]).toEqual(upscaledVariation);
+    });
+  });
+
+  // ============================================================================
+  // Test Suite: Refinement, Version Selection, and Download
+  // ============================================================================
+
+  describe('Refinement, Version Selection, and Download', () => {
+    it('restores saved clothing slot count from localStorage draft state', () => {
+      const savedDraft = {
+        clothingSlotCount: 3,
+        fabricTexturePrompt: 'silk',
+        clothingDescription: 'A blue dress',
+        lookbookStyle: 'mannequin',
+        garmentType: 'one-piece',
+        foldedPresentationType: 'boxed',
+        mannequinBackgroundStyle: 'minimalistShowroom',
+        negativePrompt: 'wrinkles',
+        productShotSubType: 'ghost-mannequin',
+        includeAccessories: true,
+        includeFootwear: false,
+      };
+      mockLocalStorage.getItem.mockImplementation((key: string) => (
+        key === DRAFT_STORAGE_KEY ? JSON.stringify(savedDraft) : null
+      ));
+
+      const { result } = renderHook(() => useLookbookGenerator());
+
+      expect(result.current.formState.clothingImages).toHaveLength(3);
+      expect(result.current.formState.fabricTextureImage).toBeNull();
+      expect(result.current.formState.includeAccessories).toBe(true);
+    });
+
+    it('refines generated lookbook image and tracks refinement history', async () => {
+      refineSessionMock.sendRefinement.mockResolvedValueOnce(REFINED_IMAGE);
+      refineSessionMock.getHistory.mockReturnValueOnce([{ prompt: 'make it sharper', timestamp: 123 }]);
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
+
+      const { result } = renderHook(() => useLookbookGenerator());
+
+      act(() => {
+        result.current.updateForm({
+          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      await act(async () => {
+        await result.current.handleRefineImage('make it sharper');
+      });
+
+      expect(createImageChatSession).toHaveBeenCalledWith(
+        'gemini-2.5-flash-image',
+        expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
+      );
+      expect(refineSessionMock.sendRefinement).toHaveBeenCalledWith('make it sharper', GENERATED_IMAGE);
+      expect(result.current.generatedLookbook?.main).toEqual(REFINED_IMAGE);
+      expect(result.current.refinementVersions).toHaveLength(1);
+      expect(result.current.selectedVersionIndex).toBe(0);
+      expect(result.current.refinementHistory).toEqual([{ prompt: 'make it sharper', timestamp: 123 }]);
+      expect(result.current.isRefining).toBe(false);
+    });
+
+    it('selects refined and original versions while clearing derivative outputs', async () => {
+      refineSessionMock.sendRefinement.mockResolvedValueOnce(REFINED_IMAGE);
+      refineSessionMock.getHistory.mockReturnValue([]);
+      vi.mocked(editImage)
+        .mockResolvedValueOnce([GENERATED_IMAGE])
+        .mockResolvedValueOnce([VARIATION_IMAGE]);
+      vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
+
+      const { result } = renderHook(() => useLookbookGenerator());
+
+      act(() => {
+        result.current.updateForm({
+          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      await act(async () => {
+        await result.current.handleGenerateVariations();
+      });
+
+      await act(async () => {
+        await result.current.handleRefineImage('make it sharper');
+      });
+
+      expect(result.current.generatedLookbook?.variations).toEqual([]);
+
+      act(() => {
+        result.current.handleSelectVersion(-1);
+      });
+
+      expect(result.current.generatedLookbook?.main).toEqual(GENERATED_IMAGE);
+      expect(result.current.selectedVersionIndex).toBe(-1);
+
+      act(() => {
+        result.current.handleSelectVersion(0);
+      });
+
+      expect(result.current.generatedLookbook?.main).toEqual(REFINED_IMAGE);
+      expect(result.current.selectedVersionIndex).toBe(0);
+    });
+
+    it('resets refinement session and history', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
+
+      const { result } = renderHook(() => useLookbookGenerator());
+
+      act(() => {
+        result.current.updateForm({
+          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      act(() => {
+        result.current.setRefinementVersions([{ image: REFINED_IMAGE, prompt: 'older', timestamp: 1 }]);
+      });
+
+      act(() => {
+        result.current.handleResetRefinement();
+      });
+
+      expect(refineSessionMock.reset).toHaveBeenCalledTimes(1);
+      expect(result.current.refinementHistory).toEqual([]);
+      expect(result.current.chatSession).toBeDefined();
+    });
+
+    it('sets error when refine is requested without an active session', async () => {
+      const { result } = renderHook(() => useLookbookGenerator());
+
+      await act(async () => {
+        await result.current.handleRefineImage('make it sharper');
+      });
+
+      expect(result.current.error).toBe('lookbook.refineError');
+    });
+
+    it('downloads all generated lookbook images as a zip', async () => {
+      const closeupImage = { base64: 'Y2xvc2V1cA==', mimeType: 'image/png' };
+      vi.mocked(editImage)
+        .mockResolvedValueOnce([GENERATED_IMAGE])
+        .mockResolvedValueOnce([VARIATION_IMAGE])
+        .mockResolvedValue([closeupImage]);
+      vi.mocked(downloadImagesAsZip).mockResolvedValueOnce(undefined);
+      vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
+
+      const { result } = renderHook(() => useLookbookGenerator());
+
+      act(() => {
+        result.current.updateForm({
+          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      await act(async () => {
+        await result.current.handleGenerateVariations();
+      });
+
+      await act(async () => {
+        await result.current.handleGenerateCloseUp();
+      });
+
+      await act(async () => {
+        await result.current.handleDownloadAll();
+      });
+
+      expect(downloadImagesAsZip).toHaveBeenCalledWith(
+        [GENERATED_IMAGE, VARIATION_IMAGE, closeupImage, closeupImage, closeupImage],
+        'lookbook-batch',
+      );
+    });
+
+    it('sets error when lookbook zip download fails', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      vi.mocked(downloadImagesAsZip).mockRejectedValueOnce(new Error('zip failed'));
+      vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
+
+      const { result } = renderHook(() => useLookbookGenerator());
+
+      act(() => {
+        result.current.updateForm({
+          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      await act(async () => {
+        await result.current.handleDownloadAll();
+      });
+
+      expect(result.current.error).toBe('zip failed');
+    });
+
+    it('skips lookbook zip download when no images exist', async () => {
+      const { result } = renderHook(() => useLookbookGenerator());
+
+      await act(async () => {
+        await result.current.handleDownloadAll();
+      });
+
+      expect(downloadImagesAsZip).not.toHaveBeenCalled();
     });
   });
 

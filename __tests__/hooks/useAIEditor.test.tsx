@@ -152,4 +152,72 @@ describe('useAIEditor', () => {
       await secondGenerate;
     });
   });
+
+  it('sets error when no images are uploaded', async () => {
+    const { result } = renderHook(() => useAIEditor());
+
+    act(() => {
+      result.current.setPrompt('Edit this image');
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    expect(editImage).not.toHaveBeenCalled();
+    expect(result.current.error).toBe('aiEditor.error.noImages');
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('sets error when prompt is empty or whitespace', async () => {
+    const { result } = renderHook(() => useAIEditor());
+
+    act(() => {
+      result.current.setImages([FIRST_IMAGE]);
+      result.current.setPrompt('   ');
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    expect(editImage).not.toHaveBeenCalled();
+    expect(result.current.error).toBe('aiEditor.error.noPrompt');
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('propagates service errors as user-facing messages', async () => {
+    vi.mocked(editImage).mockRejectedValueOnce(new Error('error.api.safetyBlock'));
+    const { result } = renderHook(() => useAIEditor());
+
+    act(() => {
+      result.current.setImages([FIRST_IMAGE]);
+      result.current.setPrompt('Edit this image');
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    expect(result.current.resultImage).toBeNull();
+    expect(result.current.error).toBe('error.api.safetyBlock');
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('sends only in-range mentioned images when some refs are invalid', async () => {
+    const { result } = renderHook(() => useAIEditor());
+
+    act(() => {
+      result.current.setImages([FIRST_IMAGE, SECOND_IMAGE]);
+      // @img3 is invalid, @img1 and @img2 are valid
+      result.current.setPrompt('Combine @img1 with @img3 material');
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    expect(editImage).not.toHaveBeenCalled();
+    expect(result.current.error).toBe('aiEditor.error.invalidImageReferences:@img3');
+  });
 });
