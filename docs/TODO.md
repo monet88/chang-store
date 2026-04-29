@@ -15,10 +15,7 @@
   - Scope: `src/App.tsx` (feature state), mỗi hook (form state)
 
 ### Component Size
-- [ ] **Split `ImageEditor.tsx`** (58KB) thành sub-components
-  - Canvas controls → `ImageEditorCanvas.tsx` (đã có nhưng chỉ 5KB)
-  - Toolbar → `ImageEditorToolbar.tsx` (đã có nhưng chỉ 7KB)
-  - Main editor body vẫn quá lớn — cần thêm decomposition
+- [x] ~~**Split `ImageEditor.tsx`**~~ — Feature removed entirely (v1.0.4). ImageEditor, ImageEditorCanvas, ImageEditorToolbar deleted along with retired features (OutfitAnalysis, Relight, Upscale, ImageEditor).
 
 ### Data Architecture
 - [ ] **Extract pose data từ locale files** — `poseChanger.poseCollections` trong `en.ts` chứa hàng trăm dòng pose data + GitHub URLs
