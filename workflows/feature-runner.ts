@@ -49,22 +49,38 @@ export async function runFeatureJob(
       return { status: 'failed', errorCode: 'NO_RESULTS', errorMessage: 'Gemini returned no results' };
     }
 
-    // Map results to assets
-    const assets = results.map((r, i) => ({
-      blobPath: `outputs/${job.id}/${i}.png`,
-      mimeType: 'image/png',
-    }));
+    // Upload result images to Blob storage
+    const assets: Array<{ blobPath: string; mimeType: string }> = [];
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      if (r.error) continue;
 
-    // Check for partial success (if batch had failures)
+      const base64 = r.base64 as string | undefined;
+      const mimeType = (r.mimeType as string) || 'image/png';
+      if (base64) {
+        const blobPath = `outputs/${job.id}/${i}.png`;
+        const buffer = Buffer.from(base64, 'base64');
+        await ctx.blob.storeFile(blobPath, buffer, mimeType);
+        assets.push({ blobPath, mimeType });
+      }
+    }
+
+    // Check for partial success
     const failed = results.some(r => r.error);
     if (failed) {
       const succeeded = results.filter(r => !r.error);
-      const succeededAssets = succeeded.map((r, i) => ({
-        blobPath: `outputs/${job.id}/${i}.png`,
-        mimeType: 'image/png',
-      }));
-      await partialJob(db, job.id, succeededAssets, 'PARTIAL_FAILURE', 'Some items failed', traceId);
-      return { status: 'partial', assets: succeededAssets, errorCode: 'PARTIAL_FAILURE' };
+      if (succeeded.length > 0) {
+        const succeededAssets = assets.slice(0, succeeded.length);
+        await partialJob(db, job.id, succeededAssets, 'PARTIAL_FAILURE', 'Some items failed', traceId);
+        return { status: 'partial', assets: succeededAssets, errorCode: 'PARTIAL_FAILURE' };
+      }
+      await failJob(db, job.id, 'ALL_FAILED', 'All items failed', traceId);
+      return { status: 'failed', errorCode: 'ALL_FAILED', errorMessage: 'All items failed' };
+    }
+
+    if (assets.length === 0) {
+      await failJob(db, job.id, 'NO_ASSETS', 'No assets produced', traceId);
+      return { status: 'failed', errorCode: 'NO_ASSETS', errorMessage: 'No assets produced' };
     }
 
     await completeJob(db, job.id, assets, traceId);

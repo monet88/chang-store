@@ -19,20 +19,22 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
         { id: Feature.TryOn, label: t('tabs.tryOn') },
         { id: Feature.Lookbook, label: t('tabs.lookbook') },
         { id: Feature.ClothingTransfer, label: t('tabs.clothingTransfer') },
-        { id: Feature.PatternGenerator, label: t('tabs.patternGenerator') },
+        // TODO: Enable when migrated to job pipeline
+        // { id: Feature.PatternGenerator, label: t('tabs.patternGenerator') },
       ],
     },
-    {
-      key: 'editImages',
-      title: t('navigation.editImages.label'),
-      description: t('navigation.editImages.description'),
-      items: [
-        { id: Feature.AIEditor, label: t('tabs.aiEditor') },
-        { id: Feature.Background, label: t('tabs.background') },
-        { id: Feature.Pose, label: t('tabs.pose') },
-        { id: Feature.WatermarkRemover, label: t('tabs.watermarkRemover') },
-      ],
-    },
+    // TODO: Enable when migrated to job pipeline
+    // {
+    //   key: 'editImages',
+    //   title: t('navigation.editImages.label'),
+    //   description: t('navigation.editImages.description'),
+    //   items: [
+    //     { id: Feature.AIEditor, label: t('tabs.aiEditor') },
+    //     { id: Feature.Background, label: t('tabs.background') },
+    //     { id: Feature.Pose, label: t('tabs.pose') },
+    //     { id: Feature.WatermarkRemover, label: t('tabs.watermarkRemover') },
+    //   ],
+    // },
     {
       key: 'outputStudio',
       title: t('navigation.outputStudio.label'),

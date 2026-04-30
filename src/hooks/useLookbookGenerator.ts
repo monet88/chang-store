@@ -3,7 +3,12 @@ import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolut
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+// TODO: Migrate editImage calls to job pipeline
+// import { editImage } from '../services/imageEditingService';
+import { upscaleImage, createImageChatSession } from '../services/imageEditingService';
+import type { ImageChatSession } from '../services/imageEditingService';
+import { submitJob, pollJob, getJobResults, downloadJobResultBlob } from '../services/jobService';
+import { useJobPoll } from '../hooks/useJobPoll';
 import { generateClothingDescription } from '../services/textService';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
@@ -187,6 +192,29 @@ export const useLookbookGenerator = () => {
         onStatusUpdate,
     }), []);
 
+    // Job pipeline: poll helper + result fetcher
+    const _jobPoll = useJobPoll();
+
+    const waitForJob = useCallback(async (jobId: string) => {
+      while (true) {
+        const j = await pollJob(jobId);
+        if (j.status === 'completed' || j.status === 'partial') return j;
+        if (j.status === 'failed') throw new Error(j.error_message || 'Job failed');
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }, []);
+
+    const fetchJobImages = useCallback(async (jobId: string): Promise<ImageFile[]> => {
+      const { results } = await getJobResults(jobId);
+      const outputs = results.filter(r => r.kind === 'output');
+      const images: ImageFile[] = [];
+      for (const r of outputs) {
+        const b64 = await downloadJobResultBlob(r.blob_path);
+        images.push({ base64: b64, mimeType: r.mime_type });
+      }
+      return images;
+    }, []);
+
     useEffect(() => {
         if (typeof window === 'undefined') {
             return;
@@ -217,7 +245,7 @@ export const useLookbookGenerator = () => {
         };
     }, [formState]);
 
-    // Initialize chat session if lookbook exists but session doesn't
+    // Initialize chat session for iterative refinement (keep as direct call for MVP)
     useEffect(() => {
         if (generatedLookbook && !chatSession) {
             const session = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
@@ -298,18 +326,27 @@ export const useLookbookGenerator = () => {
         );
 
         try {
-          const results = await editImage({
-            images: imagesForApi,
+          const newJob = await submitJob('lookbook', {
+            images: imagesForApi.map(img => img.base64),
             prompt,
             negativePrompt,
             numberOfImages: 1,
             aspectRatio,
-            resolution
-          }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
+            resolution,
+          });
+
+          if (newJob.status === 'failed') {
+            throw new Error(newJob.error_message || 'Job failed');
+          }
+
+          if (newJob.status !== 'completed' && newJob.status !== 'partial') {
+            await waitForJob(newJob.id);
+          }
+
+          const results = await fetchJobImages(newJob.id);
           if (results.length > 0) {
             const generatedImage = results[0];
 
-            // Store original for version selection
             originalImageRef.current = generatedImage;
             setRefinementVersions([]);
             setSelectedVersionIndex(-1);
@@ -317,7 +354,7 @@ export const useLookbookGenerator = () => {
             setGeneratedLookbook({ main: generatedImage, variations: [], closeups: [] });
             setActiveOutputTab('main');
 
-            // Create new chat session for image refinement
+            // Create new chat session for image refinement (keep direct call for MVP)
             const session = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
             setChatSession(session);
             setRefinementHistory([]);
@@ -328,8 +365,9 @@ export const useLookbookGenerator = () => {
           setIsLoading(false);
           setLoadingMessage('');
         }
-    }, [formState, imageEditModel, buildImageServiceConfig, aspectRatio, resolution, t]);
+    }, [formState, aspectRatio, resolution, t, waitForJob, fetchJobImages]);
 
+    // TODO: Migrate upscale to job pipeline
     const handleUpscale = useCallback(async (imageToUpscale: ImageFile, imageKey: string) => {
         setUpscalingStates(prev => ({ ...prev, [imageKey]: true }));
         setError(null);
@@ -373,14 +411,25 @@ export const useLookbookGenerator = () => {
         const prompt = buildVariationPrompt(formState.lookbookStyle, variationCount);
 
         try {
-            const newVariations = await editImage({
-                images: [baseImage],
-                prompt,
-                negativePrompt: formState.negativePrompt,
-                numberOfImages: variationCount,
-                aspectRatio,
-                resolution
-            }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
+            const newJob = await submitJob('lookbook', {
+              images: [baseImage.base64],
+              prompt,
+              negativePrompt: formState.negativePrompt,
+              numberOfImages: variationCount,
+              aspectRatio,
+              resolution,
+            });
+
+            if (newJob.status === 'failed') {
+              throw new Error(newJob.error_message || 'Job failed');
+            }
+
+            if (newJob.status !== 'completed' && newJob.status !== 'partial') {
+              setLoadingMessage(t('lookbook.generatingStatus'));
+              await waitForJob(newJob.id);
+            }
+
+            const newVariations = await fetchJobImages(newJob.id);
             setGeneratedLookbook(prev => prev ? { ...prev, variations: newVariations } : null);
         } catch (err) {
           setError(getErrorMessage(err, t));
@@ -388,7 +437,7 @@ export const useLookbookGenerator = () => {
             setIsGeneratingVariations(false);
             setLoadingMessage('');
         }
-    }, [generatedLookbook, formState.negativePrompt, formState.lookbookStyle, variationCount, imageEditModel, buildImageServiceConfig, aspectRatio, resolution, t]);
+    }, [generatedLookbook, formState.negativePrompt, formState.lookbookStyle, variationCount, aspectRatio, resolution, t, waitForJob, fetchJobImages]);
 
     const handleGenerateCloseUp = useCallback(async () => {
         if (!generatedLookbook) {
@@ -408,14 +457,25 @@ export const useLookbookGenerator = () => {
             const closeups: ImageFile[] = [];
             for (const closeUpPrompt of closeUpPrompts) {
                 setLoadingMessage(t('lookbook.generatingCloseUp', { current: closeups.length + 1, total: closeUpPrompts.length }));
-                const results = await editImage({
-                    images: [baseImage],
-                    prompt: closeUpPrompt,
-                    negativePrompt: combinedNegativePrompt,
-                    numberOfImages: 1,
-                    aspectRatio,
-                    resolution
-                }, imageEditModel, buildImageServiceConfig(() => {}));
+
+                const newJob = await submitJob('lookbook', {
+                  images: [baseImage.base64],
+                  prompt: closeUpPrompt,
+                  negativePrompt: combinedNegativePrompt,
+                  numberOfImages: 1,
+                  aspectRatio,
+                  resolution,
+                });
+
+                if (newJob.status === 'failed') {
+                  throw new Error(newJob.error_message || 'Job failed');
+                }
+
+                if (newJob.status !== 'completed' && newJob.status !== 'partial') {
+                  await waitForJob(newJob.id);
+                }
+
+                const results = await fetchJobImages(newJob.id);
                 if (results.length > 0) {
                     closeups.push(results[0]);
                     setGeneratedLookbook(prev => prev ? { ...prev, closeups: [...closeups] } : null);
@@ -427,8 +487,9 @@ export const useLookbookGenerator = () => {
             setIsGeneratingCloseUp(false);
             setLoadingMessage('');
         }
-    }, [generatedLookbook, formState.negativePrompt, imageEditModel, buildImageServiceConfig, aspectRatio, resolution, t]);
+    }, [generatedLookbook, formState.negativePrompt, aspectRatio, resolution, t, waitForJob, fetchJobImages]);
 
+    // TODO: Migrate refinement to job pipeline
     const handleRefineImage = useCallback(async (prompt: string) => {
         if (!chatSession || !generatedLookbook) {
             setError(t('lookbook.refineError'));
@@ -444,7 +505,6 @@ export const useLookbookGenerator = () => {
                 generatedLookbook.main
             );
 
-            // Add to refinement versions history
             setRefinementVersions(prev => [...prev, {
                 image: refinedImage,
                 prompt,
@@ -452,16 +512,13 @@ export const useLookbookGenerator = () => {
             }]);
             setSelectedVersionIndex(prev => prev + 1);
 
-            // Update lookbook with refined image
             setGeneratedLookbook(prev => prev ? {
                 ...prev,
                 main: refinedImage,
-                // Clear variations/closeups as they're based on old image
                 variations: [],
                 closeups: []
             } : null);
 
-            // Update history from session
             setRefinementHistory(chatSession.getHistory());
 
         } catch (err) {

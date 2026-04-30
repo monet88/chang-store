@@ -8,6 +8,7 @@ import { createJob, createJobEvent, listJobsByUser } from '../../server/db';
 import { validateJobPayload } from '../../server/validation';
 import { ZodError } from 'zod';
 import { formatZodErrors } from '../../server/validation';
+import { executeJob } from '../../server/workflows/job-runner';
 
 interface CreateJobBody {
   feature: string;
@@ -84,6 +85,11 @@ async function handleCreate(request: Request, session: { userId: string }, trace
   }
 
   await createJobEvent(db, job.id, 'queued', { feature: body.feature }, traceId);
+
+  // Trigger async execution — fire and forget (errors logged in executeJob)
+  void executeJob(db, job, traceId).catch((err) => {
+    console.error(`[JOBS] Background execution failed for job ${job.id}:`, err);
+  });
 
   return jsonResponse(job, { status: 201 });
 }

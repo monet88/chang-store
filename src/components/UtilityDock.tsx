@@ -2,18 +2,20 @@ import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import GalleryButton from './GalleryButton';
 import PromptLibraryFAB from './PromptLibraryFAB';
-import { ChevronDownIcon, ChevronUpIcon, EditorIcon } from './Icons';
+import { ChevronDownIcon, ChevronUpIcon, EditorIcon, HistoryIcon } from './Icons';
 
 interface UtilityDockProps {
   onOpenGallery: () => void;
   onOpenPromptLibrary: () => void;
   onOpenSettings: () => void;
+  onOpenJobHistory: () => void;
 }
 
 const UtilityDock: React.FC<UtilityDockProps> = ({
   onOpenGallery,
   onOpenPromptLibrary,
   onOpenSettings,
+  onOpenJobHistory,
 }) => {
   const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -67,6 +69,20 @@ const UtilityDock: React.FC<UtilityDockProps> = ({
               <span>
                 <span className="workspace-label mb-1 block">{t('workspace.utility.settings')}</span>
                 <span className="text-sm font-medium text-white">{t('workspace.utility.settings')}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={onOpenJobHistory}
+              className="workspace-button min-w-[8.75rem] justify-start gap-3 rounded-2xl px-4 py-3 text-left"
+              aria-label={t('jobs.history.title')}
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/30 text-zinc-100">
+                <HistoryIcon className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="workspace-label mb-1 block">{t('jobs.history.title')}</span>
+                <span className="text-sm font-medium text-white">{t('jobs.history.title')}</span>
               </span>
             </button>
           </div>

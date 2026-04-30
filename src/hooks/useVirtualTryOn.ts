@@ -12,8 +12,11 @@ import {
 } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
-import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
-import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import { getErrorMessage, compositeMarkerOnImage, blobToBase64 } from '../utils/imageUtils';
+// import { editImage } from '../services/imageEditingService';  // migrated to job pipeline
+// TODO: migrate upscale/refine to job pipeline
+import { upscaleImage, createImageChatSession, type ImageChatSession } from '../services/imageEditingService';
+import { submitJob, getJobResults, type Job, type JobResult } from '../services/jobService';
 import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
@@ -21,6 +24,32 @@ import { downloadImagesAsZip } from '../utils/zipDownload';
 
 const MAX_SHARED_OUTFIT_IMAGES = 2;
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
+const POLL_INTERVAL_MS = 3000;
+
+async function fetchBlobAsImageFile(blobPath: string, mimeType: string): Promise<ImageFile> {
+  const response = await fetch(`${window.location.origin}${blobPath}`, { credentials: 'include' });
+  const blob = await response.blob();
+  const base64 = await blobToBase64(blob);
+  return { base64, mimeType };
+}
+
+async function waitForJobCompletion(jobId: string, onStatus: (msg: string) => void): Promise<Job> {
+  const { pollJob } = await import('../services/jobService');
+  while (true) {
+    const job = await pollJob(jobId);
+    onStatus(`Job ${job.status}...`);
+    if (job.status === 'completed' || job.status === 'partial' || job.status === 'failed') {
+      return job;
+    }
+    await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+  }
+}
+
+async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
+  const { results } = await getJobResults(jobId);
+  const outputs = results.filter(r => r.kind === 'output');
+  return Promise.all(outputs.map(r => fetchBlobAsImageFile(r.blob_path, r.mime_type)));
+}
 
 export const useVirtualTryOn = () => {
   const clothingIdCounter = useRef(0);
@@ -227,18 +256,27 @@ export const useVirtualTryOn = () => {
               backgroundPrompt,
               isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
             });
-            const results = await editImage(
-              {
-                images: [],
-                prompt: '',
-                numberOfImages: numImages,
-                aspectRatio,
-                resolution,
-                interleavedParts,
-              },
-              imageEditModel,
-              buildImageServiceConfig(setLoadingMessage),
-            );
+
+            const payload = {
+              personImage: finalSubjectImage.base64,
+              garmentImages: outfitImages.map(img => img.base64),
+              backgroundPrompt,
+              extraPrompt,
+              numImages,
+              aspectRatio,
+              resolution,
+              isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
+              interleavedParts,
+            };
+
+            const submittedJob = await submitJob('try-on', payload as Record<string, unknown>);
+            const completedJob = await waitForJobCompletion(submittedJob.id, setLoadingMessage);
+
+            if (completedJob.status === 'failed') {
+              throw new Error(completedJob.error_message || 'Job failed');
+            }
+
+            const results = await fetchJobImageResults(submittedJob.id);
 
             updateSubjectItem(job.id, {
               status: 'completed',
@@ -263,10 +301,8 @@ export const useVirtualTryOn = () => {
   }, [
     aspectRatio,
     backgroundPrompt,
-    buildImageServiceConfig,
     canGenerate,
     extraPrompt,
-    imageEditModel,
     numImages,
     resolution,
     subjectItems,
@@ -305,18 +341,27 @@ export const useVirtualTryOn = () => {
         backgroundPrompt,
         isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
       });
-      const results = await editImage(
-        {
-          images: [],
-          prompt: '',
-          numberOfImages: numImages,
-          aspectRatio,
-          resolution,
-          interleavedParts,
-        },
-        imageEditModel,
-        buildImageServiceConfig(setLoadingMessage),
-      );
+
+      const payload = {
+        personImage: finalSubjectImage.base64,
+        garmentImages: outfitImages.map(img => img.base64),
+        backgroundPrompt,
+        extraPrompt,
+        numImages,
+        aspectRatio,
+        resolution,
+        isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
+        interleavedParts,
+      };
+
+      const submittedJob = await submitJob('try-on', payload as Record<string, unknown>);
+      const completedJob = await waitForJobCompletion(submittedJob.id, setLoadingMessage);
+
+      if (completedJob.status === 'failed') {
+        throw new Error(completedJob.error_message || 'Job failed');
+      }
+
+      const results = await fetchJobImageResults(submittedJob.id);
 
       updateSubjectItem(itemId, { status: 'completed', results, error: undefined });
     } catch (err) {
@@ -325,15 +370,15 @@ export const useVirtualTryOn = () => {
   }, [
     aspectRatio,
     backgroundPrompt,
-    buildImageServiceConfig,
     extraPrompt,
-    imageEditModel,
     numImages,
     resolution,
     subjectItems,
     t,
     updateSubjectItem,
     validClothingItems,
+    isMultiPersonMode,
+    markerPosition,
   ]);
 
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number, itemId?: string) => {

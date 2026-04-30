@@ -6,7 +6,6 @@ import { ImageGalleryProvider } from './contexts/ImageGalleryContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ApiProvider, useApi } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
-import { GoogleDriveProvider } from './contexts/GoogleDriveContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './components/Toast';
 import AuthGate from './components/AuthGate';
@@ -14,6 +13,9 @@ import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
 import MobileOverlay from './components/MobileOverlay';
 import UtilityDock from './components/UtilityDock';
+import JobStatusBadge from './components/JobStatusBadge';
+import JobHistoryView from './components/JobHistoryView';
+import { useJobPoll } from './hooks/useJobPoll';
 import { useModelSelection } from './hooks/useModelSelection';
 
 const VirtualTryOn = lazy(() => import('./components/VirtualTryOn'));
@@ -37,6 +39,13 @@ const FeatureLoadingFallback: React.FC = () => (
     <Spinner />
   </div>
 );
+
+const MIGRATED_FEATURES: Feature[] = [
+  Feature.TryOn,
+  Feature.Lookbook,
+  Feature.ClothingTransfer,
+  Feature.PhotoAlbum,
+];
 
 const AppContent: React.FC = () => {
   const { t } = useLanguage();
@@ -65,6 +74,9 @@ const AppContent: React.FC = () => {
   const [isPoseLibraryOpen, setIsPoseLibraryOpen] = useState(false);
   const [poseConfirmCallback, setPoseConfirmCallback] = useState<{ fn: (poses: string[]) => void } | null>(null);
   const [initialSelectedPoses, setInitialSelectedPoses] = useState<string[]>([]);
+  const [isJobHistoryOpen, setIsJobHistoryOpen] = useState(false);
+
+  const { job, isPolling } = useJobPoll();
 
   useEffect(() => {
     saveSessionState('activeFeature', activeFeature);
@@ -88,6 +100,8 @@ const AppContent: React.FC = () => {
   const handleOpenPromptLibrary = useCallback(() => setIsPromptLibraryOpen(true), []);
   const handleClosePromptLibrary = useCallback(() => setIsPromptLibraryOpen(false), []);
   const handleClosePoseLibrary = useCallback(() => setIsPoseLibraryOpen(false), []);
+  const handleOpenJobHistory = useCallback(() => setIsJobHistoryOpen(true), []);
+  const handleCloseJobHistory = useCallback(() => setIsJobHistoryOpen(false), []);
   const handleToggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), []);
   const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
@@ -104,7 +118,7 @@ const AppContent: React.FC = () => {
     setIsSidebarOpen(false);
   }, []);
 
-  const featureMeta: Record<Feature, { label: string; group: string; description: string }> = {
+  const featureMeta: Partial<Record<Feature, { label: string; group: string; description: string }>> = {
     [Feature.TryOn]: {
       label: t('tabs.tryOn'),
       group: t('navigation.createLooks.label'),
@@ -120,31 +134,36 @@ const AppContent: React.FC = () => {
       group: t('navigation.createLooks.label'),
       description: t('workspace.flows.clothingTransfer'),
     },
-    [Feature.PatternGenerator]: {
-      label: t('tabs.patternGenerator'),
-      group: t('navigation.createLooks.label'),
-      description: t('workspace.flows.patternGenerator'),
-    },
-    [Feature.AIEditor]: {
-      label: t('tabs.aiEditor'),
-      group: t('navigation.editImages.label'),
-      description: t('workspace.flows.aiEditor'),
-    },
-    [Feature.Background]: {
-      label: t('tabs.background'),
-      group: t('navigation.editImages.label'),
-      description: t('workspace.flows.background'),
-    },
-    [Feature.Pose]: {
-      label: t('tabs.pose'),
-      group: t('navigation.editImages.label'),
-      description: t('workspace.flows.pose'),
-    },
-    [Feature.WatermarkRemover]: {
-      label: t('tabs.watermarkRemover'),
-      group: t('navigation.editImages.label'),
-      description: t('workspace.flows.watermarkRemover'),
-    },
+    // TODO: Enable when migrated to job pipeline
+    // [Feature.PatternGenerator]: {
+    //   label: t('tabs.patternGenerator'),
+    //   group: t('navigation.createLooks.label'),
+    //   description: t('workspace.flows.patternGenerator'),
+    // },
+    // TODO: Enable when migrated to job pipeline
+    // [Feature.AIEditor]: {
+    //   label: t('tabs.aiEditor'),
+    //   group: t('navigation.editImages.label'),
+    //   description: t('workspace.flows.aiEditor'),
+    // },
+    // TODO: Enable when migrated to job pipeline
+    // [Feature.Background]: {
+    //   label: t('tabs.background'),
+    //   group: t('navigation.editImages.label'),
+    //   description: t('workspace.flows.background'),
+    // },
+    // TODO: Enable when migrated to job pipeline
+    // [Feature.Pose]: {
+    //   label: t('tabs.pose'),
+    //   group: t('navigation.editImages.label'),
+    //   description: t('workspace.flows.pose'),
+    // },
+    // TODO: Enable when migrated to job pipeline
+    // [Feature.WatermarkRemover]: {
+    //   label: t('tabs.watermarkRemover'),
+    //   group: t('navigation.editImages.label'),
+    //   description: t('workspace.flows.watermarkRemover'),
+    // },
     [Feature.PhotoAlbum]: {
       label: t('tabs.photoAlbum'),
       group: t('navigation.outputStudio.label'),
@@ -174,10 +193,6 @@ const AppContent: React.FC = () => {
         return <VirtualTryOn key="try-on" />;
       case Feature.Lookbook:
         return <LookbookGenerator key="lookbook" onSendToFeature={handleSendToFeature} />;
-      case Feature.Background:
-        return <BackgroundReplacer key="background" />;
-      case Feature.Pose:
-        return <PoseChanger key="pose" onOpenPoseLibrary={handleOpenPoseLibrary} />;
       case Feature.PhotoAlbum:
         return (
           <PhotoAlbumCreator
@@ -186,14 +201,23 @@ const AppContent: React.FC = () => {
             onTransferConsumed={clearTransferPayload}
           />
         );
-      case Feature.AIEditor:
-        return <AIEditor key="ai-editor" />;
-      case Feature.WatermarkRemover:
-        return <WatermarkRemover key="watermark-remover" />;
       case Feature.ClothingTransfer:
         return <ClothingTransfer key="clothing-transfer" onSendToFeature={handleSendToFeature} />;
-      case Feature.PatternGenerator:
-        return <PatternGenerator key="pattern-generator" />;
+      // TODO: Enable when migrated to job pipeline
+      // case Feature.Background:
+      //   return <BackgroundReplacer key="background" />;
+      // TODO: Enable when migrated to job pipeline
+      // case Feature.Pose:
+      //   return <PoseChanger key="pose" onOpenPoseLibrary={handleOpenPoseLibrary} />;
+      // TODO: Enable when migrated to job pipeline
+      // case Feature.AIEditor:
+      //   return <AIEditor key="ai-editor" />;
+      // TODO: Enable when migrated to job pipeline
+      // case Feature.WatermarkRemover:
+      //   return <WatermarkRemover key="watermark-remover" />;
+      // TODO: Enable when migrated to job pipeline
+      // case Feature.PatternGenerator:
+      //   return <PatternGenerator key="pattern-generator" />;
       default:
         return <VirtualTryOn key="try-on" />;
     }
@@ -271,12 +295,19 @@ const AppContent: React.FC = () => {
           onOpenGallery={handleOpenGallery}
           onOpenPromptLibrary={handleOpenPromptLibrary}
           onOpenSettings={handleOpenSettings}
+          onOpenJobHistory={handleOpenJobHistory}
+        />
+
+        <JobStatusBadge
+          job={job}
+          isPolling={isPolling}
         />
 
         <Suspense fallback={null}>
           {isGalleryOpen && <GalleryModal onClose={handleCloseGallery} />}
           {isPromptLibraryOpen && <PromptLibraryModal isOpen={isPromptLibraryOpen} onClose={handleClosePromptLibrary} />}
           {isSettingsOpen && <SettingsModal isOpen={isSettingsOpen} onClose={handleCloseSettings} />}
+          {isJobHistoryOpen && <JobHistoryView onClose={handleCloseJobHistory} />}
         </Suspense>
       </div>
 
@@ -300,15 +331,13 @@ const App: React.FC = () => {
       <ToastProvider>
         <ApiProvider>
           <AuthProvider>
-            <GoogleDriveProvider>
-              <ImageGalleryProvider>
-                <ImageViewerProvider>
-                  <AuthGate>
-                    <AppContent />
-                  </AuthGate>
-                </ImageViewerProvider>
-              </ImageGalleryProvider>
-            </GoogleDriveProvider>
+            <ImageGalleryProvider>
+              <ImageViewerProvider>
+                <AuthGate>
+                  <AppContent />
+                </AuthGate>
+              </ImageViewerProvider>
+            </ImageGalleryProvider>
           </AuthProvider>
         </ApiProvider>
       </ToastProvider>

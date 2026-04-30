@@ -224,3 +224,44 @@ export interface MarkerPosition {
   /** Normalized Y (0–1) relative to image natural height — para uso en Phase 13 engine */
   relY: number;
 }
+
+// ============================================
+// JOB PLATFORM TYPES
+// ============================================
+
+export type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'partial';
+
+export interface Job {
+  id: string;
+  user_id: string;
+  feature: string;
+  status: JobStatus;
+  idempotency_key: string;
+  input_payload_json: Record<string, unknown>;
+  workflow_run_id: string | null;
+  progress_total: number;
+  progress_done: number;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error_code: string | null;
+  error_message: string | null;
+}
+
+export interface JobResult {
+  id: string;
+  job_id: string;
+  kind: 'input' | 'output';
+  blob_path: string;
+  mime_type: string;
+  created_at: string;
+}
+
+export interface JobEvent {
+  id: string;
+  job_id: string;
+  event_type: string;
+  event_payload_json: Record<string, unknown>;
+  trace_id: string | null;
+  created_at: string;
+}

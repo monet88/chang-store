@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
-import { editImage } from '../services/imageEditingService';
+// import { editImage } from '../services/imageEditingService';
+import { submitJob, pollJob, getJobResults, downloadJobResultBlob } from '../services/jobService';
 import { getErrorMessage } from '../utils/imageUtils';
 import { PHOTO_ALBUM_POSES, PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 
@@ -16,10 +17,6 @@ interface UsePhotoAlbumParams {
   transferredImage?: ImageFile;
   onTransferConsumed?: () => void;
 }
-
-const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
-  onStatusUpdate,
-});
 
 export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhotoAlbumParams = {}) => {
   const { t } = useLanguage();
@@ -83,7 +80,27 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
     setResolution(DEFAULT_IMAGE_RESOLUTION);
   };
 
-  const generateImageForPose = async (pose: string): Promise<GeneratedAlbumImage> => {
+  const waitForJob = useCallback(async (jobId: string) => {
+    while (true) {
+      const j = await pollJob(jobId);
+      if (j.status === 'completed' || j.status === 'partial') return j;
+      if (j.status === 'failed') throw new Error(j.error_message || 'Job failed');
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }, []);
+
+  const fetchJobImages = useCallback(async (jobId: string): Promise<ImageFile[]> => {
+    const { results } = await getJobResults(jobId);
+    const outputs = results.filter(r => r.kind === 'output');
+    const images: ImageFile[] = [];
+    for (const r of outputs) {
+      const b64 = await downloadJobResultBlob(r.blob_path);
+      images.push({ base64: b64, mimeType: r.mime_type });
+    }
+    return images;
+  }, []);
+
+  const generateImageForPose = useCallback(async (pose: string): Promise<GeneratedAlbumImage> => {
     const imagesForApi: ImageFile[] = [];
     let imageRolesPrompt = '';
 
@@ -128,14 +145,28 @@ ${additionalNotes ? `- Also incorporate this instruction: "${additionalNotes}"` 
 Generate a single, hyper-realistic, 2K resolution, professional-grade fashion photograph that perfectly combines all the above elements.
     `.trim();
 
-    const [result] = await editImage(
-      { images: imagesForApi, prompt, numberOfImages: 1, aspectRatio, resolution },
-      imageEditModel,
-      buildImageServiceConfig(setGenerationStatus),
-    );
+    const newJob = await submitJob('photo-album', {
+      images: imagesForApi.map(img => img.base64),
+      prompt,
+      aspectRatio,
+      resolution,
+    });
 
-    return { ...result, pose };
-  };
+    if (newJob.status === 'failed') {
+      throw new Error(newJob.error_message || 'Job failed');
+    }
+
+    if (newJob.status !== 'completed' && newJob.status !== 'partial') {
+      await waitForJob(newJob.id);
+    }
+
+    const outputImages = await fetchJobImages(newJob.id);
+    if (outputImages.length === 0) {
+      throw new Error('No output image generated');
+    }
+
+    return { ...outputImages[0], pose };
+  }, [aspectRatio, resolution, mode, originalPhoto, faceImage, outfitImage, cameraView, hairStyle, skinTone, background, frame, additionalNotes, t, waitForJob, fetchJobImages]);
 
   const getModeInputError = () => {
     if (mode === 'fullModel' && !originalPhoto) {
