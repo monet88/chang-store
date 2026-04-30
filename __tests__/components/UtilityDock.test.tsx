@@ -12,6 +12,7 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'workspace.utility.expand': 'Expand studio utilities',
         'workspace.utility.collapse': 'Collapse studio utilities',
         'tooltips.headerSettings': 'Open settings',
+        'jobs.history.title': 'Job history',
       };
 
       return translations[key] ?? key;
@@ -43,12 +44,14 @@ describe('UtilityDock', () => {
     const onOpenGallery = vi.fn();
     const onOpenPromptLibrary = vi.fn();
     const onOpenSettings = vi.fn();
+    const onOpenJobHistory = vi.fn();
 
     render(
       <UtilityDock
         onOpenGallery={onOpenGallery}
         onOpenPromptLibrary={onOpenPromptLibrary}
         onOpenSettings={onOpenSettings}
+        onOpenJobHistory={onOpenJobHistory}
       />,
     );
 
@@ -67,13 +70,16 @@ describe('UtilityDock', () => {
     expect(screen.getByText('gallery-action')).toBeInTheDocument();
     expect(screen.getByText('prompt-action')).toBeInTheDocument();
     expect(screen.getAllByText('Settings')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Job history')[0]).toBeInTheDocument();
 
     await user.click(screen.getByText('gallery-action'));
     await user.click(screen.getByText('prompt-action'));
     await user.click(screen.getByRole('button', { name: 'Open settings' }));
+    await user.click(screen.getByRole('button', { name: 'Job history' }));
 
     expect(onOpenGallery).toHaveBeenCalledTimes(1);
     expect(onOpenPromptLibrary).toHaveBeenCalledTimes(1);
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
+    expect(onOpenJobHistory).toHaveBeenCalledTimes(1);
   });
 });
