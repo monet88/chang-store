@@ -140,6 +140,15 @@ export interface JobEventRecord {
   created_at: Date;
 }
 
+export interface FinalizeJobOutputsInput {
+  status: 'completed' | 'partial';
+  assets: Array<{ blobPath: string; mimeType: string }>;
+  eventPayload?: Record<string, unknown>;
+  traceId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+}
+
 // ---- Job query functions ----
 
 function rowToJob(row: Record<string, unknown>): JobRecord {
@@ -245,6 +254,46 @@ export async function updateJobStatus(
     completed_at = CASE WHEN ${status} IN ('completed', 'failed', 'partial') THEN now() ELSE completed_at END
   WHERE id = ${jobId}`;
   await db.query(q.text, q.values);
+}
+
+export async function finalizeJobOutputs(
+  db: DB,
+  jobId: string,
+  input: FinalizeJobOutputsInput,
+): Promise<JobAssetRecord[]> {
+  const assetValues = input.assets.flatMap((asset) => [
+    randomUUID(),
+    jobId,
+    'output',
+    asset.blobPath,
+    asset.mimeType,
+  ]);
+  const assetPlaceholders = input.assets
+    .map((_, index) => {
+      const base = index * 5;
+      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`;
+    })
+    .join(', ');
+  const eventId = randomUUID();
+  const eventPayload = JSON.stringify(input.eventPayload ?? {});
+  const params = [
+    ...assetValues,
+    input.status,
+    input.errorCode ?? null,
+    input.errorMessage ?? null,
+    jobId,
+    eventId,
+    jobId,
+    input.status,
+    eventPayload,
+    input.traceId ?? null,
+  ];
+  const assetInsertSql = input.assets.length > 0
+    ? `WITH inserted_assets AS (INSERT INTO job_assets (id, job_id, kind, blob_path, mime_type) VALUES ${assetPlaceholders} RETURNING *), updated_job AS (UPDATE jobs SET status = $${assetValues.length + 1}, error_code = $${assetValues.length + 2}, error_message = $${assetValues.length + 3}, completed_at = now() WHERE id = $${assetValues.length + 4}), inserted_event AS (INSERT INTO job_events (id, job_id, event_type, event_payload_json, trace_id) VALUES ($${assetValues.length + 5}, $${assetValues.length + 6}, $${assetValues.length + 7}, $${assetValues.length + 8}, $${assetValues.length + 9})) SELECT * FROM inserted_assets`
+    : `WITH updated_job AS (UPDATE jobs SET status = $1, error_code = $2, error_message = $3, completed_at = now() WHERE id = $4), inserted_event AS (INSERT INTO job_events (id, job_id, event_type, event_payload_json, trace_id) VALUES ($5, $6, $7, $8, $9)) SELECT * FROM job_assets WHERE 1 = 0`;
+  const q = { text: assetInsertSql, values: params };
+  const result = await db.query(q.text, q.values);
+  return result.rows.map(row => rowToJobAsset(row as Record<string, unknown>));
 }
 
 export async function updateJobProgress(

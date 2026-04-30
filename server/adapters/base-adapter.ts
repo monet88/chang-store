@@ -4,7 +4,7 @@ import {
   createJob,
   getJobById,
   updateJobStatus,
-  createJobAsset,
+  finalizeJobOutputs,
   createJobEvent,
 } from '../db';
 import { validateJobPayload } from '../validation';
@@ -42,14 +42,12 @@ export async function completeJob(
     throw new Error(`Cannot transition job ${jobId} from ${job.status} to completed`);
   }
 
-  const created: JobAssetRecord[] = [];
-  for (const asset of assets) {
-    created.push(await createJobAsset(db, jobId, 'output', asset.blobPath, asset.mimeType));
-  }
-
-  await updateJobStatus(db, jobId, 'completed');
-  await createJobEvent(db, jobId, 'completed', { assetCount: assets.length }, traceId);
-  return created;
+  return finalizeJobOutputs(db, jobId, {
+    status: 'completed',
+    assets,
+    eventPayload: { assetCount: assets.length },
+    traceId,
+  });
 }
 
 export async function failJob(
@@ -87,12 +85,12 @@ export async function partialJob(
     throw new Error(`Cannot transition job ${jobId} from ${job.status} to partial`);
   }
 
-  const created: JobAssetRecord[] = [];
-  for (const asset of assets) {
-    created.push(await createJobAsset(db, jobId, 'output', asset.blobPath, asset.mimeType));
-  }
-
-  await updateJobStatus(db, jobId, 'partial', errorCode, errorMessage);
-  await createJobEvent(db, jobId, 'partial', { assetCount: assets.length, errorCode }, traceId);
-  return created;
+  return finalizeJobOutputs(db, jobId, {
+    status: 'partial',
+    assets,
+    errorCode,
+    errorMessage,
+    eventPayload: { assetCount: assets.length, errorCode },
+    traceId,
+  });
 }

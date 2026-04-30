@@ -19,6 +19,19 @@ export interface RunJobResult {
   errorMessage?: string;
 }
 
+async function cleanupUploadedBlobs(
+  ctx: WorkflowContext,
+  assets: Array<{ blobPath: string; mimeType: string }>,
+): Promise<void> {
+  await Promise.all(assets.map(async ({ blobPath }) => {
+    try {
+      await ctx.blob.deleteBlob(blobPath);
+    } catch (cleanupError) {
+      console.error(`[RUNNER] Failed to clean up blob ${blobPath}:`, cleanupError);
+    }
+  }));
+}
+
 /**
  * Run a feature job through the durable execution pipeline.
  * This is the main entry point for both Workflow and Inngest paths.
@@ -33,23 +46,19 @@ export async function runFeatureJob(
   const ctx = createWorkflowContext(db, traceId);
 
   try {
-    // Transition to running
     const { status: newStatus } = transitionStatus(job, 'running');
     await updateJobStatus(db, job.id, newStatus);
 
-    // Execute the Gemini step
     const input = adapter.mapInput(job.input_payload_json);
     const { results } = await withErrorHandling(ctx, job.id, 'gemini_execute', () =>
       executeStep(ctx, input, adapter.feature),
     );
 
-    // Determine outcome
     if (results.length === 0) {
       await failJob(db, job.id, 'NO_RESULTS', 'Gemini returned no results', traceId);
       return { status: 'failed', errorCode: 'NO_RESULTS', errorMessage: 'Gemini returned no results' };
     }
 
-    // Upload result images to Blob storage
     const assets: Array<{ blobPath: string; mimeType: string }> = [];
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
@@ -65,13 +74,17 @@ export async function runFeatureJob(
       }
     }
 
-    // Check for partial success
     const failed = results.some(r => r.error);
     if (failed) {
       const succeeded = results.filter(r => !r.error);
       if (succeeded.length > 0) {
         const succeededAssets = assets.slice(0, succeeded.length);
-        await partialJob(db, job.id, succeededAssets, 'PARTIAL_FAILURE', 'Some items failed', traceId);
+        try {
+          await partialJob(db, job.id, succeededAssets, 'PARTIAL_FAILURE', 'Some items failed', traceId);
+        } catch (finalizeError) {
+          await cleanupUploadedBlobs(ctx, succeededAssets);
+          throw finalizeError;
+        }
         return { status: 'partial', assets: succeededAssets, errorCode: 'PARTIAL_FAILURE' };
       }
       await failJob(db, job.id, 'ALL_FAILED', 'All items failed', traceId);
@@ -83,7 +96,12 @@ export async function runFeatureJob(
       return { status: 'failed', errorCode: 'NO_ASSETS', errorMessage: 'No assets produced' };
     }
 
-    await completeJob(db, job.id, assets, traceId);
+    try {
+      await completeJob(db, job.id, assets, traceId);
+    } catch (finalizeError) {
+      await cleanupUploadedBlobs(ctx, assets);
+      throw finalizeError;
+    }
     return { status: 'completed', assets };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
