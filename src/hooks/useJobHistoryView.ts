@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { listJobs, getJobResults } from '../services/jobService';
 import type { Job, JobResult } from '../types';
 
@@ -9,6 +9,7 @@ export function useJobHistoryView(onClose: () => void) {
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [jobResults, setJobResults] = useState<Record<string, JobResult[]>>({});
   const [loadingResults, setLoadingResults] = useState<Set<string>>(new Set());
+  const inFlightResultsRef = useRef<Set<string>>(new Set());
 
   const fetchJobs = useCallback(async () => {
     setIsLoading(true);
@@ -47,7 +48,8 @@ export function useJobHistoryView(onClose: () => void) {
     setExpandedJobId(job.id);
 
     if (job.status === 'completed' || job.status === 'partial') {
-      if (!jobResults[job.id]) {
+      if (!jobResults[job.id] && !inFlightResultsRef.current.has(job.id)) {
+        inFlightResultsRef.current.add(job.id);
         setLoadingResults(prev => new Set(prev).add(job.id));
         try {
           const { results } = await getJobResults(job.id);
@@ -55,6 +57,7 @@ export function useJobHistoryView(onClose: () => void) {
         } catch {
           // ignore detail fetch errors
         } finally {
+          inFlightResultsRef.current.delete(job.id);
           setLoadingResults(prev => {
             const next = new Set(prev);
             next.delete(job.id);

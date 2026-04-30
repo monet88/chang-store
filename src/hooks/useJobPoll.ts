@@ -69,50 +69,94 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callbacksRef = useRef({ onComplete, onFailed });
+  const activePollRef = useRef<{ jobId: string | null; generation: number }>({ jobId: null, generation: 0 });
 
   callbacksRef.current = { onComplete, onFailed };
 
-  const clearPolling = useCallback(() => {
+  const clearPolling = useCallback((expected?: { jobId: string; generation: number }) => {
+    if (
+      expected && (
+        activePollRef.current.jobId !== expected.jobId ||
+        activePollRef.current.generation !== expected.generation
+      )
+    ) {
+      return false;
+    }
+
     if (intervalRef.current !== null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    activePollRef.current = { jobId: null, generation: activePollRef.current.generation };
     setIsPolling(false);
     emitSharedJobState({ isPolling: false });
+    return true;
   }, []);
 
-  const doPoll = useCallback(async (jobId: string) => {
+  const doPoll = useCallback(async (jobId: string, generation: number) => {
     try {
       const current = await pollJob(jobId);
+      if (activePollRef.current.jobId !== jobId || activePollRef.current.generation !== generation) {
+        return;
+      }
+
       setJob(current);
-      setError(null);
-      emitSharedJobState({
-        job: current,
-        isPolling: current.status === 'queued' || current.status === 'running',
-        error: null,
-      });
 
       if (current.status === 'completed' || current.status === 'partial') {
-        clearPolling();
+        setError(null);
+        emitSharedJobState({
+          job: current,
+          isPolling: false,
+          error: null,
+        });
+        clearPolling({ jobId, generation });
         callbacksRef.current.onComplete?.(current);
       } else if (current.status === 'failed') {
-        clearPolling();
+        const message = current.error_message || 'Job failed';
+        setError(message);
+        emitSharedJobState({
+          job: current,
+          isPolling: false,
+          error: message,
+        });
+        clearPolling({ jobId, generation });
         callbacksRef.current.onFailed?.(current);
+      } else {
+        setError(null);
+        emitSharedJobState({
+          job: current,
+          isPolling: true,
+          error: null,
+        });
       }
     } catch (err) {
+      if (activePollRef.current.jobId !== jobId || activePollRef.current.generation !== generation) {
+        return;
+      }
+
       const message = err instanceof Error ? err.message : 'Unknown polling error';
       setError(message);
+      clearPolling({ jobId, generation });
       emitSharedJobState({ error: message, isPolling: false });
     }
   }, [clearPolling]);
 
   const startPolling = useCallback((jobId: string) => {
-    clearPolling();
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    const generation = activePollRef.current.generation + 1;
+    activePollRef.current = { jobId, generation };
     setIsPolling(true);
-    emitSharedJobState({ isPolling: true });
-    doPoll(jobId);
-    intervalRef.current = setInterval(() => doPoll(jobId), pollIntervalMs);
-  }, [clearPolling, doPoll, pollIntervalMs]);
+    setError(null);
+    emitSharedJobState({ isPolling: true, error: null });
+    void doPoll(jobId, generation);
+    intervalRef.current = setInterval(() => {
+      void doPoll(jobId, generation);
+    }, pollIntervalMs);
+  }, [doPoll, pollIntervalMs]);
 
   const stopPolling = useCallback(() => {
     clearPolling();
@@ -147,7 +191,9 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
   }, [startPolling]);
 
   useEffect(() => {
-    return () => clearPolling();
+    return () => {
+      clearPolling();
+    };
   }, [clearPolling]);
 
   return {

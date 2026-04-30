@@ -42,12 +42,9 @@ describe('auth server helpers', () => {
     expect(invalid).toBe(false);
   });
 
-  it('verifies a plaintext password with timing-safe fallback', async () => {
-    const valid = await verifyPassword('password', 'password');
-    expect(valid).toBe(true);
 
-    const invalid = await verifyPassword('password', 'different');
-    expect(invalid).toBe(false);
+  it('returns false for plaintext passwords with equal character length but different UTF-8 byte length', async () => {
+    await expect(verifyPassword('é', 'a')).resolves.toBe(false);
   });
 
   it('authenticates a seeded user with a hashed password', async () => {

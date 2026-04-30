@@ -42,13 +42,12 @@ export async function completeJob(
     throw new Error(`Cannot transition job ${jobId} from ${job.status} to completed`);
   }
 
-  await updateJobStatus(db, jobId, 'completed');
-
   const created: JobAssetRecord[] = [];
   for (const asset of assets) {
     created.push(await createJobAsset(db, jobId, 'output', asset.blobPath, asset.mimeType));
   }
 
+  await updateJobStatus(db, jobId, 'completed');
   await createJobEvent(db, jobId, 'completed', { assetCount: assets.length }, traceId);
   return created;
 }
@@ -88,13 +87,12 @@ export async function partialJob(
     throw new Error(`Cannot transition job ${jobId} from ${job.status} to partial`);
   }
 
-  await updateJobStatus(db, jobId, 'partial', errorCode, errorMessage);
-
   const created: JobAssetRecord[] = [];
   for (const asset of assets) {
     created.push(await createJobAsset(db, jobId, 'output', asset.blobPath, asset.mimeType));
   }
 
+  await updateJobStatus(db, jobId, 'partial', errorCode, errorMessage);
   await createJobEvent(db, jobId, 'partial', { assetCount: assets.length, errorCode }, traceId);
   return created;
 }

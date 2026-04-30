@@ -15,6 +15,18 @@ interface CreateJobBody {
   payload: Record<string, unknown>;
 }
 
+const MAX_LIST_LIMIT = 100;
+const MAX_LIST_OFFSET = 1_000;
+
+function parseBoundedInteger(value: string | null, fallback: number, minimum: number, maximum: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(maximum, Math.max(minimum, parsed));
+}
+
 function getSession(request: Request): { userId: string; username: string } | null {
   const user = getAuthenticatedUserFromRequest(request);
   if (!user) return null;
@@ -122,8 +134,8 @@ async function findJobByIdempotencyKey(db: ReturnType<typeof getNeonPool>, key: 
 async function handleList(request: Request, session: { userId: string }): Promise<Response> {
   const url = new URL(request.url);
   const status = url.searchParams.get('status') || undefined;
-  const limit = parseInt(url.searchParams.get('limit') || '50', 10);
-  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+  const limit = parseBoundedInteger(url.searchParams.get('limit'), 50, 1, MAX_LIST_LIMIT);
+  const offset = parseBoundedInteger(url.searchParams.get('offset'), 0, 0, MAX_LIST_OFFSET);
 
   const db = getNeonPool(process.env.DATABASE_URL!);
   const jobs = await listJobsByUser(

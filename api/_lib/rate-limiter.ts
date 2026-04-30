@@ -28,7 +28,8 @@ export class InMemoryRateLimitStorage implements RateLimitStorage {
 
   async reset(key: string): Promise<void> {
     for (const compositeKey of this.store.keys()) {
-      const [storedKey] = compositeKey.split(':');
+      const separatorIndex = compositeKey.lastIndexOf(':');
+      const storedKey = separatorIndex === -1 ? compositeKey : compositeKey.slice(0, separatorIndex);
       if (storedKey === key) {
         this.store.delete(compositeKey);
       }

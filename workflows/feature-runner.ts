@@ -27,7 +27,7 @@ export async function runFeatureJob(
   db: DB,
   job: JobRecord,
   adapter: FeatureAdapter,
-  executeStep: (ctx: WorkflowContext, input: Record<string, unknown>) => Promise<{ results: Record<string, unknown>[] }>,
+  executeStep: (ctx: WorkflowContext, input: Record<string, unknown>, feature: string) => Promise<{ results: Record<string, unknown>[] }>,
   traceId: string,
 ): Promise<RunJobResult> {
   const ctx = createWorkflowContext(db, traceId);
@@ -40,7 +40,7 @@ export async function runFeatureJob(
     // Execute the Gemini step
     const input = adapter.mapInput(job.input_payload_json);
     const { results } = await withErrorHandling(ctx, job.id, 'gemini_execute', () =>
-      executeStep(ctx, input),
+      executeStep(ctx, input, adapter.feature),
     );
 
     // Determine outcome

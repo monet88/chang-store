@@ -33,6 +33,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const refreshSession = useCallback(async () => {
     setStatus('checking');
+    setAuthError(null);
 
     try {
       const activeUser = await authService.getSession();

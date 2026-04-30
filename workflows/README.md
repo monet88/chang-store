@@ -1,6 +1,6 @@
 # Workflow Kill-Switch: Inngest Fallback
 
-Slice 3 uses Vercel Workflow as the primary durable execution provider. If Vercel Workflow is unavailable (beta instability, production incidents, or local dev without Vercel CLI), the system falls back to Inngest polling-based execution.
+Slice 3 uses Vercel Workflow as the primary durable execution provider. If Vercel Workflow is unavailable (beta instability, production incidents, or local dev without Vercel CLI), the system can switch to Inngest polling-based execution when `INNGEST_FALLBACK=true` is set.
 
 ## Enabling the fallback
 

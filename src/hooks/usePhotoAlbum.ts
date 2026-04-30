@@ -83,17 +83,22 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
 
   const waitForJob = useCallback(async (jobId: string) => {
     while (true) {
-      const j = await pollJob(jobId);
-      setSharedJobState({
-        job: j,
-        isPolling: j.status === 'queued' || j.status === 'running',
-        error: j.status === 'failed' ? j.error_message || 'Job failed' : null,
-      });
-      if (j.status === 'completed' || j.status === 'partial') return j;
-      if (j.status === 'failed') throw new Error(j.error_message || 'Job failed');
+      try {
+        const j = await pollJob(jobId);
+        setSharedJobState({
+          job: j,
+          isPolling: j.status === 'queued' || j.status === 'running',
+          error: j.status === 'failed' ? j.error_message || 'Job failed' : null,
+        });
+        if (j.status === 'completed' || j.status === 'partial') return j;
+        if (j.status === 'failed') throw new Error(j.error_message || 'Job failed');
+      } catch (err) {
+        setSharedJobState({ isPolling: false, error: getErrorMessage(err, t) });
+        throw err;
+      }
       await new Promise(r => setTimeout(r, 2000));
     }
-  }, []);
+  }, [t]);
 
   const fetchJobImages = useCallback(async (jobId: string): Promise<ImageFile[]> => {
     const { results } = await getJobResults(jobId);

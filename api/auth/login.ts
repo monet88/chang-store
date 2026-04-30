@@ -25,13 +25,35 @@ interface LoginRequestBody {
   password?: string;
 }
 
+function getRateLimitIdentifier(request: Request): string {
+  const cfConnectingIp = request.headers.get('cf-connecting-ip')?.trim();
+  if (cfConnectingIp) {
+    return cfConnectingIp;
+  }
+
+  const xRealIp = request.headers.get('x-real-ip')?.trim();
+  if (xRealIp) {
+    return xRealIp;
+  }
+
+  const forwardedFor = request.headers.get('x-forwarded-for')
+    ?.split(',')[0]
+    ?.trim();
+  if (forwardedFor) {
+    return forwardedFor;
+  }
+
+  return 'unknown';
+}
+
 const handler = withCsrf({
   async fetch(request: Request): Promise<Response> {
     if (request.method !== 'POST') {
       return methodNotAllowed(['POST']);
     }
 
-    const rateLimitResult = await rateLimiter.check('auth:login');
+    const rateLimitKey = `auth:login:${getRateLimitIdentifier(request)}`;
+    const rateLimitResult = await rateLimiter.check(rateLimitKey);
     if (!rateLimitResult.allowed) {
       return errorResponse(
         'Too many login attempts. Please try again later.',
@@ -50,7 +72,7 @@ const handler = withCsrf({
       return jsonResponse({ message: 'Invalid username or password.' }, { status: 401 });
     }
 
-    await rateLimiter.storage.reset('auth:login');
+    await rateLimiter.storage.reset(rateLimitKey);
 
     const token = createSessionToken(user);
     return jsonResponse(

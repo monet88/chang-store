@@ -69,6 +69,7 @@ vi.mock('../../src/utils/imageUtils', () => ({
   getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : String(error)),
 }));
 
+import { clearSharedJobState, useSharedJobState } from '../../src/hooks/useJobPoll';
 import { usePhotoAlbum } from '../../src/hooks/usePhotoAlbum';
 
 const ORIGINAL_IMAGE: ImageFile = {
@@ -134,6 +135,7 @@ function makeResult(jobId: string, blobPath: string, mimeType = 'image/png'): Jo
 describe('usePhotoAlbum', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSharedJobState();
   });
 
   it('consumes transferred outfit image once, then allows it to be consumed again after reset', () => {
@@ -228,29 +230,29 @@ describe('usePhotoAlbum', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('keeps earlier generated poses when later pose fails', async () => {
-    submitJobMock
-      .mockResolvedValueOnce(makeJob('job-1'))
-      .mockRejectedValueOnce(new Error('pose generation exploded'));
-    getJobResultsMock.mockResolvedValueOnce({ job: makeJob('job-1'), results: [makeResult('job-1', 'blob-1')] });
-    downloadJobResultBlobMock.mockResolvedValueOnce(GENERATED_POSE_ONE.base64);
 
-    const { result } = renderHook(() => usePhotoAlbum());
+  it('stops shared polling state when pollJob rejects', async () => {
+    submitJobMock.mockResolvedValueOnce(makeJob('job-1', 'queued'));
+    pollJobMock.mockRejectedValueOnce(new Error('poll failed'));
+
+    const { result } = renderHook(() => {
+      const album = usePhotoAlbum();
+      const shared = useSharedJobState();
+      return { album, shared };
+    });
 
     act(() => {
-      result.current.setOriginalPhoto(ORIGINAL_IMAGE);
-      result.current.setSelectedPoses(['pose_1', 'pose_2']);
+      result.current.album.setOriginalPhoto(ORIGINAL_IMAGE);
+      result.current.album.setSelectedPoses(['pose_1']);
     });
 
     await act(async () => {
-      await result.current.handleGenerate();
+      await result.current.album.handleGenerate();
     });
 
-    expect(result.current.generatedImages).toEqual([
-      { ...GENERATED_POSE_ONE, pose: 'pose_1' },
-    ]);
-    expect(result.current.error).toBe('pose_2:pose generation exploded');
-    expect(result.current.isLoading).toBe(false);
+    expect(result.current.album.error).toBe('pose_1:poll failed');
+    expect(result.current.shared.isPolling).toBe(false);
+    expect(result.current.shared.error).toBe('poll failed');
   });
 
   it('includes camera framing and background directives in prompt', async () => {

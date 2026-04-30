@@ -52,18 +52,28 @@ describe('AuthContext', () => {
     expect(result.current.user).toBeNull();
   });
 
-  it('updates the authenticated user after login', async () => {
+
+  it('clears stale authError after a successful refreshSession', async () => {
+    authServiceMocks.getSession
+      .mockRejectedValueOnce(new Error('restore failed'))
+      .mockResolvedValueOnce({
+        username: 'demo',
+        displayName: 'Demo User',
+        provisioning: 'seeded',
+      });
+
     const { result } = renderHook(() => useAuth(), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.status).toBe('anonymous'));
+    await waitFor(() => expect(result.current.authError).toBe('restore failed'));
 
     await act(async () => {
-      await result.current.login('demo', 'demo1234');
+      await result.current.refreshSession();
     });
 
     expect(result.current.status).toBe('authenticated');
+    expect(result.current.authError).toBeNull();
     expect(result.current.user?.username).toBe('demo');
   });
 

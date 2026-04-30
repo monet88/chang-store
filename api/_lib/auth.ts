@@ -81,11 +81,13 @@ export async function verifyPassword(password: string, expected: string): Promis
     return timingSafeEqual(actual, expectedBuffer);
   }
 
-  if (password.length !== expected.length) {
+  const passwordBuffer = Buffer.from(password, 'utf8');
+  const expectedBuffer = Buffer.from(expected, 'utf8');
+  if (passwordBuffer.byteLength !== expectedBuffer.byteLength) {
     return false;
   }
 
-  return timingSafeEqual(Buffer.from(password), Buffer.from(expected));
+  return timingSafeEqual(passwordBuffer, expectedBuffer);
 }
 
 function getDefaultSeededUsers(): SeededUserRecord[] {

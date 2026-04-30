@@ -30,15 +30,20 @@ const POLL_INTERVAL_MS = 3000;
 async function waitForJobCompletion(jobId: string, onStatus: (msg: string) => void): Promise<Job> {
   const { pollJob } = await import('../services/jobService');
   while (true) {
-    const job = await pollJob(jobId);
-    setSharedJobState({
-      job,
-      isPolling: job.status === 'queued' || job.status === 'running',
-      error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
-    });
-    onStatus(`Job ${job.status}...`);
-    if (job.status === 'completed' || job.status === 'partial' || job.status === 'failed') {
-      return job;
+    try {
+      const job = await pollJob(jobId);
+      setSharedJobState({
+        job,
+        isPolling: job.status === 'queued' || job.status === 'running',
+        error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
+      });
+      onStatus(`Job ${job.status}...`);
+      if (job.status === 'completed' || job.status === 'partial' || job.status === 'failed') {
+        return job;
+      }
+    } catch (error) {
+      setSharedJobState({ isPolling: false, error: error instanceof Error ? error.message : String(error) });
+      throw error;
     }
     await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
   }
@@ -276,7 +281,11 @@ export const useVirtualTryOn = () => {
             const submittedJob = await submitJob('try-on', payload as Record<string, unknown>);
             setSharedJobState({ job: submittedJob, isPolling: true, error: null });
             const completedJob = await waitForJobCompletion(submittedJob.id, setLoadingMessage);
-            setSharedJobState({ job: completedJob, isPolling: false, error: null });
+            setSharedJobState({
+              job: completedJob,
+              isPolling: false,
+              error: completedJob.status === 'failed' ? completedJob.error_message || 'Job failed' : null,
+            });
 
             if (completedJob.status === 'failed') {
               throw new Error(completedJob.error_message || 'Job failed');

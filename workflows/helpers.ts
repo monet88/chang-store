@@ -25,7 +25,11 @@ export async function withErrorHandling<T>(
     return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    await createJobEvent(ctx.db, jobId, 'step_failed', { step: stepName, error: message }, ctx.traceId);
+    try {
+      await createJobEvent(ctx.db, jobId, 'step_failed', { step: stepName, error: message }, ctx.traceId);
+    } catch (eventError) {
+      console.error('[WORKFLOW] Failed to persist step_failed event:', eventError);
+    }
     throw err;
   }
 }

@@ -43,12 +43,13 @@ const JobStatusIcon: React.FC<{ status: string }> = ({ status }) => {
 
 const formatTime = (dateStr: string | null): string => {
   if (!dateStr) return '-';
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleString();
-  } catch {
+
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) {
     return '-';
   }
+
+  return d.toLocaleString();
 };
 
 const JobHistoryView: React.FC<JobHistoryViewProps> = ({ onClose }) => {

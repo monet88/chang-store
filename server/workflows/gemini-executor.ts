@@ -5,7 +5,8 @@ interface GeminiStepResult {
   results: Record<string, unknown>[];
 }
 
-function getFeatureFromInput(input: Record<string, unknown>): string {
+function getFeatureFromInput(input: Record<string, unknown>, explicitFeature?: string): string {
+  if (explicitFeature) return explicitFeature;
   if (input.personImage && input.garmentImage) return 'try-on';
   if (input.sourceImage && input.targetImage) return 'clothing-transfer';
   if (input.images && input.style !== undefined) return 'lookbook';
@@ -34,8 +35,9 @@ const FEATURE_PROMPTS: Record<string, string> = {
 export async function geminiExecuteStep(
   ctx: WorkflowContext,
   input: Record<string, unknown>,
+  featureOverride?: string,
 ): Promise<GeminiStepResult> {
-  const feature = getFeatureFromInput(input);
+  const feature = getFeatureFromInput(input, featureOverride);
   const prompt = FEATURE_PROMPTS[feature] || 'Generate an image.';
 
   console.log(`[GEMINI-EXECUTOR] Executing step for feature: ${feature}`);

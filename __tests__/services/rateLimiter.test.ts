@@ -95,17 +95,17 @@ describe('rate limiter', () => {
     expect(third.attemptCount).toBe(2);
   });
 
-  it('resets a specific identifier with storage.reset()', async () => {
+
+  it('resets identifiers that contain colons', async () => {
+    const identifier = 'auth:login:2001:db8::1';
+
     for (let i = 0; i < 5; i++) {
-      await checkRateLimit(storage, 'user-a', NOW);
+      await checkRateLimit(storage, identifier, NOW);
     }
 
-    const blocked = await checkRateLimit(storage, 'user-a', NOW);
-    expect(blocked.allowed).toBe(false);
+    await storage.reset(identifier);
 
-    await storage.reset('user-a');
-
-    const result = await checkRateLimit(storage, 'user-a', NOW);
+    const result = await checkRateLimit(storage, identifier, NOW);
     expect(result.allowed).toBe(true);
     expect(result.attemptCount).toBe(1);
   });

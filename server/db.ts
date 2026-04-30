@@ -242,7 +242,7 @@ export async function updateJobStatus(
     error_code = ${errorCode ?? null},
     error_message = ${errorMessage ?? null},
     started_at = CASE WHEN ${status} = 'running' THEN COALESCE(started_at, now()) ELSE started_at END,
-    completed_at = CASE WHEN ${status} IN ('completed', 'failed') THEN now() ELSE completed_at END
+    completed_at = CASE WHEN ${status} IN ('completed', 'failed', 'partial') THEN now() ELSE completed_at END
   WHERE id = ${jobId}`;
   await db.query(q.text, q.values);
 }

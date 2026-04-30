@@ -11,7 +11,12 @@ function extractBlobPath(url: string): string | null {
   if (apiIndex === -1) return null;
   const encodedBlobPath = segments.slice(apiIndex + 2).join('/');
   if (!encodedBlobPath) return null;
-  return decodeURIComponent(encodedBlobPath);
+
+  try {
+    return decodeURIComponent(encodedBlobPath);
+  } catch {
+    return null;
+  }
 }
 
 function getSession(request: Request): { userId: string } | null {
@@ -65,7 +70,7 @@ const handler = withCsrf({
       return new Response(data, {
         headers: {
           'Content-Type': blob.contentType,
-          'Cache-Control': 'public, max-age=3600',
+          'Cache-Control': 'private, no-store',
         },
       });
     } catch (err) {

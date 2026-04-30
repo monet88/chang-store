@@ -254,7 +254,7 @@ export const useLookbookGenerator = () => {
             const session = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
             setChatSession(session);
         }
-    }, [generatedLookbook, chatSession, imageEditModel]);
+    }, [generatedLookbook, chatSession, imageEditModel, buildImageServiceConfig]);
 
     const updateForm = useCallback((updates: Partial<LookbookFormState>) => {
         setFormState(prev => ({...prev, ...updates}));
@@ -372,7 +372,7 @@ export const useLookbookGenerator = () => {
           setIsLoading(false);
           setLoadingMessage('');
         }
-    }, [formState, aspectRatio, resolution, t, waitForJob, fetchJobImages]);
+    }, [formState, aspectRatio, resolution, t, waitForJob, fetchJobImages, imageEditModel, buildImageServiceConfig]);
 
     // TODO: Migrate upscale to job pipeline
     const handleUpscale = useCallback(async (imageToUpscale: ImageFile, imageKey: string) => {

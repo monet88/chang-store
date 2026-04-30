@@ -1,9 +1,9 @@
 import { GoogleGenAI, Modality, type Part } from '@google/genai';
 
 function getApiKey(): string {
-  const key = process.env.API_KEY;
+  const key = process.env.GEMINI_API_KEY;
   if (!key) {
-    throw new Error('API_KEY environment variable is not set');
+    throw new Error('GEMINI_API_KEY environment variable is not set');
   }
   return key;
 }
