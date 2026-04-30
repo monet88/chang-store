@@ -11,8 +11,8 @@ const translations: Record<string, string> = {
   'settingsModal.closeAria': 'Close settings',
   'settingsModal.sections.models.title': 'Default model selection',
   'settingsModal.sections.models.description': 'Choose defaults.',
-  'settingsModal.sections.cloud.title': 'Cloud sync',
-  'settingsModal.sections.cloud.description': 'Connect sync.',
+  'settingsModal.sections.account.title': 'Account session',
+  'settingsModal.sections.account.description': 'Review seeded access.',
   'settingsModal.sections.data.title': 'Application data',
   'settingsModal.sections.data.description': 'Manage backups.',
   'settingsModal.sections.developer.title': 'Developer',
@@ -73,8 +73,8 @@ vi.mock('@/services/debugService', () => ({
   setDebugEnabled: vi.fn(),
 }));
 
-vi.mock('@/components/GoogleDriveSettings', () => ({
-  GoogleDriveSettings: () => <div>google-drive-settings</div>,
+vi.mock('@/components/AuthSettings', () => ({
+  AuthSettings: () => <div>auth-settings</div>,
 }));
 
 describe('SettingsModal', () => {
@@ -86,7 +86,7 @@ describe('SettingsModal', () => {
     render(<SettingsModal isOpen onClose={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('google-drive-settings')).toBeInTheDocument();
+      expect(screen.getByText('auth-settings')).toBeInTheDocument();
     });
 
     const textSelect = screen.getByLabelText('Text generation');
@@ -106,7 +106,7 @@ describe('SettingsModal', () => {
     const { rerender } = render(<SettingsModal isOpen onClose={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('google-drive-settings')).toBeInTheDocument();
+      expect(screen.getByText('auth-settings')).toBeInTheDocument();
     });
 
     const imageEditSelect = screen.getByLabelText('Image editing');

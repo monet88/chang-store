@@ -78,6 +78,14 @@ vi.mock('../src/contexts/GoogleDriveContext', () => ({
   GoogleDriveProvider: passthrough,
 }));
 
+vi.mock('../src/contexts/AuthContext', () => ({
+  AuthProvider: passthrough,
+}));
+
+vi.mock('../src/components/AuthGate', () => ({
+  default: passthrough,
+}));
+
 vi.mock('../src/components/Toast', () => ({
   ToastProvider: passthrough,
 }));

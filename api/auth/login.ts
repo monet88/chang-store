@@ -1,8 +1,22 @@
 import { authenticateSeededUser, createSessionCookie, createSessionToken } from '../_lib/auth';
 import { withCsrf } from '../_lib/csrf-middleware';
 import { errorResponse, jsonResponse, methodNotAllowed, readJsonBody } from '../_lib/http';
-import { createRateLimitHeaders } from '../_lib/rate-limiter';
-import createRateLimiter from '../_lib/rate-limiter';
+import { createRateLimitHeaders, InMemoryRateLimitStorage, checkRateLimit } from '../_lib/rate-limiter';
+import type { RateLimiter } from '../_lib/rate-limiter';
+import { createPostgresRateLimiter } from '../../server/rate-limiter-storage.ts';
+import { getNeonPool } from '../../server/neon.ts';
+
+function createRateLimiter(): RateLimiter {
+  if (process.env.DATABASE_URL) {
+    const db = getNeonPool(process.env.DATABASE_URL);
+    return createPostgresRateLimiter(db);
+  }
+  const storage = new InMemoryRateLimitStorage();
+  return {
+    storage,
+    check: (identifier: string) => checkRateLimit(storage, identifier),
+  };
+}
 
 const rateLimiter = createRateLimiter();
 
