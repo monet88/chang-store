@@ -97,8 +97,8 @@ vi.mock('../src/components/Header', () => ({
       <button type="button" onClick={() => setActiveFeature('try-on')}>
         feature-try-on
       </button>
-      <button type="button" onClick={() => setActiveFeature('pattern-generator')}>
-        feature-pattern-generator
+      <button type="button" onClick={() => setActiveFeature('photo-album')}>
+        feature-photo-album
       </button>
       <button type="button" onClick={() => setActiveFeature('watermark-remover')}>
         feature-watermark-remover
@@ -233,13 +233,16 @@ describe('App utility dock regression', () => {
     await user.selectOptions(screen.getByLabelText('Image editing model'), 'gemini-2.5-flash-image');
     expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
 
-    await user.click(screen.getByText('feature-pattern-generator'));
-    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
-
     await user.click(screen.getByText('feature-watermark-remover'));
-    expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
+    });
     expect(screen.queryByLabelText('Image generation model')).not.toBeInTheDocument();
     expect(screen.getByLabelText('settingsModal.fields.textGeneration')).toBeInTheDocument();
+
+    await user.click(screen.getByText('feature-photo-album'));
+    expect(await screen.findByText('photo-album-creator')).toBeInTheDocument();
+    expect(screen.getByLabelText('Image editing model')).toBeInTheDocument();
   });
 
   it('falls back to try-on when session storage contains retired feature ids', async () => {
@@ -260,9 +263,9 @@ describe('App utility dock regression', () => {
 
     const { unmount } = render(<App />);
 
-    await user.click(screen.getByText('feature-pattern-generator'));
-    expect(await screen.findByText('pattern-generator')).toBeInTheDocument();
-    expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('pattern-generator'));
+    await user.click(screen.getByText('feature-photo-album'));
+    expect(await screen.findByText('photo-album-creator')).toBeInTheDocument();
+    expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('photo-album'));
 
     await user.click(screen.getByText('feature-try-on'));
     expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();
@@ -283,8 +286,10 @@ describe('App utility dock regression', () => {
     expect(screen.getByLabelText('Image editing model')).toBeInTheDocument();
 
     await user.click(screen.getByText('feature-watermark-remover'));
-    expect(await screen.findByText('watermark-remover')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
+    });
+    expect(screen.getByLabelText('settingsModal.fields.textGeneration')).toBeInTheDocument();
 
     await user.click(screen.getByText('feature-try-on'));
     expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();

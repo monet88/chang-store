@@ -14,23 +14,11 @@ interface GalleryModalProps {
   onClose: () => void;
 }
 
-const GalleryLoadingSkeleton: React.FC = () => (
-  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-w-7xl mx-auto">
-    {Array.from({ length: 12 }).map((_, i) => (
-      <div
-        key={i}
-        className="aspect-square bg-slate-700/50 rounded-lg animate-pulse"
-      />
-    ))}
-  </div>
-);
-
 const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
   const {
     images,
     deleteImage,
     clearImages,
-    isLoadingFromDrive,
   } = useImageGallery();
   const { t } = useLanguage();
 
@@ -89,9 +77,7 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
         className="flex-grow overflow-y-auto p-4"
         onClick={(e) => e.stopPropagation()}
       >
-        {isLoadingFromDrive ? (
-          <GalleryLoadingSkeleton />
-        ) : images.length === 0 ? (
+        {images.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-slate-400 text-xl">{t('gallery.emptyMessage')}</p>
           </div>

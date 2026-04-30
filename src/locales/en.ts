@@ -923,7 +923,7 @@ Do not include any other text or markdown.
   settingsModal: {
     eyebrow: 'Studio settings',
     title: 'Application settings',
-    description: 'Update model defaults, sync, and diagnostics without leaving the editorial shell.',
+    description: 'Update model defaults, account access, and diagnostics without leaving the editorial shell.',
     closeAria: 'Close settings',
     sections: {
       models: {

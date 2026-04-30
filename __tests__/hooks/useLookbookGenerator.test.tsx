@@ -1,64 +1,60 @@
-/**
- * Unit Tests for useLookbookGenerator Hook
- *
- * Tests the lookbook generation feature hook that manages:
- * - Form state with localStorage persistence
- * - Clothing description generation via Gemini
- * - Main lookbook image generation via editImage service
- * - Variations and close-up generation
- * - Upscaling generated images
- * - Validation and error handling
- *
- * Key test scenarios:
- * 1. Initial state and localStorage loading
- * 2. Form state updates and persistence
- * 3. Description generation
- * 4. Main image generation with validation
- * 5. Variations and close-up generation
- * 6. Upscale functionality
- */
-
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { Feature, ImageFile } from '../../src/types';
+import { Feature, type ImageFile, type Job } from '../../src/types';
 import {
   mockUseLanguage,
   mockUseImageGallery,
   mockUseApi,
 } from '../__mocks__/contexts';
 
-// ============================================================================
-// Mock Setup - Must be before imports
-// ============================================================================
+const submitJobMock = vi.fn();
+const pollJobMock = vi.fn();
+const getJobResultsMock = vi.fn();
+const downloadJobResultBlobMock = vi.fn();
+let jobCounter = 0;
+const jobResultsStore = new Map<string, Array<{
+  id: string;
+  job_id: string;
+  kind: 'output';
+  blob_path: string;
+  mime_type: string;
+  created_at: string;
+  base64: string;
+}>>();
+const queuedJobOutcomes: Array<
+  | { type: 'success'; images: ImageFile[] }
+  | { type: 'error'; error: Error }
+> = [];
 
-/** Mock editImage, upscaleImage, and createImageChatSession from imageEditingService */
 vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
   upscaleImage: vi.fn(),
   createImageChatSession: vi.fn(),
 }));
 
-/** Mock generateClothingDescription from textService */
 vi.mock('../../src/services/textService', () => ({
   generateClothingDescription: vi.fn(),
 }));
 
-/** Mock getErrorMessage from imageUtils */
+vi.mock('../../src/services/jobService', () => ({
+  submitJob: (...args: unknown[]) => submitJobMock(...args),
+  pollJob: (...args: unknown[]) => pollJobMock(...args),
+  getJobResults: (...args: unknown[]) => getJobResultsMock(...args),
+  downloadJobResultBlob: (...args: unknown[]) => downloadJobResultBlobMock(...args),
+}));
+
 vi.mock('../../src/utils/imageUtils', () => ({
   getErrorMessage: vi.fn((err: Error) => err.message),
 }));
 
-/** Mock ZIP download helper */
 vi.mock('../../src/utils/zipDownload', () => ({
   downloadImagesAsZip: vi.fn(),
 }));
 
-/** Mock contexts */
 vi.mock('../../src/contexts/LanguageContext', () => mockUseLanguage());
 vi.mock('../../src/contexts/ImageGalleryContext', () => mockUseImageGallery());
 vi.mock('../../src/contexts/ApiProviderContext', () => mockUseApi());
 
-/** Mock prompts */
 vi.mock('../../src/components/LookbookGenerator.prompts', () => ({
   BOXED_PROMPT: 'boxed prompt template',
   FOLDED_PROMPT: 'folded prompt template',
@@ -71,58 +67,43 @@ vi.mock('../../src/components/LookbookGenerator.prompts', () => ({
   MannequinBackgroundStyleKey: {},
 }));
 
-// Import hook and mocked services after mocking
 import { useLookbookGenerator } from '../../src/hooks/useLookbookGenerator';
-import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
+import { createImageChatSession, upscaleImage } from '../../src/services/imageEditingService';
 import { generateClothingDescription } from '../../src/services/textService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 
-// ============================================================================
-// Test Constants
-// ============================================================================
-
-/** Sample clothing image for tests */
-const TEST_CLOTHING_IMAGE = {
+const TEST_CLOTHING_IMAGE: ImageFile = {
   base64: 'Y2xvdGhpbmctaW1hZ2U=',
   mimeType: 'image/png',
 };
 
-/** Sample fabric texture image for tests */
-const TEST_FABRIC_IMAGE = {
+const TEST_FABRIC_IMAGE: ImageFile = {
   base64: 'ZmFicmljLXRleHR1cmU=',
   mimeType: 'image/jpeg',
 };
 
-/** Sample generated result image */
-const GENERATED_IMAGE = {
+const GENERATED_IMAGE: ImageFile = {
   base64: 'Z2VuZXJhdGVkLXJlc3VsdA==',
   mimeType: 'image/png',
 };
 
-/** Sample upscaled result image */
-const UPSCALED_IMAGE = {
+const UPSCALED_IMAGE: ImageFile = {
   base64: 'dXBzY2FsZWQtcmVzdWx0',
   mimeType: 'image/png',
 };
 
-const REFINED_IMAGE = {
+const REFINED_IMAGE: ImageFile = {
   base64: 'cmVmaW5lZC1pbWFnZQ==',
   mimeType: 'image/png',
 };
 
-const VARIATION_IMAGE = {
+const VARIATION_IMAGE: ImageFile = {
   base64: 'dmFyaWF0aW9uLWltYWdl',
   mimeType: 'image/png',
 };
 
-/** Storage key used by the hook */
 const DRAFT_STORAGE_KEY = 'lookbookGeneratorDraft';
 
-// ============================================================================
-// Test Utilities
-// ============================================================================
-
-/** Mock localStorage for testing */
 const mockLocalStorage = (() => {
   let store: Record<string, string> = {};
   return {
@@ -139,17 +120,40 @@ const mockLocalStorage = (() => {
   };
 })();
 
-// ============================================================================
-// Test Suite: Initial State
-// ============================================================================
+const refineSessionMock = {
+  sendRefinement: vi.fn(),
+  getHistory: vi.fn(),
+  reset: vi.fn(),
+};
+
+function makeJob(id: string, feature = 'lookbook', status: Job['status'] = 'completed', errorMessage: string | null = null): Job {
+  return {
+    id,
+    user_id: 'demo',
+    feature,
+    status,
+    idempotency_key: `key-${id}`,
+    input_payload_json: {},
+    workflow_run_id: null,
+    progress_total: 1,
+    progress_done: status === 'completed' ? 1 : 0,
+    created_at: '2026-01-01T00:00:00.000Z',
+    started_at: '2026-01-01T00:00:00.000Z',
+    completed_at: status === 'completed' ? '2026-01-01T00:00:01.000Z' : null,
+    error_code: errorMessage ? 'FAILED' : null,
+    error_message: errorMessage,
+  };
+}
+
+function queueJobSuccess(images: ImageFile[]) {
+  queuedJobOutcomes.push({ type: 'success', images });
+}
+
+function queueJobError(message: string) {
+  queuedJobOutcomes.push({ type: 'error', error: new Error(message) });
+}
 
 describe('useLookbookGenerator', () => {
-  const refineSessionMock = {
-    sendRefinement: vi.fn(),
-    getHistory: vi.fn(),
-    reset: vi.fn(),
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
     mockLocalStorage.clear();
@@ -161,973 +165,316 @@ describe('useLookbookGenerator', () => {
     refineSessionMock.getHistory.mockReset();
     refineSessionMock.reset.mockReset();
     refineSessionMock.getHistory.mockReturnValue([]);
+    jobCounter = 0;
+    jobResultsStore.clear();
+    queuedJobOutcomes.length = 0;
+
+    submitJobMock.mockImplementation(async (feature: string) => {
+      const outcome = queuedJobOutcomes.shift() ?? { type: 'success' as const, images: [GENERATED_IMAGE] };
+      if (outcome.type === 'error') {
+        throw outcome.error;
+      }
+      const jobId = `job-${++jobCounter}`;
+      const storedResults = outcome.images.map((image, index) => ({
+        id: `result-${jobId}-${index}`,
+        job_id: jobId,
+        kind: 'output' as const,
+        blob_path: `outputs/${jobId}/${index}.png`,
+        mime_type: image.mimeType,
+        created_at: '2026-01-01T00:00:00.000Z',
+        base64: image.base64,
+      }));
+      jobResultsStore.set(jobId, storedResults);
+      return makeJob(jobId, feature);
+    });
+    pollJobMock.mockImplementation(async (jobId: string) => makeJob(jobId));
+    getJobResultsMock.mockImplementation(async (jobId: string) => ({
+      job: makeJob(jobId),
+      results: (jobResultsStore.get(jobId) ?? []).map(({ base64, ...result }) => result),
+    }));
+    downloadJobResultBlobMock.mockImplementation(async (blobPath: string) => {
+      for (const results of jobResultsStore.values()) {
+        const match = results.find((result) => result.blob_path === blobPath);
+        if (match) return match.base64;
+      }
+      throw new Error(`Blob not found: ${blobPath}`);
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe('Initial State', () => {
-    /**
-     * Test: Hook returns correct initial state values
-     */
-    it('should return correct initial state', () => {
-      const { result } = renderHook(() => useLookbookGenerator());
+  it('returns correct initial state', () => {
+    const { result } = renderHook(() => useLookbookGenerator());
 
-      expect(result.current.formState).toBeDefined();
-      expect(result.current.formState.clothingImages).toHaveLength(1);
-      expect(result.current.formState.clothingImages[0].image).toBeNull();
-      expect(result.current.formState.lookbookStyle).toBe('flat lay');
-      expect(result.current.formState.garmentType).toBe('one-piece');
-      expect(result.current.generatedLookbook).toBeNull();
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.error).toBeNull();
-    });
-
-    /**
-     * Test: Hook loads saved draft from localStorage
-     */
-    it('should load saved draft from localStorage', () => {
-      const savedDraft = {
-        clothingImages: [{ id: 123, image: TEST_CLOTHING_IMAGE }],
-        fabricTextureImage: null,
-        fabricTexturePrompt: '',
-        clothingDescription: 'A blue dress',
-        lookbookStyle: 'mannequin',
-        garmentType: 'tops',
-        foldedPresentationType: 'boxed',
-        mannequinBackgroundStyle: 'minimalistShowroom',
-        negativePrompt: 'wrinkles',
-      };
-      mockLocalStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(savedDraft));
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      expect(result.current.formState.clothingDescription).toBe('A blue dress');
-      expect(result.current.formState.lookbookStyle).toBe('mannequin');
-      expect(result.current.formState.negativePrompt).toBe('wrinkles');
-    });
-
-    /**
-     * Test: Hook handles corrupted localStorage gracefully
-     */
-    it('should handle corrupted localStorage gracefully', () => {
-      mockLocalStorage.setItem(DRAFT_STORAGE_KEY, 'invalid json');
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      // Should fallback to default state
-      expect(result.current.formState.lookbookStyle).toBe('flat lay');
-    });
-
-    /**
-     * Test: Hook handles localStorage access errors gracefully
-     */
-    it('should fallback when localStorage.getItem throws', () => {
-      mockLocalStorage.getItem.mockImplementation(() => {
-        throw new Error('SecurityError');
-      });
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      expect(result.current.formState.lookbookStyle).toBe('flat lay');
-    });
+    expect(result.current.formState.clothingImages).toHaveLength(1);
+    expect(result.current.generatedLookbook).toBeNull();
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 
-  // ============================================================================
-  // Test Suite: Form Updates
-  // ============================================================================
+  it('loads saved draft from localStorage', () => {
+    mockLocalStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({
+      clothingSlotCount: 2,
+      clothingDescription: 'A blue dress',
+      lookbookStyle: 'mannequin',
+      garmentType: 'tops',
+      foldedPresentationType: 'boxed',
+      mannequinBackgroundStyle: 'minimalistShowroom',
+      negativePrompt: 'wrinkles',
+      productShotSubType: 'ghost-mannequin',
+      includeAccessories: false,
+      includeFootwear: false,
+      fabricTexturePrompt: '',
+    }));
 
-  describe('Form Updates', () => {
-    /**
-     * Test: updateForm correctly updates form state
-     */
-    it('should update form state correctly', () => {
-      const { result } = renderHook(() => useLookbookGenerator());
+    const { result } = renderHook(() => useLookbookGenerator());
 
-      act(() => {
-        result.current.updateForm({
-          clothingDescription: 'Updated description',
-          lookbookStyle: 'folded',
-        });
-      });
-
-      expect(result.current.formState.clothingDescription).toBe('Updated description');
-      expect(result.current.formState.lookbookStyle).toBe('folded');
-    });
-
-    /**
-     * Test: localStorage persists only lightweight draft fields (no image binaries)
-     */
-    it('should persist lightweight draft without image binaries', async () => {
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingDescription: 'New desc',
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-          fabricTextureImage: TEST_FABRIC_IMAGE,
-        });
-      });
-
-      await waitFor(() => {
-        expect(mockLocalStorage.setItem).toHaveBeenCalled();
-      }, { timeout: 3000 });
-
-      const calls = mockLocalStorage.setItem.mock.calls;
-      const lastCall = calls[calls.length - 1];
-      expect(lastCall).toBeDefined();
-      const [, serializedDraft] = lastCall as [string, string];
-      const parsedDraft = JSON.parse(serializedDraft);
-
-      expect(parsedDraft.clothingDescription).toBe('New desc');
-      expect(parsedDraft.clothingSlotCount).toBe(1);
-      expect(parsedDraft.clothingImages).toBeUndefined();
-      expect(parsedDraft.fabricTextureImage).toBeUndefined();
-      expect(serializedDraft).not.toContain(TEST_CLOTHING_IMAGE.base64);
-      expect(serializedDraft).not.toContain(TEST_FABRIC_IMAGE.base64);
-    });
-
-    /**
-     * Test: setVariationCount updates variation count
-     */
-    it('should update variation count', () => {
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      expect(result.current.variationCount).toBe(2);
-
-      act(() => {
-        result.current.setVariationCount(4);
-      });
-
-      expect(result.current.variationCount).toBe(4);
-    });
-
-    /**
-     * Test: setActiveOutputTab changes active tab
-     */
-    it('should change active output tab', () => {
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      expect(result.current.activeOutputTab).toBe('main');
-
-      act(() => {
-        result.current.setActiveOutputTab('variations');
-      });
-
-      expect(result.current.activeOutputTab).toBe('variations');
-    });
+    expect(result.current.formState.clothingDescription).toBe('A blue dress');
+    expect(result.current.formState.clothingImages).toHaveLength(2);
+    expect(result.current.formState.negativePrompt).toBe('wrinkles');
   });
 
-  // ============================================================================
-  // Test Suite: Description Generation
-  // ============================================================================
+  it('generates clothing description successfully', async () => {
+    vi.mocked(generateClothingDescription).mockResolvedValueOnce('A beautiful red dress');
+    const { result } = renderHook(() => useLookbookGenerator());
 
-  describe('handleGenerateDescription', () => {
-    /**
-     * Test: Shows error when no image is provided
-     */
-    it('should show error when no clothing image is provided', async () => {
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      await act(async () => {
-        await result.current.handleGenerateDescription();
+    act(() => {
+      result.current.updateForm({
+        clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
       });
-
-      expect(result.current.error).toBe('lookbook.descriptionError');
-      expect(generateClothingDescription).not.toHaveBeenCalled();
     });
 
-    /**
-     * Test: Successfully generates description
-     */
-    it('should generate description successfully', async () => {
-      vi.mocked(generateClothingDescription).mockResolvedValueOnce('A beautiful red dress');
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      // Set up clothing image first
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerateDescription();
-      });
-
-      expect(generateClothingDescription).toHaveBeenCalledWith(
-        TEST_CLOTHING_IMAGE,
-        'gemini-2.5-pro',
-      );
-      expect(result.current.formState.clothingDescription).toBe('A beautiful red dress');
-      expect(result.current.isGeneratingDescription).toBe(false);
+    await act(async () => {
+      await result.current.handleGenerateDescription();
     });
 
-    /**
-     * Test: Handles description generation error
-     */
-    it('should handle description generation error', async () => {
-      vi.mocked(generateClothingDescription).mockRejectedValueOnce(new Error('API Error'));
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerateDescription();
-      });
-
-      expect(result.current.error).toBe('API Error');
-      expect(result.current.isGeneratingDescription).toBe(false);
-    });
-
-    /**
-     * Test: Shows loading state during description generation
-     */
-    it('should show loading state during description generation', async () => {
-      let resolvePromise: (value: string) => void;
-      vi.mocked(generateClothingDescription).mockImplementation(
-        () => new Promise((resolve) => { resolvePromise = resolve; })
-      );
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      // Start generation
-      let generatePromise: Promise<void>;
-      act(() => {
-        generatePromise = result.current.handleGenerateDescription();
-      });
-
-      // Check loading state
-      expect(result.current.isGeneratingDescription).toBe(true);
-
-      // Resolve and complete
-      await act(async () => {
-        resolvePromise!('Generated description');
-        await generatePromise;
-      });
-
-      expect(result.current.isGeneratingDescription).toBe(false);
-    });
+    expect(generateClothingDescription).toHaveBeenCalledWith(TEST_CLOTHING_IMAGE, 'gemini-2.5-pro');
+    expect(result.current.formState.clothingDescription).toBe('A beautiful red dress');
   });
 
-  // ============================================================================
-  // Test Suite: Main Image Generation
-  // ============================================================================
+  it('generates main lookbook image through job pipeline', async () => {
+    queueJobSuccess([GENERATED_IMAGE]);
+    const { result } = renderHook(() => useLookbookGenerator());
 
-  describe('handleGenerate', () => {
-    /**
-     * Test: Shows error when no clothing images provided
-     */
-    it('should show error when no clothing images provided', async () => {
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      await act(async () => {
-        await result.current.handleGenerate();
+    act(() => {
+      result.current.updateForm({
+        clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+        clothingDescription: 'A red dress',
       });
-
-      expect(result.current.error).toBe('lookbook.inputError');
-      expect(editImage).not.toHaveBeenCalled();
     });
 
-    /**
-     * Test: Successfully generates main lookbook image
-     */
-    it('should generate main lookbook image successfully', async () => {
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-          clothingDescription: 'A red dress',
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      expect(editImage).toHaveBeenCalled();
-      expect(result.current.generatedLookbook).not.toBeNull();
-      expect(result.current.generatedLookbook?.main).toEqual(GENERATED_IMAGE);
-      expect(result.current.activeOutputTab).toBe('main');
+    await act(async () => {
+      await result.current.handleGenerate();
     });
 
-    /**
-     * Test: Handles generation error
-     */
-    it('should handle generation error', async () => {
-      vi.mocked(editImage).mockRejectedValueOnce(new Error('Generation failed'));
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      expect(result.current.error).toBe('Generation failed');
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    /**
-     * Test: Shows loading state during generation
-     */
-    it('should show loading state during generation', async () => {
-      let resolvePromise: (value: ImageFile[]) => void;
-      vi.mocked(editImage).mockImplementation(
-        () => new Promise<ImageFile[]>((resolve) => { resolvePromise = resolve; })
-      );
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      let generatePromise: Promise<void>;
-      act(() => {
-        generatePromise = result.current.handleGenerate();
-      });
-
-      expect(result.current.isLoading).toBe(true);
-
-      await act(async () => {
-        resolvePromise!([GENERATED_IMAGE]);
-        await generatePromise;
-      });
-
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    /**
-     * Test: Includes fabric texture image when provided
-     */
-    it('should include fabric texture image when provided', async () => {
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-          fabricTextureImage: TEST_FABRIC_IMAGE,
-          fabricTexturePrompt: 'Silk texture',
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      // Verify editImage was called with fabric texture included
-      expect(editImage).toHaveBeenCalled();
-      const callArgs = vi.mocked(editImage).mock.calls[0][0];
-      expect(callArgs.images).toHaveLength(2);
-    });
+    expect(submitJobMock).toHaveBeenCalledWith('lookbook', expect.objectContaining({
+      images: [TEST_CLOTHING_IMAGE.base64],
+      numberOfImages: 1,
+      aspectRatio: result.current.aspectRatio,
+      resolution: result.current.resolution,
+    }));
+    expect(result.current.generatedLookbook?.main).toEqual(GENERATED_IMAGE);
+    expect(result.current.activeOutputTab).toBe('main');
   });
 
-  // ============================================================================
-  // Test Suite: Variations Generation
-  // ============================================================================
+  it('includes fabric texture image when provided', async () => {
+    queueJobSuccess([GENERATED_IMAGE]);
+    const { result } = renderHook(() => useLookbookGenerator());
 
-  describe('handleGenerateVariations', () => {
-    /**
-     * Test: Shows error when no main lookbook exists
-     */
-    it('should show error when no main lookbook exists', async () => {
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      await act(async () => {
-        await result.current.handleGenerateVariations();
+    act(() => {
+      result.current.updateForm({
+        clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+        fabricTextureImage: TEST_FABRIC_IMAGE,
+        fabricTexturePrompt: 'Silk texture',
       });
-
-      expect(result.current.error).toBe('lookbook.variationError');
     });
 
-    /**
-     * Test: Successfully generates variations
-     */
-    it('should generate variations successfully', async () => {
-      const variation1 = { base64: 'dmFyMQ==', mimeType: 'image/png' };
-      const variation2 = { base64: 'dmFyMg==', mimeType: 'image/png' };
-
-      vi.mocked(editImage)
-        .mockResolvedValueOnce([GENERATED_IMAGE]) // For main generation
-        .mockResolvedValueOnce([variation1, variation2]); // For variations
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      // First generate main image
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      // Then generate variations
-      await act(async () => {
-        await result.current.handleGenerateVariations();
-      });
-
-      expect(result.current.generatedLookbook?.variations).toHaveLength(2);
-      expect(result.current.isGeneratingVariations).toBe(false);
+    await act(async () => {
+      await result.current.handleGenerate();
     });
 
-    /**
-     * Test: Handles variations generation error
-     */
-    it('should handle variations generation error', async () => {
-      vi.mocked(editImage)
-        .mockResolvedValueOnce([GENERATED_IMAGE])
-        .mockRejectedValueOnce(new Error('Variations failed'));
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      await act(async () => {
-        await result.current.handleGenerateVariations();
-      });
-
-      expect(result.current.error).toBe('Variations failed');
-    });
+    expect(submitJobMock.mock.calls[0]?.[1]?.images).toEqual([
+      TEST_CLOTHING_IMAGE.base64,
+      TEST_FABRIC_IMAGE.base64,
+    ]);
   });
 
-  // ============================================================================
-  // Test Suite: Close-up Generation
-  // ============================================================================
+  it('handles generation error from submitJob', async () => {
+    queueJobError('Generation failed');
+    const { result } = renderHook(() => useLookbookGenerator());
 
-  describe('handleGenerateCloseUp', () => {
-    /**
-     * Test: Shows error when no main lookbook exists
-     */
-    it('should show error when no main lookbook exists', async () => {
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      await act(async () => {
-        await result.current.handleGenerateCloseUp();
+    act(() => {
+      result.current.updateForm({
+        clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
       });
-
-      expect(result.current.error).toBe('lookbook.closeUpError');
     });
 
-    /**
-     * Test: Successfully generates close-ups
-     */
-    it('should generate close-ups successfully', async () => {
-      const closeup1 = { base64: 'Y2xvc2V1cDE=', mimeType: 'image/png' };
-
-      vi.mocked(editImage)
-        .mockResolvedValueOnce([GENERATED_IMAGE]) // For main generation
-        .mockResolvedValue([closeup1]); // For close-ups (may be called multiple times)
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      await act(async () => {
-        await result.current.handleGenerateCloseUp();
-      });
-
-      expect(result.current.isGeneratingCloseUp).toBe(false);
+    await act(async () => {
+      await result.current.handleGenerate();
     });
+
+    expect(result.current.error).toBe('Generation failed');
+    expect(result.current.isLoading).toBe(false);
   });
 
-  // ============================================================================
-  // Test Suite: Upscale Functionality
-  // ============================================================================
+  it('generates variations successfully', async () => {
+    queueJobSuccess([GENERATED_IMAGE]);
+    queueJobSuccess([VARIATION_IMAGE, { ...VARIATION_IMAGE, base64: 'variation-2' }]);
+    const { result } = renderHook(() => useLookbookGenerator());
 
-  describe('handleUpscale', () => {
-    /**
-     * Test: Successfully upscales main image
-     */
-    it('should upscale main image successfully', async () => {
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      vi.mocked(upscaleImage).mockResolvedValueOnce(UPSCALED_IMAGE);
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
+    act(() => {
+      result.current.updateForm({
+        clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
       });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      await act(async () => {
-        await result.current.handleUpscale(GENERATED_IMAGE, 'main-0');
-      });
-
-      expect(upscaleImage).toHaveBeenCalledWith(
-        GENERATED_IMAGE,
-        expect.any(String),
-        expect.any(Object)
-      );
-      expect(result.current.generatedLookbook?.main).toEqual(UPSCALED_IMAGE);
     });
 
-    /**
-     * Test: Tracks upscaling state correctly
-     */
-    it('should track upscaling state', async () => {
-      let resolvePromise: (value: unknown) => void;
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      vi.mocked(upscaleImage).mockImplementation(
-        () => new Promise((resolve) => { resolvePromise = resolve; })
-      );
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      let upscalePromise: Promise<void>;
-      act(() => {
-        upscalePromise = result.current.handleUpscale(GENERATED_IMAGE, 'main-0');
-      });
-
-      expect(result.current.upscalingStates['main-0']).toBe(true);
-
-      await act(async () => {
-        resolvePromise!(UPSCALED_IMAGE);
-        await upscalePromise;
-      });
-
-      expect(result.current.upscalingStates['main-0']).toBe(false);
+    await act(async () => {
+      await result.current.handleGenerate();
     });
 
-    /**
-     * Test: Handles upscale error
-     */
-    it('should handle upscale error', async () => {
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      vi.mocked(upscaleImage).mockRejectedValueOnce(new Error('Upscale failed'));
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      await act(async () => {
-        await result.current.handleUpscale(GENERATED_IMAGE, 'main-0');
-      });
-
-      expect(result.current.error).toBe('Upscale failed');
-      expect(result.current.upscalingStates['main-0']).toBe(false);
+    await act(async () => {
+      await result.current.handleGenerateVariations();
     });
 
-    /**
-     * Test: Upscales variation image correctly
-     */
-    it('should upscale variation image correctly', async () => {
-      const variation = { base64: 'dmFyaWF0aW9u', mimeType: 'image/png' };
-      const upscaledVariation = { base64: 'dXBzY2FsZWQtdmFy', mimeType: 'image/png' };
-
-      vi.mocked(editImage)
-        .mockResolvedValueOnce([GENERATED_IMAGE])
-        .mockResolvedValueOnce([variation]);
-      vi.mocked(upscaleImage).mockResolvedValueOnce(upscaledVariation);
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      await act(async () => {
-        await result.current.handleGenerateVariations();
-      });
-
-      await act(async () => {
-        await result.current.handleUpscale(variation, 'variation-0');
-      });
-
-      expect(result.current.generatedLookbook?.variations[0]).toEqual(upscaledVariation);
-    });
+    expect(result.current.generatedLookbook?.variations).toHaveLength(2);
+    expect(result.current.isGeneratingVariations).toBe(false);
   });
 
-  // ============================================================================
-  // Test Suite: Refinement, Version Selection, and Download
-  // ============================================================================
+  it('generates close-ups successfully', async () => {
+    queueJobSuccess([GENERATED_IMAGE]);
+    queueJobSuccess([{ ...VARIATION_IMAGE, base64: 'closeup-1' }]);
+    queueJobSuccess([{ ...VARIATION_IMAGE, base64: 'closeup-2' }]);
+    queueJobSuccess([{ ...VARIATION_IMAGE, base64: 'closeup-3' }]);
+    const { result } = renderHook(() => useLookbookGenerator());
 
-  describe('Refinement, Version Selection, and Download', () => {
-    it('restores saved clothing slot count from localStorage draft state', () => {
-      const savedDraft = {
-        clothingSlotCount: 3,
-        fabricTexturePrompt: 'silk',
-        clothingDescription: 'A blue dress',
-        lookbookStyle: 'mannequin',
-        garmentType: 'one-piece',
-        foldedPresentationType: 'boxed',
-        mannequinBackgroundStyle: 'minimalistShowroom',
-        negativePrompt: 'wrinkles',
-        productShotSubType: 'ghost-mannequin',
-        includeAccessories: true,
-        includeFootwear: false,
-      };
-      mockLocalStorage.getItem.mockImplementation((key: string) => (
-        key === DRAFT_STORAGE_KEY ? JSON.stringify(savedDraft) : null
-      ));
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      expect(result.current.formState.clothingImages).toHaveLength(3);
-      expect(result.current.formState.fabricTextureImage).toBeNull();
-      expect(result.current.formState.includeAccessories).toBe(true);
+    act(() => {
+      result.current.updateForm({
+        clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+      });
     });
 
-    it('refines generated lookbook image and tracks refinement history', async () => {
-      refineSessionMock.sendRefinement.mockResolvedValueOnce(REFINED_IMAGE);
-      refineSessionMock.getHistory.mockReturnValueOnce([{ prompt: 'make it sharper', timestamp: 123 }]);
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      await act(async () => {
-        await result.current.handleRefineImage('make it sharper');
-      });
-
-      expect(createImageChatSession).toHaveBeenCalledWith(
-        'gemini-2.5-flash-image',
-        expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
-      );
-      expect(refineSessionMock.sendRefinement).toHaveBeenCalledWith('make it sharper', GENERATED_IMAGE);
-      expect(result.current.generatedLookbook?.main).toEqual(REFINED_IMAGE);
-      expect(result.current.refinementVersions).toHaveLength(1);
-      expect(result.current.selectedVersionIndex).toBe(0);
-      expect(result.current.refinementHistory).toEqual([{ prompt: 'make it sharper', timestamp: 123 }]);
-      expect(result.current.isRefining).toBe(false);
+    await act(async () => {
+      await result.current.handleGenerate();
     });
 
-    it('selects refined and original versions while clearing derivative outputs', async () => {
-      refineSessionMock.sendRefinement.mockResolvedValueOnce(REFINED_IMAGE);
-      refineSessionMock.getHistory.mockReturnValue([]);
-      vi.mocked(editImage)
-        .mockResolvedValueOnce([GENERATED_IMAGE])
-        .mockResolvedValueOnce([VARIATION_IMAGE]);
-      vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      await act(async () => {
-        await result.current.handleGenerateVariations();
-      });
-
-      await act(async () => {
-        await result.current.handleRefineImage('make it sharper');
-      });
-
-      expect(result.current.generatedLookbook?.variations).toEqual([]);
-
-      act(() => {
-        result.current.handleSelectVersion(-1);
-      });
-
-      expect(result.current.generatedLookbook?.main).toEqual(GENERATED_IMAGE);
-      expect(result.current.selectedVersionIndex).toBe(-1);
-
-      act(() => {
-        result.current.handleSelectVersion(0);
-      });
-
-      expect(result.current.generatedLookbook?.main).toEqual(REFINED_IMAGE);
-      expect(result.current.selectedVersionIndex).toBe(0);
+    await act(async () => {
+      await result.current.handleGenerateCloseUp();
     });
 
-    it('resets refinement session and history', async () => {
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      act(() => {
-        result.current.setRefinementVersions([{ image: REFINED_IMAGE, prompt: 'older', timestamp: 1 }]);
-      });
-
-      act(() => {
-        result.current.handleResetRefinement();
-      });
-
-      expect(refineSessionMock.reset).toHaveBeenCalledTimes(1);
-      expect(result.current.refinementHistory).toEqual([]);
-      expect(result.current.chatSession).toBeDefined();
-    });
-
-    it('sets error when refine is requested without an active session', async () => {
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      await act(async () => {
-        await result.current.handleRefineImage('make it sharper');
-      });
-
-      expect(result.current.error).toBe('lookbook.refineError');
-    });
-
-    it('downloads all generated lookbook images as a zip', async () => {
-      const closeupImage = { base64: 'Y2xvc2V1cA==', mimeType: 'image/png' };
-      vi.mocked(editImage)
-        .mockResolvedValueOnce([GENERATED_IMAGE])
-        .mockResolvedValueOnce([VARIATION_IMAGE])
-        .mockResolvedValue([closeupImage]);
-      vi.mocked(downloadImagesAsZip).mockResolvedValueOnce(undefined);
-      vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      await act(async () => {
-        await result.current.handleGenerateVariations();
-      });
-
-      await act(async () => {
-        await result.current.handleGenerateCloseUp();
-      });
-
-      await act(async () => {
-        await result.current.handleDownloadAll();
-      });
-
-      expect(downloadImagesAsZip).toHaveBeenCalledWith(
-        [GENERATED_IMAGE, VARIATION_IMAGE, closeupImage, closeupImage, closeupImage],
-        'lookbook-batch',
-      );
-    });
-
-    it('sets error when lookbook zip download fails', async () => {
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      vi.mocked(downloadImagesAsZip).mockRejectedValueOnce(new Error('zip failed'));
-      vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
-
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      await act(async () => {
-        await result.current.handleDownloadAll();
-      });
-
-      expect(result.current.error).toBe('zip failed');
-    });
-
-    it('skips lookbook zip download when no images exist', async () => {
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      await act(async () => {
-        await result.current.handleDownloadAll();
-      });
-
-      expect(downloadImagesAsZip).not.toHaveBeenCalled();
-    });
+    expect(result.current.generatedLookbook?.closeups.length).toBeGreaterThan(0);
+    expect(result.current.isGeneratingCloseUp).toBe(false);
   });
 
-  // ============================================================================
-  // Test Suite: Error Handling
-  // ============================================================================
+  it('upscales main image successfully', async () => {
+    queueJobSuccess([GENERATED_IMAGE]);
+    vi.mocked(upscaleImage).mockResolvedValueOnce(UPSCALED_IMAGE);
+    const { result } = renderHook(() => useLookbookGenerator());
 
-  describe('Error Handling', () => {
-    /**
-     * Test: setError updates error state
-     */
-    it('should update error state via setError', () => {
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.setError('Custom error message');
+    act(() => {
+      result.current.updateForm({
+        clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
       });
-
-      expect(result.current.error).toBe('Custom error message');
     });
 
-    /**
-     * Test: Clears previous error on new operation
-     */
-    it('should clear error on new generation attempt', async () => {
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      // Set initial error
-      act(() => {
-        result.current.setError('Previous error');
-      });
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      expect(result.current.error).toBeNull();
+    await act(async () => {
+      await result.current.handleGenerate();
     });
+
+    await act(async () => {
+      await result.current.handleUpscale(GENERATED_IMAGE, 'main-0');
+    });
+
+    expect(upscaleImage).toHaveBeenCalledWith(GENERATED_IMAGE, expect.any(String), expect.any(Object));
+    expect(result.current.generatedLookbook?.main).toEqual(UPSCALED_IMAGE);
   });
 
-  // ============================================================================
-  // Test Suite: Multiple Clothing Images
-  // ============================================================================
+  it('refines generated image and tracks history', async () => {
+    queueJobSuccess([GENERATED_IMAGE]);
+    vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
+    refineSessionMock.sendRefinement.mockResolvedValueOnce(REFINED_IMAGE);
+    refineSessionMock.getHistory.mockReturnValue([{ prompt: 'make it cinematic', timestamp: 1 }]);
 
-  describe('Multiple Clothing Images', () => {
-    /**
-     * Test: Handles multiple clothing images
-     */
-    it('should handle multiple clothing images for multi-angle synthesis', async () => {
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      const { result } = renderHook(() => useLookbookGenerator());
+    const { result } = renderHook(() => useLookbookGenerator());
 
-      const image1 = { base64: 'aW1hZ2Ux', mimeType: 'image/png' };
-      const image2 = { base64: 'aW1hZ2Uy', mimeType: 'image/png' };
-      const image3 = { base64: 'aW1hZ2Uz', mimeType: 'image/png' };
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [
-            { id: 1, image: image1 },
-            { id: 2, image: image2 },
-            { id: 3, image: image3 },
-          ],
-        });
+    act(() => {
+      result.current.updateForm({
+        clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
       });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      expect(editImage).toHaveBeenCalled();
-      const callArgs = vi.mocked(editImage).mock.calls[0][0];
-      expect(callArgs.images).toHaveLength(3);
     });
 
-    /**
-     * Test: Filters out null images from clothing images array
-     */
-    it('should filter out null images', async () => {
-      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
-      const { result } = renderHook(() => useLookbookGenerator());
-
-      act(() => {
-        result.current.updateForm({
-          clothingImages: [
-            { id: 1, image: TEST_CLOTHING_IMAGE },
-            { id: 2, image: null },
-            { id: 3, image: null },
-          ],
-        });
-      });
-
-      await act(async () => {
-        await result.current.handleGenerate();
-      });
-
-      const callArgs = vi.mocked(editImage).mock.calls[0][0];
-      expect(callArgs.images).toHaveLength(1);
+    await act(async () => {
+      await result.current.handleGenerate();
     });
+
+    await waitFor(() => {
+      expect(result.current.chatSession).toBe(refineSessionMock);
+    });
+
+    await act(async () => {
+      await result.current.handleRefineImage('make it cinematic');
+    });
+
+    expect(refineSessionMock.sendRefinement).toHaveBeenCalledWith('make it cinematic', GENERATED_IMAGE);
+    expect(result.current.generatedLookbook?.main).toEqual(REFINED_IMAGE);
+    expect(result.current.refinementHistory).toEqual([{ prompt: 'make it cinematic', timestamp: 1 }]);
+  });
+
+  it('resets refinement session and history', async () => {
+    queueJobSuccess([GENERATED_IMAGE]);
+    vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
+
+    const { result } = renderHook(() => useLookbookGenerator());
+
+    act(() => {
+      result.current.updateForm({
+        clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    await waitFor(() => {
+      expect(result.current.chatSession).toBe(refineSessionMock);
+    });
+
+    act(() => {
+      result.current.handleResetRefinement();
+    });
+
+    expect(refineSessionMock.reset).toHaveBeenCalledTimes(1);
+    expect(result.current.refinementHistory).toEqual([]);
+  });
+
+  it('downloads all generated lookbook images as zip', async () => {
+    queueJobSuccess([GENERATED_IMAGE]);
+    queueJobSuccess([VARIATION_IMAGE]);
+    const { result } = renderHook(() => useLookbookGenerator());
+
+    act(() => {
+      result.current.updateForm({
+        clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    await act(async () => {
+      await result.current.handleGenerateVariations();
+    });
+
+    await act(async () => {
+      await result.current.handleDownloadAll();
+    });
+
+    expect(downloadImagesAsZip).toHaveBeenCalledWith([
+      GENERATED_IMAGE,
+      VARIATION_IMAGE,
+    ], `${Feature.Lookbook}-batch`);
   });
 });

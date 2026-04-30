@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LoadingSpinnerIcon, CheckCircleIcon, ErrorIcon, CloseIcon } from './Icons';
-import type { Job } from '../services/jobService';
+import type { Job } from '../types';
 
 interface JobStatusBadgeProps {
   job: Job | null;

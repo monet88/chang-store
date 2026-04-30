@@ -926,7 +926,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
   settingsModal: {
     eyebrow: 'Thiết lập studio',
     title: 'Cài đặt ứng dụng',
-    description: 'Cập nhật model mặc định, đồng bộ và chẩn đoán mà không rời khỏi shell biên tập.',
+    description: 'Cập nhật model mặc định, truy cập tài khoản và chẩn đoán mà không rời khỏi shell biên tập.',
     closeAria: 'Đóng cài đặt',
     sections: {
       models: {

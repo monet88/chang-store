@@ -1,9 +1,13 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ImageFile } from '../../src/types';
+import type { ImageFile, Job, JobResult } from '../../src/types';
+import { DEFAULT_IMAGE_RESOLUTION } from '../../src/types';
 
-const editImageMock = vi.fn();
+const submitJobMock = vi.fn();
+const pollJobMock = vi.fn();
+const getJobResultsMock = vi.fn();
+const downloadJobResultBlobMock = vi.fn();
 
 const poseLabels = {
   pose_1: 'Pose 1',
@@ -54,8 +58,11 @@ vi.mock('../../src/contexts/ApiProviderContext', () => ({
   }),
 }));
 
-vi.mock('../../src/services/imageEditingService', () => ({
-  editImage: (...args: unknown[]) => editImageMock(...args),
+vi.mock('../../src/services/jobService', () => ({
+  submitJob: (...args: unknown[]) => submitJobMock(...args),
+  pollJob: (...args: unknown[]) => pollJobMock(...args),
+  getJobResults: (...args: unknown[]) => getJobResultsMock(...args),
+  downloadJobResultBlob: (...args: unknown[]) => downloadJobResultBlobMock(...args),
 }));
 
 vi.mock('../../src/utils/imageUtils', () => ({
@@ -63,7 +70,6 @@ vi.mock('../../src/utils/imageUtils', () => ({
 }));
 
 import { usePhotoAlbum } from '../../src/hooks/usePhotoAlbum';
-import { DEFAULT_IMAGE_RESOLUTION } from '../../src/types';
 
 const ORIGINAL_IMAGE: ImageFile = {
   base64: 'b3JpZ2luYWw=',
@@ -95,10 +101,39 @@ const REGENERATED_POSE_ONE: ImageFile = {
   mimeType: 'image/png',
 };
 
+function makeJob(id: string, status: Job['status'] = 'completed', errorMessage: string | null = null): Job {
+  return {
+    id,
+    user_id: 'demo',
+    feature: 'photo-album',
+    status,
+    idempotency_key: `key-${id}`,
+    input_payload_json: {},
+    workflow_run_id: null,
+    progress_total: 1,
+    progress_done: status === 'completed' ? 1 : 0,
+    created_at: '2026-01-01T00:00:00.000Z',
+    started_at: '2026-01-01T00:00:00.000Z',
+    completed_at: status === 'completed' ? '2026-01-01T00:00:01.000Z' : null,
+    error_code: errorMessage ? 'FAILED' : null,
+    error_message: errorMessage,
+  };
+}
+
+function makeResult(jobId: string, blobPath: string, mimeType = 'image/png'): JobResult {
+  return {
+    id: `${jobId}-${blobPath}`,
+    job_id: jobId,
+    kind: 'output',
+    blob_path: blobPath,
+    mime_type: mimeType,
+    created_at: '2026-01-01T00:00:00.000Z',
+  };
+}
+
 describe('usePhotoAlbum', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    editImageMock.mockReset();
   });
 
   it('consumes transferred outfit image once, then allows it to be consumed again after reset', () => {
@@ -142,14 +177,20 @@ describe('usePhotoAlbum', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImageMock).not.toHaveBeenCalled();
+    expect(submitJobMock).not.toHaveBeenCalled();
     expect(result.current.error).toBe('Please select at least one pose.');
   });
 
-  it('generates all selected poses with the full-model prompt details', async () => {
-    editImageMock
-      .mockResolvedValueOnce([GENERATED_POSE_ONE])
-      .mockResolvedValueOnce([GENERATED_POSE_TWO]);
+  it('generates all selected poses with full-model prompt details', async () => {
+    submitJobMock
+      .mockResolvedValueOnce(makeJob('job-1'))
+      .mockResolvedValueOnce(makeJob('job-2'));
+    getJobResultsMock
+      .mockResolvedValueOnce({ job: makeJob('job-1'), results: [makeResult('job-1', 'blob-1')] })
+      .mockResolvedValueOnce({ job: makeJob('job-2'), results: [makeResult('job-2', 'blob-2')] });
+    downloadJobResultBlobMock
+      .mockResolvedValueOnce(GENERATED_POSE_ONE.base64)
+      .mockResolvedValueOnce(GENERATED_POSE_TWO.base64);
 
     const { result } = renderHook(() => usePhotoAlbum());
 
@@ -165,20 +206,20 @@ describe('usePhotoAlbum', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImageMock).toHaveBeenCalledTimes(2);
-    expect(editImageMock.mock.calls[0]?.[0]).toMatchObject({
-      images: [ORIGINAL_IMAGE],
-      numberOfImages: 1,
+    expect(submitJobMock).toHaveBeenCalledTimes(2);
+    expect(submitJobMock.mock.calls[0]?.[0]).toBe('photo-album');
+    expect(submitJobMock.mock.calls[0]?.[1]).toMatchObject({
+      images: [ORIGINAL_IMAGE.base64],
       aspectRatio: '9:16',
       resolution: DEFAULT_IMAGE_RESOLUTION,
     });
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain("Source Image");
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('Standing straight, facing camera, arms relaxed');
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('A minimalist photography studio.');
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('Long Straight Black');
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('Fair Smooth');
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('Keep the styling soft');
-    expect(editImageMock.mock.calls[1]?.[0]?.prompt).toContain('Standing confidently, one hand on hip');
+    expect(submitJobMock.mock.calls[0]?.[1]?.prompt).toContain('Source Image');
+    expect(submitJobMock.mock.calls[0]?.[1]?.prompt).toContain('Standing straight, facing camera, arms relaxed');
+    expect(submitJobMock.mock.calls[0]?.[1]?.prompt).toContain('A minimalist photography studio.');
+    expect(submitJobMock.mock.calls[0]?.[1]?.prompt).toContain('Long Straight Black');
+    expect(submitJobMock.mock.calls[0]?.[1]?.prompt).toContain('Fair Smooth');
+    expect(submitJobMock.mock.calls[0]?.[1]?.prompt).toContain('Keep the styling soft');
+    expect(submitJobMock.mock.calls[1]?.[1]?.prompt).toContain('Standing confidently, one hand on hip');
     expect(result.current.generatedImages).toEqual([
       { ...GENERATED_POSE_ONE, pose: 'pose_1' },
       { ...GENERATED_POSE_TWO, pose: 'pose_2' },
@@ -187,10 +228,12 @@ describe('usePhotoAlbum', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('keeps earlier generated poses when a later pose fails', async () => {
-    editImageMock
-      .mockResolvedValueOnce([GENERATED_POSE_ONE])
+  it('keeps earlier generated poses when later pose fails', async () => {
+    submitJobMock
+      .mockResolvedValueOnce(makeJob('job-1'))
       .mockRejectedValueOnce(new Error('pose generation exploded'));
+    getJobResultsMock.mockResolvedValueOnce({ job: makeJob('job-1'), results: [makeResult('job-1', 'blob-1')] });
+    downloadJobResultBlobMock.mockResolvedValueOnce(GENERATED_POSE_ONE.base64);
 
     const { result } = renderHook(() => usePhotoAlbum());
 
@@ -210,64 +253,17 @@ describe('usePhotoAlbum', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('returns mode-specific error for fullModel without original photo', async () => {
-    const { result } = renderHook(() => usePhotoAlbum());
-
-    act(() => {
-      result.current.setSelectedPoses(['pose_1']);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    expect(editImageMock).not.toHaveBeenCalled();
-    expect(result.current.error).toBe('Please upload the original photo.');
-  });
-
-  it('returns mode-specific error for faceAndOutfit without face or outfit', async () => {
-    const { result } = renderHook(() => usePhotoAlbum());
-
-    act(() => {
-      result.current.setMode('faceAndOutfit');
-      result.current.setSelectedPoses(['pose_1']);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    expect(editImageMock).not.toHaveBeenCalled();
-    expect(result.current.error).toBe('Please upload both a face and an outfit image.');
-  });
-
-  it('includes camera view framing instruction in prompt when not default', async () => {
-    editImageMock.mockResolvedValueOnce([GENERATED_POSE_ONE]);
+  it('includes camera framing and background directives in prompt', async () => {
+    submitJobMock.mockResolvedValueOnce(makeJob('job-1'));
+    getJobResultsMock.mockResolvedValueOnce({ job: makeJob('job-1'), results: [makeResult('job-1', 'blob-1')] });
+    downloadJobResultBlobMock.mockResolvedValueOnce(GENERATED_POSE_ONE.base64);
 
     const { result } = renderHook(() => usePhotoAlbum());
 
     act(() => {
       result.current.setOriginalPhoto(ORIGINAL_IMAGE);
       result.current.setSelectedPoses(['pose_1']);
-      result.current.setCameraView('halfBody');
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    expect(editImageMock).toHaveBeenCalledTimes(1);
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('framingInstructions.halfBody');
-  });
-
-  it('inserts background prompt when background is not none', async () => {
-    editImageMock.mockResolvedValueOnce([GENERATED_POSE_ONE]);
-
-    const { result } = renderHook(() => usePhotoAlbum());
-
-    act(() => {
-      result.current.setOriginalPhoto(ORIGINAL_IMAGE);
-      result.current.setSelectedPoses(['pose_1']);
+      result.current.setCameraView('fullBody');
       result.current.setBackground('studioMirrorChair');
     });
 
@@ -275,30 +271,16 @@ describe('usePhotoAlbum', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('A minimalist photography studio.');
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).not.toContain('Keep the original background');
+    const prompt = submitJobMock.mock.calls[0]?.[1]?.prompt as string;
+    expect(prompt).toContain('Full body framing');
+    expect(prompt).toContain('A minimalist photography studio.');
+    expect(prompt).not.toContain('Keep the original background');
   });
 
-  it('keeps original background language when background is none', async () => {
-    editImageMock.mockResolvedValueOnce([GENERATED_POSE_ONE]);
-
-    const { result } = renderHook(() => usePhotoAlbum());
-
-    act(() => {
-      result.current.setOriginalPhoto(ORIGINAL_IMAGE);
-      result.current.setSelectedPoses(['pose_1']);
-      result.current.setBackground('none');
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('Keep the original background');
-  });
-
-  it('shows faceAndOutfit image roles when regenerating in that mode', async () => {
-    editImageMock.mockResolvedValueOnce([GENERATED_POSE_ONE]);
+  it('uses face and outfit references in face-and-outfit mode', async () => {
+    submitJobMock.mockResolvedValueOnce(makeJob('job-1'));
+    getJobResultsMock.mockResolvedValueOnce({ job: makeJob('job-1'), results: [makeResult('job-1', 'blob-1')] });
+    downloadJobResultBlobMock.mockResolvedValueOnce(GENERATED_POSE_ONE.base64);
 
     const { result } = renderHook(() => usePhotoAlbum());
 
@@ -313,14 +295,19 @@ describe('usePhotoAlbum', () => {
       await result.current.handleGenerate();
     });
 
-    const prompt = editImageMock.mock.calls[0]?.[0]?.prompt as string;
-    expect(prompt).toContain('Face Reference');
-    expect(prompt).toContain('Outfit Image');
-    expect(prompt).toContain("model's face, hair, and skin tone");
+    const payload = submitJobMock.mock.calls[0]?.[1];
+    expect(payload).toMatchObject({
+      images: [FACE_IMAGE.base64, OUTFIT_IMAGE.base64],
+    });
+    expect(payload.prompt).toContain('Face Reference');
+    expect(payload.prompt).toContain('Outfit Image');
+    expect(payload.prompt).toContain("model's face, hair, and skin tone");
   });
 
   it('clears images and resets state on handleStartOver', async () => {
-    editImageMock.mockResolvedValueOnce([GENERATED_POSE_ONE]);
+    submitJobMock.mockResolvedValueOnce(makeJob('job-1'));
+    getJobResultsMock.mockResolvedValueOnce({ job: makeJob('job-1'), results: [makeResult('job-1', 'blob-1')] });
+    downloadJobResultBlobMock.mockResolvedValueOnce(GENERATED_POSE_ONE.base64);
 
     const { result } = renderHook(() => usePhotoAlbum());
 
@@ -345,9 +332,11 @@ describe('usePhotoAlbum', () => {
   });
 
   it('handles regenerate failure without losing previous images', async () => {
-    editImageMock
-      .mockResolvedValueOnce([GENERATED_POSE_ONE])
+    submitJobMock
+      .mockResolvedValueOnce(makeJob('job-1'))
       .mockRejectedValueOnce(new Error('regenerate failed'));
+    getJobResultsMock.mockResolvedValueOnce({ job: makeJob('job-1'), results: [makeResult('job-1', 'blob-1')] });
+    downloadJobResultBlobMock.mockResolvedValueOnce(GENERATED_POSE_ONE.base64);
 
     const { result } = renderHook(() => usePhotoAlbum());
 
@@ -371,10 +360,16 @@ describe('usePhotoAlbum', () => {
     expect(result.current.regeneratingStates.pose_1).toBe(false);
   });
 
-  it('uses face and outfit references when regenerating a pose in face-and-outfit mode', async () => {
-    editImageMock
-      .mockResolvedValueOnce([GENERATED_POSE_ONE])
-      .mockResolvedValueOnce([REGENERATED_POSE_ONE]);
+  it('uses face and outfit references when regenerating a pose', async () => {
+    submitJobMock
+      .mockResolvedValueOnce(makeJob('job-1'))
+      .mockResolvedValueOnce(makeJob('job-2'));
+    getJobResultsMock
+      .mockResolvedValueOnce({ job: makeJob('job-1'), results: [makeResult('job-1', 'blob-1')] })
+      .mockResolvedValueOnce({ job: makeJob('job-2'), results: [makeResult('job-2', 'blob-2')] });
+    downloadJobResultBlobMock
+      .mockResolvedValueOnce(GENERATED_POSE_ONE.base64)
+      .mockResolvedValueOnce(REGENERATED_POSE_ONE.base64);
 
     const { result } = renderHook(() => usePhotoAlbum());
 
@@ -393,14 +388,11 @@ describe('usePhotoAlbum', () => {
       await result.current.handleRegenerateSingle('pose_1');
     });
 
-    expect(editImageMock.mock.calls[0]?.[0]).toMatchObject({
-      images: [FACE_IMAGE, OUTFIT_IMAGE],
-      numberOfImages: 1,
+    expect(submitJobMock.mock.calls[0]?.[1]).toMatchObject({
+      images: [FACE_IMAGE.base64, OUTFIT_IMAGE.base64],
     });
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('Face Reference');
-    expect(editImageMock.mock.calls[1]?.[0]).toMatchObject({
-      images: [FACE_IMAGE, OUTFIT_IMAGE],
-      numberOfImages: 1,
+    expect(submitJobMock.mock.calls[1]?.[1]).toMatchObject({
+      images: [FACE_IMAGE.base64, OUTFIT_IMAGE.base64],
     });
     expect(result.current.generatedImages).toEqual([
       { ...REGENERATED_POSE_ONE, pose: 'pose_1' },

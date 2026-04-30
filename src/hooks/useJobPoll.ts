@@ -16,6 +16,52 @@ interface UseJobPollResult {
   stopPolling: () => void;
 }
 
+interface SharedJobState {
+  job: Job | null;
+  isPolling: boolean;
+  error: string | null;
+}
+
+const sharedJobListeners = new Set<(state: SharedJobState) => void>();
+let sharedJobState: SharedJobState = {
+  job: null,
+  isPolling: false,
+  error: null,
+};
+
+function emitSharedJobState(nextState: Partial<SharedJobState>) {
+  sharedJobState = {
+    ...sharedJobState,
+    ...nextState,
+  };
+  sharedJobListeners.forEach((listener) => listener(sharedJobState));
+}
+
+export function setSharedJobState(nextState: Partial<SharedJobState>) {
+  emitSharedJobState(nextState);
+}
+
+export function clearSharedJobState() {
+  emitSharedJobState({ job: null, isPolling: false, error: null });
+}
+
+export function useSharedJobState(): SharedJobState {
+  const [state, setState] = useState<SharedJobState>(sharedJobState);
+
+  useEffect(() => {
+    const listener = (nextState: SharedJobState) => {
+      setState(nextState);
+    };
+
+    sharedJobListeners.add(listener);
+    return () => {
+      sharedJobListeners.delete(listener);
+    };
+  }, []);
+
+  return state;
+}
+
 export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
   const { pollIntervalMs = 3000, onComplete, onFailed } = options;
   const [job, setJob] = useState<Job | null>(null);
@@ -32,6 +78,7 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
       intervalRef.current = null;
     }
     setIsPolling(false);
+    emitSharedJobState({ isPolling: false });
   }, []);
 
   const doPoll = useCallback(async (jobId: string) => {
@@ -39,6 +86,11 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
       const current = await pollJob(jobId);
       setJob(current);
       setError(null);
+      emitSharedJobState({
+        job: current,
+        isPolling: current.status === 'queued' || current.status === 'running',
+        error: null,
+      });
 
       if (current.status === 'completed' || current.status === 'partial') {
         clearPolling();
@@ -48,13 +100,16 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
         callbacksRef.current.onFailed?.(current);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown polling error');
+      const message = err instanceof Error ? err.message : 'Unknown polling error';
+      setError(message);
+      emitSharedJobState({ error: message, isPolling: false });
     }
   }, [clearPolling]);
 
   const startPolling = useCallback((jobId: string) => {
     clearPolling();
     setIsPolling(true);
+    emitSharedJobState({ isPolling: true });
     doPoll(jobId);
     intervalRef.current = setInterval(() => doPoll(jobId), pollIntervalMs);
   }, [clearPolling, doPoll, pollIntervalMs]);
@@ -68,15 +123,24 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
     try {
       const newJob = await submitJob(feature, payload);
       setJob(newJob);
+      emitSharedJobState({
+        job: newJob,
+        isPolling: newJob.status !== 'completed' && newJob.status !== 'partial' && newJob.status !== 'failed',
+        error: null,
+      });
       if (newJob.status !== 'completed' && newJob.status !== 'partial' && newJob.status !== 'failed') {
         startPolling(newJob.id);
       }
       return newJob;
     } catch (err) {
       if (err instanceof JobHttpError) {
-        setError(`Job submission failed (${err.status}): ${JSON.stringify(err.body)}`);
+        const message = `Job submission failed (${err.status}): ${JSON.stringify(err.body)}`;
+        setError(message);
+        emitSharedJobState({ error: message, isPolling: false });
       } else {
-        setError(err instanceof Error ? err.message : 'Unknown submission error');
+        const message = err instanceof Error ? err.message : 'Unknown submission error';
+        setError(message);
+        emitSharedJobState({ error: message, isPolling: false });
       }
       throw err;
     }

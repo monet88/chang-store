@@ -15,7 +15,7 @@ import MobileOverlay from './components/MobileOverlay';
 import UtilityDock from './components/UtilityDock';
 import JobStatusBadge from './components/JobStatusBadge';
 import JobHistoryView from './components/JobHistoryView';
-import { useJobPoll } from './hooks/useJobPoll';
+import { useSharedJobState } from './hooks/useJobPoll';
 import { useModelSelection } from './hooks/useModelSelection';
 
 const VirtualTryOn = lazy(() => import('./components/VirtualTryOn'));
@@ -76,7 +76,7 @@ const AppContent: React.FC = () => {
   const [initialSelectedPoses, setInitialSelectedPoses] = useState<string[]>([]);
   const [isJobHistoryOpen, setIsJobHistoryOpen] = useState(false);
 
-  const { job, isPolling } = useJobPoll();
+  const { job, isPolling } = useSharedJobState();
 
   useEffect(() => {
     saveSessionState('activeFeature', activeFeature);

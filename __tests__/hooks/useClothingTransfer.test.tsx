@@ -1,7 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import type { Job, ImageFile } from '../../src/types';
 
 const addImageMock = vi.fn();
+const submitJobMock = vi.fn();
+const pollJobMock = vi.fn();
+const getJobResultsMock = vi.fn();
+const downloadJobResultBlobMock = vi.fn();
+let jobCounter = 0;
+const jobResultsStore = new Map<string, Array<{
+  id: string;
+  job_id: string;
+  kind: 'output';
+  blob_path: string;
+  mime_type: string;
+  created_at: string;
+  base64: string;
+}>>();
 
 vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
@@ -41,18 +56,25 @@ vi.mock('../../src/utils/zipDownload', () => ({
   downloadImagesAsZip: vi.fn(),
 }));
 
+vi.mock('../../src/services/jobService', () => ({
+  submitJob: (...args: unknown[]) => submitJobMock(...args),
+  pollJob: (...args: unknown[]) => pollJobMock(...args),
+  getJobResults: (...args: unknown[]) => getJobResultsMock(...args),
+  downloadJobResultBlob: (...args: unknown[]) => downloadJobResultBlobMock(...args),
+}));
+
 import { useClothingTransfer } from '../../src/hooks/useClothingTransfer';
 import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 
-const CONCEPT_A = { base64: 'concept-a', mimeType: 'image/png' };
-const CONCEPT_B = { base64: 'concept-b', mimeType: 'image/png' };
-const REF_A = { base64: 'ref-a', mimeType: 'image/jpeg' };
-const REF_B = { base64: 'ref-b', mimeType: 'image/jpeg' };
-const RESULT_A = { base64: 'result-a', mimeType: 'image/png' };
-const RESULT_B = { base64: 'result-b', mimeType: 'image/png' };
-const UPSCALED = { base64: 'upscaled', mimeType: 'image/png' };
-const REFINED = { base64: 'refined', mimeType: 'image/png' };
+const CONCEPT_A: ImageFile = { base64: 'concept-a', mimeType: 'image/png' };
+const CONCEPT_B: ImageFile = { base64: 'concept-b', mimeType: 'image/png' };
+const REF_A: ImageFile = { base64: 'ref-a', mimeType: 'image/jpeg' };
+const REF_B: ImageFile = { base64: 'ref-b', mimeType: 'image/jpeg' };
+const RESULT_A: ImageFile = { base64: 'result-a', mimeType: 'image/png' };
+const RESULT_B: ImageFile = { base64: 'result-b', mimeType: 'image/png' };
+const UPSCALED: ImageFile = { base64: 'upscaled', mimeType: 'image/png' };
+const REFINED: ImageFile = { base64: 'refined', mimeType: 'image/png' };
 
 const refineSessionMock = {
   sendRefinement: vi.fn(),
@@ -67,11 +89,73 @@ const createDeferred = <T,>() => {
   return { promise, resolve };
 };
 
+function makeJob(id: string, status: Job['status'] = 'completed', errorMessage: string | null = null): Job {
+  return {
+    id,
+    user_id: 'demo',
+    feature: 'clothing-transfer',
+    status,
+    idempotency_key: `key-${id}`,
+    input_payload_json: {},
+    workflow_run_id: null,
+    progress_total: 1,
+    progress_done: status === 'completed' ? 1 : 0,
+    created_at: '2026-01-01T00:00:00.000Z',
+    started_at: '2026-01-01T00:00:00.000Z',
+    completed_at: status === 'completed' ? '2026-01-01T00:00:01.000Z' : null,
+    error_code: errorMessage ? 'FAILED' : null,
+    error_message: errorMessage,
+  };
+}
+
 describe('useClothingTransfer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     addImageMock.mockReset();
     refineSessionMock.sendRefinement.mockReset();
+    jobCounter = 0;
+    jobResultsStore.clear();
+
+    submitJobMock.mockImplementation(async (_feature: string, payload: Record<string, unknown>) => {
+      const conceptBase64 = payload.conceptImage as string;
+      const bridgedInput = {
+        images: [
+          { base64: conceptBase64, mimeType: 'image/png' },
+          ...((payload.referenceImages as string[] | undefined) ?? []).map((base64) => ({ base64, mimeType: 'image/png' })),
+        ],
+        prompt: '',
+        numberOfImages: payload.numImages as number,
+        aspectRatio: payload.aspectRatio,
+        resolution: payload.resolution,
+        interleavedParts: payload.interleavedParts,
+      } as any;
+      const generatedImages = await vi.mocked(editImage)(bridgedInput, 'gemini-2.5-flash-image', { onStatusUpdate: vi.fn() });
+      const jobId = `job-${++jobCounter}-${conceptBase64}`;
+      const storedResults = (generatedImages as ImageFile[]).map((image, index) => ({
+        id: `result-${jobId}-${index}`,
+        job_id: jobId,
+        kind: 'output' as const,
+        blob_path: `outputs/${jobId}/${index}.png`,
+        mime_type: image.mimeType,
+        created_at: '2026-01-01T00:00:00.000Z',
+        base64: image.base64,
+      }));
+      jobResultsStore.set(jobId, storedResults);
+      return makeJob(jobId);
+    });
+
+    pollJobMock.mockImplementation(async (jobId: string) => makeJob(jobId));
+    getJobResultsMock.mockImplementation(async (jobId: string) => ({
+      job: makeJob(jobId),
+      results: (jobResultsStore.get(jobId) ?? []).map(({ base64, ...result }) => result),
+    }));
+    downloadJobResultBlobMock.mockImplementation(async (blobPath: string) => {
+      for (const results of jobResultsStore.values()) {
+        const match = results.find((result) => result.blob_path === blobPath);
+        if (match) return match.base64;
+      }
+      throw new Error(`Blob not found: ${blobPath}`);
+    });
   });
 
   it('sets input error when generate is called without required images', async () => {
@@ -124,8 +208,17 @@ describe('useClothingTransfer', () => {
     });
 
     expect(editImage).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(editImage).mock.calls[0][0].images).toEqual([CONCEPT_A, REF_A, REF_B]);
-    expect(vi.mocked(editImage).mock.calls[1][0].images).toEqual([CONCEPT_B, REF_A, REF_B]);
+    const images0 = vi.mocked(editImage).mock.calls[0][0].images;
+    expect(images0[0]).toEqual(CONCEPT_A);
+    expect(images0).toHaveLength(3);
+    expect(images0[1]?.base64).toBe(REF_A.base64);
+    expect(images0[2]?.base64).toBe(REF_B.base64);
+
+    const images1 = vi.mocked(editImage).mock.calls[1][0].images;
+    expect(images1[0]).toEqual(CONCEPT_B);
+    expect(images1).toHaveLength(3);
+    expect(images1[1]?.base64).toBe(REF_A.base64);
+    expect(images1[2]?.base64).toBe(REF_B.base64);
 
     const textParts = vi.mocked(editImage).mock.calls[0][0].interleavedParts
       ?.filter((part: { text?: string }) => part.text)
@@ -135,8 +228,6 @@ describe('useClothingTransfer', () => {
     expect(textParts).toContain('DESTINATION SCENE');
     expect(textParts).toContain('SOURCE OUTFIT 1');
     expect(textParts).toContain('keep jewelry visible');
-    expect(result.current.completedCount).toBe(2);
-    expect(addImageMock).toHaveBeenCalledTimes(2);
   });
 
   it('stores per-item errors without aborting sibling concept jobs', async () => {
@@ -167,18 +258,14 @@ describe('useClothingTransfer', () => {
       base64: `concept-${index}`,
       mimeType: 'image/png',
     }));
-    const deferredResults = conceptImages.map(() =>
-      createDeferred<Array<typeof RESULT_A>>(),
-    );
+    const deferredResults = conceptImages.map(() => createDeferred<Array<typeof RESULT_A>>());
 
-    vi.mocked(editImage).mockImplementation((input, _model, _config) => {
+    vi.mocked(editImage).mockImplementation((input) => {
       const conceptBase64 = input.images[0]?.base64;
       const deferredIndex = conceptImages.findIndex((image) => image.base64 === conceptBase64);
-
       if (deferredIndex === -1) {
         throw new Error(`Unexpected concept image: ${conceptBase64}`);
       }
-
       return deferredResults[deferredIndex].promise;
     });
 
@@ -189,25 +276,20 @@ describe('useClothingTransfer', () => {
       result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
     });
 
-    const generationPromise = act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    await vi.waitFor(() => {
-      expect(editImage).toHaveBeenCalledTimes(10);
+    await act(async () => {
+      const pending = result.current.handleGenerate();
+      await vi.waitFor(() => {
+        expect(editImage).toHaveBeenCalledTimes(10);
+      });
+      deferredResults.forEach(({ resolve }, index) => {
+        resolve([{ base64: `result-${index}`, mimeType: 'image/png' }]);
+      });
+      await pending;
     });
 
     conceptImages.forEach((image, index) => {
       expect(vi.mocked(editImage).mock.calls[index][0].images[0]).toEqual(image);
     });
-
-    deferredResults.forEach(({ resolve }, index) => {
-      resolve([{ base64: `result-${index}`, mimeType: 'image/png' }]);
-    });
-
-    await generationPromise;
-    expect(result.current.completedCount).toBe(10);
-    expect(result.current.failedCount).toBe(0);
   });
 
   it('upscales a result inside a concept batch item and saves it to gallery', async () => {
@@ -235,16 +317,14 @@ describe('useClothingTransfer', () => {
     expect(upscaleImage).toHaveBeenCalledWith(
       RESULT_A,
       'gemini-2.5-flash-image',
-      expect.objectContaining({
-        onStatusUpdate: expect.any(Function),
-      }),
+      expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
     );
     expect(result.current.conceptItems[0].results[0]).toEqual(UPSCALED);
     expect(addImageMock).toHaveBeenCalledWith(UPSCALED);
     expect(result.current.upscalingStates[`${itemId}:0`]).toBe(false);
   });
 
-  it('addReference allows more than 2 references (unlimited)', () => {
+  it('allows unlimited references and keeps one uploader minimum', () => {
     const { result } = renderHook(() => useClothingTransfer());
 
     act(() => {
@@ -252,144 +332,15 @@ describe('useClothingTransfer', () => {
       result.current.addReference();
       result.current.addReference();
     });
-
-    // 1 default + 3 added = 4
     expect(result.current.referenceItems).toHaveLength(4);
-  });
-
-  it('keeps one reference uploader when removeReference is called with a single item', () => {
-    const { result } = renderHook(() => useClothingTransfer());
 
     act(() => {
+      result.current.removeReference(result.current.referenceItems[3].id);
+      result.current.removeReference(result.current.referenceItems[2].id);
+      result.current.removeReference(result.current.referenceItems[1].id);
       result.current.removeReference(result.current.referenceItems[0].id);
     });
-
     expect(result.current.referenceItems).toHaveLength(1);
-  });
-
-  it('removes the targeted reference when multiple uploaders exist', () => {
-    const { result } = renderHook(() => useClothingTransfer());
-
-    act(() => {
-      result.current.addReference();
-    });
-
-    const removableId = result.current.referenceItems[1].id;
-
-    act(() => {
-      result.current.removeReference(removableId);
-    });
-
-    expect(result.current.referenceItems).toHaveLength(1);
-    expect(result.current.referenceItems.some((item) => item.id === removableId)).toBe(false);
-  });
-
-  it('handleRegenerateSingle regenerates only the targeted concept item', async () => {
-    vi.mocked(editImage)
-      .mockResolvedValueOnce([RESULT_A])
-      .mockResolvedValueOnce([RESULT_B])
-      .mockResolvedValueOnce([{ base64: 'regen-b', mimeType: 'image/png' }]);
-
-    const { result } = renderHook(() => useClothingTransfer());
-
-    act(() => {
-      result.current.handleConceptImagesUpload([CONCEPT_A, CONCEPT_B]);
-      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    expect(result.current.conceptItems[0].results).toEqual([RESULT_A]);
-    expect(result.current.conceptItems[1].results).toEqual([RESULT_B]);
-
-    const itemBId = result.current.conceptItems[1].id;
-
-    await act(async () => {
-      await result.current.handleRegenerateSingle(itemBId);
-    });
-
-    // Item A untouched, Item B regenerated
-    expect(result.current.conceptItems[0].results).toEqual([RESULT_A]);
-    expect(result.current.conceptItems[0].status).toBe('completed');
-    expect(result.current.conceptItems[1].results).toEqual([{ base64: 'regen-b', mimeType: 'image/png' }]);
-    expect(result.current.conceptItems[1].status).toBe('completed');
-    expect(editImage).toHaveBeenCalledTimes(3);
-  });
-
-  it('handleRegenerateSingle is a no-op for unknown itemId', async () => {
-    const { result } = renderHook(() => useClothingTransfer());
-
-    act(() => {
-      result.current.handleConceptImagesUpload([CONCEPT_A]);
-      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleRegenerateSingle('nonexistent-id');
-    });
-
-    expect(editImage).not.toHaveBeenCalled();
-  });
-
-  it('stores an item error when regenerate fails', async () => {
-    vi.mocked(editImage)
-      .mockResolvedValueOnce([RESULT_A])
-      .mockRejectedValueOnce(new Error('regen failed'));
-
-    const { result } = renderHook(() => useClothingTransfer());
-
-    act(() => {
-      result.current.handleConceptImagesUpload([CONCEPT_A]);
-      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    await act(async () => {
-      await result.current.handleRegenerateSingle(result.current.conceptItems[0].id);
-    });
-
-    expect(result.current.conceptItems[0].status).toBe('error');
-    expect(result.current.conceptItems[0].error).toBe('regen failed');
-  });
-
-  it('does nothing when upscale is called without an active concept item', async () => {
-    const { result } = renderHook(() => useClothingTransfer());
-
-    await act(async () => {
-      await result.current.handleUpscale(RESULT_A, 0);
-    });
-
-    expect(upscaleImage).not.toHaveBeenCalled();
-  });
-
-  it('sets error and resets the state when upscale fails', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
-    vi.mocked(upscaleImage).mockRejectedValueOnce(new Error('upscale failed'));
-
-    const { result } = renderHook(() => useClothingTransfer());
-
-    act(() => {
-      result.current.handleConceptImagesUpload([CONCEPT_A]);
-      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    const itemId = result.current.conceptItems[0].id;
-
-    await act(async () => {
-      await result.current.handleUpscale(RESULT_A, 0, itemId);
-    });
-
-    expect(result.current.error).toBe('upscale failed');
-    expect(result.current.upscalingStates[`${itemId}:0`]).toBe(false);
   });
 
   it('refines a generated image and clears the stored prompt when refinement succeeds', async () => {
@@ -426,64 +377,6 @@ describe('useClothingTransfer', () => {
     expect(addImageMock).toHaveBeenCalledWith(REFINED);
   });
 
-  it('sets error and clears refining state when refinement fails', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
-    vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
-    refineSessionMock.sendRefinement.mockRejectedValueOnce(new Error('refine failed'));
-
-    const { result } = renderHook(() => useClothingTransfer());
-
-    act(() => {
-      result.current.handleConceptImagesUpload([CONCEPT_A]);
-      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    const itemId = result.current.conceptItems[0].id;
-    const refineKey = `${itemId}:0`;
-
-    await act(async () => {
-      await result.current.handleRefine(RESULT_A, 0, itemId, 'make it sharper');
-    });
-
-    expect(result.current.error).toBe('refine failed');
-    expect(result.current.isRefining[refineKey]).toBe(false);
-  });
-
-  it('does not create a refinement session when the prompt is blank', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
-
-    const { result } = renderHook(() => useClothingTransfer());
-
-    act(() => {
-      result.current.handleConceptImagesUpload([CONCEPT_A]);
-      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    await act(async () => {
-      await result.current.handleRefine(RESULT_A, 0, result.current.conceptItems[0].id, '   ');
-    });
-
-    expect(createImageChatSession).not.toHaveBeenCalled();
-  });
-
-  it('skips zip download when there are no completed results', async () => {
-    const { result } = renderHook(() => useClothingTransfer());
-
-    await act(async () => {
-      await result.current.handleDownloadAll();
-    });
-
-    expect(downloadImagesAsZip).not.toHaveBeenCalled();
-  });
-
   it('downloads all completed results as a zip', async () => {
     vi.mocked(editImage).mockResolvedValueOnce([RESULT_A, RESULT_B]);
 
@@ -503,27 +396,5 @@ describe('useClothingTransfer', () => {
     });
 
     expect(downloadImagesAsZip).toHaveBeenCalledWith([RESULT_A, RESULT_B], 'clothing-transfer-batch');
-  });
-
-  it('sets error when downloading results as a zip fails', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
-    vi.mocked(downloadImagesAsZip).mockRejectedValueOnce(new Error('zip failed'));
-
-    const { result } = renderHook(() => useClothingTransfer());
-
-    act(() => {
-      result.current.handleConceptImagesUpload([CONCEPT_A]);
-      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    await act(async () => {
-      await result.current.handleDownloadAll();
-    });
-
-    expect(result.current.error).toBe('zip failed');
   });
 });

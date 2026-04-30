@@ -32,7 +32,7 @@ import Tabs from '../../src/components/Tabs';
 import { Feature } from '../../src/types';
 
 describe('Tabs', () => {
-  it('renders workflow groups and switches features', async () => {
+  it('renders migrated workflow groups and switches features', async () => {
     const user = userEvent.setup();
     const setActiveFeature = vi.fn();
 
@@ -44,16 +44,16 @@ describe('Tabs', () => {
     );
 
     expect(screen.getByText('Create looks')).toBeInTheDocument();
-    expect(screen.getByText('Edit images')).toBeInTheDocument();
     expect(screen.getByText('Output studio')).toBeInTheDocument();
+    expect(screen.queryByText('Edit images')).not.toBeInTheDocument();
 
     const tabButtons = screen.getAllByRole('button');
-    expect(tabButtons).toHaveLength(9);
+    expect(tabButtons).toHaveLength(4);
 
     await user.click(screen.getByRole('button', { name: /Lookbook AI/i }));
     expect(setActiveFeature).toHaveBeenCalledWith(Feature.Lookbook);
 
-    await user.click(screen.getByRole('button', { name: /Watermark Remover/i }));
-    expect(setActiveFeature).toHaveBeenCalledWith(Feature.WatermarkRemover);
+    await user.click(screen.getByRole('button', { name: /Photo Album/i }));
+    expect(setActiveFeature).toHaveBeenCalledWith(Feature.PhotoAlbum);
   });
 });

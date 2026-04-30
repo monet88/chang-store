@@ -11,30 +11,29 @@ import {
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
-import { getErrorMessage, blobToBase64 } from '../utils/imageUtils';
+import { getErrorMessage } from '../utils/imageUtils';
 // import { editImage } from '../services/imageEditingService';  // migrated to job pipeline
 // TODO: migrate upscale/refine to job pipeline
 import { upscaleImage, createImageChatSession, type ImageChatSession } from '../services/imageEditingService';
-import { submitJob, getJobResults, type Job, type JobResult } from '../services/jobService';
+import { submitJob, getJobResults, downloadJobResultBlob, type Job, type JobResult } from '../services/jobService';
 import { buildClothingTransferParts } from '../utils/clothing-transfer-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { downloadImagesAsZip } from '../utils/zipDownload';
+import { setSharedJobState } from './useJobPoll';
 
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 const POLL_INTERVAL_MS = 3000;
-
-async function fetchBlobAsImageFile(blobPath: string, mimeType: string): Promise<ImageFile> {
-  const response = await fetch(`${window.location.origin}${blobPath}`, { credentials: 'include' });
-  const blob = await response.blob();
-  const base64 = await blobToBase64(blob);
-  return { base64, mimeType };
-}
 
 async function waitForJobCompletion(jobId: string, onStatus: (msg: string) => void): Promise<Job> {
   const { pollJob } = await import('../services/jobService');
   while (true) {
     const job = await pollJob(jobId);
+    setSharedJobState({
+      job,
+      isPolling: job.status === 'queued' || job.status === 'running',
+      error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
+    });
     onStatus(`Job ${job.status}...`);
     if (job.status === 'completed' || job.status === 'partial' || job.status === 'failed') {
       return job;
@@ -46,7 +45,12 @@ async function waitForJobCompletion(jobId: string, onStatus: (msg: string) => vo
 async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
   const { results } = await getJobResults(jobId);
   const outputs = results.filter(r => r.kind === 'output');
-  return Promise.all(outputs.map(r => fetchBlobAsImageFile(r.blob_path, r.mime_type)));
+  const images: ImageFile[] = [];
+  for (const r of outputs) {
+    const base64 = await downloadJobResultBlob(r.blob_path);
+    images.push({ base64, mimeType: r.mime_type });
+  }
+  return images;
 }
 
 export function useClothingTransfer() {
@@ -258,7 +262,9 @@ export function useClothingTransfer() {
             };
 
             const submittedJob = await submitJob('clothing-transfer', payload as Record<string, unknown>);
+            setSharedJobState({ job: submittedJob, isPolling: true, error: null });
             const completedJob = await waitForJobCompletion(submittedJob.id, setLoadingMessage);
+            setSharedJobState({ job: completedJob, isPolling: false, error: null });
 
             if (completedJob.status === 'failed') {
               throw new Error(completedJob.error_message || 'Job failed');

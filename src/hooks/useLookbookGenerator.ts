@@ -8,7 +8,7 @@ import { getErrorMessage } from '../utils/imageUtils';
 import { upscaleImage, createImageChatSession } from '../services/imageEditingService';
 import type { ImageChatSession } from '../services/imageEditingService';
 import { submitJob, pollJob, getJobResults, downloadJobResultBlob } from '../services/jobService';
-import { useJobPoll } from '../hooks/useJobPoll';
+import { setSharedJobState } from './useJobPoll';
 import { generateClothingDescription } from '../services/textService';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
@@ -193,11 +193,14 @@ export const useLookbookGenerator = () => {
     }), []);
 
     // Job pipeline: poll helper + result fetcher
-    const _jobPoll = useJobPoll();
-
     const waitForJob = useCallback(async (jobId: string) => {
       while (true) {
         const j = await pollJob(jobId);
+        setSharedJobState({
+          job: j,
+          isPolling: j.status === 'queued' || j.status === 'running',
+          error: j.status === 'failed' ? j.error_message || 'Job failed' : null,
+        });
         if (j.status === 'completed' || j.status === 'partial') return j;
         if (j.status === 'failed') throw new Error(j.error_message || 'Job failed');
         await new Promise(r => setTimeout(r, 2000));
@@ -334,14 +337,18 @@ export const useLookbookGenerator = () => {
             aspectRatio,
             resolution,
           });
+          setSharedJobState({ job: newJob, isPolling: true, error: null });
 
           if (newJob.status === 'failed') {
+            setSharedJobState({ job: newJob, isPolling: false, error: newJob.error_message || 'Job failed' });
             throw new Error(newJob.error_message || 'Job failed');
           }
 
+          let completedJob = newJob;
           if (newJob.status !== 'completed' && newJob.status !== 'partial') {
-            await waitForJob(newJob.id);
+            completedJob = await waitForJob(newJob.id);
           }
+          setSharedJobState({ job: completedJob, isPolling: false, error: null });
 
           const results = await fetchJobImages(newJob.id);
           if (results.length > 0) {

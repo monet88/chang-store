@@ -5,6 +5,7 @@ import { useApi } from '../contexts/ApiProviderContext';
 // import { editImage } from '../services/imageEditingService';
 import { submitJob, pollJob, getJobResults, downloadJobResultBlob } from '../services/jobService';
 import { getErrorMessage } from '../utils/imageUtils';
+import { setSharedJobState } from './useJobPoll';
 import { PHOTO_ALBUM_POSES, PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 
 export type GenerationMode = 'fullModel' | 'faceAndOutfit';
@@ -83,6 +84,11 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
   const waitForJob = useCallback(async (jobId: string) => {
     while (true) {
       const j = await pollJob(jobId);
+      setSharedJobState({
+        job: j,
+        isPolling: j.status === 'queued' || j.status === 'running',
+        error: j.status === 'failed' ? j.error_message || 'Job failed' : null,
+      });
       if (j.status === 'completed' || j.status === 'partial') return j;
       if (j.status === 'failed') throw new Error(j.error_message || 'Job failed');
       await new Promise(r => setTimeout(r, 2000));
@@ -151,14 +157,18 @@ Generate a single, hyper-realistic, 2K resolution, professional-grade fashion ph
       aspectRatio,
       resolution,
     });
+    setSharedJobState({ job: newJob, isPolling: true, error: null });
 
     if (newJob.status === 'failed') {
+      setSharedJobState({ job: newJob, isPolling: false, error: newJob.error_message || 'Job failed' });
       throw new Error(newJob.error_message || 'Job failed');
     }
 
+    let completedJob = newJob;
     if (newJob.status !== 'completed' && newJob.status !== 'partial') {
-      await waitForJob(newJob.id);
+      completedJob = await waitForJob(newJob.id);
     }
+    setSharedJobState({ job: completedJob, isPolling: false, error: null });
 
     const outputImages = await fetchJobImages(newJob.id);
     if (outputImages.length === 0) {

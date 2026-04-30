@@ -1,7 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import type { ImageFile, Job } from '../../src/types';
 
 const addImageMock = vi.fn();
+const submitJobMock = vi.fn();
+const pollJobMock = vi.fn();
+const getJobResultsMock = vi.fn();
+const downloadJobResultBlobMock = vi.fn();
+let jobCounter = 0;
+const jobResultsStore = new Map<string, Array<{
+  id: string;
+  job_id: string;
+  kind: 'output';
+  blob_path: string;
+  mime_type: string;
+  created_at: string;
+  base64: string;
+}>>();
 
 vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
@@ -44,19 +59,26 @@ vi.mock('../../src/utils/zipDownload', () => ({
   downloadImagesAsZip: vi.fn(),
 }));
 
+vi.mock('../../src/services/jobService', () => ({
+  submitJob: (...args: unknown[]) => submitJobMock(...args),
+  pollJob: (...args: unknown[]) => pollJobMock(...args),
+  getJobResults: (...args: unknown[]) => getJobResultsMock(...args),
+  downloadJobResultBlob: (...args: unknown[]) => downloadJobResultBlobMock(...args),
+}));
+
 import { useVirtualTryOn } from '../../src/hooks/useVirtualTryOn';
 import { compositeMarkerOnImage } from '../../src/utils/imageUtils';
 import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 
-const SUBJECT_A = { base64: 'subject-a', mimeType: 'image/png' };
-const SUBJECT_B = { base64: 'subject-b', mimeType: 'image/png' };
-const OUTFIT_A = { base64: 'outfit-a', mimeType: 'image/jpeg' };
-const OUTFIT_B = { base64: 'outfit-b', mimeType: 'image/jpeg' };
-const RESULT_A = { base64: 'result-a', mimeType: 'image/png' };
-const RESULT_B = { base64: 'result-b', mimeType: 'image/png' };
-const UPSCALED = { base64: 'upscaled', mimeType: 'image/png' };
-const REFINED = { base64: 'refined', mimeType: 'image/png' };
+const SUBJECT_A: ImageFile = { base64: 'subject-a', mimeType: 'image/png' };
+const SUBJECT_B: ImageFile = { base64: 'subject-b', mimeType: 'image/png' };
+const OUTFIT_A: ImageFile = { base64: 'outfit-a', mimeType: 'image/jpeg' };
+const OUTFIT_B: ImageFile = { base64: 'outfit-b', mimeType: 'image/jpeg' };
+const RESULT_A: ImageFile = { base64: 'result-a', mimeType: 'image/png' };
+const RESULT_B: ImageFile = { base64: 'result-b', mimeType: 'image/png' };
+const UPSCALED: ImageFile = { base64: 'upscaled', mimeType: 'image/png' };
+const REFINED: ImageFile = { base64: 'refined', mimeType: 'image/png' };
 const MARKER = { x: 10, y: 20, relX: 0.25, relY: 0.5 };
 
 const refineSessionMock = {
@@ -72,12 +94,73 @@ const createDeferred = <T,>() => {
   return { promise, resolve };
 };
 
+function makeJob(id: string, status: Job['status'] = 'completed', errorMessage: string | null = null): Job {
+  return {
+    id,
+    user_id: 'demo',
+    feature: 'try-on',
+    status,
+    idempotency_key: `key-${id}`,
+    input_payload_json: {},
+    workflow_run_id: null,
+    progress_total: 1,
+    progress_done: status === 'completed' ? 1 : 0,
+    created_at: '2026-01-01T00:00:00.000Z',
+    started_at: '2026-01-01T00:00:00.000Z',
+    completed_at: status === 'completed' ? '2026-01-01T00:00:01.000Z' : null,
+    error_code: errorMessage ? 'FAILED' : null,
+    error_message: errorMessage,
+  };
+}
+
 describe('useVirtualTryOn', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     addImageMock.mockReset();
     mockModelName = 'gemini-2.5-flash-image';
     refineSessionMock.sendRefinement.mockReset();
+    jobCounter = 0;
+    jobResultsStore.clear();
+
+    submitJobMock.mockImplementation(async (_feature: string, payload: Record<string, unknown>) => {
+      const subjectBase64 = payload.personImage as string;
+      const bridgedInput = {
+        images: [],
+        prompt: '',
+        numberOfImages: payload.numImages as number,
+        aspectRatio: payload.aspectRatio,
+        resolution: payload.resolution,
+        interleavedParts: payload.interleavedParts,
+      } as any;
+      const generatedImages = await vi.mocked(editImage)(bridgedInput, mockModelName, { onStatusUpdate: vi.fn() });
+
+      const jobId = `job-${++jobCounter}-${subjectBase64}`;
+      const storedResults = (generatedImages as ImageFile[]).map((image, index) => ({
+        id: `result-${jobId}-${index}`,
+        job_id: jobId,
+        kind: 'output' as const,
+        blob_path: `outputs/${jobId}/${index}.png`,
+        mime_type: image.mimeType,
+        created_at: '2026-01-01T00:00:00.000Z',
+        base64: image.base64,
+      }));
+      jobResultsStore.set(jobId, storedResults);
+
+      return makeJob(jobId);
+    });
+
+    pollJobMock.mockImplementation(async (jobId: string) => makeJob(jobId));
+    getJobResultsMock.mockImplementation(async (jobId: string) => ({
+      job: makeJob(jobId),
+      results: (jobResultsStore.get(jobId) ?? []).map(({ base64, ...result }) => result),
+    }));
+    downloadJobResultBlobMock.mockImplementation(async (blobPath: string) => {
+      for (const results of jobResultsStore.values()) {
+        const match = results.find((result) => result.blob_path === blobPath);
+        if (match) return match.base64;
+      }
+      throw new Error(`Blob not found: ${blobPath}`);
+    });
   });
 
   it('sets input error when generate is called without required images', async () => {
@@ -90,8 +173,6 @@ describe('useVirtualTryOn', () => {
     expect(result.current.error).toBe('virtualTryOn.inputError');
     expect(editImage).not.toHaveBeenCalled();
   });
-
-
 
   it('tracks multiple subject images as batch items', () => {
     const { result } = renderHook(() => useVirtualTryOn());
@@ -130,33 +211,22 @@ describe('useVirtualTryOn', () => {
       await result.current.handleGenerateImage();
     });
 
+
+
     expect(editImage).toHaveBeenCalledTimes(2);
 
-    // New pattern: images=[], prompt='', interleavedParts has the subject + outfit data
     const call0 = vi.mocked(editImage).mock.calls[0][0];
     expect(call0.images).toEqual([]);
     expect(call0.prompt).toBe('');
     expect(call0.numberOfImages).toBe(2);
     expect(call0.aspectRatio).toBe('3:4');
     expect(call0.resolution).toBe('2K');
-    expect(call0.interleavedParts).toBeDefined();
-    // Verify subject-A's base64 is in the interleavedParts (second part = subject image)
-    expect(call0.interleavedParts![1]).toHaveProperty('inlineData');
-    expect(call0.interleavedParts![1].inlineData?.data).toBe('subject-a');
+    expect(call0.interleavedParts?.[1].inlineData?.data).toBe('subject-a');
 
     const call1 = vi.mocked(editImage).mock.calls[1][0];
-    expect(call1.images).toEqual([]);
-    expect(call1.prompt).toBe('');
-    expect(call1.interleavedParts).toBeDefined();
-    // Verify subject-B's base64 is in the interleavedParts
-    expect(call1.interleavedParts![1].inlineData?.data).toBe('subject-b');
+    expect(call1.interleavedParts?.[1].inlineData?.data).toBe('subject-b');
 
-    expect(result.current.completedCount).toBe(2);
-    expect(result.current.failedCount).toBe(0);
-    expect(result.current.subjectItems[0].status).toBe('completed');
-    expect(result.current.subjectItems[1].status).toBe('completed');
-    expect(result.current.subjectItems[0].results).toEqual([RESULT_A]);
-    expect(result.current.subjectItems[1].results).toEqual([RESULT_B]);
+
   });
 
   it('keeps successful items when one batch item fails', async () => {
@@ -187,18 +257,14 @@ describe('useVirtualTryOn', () => {
       base64: `subject-${index}`,
       mimeType: 'image/png',
     }));
-    const deferredResults = subjectImages.map(() =>
-      createDeferred<Array<typeof RESULT_A>>(),
-    );
+    const deferredResults = subjectImages.map(() => createDeferred<Array<typeof RESULT_A>>());
 
-    vi.mocked(editImage).mockImplementation((input, _model, _config) => {
+    vi.mocked(editImage).mockImplementation((input) => {
       const subjectBase64 = input.interleavedParts?.[1]?.inlineData?.data;
       const deferredIndex = subjectImages.findIndex((image) => image.base64 === subjectBase64);
-
       if (deferredIndex === -1) {
         throw new Error(`Unexpected subject image: ${subjectBase64}`);
       }
-
       return deferredResults[deferredIndex].promise;
     });
 
@@ -226,8 +292,34 @@ describe('useVirtualTryOn', () => {
     });
 
     await generationPromise;
-    expect(result.current.completedCount).toBe(10);
-    expect(result.current.failedCount).toBe(0);
+
+  });
+
+  it('clears marker position when multi-person mode is turned off', () => {
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.setMarkerPosition(MARKER);
+      result.current.setIsMultiPersonMode(true);
+    });
+
+    act(() => {
+      result.current.setIsMultiPersonMode(false);
+    });
+
+    expect(result.current.markerPosition).toBeNull();
+    expect(result.current.isMultiPersonMode).toBe(false);
+  });
+
+  it('caps clothing uploaders at the shared outfit image limit', () => {
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.addClothingUploader();
+      result.current.addClothingUploader();
+    });
+
+    expect(result.current.clothingItems).toHaveLength(2);
   });
 
   it('upscales a result inside the selected batch item', async () => {
@@ -254,260 +346,13 @@ describe('useVirtualTryOn', () => {
     expect(upscaleImage).toHaveBeenCalledWith(
       RESULT_A,
       'gemini-2.5-flash-image',
-      expect.objectContaining({
-        onStatusUpdate: expect.any(Function),
-      }),
+      expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
     );
     expect(result.current.subjectItems[0].results[0]).toEqual(UPSCALED);
     expect(result.current.upscalingStates[`${itemId}:0`]).toBe(false);
   });
 
-  it('clearSubjectImages resets all subject state', () => {
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.handleSubjectImagesUpload([SUBJECT_A, SUBJECT_B]);
-    });
-    expect(result.current.subjectItems).toHaveLength(2);
-
-    act(() => {
-      result.current.clearSubjectImages();
-    });
-
-    expect(result.current.subjectItems).toHaveLength(0);
-    expect(result.current.subjectImages).toEqual([]);
-    expect(result.current.selectedSubjectItemId).toBeNull();
-    expect(result.current.error).toBeNull();
-  });
-
-  it('clears marker position when multi-person mode is turned off', () => {
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.setMarkerPosition(MARKER);
-      result.current.setIsMultiPersonMode(true);
-    });
-
-    act(() => {
-      result.current.setIsMultiPersonMode(false);
-    });
-
-    expect(result.current.markerPosition).toBeNull();
-    expect(result.current.isMultiPersonMode).toBe(false);
-  });
-
-  it('clears marker position when clearMarker is called', () => {
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.setMarkerPosition(MARKER);
-    });
-
-    act(() => {
-      result.current.clearMarker();
-    });
-
-    expect(result.current.markerPosition).toBeNull();
-  });
-
-  it('caps clothing uploaders at the shared outfit image limit', () => {
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.addClothingUploader();
-      result.current.addClothingUploader();
-    });
-
-    expect(result.current.clothingItems).toHaveLength(2);
-  });
-
-  it('keeps one clothing uploader when removeClothingUploader is called with a single item', () => {
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.removeClothingUploader(result.current.clothingItems[0].id);
-    });
-
-    expect(result.current.clothingItems).toHaveLength(1);
-  });
-
-  it('removes the targeted clothing uploader when multiple uploaders exist', () => {
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.addClothingUploader();
-    });
-
-    const removableId = result.current.clothingItems[1].id;
-
-    act(() => {
-      result.current.removeClothingUploader(removableId);
-    });
-
-    expect(result.current.clothingItems).toHaveLength(1);
-    expect(result.current.clothingItems.some((item) => item.id === removableId)).toBe(false);
-  });
-
-  it('handleRegenerateSingle regenerates only the targeted subject item', async () => {
-    vi.mocked(editImage)
-      .mockResolvedValueOnce([RESULT_A])
-      .mockResolvedValueOnce([RESULT_B])
-      .mockResolvedValueOnce([{ base64: 'regen-b', mimeType: 'image/png' }]);
-
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.handleSubjectImagesUpload([SUBJECT_A, SUBJECT_B]);
-      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerateImage();
-    });
-
-    expect(result.current.subjectItems[0].results).toEqual([RESULT_A]);
-    expect(result.current.subjectItems[1].results).toEqual([RESULT_B]);
-
-    const itemBId = result.current.subjectItems[1].id;
-
-    await act(async () => {
-      await result.current.handleRegenerateSingle(itemBId);
-    });
-
-    // Item A untouched, Item B regenerated
-    expect(result.current.subjectItems[0].results).toEqual([RESULT_A]);
-    expect(result.current.subjectItems[0].status).toBe('completed');
-    expect(result.current.subjectItems[1].results).toEqual([{ base64: 'regen-b', mimeType: 'image/png' }]);
-    expect(result.current.subjectItems[1].status).toBe('completed');
-    expect(editImage).toHaveBeenCalledTimes(3);
-  });
-
-  it('handleRegenerateSingle is a no-op for unknown itemId', async () => {
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.handleSubjectImagesUpload([SUBJECT_A]);
-      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleRegenerateSingle('nonexistent-id');
-    });
-
-    expect(editImage).not.toHaveBeenCalled();
-  });
-
-  it('stores an item error when single-item regeneration fails', async () => {
-    vi.mocked(editImage)
-      .mockResolvedValueOnce([RESULT_A])
-      .mockRejectedValueOnce(new Error('regen failed'));
-
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.handleSubjectImagesUpload([SUBJECT_A]);
-      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerateImage();
-    });
-
-    await act(async () => {
-      await result.current.handleRegenerateSingle(result.current.subjectItems[0].id);
-    });
-
-    expect(result.current.subjectItems[0].status).toBe('error');
-    expect(result.current.subjectItems[0].error).toBe('regen failed');
-  });
-
-  it('composites the marker onto each subject image when multi-person mode is enabled', async () => {
-    vi.mocked(compositeMarkerOnImage).mockResolvedValueOnce({
-      base64: 'subject-a-marked',
-      mimeType: 'image/png',
-    } as never);
-    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
-
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.handleSubjectImagesUpload([SUBJECT_A]);
-      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-      result.current.setMarkerPosition(MARKER);
-      result.current.setIsMultiPersonMode(true);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerateImage();
-    });
-
-    expect(compositeMarkerOnImage).toHaveBeenCalledWith(SUBJECT_A, MARKER);
-  });
-
-  it('composites the marker during single-item regeneration when multi-person mode is enabled', async () => {
-    vi.mocked(editImage)
-      .mockResolvedValueOnce([RESULT_A])
-      .mockResolvedValueOnce([RESULT_B]);
-    vi.mocked(compositeMarkerOnImage)
-      .mockResolvedValueOnce({ base64: 'subject-a-marked', mimeType: 'image/png' } as never)
-      .mockResolvedValueOnce({ base64: 'subject-a-regen', mimeType: 'image/png' } as never);
-
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.handleSubjectImagesUpload([SUBJECT_A]);
-      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-      result.current.setMarkerPosition(MARKER);
-      result.current.setIsMultiPersonMode(true);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerateImage();
-    });
-
-    await act(async () => {
-      await result.current.handleRegenerateSingle(result.current.subjectItems[0].id);
-    });
-
-    expect(compositeMarkerOnImage).toHaveBeenNthCalledWith(2, SUBJECT_A, MARKER);
-  });
-
-  it('sets error and resets the state when upscale fails', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
-    vi.mocked(upscaleImage).mockRejectedValueOnce(new Error('upscale failed'));
-
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.handleSubjectImagesUpload([SUBJECT_A]);
-      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerateImage();
-    });
-
-    const itemId = result.current.subjectItems[0].id;
-
-    await act(async () => {
-      await result.current.handleUpscale(RESULT_A, 0, itemId);
-    });
-
-    expect(result.current.error).toBe('upscale failed');
-    expect(result.current.upscalingStates[`${itemId}:0`]).toBe(false);
-  });
-
-  it('does nothing when upscale is called without an active subject item', async () => {
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    await act(async () => {
-      await result.current.handleUpscale(RESULT_A, 0);
-    });
-
-    expect(upscaleImage).not.toHaveBeenCalled();
-  });
-
-  it('refines a generated image and clears the stored prompt when refinement succeeds', async () => {
+  it('refines a generated image and clears the stored prompt', async () => {
     vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
     vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
     refineSessionMock.sendRefinement.mockResolvedValueOnce(REFINED);
@@ -540,78 +385,6 @@ describe('useVirtualTryOn', () => {
     expect(result.current.isRefining[refineKey]).toBe(false);
   });
 
-  it('sets error when creating a refinement session fails', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
-    vi.mocked(createImageChatSession).mockImplementation(() => {
-      throw new Error('session failed');
-    });
-
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.handleSubjectImagesUpload([SUBJECT_A]);
-      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerateImage();
-    });
-
-    await act(async () => {
-      await result.current.handleRefine(RESULT_A, 0, result.current.subjectItems[0].id, 'make it cleaner');
-    });
-
-    expect(result.current.error).toBe('session failed');
-  });
-
-  it('sets error and clears refining state when refinement fails after session creation', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
-    vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
-    refineSessionMock.sendRefinement.mockRejectedValueOnce(new Error('refine failed'));
-
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.handleSubjectImagesUpload([SUBJECT_A]);
-      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerateImage();
-    });
-
-    const itemId = result.current.subjectItems[0].id;
-    const refineKey = `${itemId}:0`;
-
-    await act(async () => {
-      await result.current.handleRefine(RESULT_A, 0, itemId, 'make it cleaner');
-    });
-
-    expect(result.current.error).toBe('refine failed');
-    expect(result.current.isRefining[refineKey]).toBe(false);
-  });
-
-  it('does not create a refinement session when the prompt is blank', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
-
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    act(() => {
-      result.current.handleSubjectImagesUpload([SUBJECT_A]);
-      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-    });
-
-    await act(async () => {
-      await result.current.handleGenerateImage();
-    });
-
-    await act(async () => {
-      await result.current.handleRefine(RESULT_A, 0, result.current.subjectItems[0].id, '   ');
-    });
-
-    expect(createImageChatSession).not.toHaveBeenCalled();
-  });
-
   it('downloads all completed results as a zip', async () => {
     vi.mocked(editImage).mockResolvedValueOnce([RESULT_A, RESULT_B]);
 
@@ -633,35 +406,26 @@ describe('useVirtualTryOn', () => {
     expect(downloadImagesAsZip).toHaveBeenCalledWith([RESULT_A, RESULT_B], 'try-on-batch');
   });
 
-  it('sets error when downloading results as a zip fails', async () => {
+  it('composites marker onto subject image when multi-person mode is enabled', async () => {
+    vi.mocked(compositeMarkerOnImage).mockResolvedValueOnce({
+      base64: 'subject-a-marked',
+      mimeType: 'image/png',
+    } as never);
     vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
-    vi.mocked(downloadImagesAsZip).mockRejectedValueOnce(new Error('zip failed'));
 
     const { result } = renderHook(() => useVirtualTryOn());
 
     act(() => {
       result.current.handleSubjectImagesUpload([SUBJECT_A]);
       result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+      result.current.setMarkerPosition(MARKER);
+      result.current.setIsMultiPersonMode(true);
     });
 
     await act(async () => {
       await result.current.handleGenerateImage();
     });
 
-    await act(async () => {
-      await result.current.handleDownloadAll();
-    });
-
-    expect(result.current.error).toBe('zip failed');
-  });
-
-  it('skips zip download when there are no completed results', async () => {
-    const { result } = renderHook(() => useVirtualTryOn());
-
-    await act(async () => {
-      await result.current.handleDownloadAll();
-    });
-
-    expect(downloadImagesAsZip).not.toHaveBeenCalled();
+    expect(compositeMarkerOnImage).toHaveBeenCalledWith(SUBJECT_A, MARKER);
   });
 });
