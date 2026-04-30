@@ -937,6 +937,10 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
         title: 'Đồng bộ đám mây',
         description: 'Kết nối Drive để giữ kho thư viện và bản sao lưu studio luôn sẵn sàng.',
       },
+      account: {
+        title: 'Phiên tài khoản',
+        description: 'Xem tài khoản seed đang hoạt động cho đợt chuyển đổi backend phase 1.',
+      },
       data: {
         title: 'Dữ liệu ứng dụng',
         description: 'Xem dung lượng trình duyệt, tải bản sao lưu, khôi phục snapshot hoặc đặt lại workspace.',
@@ -976,6 +980,33 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       toggleDebugAria: 'Bật tắt chế độ debug',
     },
     footerHint: 'Các thay đổi model sẽ áp dụng khi bạn lưu panel này.',
+  },
+  auth: {
+    eyebrow: 'Truy cập phase 1',
+    title: 'Đăng nhập vào backend studio',
+    description: 'Dùng tài khoản được cấp sẵn để truy cập auth first-party và hệ thống durable job sắp được nối vào.',
+    devHint: 'Tài khoản local mặc định: demo / demo1234 nếu AUTH_SEEDED_USERS_JSON không ghi đè.',
+    fields: {
+      username: 'Tên đăng nhập',
+      password: 'Mật khẩu',
+    },
+    placeholders: {
+      username: 'Nhập tên đăng nhập',
+      password: 'Nhập mật khẩu',
+    },
+    actions: {
+      login: 'Đăng nhập',
+      loggingIn: 'Đang đăng nhập...',
+      logout: 'Đăng xuất',
+    },
+    status: {
+      checking: 'Đang khôi phục phiên',
+    },
+    settings: {
+      currentAccount: 'Tài khoản hiện tại',
+      unknownUser: 'Chưa xác định người dùng',
+      sessionDescription: 'Phase này giữ phạm vi truy cập hẹp: user được cấp sẵn có thể đăng nhập, giữ phiên bền vững và chuẩn bị cho đợt chuyển durable job backend.',
+    },
   },
   googleDrive: {
     title: 'Google Drive',

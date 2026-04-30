@@ -934,6 +934,10 @@ Do not include any other text or markdown.
         title: 'Cloud sync',
         description: 'Connect Drive to keep the gallery archive and studio backups portable.',
       },
+      account: {
+        title: 'Account session',
+        description: 'Review the active seeded account session used for the phase-1 backend migration.',
+      },
       data: {
         title: 'Application data',
         description: 'Review browser storage, download a backup, restore a snapshot, or reset the workspace.',
@@ -973,6 +977,33 @@ Do not include any other text or markdown.
       toggleDebugAria: 'Toggle debug mode',
     },
     footerHint: 'Model changes apply when you save this panel.',
+  },
+  auth: {
+    eyebrow: 'Phase-1 access',
+    title: 'Sign in to the studio backend',
+    description: 'Use a provisioned account to access first-party auth and the upcoming durable job system.',
+    devHint: 'Local development account: demo / demo1234 unless AUTH_SEEDED_USERS_JSON overrides it.',
+    fields: {
+      username: 'Username',
+      password: 'Password',
+    },
+    placeholders: {
+      username: 'Enter your username',
+      password: 'Enter your password',
+    },
+    actions: {
+      login: 'Sign in',
+      loggingIn: 'Signing in...',
+      logout: 'Sign out',
+    },
+    status: {
+      checking: 'Restoring session',
+    },
+    settings: {
+      currentAccount: 'Current account',
+      unknownUser: 'Unknown user',
+      sessionDescription: 'This phase keeps access intentionally narrow: provisioned users can sign in, keep a durable session, and prepare for the backend job queue migration.',
+    },
   },
   googleDrive: {
     title: 'Google Drive',

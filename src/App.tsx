@@ -7,7 +7,9 @@ import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ApiProvider, useApi } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
 import { GoogleDriveProvider } from './contexts/GoogleDriveContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './components/Toast';
+import AuthGate from './components/AuthGate';
 import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
 import MobileOverlay from './components/MobileOverlay';
@@ -297,13 +299,17 @@ const App: React.FC = () => {
     <LanguageProvider>
       <ToastProvider>
         <ApiProvider>
-          <GoogleDriveProvider>
-            <ImageGalleryProvider>
-              <ImageViewerProvider>
-                <AppContent />
-              </ImageViewerProvider>
-            </ImageGalleryProvider>
-          </GoogleDriveProvider>
+          <AuthProvider>
+            <GoogleDriveProvider>
+              <ImageGalleryProvider>
+                <ImageViewerProvider>
+                  <AuthGate>
+                    <AppContent />
+                  </AuthGate>
+                </ImageViewerProvider>
+              </ImageGalleryProvider>
+            </GoogleDriveProvider>
+          </AuthProvider>
         </ApiProvider>
       </ToastProvider>
     </LanguageProvider>

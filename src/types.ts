@@ -25,6 +25,12 @@ export interface GalleryImageFile extends ImageFile {
   createdAt?: Date;
 }
 
+export interface AuthenticatedUser {
+  username: string;
+  displayName: string;
+  provisioning: 'seeded';
+}
+
 export interface AdjustmentState {
     exposure: number; contrast: number; temperature: number; tint: number;
     vibrance: number; saturation: number; grain: number; clarity: number;

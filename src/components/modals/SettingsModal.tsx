@@ -3,7 +3,7 @@ import { type SelectableModel } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useSettingsModal } from '../../hooks/useSettingsModal';
 import { CloseIcon } from '../Icons';
-import { GoogleDriveSettings } from '../GoogleDriveSettings';
+import { AuthSettings } from '../AuthSettings';
 
 const sectionTitleClassName = 'text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400';
 
@@ -136,10 +136,10 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
               </SectionCard>
 
               <SectionCard
-                title={t('settingsModal.sections.cloud.title')}
-                description={t('settingsModal.sections.cloud.description')}
+                title={t('settingsModal.sections.account.title')}
+                description={t('settingsModal.sections.account.description')}
               >
-                <GoogleDriveSettings />
+                <AuthSettings />
               </SectionCard>
             </div>
 
