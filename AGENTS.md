@@ -207,7 +207,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **chang-store** (3573 symbols, 5345 relationships, 196 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **chang-store** (3260 symbols, 5031 relationships, 195 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

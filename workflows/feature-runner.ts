@@ -19,17 +19,29 @@ export interface RunJobResult {
   errorMessage?: string;
 }
 
+interface CleanupFailure {
+  blobPath: string;
+  errorMessage: string;
+}
+
 async function cleanupUploadedBlobs(
   ctx: WorkflowContext,
   assets: Array<{ blobPath: string; mimeType: string }>,
-): Promise<void> {
-  await Promise.all(assets.map(async ({ blobPath }) => {
+): Promise<CleanupFailure[]> {
+  const results = await Promise.all(assets.map(async ({ blobPath }) => {
     try {
       await ctx.blob.deleteBlob(blobPath);
+      return null;
     } catch (cleanupError) {
       console.error(`[RUNNER] Failed to clean up blob ${blobPath}:`, cleanupError);
+      return {
+        blobPath,
+        errorMessage: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+      } satisfies CleanupFailure;
     }
   }));
+
+  return results.filter((result): result is CleanupFailure => result !== null);
 }
 
 /**
@@ -82,8 +94,11 @@ export async function runFeatureJob(
         try {
           await partialJob(db, job.id, succeededAssets, 'PARTIAL_FAILURE', 'Some items failed', traceId);
         } catch (finalizeError) {
-          await cleanupUploadedBlobs(ctx, succeededAssets);
-          throw finalizeError;
+          const cleanupFailures = await cleanupUploadedBlobs(ctx, succeededAssets);
+          throw {
+            finalizeError,
+            cleanupFailures,
+          };
         }
         return { status: 'partial', assets: succeededAssets, errorCode: 'PARTIAL_FAILURE' };
       }
@@ -99,13 +114,20 @@ export async function runFeatureJob(
     try {
       await completeJob(db, job.id, assets, traceId);
     } catch (finalizeError) {
-      await cleanupUploadedBlobs(ctx, assets);
-      throw finalizeError;
+      const cleanupFailures = await cleanupUploadedBlobs(ctx, assets);
+      throw {
+        finalizeError,
+        cleanupFailures,
+      };
     }
     return { status: 'completed', assets };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    await failJob(db, job.id, 'EXECUTION_FAILED', message, traceId);
+    const wrapped = err as { finalizeError?: unknown; cleanupFailures?: CleanupFailure[] };
+    const rootError = wrapped.finalizeError ?? err;
+    const message = rootError instanceof Error ? rootError.message : String(rootError);
+    const cleanupFailures = wrapped.cleanupFailures ?? [];
+    const extraEventPayload = cleanupFailures.length > 0 ? { cleanupFailures } : undefined;
+    await failJob(db, job.id, 'EXECUTION_FAILED', message, traceId, extraEventPayload);
     return { status: 'failed', errorCode: 'EXECUTION_FAILED', errorMessage: message };
   }
 }

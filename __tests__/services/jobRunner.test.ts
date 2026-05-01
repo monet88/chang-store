@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { completeJob, partialJob } from '../../server/adapters/base-adapter';
+import { completeJob, partialJob, reconcileJobOutputs } from '../../server/adapters/base-adapter';
 import type { DB } from '../../server/db';
+import { CSRF_HEADER_NAME, generateCsrfToken } from '../../api/_lib/csrf';
 
 function createRunningJobRow(jobId: string) {
   return {
@@ -151,7 +152,7 @@ describe('runFeatureJob cleanup', () => {
       'trace-1',
     );
     expect(deleteBlob).toHaveBeenCalledWith('outputs/job-runner/0.png');
-    expect(failJobMock).toHaveBeenCalledWith(expect.anything(), 'job-runner', 'EXECUTION_FAILED', 'db finalize failed', 'trace-1');
+    expect(failJobMock).toHaveBeenCalledWith(expect.anything(), 'job-runner', 'EXECUTION_FAILED', 'db finalize failed', 'trace-1', undefined);
     expect(result).toEqual({
       status: 'failed',
       errorCode: 'EXECUTION_FAILED',
@@ -159,7 +160,7 @@ describe('runFeatureJob cleanup', () => {
     });
   });
 
-  it('cleans only succeeded partial blobs and keeps original error when cleanup also fails', async () => {
+  it('persists cleanup failure evidence while keeping original finalize error', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const updateJobStatus = vi.fn().mockResolvedValue(undefined);
     const completeJobMock = vi.fn().mockResolvedValue([]);
@@ -236,11 +237,171 @@ describe('runFeatureJob cleanup', () => {
       '[RUNNER] Failed to clean up blob outputs/job-partial-cleanup/0.png:',
       expect.any(Error),
     );
-    expect(failJobMock).toHaveBeenCalledWith(expect.anything(), 'job-partial-cleanup', 'EXECUTION_FAILED', 'partial finalize failed', 'trace-2');
+    expect(failJobMock).toHaveBeenCalledWith(
+      expect.anything(),
+      'job-partial-cleanup',
+      'EXECUTION_FAILED',
+      'partial finalize failed',
+      'trace-2',
+      {
+        cleanupFailures: [
+          {
+            blobPath: 'outputs/job-partial-cleanup/0.png',
+            errorMessage: 'delete failed',
+          },
+        ],
+      },
+    );
     expect(result).toEqual({
       status: 'failed',
       errorCode: 'EXECUTION_FAILED',
       errorMessage: 'partial finalize failed',
     });
+  });
+});
+
+describe('reconcileJobOutputs', () => {
+  it('reports orphan output blobs for one job without deleting by default', async () => {
+    const query = vi.fn()
+      .mockResolvedValueOnce({ rows: [createRunningJobRow('job-reconcile')] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'asset-1',
+            job_id: 'job-reconcile',
+            kind: 'output',
+            blob_path: 'outputs/job-reconcile/0.png',
+            mime_type: 'image/png',
+            created_at: new Date().toISOString(),
+          },
+        ],
+      });
+    const blob = {
+      listBlobs: vi.fn().mockResolvedValue([
+        { path: 'outputs/job-reconcile/0.png', url: 'https://blob/0' },
+        { path: 'outputs/job-reconcile/1.png', url: 'https://blob/1' },
+      ]),
+      deleteBlob: vi.fn().mockResolvedValue(undefined),
+    };
+    const db: DB = { query };
+
+    const result = await reconcileJobOutputs(db, 'job-reconcile', { blob });
+
+    expect(blob.listBlobs).toHaveBeenCalledWith('outputs/job-reconcile/');
+    expect(blob.deleteBlob).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      jobId: 'job-reconcile',
+      outputPrefix: 'outputs/job-reconcile/',
+      persistedOutputPaths: ['outputs/job-reconcile/0.png'],
+      blobOutputPaths: ['outputs/job-reconcile/0.png', 'outputs/job-reconcile/1.png'],
+      orphanedOutputPaths: ['outputs/job-reconcile/1.png'],
+      deletedOutputPaths: [],
+      deleteFailures: [],
+    });
+  });
+
+  it('deletes orphan outputs when requested and reports delete failures', async () => {
+    const query = vi.fn()
+      .mockResolvedValueOnce({ rows: [createRunningJobRow('job-reconcile-delete')] })
+      .mockResolvedValueOnce({ rows: [] });
+    const blob = {
+      listBlobs: vi.fn().mockResolvedValue([
+        { path: 'outputs/job-reconcile-delete/0.png', url: 'https://blob/0' },
+        { path: 'outputs/job-reconcile-delete/1.png', url: 'https://blob/1' },
+      ]),
+      deleteBlob: vi.fn()
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('blob delete failed')),
+    };
+    const db: DB = { query };
+
+    const result = await reconcileJobOutputs(db, 'job-reconcile-delete', {
+      blob,
+      deleteOrphans: true,
+    });
+
+    expect(blob.deleteBlob).toHaveBeenNthCalledWith(1, 'outputs/job-reconcile-delete/0.png');
+    expect(blob.deleteBlob).toHaveBeenNthCalledWith(2, 'outputs/job-reconcile-delete/1.png');
+    expect(result.deletedOutputPaths).toEqual(['outputs/job-reconcile-delete/0.png']);
+    expect(result.deleteFailures).toEqual([
+      {
+        blobPath: 'outputs/job-reconcile-delete/1.png',
+        errorMessage: 'blob delete failed',
+      },
+    ]);
+  });
+});
+
+describe('job detail route reconcile', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+  });
+
+  it('runs manual reconciliation for the authenticated job owner', async () => {
+    vi.stubEnv('NODE_ENV', 'test');
+
+    const getJobByIdMock = vi.fn()
+      .mockResolvedValueOnce(createRunningJobRow('job-route'));
+    const getJobEventsMock = vi.fn();
+    const reconcileJobOutputsMock = vi.fn().mockResolvedValue({
+      jobId: 'job-route',
+      outputPrefix: 'outputs/job-route/',
+      persistedOutputPaths: [],
+      blobOutputPaths: ['outputs/job-route/0.png'],
+      orphanedOutputPaths: ['outputs/job-route/0.png'],
+      deletedOutputPaths: ['outputs/job-route/0.png'],
+      deleteFailures: [],
+    });
+    const db = { query: vi.fn() } as unknown as DB;
+
+    vi.doMock('../../api/_lib/auth', async () => {
+      const actual = await vi.importActual<typeof import('../../api/_lib/auth')>('../../api/_lib/auth');
+      return {
+        ...actual,
+        getAuthenticatedUserFromRequest: vi.fn(() => ({
+          username: 'user-1',
+          displayName: 'User 1',
+          provisioning: 'seeded',
+        })),
+      };
+    });
+    vi.doMock('../../server/neon', () => ({
+      getNeonPool: vi.fn(() => db),
+    }));
+    vi.doMock('../../server/db', async () => {
+      const actual = await vi.importActual<typeof import('../../server/db')>('../../server/db');
+      return {
+        ...actual,
+        getJobById: getJobByIdMock,
+        getJobEvents: getJobEventsMock,
+      };
+    });
+    vi.doMock('../../server/adapters', async () => {
+      const actual = await vi.importActual<typeof import('../../server/adapters')>('../../server/adapters');
+      return {
+        ...actual,
+        reconcileJobOutputs: reconcileJobOutputsMock,
+      };
+    });
+
+    const route = await import('../../api/jobs/[id]');
+    const csrfToken = generateCsrfToken();
+    const request = new Request('https://example.com/api/jobs/job-route', {
+      method: 'POST',
+      headers: {
+        cookie: `csrf_token=${csrfToken}`,
+        [CSRF_HEADER_NAME]: csrfToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ deleteOrphans: true }),
+    });
+
+    const response = await route.default.fetch(request);
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(reconcileJobOutputsMock).toHaveBeenCalledWith(db, 'job-route', { deleteOrphans: true });
+    expect(json.reconciliation.orphanedOutputPaths).toEqual(['outputs/job-route/0.png']);
   });
 });

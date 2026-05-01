@@ -1,8 +1,13 @@
 import { withCsrf } from '../_lib/csrf-middleware';
-import { jsonResponse, errorResponse, methodNotAllowed } from '../_lib/http';
+import { jsonResponse, errorResponse, methodNotAllowed, readJsonBody } from '../_lib/http';
 import { getAuthenticatedUserFromRequest } from '../_lib/auth';
 import { getNeonPool } from '../../server/neon';
 import { getJobById, getJobEvents } from '../../server/db';
+import { reconcileJobOutputs } from '../../server/adapters';
+
+interface ReconcileBody {
+  deleteOrphans?: boolean;
+}
 
 function getSession(request: Request): { userId: string; username: string } | null {
   const user = getAuthenticatedUserFromRequest(request);
@@ -21,8 +26,8 @@ function extractJobId(url: string): string | null {
 
 const handler = withCsrf({
   async fetch(request: Request): Promise<Response> {
-    if (request.method !== 'GET') {
-      return methodNotAllowed(['GET']);
+    if (request.method !== 'GET' && request.method !== 'POST') {
+      return methodNotAllowed(['GET', 'POST']);
     }
 
     const session = getSession(request);
@@ -46,9 +51,17 @@ const handler = withCsrf({
       return errorResponse('Forbidden.', 403);
     }
 
-    const events = await getJobEvents(db, jobId);
+    if (request.method === 'GET') {
+      const events = await getJobEvents(db, jobId);
+      return jsonResponse({ job, events }, { status: 200 });
+    }
 
-    return jsonResponse({ job, events }, { status: 200 });
+    const body = await readJsonBody<ReconcileBody>(request);
+    const reconciliation = await reconcileJobOutputs(db, jobId, {
+      deleteOrphans: body?.deleteOrphans === true,
+    });
+
+    return jsonResponse({ job, reconciliation }, { status: 200 });
   },
 });
 

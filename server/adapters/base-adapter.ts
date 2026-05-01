@@ -3,12 +3,34 @@ import type { DB, JobRecord, JobAssetRecord } from '../db';
 import {
   createJob,
   getJobById,
+  getJobAssets,
   updateJobStatus,
   finalizeJobOutputs,
   createJobEvent,
 } from '../db';
+import { BlobStorage } from '../blob';
 import { validateJobPayload } from '../validation';
 import { canTransition } from '../jobs';
+
+interface BlobOperations {
+  deleteBlob(path: string): Promise<void>;
+  listBlobs(prefix: string): Promise<Array<{ path: string; url: string }>>;
+}
+
+export interface ReconcileJobOutputsOptions {
+  deleteOrphans?: boolean;
+  blob?: BlobOperations;
+}
+
+export interface ReconcileJobOutputsResult {
+  jobId: string;
+  outputPrefix: string;
+  persistedOutputPaths: string[];
+  blobOutputPaths: string[];
+  orphanedOutputPaths: string[];
+  deletedOutputPaths: string[];
+  deleteFailures: Array<{ blobPath: string; errorMessage: string }>;
+}
 
 export async function submitJob(
   db: DB,
@@ -56,6 +78,7 @@ export async function failJob(
   errorCode: string,
   errorMessage: string,
   traceId?: string,
+  extraEventPayload?: Record<string, unknown>,
 ): Promise<void> {
   const job = await getJobById(db, jobId);
   if (!job) {
@@ -66,7 +89,7 @@ export async function failJob(
   }
 
   await updateJobStatus(db, jobId, 'failed', errorCode, errorMessage);
-  await createJobEvent(db, jobId, 'failed', { errorCode, errorMessage }, traceId);
+  await createJobEvent(db, jobId, 'failed', { errorCode, errorMessage, ...(extraEventPayload ?? {}) }, traceId);
 }
 
 export async function partialJob(
@@ -93,4 +116,51 @@ export async function partialJob(
     eventPayload: { assetCount: assets.length, errorCode },
     traceId,
   });
+}
+
+export async function reconcileJobOutputs(
+  db: DB,
+  jobId: string,
+  options: ReconcileJobOutputsOptions = {},
+): Promise<ReconcileJobOutputsResult> {
+  const job = await getJobById(db, jobId);
+  if (!job) {
+    throw new Error(`Job not found: ${jobId}`);
+  }
+
+  const outputPrefix = `outputs/${jobId}/`;
+  const blob = options.blob ?? new BlobStorage();
+  const assets = await getJobAssets(db, jobId);
+  const persistedOutputPaths = assets
+    .filter((asset) => asset.kind === 'output')
+    .map((asset) => asset.blob_path);
+  const persistedPathSet = new Set(persistedOutputPaths);
+  const blobOutputPaths = (await blob.listBlobs(outputPrefix)).map((entry) => entry.path);
+  const orphanedOutputPaths = blobOutputPaths.filter((path) => !persistedPathSet.has(path));
+  const deletedOutputPaths: string[] = [];
+  const deleteFailures: Array<{ blobPath: string; errorMessage: string }> = [];
+
+  if (options.deleteOrphans) {
+    for (const blobPath of orphanedOutputPaths) {
+      try {
+        await blob.deleteBlob(blobPath);
+        deletedOutputPaths.push(blobPath);
+      } catch (err) {
+        deleteFailures.push({
+          blobPath,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+  }
+
+  return {
+    jobId,
+    outputPrefix,
+    persistedOutputPaths,
+    blobOutputPaths,
+    orphanedOutputPaths,
+    deletedOutputPaths,
+    deleteFailures,
+  };
 }
