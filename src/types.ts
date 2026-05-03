@@ -25,10 +25,13 @@ export interface GalleryImageFile extends ImageFile {
   createdAt?: Date;
 }
 
+export type UserRole = 'admin' | 'user';
+
 export interface AuthenticatedUser {
   username: string;
   displayName: string;
   provisioning: 'seeded';
+  role: UserRole;
 }
 
 export interface AdjustmentState {

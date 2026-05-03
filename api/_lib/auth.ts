@@ -19,6 +19,7 @@ interface SeededUserRecord {
   username: string;
   displayName: string;
   provisioning: 'seeded';
+  role: 'admin' | 'user';
   password?: string;
   passwordHash?: string;
 }
@@ -55,6 +56,7 @@ const normalizeUser = (value: unknown): SeededUserRecord | null => {
       ? record.displayName.trim()
       : record.username.trim(),
     provisioning: 'seeded',
+    role: (record as any).role === 'admin' ? 'admin' : 'user',
     password: hasPassword ? record.password : undefined,
     passwordHash: hasPasswordHash ? record.passwordHash : undefined,
   };
@@ -100,6 +102,7 @@ function getDefaultSeededUsers(): SeededUserRecord[] {
       username: 'demo',
       displayName: 'Demo User',
       provisioning: 'seeded',
+      role: 'user',
       password: DEV_DEMO_PASSWORD,
     },
   ];
@@ -128,6 +131,7 @@ export function toAuthenticatedUser(user: SeededUserRecord): AuthenticatedUser {
     username: user.username,
     displayName: user.displayName,
     provisioning: 'seeded',
+    role: user.role,
   };
 }
 
