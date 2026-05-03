@@ -85,15 +85,15 @@ export async function generateImage(params: GenerateImageParams): Promise<ImageR
       throw new Error('NO_CONTENT');
     }
 
-    for (const part of content.parts) {
-      if (part.inlineData) {
-        results.push({
-          base64: part.inlineData.data || '',
-          mimeType: part.inlineData.mimeType || 'image/png',
-        });
-        break;
-      }
+    const imagePart = content.parts.find((part) => part.inlineData);
+    if (!imagePart?.inlineData?.data) {
+      throw new Error('NO_IMAGE_PART');
     }
+
+    results.push({
+      base64: imagePart.inlineData.data,
+      mimeType: imagePart.inlineData.mimeType || 'image/png',
+    });
   }
 
   return results;

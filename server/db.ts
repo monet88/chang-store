@@ -29,7 +29,7 @@ export interface RateLimitRecord {
 // ---- Database interface (Slice 2 Neon wiring) ----
 
 export interface DB {
-  query(sql: string, params?: unknown[]): Promise<{ rows: unknown[] }>;
+  query(sql: string, params?: unknown[]): Promise<{ rows: unknown[]; rowCount?: number | null }>;
   withTransaction<T>(fn: (tx: DB) => Promise<T>): Promise<T>;
 }
 
@@ -148,6 +148,7 @@ export interface FinalizeJobOutputsInput {
   traceId?: string;
   errorCode?: string;
   errorMessage?: string;
+  expectedStatus?: JobStatus;
 }
 
 // ---- Job query functions ----
@@ -246,15 +247,27 @@ export async function updateJobStatus(
   status: JobStatus,
   errorCode?: string,
   errorMessage?: string,
+  expectedStatus?: JobStatus,
 ): Promise<void> {
-  const q = sql`UPDATE jobs SET
-    status = ${status},
-    error_code = ${errorCode ?? null},
-    error_message = ${errorMessage ?? null},
-    started_at = CASE WHEN ${status} = 'running' THEN COALESCE(started_at, now()) ELSE started_at END,
-    completed_at = CASE WHEN ${status} IN ('completed', 'failed', 'partial') THEN now() ELSE completed_at END
-  WHERE id = ${jobId}`;
-  await db.query(q.text, q.values);
+  const q = expectedStatus
+    ? sql`UPDATE jobs SET
+      status = ${status},
+      error_code = ${errorCode ?? null},
+      error_message = ${errorMessage ?? null},
+      started_at = CASE WHEN ${status} = 'running' THEN COALESCE(started_at, now()) ELSE started_at END,
+      completed_at = CASE WHEN ${status} IN ('completed', 'failed', 'partial') THEN now() ELSE completed_at END
+    WHERE id = ${jobId} AND status = ${expectedStatus}`
+    : sql`UPDATE jobs SET
+      status = ${status},
+      error_code = ${errorCode ?? null},
+      error_message = ${errorMessage ?? null},
+      started_at = CASE WHEN ${status} = 'running' THEN COALESCE(started_at, now()) ELSE started_at END,
+      completed_at = CASE WHEN ${status} IN ('completed', 'failed', 'partial') THEN now() ELSE completed_at END
+    WHERE id = ${jobId}`;
+  const result = await db.query(q.text, q.values);
+  if (expectedStatus && result.rowCount === 0) {
+    throw new Error(`Cannot transition job ${jobId} from ${expectedStatus} to ${status}`);
+  }
 }
 
 export async function finalizeJobOutputs(
@@ -276,6 +289,7 @@ export async function finalizeJobOutputs(
       input.status,
       input.errorCode ?? undefined,
       input.errorMessage ?? undefined,
+      input.expectedStatus,
     );
 
     await createJobEvent(
@@ -362,17 +376,18 @@ export async function sweepStaleJobs(db: DB, userId: string): Promise<number> {
   if (staleIds.length === 0) return 0;
 
   const updateQ = {
-    text: `UPDATE jobs SET status = 'failed', error_code = 'TIMEOUT', error_message = 'Job timed out', completed_at = now() WHERE id = ANY($1::uuid[])`,
-    values: [staleIds],
+    text: `UPDATE jobs SET status = 'failed', error_code = 'TIMEOUT', error_message = 'Job timed out', completed_at = now() WHERE id = ANY($1::uuid[]) AND user_id = $2 AND status IN ('queued', 'running') RETURNING id`,
+    values: [staleIds, userId],
   };
-  await db.query(updateQ.text, updateQ.values);
+  const updateResult = await db.query(updateQ.text, updateQ.values);
+  const updatedIds = (updateResult.rows as Array<{ id: string }>).map((row) => row.id);
 
-  for (const jobId of staleIds) {
+  for (const jobId of updatedIds) {
     await createJobEvent(db, jobId, 'failed', {
       error_code: 'TIMEOUT',
       error_message: 'Job timed out',
     });
   }
 
-  return staleIds.length;
+  return updatedIds.length;
 }

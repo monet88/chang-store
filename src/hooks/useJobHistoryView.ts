@@ -33,10 +33,11 @@ export function useJobHistoryView(onClose: () => void) {
       if (event.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleEsc);
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       window.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = previousOverflow;
     };
   }, [onClose]);
 

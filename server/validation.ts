@@ -28,13 +28,16 @@ export const clothingTransferSchema = z.object({
 });
 
 export const lookbookSchema = z.object({
-  images: z.array(z.string()).min(1).max(10),
+  images: z.array(z.string().min(1)).min(1).max(10),
   style: z.string().optional(),
 });
 
 export const photoAlbumSchema = z.object({
-  images: z.array(z.string()).min(1).max(20),
+  images: z.array(z.string().min(1)).min(1).max(20),
   format: z.string().optional(),
+  prompt: z.string().optional(),
+  aspectRatio: z.string().optional(),
+  resolution: z.string().optional(),
 });
 
 // ---- Derived union type ----
@@ -60,11 +63,11 @@ const featureSchemas: Record<string, z.ZodType<unknown>> = {
 };
 
 export function validateJobPayload(feature: string, data: unknown): FeatureJobPayload {
-  const schema = featureSchemas[feature];
-  if (!schema) {
+  if (!Object.prototype.hasOwnProperty.call(featureSchemas, feature)) {
     throw new Error(`Unknown feature: ${feature}`);
   }
-  return schema.parse(data) as FeatureJobPayload;
+
+  return featureSchemas[feature].parse(data) as FeatureJobPayload;
 }
 
 // ---- Error formatter ----

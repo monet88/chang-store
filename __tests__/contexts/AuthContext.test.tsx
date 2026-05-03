@@ -17,6 +17,15 @@ function createWrapper() {
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+
+  return { promise, resolve };
+}
+
 describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -96,6 +105,40 @@ describe('AuthContext', () => {
 
     expect(result.current.status).toBe('anonymous');
     expect(result.current.user).toBeNull();
+  });
+
+  it('ignores stale refreshSession responses after a newer refresh completes', async () => {
+    const staleRefresh = createDeferred<null>();
+    authServiceMocks.getSession
+      .mockResolvedValueOnce(null)
+      .mockReturnValueOnce(staleRefresh.promise)
+      .mockResolvedValueOnce({
+        username: 'demo',
+        displayName: 'Demo User',
+        provisioning: 'seeded',
+      });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('anonymous'));
+
+    await act(async () => {
+      void result.current.refreshSession();
+      await result.current.refreshSession();
+    });
+
+    expect(result.current.status).toBe('authenticated');
+    expect(result.current.user?.username).toBe('demo');
+
+    await act(async () => {
+      staleRefresh.resolve(null);
+      await staleRefresh.promise;
+    });
+
+    expect(result.current.status).toBe('authenticated');
+    expect(result.current.user?.username).toBe('demo');
   });
 
   it('bootstraps CSRF via refreshSession before calling login', async () => {

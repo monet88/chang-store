@@ -60,6 +60,19 @@ describe('useJobHistoryView', () => {
     getJobResultsMock.mockResolvedValue({ results: [makeResult('job-1')] });
   });
 
+  it('restores the previous body overflow when unmounted', () => {
+    document.body.style.overflow = 'scroll';
+
+    const { unmount } = renderHook(() => useJobHistoryView(vi.fn()));
+
+    expect(document.body.style.overflow).toBe('hidden');
+
+    unmount();
+
+    expect(document.body.style.overflow).toBe('scroll');
+    document.body.style.overflow = '';
+  });
+
   it('avoids duplicate in-flight result fetches for same job', async () => {
     const deferred = createDeferred<{ results: JobResult[] }>();
     getJobResultsMock.mockReturnValue(deferred.promise);

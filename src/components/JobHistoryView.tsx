@@ -77,7 +77,7 @@ const JobHistoryView: React.FC<JobHistoryViewProps> = ({ onClose }) => {
       role="dialog"
       aria-modal="true"
     >
-      <div className="flex justify-between items-center p-4 text-white w-full max-w-3xl mx-auto flex-shrink-0">
+      <div className="flex justify-between items-center p-4 text-white w-full max-w-3xl mx-auto flex-shrink-0" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/30">
             <HistoryIcon className="h-5 w-5 text-zinc-100" />

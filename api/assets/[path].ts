@@ -1,6 +1,6 @@
 import { withCsrf } from '../_lib/csrf-middleware';
 import { errorResponse, methodNotAllowed } from '../_lib/http';
-import { getAuthenticatedUserFromRequest } from '../_lib/auth';
+import { getAuthenticatedSessionFromRequest } from '../_lib/auth';
 import { getNeonPool } from '../../server/neon';
 import { head } from '@vercel/blob';
 
@@ -19,14 +19,7 @@ function extractBlobPath(url: string): string | null {
   }
 }
 
-function getSession(request: Request): { userId: string } | null {
-  const user = getAuthenticatedUserFromRequest(request);
-  if (!user) return null;
-  return { userId: user.username };
-}
-
-async function userCanAccessBlob(blobPath: string, userId: string): Promise<boolean> {
-  const db = getNeonPool(process.env.DATABASE_URL!);
+async function userCanAccessBlob(db: ReturnType<typeof getNeonPool>, blobPath: string, userId: string): Promise<boolean> {
   const result = await db.query(
     `SELECT ja.id
      FROM job_assets ja
@@ -44,7 +37,8 @@ const handler = withCsrf({
       return methodNotAllowed(['GET']);
     }
 
-    const session = getSession(request);
+    const db = getNeonPool(process.env.DATABASE_URL!);
+    const session = await getAuthenticatedSessionFromRequest(db, request);
     if (!session) {
       return errorResponse('Authentication required.', 401);
     }
@@ -54,7 +48,7 @@ const handler = withCsrf({
       return errorResponse('Blob path is required.', 400);
     }
 
-    if (!(await userCanAccessBlob(blobPath, session.userId))) {
+    if (!(await userCanAccessBlob(db, blobPath, session.userId))) {
       return errorResponse('Blob not found.', 404);
     }
 

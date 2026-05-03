@@ -46,7 +46,7 @@ export async function runCanary(): Promise<CanaryResult> {
 
 async function testVercelWorkflow(): Promise<void> {
   if (!process.env.VERCEL) {
-    // Local dev mode — no Vercel workflow available
+    throw new Error('Vercel Workflow runtime is not available');
   }
 }
 

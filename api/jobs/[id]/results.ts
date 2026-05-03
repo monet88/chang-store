@@ -1,14 +1,8 @@
 import { withCsrf } from '../../_lib/csrf-middleware';
 import { jsonResponse, errorResponse, methodNotAllowed } from '../../_lib/http';
-import { getAuthenticatedUserFromRequest } from '../../_lib/auth';
+import { getAuthenticatedSessionFromRequest } from '../../_lib/auth';
 import { getNeonPool } from '../../../server/neon';
 import { getJobById, getJobAssets } from '../../../server/db';
-
-function getSession(request: Request): { userId: string; username: string } | null {
-  const user = getAuthenticatedUserFromRequest(request);
-  if (!user) return null;
-  return { userId: user.username, username: user.displayName };
-}
 
 function extractJobId(url: string): string | null {
   const parsed = new URL(url);
@@ -25,7 +19,8 @@ const handler = withCsrf({
       return methodNotAllowed(['GET']);
     }
 
-    const session = getSession(request);
+    const db = getNeonPool(process.env.DATABASE_URL!);
+    const session = await getAuthenticatedSessionFromRequest(db, request);
     if (!session) {
       return errorResponse('Authentication required.', 401);
     }
@@ -34,8 +29,6 @@ const handler = withCsrf({
     if (!jobId) {
       return jsonResponse({ message: 'Job ID is required.' }, { status: 400 });
     }
-
-    const db = getNeonPool(process.env.DATABASE_URL!);
 
     const job = await getJobById(db, jobId, session.userId);
     if (!job) {

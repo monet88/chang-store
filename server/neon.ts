@@ -26,7 +26,11 @@ function buildDB(pool: Pool): DB {
         await txDB.query('COMMIT');
         return result;
       } catch (err) {
-        await txDB.query('ROLLBACK');
+        try {
+          await txDB.query('ROLLBACK');
+        } catch (rollbackError) {
+          console.error('[DB] Transaction rollback failed:', rollbackError);
+        }
         throw err;
       } finally {
         client.release();

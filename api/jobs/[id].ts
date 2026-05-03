@@ -1,18 +1,12 @@
 import { withCsrf } from '../_lib/csrf-middleware';
 import { jsonResponse, errorResponse, methodNotAllowed, readJsonBody } from '../_lib/http';
-import { getAuthenticatedUserFromRequest } from '../_lib/auth';
+import { getAuthenticatedSessionFromRequest } from '../_lib/auth';
 import { getNeonPool } from '../../server/neon';
 import { getJobById, getJobEvents } from '../../server/db';
 import { reconcileJobOutputs } from '../../server/adapters';
 
 interface ReconcileBody {
   deleteOrphans?: boolean;
-}
-
-function getSession(request: Request): { userId: string; username: string } | null {
-  const user = getAuthenticatedUserFromRequest(request);
-  if (!user) return null;
-  return { userId: user.username, username: user.displayName };
 }
 
 function extractJobId(url: string): string | null {
@@ -30,7 +24,8 @@ const handler = withCsrf({
       return methodNotAllowed(['GET', 'POST']);
     }
 
-    const session = getSession(request);
+    const db = getNeonPool(process.env.DATABASE_URL!);
+    const session = await getAuthenticatedSessionFromRequest(db, request);
     if (!session) {
       return errorResponse('Authentication required.', 401);
     }
@@ -39,8 +34,6 @@ const handler = withCsrf({
     if (!jobId) {
       return jsonResponse({ message: 'Job ID is required.' }, { status: 400 });
     }
-
-    const db = getNeonPool(process.env.DATABASE_URL!);
 
     const job = await getJobById(db, jobId, session.userId);
     if (!job) {
@@ -54,6 +47,10 @@ const handler = withCsrf({
     if (request.method === 'GET') {
       const events = await getJobEvents(db, jobId);
       return jsonResponse({ job, events }, { status: 200 });
+    }
+
+    if (job.status === 'queued' || job.status === 'running') {
+      return errorResponse('Job is still running.', 409);
     }
 
     const body = await readJsonBody<ReconcileBody>(request);

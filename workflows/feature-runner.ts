@@ -1,5 +1,5 @@
 import type { DB, JobRecord } from '../server/db';
-import { updateJobStatus } from '../server/db';
+import { getJobById, updateJobStatus } from '../server/db';
 import { createWorkflowContext, withErrorHandling, type WorkflowContext } from './helpers';
 import { transitionStatus } from '../server/jobs';
 import { completeJob, failJob, partialJob } from '../server/adapters/base-adapter';
@@ -13,7 +13,7 @@ interface FeatureAdapter {
 }
 
 export interface RunJobResult {
-  status: 'completed' | 'failed' | 'partial';
+  status: JobRecord['status'];
   assets?: Array<{ blobPath: string; mimeType: string }>;
   errorCode?: string;
   errorMessage?: string;
@@ -44,6 +44,22 @@ async function cleanupUploadedBlobs(
   return results.filter((result): result is CleanupFailure => result !== null);
 }
 
+function jobRecordToRunResult(job: JobRecord): RunJobResult {
+  const result: RunJobResult = { status: job.status };
+  if (job.error_code) {
+    result.errorCode = job.error_code;
+  }
+  if (job.error_message) {
+    result.errorMessage = job.error_message;
+  }
+  return result;
+}
+
+async function getCurrentJobResult(db: DB, jobId: string): Promise<RunJobResult | null> {
+  const currentJob = await getJobById(db, jobId);
+  return currentJob ? jobRecordToRunResult(currentJob) : null;
+}
+
 /**
  * Run a feature job through the durable execution pipeline.
  * This is the main entry point for both Workflow and Inngest paths.
@@ -59,9 +75,18 @@ export async function runFeatureJob(
 
   try {
     const { status: newStatus } = transitionStatus(job, 'running');
-    await updateJobStatus(db, job.id, newStatus);
+    try {
+      await updateJobStatus(db, job.id, newStatus, undefined, undefined, job.status);
+    } catch (transitionError) {
+      const currentResult = await getCurrentJobResult(db, job.id);
+      if (currentResult) {
+        return currentResult;
+      }
+      throw transitionError;
+    }
 
-    const input = adapter.mapInput(job.input_payload_json);
+    const validatedPayload = adapter.validate(job.input_payload_json);
+    const input = adapter.mapInput(validatedPayload);
     const { results } = await withErrorHandling(ctx, job.id, 'gemini_execute', () =>
       executeStep(ctx, input, adapter.feature),
     );
@@ -127,7 +152,15 @@ export async function runFeatureJob(
     const message = rootError instanceof Error ? rootError.message : String(rootError);
     const cleanupFailures = wrapped.cleanupFailures ?? [];
     const extraEventPayload = cleanupFailures.length > 0 ? { cleanupFailures } : undefined;
-    await failJob(db, job.id, 'EXECUTION_FAILED', message, traceId, extraEventPayload);
+    try {
+      await failJob(db, job.id, 'EXECUTION_FAILED', message, traceId, extraEventPayload);
+    } catch (failError) {
+      const currentResult = await getCurrentJobResult(db, job.id);
+      if (currentResult?.status === 'completed' || currentResult?.status === 'partial' || currentResult?.status === 'failed') {
+        return currentResult;
+      }
+      throw failError;
+    }
     return { status: 'failed', errorCode: 'EXECUTION_FAILED', errorMessage: message };
   }
 }

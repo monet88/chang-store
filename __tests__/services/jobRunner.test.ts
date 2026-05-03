@@ -1,26 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { completeJob, partialJob, reconcileJobOutputs } from '../../server/adapters/base-adapter';
+import { completeJob, failJob, partialJob, reconcileJobOutputs } from '../../server/adapters/base-adapter';
 import type { DB } from '../../server/db';
 import { CSRF_HEADER_NAME, generateCsrfToken } from '../../api/_lib/csrf';
 
-function createRunningJobRow(jobId: string) {
+function createJobRow(jobId: string, status: 'queued' | 'running' | 'completed' | 'failed' | 'partial' = 'running') {
   return {
     id: jobId,
     user_id: 'user-1',
     feature: 'lookbook',
-    status: 'running',
+    status,
     idempotency_key: 'idem-1',
     input_payload_json: {},
     workflow_run_id: null,
     progress_total: 1,
-    progress_done: 0,
+    progress_done: status === 'completed' || status === 'partial' ? 1 : 0,
     created_at: new Date().toISOString(),
-    started_at: new Date().toISOString(),
-    completed_at: null,
-    error_code: null,
-    error_message: null,
+    started_at: status === 'queued' ? null : new Date().toISOString(),
+    completed_at: status === 'completed' || status === 'failed' || status === 'partial' ? new Date().toISOString() : null,
+    error_code: status === 'failed' ? 'EXECUTION_FAILED' : null,
+    error_message: status === 'failed' ? 'Already failed' : null,
   };
+}
+
+function createRunningJobRow(jobId: string) {
+  return createJobRow(jobId);
 }
 
 describe('job finalization persistence', () => {
@@ -65,6 +69,49 @@ describe('job finalization persistence', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].blob_path).toBe('outputs/job-complete/0.png');
+    expect(txQuery.mock.calls[1][0]).toContain('AND status =');
+  });
+
+  it('rejects completed finalization when the job status changes after the initial read', async () => {
+    const jobQuery = vi.fn()
+      .mockResolvedValueOnce({ rows: [createRunningJobRow('job-complete-race')] });
+    const txQuery = vi.fn()
+      .mockResolvedValueOnce({
+        rows: [{
+          id: 'asset-1',
+          job_id: 'job-complete-race',
+          kind: 'output',
+          blob_path: 'outputs/job-complete-race/0.png',
+          mime_type: 'image/png',
+          created_at: new Date().toISOString(),
+        }],
+      })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+    const db = createMockDB({ jobQuery, txQuery });
+
+    await expect(completeJob(db, 'job-complete-race', [
+      { blobPath: 'outputs/job-complete-race/0.png', mimeType: 'image/png' },
+    ], 'trace-complete-race')).rejects.toThrow('Cannot transition job job-complete-race from running to completed');
+
+    expect(txQuery).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not create a failed event when the failed transition loses the status race', async () => {
+    const query = vi.fn()
+      .mockResolvedValueOnce({ rows: [createRunningJobRow('job-fail-race')] })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    const db: DB = { query, withTransaction: vi.fn() };
+
+    await expect(failJob(
+      db,
+      'job-fail-race',
+      'EXECUTION_FAILED',
+      'db finalize failed',
+      'trace-fail-race',
+    )).rejects.toThrow('Cannot transition job job-fail-race from running to failed');
+
+    expect(query).toHaveBeenCalledTimes(2);
   });
 
   it('persists partial assets, status, and event within a transaction', async () => {
@@ -100,10 +147,156 @@ describe('job finalization persistence', () => {
   });
 });
 
+describe('workflow step events', () => {
+  it('returns successful step results when step_completed event persistence fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const createJobEvent = vi.fn()
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error('event write failed'));
+
+    vi.resetModules();
+    vi.doMock('../../server/db', async () => {
+      const actual = await vi.importActual<typeof import('../../server/db')>('../../server/db');
+      return {
+        ...actual,
+        createJobEvent,
+      };
+    });
+
+    const { withErrorHandling } = await import('../../workflows/helpers');
+    const result = await withErrorHandling(
+      { db: {} as DB, blob: {} as never, traceId: 'trace-step' },
+      'job-step',
+      'gemini_execute',
+      async () => 'ok',
+    );
+
+    expect(result).toBe('ok');
+    expect(consoleError).toHaveBeenCalledWith(
+      '[WORKFLOW] Failed to persist step_completed event:',
+      expect.any(Error),
+    );
+    consoleError.mockRestore();
+  });
+});
+
 describe('runFeatureJob cleanup', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+  });
+
+  it('validates persisted payload before mapping adapter input', async () => {
+    const updateJobStatus = vi.fn().mockResolvedValue(undefined);
+    const completeJobMock = vi.fn().mockResolvedValue([]);
+    const failJobMock = vi.fn().mockResolvedValue(undefined);
+    const storeFile = vi.fn().mockResolvedValue(undefined);
+    const validate = vi.fn(() => ({ images: ['validated'] }));
+    const mapInput = vi.fn(() => ({ images: ['mapped'] }));
+    const executeStep = vi.fn().mockResolvedValue({
+      results: [{ base64: Buffer.from('image').toString('base64'), mimeType: 'image/png' }],
+    });
+
+    vi.doMock('../../server/db', async () => {
+      const actual = await vi.importActual<typeof import('../../server/db')>('../../server/db');
+      return {
+        ...actual,
+        updateJobStatus,
+      };
+    });
+    vi.doMock('../../workflows/helpers', () => ({
+      createWorkflowContext: vi.fn(() => ({
+        db: {},
+        traceId: 'trace-validate',
+        blob: { storeFile, deleteBlob: vi.fn() },
+      })),
+      withErrorHandling: vi.fn(async (_ctx, _jobId, _step, fn: () => Promise<unknown>) => fn()),
+    }));
+    vi.doMock('../../server/jobs', () => ({
+      transitionStatus: vi.fn(() => ({ status: 'running' })),
+    }));
+    vi.doMock('../../server/adapters/base-adapter', () => ({
+      completeJob: completeJobMock,
+      partialJob: vi.fn(),
+      failJob: failJobMock,
+    }));
+    vi.doMock('../../workflows/canary', () => ({
+      runCanary: vi.fn(),
+    }));
+
+    const { runFeatureJob } = await import('../../workflows/feature-runner');
+    await runFeatureJob(
+      {} as DB,
+      createRunningJobRow('job-validate') as never,
+      {
+        feature: 'lookbook',
+        validate,
+        mapInput,
+        mapOutput: vi.fn(),
+      },
+      executeStep,
+      'trace-validate',
+    );
+
+    expect(validate).toHaveBeenCalledWith({});
+    expect(mapInput).toHaveBeenCalledWith({ images: ['validated'] });
+    expect(executeStep).toHaveBeenCalledWith(expect.anything(), { images: ['mapped'] }, 'lookbook');
+  });
+
+  it('returns the current job state when the running transition loses a race', async () => {
+    const updateJobStatus = vi.fn().mockRejectedValue(new Error('Cannot transition job job-start-race from queued to running'));
+    const getJobById = vi.fn().mockResolvedValue(createJobRow('job-start-race', 'running'));
+    const completeJobMock = vi.fn().mockResolvedValue([]);
+    const failJobMock = vi.fn().mockResolvedValue(undefined);
+    const executeStep = vi.fn();
+
+    vi.doMock('../../server/db', async () => {
+      const actual = await vi.importActual<typeof import('../../server/db')>('../../server/db');
+      return {
+        ...actual,
+        getJobById,
+        updateJobStatus,
+      };
+    });
+    vi.doMock('../../workflows/helpers', () => ({
+      createWorkflowContext: vi.fn(() => ({
+        db: {},
+        traceId: 'trace-start-race',
+        blob: { storeFile: vi.fn(), deleteBlob: vi.fn() },
+      })),
+      withErrorHandling: vi.fn(async (_ctx, _jobId, _step, fn: () => Promise<unknown>) => fn()),
+    }));
+    vi.doMock('../../server/jobs', () => ({
+      transitionStatus: vi.fn(() => ({ status: 'running' })),
+    }));
+    vi.doMock('../../server/adapters/base-adapter', () => ({
+      completeJob: completeJobMock,
+      partialJob: vi.fn(),
+      failJob: failJobMock,
+    }));
+    vi.doMock('../../workflows/canary', () => ({
+      runCanary: vi.fn(),
+    }));
+
+    const { runFeatureJob } = await import('../../workflows/feature-runner');
+    const result = await runFeatureJob(
+      {} as DB,
+      createJobRow('job-start-race', 'queued') as never,
+      {
+        feature: 'lookbook',
+        validate: vi.fn(),
+        mapInput: vi.fn(),
+        mapOutput: vi.fn(),
+      },
+      executeStep,
+      'trace-start-race',
+    );
+
+    expect(updateJobStatus).toHaveBeenCalledWith(expect.anything(), 'job-start-race', 'running', undefined, undefined, 'queued');
+    expect(result).toEqual({ status: 'running' });
+    expect(executeStep).not.toHaveBeenCalled();
+    expect(completeJobMock).not.toHaveBeenCalled();
+    expect(failJobMock).not.toHaveBeenCalled();
   });
 
   it('deletes uploaded blobs when complete finalization fails', async () => {
@@ -170,6 +363,67 @@ describe('runFeatureJob cleanup', () => {
       status: 'failed',
       errorCode: 'EXECUTION_FAILED',
       errorMessage: 'db finalize failed',
+    });
+  });
+
+  it('returns terminal job state when failure persistence loses a race after cleanup', async () => {
+    const updateJobStatus = vi.fn().mockResolvedValue(undefined);
+    const getJobById = vi.fn().mockResolvedValue(createJobRow('job-terminal-race', 'failed'));
+    const completeJobMock = vi.fn().mockRejectedValue(new Error('db finalize failed'));
+    const failJobMock = vi.fn().mockRejectedValue(new Error('Cannot transition job job-terminal-race from failed to failed'));
+    const storeFile = vi.fn().mockResolvedValue(undefined);
+    const deleteBlob = vi.fn().mockResolvedValue(undefined);
+
+    vi.doMock('../../server/db', async () => {
+      const actual = await vi.importActual<typeof import('../../server/db')>('../../server/db');
+      return {
+        ...actual,
+        getJobById,
+        updateJobStatus,
+      };
+    });
+    vi.doMock('../../workflows/helpers', () => ({
+      createWorkflowContext: vi.fn(() => ({
+        db: {},
+        traceId: 'trace-terminal-race',
+        blob: { storeFile, deleteBlob },
+      })),
+      withErrorHandling: vi.fn(async (_ctx, _jobId, _step, fn: () => Promise<unknown>) => fn()),
+    }));
+    vi.doMock('../../server/jobs', () => ({
+      transitionStatus: vi.fn(() => ({ status: 'running' })),
+    }));
+    vi.doMock('../../server/adapters/base-adapter', () => ({
+      completeJob: completeJobMock,
+      partialJob: vi.fn(),
+      failJob: failJobMock,
+    }));
+    vi.doMock('../../workflows/canary', () => ({
+      runCanary: vi.fn(),
+    }));
+
+    const { runFeatureJob } = await import('../../workflows/feature-runner');
+    const result = await runFeatureJob(
+      {} as DB,
+      createJobRow('job-terminal-race') as never,
+      {
+        feature: 'lookbook',
+        validate: vi.fn(),
+        mapInput: vi.fn(() => ({ images: ['x'] })),
+        mapOutput: vi.fn(),
+      },
+      vi.fn().mockResolvedValue({
+        results: [{ base64: Buffer.from('image').toString('base64'), mimeType: 'image/png' }],
+      }),
+      'trace-terminal-race',
+    );
+
+    expect(deleteBlob).toHaveBeenCalledWith('outputs/job-terminal-race/0.png');
+    expect(failJobMock).toHaveBeenCalledWith(expect.anything(), 'job-terminal-race', 'EXECUTION_FAILED', 'db finalize failed', 'trace-terminal-race', undefined);
+    expect(result).toEqual({
+      status: 'failed',
+      errorCode: 'EXECUTION_FAILED',
+      errorMessage: 'Already failed',
     });
   });
 
@@ -351,11 +605,16 @@ describe('job detail route reconcile', () => {
     vi.clearAllMocks();
   });
 
-  it('runs manual reconciliation for the authenticated job owner', async () => {
+  it('runs manual reconciliation for a completed authenticated job owner', async () => {
     vi.stubEnv('NODE_ENV', 'test');
 
     const getJobByIdMock = vi.fn()
-      .mockResolvedValueOnce(createRunningJobRow('job-route'));
+      .mockResolvedValueOnce({
+        ...createRunningJobRow('job-route'),
+        status: 'completed',
+        progress_done: 1,
+        completed_at: new Date().toISOString(),
+      });
     const getJobEventsMock = vi.fn();
     const reconcileJobOutputsMock = vi.fn().mockResolvedValue({
       jobId: 'job-route',
@@ -372,10 +631,15 @@ describe('job detail route reconcile', () => {
       const actual = await vi.importActual<typeof import('../../api/_lib/auth')>('../../api/_lib/auth');
       return {
         ...actual,
-        getAuthenticatedUserFromRequest: vi.fn(() => ({
+        getAuthenticatedSessionFromRequest: vi.fn(() => ({
+          userId: 'user-1',
           username: 'user-1',
           displayName: 'User 1',
-          provisioning: 'seeded',
+          user: {
+            username: 'user-1',
+            displayName: 'User 1',
+            provisioning: 'seeded',
+          },
         })),
       };
     });
@@ -416,6 +680,67 @@ describe('job detail route reconcile', () => {
     expect(response.status).toBe(200);
     expect(reconcileJobOutputsMock).toHaveBeenCalledWith(db, 'job-route', { deleteOrphans: true });
     expect(json.reconciliation.orphanedOutputPaths).toEqual(['outputs/job-route/0.png']);
+  });
+
+  it('blocks manual reconciliation while the job is still running', async () => {
+    vi.stubEnv('NODE_ENV', 'test');
+
+    const getJobByIdMock = vi.fn()
+      .mockResolvedValueOnce(createRunningJobRow('job-route-running'));
+    const reconcileJobOutputsMock = vi.fn();
+    const db = { query: vi.fn(), withTransaction: vi.fn() } as unknown as DB;
+
+    vi.doMock('../../api/_lib/auth', async () => {
+      const actual = await vi.importActual<typeof import('../../api/_lib/auth')>('../../api/_lib/auth');
+      return {
+        ...actual,
+        getAuthenticatedSessionFromRequest: vi.fn(() => ({
+          userId: 'user-1',
+          username: 'user-1',
+          displayName: 'User 1',
+          user: {
+            username: 'user-1',
+            displayName: 'User 1',
+            provisioning: 'seeded',
+          },
+        })),
+      };
+    });
+    vi.doMock('../../server/neon', () => ({
+      getNeonPool: vi.fn(() => db),
+    }));
+    vi.doMock('../../server/db', async () => {
+      const actual = await vi.importActual<typeof import('../../server/db')>('../../server/db');
+      return {
+        ...actual,
+        getJobById: getJobByIdMock,
+        getJobEvents: vi.fn(),
+      };
+    });
+    vi.doMock('../../server/adapters', async () => {
+      const actual = await vi.importActual<typeof import('../../server/adapters')>('../../server/adapters');
+      return {
+        ...actual,
+        reconcileJobOutputs: reconcileJobOutputsMock,
+      };
+    });
+
+    const route = await import('../../api/jobs/[id]');
+    const csrfToken = generateCsrfToken();
+    const request = new Request('https://example.com/api/jobs/job-route-running', {
+      method: 'POST',
+      headers: {
+        cookie: `csrf_token=${csrfToken}`,
+        [CSRF_HEADER_NAME]: csrfToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ deleteOrphans: true }),
+    });
+
+    const response = await route.default.fetch(request);
+
+    expect(response.status).toBe(409);
+    expect(reconcileJobOutputsMock).not.toHaveBeenCalled();
   });
 });
 
@@ -475,7 +800,9 @@ describe('sweepStaleJobs', () => {
       .mockResolvedValueOnce({ // find stale job IDs
         rows: [{ id: staleQueuedId }, { id: staleRunningId }],
       })
-      .mockResolvedValueOnce({ rows: [] }) // UPDATE stale jobs
+      .mockResolvedValueOnce({
+        rows: [{ id: staleQueuedId }, { id: staleRunningId }],
+      }) // UPDATE stale jobs
       .mockResolvedValueOnce({ rows: [{ id: 'ev-1' }] }) // createJobEvent for staleQueuedId
       .mockResolvedValueOnce({ rows: [{ id: 'ev-2' }] }); // createJobEvent for staleRunningId
 

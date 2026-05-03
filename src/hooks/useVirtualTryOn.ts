@@ -27,22 +27,27 @@ const MAX_SHARED_OUTFIT_IMAGES = 2;
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 const POLL_INTERVAL_MS = 3000;
 
-async function waitForJobCompletion(jobId: string, onStatus: (msg: string) => void): Promise<Job> {
+async function waitForJobCompletion(jobId: string, onStatus: (msg: string) => void, activeJobIds?: Set<string>): Promise<Job> {
   const { pollJob } = await import('../services/jobService');
   while (true) {
     try {
       const job = await pollJob(jobId);
+      const isTerminal = job.status === 'completed' || job.status === 'partial' || job.status === 'failed';
+      if (isTerminal) {
+        activeJobIds?.delete(jobId);
+      }
       setSharedJobState({
         job,
-        isPolling: job.status === 'queued' || job.status === 'running',
+        isPolling: activeJobIds ? activeJobIds.size > 0 : !isTerminal,
         error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
       });
       onStatus(`Job ${job.status}...`);
-      if (job.status === 'completed' || job.status === 'partial' || job.status === 'failed') {
+      if (isTerminal) {
         return job;
       }
     } catch (error) {
-      setSharedJobState({ isPolling: false, error: error instanceof Error ? error.message : String(error) });
+      activeJobIds?.delete(jobId);
+      setSharedJobState({ isPolling: activeJobIds ? activeJobIds.size > 0 : false, error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
     await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
@@ -223,6 +228,7 @@ export const useVirtualTryOn = () => {
       subjectImage: item.subjectImage,
     }));
     const batchConcurrency = jobs.length;
+    const activeJobIds = new Set<string>();
 
     setIsLoading(true);
     setLoadingMessage(t('virtualTryOn.generatingStatus'));
@@ -279,13 +285,9 @@ export const useVirtualTryOn = () => {
             };
 
             const submittedJob = await submitJob('try-on', payload as Record<string, unknown>);
+            activeJobIds.add(submittedJob.id);
             setSharedJobState({ job: submittedJob, isPolling: true, error: null });
-            const completedJob = await waitForJobCompletion(submittedJob.id, setLoadingMessage);
-            setSharedJobState({
-              job: completedJob,
-              isPolling: false,
-              error: completedJob.status === 'failed' ? completedJob.error_message || 'Job failed' : null,
-            });
+            const completedJob = await waitForJobCompletion(submittedJob.id, setLoadingMessage, activeJobIds);
 
             if (completedJob.status === 'failed') {
               throw new Error(completedJob.error_message || 'Job failed');

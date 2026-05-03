@@ -38,7 +38,10 @@ export async function geminiExecuteStep(
   featureOverride?: string,
 ): Promise<GeminiStepResult> {
   const feature = getFeatureFromInput(input, featureOverride);
-  const prompt = FEATURE_PROMPTS[feature] || 'Generate an image.';
+  const defaultPrompt = FEATURE_PROMPTS[feature] || 'Generate an image.';
+  const prompt = feature === 'photo-album' && typeof input.prompt === 'string' && input.prompt.trim().length > 0
+    ? input.prompt
+    : defaultPrompt;
 
   try {
     if (feature === 'try-on') {

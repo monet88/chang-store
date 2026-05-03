@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -30,16 +31,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [status, setStatus] = useState<AuthStatus>('checking');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const refreshGenerationRef = useRef(0);
 
   const refreshSession = useCallback(async () => {
+    const refreshGeneration = refreshGenerationRef.current + 1;
+    refreshGenerationRef.current = refreshGeneration;
     setStatus('checking');
     setAuthError(null);
 
     try {
       const activeUser = await authService.getSession();
+      if (refreshGenerationRef.current !== refreshGeneration) return;
       setUser(activeUser);
       setStatus(activeUser ? 'authenticated' : 'anonymous');
     } catch (error) {
+      if (refreshGenerationRef.current !== refreshGeneration) return;
       setUser(null);
       setStatus('anonymous');
       setAuthError(error instanceof Error ? error.message : 'Unable to restore session.');
@@ -70,6 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [refreshSession]);
 
   const logout = useCallback(async () => {
+    refreshGenerationRef.current += 1;
     setIsAuthenticating(true);
     setAuthError(null);
 

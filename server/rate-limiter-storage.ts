@@ -7,6 +7,11 @@ export class PostgresRateLimitStorage implements RateLimitStorage {
 
   async increment(key: string, windowStart: number): Promise<number> {
     const windowStartDate = new Date(windowStart).toISOString();
+    await this.db.query(
+      `DELETE FROM rate_limit_entries WHERE window_start < $1`,
+      [windowStartDate],
+    );
+
     const result = await this.db.query(
       `INSERT INTO rate_limit_entries (username, window_start, attempt_count)
        VALUES ($1, $2, 1)

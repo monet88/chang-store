@@ -15,6 +15,7 @@ const handler = withCsrf({
         {
           status: 401,
           headers: {
+            'Set-Cookie': clearSessionCookie(),
             'Cache-Control': 'no-store',
           },
         },

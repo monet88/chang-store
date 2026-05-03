@@ -25,25 +25,8 @@ interface LoginRequestBody {
   password?: string;
 }
 
-function getRateLimitIdentifier(request: Request): string {
-  const cfConnectingIp = request.headers.get('cf-connecting-ip')?.trim();
-  if (cfConnectingIp) {
-    return cfConnectingIp;
-  }
-
-  const xRealIp = request.headers.get('x-real-ip')?.trim();
-  if (xRealIp) {
-    return xRealIp;
-  }
-
-  const forwardedFor = request.headers.get('x-forwarded-for')
-    ?.split(',')[0]
-    ?.trim();
-  if (forwardedFor) {
-    return forwardedFor;
-  }
-
-  return 'unknown';
+function getRateLimitIdentifier(username: string): string {
+  return username.trim().toLowerCase();
 }
 
 const handler = withCsrf({
@@ -52,7 +35,12 @@ const handler = withCsrf({
       return methodNotAllowed(['POST']);
     }
 
-    const rateLimitKey = `auth:login:${getRateLimitIdentifier(request)}`;
+    const body = await readJsonBody<LoginRequestBody>(request);
+    if (!body?.username || !body.password) {
+      return jsonResponse({ message: 'Username and password are required.' }, { status: 400 });
+    }
+
+    const rateLimitKey = `auth:login:${getRateLimitIdentifier(body.username)}`;
     const rateLimitResult = await rateLimiter.check(rateLimitKey);
     if (!rateLimitResult.allowed) {
       return errorResponse(
@@ -60,11 +48,6 @@ const handler = withCsrf({
         429,
         createRateLimitHeaders(rateLimitResult.retryAfter!),
       );
-    }
-
-    const body = await readJsonBody<LoginRequestBody>(request);
-    if (!body?.username || !body.password) {
-      return jsonResponse({ message: 'Username and password are required.' }, { status: 400 });
     }
 
     const user = await authenticateSeededUser(body.username, body.password);

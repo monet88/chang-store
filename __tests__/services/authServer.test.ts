@@ -5,6 +5,7 @@ import {
   createSessionCookie,
   createSessionToken,
   getAuthenticatedUserFromRequest,
+  getSeededUsers,
   hashPassword,
   verifyPassword,
   verifySessionToken,
@@ -16,6 +17,7 @@ import {
   validateCsrfToken,
 } from '../../api/_lib/csrf';
 import { withCsrf } from '../../api/_lib/csrf-middleware';
+import logoutRoute from '../../api/auth/logout';
 
 describe('auth server helpers', () => {
   beforeEach(async () => {
@@ -63,6 +65,12 @@ describe('auth server helpers', () => {
     expect(user).toBeNull();
   });
 
+  it('honors an intentionally empty seeded user list', () => {
+    vi.stubEnv('AUTH_SEEDED_USERS_JSON', '[]');
+
+    expect(getSeededUsers()).toEqual([]);
+  });
+
   it('rejects a wrong password for a known user', async () => {
     const user = await authenticateSeededUser('demo', 'bad-pass');
     expect(user).toBeNull();
@@ -92,6 +100,18 @@ describe('auth server helpers', () => {
     const [payload, signature] = token.split('.');
     const tamperedToken = `${payload}.${signature.replace('A', 'B')}`;
     expect(verifySessionToken(tamperedToken, 2_000)).toBeNull();
+  });
+
+  it('rejects a session token when signature byte length differs', () => {
+    const user = {
+      username: 'demo',
+      displayName: 'Demo User',
+      provisioning: 'seeded' as const,
+      role: 'user' as const,
+    };
+    const [payload] = createSessionToken(user, 1_000).split('.');
+
+    expect(verifySessionToken(`${payload}.é`, 2_000)).toBeNull();
   });
 
   it('rejects an expired session token', () => {
@@ -141,6 +161,23 @@ describe('auth server helpers', () => {
   it('writes the auth cookie name into the session cookie', () => {
     const cookie = createSessionCookie('abc.def');
     expect(cookie.startsWith(`${AUTH_COOKIE_NAME}=abc.def`)).toBe(true);
+  });
+});
+
+describe('auth routes', () => {
+  it('clears the auth cookie when logout has no active session', async () => {
+    const token = generateCsrfToken();
+    const response = await logoutRoute.fetch(new Request('https://example.com/api/auth/logout', {
+      method: 'POST',
+      headers: {
+        cookie: `${CSRF_COOKIE_NAME}=${token}`,
+        [CSRF_HEADER_NAME]: token,
+      },
+    }));
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get('Set-Cookie')).toContain(`${AUTH_COOKIE_NAME}=`);
+    expect(response.headers.get('Set-Cookie')).toContain('Max-Age=0');
   });
 });
 
@@ -341,5 +378,23 @@ describe('csrf middleware', () => {
     }));
     expect(response.status).toBe(200);
     expect(response.headers.get('Set-Cookie')).toBeNull();
+  });
+
+  it('reissues a CSRF cookie when the existing cookie value is empty', async () => {
+    const handler = withCsrf({
+      async fetch() {
+        return new Response(JSON.stringify({ ok: true }));
+      },
+    });
+
+    const response = await handler.fetch(new Request('http://test', {
+      method: 'GET',
+      headers: {
+        cookie: `${CSRF_COOKIE_NAME}=`,
+      },
+    }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Set-Cookie')).toContain(`${CSRF_COOKIE_NAME}=`);
   });
 });

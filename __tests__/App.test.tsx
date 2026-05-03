@@ -245,8 +245,8 @@ describe('App utility dock regression', () => {
     expect(screen.getByLabelText('Image editing model')).toBeInTheDocument();
   });
 
-  it('falls back to try-on when session storage contains retired feature ids', async () => {
-    localStorage.setItem('cs_session_activeFeature', JSON.stringify('image-editor'));
+  it('falls back to try-on when session storage contains non-migrated feature ids', async () => {
+    localStorage.setItem('cs_session_activeFeature', JSON.stringify('watermark-remover'));
 
     render(<App />);
 

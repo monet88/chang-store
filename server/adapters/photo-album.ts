@@ -10,6 +10,9 @@ export function mapInput(payload: PhotoAlbumPayload): Record<string, unknown> {
   return {
     images: payload.images,
     format: payload.format,
+    prompt: payload.prompt,
+    aspectRatio: payload.aspectRatio,
+    resolution: payload.resolution,
   };
 }
 

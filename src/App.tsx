@@ -60,7 +60,7 @@ const AppContent: React.FC = () => {
   
   const [activeFeature, setActiveFeature] = useState<Feature>(() => {
     const savedFeature = getSessionState<string>('activeFeature', Feature.TryOn);
-    return Object.values(Feature).includes(savedFeature as Feature)
+    return MIGRATED_FEATURES.includes(savedFeature as Feature)
       ? (savedFeature as Feature)
       : Feature.TryOn;
   });

@@ -35,7 +35,7 @@ function hasCookie(request: Request, name: string): boolean {
   const cookieHeader = request.headers.get('cookie') ?? '';
   return cookieHeader.split(';').some((segment) => {
     const eq = segment.indexOf('=');
-    return eq > 0 && segment.slice(0, eq).trim() === name;
+    return eq > 0 && segment.slice(0, eq).trim() === name && segment.slice(eq + 1).trim().length > 0;
   });
 }
 

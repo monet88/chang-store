@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { withCsrf } from '../_lib/csrf-middleware';
 import { jsonResponse, errorResponse, methodNotAllowed, readJsonBody } from '../_lib/http';
-import { getAuthenticatedUserFromRequest } from '../_lib/auth';
+import { getAuthenticatedSessionFromRequest, type AuthenticatedSession } from '../_lib/auth';
 import { extractTraceId } from '../_lib/trace';
 import { getNeonPool } from '../../server/neon';
 import { createJob, createJobEvent, listJobsByUser, findJobByIdempotencyKey, sweepStaleJobs } from '../../server/db';
@@ -27,15 +27,10 @@ function parseBoundedInteger(value: string | null, fallback: number, minimum: nu
   return Math.min(maximum, Math.max(minimum, parsed));
 }
 
-function getSession(request: Request): { userId: string; username: string } | null {
-  const user = getAuthenticatedUserFromRequest(request);
-  if (!user) return null;
-  return { userId: user.username, username: user.displayName };
-}
-
 const handler = withCsrf({
   async fetch(request: Request): Promise<Response> {
-    const session = getSession(request);
+    const db = getNeonPool(process.env.DATABASE_URL!);
+    const session = await getAuthenticatedSessionFromRequest(db, request);
     if (!session) {
       return errorResponse('Authentication required.', 401);
     }
@@ -43,18 +38,18 @@ const handler = withCsrf({
     const traceId = extractTraceId(request);
 
     if (request.method === 'POST') {
-      return handleCreate(request, session, traceId);
+      return handleCreate(request, db, session, traceId);
     }
 
     if (request.method === 'GET') {
-      return handleList(request, session);
+      return handleList(request, db, session);
     }
 
     return methodNotAllowed(['GET', 'POST']);
   },
 });
 
-async function handleCreate(request: Request, session: { userId: string }, traceId: string): Promise<Response> {
+async function handleCreate(request: Request, db: ReturnType<typeof getNeonPool>, session: AuthenticatedSession, traceId: string): Promise<Response> {
   const body = await readJsonBody<CreateJobBody>(request);
   if (!body?.feature || !body?.payload) {
     return jsonResponse({ message: 'feature and payload are required.' }, { status: 400 });
@@ -76,8 +71,6 @@ async function handleCreate(request: Request, session: { userId: string }, trace
   const idempotencyKey = createHash('sha256')
     .update(`${session.userId}:${body.feature}:${JSON.stringify(validatedPayload)}`)
     .digest('hex');
-
-  const db = getNeonPool(process.env.DATABASE_URL!);
 
   let job;
   try {
@@ -106,13 +99,11 @@ async function handleCreate(request: Request, session: { userId: string }, trace
   return jsonResponse(job, { status: 201 });
 }
 
-async function handleList(request: Request, session: { userId: string }): Promise<Response> {
+async function handleList(request: Request, db: ReturnType<typeof getNeonPool>, session: AuthenticatedSession): Promise<Response> {
   const url = new URL(request.url);
   const status = url.searchParams.get('status') || undefined;
   const limit = parseBoundedInteger(url.searchParams.get('limit'), 50, 1, MAX_LIST_LIMIT);
   const offset = parseBoundedInteger(url.searchParams.get('offset'), 0, 0, MAX_LIST_OFFSET);
-
-  const db = getNeonPool(process.env.DATABASE_URL!);
 
   try {
     await sweepStaleJobs(db, session.userId);

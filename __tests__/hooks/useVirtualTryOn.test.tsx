@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import type { ImageFile, Job } from '../../src/types';
 
+const setSharedJobStateMock = vi.hoisted(() => vi.fn());
 const addImageMock = vi.fn();
 const submitJobMock = vi.fn();
 const pollJobMock = vi.fn();
@@ -66,6 +67,10 @@ vi.mock('../../src/services/jobService', () => ({
   downloadJobResultBlob: (...args: unknown[]) => downloadJobResultBlobMock(...args),
 }));
 
+vi.mock('../../src/hooks/useJobPoll', () => ({
+  setSharedJobState: (...args: unknown[]) => setSharedJobStateMock(...args),
+}));
+
 import { useVirtualTryOn } from '../../src/hooks/useVirtualTryOn';
 import { compositeMarkerOnImage } from '../../src/utils/imageUtils';
 import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
@@ -116,6 +121,8 @@ function makeJob(id: string, status: Job['status'] = 'completed', errorMessage: 
 describe('useVirtualTryOn', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
+    setSharedJobStateMock.mockReset();
     addImageMock.mockReset();
     mockModelName = 'gemini-2.5-flash-image';
     refineSessionMock.sendRefinement.mockReset();
@@ -250,6 +257,45 @@ describe('useVirtualTryOn', () => {
     expect(result.current.subjectItems[0].status).toBe('completed');
     expect(result.current.subjectItems[1].status).toBe('error');
     expect(result.current.subjectItems[1].error).toBe('subject failed');
+  });
+
+  it('keeps shared polling active until every subject job reaches a terminal state', async () => {
+    vi.useFakeTimers();
+    submitJobMock.mockImplementation(async (_feature: string, payload: Record<string, unknown>) => makeJob(`job-${payload.personImage as string}`, 'queued'));
+    let secondPollCount = 0;
+    pollJobMock.mockImplementation(async (jobId: string) => {
+      if (jobId === 'job-subject-b') {
+        secondPollCount += 1;
+        return makeJob(jobId, secondPollCount === 1 ? 'running' : 'completed');
+      }
+
+      return makeJob(jobId, 'completed');
+    });
+    getJobResultsMock.mockResolvedValue({ job: makeJob('job'), results: [] });
+
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.handleSubjectImagesUpload([SUBJECT_A, SUBJECT_B]);
+      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+    });
+
+    const generationPromise = act(async () => {
+      await result.current.handleGenerateImage();
+    });
+
+    await vi.waitFor(() => {
+      expect(setSharedJobStateMock).toHaveBeenCalledWith(expect.objectContaining({
+        job: expect.objectContaining({ id: 'job-subject-a', status: 'completed' }),
+        isPolling: true,
+      }));
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    await generationPromise;
+    vi.useRealTimers();
   });
 
   it('starts all subject image requests in the same run before any resolve', async () => {

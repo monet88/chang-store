@@ -116,8 +116,6 @@ async function sendWebResponse(response: Response, res: NodeJS.WritableStream & 
 }
 
 function devApiBridge(): Plugin {
-  const routes = collectApiRoutes(API_ROOT);
-
   return {
     name: 'dev-api-bridge',
     apply: 'serve',
@@ -128,6 +126,7 @@ function devApiBridge(): Plugin {
         }
 
         const url = new URL(req.url, `http://${req.headers.host ?? 'localhost:3000'}`);
+        const routes = collectApiRoutes(API_ROOT);
         const route = matchApiRoute(url.pathname, routes);
         if (!route) {
           return next();

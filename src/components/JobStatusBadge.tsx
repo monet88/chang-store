@@ -29,7 +29,8 @@ const JobStatusBadge: React.FC<JobStatusBadgeProps> = ({ job, isPolling, onCance
   const status = job.status;
   const featureLabel = t(FEATURE_LABELS[job.feature] || 'tabs.tryOn');
   const statusText = t(`jobs.status.${status}`);
-  const progressTotal = job.progress_total > 0 ? job.progress_total : 1;
+  const hasProgressTotal = job.progress_total > 0;
+  const progressTotal = hasProgressTotal ? job.progress_total : 1;
   const progressDone = Math.min(job.progress_done, progressTotal);
   const progressPercent = Math.round((progressDone / progressTotal) * 100);
 
@@ -57,7 +58,7 @@ const JobStatusBadge: React.FC<JobStatusBadgeProps> = ({ job, isPolling, onCance
           }`}>
             {statusText}
           </span>
-          {isActive && progressTotal > 0 && (
+          {isActive && hasProgressTotal && (
             <div className="mt-1.5 flex items-center gap-2">
               <div className="h-1.5 w-20 overflow-hidden rounded-full bg-white/[0.08]">
                 <div

@@ -39,13 +39,13 @@ export async function submitJob(
   payload: unknown,
   traceId?: string,
 ): Promise<JobRecord> {
-  validateJobPayload(feature, payload);
+  const validatedPayload = validateJobPayload(feature, payload);
 
   const idempotencyKey = createHash('sha256')
-    .update(`${userId}:${feature}:${JSON.stringify(payload)}`)
+    .update(`${userId}:${feature}:${JSON.stringify(validatedPayload)}`)
     .digest('hex');
 
-  const job = await createJob(db, userId, feature, idempotencyKey, payload as Record<string, unknown>);
+  const job = await createJob(db, userId, feature, idempotencyKey, validatedPayload as Record<string, unknown>);
   await createJobEvent(db, job.id, 'queued', { feature }, traceId);
   return job;
 }
@@ -69,6 +69,7 @@ export async function completeJob(
     assets,
     eventPayload: { assetCount: assets.length },
     traceId,
+    expectedStatus: job.status,
   });
 }
 
@@ -88,7 +89,7 @@ export async function failJob(
     throw new Error(`Cannot transition job ${jobId} from ${job.status} to failed`);
   }
 
-  await updateJobStatus(db, jobId, 'failed', errorCode, errorMessage);
+  await updateJobStatus(db, jobId, 'failed', errorCode, errorMessage, job.status);
   await createJobEvent(db, jobId, 'failed', { errorCode, errorMessage, ...(extraEventPayload ?? {}) }, traceId);
 }
 
@@ -115,6 +116,7 @@ export async function partialJob(
     errorMessage,
     eventPayload: { assetCount: assets.length, errorCode },
     traceId,
+    expectedStatus: job.status,
   });
 }
 

@@ -1,5 +1,6 @@
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import type { AuthenticatedUser } from '../../src/types';
+import { createUser, getUserByUsername, type DB } from '../../server/db';
 
 function scryptAsync(password: string, salt: string, keylen: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -29,6 +30,13 @@ interface SessionPayload {
   name: string;
   provisioning: 'seeded';
   exp: number;
+}
+
+export interface AuthenticatedSession {
+  user: AuthenticatedUser;
+  userId: string;
+  username: string;
+  displayName: string;
 }
 
 const encodeBase64Url = (value: string): string => Buffer.from(value, 'utf8').toString('base64url');
@@ -120,7 +128,7 @@ export function getSeededUsers(env = process.env): SeededUserRecord[] {
       .map(normalizeUser)
       .filter((value): value is SeededUserRecord => value !== null);
 
-    return users.length > 0 ? users : getDefaultSeededUsers();
+    return users;
   } catch {
     return getDefaultSeededUsers();
   }
@@ -202,11 +210,13 @@ export function verifySessionToken(token: string, now = Date.now(), env = proces
   }
 
   const expectedSignature = signValue(encodedPayload, env);
-  if (signature.length !== expectedSignature.length) {
+  const signatureBuffer = Buffer.from(signature);
+  const expectedSignatureBuffer = Buffer.from(expectedSignature);
+  if (signatureBuffer.byteLength !== expectedSignatureBuffer.byteLength) {
     return null;
   }
 
-  if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+  if (!timingSafeEqual(signatureBuffer, expectedSignatureBuffer)) {
     return null;
   }
 
@@ -267,6 +277,60 @@ export function getAuthenticatedUserFromRequest(request: Request, now = Date.now
   }
 
   return verifySessionToken(token, now, env);
+}
+
+async function getSeededPasswordHash(user: AuthenticatedUser, env = process.env): Promise<string | null> {
+  const seededUser = getSeededUsers(env).find((entry) => entry.username === user.username);
+  if (!seededUser) {
+    return null;
+  }
+
+  if (seededUser.passwordHash) {
+    return seededUser.passwordHash;
+  }
+
+  return seededUser.password ? hashPassword(seededUser.password) : null;
+}
+
+export async function getAuthenticatedSessionFromRequest(
+  db: DB,
+  request: Request,
+  now = Date.now(),
+  env = process.env,
+): Promise<AuthenticatedSession | null> {
+  const user = getAuthenticatedUserFromRequest(request, now, env);
+  if (!user) {
+    return null;
+  }
+
+  const existingUser = await getUserByUsername(db, user.username);
+  if (existingUser) {
+    return existingUser.status === 'active'
+      ? { user, userId: existingUser.id, username: user.username, displayName: user.displayName }
+      : null;
+  }
+
+  const passwordHash = await getSeededPasswordHash(user, env);
+  if (!passwordHash) {
+    return null;
+  }
+
+  try {
+    const createdUser = await createUser(db, user.username, passwordHash);
+    return { user, userId: createdUser.id, username: user.username, displayName: user.displayName };
+  } catch (err) {
+    const isUniqueViolation =
+      typeof err === 'object' && err !== null &&
+      'code' in err && (err as Record<string, unknown>).code === '23505';
+    if (!isUniqueViolation) {
+      throw err;
+    }
+
+    const createdByConcurrentRequest = await getUserByUsername(db, user.username);
+    return createdByConcurrentRequest?.status === 'active'
+      ? { user, userId: createdByConcurrentRequest.id, username: user.username, displayName: user.displayName }
+      : null;
+  }
 }
 
 export function createSessionCookie(token: string, env = process.env): string {

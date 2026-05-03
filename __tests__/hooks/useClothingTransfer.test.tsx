@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { Job, ImageFile } from '../../src/types';
 
+const setSharedJobStateMock = vi.hoisted(() => vi.fn());
 const addImageMock = vi.fn();
 const submitJobMock = vi.fn();
 const pollJobMock = vi.fn();
@@ -63,6 +64,10 @@ vi.mock('../../src/services/jobService', () => ({
   downloadJobResultBlob: (...args: unknown[]) => downloadJobResultBlobMock(...args),
 }));
 
+vi.mock('../../src/hooks/useJobPoll', () => ({
+  setSharedJobState: (...args: unknown[]) => setSharedJobStateMock(...args),
+}));
+
 import { useClothingTransfer } from '../../src/hooks/useClothingTransfer';
 import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
@@ -111,6 +116,8 @@ function makeJob(id: string, status: Job['status'] = 'completed', errorMessage: 
 describe('useClothingTransfer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
+    setSharedJobStateMock.mockReset();
     addImageMock.mockReset();
     refineSessionMock.sendRefinement.mockReset();
     jobCounter = 0;
@@ -251,6 +258,45 @@ describe('useClothingTransfer', () => {
     expect(result.current.conceptItems[0].status).toBe('completed');
     expect(result.current.conceptItems[1].status).toBe('error');
     expect(result.current.conceptItems[1].error).toBe('concept failed');
+  });
+
+  it('keeps shared polling active until every concept job reaches a terminal state', async () => {
+    vi.useFakeTimers();
+    submitJobMock.mockImplementation(async (_feature: string, payload: Record<string, unknown>) => makeJob(`job-${payload.conceptImage as string}`, 'queued'));
+    let secondPollCount = 0;
+    pollJobMock.mockImplementation(async (jobId: string) => {
+      if (jobId === 'job-concept-b') {
+        secondPollCount += 1;
+        return makeJob(jobId, secondPollCount === 1 ? 'running' : 'completed');
+      }
+
+      return makeJob(jobId, 'completed');
+    });
+    getJobResultsMock.mockResolvedValue({ job: makeJob('job'), results: [] });
+
+    const { result } = renderHook(() => useClothingTransfer());
+
+    act(() => {
+      result.current.handleConceptImagesUpload([CONCEPT_A, CONCEPT_B]);
+      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
+    });
+
+    const generationPromise = act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    await vi.waitFor(() => {
+      expect(setSharedJobStateMock).toHaveBeenCalledWith(expect.objectContaining({
+        job: expect.objectContaining({ id: 'job-concept-a', status: 'completed' }),
+        isPolling: true,
+      }));
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    await generationPromise;
+    vi.useRealTimers();
   });
 
   it('starts all concept image requests in the same run before any resolve', async () => {
