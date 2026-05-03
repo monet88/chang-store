@@ -70,3 +70,4 @@ opencode.json
 .jules/
 .motion/
 .vercel
+.env*.local

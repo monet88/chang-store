@@ -1,265 +1,402 @@
 # ARCHITECTURE
 
 > Generated from the GitNexus knowledge graph for `chang-store`.
-> Snapshot: 165 files, 2,814 symbols, 87 execution flows.
-> Indexed commit: `7eb916e`.
+> Snapshot: **194 files · 3,376 symbols · 222 execution flows**.
+> Last regenerated: 2026-05-04.
+
+---
 
 ## Overview
 
-Chang-Store is an AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite single-page application. The product architecture is organized around feature surfaces that collect user intent, hooks that own state and orchestration, service facades that isolate external calls, provider-specific Gemini modules, and shared contexts that preserve cross-feature state.
+Chang-Store is an **AI-powered virtual fashion studio** built as a React 19 + TypeScript + Vite single-page application with a **Gemini-only AI backend** via the Google Gemini SDK. The app supports fashion image creation, editing, gallery review, and Google Drive-backed archive workflows.
 
-The intended runtime flow is:
+### Dual Runtime Architecture
 
-- `Components` — presentation layer and feature entry points
-- `Hooks` — feature logic and orchestration
-- `Services` — stateless service facade layer
-- `Gemini` — provider-specific AI image and text operations
-- `Config` — model registry and capability selection
-- `Contexts` — global app state and cross-feature persistence
-- `Modals` — UI overlays and settings surfaces
-- `Build` — tooling and runtime setup
+The system operates across two runtimes:
 
-GitNexus shows that the strongest module boundaries are `Components`, `Services`, `Hooks`, `Gemini`, `Config`, and `Contexts`. Most feature work starts in a component, moves into a feature hook, then reaches shared utilities or service layers for AI calls, downloads, persistence, or model selection.
+| Runtime | Tech | Responsibility |
+|---------|------|----------------|
+| **Client (SPA)** | React 19 + Vite | UI, feature hooks, client-side Gemini calls, gallery state |
+| **Server (Vercel)** | Serverless Functions + Neon PostgreSQL | Authentication, job pipeline, server-side Gemini execution, blob storage |
+
+The intended request flow is:
+
+```
+User → Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API
+                                   ↓ (for job-based features)
+                              Job Service → API Endpoints → Workflow Engine → Gemini (server)
+```
+
+---
 
 ## Functional Areas
 
+GitNexus detected **11 functional clusters** via Leiden community detection:
+
 | Area | Symbols | Cohesion | Role |
-|---|---:|---:|---|
-| Components | 58 | 94% | Feature entry points and UI composition. Components should stay thin and bind state/handlers from hooks. |
-| Services | 41 | 96% | Stateless API facades and external-service adapters. Central place for Gemini, Drive, and image-operation routing. |
-| Hooks | 34 | 88% | Feature orchestration, state transitions, validation, loading/error handling, and side effects. |
-| Gemini | 23 | 92% | Provider-specific AI image/text operations behind service facades. |
-| Config | 18 | 85% | Model registry, capability lookup, and model-candidate construction. |
-| Contexts | 13 | 90% | Global app state: language, API provider config, gallery, Drive sync, image viewer. |
-| Modals | 13 | 100% | Focused overlay surfaces such as settings and dialogs. |
-| Build | 8 | 100% | Vite/build/tooling infrastructure. |
+|------|--------:|----------:|------|
+| **_lib** | 64 | 75% | Server-side shared utilities: auth, CSRF, rate limiting, HTTP helpers, tracing |
+| **Server** | 61 | 79% | Database (Neon), blob storage, job state machine, Gemini server client, workflow engine |
+| **Services** | 50 | 85% | Client-side service facades: imageEditingService, jobService, googleDriveService, textService |
+| **Hooks** | 49 | 77% | Feature orchestration hooks: state, validation, batch processing, gallery integration |
+| **Gemini** | 22 | 98% | Provider-specific AI modules: image gen/edit, text analysis, video prompts, chat sessions |
+| **Config** | 16 | 91% | Model registry, capability lookup, selection rules, model candidate construction |
+| **Contexts** | 15 | 87% | Global state providers: Language, API, GoogleDrive, ImageGallery, ImageViewer |
+| **Components** | 13 | 87% | Feature entry points: VirtualTryOn, PatternGenerator, GoogleDriveSettings |
+| **Modals** | 9 | 100% | UI overlays: PoseLibraryModal, PromptLibraryModal |
+| **Build** | 8 | 100% | Vite/ESLint/Vitest tooling infrastructure |
+| **Cluster_14** | 6 | 60% | Miscellaneous utilities (lower cohesion, candidates for reorganization) |
 
-The `Components` cluster is the primary UI surface and contains feature entry points such as `VirtualTryOn`, `PoseChanger`, and other task-specific screens. These components either act as thin wrappers over hooks or, in some older flows, still hold orchestration logic directly.
+### Area Details
 
-- Cluster size: 69 symbols
-- Cohesion: 92%
+#### _lib (Server Utilities)
+The backbone of the server-side runtime. Houses authentication middleware, CSRF token generation/validation, rate limiting, HTTP response helpers, and request tracing.
 
-### 2. Hooks
+Key symbols: `parseCookies`, `validateCsrfToken`, `createRateLimiter`, `checkRateLimit`, `jsonResponse`, `errorResponse`, `getSessionTokenFromRequest`, `getAuthenticatedUserFromRequest`
 
-The `Hooks` cluster contains feature logic, request orchestration, validation, and state coordination. It is the bridge between UI intent and lower-level services.
+#### Server
+Database operations (Neon PostgreSQL), blob storage adapters, the job state machine (`canTransition`, `transitionStatus`), server-side Gemini client (`getGeminiClient`, `getApiKey`), and the workflow engine (`executeJob`, `runFeatureJob`, `geminiExecuteStep`).
 
-- Cluster size: 22 symbols
-- Cohesion: 81%
+Key symbols: `createJob`, `getJobById`, `rowToJob`, `jobRecordToRunResult`, `createWorkflowContext`, `updateProgress`, `withErrorHandling`
 
-Representative role in graph:
-- `useVirtualTryOn` coordinates batch try-on state and image generation.
-- `useGoogleDriveSync` mediates gallery actions into Drive requests.
+#### Services (Client Facades)
+Stateless service layer routing feature actions into provider-specific implementations. Central routing through `imageEditingService.ts`.
 
-### 3. Services
+Key symbols: `editImage`, `generateImage`, `upscaleImage`, `recreateImageWithFace`, `pollJob`, `getJob`, `fetchJson`, `getCsrfToken`, `driveRequest`, `uploadImage`
 
-The `Services` cluster is a highly cohesive facade layer that routes feature actions into provider-specific implementations and shared infrastructure.
+#### Hooks
+Feature orchestration layer owning all state, validation, API calls, and gallery integration. One hook per feature.
 
-- Cluster size: 41 symbols
-- Cohesion: 96%
+Key symbols: `useLookbookGenerator`, `usePhotoAlbum`, `useWatermarkRemover`, `usePoseChanger`, `usePatternGenerator`, `useBackgroundReplacer`, `useVirtualTryOn`, `useJobPoll`, `useModelSelection`
 
-Representative responsibilities:
-- image editing/generation orchestration
-- Drive access
-- API client creation
-- text and scene analysis
+#### Gemini (AI Provider)
+Provider-specific AI operations behind service facades. Highest cohesion cluster (98%).
 
-### 4. Gemini
+Key symbols: `generateImageFromText`, `editImage`, `upscaleImage`, `generateSingleImage`, `createImageChatSession`, `generateText`, `generatePoseDescription`, `generateClothingDescription`, `generateVideo`, `generateVideoSceneSuggestions`
 
-The `Gemini` cluster contains provider-specific AI generation and transformation logic. GitNexus shows multiple important flows terminating in Gemini image operations before delegating into model capability selection.
+#### Config
+Model capability registry and selection rules. Central to all AI generation paths.
 
-- Cluster size: 23 symbols
-- Cohesion: 92%
+Key symbols: `resolveModelSelectionScope`, `getModelsBySelectionType`, `getModelCapabilities`, `getRegisteredModel`, `buildModelCandidates`, `isRegisteredModelId`
 
-Representative functions seen in the graph:
-- `editImage`
-- `generateSingleImage`
-- `generateImageFromText`
-- `upscaleImage`
+#### Contexts
+Global state providers following strict nesting order:
+```
+LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
+```
+> **Note:** `ToastProvider` lives in `src/components/Toast.tsx`, not in `src/contexts/`.
 
-### 5. Config
+---
 
-The `Config` cluster is a key decision-making layer for model selection and capability routing. The knowledge graph highlights `src/config/modelRegistry.ts` as part of important generation flows.
-
-- Cluster size: 18 symbols
-- Cohesion: 85%
-
-Representative functions seen in graph traces:
-- `getModelCapabilities`
-- `getRegisteredModel`
-- `buildModelCandidates`
-
-### 6. Contexts
-
-The `Contexts` cluster manages shared application state and persistence-backed workflows. It appears in key execution flows around image gallery state and Google Drive synchronization.
-
-- Cluster size: 13 symbols
-- Cohesion: 90%
-
-Representative role in graph:
-- `ImageGalleryProvider` triggers sync work through `useGoogleDriveSync`, which then delegates to Drive service calls.
-
-### 7. Modals
-
-The `Modals` cluster represents highly cohesive UI overlays such as settings and dialogs.
-
-- Cluster size: 13 symbols
-- Cohesion: 100%
-
-### 8. Build
-
-The `Build` cluster covers bundling and tooling infrastructure.
-
-- Cluster size: 8 symbols
-- Cohesion: 100%
-
-## Mermaid Diagram
+## Architecture Diagram
 
 ```mermaid
 flowchart TD
-    UI[Components]
-    MODALS[Modals]
-    HOOKS[Hooks]
-    SERVICES[Services]
-    GEMINI[Gemini]
-    CONFIG[Config / modelRegistry]
-    CONTEXTS[Contexts]
-    BUILD[Build tooling]
-    DRIVE[Google Drive service]
-    API[API Client / Gemini key access]
+    subgraph CLIENT["Client SPA (React 19 + Vite)"]
+        UI["Components<br/><small>Thin UI wrappers</small>"]
+        MODALS["Modals<br/><small>PoseLibrary, PromptLibrary</small>"]
+        HOOKS["Hooks<br/><small>Feature state + orchestration</small>"]
+        CONTEXTS["Contexts<br/><small>Language, API, Gallery, Drive, Viewer</small>"]
+        SERVICES["Services<br/><small>imageEditingService, jobService, googleDriveService</small>"]
+        GEMINI_CLIENT["Gemini Client<br/><small>image, text, video, chat modules</small>"]
+        CONFIG["Config<br/><small>modelRegistry, selectionRules</small>"]
+        UTILS["Utils<br/><small>imageDownload, zipDownload, imageCache, galleryDB</small>"]
+    end
+
+    subgraph SERVER["Server (Vercel Serverless)"]
+        API["API Routes<br/><small>api/jobs, api/auth, api/assets</small>"]
+        LIB["_lib<br/><small>auth, csrf, rate-limiter, http</small>"]
+        WORKFLOWS["Workflow Engine<br/><small>job-runner, feature-runner, gemini-executor</small>"]
+        DB["Neon PostgreSQL<br/><small>jobs, users, sessions, assets</small>"]
+        BLOB["Blob Storage<br/><small>Vercel Blob</small>"]
+        GEMINI_SERVER["Gemini Server<br/><small>server/gemini.ts</small>"]
+        ADAPTERS["Feature Adapters<br/><small>server/adapters/</small>"]
+    end
+
+    GDRIVE["Google Drive API"]
+    GEMINI_API["Google Gemini API"]
 
     UI --> HOOKS
     UI --> MODALS
     HOOKS --> SERVICES
     HOOKS --> CONTEXTS
-    SERVICES --> GEMINI
-    SERVICES --> API
-    GEMINI --> CONFIG
-    CONTEXTS --> DRIVE
-    BUILD -. supports .-> UI
-    BUILD -. supports .-> SERVICES
+    HOOKS --> UTILS
+    SERVICES --> GEMINI_CLIENT
+    SERVICES --> CONFIG
+    GEMINI_CLIENT --> CONFIG
+    GEMINI_CLIENT --> GEMINI_API
+    CONTEXTS -.-> SERVICES
+
+    SERVICES -->|"Job-based features"| API
+    API --> LIB
+    API --> WORKFLOWS
+    WORKFLOWS --> ADAPTERS
+    WORKFLOWS --> GEMINI_SERVER
+    WORKFLOWS --> DB
+    WORKFLOWS --> BLOB
+    GEMINI_SERVER --> GEMINI_API
+    LIB --> DB
+
+    SERVICES -->|"Drive sync"| GDRIVE
 ```
+
+---
 
 ## Key Execution Flows
 
-### 1. Watermark removal single-image download naming → sanitized filename segment
+### 1. Server-Side Job Pipeline
 
-GitNexus process: `WatermarkRemover → SanitizeSegment`
+The core async pipeline for feature execution through the server.
 
-Type: `cross_community`
+**Process:** `ExecuteJob → RowToJob` (cross_community, 5 steps)
 
-Trace:
+```
+executeJob (server/workflows/job-runner.ts)
+  → runFeatureJob (workflows/feature-runner.ts)
+    → FeatureAdapter.run() (server/adapters/)
+      → geminiExecuteStep (server/workflows/gemini-executor.ts)
+        → generateImage / editImage (server/gemini.ts)
+          → Google Gemini API
+```
 
-1. `WatermarkRemover` — `src/components/WatermarkRemover.tsx`
-2. `useWatermarkRemover` — `src/hooks/useWatermarkRemover.ts`
-3. `downloadImageAsJpeg` — `src/utils/imageDownload.ts`
-4. `resolveBaseName` — `src/utils/imageDownload.ts`
-5. `sanitizeSegment` — `src/utils/imageDownload.ts`
+**Why it matters:**
+- This is the primary server-side execution path for all job-based features
+- Uses the `FeatureAdapter` interface pattern for per-feature dispatch
+- Job state transitions are tracked in Neon PostgreSQL via `transitionStatus`
+- Results are stored as blobs and associated with job assets
+- Error handling via `withErrorHandling` wrapper and `updateProgress` for progress tracking
 
-Why it matters:
+### 2. Client Job Polling
 
-### 2. Gallery persistence → Google Drive
+How the client-side hooks wait for server-side job completion.
 
-GitNexus process: `ImageGalleryProvider → DriveRequest`
+**Process:** `UseLookbookGenerator → GetCsrfToken` (cross_community, 5 steps)
 
-Trace:
-1. `ImageGalleryProvider` — `src/contexts/ImageGalleryContext.tsx`
-2. `useGoogleDriveSync` — `src/hooks/useGoogleDriveSync.ts`
-3. `getOrCreateAppFolder` — `src/services/googleDriveService.ts`
-4. `driveRequest` — `src/services/googleDriveService.ts`
+```
+useLookbookGenerator (src/hooks/useLookbookGenerator.ts)
+  → pollJob (src/services/jobService.ts)
+    → getJob (src/services/jobService.ts)
+      → fetchJson (src/services/jobService.ts)
+        → getCsrfToken (src/services/jobService.ts)
+```
 
-Why it matters:
-- This flow captures the persistence side of the app, not just AI generation.
-- Context-driven gallery state can trigger sync behavior that ultimately becomes Google Drive API traffic.
-- It also shows the app’s cross-cutting architecture: context state + hook orchestration + service execution.
+**Also observed in:** `UsePhotoAlbum → GetCsrfToken`, `UseJobPoll → GetCsrfToken`
 
-### 3. Pose change → service config construction
+**Why it matters:**
+- All job-based feature hooks share this polling pattern
+- CSRF token is extracted from cookies for authenticated API calls
+- `fetchJson` handles response parsing and error mapping to `JobHttpError`
+- Same pattern is reused across Lookbook, PhotoAlbum, and the generic `useJobPoll` hook
 
-GitNexus process: `PoseChanger → BuildImageServiceConfig`
+### 3. Authentication & Session Flow
 
-Type: `intra_community`
+Server-side request authentication pipeline.
 
-Trace:
+**Process:** `Fetch → ParseCookies` (cross_community, 5 steps)
 
-1. `PoseChanger` — `src/components/PoseChanger.tsx`
-2. `handleRegenerateSingle` — `src/hooks/usePoseChanger.ts`
-3. `handleGenerate` — `src/hooks/usePoseChanger.ts`
-4. `generateImageForPrompt` — `src/hooks/usePoseChanger.ts`
-5. `buildImageServiceConfig` — `src/hooks/usePoseChanger.ts`
+```
+fetch (api/jobs/index.ts)
+  → getAuthenticatedSessionFromRequest (api/_lib/auth.ts)
+    → getAuthenticatedUserFromRequest (api/_lib/auth.ts)
+      → getSessionTokenFromRequest (api/_lib/auth.ts)
+        → parseCookies (api/_lib/auth.ts)
+```
 
-Why it matters:
+**Also observed in:** `Fetch → ToAuthenticatedUser`, `Fetch → GetDefaultSeededUsers`
 
-- This flow shows pose feature API configuration is owned by the hook rather than the component.
-- Generation and regeneration reuse the same service-config path, reducing divergence between output flows.
-- API-provider concerns stay below the UI layer.
+**Why it matters:**
+- Every API route goes through this authentication chain
+- Cookie-based session management with seeded user support
+- Session tokens are extracted and validated before any job operation
+- Connects to `DecodeBase64Url` for JWT-style token parsing
 
-### 5. Pattern generation ZIP download → sanitized filename segment
+### 4. CSRF Protection
 
-1. `PatternGenerator` (`src/components/PatternGenerator.tsx`) — user clicks "Download All as ZIP"
-2. `handleDownloadAllZip` — `src/hooks/usePatternGenerator.ts`
-3. `downloadImagesAsZip` — `src/utils/zipDownload.ts`
-4. `getZipEntryPrefix` — `src/utils/zipDownload.ts` (strips `.zip` and `-batch` suffix)
-5. `buildDownloadFilename` — `src/utils/imageDownload.ts` (produces `pattern-generator-001.jpg`, etc.)
+Double-submit cookie pattern for state-changing requests.
 
-Why it matters:
+**Process:** `WithCsrf → GenerateCsrfToken` (intra_community, 3 steps)
 
-- This flow shows the ZIP download path stays entirely in the hook, matching the `Component → Hook → Service` architecture.
-- The filename sanitization (`getZipEntryPrefix`) ensures clean entry names inside the archive regardless of the caller-supplied archive name.
-- Image-to-JPEG conversion happens inside the utility layer, not the hook, keeping the hook focused on orchestration.
+```
+withCsrf (api/_lib/csrf-middleware.ts)
+  → addCsrfCookie (api/_lib/csrf-middleware.ts)
+    → generateCsrfToken (api/_lib/csrf.ts)
+```
 
-Required gates for substantive refactors:
-1. `npx tsc --noEmit` passes.
-2. `npm run lint` passes.
-3. `npm run test` passes for the targeted smoke/regression scope.
-4. `npm run build` passes at major cross-feature gates.
-5. Runtime service imports in scoped components do not increase; phase targets require runtime service imports to reach zero where specified.
+**Also:** `WithCsrf → ParseCookies` for validation path
 
-### Context-backed persistence
+**Why it matters:**
+- Middleware pattern wrapping all mutating API routes
+- Token generation, cookie setting, and validation are cleanly separated
+- Both server-side validation and client-side token extraction share the same cookie name constants
 
-Rollback action: revert the current phase rewiring, restore the previous boundary temporarily, record the blocker and root cause, then reopen the phase with a smaller scope.
+### 5. Watermark Removal → Download
 
-| Phase | Required smoke/regression evidence | Rollback |
-|---|---|---|
-| P0 | Baseline table covering current runtime service/config imports and smoke owners | Docs-only revert |
-| P1 | Pose text/reference generate + single regenerate; runtime service/config imports in `PoseChanger` = 0 | Revert P1 commit; component path restored |
-| P2 | Provider/model selection persistence, storage backup/restore/clear, debug toggle behavior; provider order snapshot unchanged | Revert P2 commit; restore exported storage backup; reset debug flag |
-| P3 | `AIEditor` refine/edit smoke; runtime service imports = 0 | Revert P3 commit |
-| P4 | Photo album generate/regenerate smoke; runtime service imports = 0 | Revert P4 commit |
-| P5 | Lookbook/refinement compatibility smoke; downstream surfaces remain presentational | Revert P5 commit |
+End-to-end feature flow from UI to sanitized file download.
 
-### Current Baseline Inventory
+**Process:** `WatermarkRemover → SanitizeSegment` (cross_community, 6 steps)
 
-| Target | Existing hook/contract owner | Runtime service/config imports | Scope |
-|---|---|---:|---|
-| `PoseChanger` (`src/components/PoseChanger.tsx`) | `usePoseChanger` | 0 | Preserve hook-owned generation and upscale side effects. |
-| `SettingsModal` (`src/components/modals/SettingsModal.tsx`) | `useSettingsModal` | 0 | Keep the modal presentational while the hook owns model filtering, persistence, backup/restore/clear, and debug toggles. |
-| `AIEditor` (`src/components/AIEditor.tsx`) | `useAIEditor` | 0 | Keep prompt validation, mention resolution, API calls, loading/error, and result state inside the hook boundary. |
-| `PhotoAlbumCreator` (`src/components/PhotoAlbumCreator.tsx`) | `usePhotoAlbum` | 0 | Keep pose prompt generation, batch progress, regenerate, loading/error, and related orchestration inside the hook boundary. |
-| `LookbookOutput` (`src/components/LookbookOutput.tsx`) | `useLookbookGenerator` owns generation; output component owns downstream UI | 0 | Keep output presentational and reduce service-owned type coupling. |
-| `shared/RefinementInput` (`src/components/shared/RefinementInput.tsx`) | Parent lookbook/refinement contract | 0 | Keep refinement input presentational and preserve callback props. |
+```
+WatermarkRemover (src/components/WatermarkRemover.tsx)
+  → useWatermarkRemover (src/hooks/useWatermarkRemover.ts)
+    → downloadImageAsJpeg (src/utils/imageDownload.ts)
+      → resolveBaseName (src/utils/imageDownload.ts)
+        → buildDownloadFilename (src/utils/imageDownload.ts)
+          → sanitizeSegment (src/utils/imageDownload.ts)
+```
 
-### Roadmap ADR
+**Why it matters:**
+- Demonstrates the full `Component → Hook → Utility` layered flow
+- Longest traced process (6 steps) — spans 3 functional areas
+- File naming and sanitization are handled in the utility layer, not the hook
 
-Decision: refactor by risk/dependency boundary while prioritizing existing hook completion over new abstractions.
+### 6. Server-Side Gemini Execution
 
-Drivers: reduce blast radius, remove component-level service coupling, and preserve behavior parity.
+AI image generation/editing on the server via workflow engine.
 
-Follow-ups: after each phase passes its gates, update this section with completed status and any newly discovered exceptions.
+**Process:** `GeminiExecuteStep → GetApiKey` (intra_community, 5 steps)
+
+```
+geminiExecuteStep (server/workflows/gemini-executor.ts)
+  → editImage / generateImage (server/gemini.ts)
+    → getGeminiClient (server/gemini.ts)
+      → getApiKey (server/gemini.ts)
+```
+
+**Why it matters:**
+- Server-side Gemini calls use a separate client from client-side (`server/gemini.ts` vs `src/services/apiClient.ts`)
+- `FEATURE_PROMPTS` map in `gemini-executor.ts` provides per-feature prompt dispatch
+- API key management is server-controlled, not exposed to the client for job-based features
+
+---
+
+## Data Flow Diagram
+
+```mermaid
+flowchart LR
+    subgraph INPUT["User Input"]
+        IMG["Source Images"]
+        PROMPT["Text Prompts"]
+        SETTINGS["Model & Feature Settings"]
+    end
+
+    subgraph PROCESSING["Processing Paths"]
+        direction TB
+        CLIENT_AI["Client-Side AI<br/><small>Direct Gemini calls</small>"]
+        SERVER_JOB["Server Job Pipeline<br/><small>Async execution</small>"]
+    end
+
+    subgraph OUTPUT["Output"]
+        GALLERY["Image Gallery<br/><small>IndexedDB</small>"]
+        DOWNLOAD["File Download<br/><small>JPEG / ZIP</small>"]
+        DRIVE["Google Drive<br/><small>Cloud archive</small>"]
+    end
+
+    IMG --> CLIENT_AI
+    IMG --> SERVER_JOB
+    PROMPT --> CLIENT_AI
+    PROMPT --> SERVER_JOB
+    SETTINGS --> CLIENT_AI
+    SETTINGS --> SERVER_JOB
+
+    CLIENT_AI --> GALLERY
+    SERVER_JOB -->|"Poll + download blob"| GALLERY
+    GALLERY --> DOWNLOAD
+    GALLERY --> DRIVE
+```
+
+---
+
+## Feature Routing
+
+Each feature maps to a `Feature` enum value in `src/types.ts` and is lazy-loaded in `src/App.tsx`:
+
+| Feature | Component | Hook | Execution Path |
+|---------|-----------|------|----------------|
+| TryOn | `VirtualTryOn` | `useVirtualTryOn` | Server job pipeline |
+| Lookbook | `LookbookGenerator` | `useLookbookGenerator` | Server job pipeline |
+| Background | `BackgroundReplacer` | `useBackgroundReplacer` | Server job pipeline |
+| Pose | `PoseChanger` | `usePoseChanger` | Server job pipeline |
+| PhotoAlbum | `PhotoAlbumCreator` | `usePhotoAlbum` | Server job pipeline |
+| AIEditor | `AIEditor` | `useAIEditor` | Client-side Gemini |
+| WatermarkRemover | `WatermarkRemover` | `useWatermarkRemover` | Client-side Gemini |
+| ClothingTransfer | — | — | Planned |
+| PatternGenerator | `PatternGenerator` | `usePatternGenerator` | Client-side Gemini |
+
+---
+
+## Directory Structure
+
+```
+chang-store/
+├── api/                    # Vercel serverless API routes
+│   ├── _lib/               # Shared server utilities (auth, csrf, rate-limiter, http)
+│   ├── auth/               # Login, session endpoints
+│   ├── assets/             # Blob asset serving
+│   └── jobs/               # Job CRUD + status endpoints
+├── server/                 # Server-side business logic
+│   ├── adapters/           # Feature-specific job adapters
+│   ├── workflows/          # Job runner, Gemini executor
+│   ├── db.ts               # Neon PostgreSQL queries
+│   ├── blob.ts             # Vercel Blob storage
+│   ├── gemini.ts           # Server-side Gemini client
+│   └── jobs.ts             # Job state machine
+├── workflows/              # High-level workflow orchestration
+│   ├── feature-runner.ts   # Feature adapter dispatch + cleanup
+│   ├── helpers.ts          # Workflow context, error handling, progress
+│   └── canary.ts           # Deployment health checks
+├── src/                    # Client SPA source
+│   ├── components/         # Feature UI + shared components + modals
+│   ├── hooks/              # Feature hooks (1:1 with components)
+│   ├── services/           # Client service facades
+│   │   ├── gemini/         # Provider-specific modules (image, text, video, chat)
+│   │   ├── imageEditingService.ts  # Central AI routing facade
+│   │   ├── jobService.ts   # Job polling + CSRF
+│   │   └── googleDriveService.ts   # Drive sync
+│   ├── contexts/           # Global state providers
+│   ├── config/             # Model registry + selection rules
+│   ├── utils/              # Pure helpers (download, cache, zip, gallery)
+│   ├── locales/            # i18n (en.ts source, vi.ts mirror)
+│   ├── App.tsx             # Feature router (enum switch)
+│   └── types.ts            # Shared type definitions + Feature enum
+├── __tests__/              # Vitest + RTL test suites (mirrors src/)
+├── docs/                   # Architecture + API references
+└── types/                  # Ambient TypeScript declarations
+```
+
+---
 
 ## Architectural Conclusions
 
-Based on the GitNexus graph, the most important architectural properties of Chang-Store are:
+Based on the GitNexus knowledge graph (3,376 symbols, 222 execution flows):
 
-1. **Layered feature flow** — UI triggers generally move into hooks and services before touching provider APIs.
-2. **Config-driven AI routing** — `src/config/modelRegistry.ts` is part of critical generation paths and is now a core architecture dependency.
-3. **Strong service cohesion** — the service layer is one of the most cohesive parts of the graph and acts as the routing backbone.
-4. **Context-backed persistence** — image gallery and Drive sync are integrated through contexts and orchestration hooks.
-5. **Mixed architectural maturity** — some flows follow the intended separation well, while some component-heavy flows still contain orchestration logic inline.
+1. **Dual-runtime architecture** — Client SPA handles direct AI interactions and UI state; server handles authenticated job pipelines with async execution.
+
+2. **Adapter-based job dispatch** — Server-side features use `FeatureAdapter` interface for clean per-feature dispatch through a shared workflow engine.
+
+3. **Layered feature flow** — UI triggers move through `Component → Hook → Service → Gemini/API`, with hooks owning all state and orchestration.
+
+4. **Config-driven AI routing** — `modelRegistry.ts` is central to all generation paths. Model selection flows through `resolveModelSelectionScope()` → `getModelsBySelectionType()`.
+
+5. **Strong service cohesion** — The Services cluster (85%) and Gemini cluster (98%) show well-defined boundaries with minimal leakage.
+
+6. **Context-backed persistence** — Gallery state → Drive sync is mediated through contexts and orchestration hooks, keeping the persistence layer separate from feature logic.
+
+7. **CSRF double-submit pattern** — All mutating API routes are protected by `withCsrf` middleware with matching client-side token extraction.
+
+8. **Shared polling pattern** — Job-based features share `pollJob → getJob → fetchJson → getCsrfToken` across all hooks (Lookbook, PhotoAlbum, TryOn, Pose, Background).
+
+---
 
 ## Recommended Reading Order
 
-1. `src/components/` feature entry points for UI shape.
-2. `src/hooks/` paired hooks for orchestration and feature state.
-3. `src/services/imageEditingService.ts` and `src/services/gemini/` for AI provider routing.
-4. `src/config/modelRegistry.ts` for model capability and selection behavior.
-5. `src/contexts/` for provider, gallery, Drive, language, and viewer state; `src/components/Toast.tsx` owns toast state.
-6. `src/utils/imageDownload.ts` and `src/utils/zipDownload.ts` for export/download boundaries.
+1. `src/types.ts` — Feature enum and shared type definitions
+2. `src/App.tsx` — Feature routing and provider nesting
+3. `src/components/` — Feature entry points for UI shape
+4. `src/hooks/` — Paired hooks for orchestration and feature state
+5. `src/services/imageEditingService.ts` — Central AI routing facade
+6. `src/services/gemini/` — Provider-specific AI operations
+7. `src/config/modelRegistry.ts` — Model capability and selection
+8. `src/contexts/` — Global state providers
+9. `api/` + `server/` — Server-side job pipeline and authentication
+10. `workflows/` — Feature runner and Gemini executor
+11. `src/utils/` — Download, cache, zip, and gallery utilities
