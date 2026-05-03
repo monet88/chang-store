@@ -1,8 +1,8 @@
-import { withCsrf } from '../../_lib/csrf-middleware.ts';
-import { jsonResponse, errorResponse, methodNotAllowed } from '../../_lib/http.ts';
-import { getAuthenticatedSessionFromRequest } from '../../_lib/auth.ts';
-import { getNeonPool } from '../../../server/neon.ts';
-import { getJobById, getJobAssets } from '../../../server/db.ts';
+import { withCsrf } from '../../_lib/csrf-middleware.js';
+import { jsonResponse, errorResponse, methodNotAllowed } from '../../_lib/http.js';
+import { getAuthenticatedSessionFromRequest } from '../../_lib/auth.js';
+import { getNeonPool } from '../../../server/neon.js';
+import { getJobById, getJobAssets } from '../../../server/db.js';
 
 function extractJobId(url: string): string | null {
   const parsed = new URL(url);

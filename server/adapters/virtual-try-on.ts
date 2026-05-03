@@ -1,4 +1,4 @@
-import { virtualTryOnSchema, type VirtualTryOnPayload } from '../validation.ts';
+import { virtualTryOnSchema, type VirtualTryOnPayload } from '../validation.js';
 
 export const feature = 'try-on';
 

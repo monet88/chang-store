@@ -1,4 +1,4 @@
-import { generateCsrfToken, createCsrfCookie, validateCsrfToken, CSRF_COOKIE_NAME } from './csrf.ts';
+import { generateCsrfToken, createCsrfCookie, validateCsrfToken, CSRF_COOKIE_NAME } from './csrf.js';
 
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
 

@@ -1,6 +1,6 @@
-import type { DB } from './db.ts';
-import type { RateLimitStorage, RateLimiter } from '../api/_lib/rate-limiter.ts';
-import { checkRateLimit } from '../api/_lib/rate-limiter.ts';
+import type { DB } from './db.js';
+import type { RateLimitStorage, RateLimiter } from '../api/_lib/rate-limiter.js';
+import { checkRateLimit } from '../api/_lib/rate-limiter.js';
 
 export class PostgresRateLimitStorage implements RateLimitStorage {
   private lastCleanupWindowStart: number | null = null;

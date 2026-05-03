@@ -1,4 +1,4 @@
-import { clothingTransferSchema, type ClothingTransferPayload } from '../validation.ts';
+import { clothingTransferSchema, type ClothingTransferPayload } from '../validation.js';
 
 export const feature = 'clothing-transfer';
 

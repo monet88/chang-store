@@ -1,7 +1,7 @@
-import { withCsrf } from '../_lib/csrf-middleware.ts';
-import { errorResponse, methodNotAllowed } from '../_lib/http.ts';
-import { getAuthenticatedSessionFromRequest } from '../_lib/auth.ts';
-import { getNeonPool } from '../../server/neon.ts';
+import { withCsrf } from '../_lib/csrf-middleware.js';
+import { errorResponse, methodNotAllowed } from '../_lib/http.js';
+import { getAuthenticatedSessionFromRequest } from '../_lib/auth.js';
+import { getNeonPool } from '../../server/neon.js';
 import { head } from '@vercel/blob';
 
 function extractBlobPath(url: string): string | null {

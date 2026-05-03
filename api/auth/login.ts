@@ -1,10 +1,10 @@
-import { authenticateSeededUser, createSessionCookie, createSessionToken } from '../_lib/auth.ts';
-import { withCsrf } from '../_lib/csrf-middleware.ts';
-import { errorResponse, jsonResponse, methodNotAllowed, readJsonBody } from '../_lib/http.ts';
-import { createRateLimitHeaders, InMemoryRateLimitStorage, checkRateLimit } from '../_lib/rate-limiter.ts';
-import type { RateLimiter } from '../_lib/rate-limiter.ts';
-import { createPostgresRateLimiter } from '../../server/rate-limiter-storage.ts';
-import { getNeonPool } from '../../server/neon.ts';
+import { authenticateSeededUser, createSessionCookie, createSessionToken } from '../_lib/auth.js';
+import { withCsrf } from '../_lib/csrf-middleware.js';
+import { errorResponse, jsonResponse, methodNotAllowed, readJsonBody } from '../_lib/http.js';
+import { createRateLimitHeaders, InMemoryRateLimitStorage, checkRateLimit } from '../_lib/rate-limiter.js';
+import type { RateLimiter } from '../_lib/rate-limiter.js';
+import { createPostgresRateLimiter } from '../../server/rate-limiter-storage.js';
+import { getNeonPool } from '../../server/neon.js';
 
 function createRateLimiter(): RateLimiter {
   if (process.env.DATABASE_URL) {

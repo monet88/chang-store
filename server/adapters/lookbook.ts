@@ -1,4 +1,4 @@
-import { lookbookSchema, type LookbookPayload } from '../validation.ts';
+import { lookbookSchema, type LookbookPayload } from '../validation.js';
 
 export const feature = 'lookbook';
 

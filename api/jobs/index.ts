@@ -1,14 +1,14 @@
 import { createHash } from 'node:crypto';
-import { withCsrf } from '../_lib/csrf-middleware.ts';
-import { jsonResponse, errorResponse, methodNotAllowed, readJsonBody } from '../_lib/http.ts';
-import { getAuthenticatedSessionFromRequest, type AuthenticatedSession } from '../_lib/auth.ts';
-import { extractTraceId } from '../_lib/trace.ts';
-import { getNeonPool } from '../../server/neon.ts';
-import { createJob, createJobEvent, listJobsByUser, findJobByIdempotencyKey, sweepStaleJobs } from '../../server/db.ts';
-import { validateJobPayload } from '../../server/validation.ts';
+import { withCsrf } from '../_lib/csrf-middleware.js';
+import { jsonResponse, errorResponse, methodNotAllowed, readJsonBody } from '../_lib/http.js';
+import { getAuthenticatedSessionFromRequest, type AuthenticatedSession } from '../_lib/auth.js';
+import { extractTraceId } from '../_lib/trace.js';
+import { getNeonPool } from '../../server/neon.js';
+import { createJob, createJobEvent, listJobsByUser, findJobByIdempotencyKey, sweepStaleJobs } from '../../server/db.js';
+import { validateJobPayload } from '../../server/validation.js';
 import { ZodError } from 'zod';
-import { formatZodErrors } from '../../server/validation.ts';
-import { executeJob } from '../../server/workflows/job-runner.ts';
+import { formatZodErrors } from '../../server/validation.js';
+import { executeJob } from '../../server/workflows/job-runner.js';
 
 interface CreateJobBody {
   feature: string;

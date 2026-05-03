@@ -1,5 +1,5 @@
-export * as virtualTryOnAdapter from './virtual-try-on.ts';
-export * as clothingTransferAdapter from './clothing-transfer.ts';
-export * as lookbookAdapter from './lookbook.ts';
-export * as photoAlbumAdapter from './photo-album.ts';
-export { submitJob, completeJob, failJob, partialJob, reconcileJobOutputs } from './base-adapter.ts';
+export * as virtualTryOnAdapter from './virtual-try-on.js';
+export * as clothingTransferAdapter from './clothing-transfer.js';
+export * as lookbookAdapter from './lookbook.js';
+export * as photoAlbumAdapter from './photo-album.js';
+export { submitJob, completeJob, failJob, partialJob, reconcileJobOutputs } from './base-adapter.js';

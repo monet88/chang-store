@@ -1,5 +1,5 @@
 import { Pool } from '@neondatabase/serverless';
-import type { DB } from './db.ts';
+import type { DB } from './db.js';
 
 let singletonPool: Pool | null = null;
 

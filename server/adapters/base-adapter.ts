@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { DB, JobRecord, JobAssetRecord } from '../db.ts';
+import type { DB, JobRecord, JobAssetRecord } from '../db.js';
 import {
   createJob,
   getJobById,
@@ -7,10 +7,10 @@ import {
   updateJobStatus,
   finalizeJobOutputs,
   createJobEvent,
-} from '../db.ts';
-import { BlobStorage } from '../blob.ts';
-import { validateJobPayload } from '../validation.ts';
-import { canTransition } from '../jobs.ts';
+} from '../db.js';
+import { BlobStorage } from '../blob.js';
+import { validateJobPayload } from '../validation.js';
+import { canTransition } from '../jobs.js';
 
 interface BlobOperations {
   deleteBlob(path: string): Promise<void>;
