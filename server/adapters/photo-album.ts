@@ -1,4 +1,4 @@
-import { photoAlbumSchema, type PhotoAlbumPayload } from '../validation';
+import { photoAlbumSchema, type PhotoAlbumPayload } from '../validation.ts';
 
 export const feature = 'photo-album';
 

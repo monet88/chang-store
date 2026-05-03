@@ -1,4 +1,4 @@
-import type { JobRecord, JobStatus } from './db';
+import type { JobRecord, JobStatus } from './db.ts';
 
 export const ALLOWED_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
   queued: ['running', 'failed'],

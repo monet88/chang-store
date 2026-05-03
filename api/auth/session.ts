@@ -1,6 +1,6 @@
-import { getAuthenticatedUserFromRequest } from '../_lib/auth';
-import { withCsrf } from '../_lib/csrf-middleware';
-import { jsonResponse, methodNotAllowed } from '../_lib/http';
+import { getAuthenticatedUserFromRequest } from '../_lib/auth.ts';
+import { withCsrf } from '../_lib/csrf-middleware.ts';
+import { jsonResponse, methodNotAllowed } from '../_lib/http.ts';
 
 const handler = withCsrf({
   async fetch(request: Request): Promise<Response> {

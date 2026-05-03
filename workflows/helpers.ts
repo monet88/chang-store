@@ -1,6 +1,6 @@
-import type { DB } from '../server/db';
-import { updateJobProgress, createJobEvent } from '../server/db';
-import { BlobStorage } from '../server/blob';
+import type { DB } from '../server/db.ts';
+import { updateJobProgress, createJobEvent } from '../server/db.ts';
+import { BlobStorage } from '../server/blob.ts';
 
 export interface WorkflowContext {
   db: DB;

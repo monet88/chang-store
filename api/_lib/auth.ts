@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
-import type { AuthenticatedUser } from '../../src/types';
-import { createUser, getUserByUsername, type DB } from '../../server/db';
+import type { AuthenticatedUser } from '../../src/types.ts';
+import { createUser, getUserByUsername, type DB } from '../../server/db.ts';
 
 function scryptAsync(password: string, salt: string, keylen: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {

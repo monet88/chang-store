@@ -1,9 +1,9 @@
-import type { DB, JobRecord } from '../server/db';
-import { getJobById, updateJobStatus } from '../server/db';
-import { createWorkflowContext, withErrorHandling, type WorkflowContext } from './helpers';
-import { transitionStatus } from '../server/jobs';
-import { completeJob, failJob, partialJob } from '../server/adapters/base-adapter';
-import { runCanary } from './canary';
+import type { DB, JobRecord } from '../server/db.ts';
+import { getJobById, updateJobStatus } from '../server/db.ts';
+import { createWorkflowContext, withErrorHandling, type WorkflowContext } from './helpers.ts';
+import { transitionStatus } from '../server/jobs.ts';
+import { completeJob, failJob, partialJob } from '../server/adapters/base-adapter.ts';
+import { runCanary } from './canary.ts';
 
 interface FeatureAdapter {
   feature: string;

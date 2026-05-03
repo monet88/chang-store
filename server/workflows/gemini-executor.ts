@@ -1,5 +1,5 @@
-import type { WorkflowContext } from '../../workflows/helpers';
-import { editImage, generateImagesFromBatch } from '../gemini';
+import type { WorkflowContext } from '../../workflows/helpers.ts';
+import { editImage, generateImagesFromBatch } from '../gemini.ts';
 
 interface GeminiStepResult {
   results: Record<string, unknown>[];

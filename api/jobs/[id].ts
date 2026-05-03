@@ -1,9 +1,9 @@
-import { withCsrf } from '../_lib/csrf-middleware';
-import { jsonResponse, errorResponse, methodNotAllowed, readJsonBody } from '../_lib/http';
-import { getAuthenticatedSessionFromRequest } from '../_lib/auth';
-import { getNeonPool } from '../../server/neon';
-import { getJobById, getJobEvents } from '../../server/db';
-import { reconcileJobOutputs } from '../../server/adapters';
+import { withCsrf } from '../_lib/csrf-middleware.ts';
+import { jsonResponse, errorResponse, methodNotAllowed, readJsonBody } from '../_lib/http.ts';
+import { getAuthenticatedSessionFromRequest } from '../_lib/auth.ts';
+import { getNeonPool } from '../../server/neon.ts';
+import { getJobById, getJobEvents } from '../../server/db.ts';
+import { reconcileJobOutputs } from '../../server/adapters/index.ts';
 
 interface ReconcileBody {
   deleteOrphans?: boolean;

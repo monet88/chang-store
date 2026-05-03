@@ -1,6 +1,6 @@
-import type { DB, JobRecord } from '../db';
-import { runFeatureJob, type RunJobResult } from '../../workflows/feature-runner';
-import { geminiExecuteStep } from './gemini-executor';
+import type { DB, JobRecord } from '../db.ts';
+import { runFeatureJob, type RunJobResult } from '../../workflows/feature-runner.ts';
+import { geminiExecuteStep } from './gemini-executor.ts';
 
 interface FeatureAdapter {
   feature: string;
@@ -16,22 +16,22 @@ async function loadAdapter(feature: string): Promise<FeatureAdapter> {
 
   switch (feature) {
     case 'try-on': {
-      const mod = await import('../adapters/virtual-try-on');
+      const mod = await import('../adapters/virtual-try-on.ts');
       adapterCache[feature] = mod as unknown as FeatureAdapter;
       break;
     }
     case 'clothing-transfer': {
-      const mod = await import('../adapters/clothing-transfer');
+      const mod = await import('../adapters/clothing-transfer.ts');
       adapterCache[feature] = mod as unknown as FeatureAdapter;
       break;
     }
     case 'lookbook': {
-      const mod = await import('../adapters/lookbook');
+      const mod = await import('../adapters/lookbook.ts');
       adapterCache[feature] = mod as unknown as FeatureAdapter;
       break;
     }
     case 'photo-album': {
-      const mod = await import('../adapters/photo-album');
+      const mod = await import('../adapters/photo-album.ts');
       adapterCache[feature] = mod as unknown as FeatureAdapter;
       break;
     }
