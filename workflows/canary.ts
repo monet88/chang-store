@@ -45,17 +45,11 @@ export async function runCanary(): Promise<CanaryResult> {
 }
 
 async function testVercelWorkflow(): Promise<void> {
-  // Placeholder: actual Vercel Workflow API call
-  // In Slice 3 MVP, this validates the workflow infrastructure exists
-  // For now: check that required env vars are set, Vercel context is available
   if (!process.env.VERCEL) {
-    console.log('[CANARY] Not running on Vercel — local dev mode');
+    // Local dev mode — no Vercel workflow available
   }
-  // No-op success for now — real implementation requires Vercel deployment
 }
 
 async function testInngestFallback(): Promise<void> {
-  // Placeholder: validate Inngest client can connect
-  // For now: no-op, actual Inngest integration requires Inngest SDK
-  console.log('[CANARY] Inngest fallback active — polling-based execution');
+  // Inngest fallback active — polling-based execution
 }

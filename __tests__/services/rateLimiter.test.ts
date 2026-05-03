@@ -109,4 +109,25 @@ describe('rate limiter', () => {
     expect(result.allowed).toBe(true);
     expect(result.attemptCount).toBe(1);
   });
+
+  it('computes windowStart as aligned epoch milliseconds', async () => {
+    const windowStart = NOW - (NOW % WINDOW);
+    const later = windowStart + WINDOW;
+
+    // Same window: counts accumulate
+    await checkRateLimit(storage, 'user-a', windowStart);
+    const same = await checkRateLimit(storage, 'user-a', windowStart + 100);
+    expect(same.attemptCount).toBe(2);
+
+    // Next window: counter resets
+    const next = await checkRateLimit(storage, 'user-a', later);
+    expect(next.attemptCount).toBe(1);
+
+    // Previous window should be cleaned
+    for (const key of (storage as any).store.keys()) {
+      const parts = key.split(':');
+      const storedWindow = Number(parts[parts.length - 1]);
+      expect(storedWindow).toBeGreaterThan(0);
+    }
+  });
 });

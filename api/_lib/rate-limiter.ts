@@ -52,7 +52,7 @@ export function createRateLimitHeaders(retryAfter: number): Record<string, strin
 }
 
 function getWindowStart(now: number): number {
-  return Math.floor(now / RATE_LIMIT_WINDOW_MS);
+  return Math.floor(now / RATE_LIMIT_WINDOW_MS) * RATE_LIMIT_WINDOW_MS;
 }
 
 function getRetryAfter(attemptCount: number): number {

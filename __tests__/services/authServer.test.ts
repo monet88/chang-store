@@ -54,6 +54,7 @@ describe('auth server helpers', () => {
       username: 'demo',
       displayName: 'Demo User',
       provisioning: 'seeded',
+      role: 'user',
     });
   });
 
@@ -72,6 +73,7 @@ describe('auth server helpers', () => {
       username: 'demo',
       displayName: 'Demo User',
       provisioning: 'seeded' as const,
+      role: 'user' as const,
     };
 
     const token = createSessionToken(user, 1_000);
@@ -83,6 +85,7 @@ describe('auth server helpers', () => {
       username: 'demo',
       displayName: 'Demo User',
       provisioning: 'seeded' as const,
+      role: 'user' as const,
     };
     const token = createSessionToken(user, 1_000);
 
@@ -96,6 +99,7 @@ describe('auth server helpers', () => {
       username: 'demo',
       displayName: 'Demo User',
       provisioning: 'seeded' as const,
+      role: 'user' as const,
     };
     vi.stubEnv('AUTH_SESSION_TTL_HOURS', '0.0001');
     const token = createSessionToken(user, 1_000);
@@ -108,6 +112,7 @@ describe('auth server helpers', () => {
       username: 'demo',
       displayName: 'Demo User',
       provisioning: 'seeded' as const,
+      role: 'user' as const,
     };
     const token = createSessionToken(user, 1_000);
     const [payload, signature] = token.split('.');
@@ -121,6 +126,7 @@ describe('auth server helpers', () => {
       username: 'demo',
       displayName: 'Demo User',
       provisioning: 'seeded' as const,
+      role: 'user' as const,
     };
     const token = createSessionToken(user, 1_000);
     const request = new Request('https://example.com/api/auth/session', {

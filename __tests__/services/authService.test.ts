@@ -92,15 +92,9 @@ describe('authService', () => {
     });
   });
 
-  it('posts logout without CSRF header when no cookie is set', async () => {
-    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+  it('posts logout without CSRF header when no cookie is set and receives 401', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ message: 'No active session.' }), { status: 401 }));
 
-    await logout();
-
-    expect(fetchMock).toHaveBeenCalledWith('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {},
-    });
+    await expect(logout()).rejects.toThrow('No active session.');
   });
 });

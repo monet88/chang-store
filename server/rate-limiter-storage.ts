@@ -1,10 +1,6 @@
 import type { DB } from './db.ts';
 import type { RateLimitStorage, RateLimiter } from '../api/_lib/rate-limiter.ts';
-import { checkRateLimit, RATE_LIMIT_WINDOW_MS } from '../api/_lib/rate-limiter.ts';
-
-function getWindowStart(now: number): number {
-  return Math.floor(now / RATE_LIMIT_WINDOW_MS) * RATE_LIMIT_WINDOW_MS;
-}
+import { checkRateLimit } from '../api/_lib/rate-limiter.ts';
 
 export class PostgresRateLimitStorage implements RateLimitStorage {
   constructor(private db: DB) {}

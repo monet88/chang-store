@@ -1,7 +1,7 @@
 import type { JobRecord, JobStatus } from './db';
 
 export const ALLOWED_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
-  queued: ['running'],
+  queued: ['running', 'failed'],
   running: ['completed', 'failed', 'partial'],
   completed: [],
   failed: [],

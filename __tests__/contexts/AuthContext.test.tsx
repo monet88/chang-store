@@ -97,4 +97,53 @@ describe('AuthContext', () => {
     expect(result.current.status).toBe('anonymous');
     expect(result.current.user).toBeNull();
   });
+
+  it('bootstraps CSRF via refreshSession before calling login', async () => {
+    authServiceMocks.login.mockResolvedValue({
+      username: 'demo',
+      displayName: 'Demo User',
+      provisioning: 'seeded',
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('anonymous'));
+
+    await act(async () => {
+      await result.current.login('demo', 'demo1234');
+    });
+
+    // getSession called once by initial useEffect, then again by login CSRF bootstrap
+    expect(authServiceMocks.getSession).toHaveBeenCalledTimes(2);
+
+    // getSession must have been called before login
+    const getSessionCalls = authServiceMocks.getSession.mock.invocationCallOrder;
+    const loginCall = authServiceMocks.login.mock.invocationCallOrder[0];
+    expect(getSessionCalls[getSessionCalls.length - 1]).toBeLessThan(loginCall);
+  });
+
+  it('blocks login when CSRF bootstrap fails and login is rejected', async () => {
+    // Simulate getSession failure (network down) during login CSRF bootstrap
+    authServiceMocks.getSession
+      .mockResolvedValueOnce(null) // initial useEffect -> anonymous
+      .mockRejectedValueOnce(new Error('Network error')); // login bootstrap fails
+
+    authServiceMocks.login.mockRejectedValueOnce(new Error('CSRF validation failed.'));
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('anonymous'));
+
+    await act(async () => {
+      await expect(result.current.login('demo', 'demo1234'))
+        .rejects.toThrow('CSRF validation failed.');
+    });
+
+    expect(result.current.status).toBe('anonymous');
+    expect(result.current.user).toBeNull();
+  });
 });

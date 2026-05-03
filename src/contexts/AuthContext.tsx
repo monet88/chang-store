@@ -55,6 +55,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setAuthError(null);
 
     try {
+      await refreshSession();
       const nextUser = await authService.login(username, password);
       setUser(nextUser);
       setStatus('authenticated');
@@ -66,7 +67,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setIsAuthenticating(false);
     }
-  }, []);
+  }, [refreshSession]);
 
   const logout = useCallback(async () => {
     setIsAuthenticating(true);

@@ -30,6 +30,7 @@ export interface RateLimitRecord {
 
 export interface DB {
   query(sql: string, params?: unknown[]): Promise<{ rows: unknown[] }>;
+  withTransaction<T>(fn: (tx: DB) => Promise<T>): Promise<T>;
 }
 
 // ---- SQL template tag helper ----
@@ -261,39 +262,32 @@ export async function finalizeJobOutputs(
   jobId: string,
   input: FinalizeJobOutputsInput,
 ): Promise<JobAssetRecord[]> {
-  const assetValues = input.assets.flatMap((asset) => [
-    randomUUID(),
-    jobId,
-    'output',
-    asset.blobPath,
-    asset.mimeType,
-  ]);
-  const assetPlaceholders = input.assets
-    .map((_, index) => {
-      const base = index * 5;
-      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`;
-    })
-    .join(', ');
-  const eventId = randomUUID();
-  const eventPayload = JSON.stringify(input.eventPayload ?? {});
-  const params = [
-    ...assetValues,
-    input.status,
-    input.errorCode ?? null,
-    input.errorMessage ?? null,
-    jobId,
-    eventId,
-    jobId,
-    input.status,
-    eventPayload,
-    input.traceId ?? null,
-  ];
-  const assetInsertSql = input.assets.length > 0
-    ? `WITH inserted_assets AS (INSERT INTO job_assets (id, job_id, kind, blob_path, mime_type) VALUES ${assetPlaceholders} RETURNING *), updated_job AS (UPDATE jobs SET status = $${assetValues.length + 1}, error_code = $${assetValues.length + 2}, error_message = $${assetValues.length + 3}, completed_at = now() WHERE id = $${assetValues.length + 4}), inserted_event AS (INSERT INTO job_events (id, job_id, event_type, event_payload_json, trace_id) VALUES ($${assetValues.length + 5}, $${assetValues.length + 6}, $${assetValues.length + 7}, $${assetValues.length + 8}, $${assetValues.length + 9})) SELECT * FROM inserted_assets`
-    : `WITH updated_job AS (UPDATE jobs SET status = $1, error_code = $2, error_message = $3, completed_at = now() WHERE id = $4), inserted_event AS (INSERT INTO job_events (id, job_id, event_type, event_payload_json, trace_id) VALUES ($5, $6, $7, $8, $9)) SELECT * FROM job_assets WHERE 1 = 0`;
-  const q = { text: assetInsertSql, values: params };
-  const result = await db.query(q.text, q.values);
-  return result.rows.map(row => rowToJobAsset(row as Record<string, unknown>));
+  return db.withTransaction(async (tx) => {
+    const insertedAssets: JobAssetRecord[] = [];
+
+    for (const asset of input.assets) {
+      const record = await createJobAsset(tx, jobId, 'output', asset.blobPath, asset.mimeType);
+      insertedAssets.push(record);
+    }
+
+    await updateJobStatus(
+      tx,
+      jobId,
+      input.status,
+      input.errorCode ?? undefined,
+      input.errorMessage ?? undefined,
+    );
+
+    await createJobEvent(
+      tx,
+      jobId,
+      input.status,
+      input.eventPayload,
+      input.traceId ?? undefined,
+    );
+
+    return insertedAssets;
+  });
 }
 
 export async function updateJobProgress(
@@ -342,4 +336,43 @@ export async function getJobEvents(db: DB, jobId: string): Promise<JobEventRecor
   const q = sql`SELECT * FROM job_events WHERE job_id = ${jobId} ORDER BY created_at`;
   const result = await db.query(q.text, q.values);
   return result.rows.map(row => rowToJobEvent(row as Record<string, unknown>));
+}
+
+export async function findJobByIdempotencyKey(
+  db: DB,
+  userId: string,
+  idempotencyKey: string,
+): Promise<JobRecord | null> {
+  const q = sql`SELECT * FROM jobs WHERE user_id = ${userId} AND idempotency_key = ${idempotencyKey}`;
+  const result = await db.query(q.text, q.values);
+  if (result.rows.length === 0) return null;
+  return rowToJob(result.rows[0] as Record<string, unknown>);
+}
+
+const STALE_JOB_MINUTES = 30;
+
+export async function sweepStaleJobs(db: DB, userId: string): Promise<number> {
+  const findQ = {
+    text: `SELECT id FROM jobs WHERE user_id = $1 AND status IN ('queued', 'running') AND created_at < now() - $2::interval`,
+    values: [userId, `${STALE_JOB_MINUTES} minutes`],
+  };
+  const findResult = await db.query(findQ.text, findQ.values);
+  const staleIds = (findResult.rows as Array<{ id: string }>).map((row) => row.id);
+
+  if (staleIds.length === 0) return 0;
+
+  const updateQ = {
+    text: `UPDATE jobs SET status = 'failed', error_code = 'TIMEOUT', error_message = 'Job timed out', completed_at = now() WHERE id = ANY($1::uuid[])`,
+    values: [staleIds],
+  };
+  await db.query(updateQ.text, updateQ.values);
+
+  for (const jobId of staleIds) {
+    await createJobEvent(db, jobId, 'failed', {
+      error_code: 'TIMEOUT',
+      error_message: 'Job timed out',
+    });
+  }
+
+  return staleIds.length;
 }

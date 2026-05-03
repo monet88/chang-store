@@ -40,8 +40,6 @@ export async function geminiExecuteStep(
   const feature = getFeatureFromInput(input, featureOverride);
   const prompt = FEATURE_PROMPTS[feature] || 'Generate an image.';
 
-  console.log(`[GEMINI-EXECUTOR] Executing step for feature: ${feature}`);
-
   try {
     if (feature === 'try-on') {
       const result = await editImage(

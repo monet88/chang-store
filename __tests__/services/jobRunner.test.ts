@@ -24,50 +24,67 @@ function createRunningJobRow(jobId: string) {
 }
 
 describe('job finalization persistence', () => {
-  it('persists completed assets, status, and event in one DB query', async () => {
-    const query = vi.fn()
-      .mockResolvedValueOnce({ rows: [createRunningJobRow('job-complete')] })
-      .mockResolvedValueOnce({
-        rows: [
-          {
-            id: 'asset-1',
-            job_id: 'job-complete',
-            kind: 'output',
-            blob_path: 'outputs/job-complete/0.png',
-            mime_type: 'image/png',
-            created_at: new Date().toISOString(),
-          },
-        ],
-      });
-    const db: DB = { query };
+  function createMockDB(options: {
+    jobQuery: DB['query'];
+    txQuery: DB['query'];
+  }): DB {
+    return {
+      query: options.jobQuery,
+      withTransaction: (async <T>(fn: (tx: DB) => Promise<T>): Promise<T> => {
+        const txDB: DB = {
+          query: options.txQuery,
+          withTransaction: vi.fn() as unknown as DB['withTransaction'],
+        };
+        return fn(txDB);
+      }) as DB['withTransaction'],
+    };
+  }
+
+  it('persists completed assets, status, and event within a transaction', async () => {
+    const jobQuery = vi.fn()
+      .mockResolvedValueOnce({ rows: [createRunningJobRow('job-complete')] });
+    const txQuery = vi.fn()
+      .mockResolvedValueOnce({ // createJobAsset
+        rows: [{
+          id: 'asset-1',
+          job_id: 'job-complete',
+          kind: 'output',
+          blob_path: 'outputs/job-complete/0.png',
+          mime_type: 'image/png',
+          created_at: new Date().toISOString(),
+        }],
+      })
+      .mockResolvedValueOnce({ rows: [] }) // updateJobStatus
+      .mockResolvedValueOnce({ rows: [{ id: 'ev-1' }] }); // createJobEvent
+
+    const db = createMockDB({ jobQuery, txQuery });
 
     const result = await completeJob(db, 'job-complete', [
       { blobPath: 'outputs/job-complete/0.png', mimeType: 'image/png' },
     ], 'trace-complete');
 
     expect(result).toHaveLength(1);
-    expect(query).toHaveBeenCalledTimes(2);
-    expect(query.mock.calls[1][0]).toContain('INSERT INTO job_assets');
-    expect(query.mock.calls[1][0]).toContain('UPDATE jobs SET status =');
-    expect(query.mock.calls[1][0]).toContain('INSERT INTO job_events');
+    expect(result[0].blob_path).toBe('outputs/job-complete/0.png');
   });
 
-  it('persists partial assets, status, and event in one DB query', async () => {
-    const query = vi.fn()
-      .mockResolvedValueOnce({ rows: [createRunningJobRow('job-partial')] })
-      .mockResolvedValueOnce({
-        rows: [
-          {
-            id: 'asset-1',
-            job_id: 'job-partial',
-            kind: 'output',
-            blob_path: 'outputs/job-partial/0.png',
-            mime_type: 'image/png',
-            created_at: new Date().toISOString(),
-          },
-        ],
-      });
-    const db: DB = { query };
+  it('persists partial assets, status, and event within a transaction', async () => {
+    const jobQuery = vi.fn()
+      .mockResolvedValueOnce({ rows: [createRunningJobRow('job-partial')] });
+    const txQuery = vi.fn()
+      .mockResolvedValueOnce({ // createJobAsset
+        rows: [{
+          id: 'asset-1',
+          job_id: 'job-partial',
+          kind: 'output',
+          blob_path: 'outputs/job-partial/0.png',
+          mime_type: 'image/png',
+          created_at: new Date().toISOString(),
+        }],
+      })
+      .mockResolvedValueOnce({ rows: [] }) // updateJobStatus
+      .mockResolvedValueOnce({ rows: [{ id: 'ev-1' }] }); // createJobEvent
+
+    const db = createMockDB({ jobQuery, txQuery });
 
     const result = await partialJob(
       db,
@@ -79,11 +96,7 @@ describe('job finalization persistence', () => {
     );
 
     expect(result).toHaveLength(1);
-    expect(query).toHaveBeenCalledTimes(2);
-    expect(query.mock.calls[1][0]).toContain('INSERT INTO job_assets');
-    expect(query.mock.calls[1][0]).toContain('UPDATE jobs SET status =');
-    expect(query.mock.calls[1][0]).toContain('INSERT INTO job_events');
-    expect(query.mock.calls[1][1]).toContain('PARTIAL_FAILURE');
+    expect(result[0].blob_path).toBe('outputs/job-partial/0.png');
   });
 });
 
@@ -283,7 +296,7 @@ describe('reconcileJobOutputs', () => {
       ]),
       deleteBlob: vi.fn().mockResolvedValue(undefined),
     };
-    const db: DB = { query };
+    const db: DB = { query, withTransaction: vi.fn() };
 
     const result = await reconcileJobOutputs(db, 'job-reconcile', { blob });
 
@@ -313,7 +326,7 @@ describe('reconcileJobOutputs', () => {
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error('blob delete failed')),
     };
-    const db: DB = { query };
+    const db: DB = { query, withTransaction: vi.fn() };
 
     const result = await reconcileJobOutputs(db, 'job-reconcile-delete', {
       blob,
@@ -353,7 +366,7 @@ describe('job detail route reconcile', () => {
       deletedOutputPaths: ['outputs/job-route/0.png'],
       deleteFailures: [],
     });
-    const db = { query: vi.fn() } as unknown as DB;
+    const db = { query: vi.fn(), withTransaction: vi.fn() } as unknown as DB;
 
     vi.doMock('../../api/_lib/auth', async () => {
       const actual = await vi.importActual<typeof import('../../api/_lib/auth')>('../../api/_lib/auth');
@@ -403,5 +416,143 @@ describe('job detail route reconcile', () => {
     expect(response.status).toBe(200);
     expect(reconcileJobOutputsMock).toHaveBeenCalledWith(db, 'job-route', { deleteOrphans: true });
     expect(json.reconciliation.orphanedOutputPaths).toEqual(['outputs/job-route/0.png']);
+  });
+});
+
+describe('findJobByIdempotencyKey', () => {
+  it('returns a proper JobRecord with Date objects via rowToJob mapper', async () => {
+    const { findJobByIdempotencyKey } = await import('../../server/db');
+
+    const created = new Date().toISOString();
+    const jobRow = {
+      id: 'job-idem-1',
+      user_id: 'user-1',
+      feature: 'lookbook',
+      status: 'queued',
+      idempotency_key: 'sha256-hash',
+      input_payload_json: { images: 1 },
+      workflow_run_id: null,
+      progress_total: 1,
+      progress_done: 0,
+      created_at: created,
+      started_at: null,
+      completed_at: null,
+      error_code: null,
+      error_message: null,
+    };
+
+    const query = vi.fn().mockResolvedValue({ rows: [jobRow] });
+    const db: DB = { query, withTransaction: vi.fn() };
+
+    const result = await findJobByIdempotencyKey(db, 'user-1', 'sha256-hash');
+
+    expect(result).not.toBeNull();
+    expect(result!.created_at).toBeInstanceOf(Date);
+    expect(result!.created_at.toISOString()).toBe(created);
+    expect(result!.started_at).toBeNull();
+    expect(result!.completed_at).toBeNull();
+  });
+
+  it('returns null when no matching idempotency key exists', async () => {
+    const { findJobByIdempotencyKey } = await import('../../server/db');
+
+    const query = vi.fn().mockResolvedValue({ rows: [] });
+    const db: DB = { query, withTransaction: vi.fn() };
+
+    const result = await findJobByIdempotencyKey(db, 'user-1', 'missing-key');
+    expect(result).toBeNull();
+  });
+});
+
+describe('sweepStaleJobs', () => {
+  it('marks stale queued and running jobs as failed with TIMEOUT', async () => {
+    const { sweepStaleJobs } = await import('../../server/db');
+
+    const staleQueuedId = 'stale-queued-1';
+    const staleRunningId = 'stale-running-1';
+
+    const query = vi.fn()
+      .mockResolvedValueOnce({ // find stale job IDs
+        rows: [{ id: staleQueuedId }, { id: staleRunningId }],
+      })
+      .mockResolvedValueOnce({ rows: [] }) // UPDATE stale jobs
+      .mockResolvedValueOnce({ rows: [{ id: 'ev-1' }] }) // createJobEvent for staleQueuedId
+      .mockResolvedValueOnce({ rows: [{ id: 'ev-2' }] }); // createJobEvent for staleRunningId
+
+    const db: DB = { query, withTransaction: vi.fn() };
+
+    const count = await sweepStaleJobs(db, 'user-1');
+
+    expect(count).toBe(2);
+
+    // Verify UPDATE query marks jobs as failed with TIMEOUT
+    const updateCall = query.mock.calls[1];
+    expect(updateCall[0]).toContain("SET status = 'failed'");
+    expect(updateCall[0]).toContain("error_code = 'TIMEOUT'");
+
+    // Verify job events were created
+    expect(query).toHaveBeenCalledTimes(4); // find + update + 2 events
+  });
+
+  it('returns 0 when no stale jobs are found', async () => {
+    const { sweepStaleJobs } = await import('../../server/db');
+
+    const query = vi.fn().mockResolvedValueOnce({ rows: [] });
+    const db: DB = { query, withTransaction: vi.fn() };
+
+    const count = await sweepStaleJobs(db, 'user-1');
+    expect(count).toBe(0);
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('finalizeJobOutputs transaction', () => {
+  it('rolls back on failure and propagates the error', async () => {
+    const { finalizeJobOutputs } = await import('../../server/db');
+
+    const assetRow = {
+      id: 'asset-1',
+      job_id: 'job-tx-1',
+      kind: 'output',
+      blob_path: 'outputs/job-tx-1/0.png',
+      mime_type: 'image/png',
+      created_at: new Date().toISOString(),
+    };
+    const txError = new Error('event insert failed');
+
+    const txQuery = vi.fn()
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [assetRow] }) // createJobAsset — succeeds
+      .mockResolvedValueOnce({ rows: [] }) // updateJobStatus — succeeds
+      .mockRejectedValueOnce(txError) // createJobEvent — fails
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+    const withTransaction = vi.fn(async <T>(fn: (tx: DB) => Promise<T>): Promise<T> => {
+      const txDB: DB = {
+        query: txQuery,
+        withTransaction: vi.fn(),
+      };
+      try {
+        await txDB.query('BEGIN');
+        const result = await fn(txDB);
+        await txDB.query('COMMIT');
+        return result;
+      } catch (err) {
+        await txDB.query('ROLLBACK');
+        throw err;
+      }
+    });
+
+    const db: DB = { query: vi.fn(), withTransaction: withTransaction as DB['withTransaction'] };
+
+    await expect(finalizeJobOutputs(db, 'job-tx-1', {
+      status: 'completed',
+      assets: [{ blobPath: 'outputs/job-tx-1/0.png', mimeType: 'image/png' }],
+      eventPayload: {},
+      traceId: 'trace-tx',
+    })).rejects.toThrow('event insert failed');
+
+    expect(txQuery).toHaveBeenNthCalledWith(1, 'BEGIN');
+    expect(txQuery).toHaveBeenLastCalledWith('ROLLBACK');
   });
 });

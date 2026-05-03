@@ -4,7 +4,7 @@ import { jsonResponse, errorResponse, methodNotAllowed, readJsonBody } from '../
 import { getAuthenticatedUserFromRequest } from '../_lib/auth';
 import { extractTraceId } from '../_lib/trace';
 import { getNeonPool } from '../../server/neon';
-import { createJob, createJobEvent, listJobsByUser } from '../../server/db';
+import { createJob, createJobEvent, listJobsByUser, findJobByIdempotencyKey, sweepStaleJobs } from '../../server/db';
 import { validateJobPayload } from '../../server/validation';
 import { ZodError } from 'zod';
 import { formatZodErrors } from '../../server/validation';
@@ -87,7 +87,7 @@ async function handleCreate(request: Request, session: { userId: string }, trace
       typeof err === 'object' && err !== null &&
       'code' in err && (err as Record<string, unknown>).code === '23505';
     if (isUniqueViolation) {
-      const existing = await findJobByIdempotencyKey(db, idempotencyKey);
+      const existing = await findJobByIdempotencyKey(db, session.userId, idempotencyKey);
       if (existing) {
         return jsonResponse(existing, { status: 200 });
       }
@@ -106,31 +106,6 @@ async function handleCreate(request: Request, session: { userId: string }, trace
   return jsonResponse(job, { status: 201 });
 }
 
-async function findJobByIdempotencyKey(db: ReturnType<typeof getNeonPool>, key: string) {
-  const result = await db.query(
-    'SELECT * FROM jobs WHERE idempotency_key = $1',
-    [key],
-  );
-  if (result.rows.length === 0) return null;
-  const row = result.rows[0] as Record<string, unknown>;
-  return {
-    id: row.id,
-    user_id: row.user_id,
-    feature: row.feature,
-    status: row.status,
-    idempotency_key: row.idempotency_key,
-    input_payload_json: row.input_payload_json,
-    workflow_run_id: row.workflow_run_id,
-    progress_total: row.progress_total,
-    progress_done: row.progress_done,
-    created_at: row.created_at,
-    started_at: row.started_at,
-    completed_at: row.completed_at,
-    error_code: row.error_code,
-    error_message: row.error_message,
-  };
-}
-
 async function handleList(request: Request, session: { userId: string }): Promise<Response> {
   const url = new URL(request.url);
   const status = url.searchParams.get('status') || undefined;
@@ -138,6 +113,13 @@ async function handleList(request: Request, session: { userId: string }): Promis
   const offset = parseBoundedInteger(url.searchParams.get('offset'), 0, 0, MAX_LIST_OFFSET);
 
   const db = getNeonPool(process.env.DATABASE_URL!);
+
+  try {
+    await sweepStaleJobs(db, session.userId);
+  } catch (err) {
+    console.error('[JOBS] Stale sweep failed, proceeding with list:', err);
+  }
+
   const jobs = await listJobsByUser(
     db,
     session.userId,

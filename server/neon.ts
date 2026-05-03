@@ -3,6 +3,38 @@ import type { DB } from './db.ts';
 
 let singletonPool: Pool | null = null;
 
+function buildDB(pool: Pool): DB {
+  return {
+    async query(sql: string, params?: unknown[]): Promise<{ rows: unknown[] }> {
+      const result = await pool.query(sql, params);
+      return { rows: result.rows };
+    },
+    async withTransaction<T>(fn: (tx: DB) => Promise<T>): Promise<T> {
+      const client = await pool.connect();
+      const txDB: DB = {
+        async query(sql: string, params?: unknown[]): Promise<{ rows: unknown[] }> {
+          const result = await client.query(sql, params);
+          return { rows: result.rows };
+        },
+        async withTransaction<T2>(_fn: (tx2: DB) => Promise<T2>): Promise<T2> {
+          throw new Error('Nested transactions are not supported');
+        },
+      };
+      try {
+        await txDB.query('BEGIN');
+        const result = await fn(txDB);
+        await txDB.query('COMMIT');
+        return result;
+      } catch (err) {
+        await txDB.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+    },
+  };
+}
+
 export function createNeonPool(databaseUrl: string): DB {
   const pool = new Pool({
     connectionString: databaseUrl,
@@ -10,12 +42,7 @@ export function createNeonPool(databaseUrl: string): DB {
     idleTimeoutMillis: 30_000,
   });
 
-  return {
-    async query(sql: string, params?: unknown[]): Promise<{ rows: unknown[] }> {
-      const result = await pool.query(sql, params);
-      return { rows: result.rows };
-    },
-  };
+  return buildDB(pool);
 }
 
 export function getNeonPool(databaseUrl?: string): DB {
@@ -29,10 +56,5 @@ export function getNeonPool(databaseUrl?: string): DB {
       idleTimeoutMillis: 30_000,
     });
   }
-  return {
-    async query(sql: string, params?: unknown[]): Promise<{ rows: unknown[] }> {
-      const result = await singletonPool!.query(sql, params);
-      return { rows: result.rows };
-    },
-  };
+  return buildDB(singletonPool);
 }
