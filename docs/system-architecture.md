@@ -6,10 +6,10 @@ Last updated: 2026-05-03
 
 Chang-Store operates in two parallel modes determined by which features are in `App.tsx`'s `MIGRATED_FEATURES` array:
 
-1. **Client-Only Path** -- Features not in `MIGRATED_FEATURES` call the Gemini API directly from the browser. No backend required.
+1. **Client-Only AI Path** -- Features not in `MIGRATED_FEATURES` keep direct browser-to-Gemini execution and do not use the job pipeline, but the app shell still requires backend auth/session endpoints because AuthProvider/AuthGate render unconditionally.
 2. **Backend Pipeline Path** -- `MIGRATED_FEATURES` (TryOn, Lookbook, ClothingTransfer, PhotoAlbum) route through Vercel Functions to a Neon Postgres job queue with fire-and-forget execution and Vercel Blob asset storage.
 
-Both paths share the same frontend components and hooks. Auth is always active (AuthProvider/AuthGate render unconditionally) and required for backend pipeline endpoints.
+Both paths share the same frontend components and hooks. Auth is always active before any feature UI renders.
 
 ## High-Level Architecture
 
@@ -302,7 +302,7 @@ On every `GET /api/jobs`, stale jobs (queued/running, created >30 min ago) are m
 3. **No retry with backoff** -- Failed jobs are not automatically retried. Clients must re-submit.
 4. **No webhook/SSE** -- Clients poll for job status. No push notifications.
 5. **No multi-tenancy** -- Jobs are user-scoped but there is no org/team concept.
-6. **Blob storage required for pipeline** -- Job pipeline output persistence requires Vercel Blob (BLOB_READ_WRITE_TOKEN). Without it, completed jobs have no downloadable assets.
+6. **Blob storage required for pipeline** -- Job pipeline output persistence requires Vercel Blob (`BLOB_READ_WRITE_TOKEN`). Without it, blob upload throws during `executeJob()` and the runner marks the job `failed` with `EXECUTION_FAILED`; outputs are not finalized as completed assets.
 
 ## Related Documents
 

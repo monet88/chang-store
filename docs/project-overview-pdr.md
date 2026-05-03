@@ -8,7 +8,7 @@ Last updated: 2026-05-03
 
 ## Product Vision
 
-A virtual photography studio for fashion -- where users can try on clothes, generate lookbooks, change backgrounds and poses, transfer clothing, remove watermarks, create photo albums, generate patterns, and edit images through AI prompts. All AI features work client-side with Gemini while a phased backend foundation adds auth, job execution, and asset persistence.
+A virtual photography studio for fashion -- where users can try on clothes, generate lookbooks, change backgrounds and poses, transfer clothing, remove watermarks, create photo albums, generate patterns, and edit images through AI prompts. Gemini remains the only AI provider: currently reachable migrated features run through the backend job pipeline, while non-migrated direct client Gemini paths remain in code but are not available without the authenticated app shell.
 
 ## Current State
 
