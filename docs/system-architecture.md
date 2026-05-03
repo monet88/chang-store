@@ -4,22 +4,22 @@ Last updated: 2026-05-03
 
 ## Overview
 
-Chang-Store operates in two parallel modes selected at build time via feature flags:
+Chang-Store operates in two parallel modes determined by which features are in `App.tsx`'s `MIGRATED_FEATURES` array:
 
-1. **Client-Only Mode** (default: `VITE_ENABLE_AUTH=false`) -- All AI calls go directly from the browser to the Gemini API. No backend required.
-2. **Backend Pipeline Mode** (`VITE_ENABLE_AUTH=true`, `VITE_ENABLE_JOB_QUEUE=true`) -- API calls go through Vercel Functions to a Neon Postgres job queue with durable execution and Vercel Blob asset storage.
+1. **Client-Only Path** -- Features not in `MIGRATED_FEATURES` call the Gemini API directly from the browser. No backend required.
+2. **Backend Pipeline Path** -- `MIGRATED_FEATURES` (TryOn, Lookbook, ClothingTransfer, PhotoAlbum) route through Vercel Functions to a Neon Postgres job queue with fire-and-forget execution and Vercel Blob asset storage.
 
-Both modes share the same frontend components and hooks. The `MIGRATED_FEATURES` array in `App.tsx` controls which features route through the backend pipeline.
+Both paths share the same frontend components and hooks. Auth is always active (AuthProvider/AuthGate render unconditionally) and required for backend pipeline endpoints.
 
 ## High-Level Architecture
 
 ```
 [Browser]
   |
-  |-- Client-Only Path (all features when VITE_ENABLE_AUTH=false)
+  |-- Client-Only Path (non-migrated features)
   |   Component -> Hook -> imageEditingService -> Gemini API
   |
-  |-- Backend Pipeline Path (MIGRATED_FEATURES when VITE_ENABLE_AUTH=true)
+  |-- Backend Pipeline Path (MIGRATED_FEATURES)
       Component -> Hook -> jobService -> /api/jobs (Vercel Function)
                                           |
                                     [Neon Postgres]
@@ -77,7 +77,7 @@ const MIGRATED_FEATURES: Feature[] = [
 ];
 ```
 
-Features in `MIGRATED_FEATURES` use the backend pipeline when auth and job queue are enabled. All others use the client-only Gemini path regardless.
+Features in `MIGRATED_FEATURES` use the backend job pipeline. All others use the client-only Gemini path. The five features commented out in `featureMeta` and `renderActiveFeature` (Pose, Background, AIEditor, WatermarkRemover, PatternGenerator) are not reachable in the current UI.
 
 ### Provider Responsibilities
 
@@ -95,16 +95,19 @@ Features in `MIGRATED_FEATURES` use the backend pipeline when auth and job queue
 
 ```
 src/services/
-├── imageEditingService.ts     # Unified facade for ALL image gen/edit
+├── imageEditingService.ts     # Unified facade for client-only AI flows
 ├── gemini/
+│   ├── chat.ts                # Chat/conversation generation
 │   ├── image.ts               # editImage, generateImage, generateImagesFromBatch
 │   ├── text.ts                # Text/JSON generation
-│   └── client-factory.ts      # GoogleGenAI client init
+│   └── video.ts               # Video generation
+├── apiClient.ts               # Base HTTP client for backend API
+├── authService.ts             # Auth API client (login, logout, session)
+├── debugService.ts            # API call logging
+├── geminiService.ts           # Server-side Gemini stub
 ├── googleDriveService.ts      # Drive API wrapper
-├── jobService.ts              # Job queue API client
-├── authService.ts             # Auth API client
-├── authServer.ts              # Auth state management
-└── debugService.ts            # API call logging
+├── jobService.ts              # Job queue API client (createJob, pollJob, getJobResults)
+└── textService.ts             # Text generation service
 ```
 
 ### Model Registry
@@ -227,9 +230,10 @@ executeJob:
 ```
 GET /api/jobs/:id/results
   auth check -> job ownership check
+  verify job status is 'completed' or 'partial'
   getJobAssets(db, jobId) -> filter kind='output'
-  generate signed URLs from Vercel Blob
-  return { id, assets: [{ blobPath, url, mimeType }] }
+  return JSON { job, results } where results are DB asset records
+      (id, job_id, kind, blob_path, mime_type, created_at)
 ```
 
 #### Stale Job Sweep
@@ -247,10 +251,9 @@ On every `GET /api/jobs`, stale jobs (queued/running, created >30 min ago) are m
 
 #### Vercel Blob
 
-- Optional, gated by `VITE_ENABLE_BLOB_STORAGE`
 - Used for: job output assets (PNG images)
 - Ownership enforced: blob proxy checks `job_assets` join before serving
-- Signed URLs generated for client download
+- Client downloads via `/api/assets/[path]` proxy with ownership verification
 
 ### Rate Limiting
 
@@ -285,10 +288,10 @@ On every `GET /api/jobs`, stale jobs (queued/running, created >30 min ago) are m
    f. INSERT INTO job_assets (output records)
    g. Transition job to 'completed'
    h. INSERT INTO job_events (completed)
-6. Client polls GET /api/jobs/:id (every 5s, Retry-After: 15s)
+6. Client polls GET /api/jobs/:id via jobService.pollJob/getJob
 7. On completion, client fetches GET /api/jobs/:id/results
-8. Server generates signed blob URLs, returns asset list
-9. Client downloads images from signed URLs
+8. Server returns JSON { job, results } with DB asset records
+9. Client downloads result blobs via /api/assets/[path] proxy
 10. Hook renders results in component
 ```
 
@@ -299,7 +302,7 @@ On every `GET /api/jobs`, stale jobs (queued/running, created >30 min ago) are m
 3. **No retry with backoff** -- Failed jobs are not automatically retried. Clients must re-submit.
 4. **No webhook/SSE** -- Clients poll for job status. No push notifications.
 5. **No multi-tenancy** -- Jobs are user-scoped but there is no org/team concept.
-6. **Blob storage optional** -- Without blob storage, job pipeline has no asset persistence for results.
+6. **Blob storage required for pipeline** -- Job pipeline output persistence requires Vercel Blob (BLOB_READ_WRITE_TOKEN). Without it, completed jobs have no downloadable assets.
 
 ## Related Documents
 

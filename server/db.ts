@@ -265,7 +265,7 @@ export async function updateJobStatus(
       completed_at = CASE WHEN ${status} IN ('completed', 'failed', 'partial') THEN now() ELSE completed_at END
     WHERE id = ${jobId}`;
   const result = await db.query(q.text, q.values);
-  if (expectedStatus && result.rowCount === 0) {
+  if (expectedStatus && result.rowCount !== 1) {
     throw new Error(`Cannot transition job ${jobId} from ${expectedStatus} to ${status}`);
   }
 }

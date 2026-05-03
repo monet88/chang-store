@@ -85,7 +85,7 @@ const handleGenerate = async () => {
 
 ### Service Routing
 
-All AI operations go through `src/services/imageEditingService.ts`. Never import `src/services/gemini/*` directly from components or hooks.
+Client-only AI operations go through `src/services/imageEditingService.ts`. Migrated pipeline features (TryOn, Lookbook, ClothingTransfer, PhotoAlbum) use `src/services/jobService.ts` for job queue API calls. Components must never import services directly -- always go through hooks.
 
 ### Immutability
 

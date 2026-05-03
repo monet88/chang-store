@@ -30,19 +30,22 @@ Test files: 54 test files in `__tests__/` (excluded from LOC counts above).
 
 ### Hooks (`src/hooks/`)
 - One hook per feature: `useVirtualTryOn.ts`, `useLookbookGenerator.ts`, `useBackgroundReplacer.ts`, `usePoseChanger.ts`, `usePhotoAlbum.ts`, `useAIEditor.ts`, `useWatermarkRemover.ts`, `useClothingTransfer.ts`, `usePatternGenerator.ts`
-- Infrastructure hooks: `useJobPoll.ts` (shared job state), `useJobHistoryView.ts`, `useModelSelection.ts`, `useSettingsModal.ts`, `useGoogleDriveSync.ts`
-- Shared hooks: `useConcurrentWorkers.ts`, `useImageUpload.ts`, `useDragAndDrop.ts`
+- Infrastructure hooks: `useJobPoll.ts` (shared job state), `useJobHistoryView.ts`, `useModelSelection.ts`, `useSettingsModal.ts`, `useGoogleDriveSync.ts`, `useGalleryPersistence.ts`, `usePromptLibrary.ts`
+- Additional hooks: `useInpainting.ts`, `useSwapFace.ts`
 
 ### Services (`src/services/`)
-- `imageEditingService.ts` -- unified facade for all image generation/edit operations
+- `imageEditingService.ts` -- unified facade for client-only AI operations
+- `gemini/chat.ts` -- Gemini chat/conversation generation
 - `gemini/image.ts` -- Gemini image generation/editing functions
 - `gemini/text.ts` -- Gemini text generation for analysis and prompts
-- `gemini/client-factory.ts` -- Gemini client initialization
-- `googleDriveService.ts` -- Google Drive API wrapper
+- `gemini/video.ts` -- Gemini video generation
+- `apiClient.ts` -- Base HTTP client for backend API calls
+- `authService.ts` -- Auth API client (login, logout, session)
 - `debugService.ts` -- API call logging
-- `jobService.ts` -- Job queue API client
-- `authService.ts` -- Auth API client
-- `authServer.ts` -- Auth state management
+- `geminiService.ts` -- Server-side Gemini stub
+- `googleDriveService.ts` -- Google Drive API wrapper
+- `jobService.ts` -- Job queue API client (createJob, pollJob, getJobResults)
+- `textService.ts` -- Text generation service
 
 ### Contexts (`src/contexts/`)
 - `AuthContext.tsx` -- Authenticated user state, session polling
@@ -56,16 +59,20 @@ Test files: 54 test files in `__tests__/` (excluded from LOC counts above).
 - `modelSelectionRules.ts` -- Model selection logic and capability rules
 
 ### Utils (`src/utils/`)
-- `*-prompt-builder.ts` -- Feature-specific prompt builders (try-on, lookbook, clothing-transfer, pose, photo-album, pattern-generator)
+- `virtual-try-on-prompt-builder.ts` -- Try-on prompt construction
+- `lookbookPromptBuilder.ts` -- Lookbook prompt construction
+- `clothing-transfer-prompt-builder.ts` -- Clothing transfer prompt construction
+- `pattern-generator-prompt-builder.ts` -- Pattern generator prompt construction
+- `watermark-prompts.ts` -- Watermark removal prompt construction
+- `photoAlbumConfig.ts` -- Photo album layout/scene configuration
 - `imageUtils.ts` -- Image dimension, conversion, and processing utilities
 - `imageDownload.ts` -- Single image download with filename sanitization
 - `zipDownload.ts` -- Batch ZIP download
+- `imageCache.ts` -- Image caching utilities
+- `galleryDB.ts` -- IndexedDB gallery persistence
 - `storage.ts` -- Session state persistence
-- `image-fetch.ts` -- URL-to-base64 image fetching
-- `image-upload.ts` -- File upload handling
-- `image-crop.ts` -- Image cropping utilities
-- `canvas-utils.ts` -- Canvas rendering helpers
-- `concurrency.ts` / `run-bounded-workers.ts` -- Batch concurrency control
+- `batch-image-session.ts` -- Batch image session management
+- `run-bounded-workers.ts` -- Bounded concurrency control
 
 ### Locales (`src/locales/`)
 - `en.ts` -- English (source of truth), contains all i18n keys including pose data
@@ -79,7 +86,7 @@ Test files: 54 test files in `__tests__/` (excluded from LOC counts above).
 - `auth/session.ts` -- GET, returns current AuthenticatedUser from session cookie
 - `jobs/index.ts` -- GET (list user jobs) + POST (create/execute job), CSRF-protected
 - `jobs/[id].ts` -- GET (job details) + POST (cancel/retry), CSRF-protected
-- `jobs/[id]/results.ts` -- GET, returns job results with signed blob URLs
+- `jobs/[id]/results.ts` -- GET, returns JSON `{ job, results }` with DB asset records (id, job_id, kind, blob_path, mime_type, created_at)
 - `assets/[path].ts` -- GET, proxies blob storage with job ownership verification
 
 ### API Libraries (`api/_lib/`)
@@ -134,8 +141,8 @@ User action -> Feature Component -> Feature Hook -> jobService.ts
     -> POST /api/jobs (auth + CSRF)
     -> createJob (Neon, idempotency) -> executeJob (fire-and-forget)
     -> Gemini server client -> Vercel Blob upload -> finalizeJobOutputs
-Client polls GET /api/jobs/:id -> GET /api/jobs/:id/results -> signed blob URLs
-    -> Hook downloads results -> Component render
+Client polls GET /api/jobs/:id -> GET /api/jobs/:id/results -> JSON { job, results }
+    -> Hook downloads blobs via /api/assets/[path] -> Component render
 ```
 
 ## Key Architectural Properties

@@ -5,16 +5,16 @@ let singletonPool: Pool | null = null;
 
 function buildDB(pool: Pool): DB {
   return {
-    async query(sql: string, params?: unknown[]): Promise<{ rows: unknown[] }> {
+    async query(sql: string, params?: unknown[]): Promise<{ rows: unknown[]; rowCount: number | null }> {
       const result = await pool.query(sql, params);
-      return { rows: result.rows };
+      return { rows: result.rows, rowCount: result.rowCount };
     },
     async withTransaction<T>(fn: (tx: DB) => Promise<T>): Promise<T> {
       const client = await pool.connect();
       const txDB: DB = {
-        async query(sql: string, params?: unknown[]): Promise<{ rows: unknown[] }> {
+        async query(sql: string, params?: unknown[]): Promise<{ rows: unknown[]; rowCount: number | null }> {
           const result = await client.query(sql, params);
-          return { rows: result.rows };
+          return { rows: result.rows, rowCount: result.rowCount };
         },
         async withTransaction<T2>(_fn: (tx2: DB) => Promise<T2>): Promise<T2> {
           throw new Error('Nested transactions are not supported');

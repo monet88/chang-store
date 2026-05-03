@@ -29,6 +29,10 @@ function parseBoundedInteger(value: string | null, fallback: number, minimum: nu
 
 const handler = withCsrf({
   async fetch(request: Request): Promise<Response> {
+    if (request.method !== 'GET' && request.method !== 'POST') {
+      return methodNotAllowed(['GET', 'POST']);
+    }
+
     const db = getNeonPool(process.env.DATABASE_URL!);
     const session = await getAuthenticatedSessionFromRequest(db, request);
     if (!session) {
@@ -41,11 +45,7 @@ const handler = withCsrf({
       return handleCreate(request, db, session, traceId);
     }
 
-    if (request.method === 'GET') {
-      return handleList(request, db, session);
-    }
-
-    return methodNotAllowed(['GET', 'POST']);
+    return handleList(request, db, session);
   },
 });
 

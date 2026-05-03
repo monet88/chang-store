@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { checkRateLimit, InMemoryRateLimitStorage } from '../../api/_lib/rate-limiter';
+import { PostgresRateLimitStorage } from '../../server/rate-limiter-storage';
+import type { DB } from '../../server/db';
 
 const NOW = 1_000_000_000;
 const WINDOW = 15 * 60 * 1000;
@@ -114,20 +116,37 @@ describe('rate limiter', () => {
     const windowStart = NOW - (NOW % WINDOW);
     const later = windowStart + WINDOW;
 
-    // Same window: counts accumulate
     await checkRateLimit(storage, 'user-a', windowStart);
     const same = await checkRateLimit(storage, 'user-a', windowStart + 100);
     expect(same.attemptCount).toBe(2);
 
-    // Next window: counter resets
     const next = await checkRateLimit(storage, 'user-a', later);
     expect(next.attemptCount).toBe(1);
 
-    // Previous window should be cleaned
-    for (const key of (storage as any).store.keys()) {
+    for (const key of (storage as unknown as { store: Map<string, number> }).store.keys()) {
       const parts = key.split(':');
       const storedWindow = Number(parts[parts.length - 1]);
       expect(storedWindow).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('PostgresRateLimitStorage', () => {
+  it('cleans expired windows once per rate-limit window instead of every increment', async () => {
+    const query = vi.fn()
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ attempt_count: 1 }] })
+      .mockResolvedValueOnce({ rows: [{ attempt_count: 2 }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ attempt_count: 1 }] });
+    const db: DB = { query, withTransaction: vi.fn() };
+    const storage = new PostgresRateLimitStorage(db);
+
+    await storage.increment('user-a', NOW);
+    await storage.increment('user-a', NOW);
+    await storage.increment('user-a', NOW + WINDOW);
+
+    const cleanupCalls = query.mock.calls.filter(([statement]) => String(statement).startsWith('DELETE FROM rate_limit_entries WHERE window_start'));
+    expect(cleanupCalls).toHaveLength(2);
   });
 });

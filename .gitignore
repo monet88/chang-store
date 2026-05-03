@@ -63,3 +63,9 @@ opencode.json
 .agents
 .brv/
 .opencode
+.neuralmemory
+.planning/
+.cursor/
+.gemini/
+.jules/
+.motion/

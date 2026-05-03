@@ -10,11 +10,11 @@ Chang-Store is a React 19 + TypeScript + Vite SPA that serves as a virtual fashi
 | Lookbook Generator | Live | Job queue |
 | Clothing Transfer | Live | Job queue |
 | Photo Album Creator | Live | Job queue |
-| Pose Changer | Gated (pending job migration) | -- |
-| Background Replacer | Gated (pending job migration) | -- |
-| AI Editor | Gated (pending job migration) | -- |
-| Watermark Remover | Gated (pending job migration) | -- |
-| Pattern Generator | Gated (pending job migration) | -- |
+| Pose Changer | Commented out in App.tsx | Client-only (when re-enabled) |
+| Background Replacer | Commented out in App.tsx | Client-only (when re-enabled) |
+| AI Editor | Commented out in App.tsx | Client-only (when re-enabled) |
+| Watermark Remover | Commented out in App.tsx | Client-only (when re-enabled) |
+| Pattern Generator | Commented out in App.tsx | Client-only (when re-enabled) |
 
 ## Tech Stack
 
@@ -22,7 +22,7 @@ Chang-Store is a React 19 + TypeScript + Vite SPA that serves as a virtual fashi
 - **Backend API**: Vercel Functions handlers (`api/`) with a Vite dev-api-bridge for local dev
 - **AI**: Google Gemini SDK (`@google/genai`) -- Gemini-only, no multi-provider
 - **Database**: Neon Postgres (Serverless) for auth sessions, rate limiting, and job queue
-- **Blob Storage**: Vercel Blob for job input/output assets (optional, gated by `VITE_ENABLE_BLOB_STORAGE`)
+- **Blob Storage**: Vercel Blob for job output assets
 - **Testing**: Vitest 4, React Testing Library, jsdom
 - **CI**: GitHub Actions (Node 22, type-check, lint, test, build)
 - **Deploy**: Vercel
@@ -41,7 +41,7 @@ npx tsc --noEmit # type-check
 npm run lint     # ESLint
 ```
 
-Optional: enable the backend by setting feature flags and database env vars (see `.env.example`).
+Optional: enable the backend by setting database env vars (`DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, `AUTH_SECRET`) -- see `.env.example`.
 
 ## Environment Variables
 
@@ -52,11 +52,11 @@ Optional: enable the backend by setting feature flags and database env vars (see
 | `AUTH_SECRET` | Production | HMAC-SHA256 secret for session cookies |
 | `AUTH_SESSION_TTL_HOURS` | No (default 72) | Session duration in hours |
 | `AUTH_SEEDED_USERS_JSON` | No | JSON array of seeded user records |
-| `VITE_ENABLE_AUTH` | No (default false) | Enable seeded-auth login/logout |
-| `VITE_ENABLE_JOB_QUEUE` | No (default false) | Enable durable job queue (requires auth) |
+| `VITE_ENABLE_AUTH` | No (default false) | Reserved for future auth gating (not consumed by runtime) |
+| `VITE_ENABLE_JOB_QUEUE` | No (default false) | Reserved for future job queue gating (not consumed by runtime) |
 | `DATABASE_URL` | For backend | Neon Postgres connection string |
 | `BLOB_READ_WRITE_TOKEN` | For backend | Vercel Blob read-write token |
-| `VITE_ENABLE_BLOB_STORAGE` | No (default false) | Enable Vercel Blob storage |
+| `VITE_ENABLE_BLOB_STORAGE` | No (default false) | Reserved for future blob storage gating (not consumed by runtime) |
 
 ## Architecture
 
@@ -73,14 +73,14 @@ Component (thin UI) --> Hook (state + logic) --> Service Facade --> Gemini API
 - **Service routing**: `src/services/imageEditingService.ts` fans into `src/services/gemini/`
 - **Backend API**: `api/` directory with Vercel-style `{ fetch }` handlers; Vite plugin bridges `/api` in dev
 - **Auth**: Stateless HMAC-SHA256 session cookie (`chang_store_session`), scrypt password hashing, CSRF double-submit cookie pattern
-- **Job queue**: Zod-validated idempotent jobs in Neon Postgres, fire-and-forget Gemini execution, Vercel Blob for outputs
+- **Job queue**: Zod-validated idempotent jobs in Neon Postgres, fire-and-forget Gemini execution with stale sweep recovery, Vercel Blob for outputs
 - **Model registry**: `src/config/modelRegistry.ts` centralizes AI model capability selection
 
 ## Known Risks
 
 1. **GEMINI_API_KEY exposed in client bundle** -- Vite `define` embeds it in the client build. A backend proxy is needed before production use with real user traffic.
 2. **Durable workflow stubs** -- `workflows/canary.ts` and `workflows/feature-runner.ts` support both Vercel Workflow and Inngest paths, but actual execution is currently fire-and-forget from the API handler. Jobs that crash mid-execution are swept as stale after 30 minutes.
-3. **5 features gated** -- Pose, Background, AI Editor, Watermark Remover, and Pattern Generator are functional in the client-only path but gated behind the job pipeline migration in backend mode.
+3. **5 features commented out** -- Pose, Background, AI Editor, Watermark Remover, and Pattern Generator have their featureMeta entries and render switch cases commented out in App.tsx. Their components and hooks exist but are not reachable in the current UI. They are functional in the client-only path once re-enabled.
 4. **Missing Content Security Policy** -- No CSP headers configured in `vercel.json` (only COOP header). This is a security gap for production.
 5. **No CSRF on GET** -- CSRF tokens protect POST/PUT/DELETE only; `SameSite=Lax` on session cookie provides some protection.
 

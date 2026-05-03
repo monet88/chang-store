@@ -8,13 +8,13 @@ Last updated: 2026-05-03
 
 ## Product Vision
 
-A virtual photography studio for fashion -- where users can try on clothes, generate lookbooks, change backgrounds and poses, transfer clothing, remove watermarks, create photo albums, generate patterns, and edit images through AI prompts. All features work client-side with Gemini while a phased backend foundation adds auth, durable job execution, and asset persistence.
+A virtual photography studio for fashion -- where users can try on clothes, generate lookbooks, change backgrounds and poses, transfer clothing, remove watermarks, create photo albums, generate patterns, and edit images through AI prompts. All AI features work client-side with Gemini while a phased backend foundation adds auth, job execution, and asset persistence.
 
 ## Current State
 
 **Version**: 1.0.4 (tag v1.5)
 **Branch**: `feat/backend-foundation`
-**Status**: Backend foundation in progress -- auth, job queue, and blob storage are implemented but gated behind feature flags (`VITE_ENABLE_AUTH`, `VITE_ENABLE_JOB_QUEUE`).
+**Status**: Backend foundation in progress -- auth, job queue, and blob storage are implemented. AuthProvider/AuthGate always render; job pipeline is active for `MIGRATED_FEATURES` (TryOn, Lookbook, ClothingTransfer, PhotoAlbum) when backend is deployed.
 
 ### Feature Status
 
@@ -24,11 +24,11 @@ A virtual photography studio for fashion -- where users can try on clothes, gene
 | Lookbook Generator | `Feature.Lookbook` | Yes | Live |
 | Clothing Transfer | `Feature.ClothingTransfer` | Yes | Live |
 | Photo Album Creator | `Feature.PhotoAlbum` | Yes | Live |
-| Pose Changer | `Feature.Pose` | Yes | Gated |
-| Background Replacer | `Feature.Background` | Yes | Gated |
-| AI Editor | `Feature.AIEditor` | Yes | Gated |
-| Watermark Remover | `Feature.WatermarkRemover` | Yes | Gated |
-| Pattern Generator | `Feature.PatternGenerator` | Yes | Gated |
+| Pose Changer | `Feature.Pose` | Yes | Commented out in App.tsx |
+| Background Replacer | `Feature.Background` | Yes | Commented out in App.tsx |
+| AI Editor | `Feature.AIEditor` | Yes | Commented out in App.tsx |
+| Watermark Remover | `Feature.WatermarkRemover` | Yes | Commented out in App.tsx |
+| Pattern Generator | `Feature.PatternGenerator` | Yes | Commented out in App.tsx |
 
 ## Target Users
 
@@ -55,7 +55,7 @@ A virtual photography studio for fashion -- where users can try on clothes, gene
 
 - FR-10: Seeded authentication with HMAC-SHA256 session cookies and scrypt password hashing
 - FR-11: CSRF protection via double-submit cookie pattern for mutating endpoints
-- FR-12: Durable job queue in Neon Postgres with idempotency keys and status lifecycle
+- FR-12: Job queue in Neon Postgres with idempotency keys, status lifecycle, and stale sweep recovery
 - FR-13: Vercel Blob storage for job input/output assets with ownership verification
 - FR-14: Zod-validated job payloads per feature with structured error formatting
 - FR-15: Rate limiting on login endpoint with Postgres-backed or in-memory storage
@@ -102,7 +102,7 @@ A virtual photography studio for fashion -- where users can try on clothes, gene
 
 - NFR-14: Component/Hook separation enforced -- zero service imports from components
 - NFR-15: Feature enum drives all routing, no magic strings
-- NFR-16: Test coverage threshold at 80% for all paths
+- NFR-16: Test coverage thresholds (statements 80%, branches 75%, functions 80%, lines 80%)
 - NFR-17: Code files kept under 200-800 lines with modular extraction
 
 ## Technical Constraints
@@ -110,7 +110,7 @@ A virtual photography studio for fashion -- where users can try on clothes, gene
 - **Gemini-only** -- No multi-provider abstraction. The decision to remove Local/Anti Provider and other AI vendor stubs was made in v1.3.
 - **No React Router** -- `App.tsx` uses a `Feature` enum switch with `React.lazy`. Hash routing is a planned v2.0 item.
 - **Vercel platform** -- API handlers follow Vercel Functions convention. Neon Postgres and Vercel Blob are the only storage backends.
-- **Zero mandatory backend** -- The frontend works without any backend when `VITE_ENABLE_AUTH=false` (default). All AI calls go directly to Gemini from the client.
+- **Backend gap** -- Non-migrated feature hooks still call Gemini directly from the client, but the app shell currently renders `AuthGate` unconditionally. A fully backend-free runtime path requires auth gating to be wired or disabled.
 
 ## Dependencies
 
@@ -167,7 +167,7 @@ Key architectural decisions (not yet formalized as ADRs):
 
 | Metric | Current | Target (v2.0) |
 |--------|---------|---------------|
-| Features | 9 (4 pipeline, 5 gated) | 9 (all pipeline) |
+| Features | 9 (4 live, 5 commented out) | 9 (all pipeline) |
 | Test coverage | 80% threshold | 80% threshold maintained |
 | Bundle size (gzipped) | ~300KB JS | <300KB JS |
 | File max lines | ~1200 (some legacy) | <800 |

@@ -58,7 +58,7 @@ describe('job finalization persistence', () => {
           created_at: new Date().toISOString(),
         }],
       })
-      .mockResolvedValueOnce({ rows: [] }) // updateJobStatus
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 }) // updateJobStatus
       .mockResolvedValueOnce({ rows: [{ id: 'ev-1' }] }); // createJobEvent
 
     const db = createMockDB({ jobQuery, txQuery });
@@ -97,6 +97,21 @@ describe('job finalization persistence', () => {
     expect(txQuery).toHaveBeenCalledTimes(2);
   });
 
+  it('fails closed when a conditional status update does not report rowCount', async () => {
+    const { updateJobStatus } = await import('../../server/db');
+    const query = vi.fn().mockResolvedValueOnce({ rows: [] });
+    const db: DB = { query, withTransaction: vi.fn() };
+
+    await expect(updateJobStatus(
+      db,
+      'job-missing-row-count',
+      'completed',
+      undefined,
+      undefined,
+      'running',
+    )).rejects.toThrow('Cannot transition job job-missing-row-count from running to completed');
+  });
+
   it('does not create a failed event when the failed transition loses the status race', async () => {
     const query = vi.fn()
       .mockResolvedValueOnce({ rows: [createRunningJobRow('job-fail-race')] })
@@ -128,7 +143,7 @@ describe('job finalization persistence', () => {
           created_at: new Date().toISOString(),
         }],
       })
-      .mockResolvedValueOnce({ rows: [] }) // updateJobStatus
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 }) // updateJobStatus
       .mockResolvedValueOnce({ rows: [{ id: 'ev-1' }] }); // createJobEvent
 
     const db = createMockDB({ jobQuery, txQuery });
