@@ -82,7 +82,7 @@ Key symbols: `resolveModelSelectionScope`, `getModelsBySelectionType`, `getModel
 #### Contexts
 Global state providers following strict nesting order:
 ```
-LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
+LanguageProvider → ToastProvider → ApiProvider → AuthProvider → ImageGalleryProvider → ImageViewerProvider → AuthGate → AppContent
 ```
 > **Note:** `ToastProvider` lives in `src/components/Toast.tsx`, not in `src/contexts/`.
 
@@ -96,7 +96,7 @@ flowchart TD
         UI["Components<br/><small>Thin UI wrappers</small>"]
         MODALS["Modals<br/><small>PoseLibrary, PromptLibrary</small>"]
         HOOKS["Hooks<br/><small>Feature state + orchestration</small>"]
-        CONTEXTS["Contexts<br/><small>Language, API, Gallery, Drive, Viewer</small>"]
+        CONTEXTS["Contexts<br/><small>Language, API, Auth, Gallery, Viewer</small>"]
         SERVICES["Services<br/><small>imageEditingService, jobService, googleDriveService</small>"]
         GEMINI_CLIENT["Gemini Client<br/><small>image, text, video, chat modules</small>"]
         CONFIG["Config<br/><small>modelRegistry, selectionRules</small>"]
@@ -314,8 +314,8 @@ Each feature maps to a `Feature` enum value in `src/types.ts` and is lazy-loaded
 |---------|-----------|------|----------------|
 | TryOn | `VirtualTryOn` | `useVirtualTryOn` | Server job pipeline |
 | Lookbook | `LookbookGenerator` | `useLookbookGenerator` | Server job pipeline |
-| Background | `BackgroundReplacer` | `useBackgroundReplacer` | Server job pipeline |
-| Pose | `PoseChanger` | `usePoseChanger` | Server job pipeline |
+| Background | `BackgroundReplacer` | `useBackgroundReplacer` | Client-side Gemini |
+| Pose | `PoseChanger` | `usePoseChanger` | Client-side Gemini |
 | PhotoAlbum | `PhotoAlbumCreator` | `usePhotoAlbum` | Server job pipeline |
 | AIEditor | `AIEditor` | `useAIEditor` | Client-side Gemini |
 | WatermarkRemover | `WatermarkRemover` | `useWatermarkRemover` | Client-side Gemini |
@@ -383,7 +383,7 @@ Based on the GitNexus knowledge graph (3,376 symbols, 222 execution flows):
 
 7. **CSRF double-submit pattern** — All mutating API routes are protected by `withCsrf` middleware with matching client-side token extraction.
 
-8. **Shared polling pattern** — Job-based features share `pollJob → getJob → fetchJson → getCsrfToken` across all hooks (Lookbook, PhotoAlbum, TryOn, Pose, Background).
+8. **Shared polling pattern** — Job-based hooks share `submitJob → pollJob → getJobResults` (Lookbook, PhotoAlbum, TryOn, ClothingTransfer); Pose and Background currently use direct `editImage` calls (no job polling).
 
 ---
 
