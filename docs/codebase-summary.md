@@ -101,7 +101,7 @@ Test files: 54 test files in `__tests__/` (excluded from LOC counts above).
 - `db.ts` -- Database interface (`DB`), SQL template tag, and all query functions for users, sessions, jobs, job assets, job events
 - `neon.ts` -- Neon Postgres pool singleton, `getNeonPool()`, transaction support
 - `gemini.ts` -- Server-side Gemini client, `generateImage()`, `editImage()`, `generateImagesFromBatch()`
-- `validation.ts` -- Zod schemas for 4 pipeline features (try-on, clothing-transfer, lookbook, photo-album), `validateJobPayload()` router
+- `validation.ts` -- Zod schemas for 9 feature payloads (try-on, clothing-transfer, lookbook, photo-album, background, pose, ai-editor, watermark-remover, pattern-generator), inferred payload types, and `validateJobPayload()` router
 - `jobs.ts` -- Job status transition rules (`canTransition`, `transitionStatus`)
 - `rate-limiter-storage.ts` -- Postgres-backed rate limit storage adapter
 - `blob.ts` -- Vercel Blob storage wrapper
