@@ -35,6 +35,31 @@ async function loadAdapter(feature: string): Promise<FeatureAdapter> {
       adapterCache[feature] = mod as unknown as FeatureAdapter;
       break;
     }
+    case 'background': {
+      const mod = await import('../adapters/background.js');
+      adapterCache[feature] = mod as unknown as FeatureAdapter;
+      break;
+    }
+    case 'pose': {
+      const mod = await import('../adapters/pose.js');
+      adapterCache[feature] = mod as unknown as FeatureAdapter;
+      break;
+    }
+    case 'ai-editor': {
+      const mod = await import('../adapters/ai-editor.js');
+      adapterCache[feature] = mod as unknown as FeatureAdapter;
+      break;
+    }
+    case 'watermark-remover': {
+      const mod = await import('../adapters/watermark-remover.js');
+      adapterCache[feature] = mod as unknown as FeatureAdapter;
+      break;
+    }
+    case 'pattern-generator': {
+      const mod = await import('../adapters/pattern-generator.js');
+      adapterCache[feature] = mod as unknown as FeatureAdapter;
+      break;
+    }
     default:
       throw new Error(`Unknown feature: ${feature}`);
   }
