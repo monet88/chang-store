@@ -109,11 +109,12 @@ describe('usePoseChanger', () => {
     expect(submitJob).toHaveBeenCalledWith(
       'pose',
       expect.objectContaining({
-        subjectImage: SUBJECT_IMAGE.base64,
-        poseReferenceImage: POSE_REFERENCE_IMAGE.base64,
+        subjectImage: `data:${SUBJECT_IMAGE.mimeType};base64,${SUBJECT_IMAGE.base64}`,
+        poseReferenceImage: `data:${POSE_REFERENCE_IMAGE.mimeType};base64,${POSE_REFERENCE_IMAGE.base64}`,
         negativePrompt: 'blurry',
         aspectRatio: '1:1',
         resolution: '4K',
+        model: 'gemini-2.5-flash-image',
       }),
     );
     expect((vi.mocked(submitJob).mock.calls[0]?.[1] as { prompt: string }).prompt).toContain('Pose Reference Image');

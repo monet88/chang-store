@@ -67,6 +67,8 @@ const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => (
   onStatusUpdate,
 });
 
+const toDataUrl = (image: ImageFile): string => `data:${image.mimeType};base64,${image.base64}`;
+
 function assertPayloadSizeBelowLimit(payload: unknown): void {
   const bytes = new Blob([JSON.stringify(payload)]).size;
   if (bytes > MAX_JOB_PAYLOAD_BYTES) {
@@ -197,11 +199,12 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
 
   const generateImageForPrompt = async (sourceImage: ImageFile, promptText: string, framingInstruction: string) => {
     const payload = {
-      subjectImage: sourceImage.base64,
+      subjectImage: toDataUrl(sourceImage),
       prompt: buildTextPosePrompt(promptText, framingInstruction),
       negativePrompt,
       aspectRatio,
       resolution,
+      model: imageEditModel,
     };
     assertPayloadSizeBelowLimit(payload);
 
@@ -278,12 +281,13 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
 
       try {
         const payload = {
-          subjectImage: subjectImage.base64,
-          poseReferenceImage: poseReferenceImage.base64,
+          subjectImage: toDataUrl(subjectImage),
+          poseReferenceImage: toDataUrl(poseReferenceImage),
           prompt: buildReferencePosePrompt(customPosePrompt, framingInstruction),
           negativePrompt,
           aspectRatio,
           resolution,
+          model: imageEditModel,
         };
         assertPayloadSizeBelowLimit(payload);
 

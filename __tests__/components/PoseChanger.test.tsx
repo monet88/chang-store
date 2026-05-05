@@ -156,7 +156,8 @@ describe('PoseChanger component', () => {
     await waitFor(() => expect(submitJobMock).toHaveBeenCalledTimes(3));
     expect(submitJobMock.mock.calls[2]?.[0]).toBe('pose');
     expect(submitJobMock.mock.calls[2]?.[1]).toMatchObject({
-      subjectImage: testImage.base64,
+      subjectImage: `data:${testImage.mimeType};base64,${testImage.base64}`,
+      model: 'gemini-2.5-flash-image',
     });
     expect(submitJobMock.mock.calls[2]?.[1]?.prompt).toContain('"pose one"');
   });

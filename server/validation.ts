@@ -57,6 +57,7 @@ export const poseSchema = z.object({
   negativePrompt: z.string().optional(),
   aspectRatio: z.string().optional(),
   resolution: z.string().optional(),
+  model: z.string().optional(),
 }).strict();
 
 export const aiEditorSchema = z.object({

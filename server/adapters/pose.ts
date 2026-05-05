@@ -14,6 +14,7 @@ export function mapInput(payload: PosePayload): Record<string, unknown> {
     negativePrompt: payload.negativePrompt,
     aspectRatio: payload.aspectRatio,
     resolution: payload.resolution,
+    model: payload.model,
   };
 }
 

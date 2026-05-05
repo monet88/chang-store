@@ -56,6 +56,9 @@ const generateId = (): string =>
 const clampConcurrency = (n: number): number =>
   Math.max(1, Math.min(5, Math.round(n)));
 
+const toDataUrl = (image: ImageFile): string =>
+  `data:${image.mimeType};base64,${image.base64}`;
+
 function assertPayloadSizeBelowLimit(payload: unknown): void {
   const bytes = new Blob([JSON.stringify(payload)]).size;
   if (bytes > MAX_JOB_PAYLOAD_BYTES) {
@@ -175,7 +178,7 @@ export function useWatermarkRemover(
       updateItem(item.id, { status: 'processing', error: undefined });
 
       const payload = {
-        image: item.original.base64,
+        image: toDataUrl(item.original),
         prompt,
         model,
       };
