@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { submitJob, pollJob, type Job, JobHttpError } from '../services/jobService';
+import { submitJob, pollJob, getJobResults, downloadJobResultBlob, type Job, JobHttpError } from '../services/jobService';
+import { ImageFile } from '../types';
 
 interface UseJobPollOptions {
   pollIntervalMs?: number;
@@ -16,6 +17,18 @@ interface UseJobPollResult {
   stopPolling: () => void;
 }
 
+export const DEFAULT_JOB_POLL_INTERVAL_MS = 2000;
+const MAX_JOB_PAYLOAD_BYTES = 4 * 1024 * 1024;
+
+interface WaitForJobCompletionOptions {
+  jobId: string;
+  shouldContinue: () => boolean;
+  onStatusUpdate?: (message: string) => void;
+  pollIntervalMs?: number;
+  ownerJobId?: string;
+  activeJobIds?: Set<string>;
+}
+
 interface SharedJobState {
   job: Job | null;
   isPolling: boolean;
@@ -24,6 +37,71 @@ interface SharedJobState {
 
 interface SharedJobUpdateOptions {
   ownerJobId?: string;
+}
+
+export function assertPayloadSizeBelowLimit(payload: unknown): void {
+  const bytes = new Blob([JSON.stringify(payload)]).size;
+  if (bytes > MAX_JOB_PAYLOAD_BYTES) {
+    throw new Error('Payload too large. Reduce image count or resolution and try again.');
+  }
+}
+
+export async function waitForJobCompletion({
+  jobId,
+  shouldContinue,
+  onStatusUpdate,
+  pollIntervalMs = DEFAULT_JOB_POLL_INTERVAL_MS,
+  ownerJobId,
+  activeJobIds,
+}: WaitForJobCompletionOptions): Promise<Job> {
+  while (shouldContinue()) {
+    try {
+      const job = await pollJob(jobId);
+      const isPolling = job.status === 'queued' || job.status === 'running';
+      if (!isPolling) {
+        activeJobIds?.delete(jobId);
+      }
+      const nextIsPolling = activeJobIds ? activeJobIds.size > 0 : isPolling;
+      setSharedJobState(
+        {
+          job,
+          isPolling: nextIsPolling,
+          error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
+        },
+        { ownerJobId: ownerJobId ?? jobId },
+      );
+      onStatusUpdate?.(`Job ${job.status}...`);
+
+      if (!isPolling) {
+        return job;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    } catch (error) {
+      activeJobIds?.delete(jobId);
+      const message = error instanceof Error ? error.message : String(error);
+      setSharedJobState(
+        { isPolling: activeJobIds ? activeJobIds.size > 0 : false, error: message },
+        { ownerJobId: ownerJobId ?? jobId },
+      );
+      throw error;
+    }
+  }
+
+  setSharedJobState({ isPolling: false, error: null }, { ownerJobId: ownerJobId ?? jobId });
+  throw new Error('Job polling cancelled');
+}
+
+export async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
+  const { results } = await getJobResults(jobId);
+  const outputResults = results.filter((result) => result.kind === 'output');
+  const images = await Promise.all(
+    outputResults.map(async (result) => ({
+      base64: await downloadJobResultBlob(result.blob_path),
+      mimeType: result.mime_type,
+    })),
+  );
+  return images;
 }
 
 const sharedJobListeners = new Set<(state: SharedJobState) => void>();

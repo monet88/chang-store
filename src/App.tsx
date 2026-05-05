@@ -45,6 +45,11 @@ const MIGRATED_FEATURES: Feature[] = [
   Feature.Lookbook,
   Feature.ClothingTransfer,
   Feature.PhotoAlbum,
+  Feature.Background,
+  Feature.Pose,
+  Feature.AIEditor,
+  Feature.WatermarkRemover,
+  Feature.PatternGenerator,
 ];
 
 const AppContent: React.FC = () => {
@@ -134,36 +139,31 @@ const AppContent: React.FC = () => {
       group: t('navigation.createLooks.label'),
       description: t('workspace.flows.clothingTransfer'),
     },
-    // TODO: Enable when migrated to job pipeline
-    // [Feature.PatternGenerator]: {
-    //   label: t('tabs.patternGenerator'),
-    //   group: t('navigation.createLooks.label'),
-    //   description: t('workspace.flows.patternGenerator'),
-    // },
-    // TODO: Enable when migrated to job pipeline
-    // [Feature.AIEditor]: {
-    //   label: t('tabs.aiEditor'),
-    //   group: t('navigation.editImages.label'),
-    //   description: t('workspace.flows.aiEditor'),
-    // },
-    // TODO: Enable when migrated to job pipeline
-    // [Feature.Background]: {
-    //   label: t('tabs.background'),
-    //   group: t('navigation.editImages.label'),
-    //   description: t('workspace.flows.background'),
-    // },
-    // TODO: Enable when migrated to job pipeline
-    // [Feature.Pose]: {
-    //   label: t('tabs.pose'),
-    //   group: t('navigation.editImages.label'),
-    //   description: t('workspace.flows.pose'),
-    // },
-    // TODO: Enable when migrated to job pipeline
-    // [Feature.WatermarkRemover]: {
-    //   label: t('tabs.watermarkRemover'),
-    //   group: t('navigation.editImages.label'),
-    //   description: t('workspace.flows.watermarkRemover'),
-    // },
+    [Feature.PatternGenerator]: {
+      label: t('tabs.patternGenerator'),
+      group: t('navigation.createLooks.label'),
+      description: t('workspace.flows.patternGenerator'),
+    },
+    [Feature.AIEditor]: {
+      label: t('tabs.aiEditor'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.aiEditor'),
+    },
+    [Feature.Background]: {
+      label: t('tabs.background'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.background'),
+    },
+    [Feature.Pose]: {
+      label: t('tabs.pose'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.pose'),
+    },
+    [Feature.WatermarkRemover]: {
+      label: t('tabs.watermarkRemover'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.watermarkRemover'),
+    },
     [Feature.PhotoAlbum]: {
       label: t('tabs.photoAlbum'),
       group: t('navigation.outputStudio.label'),
@@ -203,21 +203,16 @@ const AppContent: React.FC = () => {
         );
       case Feature.ClothingTransfer:
         return <ClothingTransfer key="clothing-transfer" onSendToFeature={handleSendToFeature} />;
-      // TODO: Enable when migrated to job pipeline
-      // case Feature.Background:
-      //   return <BackgroundReplacer key="background" />;
-      // TODO: Enable when migrated to job pipeline
-      // case Feature.Pose:
-      //   return <PoseChanger key="pose" onOpenPoseLibrary={handleOpenPoseLibrary} />;
-      // TODO: Enable when migrated to job pipeline
-      // case Feature.AIEditor:
-      //   return <AIEditor key="ai-editor" />;
-      // TODO: Enable when migrated to job pipeline
-      // case Feature.WatermarkRemover:
-      //   return <WatermarkRemover key="watermark-remover" />;
-      // TODO: Enable when migrated to job pipeline
-      // case Feature.PatternGenerator:
-      //   return <PatternGenerator key="pattern-generator" />;
+      case Feature.Background:
+        return <BackgroundReplacer key="background" />;
+      case Feature.Pose:
+        return <PoseChanger key="pose" onOpenPoseLibrary={handleOpenPoseLibrary} />;
+      case Feature.AIEditor:
+        return <AIEditor key="ai-editor" />;
+      case Feature.WatermarkRemover:
+        return <WatermarkRemover key="watermark-remover" />;
+      case Feature.PatternGenerator:
+        return <PatternGenerator key="pattern-generator" />;
       default:
         return <VirtualTryOn key="try-on" />;
     }

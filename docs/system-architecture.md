@@ -1,15 +1,15 @@
 # System Architecture
 
-Last updated: 2026-05-03
+Last updated: 2026-05-05
 
 ## Overview
 
 Chang-Store operates in two parallel modes determined by which features are in `App.tsx`'s `MIGRATED_FEATURES` array:
 
-1. **Client-Only AI Path** -- Features not in `MIGRATED_FEATURES` keep direct browser-to-Gemini execution and do not use the job pipeline, but the app shell still requires backend auth/session endpoints because AuthProvider/AuthGate render unconditionally.
-2. **Backend Pipeline Path** -- `MIGRATED_FEATURES` (TryOn, Lookbook, ClothingTransfer, PhotoAlbum) route through Vercel Functions to a Neon Postgres job queue with fire-and-forget execution and Vercel Blob asset storage.
+1. **Client-Only AI Path (fallback path)** -- Features not in `MIGRATED_FEATURES` keep direct browser-to-Gemini execution and do not use the job pipeline. This path still exists in code via `imageEditingService.ts`, but no current UI feature routes to it.
+2. **Backend Pipeline Path (active path)** -- `MIGRATED_FEATURES` now contains all nine feature entries and routes all UI-accessible features through Vercel Functions to a Neon Postgres job queue with fire-and-forget execution and Vercel Blob asset storage.
 
-Both paths share the same frontend components and hooks. Auth is always active before any feature UI renders.
+Both paths remain implemented in code. In the current UI configuration, all feature screens use the backend path. Auth is always active before any feature UI renders.
 
 ## High-Level Architecture
 
@@ -73,11 +73,19 @@ No React Router. `App.tsx` switches on `Feature` enum values with `React.lazy`:
 
 ```typescript
 const MIGRATED_FEATURES: Feature[] = [
-  Feature.TryOn, Feature.Lookbook, Feature.ClothingTransfer, Feature.PhotoAlbum,
+  Feature.TryOn,
+  Feature.Lookbook,
+  Feature.ClothingTransfer,
+  Feature.PhotoAlbum,
+  Feature.Background,
+  Feature.Pose,
+  Feature.AIEditor,
+  Feature.WatermarkRemover,
+  Feature.PatternGenerator,
 ];
 ```
 
-Features in `MIGRATED_FEATURES` use the backend job pipeline. All others use the client-only Gemini path. The five features commented out in `featureMeta` and `renderActiveFeature` (Pose, Background, AIEditor, WatermarkRemover, PatternGenerator) are not reachable in the current UI.
+Features in `MIGRATED_FEATURES` use the backend job pipeline. All others use the client-only Gemini path. With the current `App.tsx` configuration, all feature entries are in `MIGRATED_FEATURES`, so all UI-accessible features route through the backend pipeline.
 
 ### Provider Responsibilities
 

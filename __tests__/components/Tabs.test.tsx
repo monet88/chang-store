@@ -44,11 +44,11 @@ describe('Tabs', () => {
     );
 
     expect(screen.getByText('Create looks')).toBeInTheDocument();
+    expect(screen.getByText('Edit images')).toBeInTheDocument();
     expect(screen.getByText('Output studio')).toBeInTheDocument();
-    expect(screen.queryByText('Edit images')).not.toBeInTheDocument();
 
     const tabButtons = screen.getAllByRole('button');
-    expect(tabButtons).toHaveLength(4);
+    expect(tabButtons).toHaveLength(9);
 
     await user.click(screen.getByRole('button', { name: /Lookbook AI/i }));
     expect(setActiveFeature).toHaveBeenCalledWith(Feature.Lookbook);

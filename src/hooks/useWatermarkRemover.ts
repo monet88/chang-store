@@ -10,7 +10,7 @@
  * - ZIP download for batch results
  */
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { submitJob, pollJob, getJobResults, downloadJobResultBlob, type Job } from '@/services/jobService';
+import { submitJob } from '@/services/jobService';
 import { downloadImagesAsZip } from '@/utils/zipDownload';
 import { downloadImageAsJpeg } from '@/utils/imageDownload';
 import { runBoundedWorkers } from '@/utils/run-bounded-workers';
@@ -21,7 +21,7 @@ import {
   type WatermarkModel,
 } from '@/utils/watermark-prompts';
 import { Feature, type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '@/types';
-import { setSharedJobState } from './useJobPoll';
+import { assertPayloadSizeBelowLimit, fetchJobImageResults, setSharedJobState, waitForJobCompletion } from './useJobPoll';
 
 export interface UseWatermarkRemoverReturn {
   items: WatermarkBatchItem[];
@@ -47,9 +47,6 @@ export interface UseWatermarkRemoverReturn {
   errorCount: number;
 }
 
-const POLL_INTERVAL_MS = 2000;
-const MAX_JOB_PAYLOAD_BYTES = 4 * 1024 * 1024;
-
 const generateId = (): string =>
   `wm-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -58,55 +55,6 @@ const clampConcurrency = (n: number): number =>
 
 const toDataUrl = (image: ImageFile): string =>
   `data:${image.mimeType};base64,${image.base64}`;
-
-function assertPayloadSizeBelowLimit(payload: unknown): void {
-  const bytes = new Blob([JSON.stringify(payload)]).size;
-  if (bytes > MAX_JOB_PAYLOAD_BYTES) {
-    throw new Error('Payload too large. Reduce image count or resolution and try again.');
-  }
-}
-
-async function waitForJobCompletion(
-  jobId: string,
-  shouldContinue: () => boolean,
-): Promise<Job> {
-  while (shouldContinue()) {
-    try {
-      const job = await pollJob(jobId);
-      const isPolling = job.status === 'queued' || job.status === 'running';
-      setSharedJobState({
-        job,
-        isPolling,
-        error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
-      }, { ownerJobId: jobId });
-
-      if (!isPolling) {
-        return job;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setSharedJobState({ isPolling: false, error: message }, { ownerJobId: jobId });
-      throw error;
-    }
-  }
-
-  setSharedJobState({ isPolling: false, error: null }, { ownerJobId: jobId });
-  throw new Error('Job polling cancelled');
-}
-
-async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
-  const { results } = await getJobResults(jobId);
-  const outputResults = results.filter((result) => result.kind === 'output');
-  const images = await Promise.all(
-    outputResults.map(async (result) => ({
-      base64: await downloadJobResultBlob(result.blob_path),
-      mimeType: result.mime_type,
-    })),
-  );
-  return images;
-}
 
 export function useWatermarkRemover(
   addToGallery: (image: ImageFile) => void,
@@ -197,7 +145,11 @@ export function useWatermarkRemover(
 
       const completedJob = submittedJob.status === 'completed' || submittedJob.status === 'partial'
         ? submittedJob
-        : await waitForJobCompletion(submittedJob.id, () => isMountedRef.current);
+        : await waitForJobCompletion({
+            jobId: submittedJob.id,
+            shouldContinue: () => isMountedRef.current,
+            ownerJobId: submittedJob.id,
+          });
       setSharedJobState(
         {
           job: completedJob,

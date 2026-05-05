@@ -245,8 +245,8 @@ describe('App utility dock regression', () => {
     expect(screen.getByLabelText('Image editing model')).toBeInTheDocument();
   });
 
-  it('falls back to try-on when session storage contains non-migrated feature ids', async () => {
-    localStorage.setItem('cs_session_activeFeature', JSON.stringify('watermark-remover'));
+  it('falls back to try-on when session storage contains unknown feature ids', async () => {
+    localStorage.setItem('cs_session_activeFeature', JSON.stringify('non-existent-feature'));
 
     render(<App />);
 
@@ -256,6 +256,36 @@ describe('App utility dock regression', () => {
     await waitFor(() => {
       expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('try-on'));
     });
+  });
+
+  it('restores each migrated feature from session storage with expected model scope', async () => {
+    const restoredFeatures = [
+      { featureId: 'try-on', componentLabel: 'virtual-try-on', hasImageEditSelector: true },
+      { featureId: 'lookbook', componentLabel: 'lookbook-generator', hasImageEditSelector: true },
+      { featureId: 'clothing-transfer', componentLabel: 'clothing-transfer', hasImageEditSelector: true },
+      { featureId: 'photo-album', componentLabel: 'photo-album-creator', hasImageEditSelector: true },
+      { featureId: 'background', componentLabel: 'background-replacer', hasImageEditSelector: true },
+      { featureId: 'pose', componentLabel: 'pose-changer', hasImageEditSelector: true },
+      { featureId: 'ai-editor', componentLabel: 'ai-editor', hasImageEditSelector: true },
+      { featureId: 'watermark-remover', componentLabel: 'watermark-remover', hasImageEditSelector: false },
+      { featureId: 'pattern-generator', componentLabel: 'pattern-generator', hasImageEditSelector: true },
+    ];
+
+    for (const restoredFeature of restoredFeatures) {
+      localStorage.setItem('cs_session_activeFeature', JSON.stringify(restoredFeature.featureId));
+      const { unmount } = render(<App />);
+
+      expect(await screen.findByText(restoredFeature.componentLabel)).toBeInTheDocument();
+      expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify(restoredFeature.featureId));
+
+      if (restoredFeature.hasImageEditSelector) {
+        expect(screen.getByLabelText('Image editing model')).toBeInTheDocument();
+      } else {
+        expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
+      }
+
+      unmount();
+    }
   });
 
   it('persists active feature across repeated switches and survives re-render', async () => {
