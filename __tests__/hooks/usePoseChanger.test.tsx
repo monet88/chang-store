@@ -2,8 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
 vi.mock('../../src/services/imageEditingService', () => ({
-  editImage: vi.fn(),
   upscaleImage: vi.fn(),
+}));
+
+vi.mock('../../src/services/jobService', () => ({
+  submitJob: vi.fn(),
+  pollJob: vi.fn(),
+  getJobResults: vi.fn(),
+  downloadJobResultBlob: vi.fn(),
 }));
 
 vi.mock('../../src/services/textService', () => ({
@@ -30,17 +36,30 @@ vi.mock('../../src/contexts/ApiProviderContext', () => ({
 }));
 
 import { usePoseChanger } from '../../src/hooks/usePoseChanger';
-import { editImage, upscaleImage } from '../../src/services/imageEditingService';
+import { upscaleImage } from '../../src/services/imageEditingService';
+import { submitJob, getJobResults, downloadJobResultBlob } from '../../src/services/jobService';
 import { generatePoseDescription } from '../../src/services/textService';
 
 const SUBJECT_IMAGE = { base64: 'subject-image', mimeType: 'image/png' };
 const POSE_REFERENCE_IMAGE = { base64: 'pose-reference', mimeType: 'image/jpeg' };
 const GENERATED_IMAGE = { base64: 'generated-image', mimeType: 'image/png' };
+const SECOND_GENERATED_IMAGE = { base64: 'generated-second', mimeType: 'image/png' };
 const UPSCALED_IMAGE = { base64: 'upscaled-image', mimeType: 'image/png' };
+
+const createCompletedJob = (id: string) => ({
+  id,
+  status: 'completed',
+  error_message: null,
+});
 
 describe('usePoseChanger', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(submitJob).mockResolvedValue(createCompletedJob('job-default') as never);
+    vi.mocked(getJobResults).mockResolvedValue({
+      results: [{ kind: 'output', blob_path: 'jobs/pose-default', mime_type: 'image/png' }],
+    } as never);
+    vi.mocked(downloadJobResultBlob).mockResolvedValue(GENERATED_IMAGE.base64);
   });
 
   it('generates a pose description from the uploaded reference image', async () => {
@@ -65,8 +84,13 @@ describe('usePoseChanger', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('uses the reference-image path when a pose reference is present', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+  it('uses the reference-image job path when a pose reference is present', async () => {
+    vi.mocked(submitJob).mockResolvedValueOnce(createCompletedJob('job-ref') as never);
+    vi.mocked(getJobResults).mockResolvedValueOnce({
+      results: [{ kind: 'output', blob_path: 'jobs/pose-ref', mime_type: 'image/png' }],
+    } as never);
+    vi.mocked(downloadJobResultBlob).mockResolvedValueOnce(GENERATED_IMAGE.base64);
+
     const { result } = renderHook(() => usePoseChanger());
 
     act(() => {
@@ -82,33 +106,40 @@ describe('usePoseChanger', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImage).toHaveBeenCalledWith(
+    expect(submitJob).toHaveBeenCalledWith(
+      'pose',
       expect.objectContaining({
-        images: [SUBJECT_IMAGE, POSE_REFERENCE_IMAGE],
+        subjectImage: SUBJECT_IMAGE.base64,
+        poseReferenceImage: POSE_REFERENCE_IMAGE.base64,
         negativePrompt: 'blurry',
-        numberOfImages: 1,
         aspectRatio: '1:1',
         resolution: '4K',
       }),
-      'gemini-2.5-flash-image',
-      expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
     );
-    expect(vi.mocked(editImage).mock.calls[0][0].prompt).toContain(
-      "Pose Reference Image",
-    );
-    expect(vi.mocked(editImage).mock.calls[0][0].prompt).toContain(
-      'keep the left arm raised',
-    );
+    expect((vi.mocked(submitJob).mock.calls[0]?.[1] as { prompt: string }).prompt).toContain('Pose Reference Image');
+    expect((vi.mocked(submitJob).mock.calls[0]?.[1] as { prompt: string }).prompt).toContain('keep the left arm raised');
     expect(result.current.generatedImages).toEqual([GENERATED_IMAGE]);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.generationStatus.active).toBe(false);
   });
 
   it('keeps existing generated images when regenerate falls back with no prompts', async () => {
-    const SECOND_GENERATED_IMAGE = { base64: 'generated-second', mimeType: 'image/png' };
-    vi.mocked(editImage)
-      .mockResolvedValueOnce([GENERATED_IMAGE])
-      .mockResolvedValueOnce([SECOND_GENERATED_IMAGE]);
+    vi.mocked(submitJob)
+      .mockResolvedValueOnce(createCompletedJob('job-1') as never)
+      .mockResolvedValueOnce(createCompletedJob('job-2') as never);
+
+    vi.mocked(getJobResults)
+      .mockResolvedValueOnce({
+        results: [{ kind: 'output', blob_path: 'jobs/pose-1', mime_type: 'image/png' }],
+      } as never)
+      .mockResolvedValueOnce({
+        results: [{ kind: 'output', blob_path: 'jobs/pose-2', mime_type: 'image/png' }],
+      } as never);
+
+    vi.mocked(downloadJobResultBlob)
+      .mockResolvedValueOnce(GENERATED_IMAGE.base64)
+      .mockResolvedValueOnce(SECOND_GENERATED_IMAGE.base64);
+
     const { result } = renderHook(() => usePoseChanger());
 
     act(() => {
@@ -133,15 +164,28 @@ describe('usePoseChanger', () => {
       SECOND_GENERATED_IMAGE,
     ]);
     expect(result.current.error).toBe('pose.promptError');
-    expect(editImage).toHaveBeenCalledTimes(2);
+    expect(submitJob).toHaveBeenCalledTimes(2);
   });
 
   it('upscales only the selected generated image and resets its loading state', async () => {
-    const SECOND_GENERATED_IMAGE = { base64: 'generated-second', mimeType: 'image/png' };
-    vi.mocked(editImage)
-      .mockResolvedValueOnce([GENERATED_IMAGE])
-      .mockResolvedValueOnce([SECOND_GENERATED_IMAGE]);
+    vi.mocked(submitJob)
+      .mockResolvedValueOnce(createCompletedJob('job-1') as never)
+      .mockResolvedValueOnce(createCompletedJob('job-2') as never);
+
+    vi.mocked(getJobResults)
+      .mockResolvedValueOnce({
+        results: [{ kind: 'output', blob_path: 'jobs/pose-1', mime_type: 'image/png' }],
+      } as never)
+      .mockResolvedValueOnce({
+        results: [{ kind: 'output', blob_path: 'jobs/pose-2', mime_type: 'image/png' }],
+      } as never);
+
+    vi.mocked(downloadJobResultBlob)
+      .mockResolvedValueOnce(GENERATED_IMAGE.base64)
+      .mockResolvedValueOnce(SECOND_GENERATED_IMAGE.base64);
+
     vi.mocked(upscaleImage).mockResolvedValueOnce(UPSCALED_IMAGE);
+
     const { result } = renderHook(() => usePoseChanger());
 
     act(() => {

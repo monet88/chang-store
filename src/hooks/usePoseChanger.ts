@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { upscaleImage } from '../services/imageEditingService';
+import { submitJob, pollJob, getJobResults, downloadJobResultBlob, type Job } from '../services/jobService';
 import { generatePoseDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
+import { runBoundedWorkers } from '../utils/run-bounded-workers';
+import { setSharedJobState } from './useJobPoll';
 
 type CameraView = 'default' | 'fullBody' | 'halfBody' | 'kneesUp';
 
@@ -56,10 +59,64 @@ export interface UsePoseChangerReturn {
 }
 
 const IDLE_GENERATION_STATUS: GenerationStatus = { active: false, progress: 0, total: 0, message: '' };
+const POLL_INTERVAL_MS = 2000;
+const POSE_MAX_CONCURRENCY = 4;
+const MAX_JOB_PAYLOAD_BYTES = 4 * 1024 * 1024;
 
 const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
   onStatusUpdate,
 });
+
+function assertPayloadSizeBelowLimit(payload: unknown): void {
+  const bytes = new Blob([JSON.stringify(payload)]).size;
+  if (bytes > MAX_JOB_PAYLOAD_BYTES) {
+    throw new Error('Payload too large. Reduce image count or resolution and try again.');
+  }
+}
+
+async function waitForJobCompletion(
+  jobId: string,
+  onStatusUpdate: (message: string) => void,
+  shouldContinue: () => boolean,
+): Promise<Job> {
+  while (shouldContinue()) {
+    try {
+      const job = await pollJob(jobId);
+      const isPolling = job.status === 'queued' || job.status === 'running';
+      setSharedJobState({
+        job,
+        isPolling,
+        error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
+      }, { ownerJobId: jobId });
+      onStatusUpdate(`Job ${job.status}...`);
+
+      if (!isPolling) {
+        return job;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSharedJobState({ isPolling: false, error: message }, { ownerJobId: jobId });
+      throw error;
+    }
+  }
+
+  setSharedJobState({ isPolling: false, error: null }, { ownerJobId: jobId });
+  throw new Error('Job polling cancelled');
+}
+
+async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
+  const { results } = await getJobResults(jobId);
+  const outputResults = results.filter((result) => result.kind === 'output');
+  const images = await Promise.all(
+    outputResults.map(async (result) => ({
+      base64: await downloadJobResultBlob(result.blob_path),
+      mimeType: result.mime_type,
+    })),
+  );
+  return images;
+}
 
 const buildTextPosePrompt = (promptText: string, framingInstruction: string): string => `
   **Task**: Photorealistically change the pose of a model based on a text description, while perfectly preserving the model, their clothing, and the background.
@@ -110,6 +167,12 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
   const { t } = useLanguage();
   const { imageEditModel, textGenerateModel } = useApi();
 
+  const isMountedRef = useRef(true);
+
+  useEffect(() => () => {
+    isMountedRef.current = false;
+  }, []);
+
   const allPrompts = useMemo(
     () => [...selectedLibraryPoses, ...(customPosePrompt.trim() ? [customPosePrompt.trim()] : [])],
     [customPosePrompt, selectedLibraryPoses],
@@ -133,19 +196,47 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
   };
 
   const generateImageForPrompt = async (sourceImage: ImageFile, promptText: string, framingInstruction: string) => {
-    const prompt = buildTextPosePrompt(promptText, framingInstruction);
-    const [result] = await editImage(
+    const payload = {
+      subjectImage: sourceImage.base64,
+      prompt: buildTextPosePrompt(promptText, framingInstruction),
+      negativePrompt,
+      aspectRatio,
+      resolution,
+    };
+    assertPayloadSizeBelowLimit(payload);
+
+    const submittedJob = await submitJob('pose', payload as Record<string, unknown>);
+    setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
+
+    if (submittedJob.status === 'failed') {
+      setSharedJobState(
+        { job: submittedJob, isPolling: false, error: submittedJob.error_message || 'Job failed' },
+        { ownerJobId: submittedJob.id },
+      );
+      throw new Error(submittedJob.error_message || 'Job failed');
+    }
+
+    const completedJob = submittedJob.status === 'completed' || submittedJob.status === 'partial'
+      ? submittedJob
+      : await waitForJobCompletion(submittedJob.id, () => {}, () => isMountedRef.current);
+    setSharedJobState(
       {
-        images: [sourceImage],
-        prompt,
-        negativePrompt,
-        numberOfImages: 1,
-        aspectRatio,
-        resolution,
+        job: completedJob,
+        isPolling: false,
+        error: completedJob.status === 'failed' ? (completedJob.error_message || 'Job failed') : null,
       },
-      imageEditModel,
-      buildImageServiceConfig(() => {}),
+      { ownerJobId: submittedJob.id },
     );
+
+    if (completedJob.status === 'failed') {
+      throw new Error(completedJob.error_message || 'Job failed');
+    }
+
+    const results = await fetchJobImageResults(submittedJob.id);
+    const result = results[0];
+    if (!result) {
+      throw new Error('error.api.noImageGenerated');
+    }
 
     return result;
   };
@@ -186,18 +277,49 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
       setGenerationStatus({ active: true, progress: 1, total: 1, message: t('pose.generatingStatusOne') });
 
       try {
-        const [result] = await editImage(
+        const payload = {
+          subjectImage: subjectImage.base64,
+          poseReferenceImage: poseReferenceImage.base64,
+          prompt: buildReferencePosePrompt(customPosePrompt, framingInstruction),
+          negativePrompt,
+          aspectRatio,
+          resolution,
+        };
+        assertPayloadSizeBelowLimit(payload);
+
+        const submittedJob = await submitJob('pose', payload as Record<string, unknown>);
+        setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
+
+        if (submittedJob.status === 'failed') {
+          setSharedJobState(
+            { job: submittedJob, isPolling: false, error: submittedJob.error_message || 'Job failed' },
+            { ownerJobId: submittedJob.id },
+          );
+          throw new Error(submittedJob.error_message || 'Job failed');
+        }
+
+        const completedJob = submittedJob.status === 'completed' || submittedJob.status === 'partial'
+          ? submittedJob
+          : await waitForJobCompletion(submittedJob.id, () => {}, () => isMountedRef.current);
+        setSharedJobState(
           {
-            images: [subjectImage, poseReferenceImage],
-            prompt: buildReferencePosePrompt(customPosePrompt, framingInstruction),
-            negativePrompt,
-            numberOfImages: 1,
-            aspectRatio,
-            resolution,
+            job: completedJob,
+            isPolling: false,
+            error: completedJob.status === 'failed' ? (completedJob.error_message || 'Job failed') : null,
           },
-          imageEditModel,
-          buildImageServiceConfig((message) => setGenerationStatus((prev) => ({ ...prev, message }))),
+          { ownerJobId: submittedJob.id },
         );
+
+        if (completedJob.status === 'failed') {
+          throw new Error(completedJob.error_message || 'Job failed');
+        }
+
+        const results = await fetchJobImageResults(submittedJob.id);
+        const result = results[0];
+        if (!result) {
+          throw new Error('error.api.noImageGenerated');
+        }
+
         setGeneratedImages([result]);
       } catch (err) {
         setError(getErrorMessage(err, t));
@@ -219,36 +341,62 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     setRegeneratingStates({});
     setGenerationStatus({ active: true, progress: 0, total: allPrompts.length, message: '' });
 
-    let results: ImageFile[] = [];
-    for (const [index, promptText] of allPrompts.entries()) {
-      setGenerationStatus((prev) => ({
-        ...prev,
-        progress: index + 1,
-        message: t('pose.generatingStatusMultiple', { progress: index + 1, total: allPrompts.length }),
-      }));
+    const indexedPrompts = allPrompts.map((promptText, index) => ({ promptText, index }));
+    const resultsByIndex: Array<ImageFile | null> = Array.from({ length: allPrompts.length }, () => null);
+    let completedCount = 0;
+    let firstBatchError: string | null = null;
 
-      try {
-        const result = await generateImageForPrompt(subjectImage, promptText, framingInstruction);
-        results = [...results, result];
-        setGeneratedImages(results);
-      } catch (err) {
-        setError(t('pose.batchError', {
-          index: index + 1,
-          total: allPrompts.length,
-          prompt: promptText.substring(0, 30),
-          error: getErrorMessage(err, t),
-        }));
-        setGenerationStatus(IDLE_GENERATION_STATUS);
-        return;
-      }
+    await runBoundedWorkers(
+      indexedPrompts,
+      Math.min(POSE_MAX_CONCURRENCY, indexedPrompts.length),
+      async ({ promptText, index }) => {
+        try {
+          const result = await generateImageForPrompt(subjectImage, promptText, framingInstruction);
+          resultsByIndex[index] = result;
+          if (isMountedRef.current) {
+            setGeneratedImages(resultsByIndex.filter((image): image is ImageFile => image !== null));
+          }
+        } catch (err) {
+          if (!firstBatchError) {
+            firstBatchError = t('pose.batchError', {
+              index: index + 1,
+              total: allPrompts.length,
+              prompt: promptText.substring(0, 30),
+              error: getErrorMessage(err, t),
+            });
+          }
+        } finally {
+          completedCount += 1;
+          if (isMountedRef.current) {
+            setGenerationStatus({
+              active: true,
+              progress: completedCount,
+              total: allPrompts.length,
+              message: t('pose.generatingStatusMultiple', { progress: completedCount, total: allPrompts.length }),
+            });
+          }
+        }
+      },
+    );
+
+    if (firstBatchError && isMountedRef.current) {
+      setError(firstBatchError);
     }
 
-    setGenerationStatus(IDLE_GENERATION_STATUS);
+    if (isMountedRef.current) {
+      setGeneratedImages(resultsByIndex.filter((image): image is ImageFile => image !== null));
+      setGenerationStatus(IDLE_GENERATION_STATUS);
+    }
   };
 
   const handleRegenerateSingle = async (index: number) => {
     const promptText = allPrompts[index];
-    if (!promptText || !subjectImage || poseReferenceImage) {
+    if (!promptText) {
+      setError(t('pose.promptError'));
+      return;
+    }
+
+    if (!subjectImage || poseReferenceImage) {
       await handleGenerate();
       return;
     }
