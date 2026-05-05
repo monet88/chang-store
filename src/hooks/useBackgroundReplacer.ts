@@ -224,7 +224,14 @@ export const useBackgroundReplacer = () => {
       const completedJob = submittedJob.status === 'completed' || submittedJob.status === 'partial'
         ? submittedJob
         : await waitForJobCompletion(submittedJob.id, setLoadingMessage, () => isMountedRef.current);
-      setSharedJobState({ job: completedJob, isPolling: false, error: null }, { ownerJobId: submittedJob.id });
+      setSharedJobState(
+        {
+          job: completedJob,
+          isPolling: false,
+          error: completedJob.status === 'failed' ? (completedJob.error_message || 'Job failed') : null,
+        },
+        { ownerJobId: submittedJob.id },
+      );
 
       if (completedJob.status === 'failed') {
         throw new Error(completedJob.error_message || 'Job failed');
