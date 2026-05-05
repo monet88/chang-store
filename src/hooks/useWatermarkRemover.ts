@@ -1,6 +1,6 @@
 /**
  * Watermark Remover Hook
- * 
+ *
  * Manages batch processing of images to remove watermarks using Gemini AI.
  * Features:
  * - Batch image queue management
@@ -9,119 +9,108 @@
  * - Individual retry and bulk actions
  * - ZIP download for batch results
  */
-import { useState, useCallback, useMemo } from 'react';
-import { editImage } from '@/services/gemini/image';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { submitJob, pollJob, getJobResults, downloadJobResultBlob, type Job } from '@/services/jobService';
 import { downloadImagesAsZip } from '@/utils/zipDownload';
 import { downloadImageAsJpeg } from '@/utils/imageDownload';
-import { 
-  getPromptText, 
+import { runBoundedWorkers } from '@/utils/run-bounded-workers';
+import {
+  getPromptText,
   DEFAULT_WATERMARK_MODEL,
   DEFAULT_PROMPT_ID,
-  type WatermarkModel 
+  type WatermarkModel,
 } from '@/utils/watermark-prompts';
 import { Feature, type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '@/types';
+import { setSharedJobState } from './useJobPoll';
 
-// ============================================
-// TYPES
-// ============================================
-
-/** Return type for useWatermarkRemover hook */
 export interface UseWatermarkRemoverReturn {
-  // State
-  /** All items in the processing queue */
   items: WatermarkBatchItem[];
-  /** Whether batch processing is currently running */
   isProcessing: boolean;
-  /** Current configuration */
   config: WatermarkConfig;
-  
-  // Config setters
-  /** Set the AI model for processing */
   setModel: (model: WatermarkModel) => void;
-  /** Set the prompt preset ID */
   setPromptId: (id: string) => void;
-  /** Set custom prompt text */
   setCustomPrompt: (prompt: string) => void;
-  /** Set concurrency level (1-5) */
   setConcurrency: (n: number) => void;
-  
-  // Queue actions
-  /** Add images to the processing queue */
   addImages: (images: ImageFile[]) => void;
-  /** Remove a single image from queue */
   removeImage: (id: string) => void;
-  /** Clear all items from queue */
   clearAll: () => void;
-  
-  // Processing actions
-  /** Start processing all pending items */
   startProcessing: () => Promise<void>;
-  /** Retry a failed item with optional new prompt */
   retryItem: (id: string, newPromptId?: string, newCustomPrompt?: string) => Promise<void>;
-  
-  // Output actions
-  /** Save a single result to gallery */
   saveToGallery: (item: WatermarkBatchItem) => void;
-  /** Save all successful results to gallery */
   saveAllToGallery: () => void;
-  /** Download a single result */
   downloadItem: (item: WatermarkBatchItem) => void;
-  /** Download all successful results as ZIP */
   downloadAllZip: () => Promise<void>;
-  
-  // Computed values
-  /** Number of completed items (success + error) */
   completedCount: number;
-  /** Total number of items in queue */
   totalCount: number;
-  /** Items that completed successfully */
   successItems: WatermarkBatchItem[];
-  /** Number of pending items */
   pendingCount: number;
-  /** Number of failed items */
   errorCount: number;
 }
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
+const POLL_INTERVAL_MS = 2000;
+const MAX_JOB_PAYLOAD_BYTES = 4 * 1024 * 1024;
 
-/** Generate unique ID for batch items */
-const generateId = (): string => 
+const generateId = (): string =>
   `wm-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-/** Clamp concurrency value to valid range */
-const clampConcurrency = (n: number): number => 
+const clampConcurrency = (n: number): number =>
   Math.max(1, Math.min(5, Math.round(n)));
 
-// ============================================
-// HOOK IMPLEMENTATION
-// ============================================
+const toDataUrl = (image: ImageFile): string =>
+  `data:${image.mimeType};base64,${image.base64}`;
 
-/**
- * Hook for managing batch watermark removal
- * 
- * @param addToGallery - Callback to add processed image to app gallery
- * @returns Hook state and actions
- * 
- * @example
- * ```tsx
- * const {
- *   items,
- *   addImages,
- *   startProcessing,
- *   downloadAllZip,
- * } = useWatermarkRemover(addImageToGallery);
- * ```
- */
+function assertPayloadSizeBelowLimit(payload: unknown): void {
+  const bytes = new Blob([JSON.stringify(payload)]).size;
+  if (bytes > MAX_JOB_PAYLOAD_BYTES) {
+    throw new Error('Payload too large. Reduce image count or resolution and try again.');
+  }
+}
+
+async function waitForJobCompletion(
+  jobId: string,
+  shouldContinue: () => boolean,
+): Promise<Job> {
+  while (shouldContinue()) {
+    try {
+      const job = await pollJob(jobId);
+      const isPolling = job.status === 'queued' || job.status === 'running';
+      setSharedJobState({
+        job,
+        isPolling,
+        error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
+      }, { ownerJobId: jobId });
+
+      if (!isPolling) {
+        return job;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSharedJobState({ isPolling: false, error: message }, { ownerJobId: jobId });
+      throw error;
+    }
+  }
+
+  setSharedJobState({ isPolling: false, error: null }, { ownerJobId: jobId });
+  throw new Error('Job polling cancelled');
+}
+
+async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
+  const { results } = await getJobResults(jobId);
+  const outputResults = results.filter((result) => result.kind === 'output');
+  const images = await Promise.all(
+    outputResults.map(async (result) => ({
+      base64: await downloadJobResultBlob(result.blob_path),
+      mimeType: result.mime_type,
+    })),
+  );
+  return images;
+}
+
 export function useWatermarkRemover(
-  addToGallery: (image: ImageFile) => void
+  addToGallery: (image: ImageFile) => void,
 ): UseWatermarkRemoverReturn {
-  
-  // ============================================
-  // STATE
-  // ============================================
-  
   const [items, setItems] = useState<WatermarkBatchItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [config, setConfig] = useState<WatermarkConfig>({
@@ -131,9 +120,11 @@ export function useWatermarkRemover(
     concurrency: 3,
   });
 
-  // ============================================
-  // CONFIG SETTERS
-  // ============================================
+  const isMountedRef = useRef(true);
+
+  useEffect(() => () => {
+    isMountedRef.current = false;
+  }, []);
 
   const setModel = useCallback((model: WatermarkModel) => {
     setConfig(prev => ({ ...prev, model }));
@@ -150,10 +141,6 @@ export function useWatermarkRemover(
   const setConcurrency = useCallback((concurrency: number) => {
     setConfig(prev => ({ ...prev, concurrency: clampConcurrency(concurrency) }));
   }, []);
-
-  // ============================================
-  // QUEUE MANAGEMENT
-  // ============================================
 
   const addImages = useCallback((images: ImageFile[]) => {
     const newItems: WatermarkBatchItem[] = images.map(img => ({
@@ -173,59 +160,78 @@ export function useWatermarkRemover(
     setItems([]);
   }, []);
 
-  // ============================================
-  // PROCESSING LOGIC
-  // ============================================
-
-  /** Update a single item's state */
   const updateItem = useCallback((
-    id: string, 
-    updates: Partial<WatermarkBatchItem>
+    id: string,
+    updates: Partial<WatermarkBatchItem>,
   ) => {
-    setItems(prev => prev.map(item => 
-      item.id === id ? { ...item, ...updates } : item
+    setItems(prev => prev.map(item =>
+      item.id === id ? { ...item, ...updates } : item,
     ));
   }, []);
 
-  /** Process a single item through the API */
   const processItem = useCallback(async (
     item: WatermarkBatchItem,
     prompt: string,
-    model: string
+    model: string,
   ): Promise<void> => {
     try {
-      // Mark as processing
       updateItem(item.id, { status: 'processing', error: undefined });
 
-      // Call Gemini API
-      const results = await editImage({
-        images: [item.original],
+      const payload = {
+        image: toDataUrl(item.original),
         prompt,
         model,
-        numberOfImages: 1,
-      });
+      };
+      assertPayloadSizeBelowLimit(payload);
 
-      if (results.length > 0) {
-        // Success
-        updateItem(item.id, { 
-          status: 'completed', 
-          result: results[0] 
-        });
-      } else {
+      const submittedJob = await submitJob('watermark-remover', payload as Record<string, unknown>);
+      setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
+
+      if (submittedJob.status === 'failed') {
+        setSharedJobState(
+          { job: submittedJob, isPolling: false, error: submittedJob.error_message || 'Job failed' },
+          { ownerJobId: submittedJob.id },
+        );
+        throw new Error(submittedJob.error_message || 'Job failed');
+      }
+
+      const completedJob = submittedJob.status === 'completed' || submittedJob.status === 'partial'
+        ? submittedJob
+        : await waitForJobCompletion(submittedJob.id, () => isMountedRef.current);
+      setSharedJobState(
+        {
+          job: completedJob,
+          isPolling: false,
+          error: completedJob.status === 'failed' ? (completedJob.error_message || 'Job failed') : null,
+        },
+        { ownerJobId: submittedJob.id },
+      );
+
+      if (completedJob.status === 'failed') {
+        throw new Error(completedJob.error_message || 'Job failed');
+      }
+
+      const results = await fetchJobImageResults(submittedJob.id);
+      const result = results[0];
+
+      if (!result) {
         throw new Error('No result returned from API');
       }
+
+      updateItem(item.id, {
+        status: 'completed',
+        result,
+      });
     } catch (error) {
-      // Error
       const errorMsg = error instanceof Error ? error.message : 'Processing failed';
-      updateItem(item.id, { 
-        status: 'error', 
+      updateItem(item.id, {
+        status: 'error',
         error: errorMsg,
         retryCount: item.retryCount + 1,
       });
     }
   }, [updateItem]);
 
-  /** Start batch processing with concurrency control */
   const startProcessing = useCallback(async () => {
     const pendingItems = items.filter(i => i.status === 'pending');
     if (pendingItems.length === 0) return;
@@ -233,51 +239,34 @@ export function useWatermarkRemover(
     setIsProcessing(true);
     const prompt = getPromptText(config.promptId, config.customPrompt);
 
-    // Create a queue for concurrent processing
-    const queue = [...pendingItems];
-    
-    /** Worker function that processes items from queue */
-    const processNext = async (): Promise<void> => {
-      while (queue.length > 0) {
-        const item = queue.shift();
-        if (item) {
+    try {
+      await runBoundedWorkers(
+        pendingItems,
+        config.concurrency,
+        async (item) => {
           await processItem(item, prompt, config.model);
-        }
-      }
-    };
-
-    // Start concurrent workers
-    const workers = Array.from(
-      { length: Math.min(config.concurrency, pendingItems.length) },
-      () => processNext()
-    );
-
-    await Promise.all(workers);
-    setIsProcessing(false);
+        },
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   }, [items, config, processItem]);
 
-  /** Retry a single failed item */
   const retryItem = useCallback(async (
     id: string,
     newPromptId?: string,
-    newCustomPrompt?: string
+    newCustomPrompt?: string,
   ) => {
     const item = items.find(i => i.id === id);
     if (!item) return;
 
-    // Use provided prompt or fall back to current config
     const promptId = newPromptId ?? config.promptId;
     const customPrompt = newCustomPrompt ?? config.customPrompt;
     const prompt = getPromptText(promptId, customPrompt);
 
-    // Reset status and process
     updateItem(id, { status: 'pending', error: undefined });
     await processItem({ ...item, status: 'pending' }, prompt, config.model);
   }, [items, config, updateItem, processItem]);
-
-  // ============================================
-  // OUTPUT ACTIONS
-  // ============================================
 
   const saveToGallery = useCallback((item: WatermarkBatchItem) => {
     if (item.result) {
@@ -305,65 +294,47 @@ export function useWatermarkRemover(
     const successResults = items
       .filter(i => i.status === 'completed' && i.result)
       .map(i => i.result!);
-    
+
     if (successResults.length > 0) {
       await downloadImagesAsZip(successResults, `${Feature.WatermarkRemover}-batch`);
     }
   }, [items]);
 
-  // ============================================
-  // COMPUTED VALUES
-  // ============================================
-
-  const completedCount = useMemo(() => 
+  const completedCount = useMemo(() =>
     items.filter(i => i.status === 'completed' || i.status === 'error').length,
-    [items]
-  );
+  [items]);
 
   const totalCount = items.length;
 
-  const successItems = useMemo(() => 
+  const successItems = useMemo(() =>
     items.filter(i => i.status === 'completed'),
-    [items]
-  );
+  [items]);
 
-  const pendingCount = useMemo(() => 
+  const pendingCount = useMemo(() =>
     items.filter(i => i.status === 'pending').length,
-    [items]
-  );
+  [items]);
 
-  const errorCount = useMemo(() => 
+  const errorCount = useMemo(() =>
     items.filter(i => i.status === 'error').length,
-    [items]
-  );
-
-  // ============================================
-  // RETURN
-  // ============================================
+  [items]);
 
   return {
-    // State
     items,
     isProcessing,
     config,
-    // Config setters
     setModel,
     setPromptId,
     setCustomPrompt,
     setConcurrency,
-    // Queue actions
     addImages,
     removeImage,
     clearAll,
-    // Processing actions
     startProcessing,
     retryItem,
-    // Output actions
     saveToGallery,
     saveAllToGallery,
     downloadItem,
     downloadAllZip,
-    // Computed
     completedCount,
     totalCount,
     successItems,

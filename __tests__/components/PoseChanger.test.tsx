@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-const editImageMock = vi.fn();
+const submitJobMock = vi.fn();
+const getJobResultsMock = vi.fn();
+const downloadJobResultBlobMock = vi.fn();
 const upscaleImageMock = vi.fn();
 const generatePoseDescriptionMock = vi.fn();
 const createDeferred = <T,>() => {
@@ -46,8 +48,14 @@ vi.mock('../../src/contexts/ApiProviderContext', () => ({
 }));
 
 vi.mock('../../src/services/imageEditingService', () => ({
-  editImage: (...args: unknown[]) => editImageMock(...args),
   upscaleImage: (...args: unknown[]) => upscaleImageMock(...args),
+}));
+
+vi.mock('../../src/services/jobService', () => ({
+  submitJob: (...args: unknown[]) => submitJobMock(...args),
+  pollJob: vi.fn(),
+  getJobResults: (...args: unknown[]) => getJobResultsMock(...args),
+  downloadJobResultBlob: (...args: unknown[]) => downloadJobResultBlobMock(...args),
 }));
 
 vi.mock('../../src/services/textService', () => ({
@@ -101,16 +109,32 @@ vi.mock('../../src/components/shared/ResultPlaceholder', () => ({
 
 import PoseChanger from '../../src/components/PoseChanger';
 
+const completedJob = (id: string) => ({
+  id,
+  status: 'completed',
+  error_message: null,
+});
+
 describe('PoseChanger component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('regenerates only the selected pose result instead of rerunning the full batch', async () => {
-    editImageMock
-      .mockResolvedValueOnce([{ base64: 'result-1', mimeType: 'image/png' }])
-      .mockResolvedValueOnce([{ base64: 'result-2', mimeType: 'image/png' }])
-      .mockResolvedValueOnce([{ base64: 'result-1b', mimeType: 'image/png' }]);
+    submitJobMock
+      .mockResolvedValueOnce(completedJob('job-1'))
+      .mockResolvedValueOnce(completedJob('job-2'))
+      .mockResolvedValueOnce(completedJob('job-3'));
+
+    getJobResultsMock
+      .mockResolvedValueOnce({ results: [{ kind: 'output', blob_path: 'blob-1', mime_type: 'image/png' }] })
+      .mockResolvedValueOnce({ results: [{ kind: 'output', blob_path: 'blob-2', mime_type: 'image/png' }] })
+      .mockResolvedValueOnce({ results: [{ kind: 'output', blob_path: 'blob-3', mime_type: 'image/png' }] });
+
+    downloadJobResultBlobMock
+      .mockResolvedValueOnce('result-1')
+      .mockResolvedValueOnce('result-2')
+      .mockResolvedValueOnce('result-1b');
 
     const user = userEvent.setup();
     const onOpenPoseLibrary = vi.fn((onConfirm: (poses: string[]) => void) => {
@@ -123,27 +147,38 @@ describe('PoseChanger component', () => {
     await user.click(screen.getByRole('button', { name: 'Browse Library' }));
     await user.click(screen.getByRole('button', { name: 'Generate 2 Poses' }));
 
-    await waitFor(() => expect(editImageMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(submitJobMock).toHaveBeenCalledTimes(2));
     expect(screen.getByText('Generated pose 1')).toBeInTheDocument();
     expect(screen.getByText('Generated pose 2')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'regenerate-Generated pose 1' }));
 
-    await waitFor(() => expect(editImageMock).toHaveBeenCalledTimes(3));
-    expect(editImageMock.mock.calls[2]?.[0]).toMatchObject({
-      images: [testImage],
-      numberOfImages: 1,
+    await waitFor(() => expect(submitJobMock).toHaveBeenCalledTimes(3));
+    expect(submitJobMock.mock.calls[2]?.[0]).toBe('pose');
+    expect(submitJobMock.mock.calls[2]?.[1]).toMatchObject({
+      subjectImage: `data:${testImage.mimeType};base64,${testImage.base64}`,
+      model: 'gemini-2.5-flash-image',
     });
-    expect(editImageMock.mock.calls[2]?.[0]?.prompt).toContain('"pose one"');
+    expect(submitJobMock.mock.calls[2]?.[1]?.prompt).toContain('"pose one"');
   });
 
   it('disables the generate button while a single-image regeneration is pending', async () => {
-    const deferredRegeneration = createDeferred<{ base64: string; mimeType: string }[]>();
+    const deferredRegeneration = createDeferred<{ status: string; id: string; error_message: null }>();
 
-    editImageMock
-      .mockResolvedValueOnce([{ base64: 'result-1', mimeType: 'image/png' }])
-      .mockResolvedValueOnce([{ base64: 'result-2', mimeType: 'image/png' }])
+    submitJobMock
+      .mockResolvedValueOnce(completedJob('job-1'))
+      .mockResolvedValueOnce(completedJob('job-2'))
       .mockImplementationOnce(() => deferredRegeneration.promise);
+
+    getJobResultsMock
+      .mockResolvedValueOnce({ results: [{ kind: 'output', blob_path: 'blob-1', mime_type: 'image/png' }] })
+      .mockResolvedValueOnce({ results: [{ kind: 'output', blob_path: 'blob-2', mime_type: 'image/png' }] })
+      .mockResolvedValueOnce({ results: [{ kind: 'output', blob_path: 'blob-3', mime_type: 'image/png' }] });
+
+    downloadJobResultBlobMock
+      .mockResolvedValueOnce('result-1')
+      .mockResolvedValueOnce('result-2')
+      .mockResolvedValueOnce('result-1b');
 
     const user = userEvent.setup();
     const onOpenPoseLibrary = vi.fn((onConfirm: (poses: string[]) => void) => {
@@ -156,18 +191,18 @@ describe('PoseChanger component', () => {
     await user.click(screen.getByRole('button', { name: 'Browse Library' }));
     await user.click(screen.getByRole('button', { name: 'Generate 2 Poses' }));
 
-    await waitFor(() => expect(editImageMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(submitJobMock).toHaveBeenCalledTimes(2));
 
     const generateButton = screen.getByRole('button', { name: 'Generate 2 Poses' });
 
     await user.click(screen.getByRole('button', { name: 'regenerate-Generated pose 1' }));
 
     await waitFor(() => {
-      expect(editImageMock).toHaveBeenCalledTimes(3);
+      expect(submitJobMock).toHaveBeenCalledTimes(3);
       expect(generateButton).toBeDisabled();
     });
 
-    deferredRegeneration.resolve([{ base64: 'result-1b', mimeType: 'image/png' }]);
+    deferredRegeneration.resolve(completedJob('job-3'));
 
     await waitFor(() => expect(generateButton).not.toBeDisabled());
   });

@@ -111,6 +111,7 @@ export async function geminiExecuteStep(
       const results = await generateImage({
         images: toImageInputs(images),
         prompt,
+        model: (input.model as string | undefined) || undefined,
         numberOfImages: 1,
       });
       return { results: toResults(results) };
