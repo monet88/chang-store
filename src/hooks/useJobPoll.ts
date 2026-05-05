@@ -22,6 +22,10 @@ interface SharedJobState {
   error: string | null;
 }
 
+interface SharedJobUpdateOptions {
+  ownerJobId?: string;
+}
+
 const sharedJobListeners = new Set<(state: SharedJobState) => void>();
 let sharedJobState: SharedJobState = {
   job: null,
@@ -37,7 +41,27 @@ function emitSharedJobState(nextState: Partial<SharedJobState>) {
   sharedJobListeners.forEach((listener) => listener(sharedJobState));
 }
 
-export function setSharedJobState(nextState: Partial<SharedJobState>) {
+function shouldApplySharedJobUpdate(
+  _nextState: Partial<SharedJobState>,
+  options?: SharedJobUpdateOptions,
+): boolean {
+  const ownerJobId = options?.ownerJobId;
+  if (!ownerJobId) {
+    return true;
+  }
+
+  const currentJobId = sharedJobState.job?.id ?? null;
+  if (currentJobId === null || currentJobId === ownerJobId) {
+    return true;
+  }
+
+  return !sharedJobState.isPolling;
+}
+
+export function setSharedJobState(nextState: Partial<SharedJobState>, options?: SharedJobUpdateOptions) {
+  if (!shouldApplySharedJobUpdate(nextState, options)) {
+    return;
+  }
   emitSharedJobState(nextState);
 }
 
@@ -89,7 +113,11 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
     }
     activePollRef.current = { jobId: null, generation: activePollRef.current.generation };
     setIsPolling(false);
-    emitSharedJobState({ isPolling: false });
+    if (expected?.jobId) {
+      setSharedJobState({ isPolling: false }, { ownerJobId: expected.jobId });
+    } else {
+      setSharedJobState({ isPolling: false });
+    }
     return true;
   }, []);
 
@@ -104,30 +132,30 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
 
       if (current.status === 'completed' || current.status === 'partial') {
         setError(null);
-        emitSharedJobState({
+        setSharedJobState({
           job: current,
           isPolling: false,
           error: null,
-        });
+        }, { ownerJobId: jobId });
         clearPolling({ jobId, generation });
         callbacksRef.current.onComplete?.(current);
       } else if (current.status === 'failed') {
         const message = current.error_message || 'Job failed';
         setError(message);
-        emitSharedJobState({
+        setSharedJobState({
           job: current,
           isPolling: false,
           error: message,
-        });
+        }, { ownerJobId: jobId });
         clearPolling({ jobId, generation });
         callbacksRef.current.onFailed?.(current);
       } else {
         setError(null);
-        emitSharedJobState({
+        setSharedJobState({
           job: current,
           isPolling: true,
           error: null,
-        });
+        }, { ownerJobId: jobId });
       }
     } catch (err) {
       if (activePollRef.current.jobId !== jobId || activePollRef.current.generation !== generation) {
@@ -137,7 +165,7 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
       const message = err instanceof Error ? err.message : 'Unknown polling error';
       setError(message);
       clearPolling({ jobId, generation });
-      emitSharedJobState({ error: message, isPolling: false });
+      setSharedJobState({ error: message, isPolling: false }, { ownerJobId: jobId });
     }
   }, [clearPolling]);
 
@@ -151,7 +179,7 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
     activePollRef.current = { jobId, generation };
     setIsPolling(true);
     setError(null);
-    emitSharedJobState({ isPolling: true, error: null });
+    setSharedJobState({ isPolling: true, error: null }, { ownerJobId: jobId });
     void doPoll(jobId, generation);
     intervalRef.current = setInterval(() => {
       void doPoll(jobId, generation);
@@ -159,6 +187,11 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
   }, [doPoll, pollIntervalMs]);
 
   const stopPolling = useCallback(() => {
+    const active = activePollRef.current;
+    if (active.jobId) {
+      clearPolling({ jobId: active.jobId, generation: active.generation });
+      return;
+    }
     clearPolling();
   }, [clearPolling]);
 
@@ -167,11 +200,11 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
     try {
       const newJob = await submitJob(feature, payload);
       setJob(newJob);
-      emitSharedJobState({
+      setSharedJobState({
         job: newJob,
         isPolling: newJob.status !== 'completed' && newJob.status !== 'partial' && newJob.status !== 'failed',
         error: null,
-      });
+      }, { ownerJobId: newJob.id });
       if (newJob.status !== 'completed' && newJob.status !== 'partial' && newJob.status !== 'failed') {
         startPolling(newJob.id);
       }
@@ -180,11 +213,15 @@ export function useJobPoll(options: UseJobPollOptions = {}): UseJobPollResult {
       if (err instanceof JobHttpError) {
         const message = `Job submission failed (${err.status}): ${JSON.stringify(err.body)}`;
         setError(message);
-        emitSharedJobState({ error: message, isPolling: false });
+        if (!sharedJobState.isPolling) {
+          setSharedJobState({ error: message, isPolling: false });
+        }
       } else {
         const message = err instanceof Error ? err.message : 'Unknown submission error';
         setError(message);
-        emitSharedJobState({ error: message, isPolling: false });
+        if (!sharedJobState.isPolling) {
+          setSharedJobState({ error: message, isPolling: false });
+        }
       }
       throw err;
     }

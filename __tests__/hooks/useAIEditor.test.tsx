@@ -15,12 +15,15 @@ vi.mock('@/contexts/LanguageContext', () => ({
   }),
 }));
 
-vi.mock('@/services/imageEditingService', () => ({
-  editImage: vi.fn(),
+vi.mock('@/services/jobService', () => ({
+  submitJob: vi.fn(),
+  pollJob: vi.fn(),
+  getJobResults: vi.fn(),
+  downloadJobResultBlob: vi.fn(),
 }));
 
 import { useAIEditor } from '@/hooks/useAIEditor';
-import { editImage } from '@/services/imageEditingService';
+import { submitJob, getJobResults, downloadJobResultBlob } from '@/services/jobService';
 import { ImageFile } from '@/types';
 
 const FIRST_IMAGE: ImageFile = {
@@ -38,13 +41,27 @@ const OUTPUT_IMAGE: ImageFile = {
   mimeType: 'image/png',
 };
 
+const COMPLETED_JOB = {
+  id: 'job-ai-editor-1',
+  status: 'completed',
+  error_message: null,
+};
+
+const OUTPUT_RESULT = {
+  kind: 'output',
+  blob_path: 'jobs/output-1',
+  mime_type: 'image/png',
+};
+
 describe('useAIEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(editImage).mockResolvedValue([OUTPUT_IMAGE]);
+    vi.mocked(submitJob).mockResolvedValue(COMPLETED_JOB as never);
+    vi.mocked(getJobResults).mockResolvedValue({ results: [OUTPUT_RESULT] } as never);
+    vi.mocked(downloadJobResultBlob).mockResolvedValue(OUTPUT_IMAGE.base64);
   });
 
-  it('rejects invalid image references without calling the image edit service', async () => {
+  it('rejects invalid image references without calling submitJob', async () => {
     const { result } = renderHook(() => useAIEditor());
 
     act(() => {
@@ -56,7 +73,7 @@ describe('useAIEditor', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImage).not.toHaveBeenCalled();
+    expect(submitJob).not.toHaveBeenCalled();
     expect(result.current.error).toBe('aiEditor.error.invalidImageReferences:@img99');
     expect(result.current.isLoading).toBe(false);
   });
@@ -73,13 +90,12 @@ describe('useAIEditor', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImage).toHaveBeenCalledWith(
+    expect(submitJob).toHaveBeenCalledWith(
+      'ai-editor',
       expect.objectContaining({
-        images: [SECOND_IMAGE],
+        images: [SECOND_IMAGE.base64],
         prompt: expect.stringContaining('- Image 1 is @img2'),
       }),
-      'gemini-2.5-flash-image',
-      expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
     );
   });
 
@@ -95,19 +111,18 @@ describe('useAIEditor', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImage).toHaveBeenCalledWith(
+    expect(submitJob).toHaveBeenCalledWith(
+      'ai-editor',
       expect.objectContaining({
-        images: [FIRST_IMAGE, SECOND_IMAGE],
+        images: [FIRST_IMAGE.base64, SECOND_IMAGE.base64],
         prompt: expect.stringContaining('# INSTRUCTION: IMAGE EDITING'),
       }),
-      'gemini-2.5-flash-image',
-      expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
     );
-    expect(vi.mocked(editImage).mock.calls[0][0].prompt).not.toContain('MULTI-IMAGE EDITING');
+    expect(vi.mocked(submitJob).mock.calls[0][1].prompt).not.toContain('MULTI-IMAGE EDITING');
   });
 
   it('reports an error when the image edit service returns no image', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([]);
+    vi.mocked(getJobResults).mockResolvedValueOnce({ results: [] } as never);
     const { result } = renderHook(() => useAIEditor());
 
     act(() => {
@@ -125,10 +140,13 @@ describe('useAIEditor', () => {
   });
 
   it('ignores re-entrant generate calls while a request is pending', async () => {
-    let resolveEdit!: (images: ImageFile[]) => void;
-    vi.mocked(editImage).mockImplementationOnce(() => new Promise((resolve) => {
-      resolveEdit = resolve;
-    }));
+    let resolveSubmit!: (job: typeof COMPLETED_JOB) => void;
+    vi.mocked(submitJob).mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolveSubmit = resolve;
+      }) as never,
+    );
+
     const { result } = renderHook(() => useAIEditor());
 
     act(() => {
@@ -144,10 +162,10 @@ describe('useAIEditor', () => {
       await Promise.resolve();
     });
 
-    expect(editImage).toHaveBeenCalledTimes(1);
+    expect(submitJob).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      resolveEdit([OUTPUT_IMAGE]);
+      resolveSubmit(COMPLETED_JOB);
       await firstGenerate;
       await secondGenerate;
     });
@@ -164,7 +182,7 @@ describe('useAIEditor', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImage).not.toHaveBeenCalled();
+    expect(submitJob).not.toHaveBeenCalled();
     expect(result.current.error).toBe('aiEditor.error.noImages');
     expect(result.current.isLoading).toBe(false);
   });
@@ -181,13 +199,13 @@ describe('useAIEditor', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImage).not.toHaveBeenCalled();
+    expect(submitJob).not.toHaveBeenCalled();
     expect(result.current.error).toBe('aiEditor.error.noPrompt');
     expect(result.current.isLoading).toBe(false);
   });
 
   it('propagates service errors as user-facing messages', async () => {
-    vi.mocked(editImage).mockRejectedValueOnce(new Error('error.api.safetyBlock'));
+    vi.mocked(submitJob).mockRejectedValueOnce(new Error('error.api.safetyBlock'));
     const { result } = renderHook(() => useAIEditor());
 
     act(() => {
@@ -217,7 +235,7 @@ describe('useAIEditor', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImage).not.toHaveBeenCalled();
+    expect(submitJob).not.toHaveBeenCalled();
     expect(result.current.error).toBe('aiEditor.error.invalidImageReferences:@img3');
   });
 });

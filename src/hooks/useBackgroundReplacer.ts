@@ -1,14 +1,70 @@
 
 // hooks/useBackgroundReplacer.ts
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { AspectRatio, ImageFile, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
-import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import { upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import { submitJob, pollJob, getJobResults, downloadJobResultBlob, type Job } from '../services/jobService';
 import { generateImageDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
 import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
+import { setSharedJobState } from './useJobPoll';
+
+const POLL_INTERVAL_MS = 2000;
+const MAX_JOB_PAYLOAD_BYTES = 4 * 1024 * 1024;
+
+function assertPayloadSizeBelowLimit(payload: unknown): void {
+  const bytes = new Blob([JSON.stringify(payload)]).size;
+  if (bytes > MAX_JOB_PAYLOAD_BYTES) {
+    throw new Error('Payload too large. Reduce image count or resolution and try again.');
+  }
+}
+
+async function waitForJobCompletion(
+  jobId: string,
+  onStatusUpdate: (message: string) => void,
+  shouldContinue: () => boolean,
+): Promise<Job> {
+  while (shouldContinue()) {
+    try {
+      const job = await pollJob(jobId);
+      const isPolling = job.status === 'queued' || job.status === 'running';
+      setSharedJobState({
+        job,
+        isPolling,
+        error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
+      }, { ownerJobId: jobId });
+      onStatusUpdate(`Job ${job.status}...`);
+
+      if (!isPolling) {
+        return job;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSharedJobState({ isPolling: false, error: message }, { ownerJobId: jobId });
+      throw error;
+    }
+  }
+
+  setSharedJobState({ isPolling: false, error: null }, { ownerJobId: jobId });
+  throw new Error('Job polling cancelled');
+}
+
+async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
+  const { results } = await getJobResults(jobId);
+  const outputResults = results.filter((result) => result.kind === 'output');
+  const images = await Promise.all(
+    outputResults.map(async (result) => ({
+      base64: await downloadJobResultBlob(result.blob_path),
+      mimeType: result.mime_type,
+    })),
+  );
+  return images;
+}
 
 export const useBackgroundReplacer = () => {
   const { t } = useLanguage();
@@ -38,8 +94,13 @@ export const useBackgroundReplacer = () => {
   const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
   const [refinePrompts, setRefinePrompts] = useState<Record<string, string>>({});
   const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
+  const isMountedRef = useRef(true);
 
   const PREDEFINED_BG_KEYS = useMemo(() => ['studioMirrorChair', 'sofaMirrorCurtain', 'curvedSofaCurtain'], []);
+
+  useEffect(() => () => {
+    isMountedRef.current = false;
+  }, []);
 
   const allBackgroundPrompts: Record<string, string> = useMemo(() => PHOTO_ALBUM_BACKGROUNDS.reduce((acc, curr) => {
     acc[curr.id] = curr.prompt;
@@ -137,25 +198,50 @@ export const useBackgroundReplacer = () => {
     setRefinePrompts({});
     setIsRefining({});
 
-    const images: ImageFile[] = [subjectImage];
-    if (backgroundImage) images.push(backgroundImage);
-
     try {
-      const results = await editImage({
-        images,
+      const payload = {
+        subjectImage: subjectImage.base64,
+        backgroundImage: backgroundImage?.base64,
         prompt: buildPrompt(cameraView),
         negativePrompt,
         numberOfImages: 2,
         aspectRatio,
         resolution,
-      }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
+      };
+      assertPayloadSizeBelowLimit(payload);
+
+      const submittedJob = await submitJob('background', payload as Record<string, unknown>);
+      setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
+
+      if (submittedJob.status === 'failed') {
+        setSharedJobState(
+          { job: submittedJob, isPolling: false, error: submittedJob.error_message || 'Job failed' },
+          { ownerJobId: submittedJob.id },
+        );
+        throw new Error(submittedJob.error_message || 'Job failed');
+      }
+
+      const completedJob = submittedJob.status === 'completed' || submittedJob.status === 'partial'
+        ? submittedJob
+        : await waitForJobCompletion(submittedJob.id, setLoadingMessage, () => isMountedRef.current);
+      setSharedJobState({ job: completedJob, isPolling: false, error: null }, { ownerJobId: submittedJob.id });
+
+      if (completedJob.status === 'failed') {
+        throw new Error(completedJob.error_message || 'Job failed');
+      }
+
+      const results = await fetchJobImageResults(submittedJob.id);
       setGeneratedImages(results);
       results.forEach((img) => addImage(img));
     } catch (err) {
-      setError(getErrorMessage(err, t));
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, t));
+      }
     } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
+      if (isMountedRef.current) {
+        setIsLoading(false);
+        setLoadingMessage('');
+      }
     }
   }, [addImage, aspectRatio, backgroundImage, buildImageServiceConfig, buildPrompt, cameraView, imageEditModel, negativePrompt, promptText, resolution, subjectImage, t]);
 
