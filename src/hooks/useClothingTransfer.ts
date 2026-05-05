@@ -15,53 +15,14 @@ import { getErrorMessage } from '../utils/imageUtils';
 // import { editImage } from '../services/imageEditingService';  // migrated to job pipeline
 // TODO: migrate upscale/refine to job pipeline
 import { upscaleImage, createImageChatSession, type ImageChatSession } from '../services/imageEditingService';
-import { submitJob, getJobResults, downloadJobResultBlob, type Job, type JobResult } from '../services/jobService';
+import { submitJob } from '../services/jobService';
 import { buildClothingTransferParts } from '../utils/clothing-transfer-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { downloadImagesAsZip } from '../utils/zipDownload';
-import { setSharedJobState } from './useJobPoll';
+import { fetchJobImageResults, setSharedJobState, waitForJobCompletion } from './useJobPoll';
 
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
-const POLL_INTERVAL_MS = 3000;
-
-async function waitForJobCompletion(jobId: string, onStatus: (msg: string) => void, activeJobIds?: Set<string>): Promise<Job> {
-  const { pollJob } = await import('../services/jobService');
-  while (true) {
-    try {
-      const job = await pollJob(jobId);
-      const isTerminal = job.status === 'completed' || job.status === 'partial' || job.status === 'failed';
-      if (isTerminal) {
-        activeJobIds?.delete(jobId);
-      }
-      setSharedJobState({
-        job,
-        isPolling: activeJobIds ? activeJobIds.size > 0 : !isTerminal,
-        error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
-      });
-      onStatus(`Job ${job.status}...`);
-      if (isTerminal) {
-        return job;
-      }
-    } catch (error) {
-      activeJobIds?.delete(jobId);
-      setSharedJobState({ isPolling: activeJobIds ? activeJobIds.size > 0 : false, error: error instanceof Error ? error.message : String(error) });
-      throw error;
-    }
-    await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
-  }
-}
-
-async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
-  const { results } = await getJobResults(jobId);
-  const outputs = results.filter(r => r.kind === 'output');
-  const images: ImageFile[] = [];
-  for (const r of outputs) {
-    const base64 = await downloadJobResultBlob(r.blob_path);
-    images.push({ base64, mimeType: r.mime_type });
-  }
-  return images;
-}
 
 export function useClothingTransfer() {
   const idCounter = useRef(0);
@@ -274,8 +235,14 @@ export function useClothingTransfer() {
 
             const submittedJob = await submitJob('clothing-transfer', payload as Record<string, unknown>);
             activeJobIds.add(submittedJob.id);
-            setSharedJobState({ job: submittedJob, isPolling: true, error: null });
-            const completedJob = await waitForJobCompletion(submittedJob.id, setLoadingMessage, activeJobIds);
+            setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
+            const completedJob = await waitForJobCompletion({
+              jobId: submittedJob.id,
+              onStatusUpdate: setLoadingMessage,
+              shouldContinue: () => true,
+              ownerJobId: submittedJob.id,
+              activeJobIds,
+            });
 
             if (completedJob.status === 'failed') {
               throw new Error(completedJob.error_message || 'Job failed');
@@ -353,7 +320,12 @@ export function useClothingTransfer() {
       };
 
       const submittedJob = await submitJob('clothing-transfer', payload as Record<string, unknown>);
-      const completedJob = await waitForJobCompletion(submittedJob.id, setLoadingMessage);
+      const completedJob = await waitForJobCompletion({
+        jobId: submittedJob.id,
+        onStatusUpdate: setLoadingMessage,
+        shouldContinue: () => true,
+        ownerJobId: submittedJob.id,
+      });
 
       if (completedJob.status === 'failed') {
         throw new Error(completedJob.error_message || 'Job failed');
