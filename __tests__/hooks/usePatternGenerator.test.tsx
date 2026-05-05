@@ -16,6 +16,7 @@ vi.mock('../../src/services/jobService', () => ({
 
 vi.mock('../../src/utils/imageUtils', () => ({
   getErrorMessage: vi.fn((error: Error) => error.message),
+  toDataUrl: vi.fn((img: { mimeType: string; base64: string }) => `data:${img.mimeType};base64,${img.base64}`),
 }));
 
 vi.mock('../../src/contexts/LanguageContext', () => ({
@@ -95,7 +96,7 @@ describe('usePatternGenerator', () => {
     expect(submitJob).toHaveBeenCalledWith(
       'pattern-generator',
       expect.objectContaining({
-        images: [REFERENCE_IMAGE.base64],
+        images: [`data:${REFERENCE_IMAGE.mimeType};base64,${REFERENCE_IMAGE.base64}`],
         numImages: 1,
         interleavedParts: expect.any(Array),
       }),
