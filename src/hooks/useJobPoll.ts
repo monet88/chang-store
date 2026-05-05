@@ -110,6 +110,7 @@ let sharedJobState: SharedJobState = {
   isPolling: false,
   error: null,
 };
+const activeSharedJobIds = new Set<string>();
 
 function emitSharedJobState(nextState: Partial<SharedJobState>) {
   sharedJobState = {
@@ -119,10 +120,39 @@ function emitSharedJobState(nextState: Partial<SharedJobState>) {
   sharedJobListeners.forEach((listener) => listener(sharedJobState));
 }
 
+function syncActiveSharedJobs(nextState: Partial<SharedJobState>, options?: SharedJobUpdateOptions) {
+  const ownerJobId = options?.ownerJobId;
+  if (!ownerJobId || typeof nextState.isPolling !== 'boolean') {
+    return;
+  }
+
+  if (nextState.isPolling) {
+    activeSharedJobIds.add(ownerJobId);
+    return;
+  }
+
+  activeSharedJobIds.delete(ownerJobId);
+}
+
+function resolveSharedPolling(nextState: Partial<SharedJobState>): Partial<SharedJobState> {
+  if (typeof nextState.isPolling !== 'boolean') {
+    return nextState;
+  }
+
+  return {
+    ...nextState,
+    isPolling: activeSharedJobIds.size > 0,
+  };
+}
+
 function shouldApplySharedJobUpdate(
-  _nextState: Partial<SharedJobState>,
+  nextState: Partial<SharedJobState>,
   options?: SharedJobUpdateOptions,
 ): boolean {
+  if (typeof nextState.isPolling === 'boolean') {
+    return true;
+  }
+
   const ownerJobId = options?.ownerJobId;
   if (!ownerJobId) {
     return true;
@@ -136,14 +166,39 @@ function shouldApplySharedJobUpdate(
   return !sharedJobState.isPolling;
 }
 
+function scopeNonOwnerUpdate(nextState: Partial<SharedJobState>, options?: SharedJobUpdateOptions): Partial<SharedJobState> {
+  const ownerJobId = options?.ownerJobId;
+  if (!ownerJobId) {
+    return nextState;
+  }
+
+  const currentJobId = sharedJobState.job?.id ?? null;
+  if (currentJobId === null || currentJobId === ownerJobId || activeSharedJobIds.size === 0) {
+    return nextState;
+  }
+
+  const scoped: Partial<SharedJobState> = {};
+  if (typeof nextState.isPolling === 'boolean') {
+    scoped.isPolling = nextState.isPolling;
+  }
+
+  return scoped;
+}
+
 export function setSharedJobState(nextState: Partial<SharedJobState>, options?: SharedJobUpdateOptions) {
-  if (!shouldApplySharedJobUpdate(nextState, options)) {
+  syncActiveSharedJobs(nextState, options);
+  const scopedState = scopeNonOwnerUpdate(nextState, options);
+  const resolvedState = resolveSharedPolling(scopedState);
+
+  if (!shouldApplySharedJobUpdate(resolvedState, options)) {
     return;
   }
-  emitSharedJobState(nextState);
+
+  emitSharedJobState(resolvedState);
 }
 
 export function clearSharedJobState() {
+  activeSharedJobIds.clear();
   emitSharedJobState({ job: null, isPolling: false, error: null });
 }
 

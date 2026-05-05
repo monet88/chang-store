@@ -170,17 +170,21 @@ export function useWatermarkRemover(
         throw new Error('No result returned from API');
       }
 
-      updateItem(item.id, {
-        status: 'completed',
-        result,
-      });
+      if (isMountedRef.current) {
+        updateItem(item.id, {
+          status: 'completed',
+          result,
+        });
+      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Processing failed';
-      updateItem(item.id, {
-        status: 'error',
-        error: errorMsg,
-        retryCount: item.retryCount + 1,
-      });
+      if (isMountedRef.current) {
+        updateItem(item.id, {
+          status: 'error',
+          error: errorMsg,
+          retryCount: item.retryCount + 1,
+        });
+      }
     }
   }, [updateItem]);
 
@@ -200,7 +204,9 @@ export function useWatermarkRemover(
         },
       );
     } finally {
-      setIsProcessing(false);
+      if (isMountedRef.current) {
+        setIsProcessing(false);
+      }
     }
   }, [items, config, processItem]);
 

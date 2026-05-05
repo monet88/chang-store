@@ -207,12 +207,18 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
 
     try {
       const description = await generatePoseDescription(poseReferenceImage, textGenerateModel);
-      setCustomPosePrompt(description);
-      setPoseReferenceImage(null);
+      if (isMountedRef.current) {
+        setCustomPosePrompt(description);
+        setPoseReferenceImage(null);
+      }
     } catch (err) {
-      setError(getErrorMessage(err, t));
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, t));
+      }
     } finally {
-      setIsGeneratingPoseDescription(false);
+      if (isMountedRef.current) {
+        setIsGeneratingPoseDescription(false);
+      }
     }
   };
 
@@ -281,12 +287,18 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
           throw new Error('error.api.noImageGenerated');
         }
 
-        setGeneratedImages([result]);
+        if (isMountedRef.current) {
+          setGeneratedImages([result]);
+        }
       } catch (err) {
-        setError(getErrorMessage(err, t));
+        if (isMountedRef.current) {
+          setError(getErrorMessage(err, t));
+        }
       } finally {
-        setIsLoading(false);
-        setGenerationStatus(IDLE_GENERATION_STATUS);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+          setGenerationStatus(IDLE_GENERATION_STATUS);
+        }
       }
 
       return;
@@ -367,11 +379,17 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
 
     try {
       const result = await generateImageForPrompt(subjectImage, promptText, getFramingInstruction());
-      setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
+      if (isMountedRef.current) {
+        setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
+      }
     } catch (err) {
-      setError(getErrorMessage(err, t));
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, t));
+      }
     } finally {
-      setRegeneratingStates((prev) => ({ ...prev, [index]: false }));
+      if (isMountedRef.current) {
+        setRegeneratingStates((prev) => ({ ...prev, [index]: false }));
+      }
     }
   };
 
@@ -385,11 +403,17 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
         imageEditModel,
         buildImageServiceConfig(() => {}),
       );
-      setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
+      if (isMountedRef.current) {
+        setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
+      }
     } catch (err) {
-      setError(getErrorMessage(err, t));
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, t));
+      }
     } finally {
-      setUpscalingStates((prev) => ({ ...prev, [index]: false }));
+      if (isMountedRef.current) {
+        setUpscalingStates((prev) => ({ ...prev, [index]: false }));
+      }
     }
   };
 
