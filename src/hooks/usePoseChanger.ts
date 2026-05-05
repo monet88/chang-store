@@ -5,7 +5,7 @@ import { useApi } from '../contexts/ApiProviderContext';
 import { upscaleImage } from '../services/imageEditingService';
 import { submitJob } from '../services/jobService';
 import { generatePoseDescription } from '../services/textService';
-import { getErrorMessage } from '../utils/imageUtils';
+import { getErrorMessage, toDataUrl } from '../utils/imageUtils';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { assertPayloadSizeBelowLimit, fetchJobImageResults, setSharedJobState, waitForJobCompletion } from './useJobPoll';
 
@@ -64,8 +64,6 @@ const POSE_MAX_CONCURRENCY = 4;
 const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
   onStatusUpdate,
 });
-
-const toDataUrl = (image: ImageFile): string => `data:${image.mimeType};base64,${image.base64}`;
 
 const buildTextPosePrompt = (promptText: string, framingInstruction: string): string => `
   **Task**: Photorealistically change the pose of a model based on a text description, while perfectly preserving the model, their clothing, and the background.
@@ -144,7 +142,12 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     return t(instructionKey) || 'Use default framing provided by the model.';
   };
 
-  const generateImageForPrompt = async (sourceImage: ImageFile, promptText: string, framingInstruction: string) => {
+  const generateImageForPrompt = async (
+    sourceImage: ImageFile,
+    promptText: string,
+    framingInstruction: string,
+    activeJobIds?: Set<string>,
+  ) => {
     const payload = {
       subjectImage: toDataUrl(sourceImage),
       prompt: buildTextPosePrompt(promptText, framingInstruction),
@@ -156,6 +159,7 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     assertPayloadSizeBelowLimit(payload);
 
     const submittedJob = await submitJob('pose', payload as Record<string, unknown>);
+    activeJobIds?.add(submittedJob.id);
     setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
 
     if (submittedJob.status === 'failed') {
@@ -315,6 +319,7 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     setGenerationStatus({ active: true, progress: 0, total: allPrompts.length, message: '' });
 
     const indexedPrompts = allPrompts.map((promptText, index) => ({ promptText, index }));
+    const activeJobIds = new Set<string>();
     const resultsByIndex: Array<ImageFile | null> = Array.from({ length: allPrompts.length }, () => null);
     let completedCount = 0;
     let firstBatchError: string | null = null;
@@ -324,7 +329,7 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
       Math.min(POSE_MAX_CONCURRENCY, indexedPrompts.length),
       async ({ promptText, index }) => {
         try {
-          const result = await generateImageForPrompt(subjectImage, promptText, framingInstruction);
+          const result = await generateImageForPrompt(subjectImage, promptText, framingInstruction, activeJobIds);
           resultsByIndex[index] = result;
           if (isMountedRef.current) {
             setGeneratedImages(resultsByIndex.filter((image): image is ImageFile => image !== null));

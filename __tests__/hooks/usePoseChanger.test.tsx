@@ -18,6 +18,7 @@ vi.mock('../../src/services/textService', () => ({
 
 vi.mock('../../src/utils/imageUtils', () => ({
   getErrorMessage: vi.fn((error: Error) => error.message),
+  toDataUrl: vi.fn((image: { mimeType: string; base64: string }) => `data:${image.mimeType};base64,${image.base64}`),
 }));
 
 vi.mock('../../src/contexts/LanguageContext', () => ({

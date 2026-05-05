@@ -10,17 +10,18 @@
  * - ZIP download for batch results
  */
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { submitJob } from '@/services/jobService';
-import { downloadImagesAsZip } from '@/utils/zipDownload';
-import { downloadImageAsJpeg } from '@/utils/imageDownload';
-import { runBoundedWorkers } from '@/utils/run-bounded-workers';
+import { submitJob } from '../services/jobService';
+import { downloadImagesAsZip } from '../utils/zipDownload';
+import { downloadImageAsJpeg } from '../utils/imageDownload';
+import { toDataUrl } from '../utils/imageUtils';
+import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import {
   getPromptText,
   DEFAULT_WATERMARK_MODEL,
   DEFAULT_PROMPT_ID,
   type WatermarkModel,
-} from '@/utils/watermark-prompts';
-import { Feature, type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '@/types';
+} from '../utils/watermark-prompts';
+import { Feature, type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '../types';
 import { assertPayloadSizeBelowLimit, fetchJobImageResults, setSharedJobState, waitForJobCompletion } from './useJobPoll';
 
 export interface UseWatermarkRemoverReturn {
@@ -52,9 +53,6 @@ const generateId = (): string =>
 
 const clampConcurrency = (n: number): number =>
   Math.max(1, Math.min(5, Math.round(n)));
-
-const toDataUrl = (image: ImageFile): string =>
-  `data:${image.mimeType};base64,${image.base64}`;
 
 export function useWatermarkRemover(
   addToGallery: (image: ImageFile) => void,
@@ -121,6 +119,7 @@ export function useWatermarkRemover(
     item: WatermarkBatchItem,
     prompt: string,
     model: string,
+    activeJobIds?: Set<string>,
   ): Promise<void> => {
     try {
       updateItem(item.id, { status: 'processing', error: undefined });
@@ -133,6 +132,7 @@ export function useWatermarkRemover(
       assertPayloadSizeBelowLimit(payload);
 
       const submittedJob = await submitJob('watermark-remover', payload as Record<string, unknown>);
+      activeJobIds?.add(submittedJob.id);
       setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
 
       if (submittedJob.status === 'failed') {
@@ -149,6 +149,7 @@ export function useWatermarkRemover(
             jobId: submittedJob.id,
             shouldContinue: () => isMountedRef.current,
             ownerJobId: submittedJob.id,
+            activeJobIds,
           });
       setSharedJobState(
         {
@@ -195,12 +196,14 @@ export function useWatermarkRemover(
     setIsProcessing(true);
     const prompt = getPromptText(config.promptId, config.customPrompt);
 
+    const activeJobIds = new Set<string>();
+
     try {
       await runBoundedWorkers(
         pendingItems,
         config.concurrency,
         async (item) => {
-          await processItem(item, prompt, config.model);
+          await processItem(item, prompt, config.model, activeJobIds);
         },
       );
     } finally {
