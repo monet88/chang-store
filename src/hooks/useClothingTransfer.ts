@@ -320,11 +320,15 @@ export function useClothingTransfer() {
       };
 
       const submittedJob = await submitJob('clothing-transfer', payload as Record<string, unknown>);
+      const activeJobIds = new Set<string>();
+      activeJobIds.add(submittedJob.id);
+      setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
       const completedJob = await waitForJobCompletion({
         jobId: submittedJob.id,
         onStatusUpdate: setLoadingMessage,
         shouldContinue: () => true,
         ownerJobId: submittedJob.id,
+        activeJobIds,
       });
 
       if (completedJob.status === 'failed') {
