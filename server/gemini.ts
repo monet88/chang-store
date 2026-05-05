@@ -32,6 +32,7 @@ export interface GenerateImageParams {
   prompt: string;
   model?: string;
   numberOfImages?: number;
+  interleavedParts?: Part[];
 }
 
 function parseDataUrl(dataUrl: string): ImageInput {
@@ -46,14 +47,18 @@ export async function generateImage(params: GenerateImageParams): Promise<ImageR
   const ai = getGeminiClient();
   const model = params.model || 'gemini-2.5-flash-image-preview';
 
-  const imageParts: Part[] = params.images.map((img) => ({
-    inlineData: {
-      data: img.base64,
-      mimeType: img.mimeType,
-    },
-  }));
-
-  const contentParts: Part[] = [...imageParts, { text: params.prompt }];
+  const contentParts: Part[] =
+    params.interleavedParts && params.interleavedParts.length > 0
+      ? params.interleavedParts
+      : [
+          ...params.images.map((img) => ({
+            inlineData: {
+              data: img.base64,
+              mimeType: img.mimeType,
+            },
+          })),
+          { text: params.prompt },
+        ];
 
   const results: ImageResult[] = [];
 
