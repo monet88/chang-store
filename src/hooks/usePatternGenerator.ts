@@ -1,12 +1,68 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import { createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import { submitJob, pollJob, getJobResults, downloadJobResultBlob, type Job } from '../services/jobService';
 import { buildPatternGeneratorParts, TASK_PROMPT, REFINE_CORRECTION } from '../utils/pattern-generator-prompt-builder';
 import { downloadImagesAsZip } from '../utils/zipDownload';
+import { setSharedJobState } from './useJobPoll';
+
+const POLL_INTERVAL_MS = 2000;
+const MAX_JOB_PAYLOAD_BYTES = 4 * 1024 * 1024;
+
+function assertPayloadSizeBelowLimit(payload: unknown): void {
+  const bytes = new Blob([JSON.stringify(payload)]).size;
+  if (bytes > MAX_JOB_PAYLOAD_BYTES) {
+    throw new Error('Payload too large. Reduce image count or resolution and try again.');
+  }
+}
+
+async function waitForJobCompletion(
+  jobId: string,
+  onStatusUpdate: (message: string) => void,
+  shouldContinue: () => boolean,
+): Promise<Job> {
+  while (shouldContinue()) {
+    try {
+      const job = await pollJob(jobId);
+      const isPolling = job.status === 'queued' || job.status === 'running';
+      setSharedJobState({
+        job,
+        isPolling,
+        error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
+      }, { ownerJobId: jobId });
+      onStatusUpdate(`Job ${job.status}...`);
+
+      if (!isPolling) {
+        return job;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSharedJobState({ isPolling: false, error: message }, { ownerJobId: jobId });
+      throw error;
+    }
+  }
+
+  setSharedJobState({ isPolling: false, error: null }, { ownerJobId: jobId });
+  throw new Error('Job polling cancelled');
+}
+
+async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
+  const { results } = await getJobResults(jobId);
+  const outputResults = results.filter((result) => result.kind === 'output');
+  const images = await Promise.all(
+    outputResults.map(async (result) => ({
+      base64: await downloadJobResultBlob(result.blob_path),
+      mimeType: result.mime_type,
+    })),
+  );
+  return images;
+}
 
 export function usePatternGenerator() {
   const { t } = useLanguage();
@@ -25,10 +81,15 @@ export function usePatternGenerator() {
   const [isRefining, setIsRefining] = useState(false);
 
   const chatSessionsRef = useRef<Record<number, ImageChatSession>>({});
+  const isMountedRef = useRef(true);
 
   const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
   }), []);
+
+  useEffect(() => () => {
+    isMountedRef.current = false;
+  }, []);
 
   const canGenerate = referenceImages.length > 0 && !isLoading && !isRefining;
   const canRefine = generatedPatterns.length > 0
@@ -60,26 +121,45 @@ export function usePatternGenerator() {
 
     try {
       const interleavedParts = buildPatternGeneratorParts(referenceImages, TASK_PROMPT);
-      const results = await editImage(
-        {
-          images: referenceImages,
-          prompt: '',
-          numberOfImages: numImages,
-          aspectRatio: '1:1',
-          resolution: '4K',
-          interleavedParts,
-        },
-        imageEditModel,
-        buildImageServiceConfig(setLoadingMessage),
-      );
+      const payload = {
+        images: referenceImages.map((image) => image.base64),
+        numImages,
+        interleavedParts,
+      };
+      assertPayloadSizeBelowLimit(payload);
 
+      const submittedJob = await submitJob('pattern-generator', payload as Record<string, unknown>);
+      setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
+
+      if (submittedJob.status === 'failed') {
+        setSharedJobState(
+          { job: submittedJob, isPolling: false, error: submittedJob.error_message || 'Job failed' },
+          { ownerJobId: submittedJob.id },
+        );
+        throw new Error(submittedJob.error_message || 'Job failed');
+      }
+
+      const completedJob = submittedJob.status === 'completed' || submittedJob.status === 'partial'
+        ? submittedJob
+        : await waitForJobCompletion(submittedJob.id, setLoadingMessage, () => isMountedRef.current);
+      setSharedJobState({ job: completedJob, isPolling: false, error: null }, { ownerJobId: submittedJob.id });
+
+      if (completedJob.status === 'failed') {
+        throw new Error(completedJob.error_message || 'Job failed');
+      }
+
+      const results = await fetchJobImageResults(submittedJob.id);
       setGeneratedPatterns(results);
       results.forEach((img) => addImage(img));
     } catch (err) {
-      setError(getErrorMessage(err, t));
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, t));
+      }
     } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
+      if (isMountedRef.current) {
+        setIsLoading(false);
+        setLoadingMessage('');
+      }
     }
   }, [referenceImages, numImages, imageEditModel, buildImageServiceConfig, addImage, t, isRefining]);
 

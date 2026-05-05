@@ -71,3 +71,4 @@ opencode.json
 .motion/
 .vercel
 .env*.local
+.tokensave

@@ -4,8 +4,14 @@ import { renderHook, act } from '@testing-library/react';
 const addImageMock = vi.fn();
 
 vi.mock('../../src/services/imageEditingService', () => ({
-  editImage: vi.fn(),
   createImageChatSession: vi.fn(),
+}));
+
+vi.mock('../../src/services/jobService', () => ({
+  submitJob: vi.fn(),
+  pollJob: vi.fn(),
+  getJobResults: vi.fn(),
+  downloadJobResultBlob: vi.fn(),
 }));
 
 vi.mock('../../src/utils/imageUtils', () => ({
@@ -37,7 +43,8 @@ vi.mock('../../src/utils/zipDownload', () => ({
 }));
 
 import { usePatternGenerator } from '../../src/hooks/usePatternGenerator';
-import { editImage, createImageChatSession } from '../../src/services/imageEditingService';
+import { createImageChatSession } from '../../src/services/imageEditingService';
+import { submitJob, getJobResults, downloadJobResultBlob } from '../../src/services/jobService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 import { REFINE_CORRECTION } from '../../src/utils/pattern-generator-prompt-builder';
 
@@ -46,13 +53,24 @@ const GENERATED_PATTERN_A = { base64: 'generated-a', mimeType: 'image/png' };
 const GENERATED_PATTERN_B = { base64: 'generated-b', mimeType: 'image/png' };
 const REFINED_PATTERN = { base64: 'refined-pattern', mimeType: 'image/png' };
 
+const COMPLETED_JOB = {
+  id: 'job-pattern-1',
+  status: 'completed',
+  error_message: null,
+};
+
 describe('usePatternGenerator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     addImageMock.mockReset();
+    vi.mocked(submitJob).mockResolvedValue(COMPLETED_JOB as never);
+    vi.mocked(getJobResults).mockResolvedValue({
+      results: [{ kind: 'output', blob_path: 'jobs/pattern-1', mime_type: 'image/png' }],
+    } as never);
+    vi.mocked(downloadJobResultBlob).mockResolvedValue(GENERATED_PATTERN_A.base64);
   });
 
-  it('sets inputError and does NOT call editImage when referenceImages is empty', async () => {
+  it('sets inputError and does NOT call submitJob when referenceImages is empty', async () => {
     const { result } = renderHook(() => usePatternGenerator());
 
     await act(async () => {
@@ -60,11 +78,10 @@ describe('usePatternGenerator', () => {
     });
 
     expect(result.current.error).toBe('patternGenerator.inputError');
-    expect(editImage).not.toHaveBeenCalled();
+    expect(submitJob).not.toHaveBeenCalled();
   });
 
-  it('calls editImage with correct params when referenceImages has items', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([GENERATED_PATTERN_A]);
+  it('calls submitJob with correct payload when referenceImages has items', async () => {
     const { result } = renderHook(() => usePatternGenerator());
 
     act(() => {
@@ -75,17 +92,13 @@ describe('usePatternGenerator', () => {
       await result.current.handleGenerate();
     });
 
-    expect(editImage).toHaveBeenCalledWith(
-      {
-        images: [REFERENCE_IMAGE],
-        prompt: '',
-        numberOfImages: 1,
-        aspectRatio: '1:1',
-        resolution: '4K',
+    expect(submitJob).toHaveBeenCalledWith(
+      'pattern-generator',
+      expect.objectContaining({
+        images: [REFERENCE_IMAGE.base64],
+        numImages: 1,
         interleavedParts: expect.any(Array),
-      },
-      'gemini-2.5-flash-image',
-      expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
+      }),
     );
   });
 
@@ -104,7 +117,16 @@ describe('usePatternGenerator', () => {
   });
 
   it('adds each generated image to gallery', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([GENERATED_PATTERN_A, GENERATED_PATTERN_B]);
+    vi.mocked(getJobResults).mockResolvedValueOnce({
+      results: [
+        { kind: 'output', blob_path: 'jobs/pattern-a', mime_type: 'image/png' },
+        { kind: 'output', blob_path: 'jobs/pattern-b', mime_type: 'image/png' },
+      ],
+    } as never);
+    vi.mocked(downloadJobResultBlob)
+      .mockResolvedValueOnce(GENERATED_PATTERN_A.base64)
+      .mockResolvedValueOnce(GENERATED_PATTERN_B.base64);
+
     const { result } = renderHook(() => usePatternGenerator());
 
     act(() => {
@@ -121,8 +143,8 @@ describe('usePatternGenerator', () => {
     expect(addImageMock).toHaveBeenNthCalledWith(2, GENERATED_PATTERN_B);
   });
 
-  it('sets error and resets isLoading when editImage rejects', async () => {
-    vi.mocked(editImage).mockRejectedValueOnce(new Error('generation failed'));
+  it('sets error and resets isLoading when submitJob rejects', async () => {
+    vi.mocked(submitJob).mockRejectedValueOnce(new Error('generation failed'));
     const { result } = renderHook(() => usePatternGenerator());
 
     act(() => {
@@ -143,7 +165,6 @@ describe('usePatternGenerator', () => {
       sendRefinement: vi.fn().mockResolvedValueOnce(REFINED_PATTERN),
     };
 
-    vi.mocked(editImage).mockResolvedValueOnce([GENERATED_PATTERN_A]);
     vi.mocked(createImageChatSession).mockReturnValueOnce(refineSessionMock as never);
 
     const { result } = renderHook(() => usePatternGenerator());
@@ -176,7 +197,6 @@ describe('usePatternGenerator', () => {
       sendRefinement: vi.fn().mockResolvedValueOnce(REFINED_PATTERN),
     };
 
-    vi.mocked(editImage).mockResolvedValueOnce([GENERATED_PATTERN_A]);
     vi.mocked(createImageChatSession).mockReturnValueOnce(refineSessionMock as never);
 
     const { result } = renderHook(() => usePatternGenerator());
@@ -215,7 +235,16 @@ describe('usePatternGenerator', () => {
   });
 
   it('handleDownloadAllZip calls downloadImagesAsZip when 2+ patterns exist', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([GENERATED_PATTERN_A, GENERATED_PATTERN_B]);
+    vi.mocked(getJobResults).mockResolvedValueOnce({
+      results: [
+        { kind: 'output', blob_path: 'jobs/pattern-a', mime_type: 'image/png' },
+        { kind: 'output', blob_path: 'jobs/pattern-b', mime_type: 'image/png' },
+      ],
+    } as never);
+    vi.mocked(downloadJobResultBlob)
+      .mockResolvedValueOnce(GENERATED_PATTERN_A.base64)
+      .mockResolvedValueOnce(GENERATED_PATTERN_B.base64);
+
     const { result } = renderHook(() => usePatternGenerator());
 
     act(() => {
@@ -238,7 +267,6 @@ describe('usePatternGenerator', () => {
   });
 
   it('handleDownloadAllZip does NOT call downloadImagesAsZip when only 1 pattern', async () => {
-    vi.mocked(editImage).mockResolvedValueOnce([GENERATED_PATTERN_A]);
     const { result } = renderHook(() => usePatternGenerator());
 
     act(() => {
@@ -258,12 +286,9 @@ describe('usePatternGenerator', () => {
 
   it('canGenerate is false while a refinement is in progress', async () => {
     const refineSessionMock = {
-      sendRefinement: vi.fn().mockImplementation(
-        () => new Promise<never>(() => {}),
-      ),
+      sendRefinement: vi.fn().mockImplementation(() => new Promise<never>(() => {})),
     };
 
-    vi.mocked(editImage).mockResolvedValueOnce([GENERATED_PATTERN_A]);
     vi.mocked(createImageChatSession).mockReturnValueOnce(refineSessionMock as never);
 
     const { result } = renderHook(() => usePatternGenerator());

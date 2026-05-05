@@ -1,11 +1,60 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { editImage } from '../services/imageEditingService';
+import { submitJob, pollJob, getJobResults, downloadJobResultBlob, type Job } from '../services/jobService';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
+import { setSharedJobState } from './useJobPoll';
 
 const MENTION_REGEX = /@img(\d+)/g;
+const POLL_INTERVAL_MS = 2000;
+const MAX_JOB_PAYLOAD_BYTES = 4 * 1024 * 1024;
+
+function assertPayloadSizeBelowLimit(payload: unknown): void {
+  const bytes = new Blob([JSON.stringify(payload)]).size;
+  if (bytes > MAX_JOB_PAYLOAD_BYTES) {
+    throw new Error('Payload too large. Reduce image count or resolution and try again.');
+  }
+}
+
+async function waitForJobCompletion(jobId: string, shouldContinue: () => boolean): Promise<Job> {
+  while (shouldContinue()) {
+    try {
+      const job = await pollJob(jobId);
+      const isPolling = job.status === 'queued' || job.status === 'running';
+      setSharedJobState({
+        job,
+        isPolling,
+        error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
+      }, { ownerJobId: jobId });
+
+      if (!isPolling) {
+        return job;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSharedJobState({ isPolling: false, error: message }, { ownerJobId: jobId });
+      throw error;
+    }
+  }
+
+  setSharedJobState({ isPolling: false, error: null }, { ownerJobId: jobId });
+  throw new Error('Job polling cancelled');
+}
+
+async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
+  const { results } = await getJobResults(jobId);
+  const outputResults = results.filter((result) => result.kind === 'output');
+  const images = await Promise.all(
+    outputResults.map(async (result) => ({
+      base64: await downloadJobResultBlob(result.blob_path),
+      mimeType: result.mime_type,
+    })),
+  );
+  return images;
+}
 
 interface MentionedImageSelection {
   images: ImageFile[];
@@ -40,8 +89,13 @@ export const useAIEditor = (): UseAIEditorReturn => {
   const [error, setError] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<ImageFile | null>(null);
   const generationInFlightRef = useRef(false);
+  const isMountedRef = useRef(true);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
+
+  useEffect(() => () => {
+    isMountedRef.current = false;
+  }, []);
 
   const extractMentionedImages = useCallback(
     (promptText: string): MentionedImageSelection => {
@@ -129,30 +183,57 @@ Return the final edited image.`;
       const imagesToSend = mentionedSelection.hasMentions ? mentionedSelection.images : images;
       const apiPrompt = buildApiPrompt(prompt, mentionedSelection.images);
 
-      const [result] = await editImage(
+      const payload = {
+        images: imagesToSend.map((image) => image.base64),
+        prompt: apiPrompt,
+        aspectRatio,
+        resolution,
+      };
+      assertPayloadSizeBelowLimit(payload);
+
+      const submittedJob = await submitJob('ai-editor', payload as Record<string, unknown>);
+      setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
+
+      if (submittedJob.status === 'failed') {
+        setSharedJobState(
+          { job: submittedJob, isPolling: false, error: submittedJob.error_message || 'Job failed' },
+          { ownerJobId: submittedJob.id },
+        );
+        throw new Error(submittedJob.error_message || 'Job failed');
+      }
+
+      const completedJob = submittedJob.status === 'completed' || submittedJob.status === 'partial'
+        ? submittedJob
+        : await waitForJobCompletion(submittedJob.id, () => isMountedRef.current);
+      setSharedJobState(
         {
-          images: imagesToSend,
-          prompt: apiPrompt,
-          numberOfImages: 1,
-          aspectRatio,
-          resolution,
+          job: completedJob,
+          isPolling: false,
+          error: completedJob.status === 'failed' ? (completedJob.error_message || 'Job failed') : null,
         },
-        imageEditModel,
-        {
-          onStatusUpdate: () => {},
-        },
+        { ownerJobId: submittedJob.id },
       );
 
+      if (completedJob.status === 'failed') {
+        throw new Error(completedJob.error_message || 'Job failed');
+      }
+
+      const results = await fetchJobImageResults(submittedJob.id);
+      const result = results[0];
       if (!result) {
         throw new Error('error.api.noImageGenerated');
       }
 
       setResultImage(result);
     } catch (err) {
-      setError(getErrorMessage(err, t));
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, t));
+      }
     } finally {
       generationInFlightRef.current = false;
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [
     images,
