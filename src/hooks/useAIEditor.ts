@@ -3,7 +3,7 @@ import { useApi } from '../contexts/ApiProviderContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { submitJob } from '../services/jobService';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
-import { getErrorMessage } from '../utils/imageUtils';
+import { getErrorMessage, toDataUrl } from '../utils/imageUtils';
 import { assertPayloadSizeBelowLimit, fetchJobImageResults, setSharedJobState, waitForJobCompletion } from './useJobPoll';
 
 const MENTION_REGEX = /@img(\d+)/g;
@@ -136,7 +136,7 @@ Return the final edited image.`;
       const apiPrompt = buildApiPrompt(prompt, mentionedSelection.images);
 
       const payload = {
-        images: imagesToSend.map((image) => image.base64),
+        images: imagesToSend.map((image) => toDataUrl(image)),
         prompt: apiPrompt,
         aspectRatio,
         resolution,

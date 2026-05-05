@@ -3,7 +3,7 @@ import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
-import { getErrorMessage } from '../utils/imageUtils';
+import { getErrorMessage, toDataUrl } from '../utils/imageUtils';
 import { createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { submitJob } from '../services/jobService';
 import { buildPatternGeneratorParts, TASK_PROMPT, REFINE_CORRECTION } from '../utils/pattern-generator-prompt-builder';
@@ -69,7 +69,7 @@ export function usePatternGenerator() {
     try {
       const interleavedParts = buildPatternGeneratorParts(referenceImages, TASK_PROMPT);
       const payload = {
-        images: referenceImages.map((image) => image.base64),
+        images: referenceImages.map((image) => toDataUrl(image)),
         numImages,
         interleavedParts,
       };

@@ -8,7 +8,7 @@ import { useApi } from '../contexts/ApiProviderContext';
 import { upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { submitJob } from '../services/jobService';
 import { generateImageDescription } from '../services/textService';
-import { getErrorMessage } from '../utils/imageUtils';
+import { getErrorMessage, toDataUrl } from '../utils/imageUtils';
 import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 import { assertPayloadSizeBelowLimit, fetchJobImageResults, setSharedJobState, waitForJobCompletion } from './useJobPoll';
 
@@ -147,8 +147,8 @@ export const useBackgroundReplacer = () => {
 
     try {
       const payload = {
-        subjectImage: subjectImage.base64,
-        backgroundImage: backgroundImage?.base64,
+        subjectImage: toDataUrl(subjectImage),
+        backgroundImage: backgroundImage ? toDataUrl(backgroundImage) : undefined,
         prompt: buildPrompt(cameraView),
         negativePrompt,
         numberOfImages: 2,
