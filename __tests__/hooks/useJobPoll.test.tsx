@@ -20,7 +20,13 @@ vi.mock('../../src/services/jobService', () => ({
   },
 }));
 
-import { clearSharedJobState, useJobPoll, useSharedJobState } from '../../src/hooks/useJobPoll';
+import {
+  clearSharedJobState,
+  setSharedJobState,
+  useJobPoll,
+  useSharedJobState,
+  waitForJobCompletion,
+} from '../../src/hooks/useJobPoll';
 
 function makeJob(id: string, status: Job['status'], errorMessage: string | null = null): Job {
   return {
@@ -85,6 +91,40 @@ describe('useJobPoll', () => {
     expect(result.current.poll.isPolling).toBe(false);
     expect(result.current.shared.isPolling).toBe(false);
     expect(result.current.shared.error).toBe('network down');
+  });
+
+  it('clears shared polling when waitForJobCompletion fails with stale active job ids', async () => {
+    pollJobMock.mockRejectedValueOnce(new Error('network down'));
+    const activeJobIds = new Set(['stale-job', 'job-1']);
+
+    const { result } = renderHook(() => useSharedJobState());
+
+    await act(async () => {
+      await expect(waitForJobCompletion({
+        jobId: 'job-1',
+        shouldContinue: () => true,
+        pollIntervalMs: 1000,
+        ownerJobId: 'job-1',
+        activeJobIds,
+      })).rejects.toThrow('network down');
+    });
+
+    expect(result.current.isPolling).toBe(false);
+    expect(result.current.error).toBe('network down');
+    expect(activeJobIds.has('job-1')).toBe(false);
+  });
+
+  it('surfaces non-owner errors while another shared job is still polling', () => {
+    const { result } = renderHook(() => useSharedJobState());
+
+    act(() => {
+      setSharedJobState({ job: makeJob('job-1', 'running'), isPolling: true, error: null }, { ownerJobId: 'job-1' });
+      setSharedJobState({ job: makeJob('job-2', 'failed', 'backend failed'), isPolling: false, error: 'backend failed' }, { ownerJobId: 'job-2' });
+    });
+
+    expect(result.current.job?.id).toBe('job-1');
+    expect(result.current.isPolling).toBe(true);
+    expect(result.current.error).toBe('backend failed');
   });
 
   it('ignores stale terminal responses from an older poll generation', async () => {

@@ -81,13 +81,14 @@ export async function waitForJobCompletion({
       activeJobIds?.delete(jobId);
       const message = error instanceof Error ? error.message : String(error);
       setSharedJobState(
-        { isPolling: activeJobIds ? activeJobIds.size > 0 : false, error: message },
+        { isPolling: false, error: message },
         { ownerJobId: ownerJobId ?? jobId },
       );
       throw error;
     }
   }
 
+  activeJobIds?.delete(jobId);
   setSharedJobState({ isPolling: false, error: null }, { ownerJobId: ownerJobId ?? jobId });
   throw new Error('Job polling cancelled');
 }
@@ -180,6 +181,9 @@ function scopeNonOwnerUpdate(nextState: Partial<SharedJobState>, options?: Share
   const scoped: Partial<SharedJobState> = {};
   if (typeof nextState.isPolling === 'boolean') {
     scoped.isPolling = nextState.isPolling;
+  }
+  if (typeof nextState.error === 'string' && nextState.error.length > 0) {
+    scoped.error = nextState.error;
   }
 
   return scoped;
