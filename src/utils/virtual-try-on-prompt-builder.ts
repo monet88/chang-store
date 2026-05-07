@@ -82,10 +82,10 @@ function buildTaskText(input: VirtualTryOnPromptInput): string {
   const hasClothing = sourceItems.some((item) => item.sourceItemType === 'clothing');
   const hasNonClothing = sourceItems.some((item) => item.sourceItemType !== 'clothing');
   const clothingRule = hasClothing
-    ? '[CRITICAL] For every clothing source item, replace only the corresponding garment target area with that source garment — zero original elements in that target clothing area may remain. Tops hang freely outside the waistband with natural hem drape; never tucked in.'
+    ? '[CRITICAL] A clothing source item may contain one garment or a coordinated outfit with multiple garments. For each clothing source item, replace every visible matching clothing category from that source image: top, bottom, dress, outerwear, belt, or other wearable garment. If multiple clothing source items contain the same clothing category, use the later source item in list order for that category. Zero original elements in replaced clothing areas may remain. Tops hang freely outside the waistband with natural hem drape; never tucked in.'
     : '';
   const nonClothingRule = hasNonClothing
-    ? 'For every shoes, bag, or accessory source item, add or replace only that category. Preserve the subject\'s existing outfit, body, face, hair, background, and all unrelated items exactly. Place each item naturally on the body, in the hand, on the shoulder, or on the feet as appropriate for its type.'
+    ? 'For every shoes, bag, or accessory source item, add or replace only that category. Preserve clothing areas not targeted by any clothing source item, plus body, face, hair, background, and all unrelated items exactly. Never use shoes, bag, or accessory preservation to keep old clothing that a clothing source item should replace. Place each item naturally on the body, in the hand, on the shoulder, or on the feet as appropriate for its type.'
     : '';
 
   const backgroundSection = backgroundPrompt.trim()
@@ -130,5 +130,5 @@ ${backgroundSection}
 - No pattern mirroring, shrinking, or duplication.${multiPersonProhibition}
 
 ## CRITICAL RECAP
-Each source item is 100% preserved and applied only to its selected category. Clothing replaces target clothing only; accessories do not rewrite the outfit. Face/hair/skin/pose preserved exactly.${multiPersonRecap} Photorealistic, professional-grade.`;
+Each source item is 100% preserved and applied only to its selected category. Clothing source images replace all visible garment categories they contain; shoes, bags, and accessories do not rewrite unrelated areas. Face/hair/skin/pose preserved exactly.${multiPersonRecap} Photorealistic, professional-grade.`;
 }

@@ -151,9 +151,19 @@ describe('buildVirtualTryOnParts', () => {
 
     it('keeps clothing replacement rules when clothing exists', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('zero original elements in that target clothing area may remain');
+      expect(text).toContain('may contain one garment or a coordinated outfit with multiple garments');
+      expect(text).toContain('replace every visible matching clothing category from that source image');
+      expect(text).toContain('use the later source item in list order for that category');
+      expect(text).toContain('Zero original elements in replaced clothing areas may remain');
       expect(text).toContain('Tops hang freely outside the waistband');
       expect(text).toContain('No tucking tops into pants or skirts');
+    });
+
+    it('makes non-clothing preservation subordinate to clothing replacements in mixed requests', () => {
+      const text = getTaskText(buildVirtualTryOnParts(mixedSourceInput));
+      expect(text).toContain('Preserve clothing areas not targeted by any clothing source item');
+      expect(text).toContain('Never use shoes, bag, or accessory preservation to keep old clothing that a clothing source item should replace');
+      expect(text).not.toContain('Preserve the subject\'s existing outfit');
     });
 
     it('keeps non-clothing preservation rules when accessories exist', () => {
@@ -162,7 +172,7 @@ describe('buildVirtualTryOnParts', () => {
         sourceItems: [{ image: mockImage('bag'), sourceItemType: 'bag' }],
       }));
       expect(text).toContain('For every shoes, bag, or accessory source item');
-      expect(text).toContain('Preserve the subject\'s existing outfit');
+      expect(text).toContain('Preserve clothing areas not targeted by any clothing source item');
       expect(text).toContain('Do not change unrelated clothing');
     });
 
@@ -185,7 +195,7 @@ describe('buildVirtualTryOnParts', () => {
       expect(recapIndex).toBeGreaterThan(0);
       expect(text.substring(recapIndex + '## CRITICAL RECAP'.length)).not.toMatch(/^## /m);
       expect(text).toContain('Each source item is 100% preserved');
-      expect(text).toContain('accessories do not rewrite the outfit');
+      expect(text).toContain('shoes, bags, and accessories do not rewrite unrelated areas');
       expect(text).toContain('Face/hair/skin/pose preserved exactly');
     });
   });
