@@ -123,23 +123,14 @@ For normal text, code, markdown, JSON, and command-output files, omit the `pages
 4. Save context summary for the next session
 </important>
 
-<important if="you need to smoke-test the Virtual Try-On feature end-to-end">
+<important if="you need to smoke-test features that involve image uploads">
 
-Test images are in `docs/image-test/`:
-- `people.jpg` — subject/model image (upload as subject)
-- `outfit.jpg` — clothing source image (upload as source, type = clothing)
-- `shoes.jpg` — shoes source image (upload as second source, type = shoes)
+Test images are in `docs/image-test/` — use these for any feature that requires uploading photos (subject, clothing, background, etc.):
+- `people.jpg` — person/model
+- `outfit.jpg` — clothing/outfit
+- `shoes.jpg` — footwear
 
-Use `/ck:agent-browser` to automate the smoke test:
-1. Start dev server: `npm run dev` (port 3000)
-2. Open `http://localhost:3000`, navigate to Virtual Try-On
-3. Upload `people.jpg` as subject
-4. Upload `outfit.jpg` as source #1, set type = clothing
-5. Upload `shoes.jpg` as source #2, set type = shoes
-6. Verify compact grid layout (2 source cards side by side)
-7. Click Generate and verify result image appears without errors
-
-Also verify: source type dropdowns present under each card, note textarea present under each dropdown.
+Dev server: `npm run dev` (port 3000). Use `/ck:agent-browser` for automated browser testing.
 </important>
 
 <important if="you need to use gstack skills for browsing, QA, review, or deployment">
