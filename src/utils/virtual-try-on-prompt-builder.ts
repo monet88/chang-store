@@ -10,9 +10,12 @@ import { ImageFile, VirtualTryOnSourceItemType } from '../types';
 
 const MAX_SOURCE_ITEMS = 4;
 
+const normalizeSourcePrompt = (value?: string) => value?.replace(/\s+/g, ' ').trim() ?? '';
+
 export interface VirtualTryOnPromptSourceItem {
   image: ImageFile;
   sourceItemType: VirtualTryOnSourceItemType;
+  sourcePrompt?: string;
 }
 
 /**
@@ -77,7 +80,12 @@ export const buildVirtualTryOnParts = (
 function buildTaskText(input: VirtualTryOnPromptInput): string {
   const { sourceItems, extraPrompt, backgroundPrompt, isMultiPersonMode } = input;
   const sourceTypeLines = sourceItems
-    .map((item, index) => `- Source item #${index + 1}: ${item.sourceItemType}`)
+    .map((item, index) => {
+      const sourcePrompt = normalizeSourcePrompt(item.sourcePrompt);
+      return sourcePrompt
+        ? `- Source item #${index + 1}: ${item.sourceItemType}. User note: ${sourcePrompt}`
+        : `- Source item #${index + 1}: ${item.sourceItemType}`;
+    })
     .join('\n');
   const hasClothing = sourceItems.some((item) => item.sourceItemType === 'clothing');
   const hasNonClothing = sourceItems.some((item) => item.sourceItemType !== 'clothing');
@@ -117,13 +125,14 @@ ${[clothingRule, nonClothingRule].filter(Boolean).join('\n\n')}
 The applied items fit naturally to the subject's body, aligned with pose and proportions. Replicate exact construction: shape, straps, hardware, sole, heel, texture, material, pattern, color, scale, and decorative details. Maintain correct pattern scale and orientation — no mirroring, shrinking, or distortion. Match lighting, shadows, and color grading from the subject image. Preserve occlusions: hands, hair, and existing accessories stay in front where physically correct.${extraSection}
 
 ## POSE
-Maintain the subject's original pose. Allow only minor, natural hand, foot, or contact-point adjustments required to hold, wear, or support the source items — never change the overall posture or stance.
+Maintain the subject's original pose, hand positions, arm angles, stance, and body silhouette. If a hand is outside a pocket in the subject image, keep it outside; do not insert hands into pants pockets, hide fingers, or invent pocket interactions. Allow only minor, natural contact-point adjustments required to hold, wear, or support the source items — never change the overall posture or stance.
 
 ## BACKGROUND
 ${backgroundSection}
 
 ## PROHIBITIONS
 - Do not change unrelated clothing when applying shoes, bag, or accessory items.
+- Do not put hands into pants pockets or hide hands unless the subject image already shows that exact pose.
 - No tucking tops into pants or skirts.
 - No text, logos, watermarks, extra people.
 - No body/face/hair distortion.

@@ -93,17 +93,31 @@ describe('useVirtualTryOn', () => {
 
 
 
-  it('defaults each source item type to clothing and updates it by item', () => {
+  it('defaults each source item to clothing with an empty note and updates it by item', () => {
     const { result } = renderHook(() => useVirtualTryOn());
     const itemId = result.current.clothingItems[0].id;
 
     expect(result.current.clothingItems[0].sourceItemType).toBe('clothing');
+    expect(result.current.clothingItems[0].sourcePrompt).toBe('');
 
     act(() => {
       result.current.handleSourceItemTypeChange(itemId, 'bag');
+      result.current.handleSourcePromptChange(itemId, 'wide pants\nno hand   in pocket');
     });
 
     expect(result.current.clothingItems[0].sourceItemType).toBe('bag');
+    expect(result.current.clothingItems[0].sourcePrompt).toBe('wide pants no hand in pocket');
+  });
+
+  it('caps source item notes before prompt generation', () => {
+    const { result } = renderHook(() => useVirtualTryOn());
+    const itemId = result.current.clothingItems[0].id;
+
+    act(() => {
+      result.current.handleSourcePromptChange(itemId, 'x'.repeat(240));
+    });
+
+    expect(result.current.clothingItems[0].sourcePrompt).toHaveLength(180);
   });
 
   it('passes each selected source item type into generated prompt parts', async () => {
@@ -115,6 +129,7 @@ describe('useVirtualTryOn', () => {
       result.current.handleSubjectImagesUpload([SUBJECT_A]);
       result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
       result.current.handleSourceItemTypeChange(result.current.clothingItems[0].id, 'bag');
+      result.current.handleSourcePromptChange(result.current.clothingItems[0].id, 'yellow shoulder bag');
     });
 
     await act(async () => {
@@ -123,7 +138,7 @@ describe('useVirtualTryOn', () => {
 
     const partsText = vi.mocked(editImage).mock.calls[0][0].interleavedParts?.filter((part) => part.text).map((part) => part.text).join('\n');
     expect(partsText).toContain('SOURCE ITEM #1 (bag)');
-    expect(partsText).toContain('- Source item #1: bag');
+    expect(partsText).toContain('- Source item #1: bag. User note: yellow shoulder bag');
   });
 
   it('tracks multiple subject images as batch items', () => {

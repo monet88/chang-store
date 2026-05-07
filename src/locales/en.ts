@@ -271,6 +271,8 @@ export const en = {
     clothingItemTitle: 'Source Item #{{index}}',
     sourceItemTypeLabel: 'Source Item Type',
     sourceItemTypeDescription: 'Choose the type for each source image so Gemini edits only the matching area.',
+    sourcePromptLabel: 'Note for This Source',
+    sourcePromptPlaceholder: 'e.g., "wide pants, no hand in pocket", "use full outfit set"',
     sourceItemTypes: {
       clothing: 'Clothing',
       shoes: 'Shoes',

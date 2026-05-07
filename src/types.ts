@@ -127,6 +127,7 @@ export interface VirtualTryOnClothingItem {
   id: number;
   image: ImageFile | null;
   sourceItemType: VirtualTryOnSourceItemType;
+  sourcePrompt: string;
 }
 
 /** One subject image job inside a Virtual Try-On batch run */

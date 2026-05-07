@@ -21,7 +21,9 @@ import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
 const MAX_SHARED_OUTFIT_IMAGES = 4;
+const MAX_SOURCE_PROMPT_LENGTH = 180;
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
+const normalizeSourcePrompt = (value: string) => value.replace(/\s+/g, ' ').slice(0, MAX_SOURCE_PROMPT_LENGTH);
 
 export const useVirtualTryOn = () => {
   const clothingIdCounter = useRef(0);
@@ -29,7 +31,7 @@ export const useVirtualTryOn = () => {
   const [subjectItems, setSubjectItems] = useState<VirtualTryOnBatchItem[]>([]);
   const [selectedSubjectItemId, setSelectedSubjectItemId] = useState<string | null>(null);
   const [clothingItems, setClothingItems] = useState<VirtualTryOnClothingItem[]>([
-    { id: ++clothingIdCounter.current, image: null, sourceItemType: 'clothing' },
+    { id: ++clothingIdCounter.current, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
   ]);
   const [backgroundPrompt, setBackgroundPrompt] = useState('');
   const [extraPrompt, setExtraPrompt] = useState('');
@@ -183,6 +185,7 @@ export const useVirtualTryOn = () => {
     const sourceItems = validClothingItems.map((item) => ({
       image: item.image as ImageFile,
       sourceItemType: item.sourceItemType,
+      sourcePrompt: item.sourcePrompt,
     }));
     const jobs: { id: string; subjectImage: ImageFile }[] = subjectItems.map((item) => ({
       id: item.id,
@@ -288,6 +291,7 @@ export const useVirtualTryOn = () => {
     const sourceItems = validClothingItems.map((item) => ({
       image: item.image as ImageFile,
       sourceItemType: item.sourceItemType,
+      sourcePrompt: item.sourcePrompt,
     }));
 
     // Reset only this item
@@ -425,13 +429,20 @@ export const useVirtualTryOn = () => {
     );
   }, []);
 
+  const handleSourcePromptChange = useCallback((id: number, sourcePrompt: string) => {
+    const normalizedPrompt = normalizeSourcePrompt(sourcePrompt);
+    setClothingItems((items) =>
+      items.map((item) => (item.id === id ? { ...item, sourcePrompt: normalizedPrompt } : item)),
+    );
+  }, []);
+
   const addClothingUploader = useCallback(() => {
     setClothingItems((prev) => {
       if (prev.length >= MAX_SHARED_OUTFIT_IMAGES) {
         return prev;
       }
 
-      return [...prev, { id: ++clothingIdCounter.current, image: null, sourceItemType: 'clothing' }];
+      return [...prev, { id: ++clothingIdCounter.current, image: null, sourceItemType: 'clothing', sourcePrompt: '' }];
     });
   }, []);
 
@@ -497,6 +508,7 @@ export const useVirtualTryOn = () => {
     handleRefine,
     handleClothingUpload,
     handleSourceItemTypeChange,
+    handleSourcePromptChange,
     addClothingUploader,
     removeClothingUploader,
     handleDownloadAll,

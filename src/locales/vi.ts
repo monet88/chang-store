@@ -273,6 +273,8 @@ export const vi: Translation = {
     clothingItemTitle: 'Ảnh nguồn #{{index}}',
     sourceItemTypeLabel: 'Loại ảnh nguồn',
     sourceItemTypeDescription: 'Chọn loại cho từng ảnh nguồn để Gemini chỉ chỉnh vùng tương ứng.',
+    sourcePromptLabel: 'Ghi chú cho ảnh này',
+    sourcePromptPlaceholder: 'VD: "quần ống rộng, không đút tay vào túi", "dùng nguyên set đồ"',
     sourceItemTypes: {
       clothing: 'Quần áo',
       shoes: 'Giày dép',

@@ -48,12 +48,13 @@ import VirtualTryOn from '../../src/components/VirtualTryOn';
 const baseHookState = {
   subjectItems: [],
   subjectImages: [],
-  clothingItems: [{ id: 1, image: null, sourceItemType: 'clothing' }],
+  clothingItems: [{ id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' }],
   backgroundPrompt: '',
   setBackgroundPrompt: vi.fn(),
   extraPrompt: '',
   setExtraPrompt: vi.fn(),
   handleSourceItemTypeChange: vi.fn(),
+  handleSourcePromptChange: vi.fn(),
   numImages: 1,
   setNumImages: vi.fn(),
   aspectRatio: 'Default',
@@ -104,7 +105,7 @@ describe('VirtualTryOn component', () => {
     expect(screen.getAllByText('virtualTryOn.outputPanelDescription').length).toBeGreaterThan(0);
   });
 
-  it('renders source item type selector below each source image and forwards changes', () => {
+  it('renders source controls below each source image and forwards changes', () => {
     render(<VirtualTryOn />);
 
     const select = screen.getByLabelText('virtualTryOn.sourceItemTypeLabel');
@@ -112,17 +113,36 @@ describe('VirtualTryOn component', () => {
 
     fireEvent.change(select, { target: { value: 'bag' } });
     expect(baseHookState.handleSourceItemTypeChange).toHaveBeenCalledWith(1, 'bag');
+
+    fireEvent.change(screen.getByLabelText('virtualTryOn.sourcePromptLabel'), {
+      target: { value: 'wide pants, no hand in pocket' },
+    });
+    expect(baseHookState.handleSourcePromptChange).toHaveBeenCalledWith(1, 'wide pants, no hand in pocket');
   });
 
   it('keeps add source image enabled for non-clothing source items', () => {
     useVirtualTryOnMock.mockReturnValue({
       ...baseHookState,
-      clothingItems: [{ id: 1, image: null, sourceItemType: 'bag' }],
+      clothingItems: [{ id: 1, image: null, sourceItemType: 'bag', sourcePrompt: '' }],
     });
 
     render(<VirtualTryOn />);
 
     expect(screen.getByRole('button', { name: 'virtualTryOn.addItem' })).toBeEnabled();
+  });
+
+  it('uses a compact grid when multiple source images are present', () => {
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [
+        { id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 2, image: null, sourceItemType: 'shoes', sourcePrompt: '' },
+      ],
+    });
+
+    render(<VirtualTryOn />);
+
+    expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'sm:grid-cols-2');
   });
 
   it('renders batch results when subject items exist', () => {

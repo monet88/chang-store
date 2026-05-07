@@ -149,6 +149,17 @@ describe('buildVirtualTryOnParts', () => {
       expect(text).not.toContain('First identify each source image');
     });
 
+    it('includes normalized per-source user notes', () => {
+      const text = getTaskText(buildVirtualTryOnParts({
+        ...defaultInput,
+        sourceItems: [{ image: mockImage('pants'), sourceItemType: 'clothing', sourcePrompt: '  wide pants,\nno hand   in pocket  ' }],
+      }));
+
+      expect(text).toContain('- Source item #1: clothing. User note: wide pants, no hand in pocket');
+      expect(text).not.toContain('  wide pants');
+      expect(text).not.toContain('\nno hand');
+    });
+
     it('keeps clothing replacement rules when clothing exists', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
       expect(text).toContain('may contain one garment or a coordinated outfit with multiple garments');
@@ -183,9 +194,11 @@ describe('buildVirtualTryOnParts', () => {
       expect(text).toContain('Match lighting, shadows, and color grading');
     });
 
-    it('preserves original pose', () => {
+    it('preserves original pose and does not invent hands in pockets', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Maintain the subject\'s original pose');
+      expect(text).toContain('Maintain the subject\'s original pose, hand positions, arm angles, stance, and body silhouette');
+      expect(text).toContain('do not insert hands into pants pockets');
+      expect(text).toContain('Do not put hands into pants pockets or hide hands');
       expect(text).not.toContain('new dynamic fashion pose');
     });
 

@@ -51,6 +51,7 @@ const VirtualTryOn: React.FC = () => {
     handleSubjectImagesUpload,
     handleClothingUpload,
     handleSourceItemTypeChange,
+    handleSourcePromptChange,
     addClothingUploader,
     removeClothingUploader,
     handleDownloadAll,
@@ -68,6 +69,9 @@ const VirtualTryOn: React.FC = () => {
 
   const { t } = useLanguage();
   const [refineOpen, setRefineOpen] = React.useState<Record<string, boolean>>({});
+  const sourceItemsGridClass = clothingItems.length === 1
+    ? 'space-y-3'
+    : 'grid gap-4 sm:grid-cols-2 2xl:grid-cols-3';
 
   const toggleRefine = (key: string) =>
     setRefineOpen((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -222,46 +226,65 @@ const VirtualTryOn: React.FC = () => {
                   <p className="text-base font-semibold text-zinc-100">{t('virtualTryOn.step2')}</p>
                   <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.sharedOutfitHint')}</p>
                 </div>
-                {clothingItems.map((item, index) => (
-                  <div key={item.id} className="relative group">
-                    <Tooltip content={t('tooltips.tryOnClothing')} position="top">
-                      <ImageUploader
-                        image={item.image}
-                        id={`clothing-${item.id}`}
-                        title={t('virtualTryOn.clothingItemTitle', { index: index + 1 })}
-                        onImageUpload={(file) => handleClothingUpload(file, item.id)}
-                      />
-                    </Tooltip>
-                    <div className="mt-3 space-y-2">
-                      <label htmlFor={`source-item-type-${item.id}`} className="text-sm font-semibold text-zinc-200">
-                        {t('virtualTryOn.sourceItemTypeLabel')}
-                      </label>
-                      <select
-                        id={`source-item-type-${item.id}`}
-                        value={item.sourceItemType}
-                        onChange={(e) => handleSourceItemTypeChange(item.id, e.target.value as VirtualTryOnSourceItemType)}
-                        disabled={isLoading}
-                        className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-zinc-100 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                      >
-                        {VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES.map((type) => (
-                          <option key={type} value={type} className="bg-zinc-950 text-zinc-100">
-                            {t(`virtualTryOn.sourceItemTypes.${type}`)}
-                          </option>
-                        ))}
-                      </select>
+                <div data-testid="source-items-grid" className={sourceItemsGridClass}>
+                  {clothingItems.map((item, index) => (
+                    <div key={item.id} className="relative group">
+                      <Tooltip content={t('tooltips.tryOnClothing')} position="top">
+                        <ImageUploader
+                          image={item.image}
+                          id={`clothing-${item.id}`}
+                          title={t('virtualTryOn.clothingItemTitle', { index: index + 1 })}
+                          onImageUpload={(file) => handleClothingUpload(file, item.id)}
+                        />
+                      </Tooltip>
+                      <div className="mt-3 space-y-3">
+                        <div className="space-y-2">
+                          <label htmlFor={`source-item-type-${item.id}`} className="text-sm font-semibold text-zinc-200">
+                            {t('virtualTryOn.sourceItemTypeLabel')}
+                          </label>
+                          <select
+                            id={`source-item-type-${item.id}`}
+                            value={item.sourceItemType}
+                            onChange={(e) => handleSourceItemTypeChange(item.id, e.target.value as VirtualTryOnSourceItemType)}
+                            disabled={isLoading}
+                            className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-zinc-100 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                          >
+                            {VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES.map((type) => (
+                              <option key={type} value={type} className="bg-zinc-950 text-zinc-100">
+                                {t(`virtualTryOn.sourceItemTypes.${type}`)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label htmlFor={`source-item-prompt-${item.id}`} className="text-sm font-semibold text-zinc-200">
+                            {t('virtualTryOn.sourcePromptLabel')}
+                          </label>
+                          <textarea
+                            id={`source-item-prompt-${item.id}`}
+                            value={item.sourcePrompt}
+                            onChange={(e) => handleSourcePromptChange(item.id, e.target.value)}
+                            disabled={isLoading}
+                            rows={2}
+                            maxLength={180}
+                            placeholder={t('virtualTryOn.sourcePromptPlaceholder')}
+                            className="w-full resize-none rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm leading-6 text-zinc-100 placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </div>
+                      </div>
+                      {clothingItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeClothingUploader(item.id)}
+                          disabled={isLoading}
+                          className="absolute right-3 top-9 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <DeleteIcon className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
-                    {clothingItems.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeClothingUploader(item.id)}
-                        disabled={isLoading}
-                        className="absolute right-3 top-9 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        <DeleteIcon className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
                 <Tooltip content={t('tooltips.tryOnAddClothing')} position="bottom" className="w-full">
                   <button
                     type="button"
