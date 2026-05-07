@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { submitJob, pollJob, type Job, JobHttpError } from '../services/jobService';
+import { submitJob, pollJob, getJobResults, downloadJobResultBlob, type Job, JobHttpError } from '../services/jobService';
+import { ImageFile } from '../types';
 
 interface UseJobPollOptions {
   pollIntervalMs?: number;
@@ -16,6 +17,18 @@ interface UseJobPollResult {
   stopPolling: () => void;
 }
 
+export const DEFAULT_JOB_POLL_INTERVAL_MS = 2000;
+const MAX_JOB_PAYLOAD_BYTES = 4 * 1024 * 1024;
+
+interface WaitForJobCompletionOptions {
+  jobId: string;
+  shouldContinue: () => boolean;
+  onStatusUpdate?: (message: string) => void;
+  pollIntervalMs?: number;
+  ownerJobId?: string;
+  activeJobIds?: Set<string>;
+}
+
 interface SharedJobState {
   job: Job | null;
   isPolling: boolean;
@@ -26,12 +39,79 @@ interface SharedJobUpdateOptions {
   ownerJobId?: string;
 }
 
+export function assertPayloadSizeBelowLimit(payload: unknown): void {
+  const bytes = new Blob([JSON.stringify(payload)]).size;
+  if (bytes > MAX_JOB_PAYLOAD_BYTES) {
+    throw new Error('Payload too large. Reduce image count or resolution and try again.');
+  }
+}
+
+export async function waitForJobCompletion({
+  jobId,
+  shouldContinue,
+  onStatusUpdate,
+  pollIntervalMs = DEFAULT_JOB_POLL_INTERVAL_MS,
+  ownerJobId,
+  activeJobIds,
+}: WaitForJobCompletionOptions): Promise<Job> {
+  while (shouldContinue()) {
+    try {
+      const job = await pollJob(jobId);
+      const isPolling = job.status === 'queued' || job.status === 'running';
+      if (!isPolling) {
+        activeJobIds?.delete(jobId);
+      }
+      const nextIsPolling = activeJobIds ? activeJobIds.size > 0 : isPolling;
+      setSharedJobState(
+        {
+          job,
+          isPolling: nextIsPolling,
+          error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
+        },
+        { ownerJobId: ownerJobId ?? jobId },
+      );
+      onStatusUpdate?.(`Job ${job.status}...`);
+
+      if (!isPolling) {
+        return job;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    } catch (error) {
+      activeJobIds?.delete(jobId);
+      const message = error instanceof Error ? error.message : String(error);
+      setSharedJobState(
+        { isPolling: false, error: message },
+        { ownerJobId: ownerJobId ?? jobId },
+      );
+      throw error;
+    }
+  }
+
+  activeJobIds?.delete(jobId);
+  setSharedJobState({ isPolling: false, error: null }, { ownerJobId: ownerJobId ?? jobId });
+  throw new Error('Job polling cancelled');
+}
+
+export async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
+  const { results } = await getJobResults(jobId);
+  const outputResults = results.filter((result) => result.kind === 'output');
+  const images = await Promise.all(
+    outputResults.map(async (result) => ({
+      base64: await downloadJobResultBlob(result.blob_path),
+      mimeType: result.mime_type,
+    })),
+  );
+  return images;
+}
+
 const sharedJobListeners = new Set<(state: SharedJobState) => void>();
 let sharedJobState: SharedJobState = {
   job: null,
   isPolling: false,
   error: null,
 };
+const activeSharedJobIds = new Set<string>();
 
 function emitSharedJobState(nextState: Partial<SharedJobState>) {
   sharedJobState = {
@@ -41,10 +121,39 @@ function emitSharedJobState(nextState: Partial<SharedJobState>) {
   sharedJobListeners.forEach((listener) => listener(sharedJobState));
 }
 
+function syncActiveSharedJobs(nextState: Partial<SharedJobState>, options?: SharedJobUpdateOptions) {
+  const ownerJobId = options?.ownerJobId;
+  if (!ownerJobId || typeof nextState.isPolling !== 'boolean') {
+    return;
+  }
+
+  if (nextState.isPolling) {
+    activeSharedJobIds.add(ownerJobId);
+    return;
+  }
+
+  activeSharedJobIds.delete(ownerJobId);
+}
+
+function resolveSharedPolling(nextState: Partial<SharedJobState>): Partial<SharedJobState> {
+  if (typeof nextState.isPolling !== 'boolean') {
+    return nextState;
+  }
+
+  return {
+    ...nextState,
+    isPolling: activeSharedJobIds.size > 0,
+  };
+}
+
 function shouldApplySharedJobUpdate(
-  _nextState: Partial<SharedJobState>,
+  nextState: Partial<SharedJobState>,
   options?: SharedJobUpdateOptions,
 ): boolean {
+  if (typeof nextState.isPolling === 'boolean') {
+    return true;
+  }
+
   const ownerJobId = options?.ownerJobId;
   if (!ownerJobId) {
     return true;
@@ -58,14 +167,42 @@ function shouldApplySharedJobUpdate(
   return !sharedJobState.isPolling;
 }
 
+function scopeNonOwnerUpdate(nextState: Partial<SharedJobState>, options?: SharedJobUpdateOptions): Partial<SharedJobState> {
+  const ownerJobId = options?.ownerJobId;
+  if (!ownerJobId) {
+    return nextState;
+  }
+
+  const currentJobId = sharedJobState.job?.id ?? null;
+  if (currentJobId === null || currentJobId === ownerJobId || activeSharedJobIds.size === 0) {
+    return nextState;
+  }
+
+  const scoped: Partial<SharedJobState> = {};
+  if (typeof nextState.isPolling === 'boolean') {
+    scoped.isPolling = nextState.isPolling;
+  }
+  if (typeof nextState.error === 'string' && nextState.error.length > 0) {
+    scoped.error = nextState.error;
+  }
+
+  return scoped;
+}
+
 export function setSharedJobState(nextState: Partial<SharedJobState>, options?: SharedJobUpdateOptions) {
-  if (!shouldApplySharedJobUpdate(nextState, options)) {
+  syncActiveSharedJobs(nextState, options);
+  const scopedState = scopeNonOwnerUpdate(nextState, options);
+  const resolvedState = resolveSharedPolling(scopedState);
+
+  if (!shouldApplySharedJobUpdate(resolvedState, options)) {
     return;
   }
-  emitSharedJobState(nextState);
+
+  emitSharedJobState(resolvedState);
 }
 
 export function clearSharedJobState() {
+  activeSharedJobIds.clear();
   emitSharedJobState({ job: null, isPolling: false, error: null });
 }
 

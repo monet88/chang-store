@@ -1,6 +1,6 @@
 # Project Overview & Product Development Requirements
 
-Last updated: 2026-05-03
+Last updated: 2026-05-05
 
 ## Project Identity
 
@@ -8,13 +8,13 @@ Last updated: 2026-05-03
 
 ## Product Vision
 
-A virtual photography studio for fashion -- where users can try on clothes, generate lookbooks, change backgrounds and poses, transfer clothing, remove watermarks, create photo albums, generate patterns, and edit images through AI prompts. Gemini remains the only AI provider: currently reachable migrated features run through the backend job pipeline, while non-migrated direct client Gemini paths remain in code but are not available without the authenticated app shell.
+A virtual photography studio for fashion -- where users can try on clothes, generate lookbooks, change backgrounds and poses, transfer clothing, remove watermarks, create photo albums, generate patterns, and edit images through AI prompts. Gemini remains the only AI provider: all currently reachable UI features run through the backend job pipeline, while direct client Gemini paths remain as fallback code paths only.
 
 ## Current State
 
 **Version**: 1.0.4 (tag v1.5)
 **Branch**: `feat/backend-foundation`
-**Status**: Backend foundation in progress -- auth, job queue, and blob storage are implemented. AuthProvider/AuthGate always render; job pipeline is active for `MIGRATED_FEATURES` (TryOn, Lookbook, ClothingTransfer, PhotoAlbum) when backend is deployed.
+**Status**: Backend foundation in progress -- auth, job queue, and blob storage are implemented. AuthProvider/AuthGate always render; job pipeline is active for all nine UI features in `MIGRATED_FEATURES` when backend is deployed.
 
 ### Feature Status
 
@@ -24,11 +24,11 @@ A virtual photography studio for fashion -- where users can try on clothes, gene
 | Lookbook Generator | `Feature.Lookbook` | Yes | Live |
 | Clothing Transfer | `Feature.ClothingTransfer` | Yes | Live |
 | Photo Album Creator | `Feature.PhotoAlbum` | Yes | Live |
-| Pose Changer | `Feature.Pose` | Yes | Commented out in App.tsx |
-| Background Replacer | `Feature.Background` | Yes | Commented out in App.tsx |
-| AI Editor | `Feature.AIEditor` | Yes | Commented out in App.tsx |
-| Watermark Remover | `Feature.WatermarkRemover` | Yes | Commented out in App.tsx |
-| Pattern Generator | `Feature.PatternGenerator` | Yes | Commented out in App.tsx |
+| Pose Changer | `Feature.Pose` | Yes | Live |
+| Background Replacer | `Feature.Background` | Yes | Live |
+| AI Editor | `Feature.AIEditor` | Yes | Live |
+| Watermark Remover | `Feature.WatermarkRemover` | Yes | Live |
+| Pattern Generator | `Feature.PatternGenerator` | Yes | Live |
 
 ## Target Users
 
@@ -167,7 +167,7 @@ Key architectural decisions (not yet formalized as ADRs):
 
 | Metric | Current | Target (v2.0) |
 |--------|---------|---------------|
-| Features | 9 (4 live, 5 commented out) | 9 (all pipeline) |
+| Features | 9 (all live in UI) | 9 (all pipeline) |
 | Test coverage | 80% threshold | 80% threshold maintained |
 | Bundle size (gzipped) | ~300KB JS | <300KB JS |
 | File max lines | ~1200 (some legacy) | <800 |
@@ -179,6 +179,5 @@ Key architectural decisions (not yet formalized as ADRs):
 - [System Architecture](./system-architecture.md)
 - [Code Standards](./code-standards.md)
 - [Codebase Summary](./codebase-summary.md)
-- [Project Roadmap](./project-roadmap.md)
 - [Legacy Architecture](./ARCHITECTURE.md)
 - [Changelog](./CHANGELOG.md)

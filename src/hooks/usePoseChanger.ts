@@ -3,11 +3,11 @@ import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } fro
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { upscaleImage } from '../services/imageEditingService';
-import { submitJob, pollJob, getJobResults, downloadJobResultBlob, type Job } from '../services/jobService';
+import { submitJob } from '../services/jobService';
 import { generatePoseDescription } from '../services/textService';
-import { getErrorMessage } from '../utils/imageUtils';
+import { getErrorMessage, toDataUrl } from '../utils/imageUtils';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
-import { setSharedJobState } from './useJobPoll';
+import { assertPayloadSizeBelowLimit, fetchJobImageResults, setSharedJobState, waitForJobCompletion } from './useJobPoll';
 
 type CameraView = 'default' | 'fullBody' | 'halfBody' | 'kneesUp';
 
@@ -59,66 +59,11 @@ export interface UsePoseChangerReturn {
 }
 
 const IDLE_GENERATION_STATUS: GenerationStatus = { active: false, progress: 0, total: 0, message: '' };
-const POLL_INTERVAL_MS = 2000;
 const POSE_MAX_CONCURRENCY = 4;
-const MAX_JOB_PAYLOAD_BYTES = 4 * 1024 * 1024;
 
 const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
   onStatusUpdate,
 });
-
-const toDataUrl = (image: ImageFile): string => `data:${image.mimeType};base64,${image.base64}`;
-
-function assertPayloadSizeBelowLimit(payload: unknown): void {
-  const bytes = new Blob([JSON.stringify(payload)]).size;
-  if (bytes > MAX_JOB_PAYLOAD_BYTES) {
-    throw new Error('Payload too large. Reduce image count or resolution and try again.');
-  }
-}
-
-async function waitForJobCompletion(
-  jobId: string,
-  onStatusUpdate: (message: string) => void,
-  shouldContinue: () => boolean,
-): Promise<Job> {
-  while (shouldContinue()) {
-    try {
-      const job = await pollJob(jobId);
-      const isPolling = job.status === 'queued' || job.status === 'running';
-      setSharedJobState({
-        job,
-        isPolling,
-        error: job.status === 'failed' ? job.error_message || 'Job failed' : null,
-      }, { ownerJobId: jobId });
-      onStatusUpdate(`Job ${job.status}...`);
-
-      if (!isPolling) {
-        return job;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setSharedJobState({ isPolling: false, error: message }, { ownerJobId: jobId });
-      throw error;
-    }
-  }
-
-  setSharedJobState({ isPolling: false, error: null }, { ownerJobId: jobId });
-  throw new Error('Job polling cancelled');
-}
-
-async function fetchJobImageResults(jobId: string): Promise<ImageFile[]> {
-  const { results } = await getJobResults(jobId);
-  const outputResults = results.filter((result) => result.kind === 'output');
-  const images = await Promise.all(
-    outputResults.map(async (result) => ({
-      base64: await downloadJobResultBlob(result.blob_path),
-      mimeType: result.mime_type,
-    })),
-  );
-  return images;
-}
 
 const buildTextPosePrompt = (promptText: string, framingInstruction: string): string => `
   **Task**: Photorealistically change the pose of a model based on a text description, while perfectly preserving the model, their clothing, and the background.
@@ -197,7 +142,12 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     return t(instructionKey) || 'Use default framing provided by the model.';
   };
 
-  const generateImageForPrompt = async (sourceImage: ImageFile, promptText: string, framingInstruction: string) => {
+  const generateImageForPrompt = async (
+    sourceImage: ImageFile,
+    promptText: string,
+    framingInstruction: string,
+    activeJobIds?: Set<string>,
+  ) => {
     const payload = {
       subjectImage: toDataUrl(sourceImage),
       prompt: buildTextPosePrompt(promptText, framingInstruction),
@@ -209,6 +159,7 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     assertPayloadSizeBelowLimit(payload);
 
     const submittedJob = await submitJob('pose', payload as Record<string, unknown>);
+    activeJobIds?.add(submittedJob.id);
     setSharedJobState({ job: submittedJob, isPolling: true, error: null }, { ownerJobId: submittedJob.id });
 
     if (submittedJob.status === 'failed') {
@@ -221,7 +172,12 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
 
     const completedJob = submittedJob.status === 'completed' || submittedJob.status === 'partial'
       ? submittedJob
-      : await waitForJobCompletion(submittedJob.id, () => {}, () => isMountedRef.current);
+      : await waitForJobCompletion({
+            jobId: submittedJob.id,
+            onStatusUpdate: () => {},
+            shouldContinue: () => isMountedRef.current,
+            ownerJobId: submittedJob.id,
+          });
     setSharedJobState(
       {
         job: completedJob,
@@ -255,12 +211,18 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
 
     try {
       const description = await generatePoseDescription(poseReferenceImage, textGenerateModel);
-      setCustomPosePrompt(description);
-      setPoseReferenceImage(null);
+      if (isMountedRef.current) {
+        setCustomPosePrompt(description);
+        setPoseReferenceImage(null);
+      }
     } catch (err) {
-      setError(getErrorMessage(err, t));
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, t));
+      }
     } finally {
-      setIsGeneratingPoseDescription(false);
+      if (isMountedRef.current) {
+        setIsGeneratingPoseDescription(false);
+      }
     }
   };
 
@@ -304,7 +266,12 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
 
         const completedJob = submittedJob.status === 'completed' || submittedJob.status === 'partial'
           ? submittedJob
-          : await waitForJobCompletion(submittedJob.id, () => {}, () => isMountedRef.current);
+          : await waitForJobCompletion({
+            jobId: submittedJob.id,
+            onStatusUpdate: () => {},
+            shouldContinue: () => isMountedRef.current,
+            ownerJobId: submittedJob.id,
+          });
         setSharedJobState(
           {
             job: completedJob,
@@ -324,12 +291,18 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
           throw new Error('error.api.noImageGenerated');
         }
 
-        setGeneratedImages([result]);
+        if (isMountedRef.current) {
+          setGeneratedImages([result]);
+        }
       } catch (err) {
-        setError(getErrorMessage(err, t));
+        if (isMountedRef.current) {
+          setError(getErrorMessage(err, t));
+        }
       } finally {
-        setIsLoading(false);
-        setGenerationStatus(IDLE_GENERATION_STATUS);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+          setGenerationStatus(IDLE_GENERATION_STATUS);
+        }
       }
 
       return;
@@ -346,6 +319,7 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     setGenerationStatus({ active: true, progress: 0, total: allPrompts.length, message: '' });
 
     const indexedPrompts = allPrompts.map((promptText, index) => ({ promptText, index }));
+    const activeJobIds = new Set<string>();
     const resultsByIndex: Array<ImageFile | null> = Array.from({ length: allPrompts.length }, () => null);
     let completedCount = 0;
     let firstBatchError: string | null = null;
@@ -355,7 +329,7 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
       Math.min(POSE_MAX_CONCURRENCY, indexedPrompts.length),
       async ({ promptText, index }) => {
         try {
-          const result = await generateImageForPrompt(subjectImage, promptText, framingInstruction);
+          const result = await generateImageForPrompt(subjectImage, promptText, framingInstruction, activeJobIds);
           resultsByIndex[index] = result;
           if (isMountedRef.current) {
             setGeneratedImages(resultsByIndex.filter((image): image is ImageFile => image !== null));
@@ -410,11 +384,17 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
 
     try {
       const result = await generateImageForPrompt(subjectImage, promptText, getFramingInstruction());
-      setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
+      if (isMountedRef.current) {
+        setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
+      }
     } catch (err) {
-      setError(getErrorMessage(err, t));
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, t));
+      }
     } finally {
-      setRegeneratingStates((prev) => ({ ...prev, [index]: false }));
+      if (isMountedRef.current) {
+        setRegeneratingStates((prev) => ({ ...prev, [index]: false }));
+      }
     }
   };
 
@@ -428,11 +408,17 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
         imageEditModel,
         buildImageServiceConfig(() => {}),
       );
-      setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
+      if (isMountedRef.current) {
+        setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
+      }
     } catch (err) {
-      setError(getErrorMessage(err, t));
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, t));
+      }
     } finally {
-      setUpscalingStates((prev) => ({ ...prev, [index]: false }));
+      if (isMountedRef.current) {
+        setUpscalingStates((prev) => ({ ...prev, [index]: false }));
+      }
     }
   };
 

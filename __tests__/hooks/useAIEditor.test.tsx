@@ -93,7 +93,7 @@ describe('useAIEditor', () => {
     expect(submitJob).toHaveBeenCalledWith(
       'ai-editor',
       expect.objectContaining({
-        images: [SECOND_IMAGE.base64],
+        images: [`data:${SECOND_IMAGE.mimeType};base64,${SECOND_IMAGE.base64}`],
         prompt: expect.stringContaining('- Image 1 is @img2'),
       }),
     );
@@ -114,7 +114,10 @@ describe('useAIEditor', () => {
     expect(submitJob).toHaveBeenCalledWith(
       'ai-editor',
       expect.objectContaining({
-        images: [FIRST_IMAGE.base64, SECOND_IMAGE.base64],
+        images: [
+          `data:${FIRST_IMAGE.mimeType};base64,${FIRST_IMAGE.base64}`,
+          `data:${SECOND_IMAGE.mimeType};base64,${SECOND_IMAGE.base64}`,
+        ],
         prompt: expect.stringContaining('# INSTRUCTION: IMAGE EDITING'),
       }),
     );

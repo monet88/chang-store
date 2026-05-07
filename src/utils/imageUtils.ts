@@ -1,5 +1,7 @@
 import { ImageFile, MarkerPosition } from "../types";
 
+export const toDataUrl = (image: ImageFile): string => `data:${image.mimeType};base64,${image.base64}`;
+
 export const getImageDimensions = (base64: string, mimeType: string): Promise<{ width: number, height: number }> => {
   return new Promise((resolve, reject) => {
     const img = new Image();

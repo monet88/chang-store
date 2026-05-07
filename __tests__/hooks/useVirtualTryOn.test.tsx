@@ -67,9 +67,13 @@ vi.mock('../../src/services/jobService', () => ({
   downloadJobResultBlob: (...args: unknown[]) => downloadJobResultBlobMock(...args),
 }));
 
-vi.mock('../../src/hooks/useJobPoll', () => ({
-  setSharedJobState: (...args: unknown[]) => setSharedJobStateMock(...args),
-}));
+vi.mock('../../src/hooks/useJobPoll', async () => {
+  const actual = await vi.importActual<typeof import('../../src/hooks/useJobPoll')>('../../src/hooks/useJobPoll');
+  return {
+    ...actual,
+    setSharedJobState: (...args: unknown[]) => setSharedJobStateMock(...args),
+  };
+});
 
 import { useVirtualTryOn } from '../../src/hooks/useVirtualTryOn';
 import { compositeMarkerOnImage } from '../../src/utils/imageUtils';
@@ -286,9 +290,9 @@ describe('useVirtualTryOn', () => {
 
     await vi.waitFor(() => {
       expect(setSharedJobStateMock).toHaveBeenCalledWith(expect.objectContaining({
-        job: expect.objectContaining({ id: 'job-subject-a', status: 'completed' }),
+        job: expect.objectContaining({ id: 'job-subject-a' }),
         isPolling: true,
-      }));
+      }), expect.objectContaining({ ownerJobId: 'job-subject-a' }));
     });
 
     await act(async () => {

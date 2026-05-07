@@ -48,6 +48,7 @@ plans/*
 nul
 docs/plans/*
 opencode.json
+release-manifest.json
 .osgrep
 
 # AI orchestration local files
