@@ -125,7 +125,7 @@ ${[clothingRule, nonClothingRule].filter(Boolean).join('\n\n')}
 The applied items fit naturally to the subject's body, aligned with pose and proportions. Replicate exact construction: shape, straps, hardware, sole, heel, texture, material, pattern, color, scale, and decorative details. Maintain correct pattern scale and orientation — no mirroring, shrinking, or distortion. Match lighting, shadows, and color grading from the subject image. Preserve occlusions: hands, hair, and existing accessories stay in front where physically correct.${extraSection}
 
 ## POSE
-Maintain the subject's original pose, hand positions, arm angles, stance, and body silhouette. If a hand is outside a pocket in the subject image, keep it outside; do not insert hands into pants pockets, hide fingers, or invent pocket interactions. Allow only minor, natural contact-point adjustments required to hold, wear, or support the source items — never change the overall posture or stance.
+Keep the subject's overall pose and stance. Minor natural adjustments to posture, shoulder angle, or arm position are acceptable where the applied outfit requires it for a realistic fit. Do not insert hands into pants pockets or hide fingers unless the subject image already shows hands inside pockets.
 
 ## BACKGROUND
 ${backgroundSection}
@@ -139,5 +139,5 @@ ${backgroundSection}
 - No pattern mirroring, shrinking, or duplication.${multiPersonProhibition}
 
 ## CRITICAL RECAP
-Each source item is 100% preserved and applied only to its selected category. Clothing source images replace all visible garment categories they contain; shoes, bags, and accessories do not rewrite unrelated areas. Face/hair/skin/pose preserved exactly.${multiPersonRecap} Photorealistic, professional-grade.`;
+Each source item is 100% preserved and applied only to its selected category. Clothing source images replace all visible garment categories they contain; shoes, bags, and accessories do not rewrite unrelated areas. Face/hair/skin preserved; overall pose kept with only minor outfit-fit adjustments allowed.${multiPersonRecap} Photorealistic, professional-grade.`;
 }

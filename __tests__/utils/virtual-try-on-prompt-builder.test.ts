@@ -196,8 +196,9 @@ describe('buildVirtualTryOnParts', () => {
 
     it('preserves original pose and does not invent hands in pockets', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Maintain the subject\'s original pose, hand positions, arm angles, stance, and body silhouette');
-      expect(text).toContain('do not insert hands into pants pockets');
+      expect(text).toContain('Keep the subject\'s overall pose and stance');
+      expect(text).toContain('Minor natural adjustments to posture');
+      expect(text).toContain('Do not insert hands into pants pockets or hide fingers unless the subject image already shows hands inside pockets');
       expect(text).toContain('Do not put hands into pants pockets or hide hands');
       expect(text).not.toContain('new dynamic fashion pose');
     });
@@ -209,7 +210,7 @@ describe('buildVirtualTryOnParts', () => {
       expect(text.substring(recapIndex + '## CRITICAL RECAP'.length)).not.toMatch(/^## /m);
       expect(text).toContain('Each source item is 100% preserved');
       expect(text).toContain('shoes, bags, and accessories do not rewrite unrelated areas');
-      expect(text).toContain('Face/hair/skin/pose preserved exactly');
+      expect(text).toContain('Face/hair/skin preserved; overall pose kept with only minor outfit-fit adjustments allowed');
     });
   });
 
