@@ -119,6 +119,9 @@ export type TextGenerateModel = string;
 /** Shared processing status for feature-local batch image jobs */
 export type BatchImageStatus = 'pending' | 'processing' | 'completed' | 'error';
 
+export const VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES = ['clothing', 'shoes', 'bag', 'accessory'] as const;
+export type VirtualTryOnSourceItemType = typeof VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES[number];
+
 /** Shared clothing uploader state for Virtual Try-On */
 export interface VirtualTryOnClothingItem {
   id: number;

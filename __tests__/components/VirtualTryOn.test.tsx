@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 const useVirtualTryOnMock = vi.fn();
 
@@ -53,6 +53,8 @@ const baseHookState = {
   setBackgroundPrompt: vi.fn(),
   extraPrompt: '',
   setExtraPrompt: vi.fn(),
+  sourceItemType: 'clothing',
+  setSourceItemType: vi.fn(),
   numImages: 1,
   setNumImages: vi.fn(),
   aspectRatio: 'Default',
@@ -101,6 +103,27 @@ describe('VirtualTryOn component', () => {
     expect(screen.getAllByText('virtualTryOn.subjectImagesTitle').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'virtualTryOn.generateButton' })).toBeDisabled();
     expect(screen.getAllByText('virtualTryOn.outputPanelDescription').length).toBeGreaterThan(0);
+  });
+
+  it('renders source item type selector and forwards changes', () => {
+    render(<VirtualTryOn />);
+
+    const select = screen.getByLabelText('virtualTryOn.sourceItemTypeLabel');
+    expect(select).toHaveValue('clothing');
+
+    fireEvent.change(select, { target: { value: 'bag' } });
+    expect(baseHookState.setSourceItemType).toHaveBeenCalledWith('bag');
+  });
+
+  it('disables second source image for non-clothing types', () => {
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      sourceItemType: 'bag',
+    });
+
+    render(<VirtualTryOn />);
+
+    expect(screen.getByRole('button', { name: 'virtualTryOn.addItem' })).toBeDisabled();
   });
 
   it('renders batch results when subject items exist', () => {

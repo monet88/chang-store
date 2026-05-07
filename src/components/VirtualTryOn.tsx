@@ -3,7 +3,7 @@ import ImageUploader from './ImageUploader';
 import MultiImageUploader from './MultiImageUploader';
 import Spinner from './Spinner';
 import HoverableImage from './HoverableImage';
-import { Feature } from '../types';
+import { Feature, VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES, VirtualTryOnSourceItemType } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { AddIcon, DeleteIcon, CloudUploadIcon } from './Icons';
 import Tooltip from './Tooltip';
@@ -29,6 +29,8 @@ const VirtualTryOn: React.FC = () => {
     setBackgroundPrompt,
     extraPrompt,
     setExtraPrompt,
+    sourceItemType,
+    setSourceItemType,
     numImages,
     setNumImages,
     aspectRatio,
@@ -246,7 +248,7 @@ const VirtualTryOn: React.FC = () => {
                   <button
                     type="button"
                     onClick={addClothingUploader}
-                    disabled={clothingItems.length >= 2}
+                    disabled={sourceItemType !== 'clothing' || clothingItems.length >= 2}
                     className={`${secondaryButtonClass} w-full gap-2`}
                   >
                     <AddIcon className="h-4 w-4" />
@@ -266,6 +268,26 @@ const VirtualTryOn: React.FC = () => {
             </div>
 
             <div className="space-y-5">
+              <div className="space-y-2">
+                <label htmlFor="source-item-type" className="text-base font-semibold text-zinc-100">
+                  {t('virtualTryOn.sourceItemTypeLabel')}
+                </label>
+                <select
+                  id="source-item-type"
+                  value={sourceItemType}
+                  onChange={(e) => setSourceItemType(e.target.value as VirtualTryOnSourceItemType)}
+                  disabled={isLoading}
+                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-base text-zinc-100 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                >
+                  {VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES.map((type) => (
+                    <option key={type} value={type} className="bg-zinc-950 text-zinc-100">
+                      {t(`virtualTryOn.sourceItemTypes.${type}`)}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.sourceItemTypeDescription')}</p>
+              </div>
+
               <Tooltip content={t('tooltips.tryOnBackground')} position="bottom" className="w-full">
                 <div className="space-y-2">
                   <label htmlFor="background-prompt" className="text-base font-semibold text-zinc-100">

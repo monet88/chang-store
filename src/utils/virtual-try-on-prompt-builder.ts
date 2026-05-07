@@ -6,7 +6,7 @@
  */
 
 import type { Part } from '@google/genai';
-import { ImageFile } from '../types';
+import { ImageFile, VirtualTryOnSourceItemType } from '../types';
 
 /**
  * Input for building interleaved Virtual Try-On parts.
@@ -15,6 +15,7 @@ import { ImageFile } from '../types';
 export interface VirtualTryOnPromptInput {
   subjectImage: ImageFile;
   clothingImages: ImageFile[];
+  sourceItemType: VirtualTryOnSourceItemType;
   extraPrompt: string;
   backgroundPrompt: string;
   isMultiPersonMode?: boolean;
@@ -32,7 +33,7 @@ export interface VirtualTryOnPromptInput {
 export const buildVirtualTryOnParts = (
   input: VirtualTryOnPromptInput
 ): Part[] => {
-  const { subjectImage, clothingImages, extraPrompt, backgroundPrompt } = input;
+  const { subjectImage, clothingImages, sourceItemType, extraPrompt, backgroundPrompt } = input;
 
   if (!subjectImage) {
     throw new Error('subjectImage is required');
@@ -42,6 +43,9 @@ export const buildVirtualTryOnParts = (
   }
   if (clothingImages.length > 2) {
     throw new Error('clothingImages must contain 1 or 2 items');
+  }
+  if (sourceItemType !== 'clothing' && clothingImages.length > 1) {
+    throw new Error('Only clothing source type supports 2 source images');
   }
 
   const isDualGarment = clothingImages.length === 2;
@@ -56,7 +60,7 @@ export const buildVirtualTryOnParts = (
     parts.push({ text: 'BOTTOM GARMENT: Apply this garment exactly.' });
     parts.push({ inlineData: { data: clothingImages[1].base64, mimeType: clothingImages[1].mimeType } });
   } else {
-    parts.push({ text: 'CLOTHING SOURCE: Apply this garment exactly.' });
+    parts.push({ text: `SOURCE ITEM (${sourceItemType}): Apply this item exactly.` });
     parts.push({ inlineData: { data: clothingImages[0].base64, mimeType: clothingImages[0].mimeType } });
   }
 
@@ -73,7 +77,7 @@ function buildTaskText(
   input: VirtualTryOnPromptInput,
   isDualGarment: boolean,
 ): string {
-  const { extraPrompt, backgroundPrompt, isMultiPersonMode } = input;
+  const { sourceItemType, extraPrompt, backgroundPrompt, isMultiPersonMode } = input;
   const dualGarmentRule = isDualGarment
     ? ' The top garment drapes outside the bottom\'s waistband, preserving source hem length exactly.'
     : '';
@@ -94,26 +98,31 @@ function buildTaskText(
   const multiPersonRecap = isMultiPersonMode ? ' ONLY modify the person with the red dot.' : '';
 
   return `## TASK
-Replace the subject's entire outfit with the provided garments while preserving their face, hair, skin tone, and body proportions exactly.${multiPersonSection}
+Apply the provided fashion source item(s) to the subject while preserving their face, hair, skin tone, body proportions, pose, and non-target styling exactly.${multiPersonSection}
 
-## GARMENT RULES
-[CRITICAL] The output clothing must be 100% from the Source images — zero original outfit elements may remain. All tops hang freely outside the waistband with natural hem drape; never tucked in.${dualGarmentRule}
+## SOURCE ITEM TYPE
+User-selected source type: ${sourceItemType}. Treat every source image as this type. Only edit the matching target area on the subject.
 
-Clothing fits naturally to the subject's body, aligned with pose and proportions. Replicate exact garment construction: neckline, sleeve style, hem length, silhouette, fabric drape, and decorative details. Maintain correct pattern scale and orientation — no mirroring, shrinking, or distortion. Match lighting, shadows, and color grading from the subject image. Preserve occlusions: hands, hair, and accessories stay in front of the outfit.${extraSection}
+## APPLICATION RULES
+[CRITICAL] If the source type is clothing, replace only the corresponding garment area with the source garment — zero original elements in that target clothing area may remain. Tops hang freely outside the waistband with natural hem drape; never tucked in.${dualGarmentRule}
+
+If the source type is shoes, bag, or accessory, add or replace only that category. Preserve the subject's existing outfit, body, face, hair, background, and all unrelated items exactly. Place the item naturally on the body, in the hand, on the shoulder, or on the feet as appropriate for its type.
+
+The applied item fits naturally to the subject's body, aligned with pose and proportions. Replicate exact construction: shape, straps, hardware, sole, heel, texture, material, pattern, color, scale, and decorative details. Maintain correct pattern scale and orientation — no mirroring, shrinking, or distortion. Match lighting, shadows, and color grading from the subject image. Preserve occlusions: hands, hair, and existing accessories stay in front where physically correct.${extraSection}
 
 ## POSE
-Maintain the subject's original pose. Allow only minor, natural adjustments to complement the new outfit's silhouette and fit — never change the overall posture or stance.
+Maintain the subject's original pose. Allow only minor, natural hand, foot, or contact-point adjustments required to hold, wear, or support the source item — never change the overall posture or stance.
 
 ## BACKGROUND
 ${backgroundSection}
 
 ## PROHIBITIONS
-- Zero original outfit elements in output.
+- Do not change non-target clothing when source type is shoes, bag, or accessory.
 - No tucking tops into pants or skirts.
 - No text, logos, watermarks, extra people.
 - No body/face/hair distortion.
 - No pattern mirroring, shrinking, or duplication.${multiPersonProhibition}
 
 ## CRITICAL RECAP
-Clothing 100% from Source — zero blending with original. Tops ALWAYS outside waistband. Face/hair/skin preserved exactly.${multiPersonRecap} Photorealistic, professional-grade.`;
+Source item 100% preserved and applied only to its matching category. Clothing replaces target clothing only; accessories do not rewrite the outfit. Face/hair/skin/pose preserved exactly.${multiPersonRecap} Photorealistic, professional-grade.`;
 }

@@ -93,6 +93,38 @@ describe('useVirtualTryOn', () => {
 
 
 
+  it('defaults source item type to clothing and updates it', () => {
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    expect(result.current.sourceItemType).toBe('clothing');
+
+    act(() => {
+      result.current.setSourceItemType('bag');
+    });
+
+    expect(result.current.sourceItemType).toBe('bag');
+  });
+
+  it('passes selected source item type into generated prompt parts', async () => {
+    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.handleSubjectImagesUpload([SUBJECT_A]);
+      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+      result.current.setSourceItemType('bag');
+    });
+
+    await act(async () => {
+      await result.current.handleGenerateImage();
+    });
+
+    const partsText = vi.mocked(editImage).mock.calls[0][0].interleavedParts?.filter((part) => part.text).map((part) => part.text).join('\n');
+    expect(partsText).toContain('SOURCE ITEM (bag)');
+    expect(partsText).toContain('User-selected source type: bag');
+  });
+
   it('tracks multiple subject images as batch items', () => {
     const { result } = renderHook(() => useVirtualTryOn());
 
@@ -308,6 +340,35 @@ describe('useVirtualTryOn', () => {
     });
 
     expect(result.current.markerPosition).toBeNull();
+  });
+
+  it('trims extra source uploaders when changing away from clothing', () => {
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.addClothingUploader();
+    });
+    expect(result.current.clothingItems).toHaveLength(2);
+
+    act(() => {
+      result.current.setSourceItemType('bag');
+    });
+
+    expect(result.current.clothingItems).toHaveLength(1);
+  });
+
+  it('does not add a second source uploader for non-clothing source types', () => {
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.setSourceItemType('bag');
+    });
+
+    act(() => {
+      result.current.addClothingUploader();
+    });
+
+    expect(result.current.clothingItems).toHaveLength(1);
   });
 
   it('caps clothing uploaders at the shared outfit image limit', () => {

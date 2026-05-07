@@ -9,6 +9,7 @@ import {
   MarkerPosition,
   VirtualTryOnBatchItem,
   VirtualTryOnClothingItem,
+  VirtualTryOnSourceItemType,
 } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
@@ -32,6 +33,7 @@ export const useVirtualTryOn = () => {
   ]);
   const [backgroundPrompt, setBackgroundPrompt] = useState('');
   const [extraPrompt, setExtraPrompt] = useState('');
+  const [sourceItemType, setSourceItemTypeState] = useState<VirtualTryOnSourceItemType>('clothing');
   const [numImages, setNumImages] = useState(1);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
@@ -116,6 +118,13 @@ export const useVirtualTryOn = () => {
   );
 
   const canGenerate = subjectItems.length > 0 && validClothingItems.length > 0;
+
+  const setSourceItemType = useCallback((nextType: VirtualTryOnSourceItemType) => {
+    setSourceItemTypeState(nextType);
+    if (nextType !== 'clothing') {
+      setClothingItems((items) => items.slice(0, 1));
+    }
+  }, []);
 
   // Cuando se desactiva el modo multi-persona, limpiar el marcador automáticamente
   const setIsMultiPersonMode = useCallback((value: boolean) => {
@@ -225,6 +234,7 @@ export const useVirtualTryOn = () => {
               clothingImages: outfitImages,
               extraPrompt,
               backgroundPrompt,
+              sourceItemType,
               isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
             });
             const results = await editImage(
@@ -269,6 +279,7 @@ export const useVirtualTryOn = () => {
     imageEditModel,
     numImages,
     resolution,
+    sourceItemType,
     subjectItems,
     t,
     updateSubjectItem,
@@ -301,6 +312,7 @@ export const useVirtualTryOn = () => {
       const interleavedParts = buildVirtualTryOnParts({
         subjectImage: finalSubjectImage,
         clothingImages: outfitImages,
+        sourceItemType,
         extraPrompt,
         backgroundPrompt,
         isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
@@ -330,10 +342,13 @@ export const useVirtualTryOn = () => {
     imageEditModel,
     numImages,
     resolution,
+    sourceItemType,
     subjectItems,
     t,
     updateSubjectItem,
     validClothingItems,
+    isMultiPersonMode,
+    markerPosition,
   ]);
 
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number, itemId?: string) => {
@@ -411,6 +426,10 @@ export const useVirtualTryOn = () => {
   }, []);
 
   const addClothingUploader = useCallback(() => {
+    if (sourceItemType !== 'clothing') {
+      return;
+    }
+
     setClothingItems((prev) => {
       if (prev.length >= MAX_SHARED_OUTFIT_IMAGES) {
         return prev;
@@ -418,7 +437,7 @@ export const useVirtualTryOn = () => {
 
       return [...prev, { id: ++clothingIdCounter.current, image: null }];
     });
-  }, []);
+  }, [sourceItemType]);
 
   const removeClothingUploader = useCallback((id: number) => {
     setClothingItems((prev) => {
@@ -459,6 +478,8 @@ export const useVirtualTryOn = () => {
     setBackgroundPrompt,
     extraPrompt,
     setExtraPrompt,
+    sourceItemType,
+    setSourceItemType,
     numImages,
     setNumImages,
     aspectRatio,
