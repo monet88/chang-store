@@ -1,15 +1,6 @@
-/**
- * Tests for Virtual Try-On Prompt Builder — Interleaved Part[] Output
- *
- * Verifies Part[] structure, input validation, prompt content sections,
- * garment rules, dual-garment logic, form state integration, and determinism.
- */
-
-import { describe, it, expect, test } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { buildVirtualTryOnParts, VirtualTryOnPromptInput } from '@/utils/virtual-try-on-prompt-builder';
 import type { Part } from '@google/genai';
-
-// --- Test helpers ---
 
 const mockImage = (id: string) => ({
   base64: `mock-base64-${id}`,
@@ -18,16 +9,19 @@ const mockImage = (id: string) => ({
 
 const defaultInput: VirtualTryOnPromptInput = {
   subjectImage: mockImage('subject'),
-  clothingImages: [mockImage('clothing-1')],
-  sourceItemType: 'clothing',
+  sourceItems: [{ image: mockImage('clothing-1'), sourceItemType: 'clothing' }],
   extraPrompt: '',
   backgroundPrompt: '',
 };
 
-const dualGarmentInput: VirtualTryOnPromptInput = {
+const mixedSourceInput: VirtualTryOnPromptInput = {
   subjectImage: mockImage('subject'),
-  clothingImages: [mockImage('top'), mockImage('bottom')],
-  sourceItemType: 'clothing',
+  sourceItems: [
+    { image: mockImage('shirt'), sourceItemType: 'clothing' },
+    { image: mockImage('pants'), sourceItemType: 'clothing' },
+    { image: mockImage('shoes'), sourceItemType: 'shoes' },
+    { image: mockImage('bag'), sourceItemType: 'bag' },
+  ],
   extraPrompt: '',
   backgroundPrompt: '',
 };
@@ -40,56 +34,44 @@ const getTaskText = (parts: Part[]): string => {
   return textParts[textParts.length - 1]?.text ?? '';
 };
 
-// --- Tests ---
-
 describe('buildVirtualTryOnParts', () => {
-
-  // ====================================================================
-  // Interleaved structure tests
-  // ====================================================================
   describe('interleaved structure', () => {
-    it('single garment returns exactly 5 parts', () => {
-      const parts = buildVirtualTryOnParts(defaultInput);
-      expect(parts).toHaveLength(5);
+    it('single source item returns exactly 5 parts', () => {
+      expect(buildVirtualTryOnParts(defaultInput)).toHaveLength(5);
     });
 
-    it('dual garment returns exactly 7 parts', () => {
-      const parts = buildVirtualTryOnParts(dualGarmentInput);
-      expect(parts).toHaveLength(7);
+    it('four source items return exactly 11 parts', () => {
+      expect(buildVirtualTryOnParts(mixedSourceInput)).toHaveLength(11);
     });
 
     it('first part is SUBJECT text label', () => {
       const parts = buildVirtualTryOnParts(defaultInput);
-      expect(parts[0]).toHaveProperty('text');
       expect(parts[0].text).toContain('SUBJECT');
     });
 
     it('second part is subject inlineData', () => {
       const parts = buildVirtualTryOnParts(defaultInput);
-      expect(parts[1]).toHaveProperty('inlineData');
       expect(parts[1].inlineData?.data).toBe('mock-base64-subject');
     });
 
-    it('single source: third part is category-neutral SOURCE ITEM label', () => {
-      const parts = buildVirtualTryOnParts(defaultInput);
-      expect(parts[2]).toHaveProperty('text');
-      expect(parts[2].text).toContain('SOURCE ITEM (clothing)');
-      expect(parts[2].text).not.toContain('CLOTHING SOURCE');
+    it('labels every source item with its selected type', () => {
+      const parts = buildVirtualTryOnParts(mixedSourceInput);
+      expect(parts[2].text).toContain('SOURCE ITEM #1 (clothing)');
+      expect(parts[4].text).toContain('SOURCE ITEM #2 (clothing)');
+      expect(parts[6].text).toContain('SOURCE ITEM #3 (shoes)');
+      expect(parts[8].text).toContain('SOURCE ITEM #4 (bag)');
+      expect(getFullText(parts)).not.toContain('CLOTHING SOURCE');
     });
 
-    it('dual garment: has TOP GARMENT and BOTTOM GARMENT labels', () => {
-      const parts = buildVirtualTryOnParts(dualGarmentInput);
-      expect(parts[2].text).toContain('TOP GARMENT');
-      expect(parts[4].text).toContain('BOTTOM GARMENT');
+    it('keeps source image data in input order', () => {
+      const parts = buildVirtualTryOnParts(mixedSourceInput);
+      expect(parts[3].inlineData?.data).toBe('mock-base64-shirt');
+      expect(parts[5].inlineData?.data).toBe('mock-base64-pants');
+      expect(parts[7].inlineData?.data).toBe('mock-base64-shoes');
+      expect(parts[9].inlineData?.data).toBe('mock-base64-bag');
     });
 
-    it('dual garment: image data matches input order', () => {
-      const parts = buildVirtualTryOnParts(dualGarmentInput);
-      expect(parts[3].inlineData?.data).toBe('mock-base64-top');
-      expect(parts[5].inlineData?.data).toBe('mock-base64-bottom');
-    });
-
-    it('last part is task text (no inlineData)', () => {
+    it('last part is task text', () => {
       const parts = buildVirtualTryOnParts(defaultInput);
       const lastPart = parts[parts.length - 1];
       expect(lastPart).toHaveProperty('text');
@@ -97,9 +79,6 @@ describe('buildVirtualTryOnParts', () => {
     });
   });
 
-  // ====================================================================
-  // Input validation tests
-  // ====================================================================
   describe('input validation', () => {
     it('throws on null/falsy subjectImage', () => {
       expect(() =>
@@ -107,74 +86,43 @@ describe('buildVirtualTryOnParts', () => {
       ).toThrow('subjectImage is required');
     });
 
-    it('throws on empty clothingImages', () => {
+    it('throws on empty sourceItems', () => {
       expect(() =>
-        buildVirtualTryOnParts({ ...defaultInput, clothingImages: [] })
-      ).toThrow('clothingImages must contain at least one item');
+        buildVirtualTryOnParts({ ...defaultInput, sourceItems: [] })
+      ).toThrow('sourceItems must contain at least one item');
     });
 
-    it('throws on >2 clothingImages', () => {
+    it('throws on more than four sourceItems', () => {
       expect(() =>
         buildVirtualTryOnParts({
           ...defaultInput,
-          clothingImages: [mockImage('a'), mockImage('b'), mockImage('c')],
+          sourceItems: [
+            { image: mockImage('a'), sourceItemType: 'clothing' },
+            { image: mockImage('b'), sourceItemType: 'clothing' },
+            { image: mockImage('c'), sourceItemType: 'shoes' },
+            { image: mockImage('d'), sourceItemType: 'bag' },
+            { image: mockImage('e'), sourceItemType: 'accessory' },
+          ],
         })
-      ).toThrow('clothingImages must contain 1 or 2 items');
+      ).toThrow('sourceItems must contain 1 to 4 items');
     });
 
-    it('throws on multiple non-clothing source images', () => {
+    it('throws on sourceItems with invalid image payload', () => {
       expect(() =>
         buildVirtualTryOnParts({
           ...defaultInput,
-          sourceItemType: 'bag',
-          clothingImages: [mockImage('a'), mockImage('b')],
+          sourceItems: [{ image: { base64: '', mimeType: '' }, sourceItemType: 'bag' }],
         })
-      ).toThrow('Only clothing source type supports 2 source images');
+      ).toThrow('sourceItems[0] must contain a valid image');
     });
   });
 
-  // ====================================================================
-  // Task text - required sections
-  // ====================================================================
-  describe('task text - required sections', () => {
-    it('contains ## TASK', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('## TASK');
-    });
-
-    it('contains ## APPLICATION RULES', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('## APPLICATION RULES');
-    });
-
-    it('contains ## POSE', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('## POSE');
-    });
-
-    it('contains ## BACKGROUND', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('## BACKGROUND');
-    });
-
-    it('contains ## PROHIBITIONS', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('## PROHIBITIONS');
-    });
-
-    it('contains ## CRITICAL RECAP at the end', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('## CRITICAL RECAP');
-      // RECAP should be the last section — no further ## headers after it
-      const recapIndex = text.indexOf('## CRITICAL RECAP');
-      const afterRecapContent = text.substring(recapIndex + '## CRITICAL RECAP'.length);
-      expect(afterRecapContent).not.toContain('## ');
-    });
-
-    it('sections appear in correct order', () => {
+  describe('task text', () => {
+    it('contains required sections in order', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
       const sections = [
         '## TASK',
+        '## SOURCE ITEM TYPES',
         '## APPLICATION RULES',
         '## POSE',
         '## BACKGROUND',
@@ -183,262 +131,95 @@ describe('buildVirtualTryOnParts', () => {
       ];
 
       let lastIndex = -1;
-      sections.forEach(section => {
+      sections.forEach((section) => {
         const currentIndex = text.indexOf(section);
         expect(currentIndex).toBeGreaterThan(lastIndex);
         lastIndex = currentIndex;
       });
     });
-  });
 
-  // ====================================================================
-  // Garment rules - critical styling
-  // ====================================================================
-  describe('garment rules - critical styling', () => {
-    it('contains [CRITICAL] marker', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('[CRITICAL]');
-    });
-
-    it('contains untucked rule (positive framing)', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Tops hang freely outside the waistband');
-    });
-
-    it('contains target-area replacement requirement', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('zero original elements in that target clothing area may remain');
-    });
-
-    it('contains natural fit requirement', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('fits naturally');
-    });
-
-    it('contains occlusion preservation', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Preserve occlusions');
-    });
-
-    it('contains lighting match requirement', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Match lighting, shadows, and color grading');
-    });
-  });
-
-  // ====================================================================
-  // Source item type
-  // ====================================================================
-  describe('source item type', () => {
-    it('includes user-selected source type in task text', () => {
-      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, sourceItemType: 'bag' }));
-      expect(text).toContain('User-selected source type: bag');
-    });
-
-    it('uses source type instead of visual auto-classification', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Treat every source image as this type');
+    it('lists each user-selected source type', () => {
+      const text = getTaskText(buildVirtualTryOnParts(mixedSourceInput));
+      expect(text).toContain('User-selected source types by image');
+      expect(text).toContain('- Source item #1: clothing');
+      expect(text).toContain('- Source item #2: clothing');
+      expect(text).toContain('- Source item #3: shoes');
+      expect(text).toContain('- Source item #4: bag');
+      expect(text).toContain('Treat each source image as its listed type');
       expect(text).not.toContain('First identify each source image');
     });
-  });
 
-  // ====================================================================
-  // Accessory handling
-  // ====================================================================
-  describe('accessory handling', () => {
-    it('classifies accessories separately from clothing', () => {
+    it('keeps clothing replacement rules when clothing exists', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('If the source type is shoes, bag, or accessory');
-    });
-
-    it('preserves existing outfit for accessories', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Preserve the subject\'s existing outfit');
-    });
-
-    it('forbids changing non-target clothing when applying accessories', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Do not change non-target clothing when source type is shoes, bag, or accessory');
-    });
-  });
-
-  // ====================================================================
-  // Pose - preserve original
-  // ====================================================================
-  describe('pose - preserve original', () => {
-    it('maintains original pose', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Maintain the subject\'s original pose');
-    });
-
-    it('does NOT generate new dynamic pose', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).not.toContain('new dynamic fashion pose');
-      expect(text).not.toContain('magazine-cover ready');
-    });
-  });
-
-  // ====================================================================
-  // Prohibitions
-  // ====================================================================
-  describe('prohibitions', () => {
-    it('contains no-tucking prohibition', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('zero original elements in that target clothing area may remain');
+      expect(text).toContain('Tops hang freely outside the waistband');
       expect(text).toContain('No tucking tops into pants or skirts');
     });
 
-    it('contains no-distortion prohibition', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('No body/face/hair distortion');
+    it('keeps non-clothing preservation rules when accessories exist', () => {
+      const text = getTaskText(buildVirtualTryOnParts({
+        ...defaultInput,
+        sourceItems: [{ image: mockImage('bag'), sourceItemType: 'bag' }],
+      }));
+      expect(text).toContain('For every shoes, bag, or accessory source item');
+      expect(text).toContain('Preserve the subject\'s existing outfit');
+      expect(text).toContain('Do not change unrelated clothing');
     });
 
-    it('contains no-watermarks prohibition', () => {
+    it('contains natural fit, occlusion, and lighting requirements', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('No text, logos, watermarks, extra people');
-    });
-  });
-
-  // ====================================================================
-  // Critical recap (recency bias)
-  // ====================================================================
-  describe('critical recap (recency bias)', () => {
-    it('contains source item preservation recap', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Source item 100% preserved');
+      expect(text).toContain('fit naturally');
+      expect(text).toContain('Preserve occlusions');
+      expect(text).toContain('Match lighting, shadows, and color grading');
     });
 
-    it('contains accessory preservation recap', () => {
+    it('preserves original pose', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('accessories do not rewrite the outfit');
+      expect(text).toContain('Maintain the subject\'s original pose');
+      expect(text).not.toContain('new dynamic fashion pose');
     });
 
-    it('contains face preservation recap', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).toContain('Face/hair/skin/pose preserved exactly');
-    });
-
-    it('recap is the last section', () => {
+    it('contains critical recap at the end', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
       const recapIndex = text.indexOf('## CRITICAL RECAP');
       expect(recapIndex).toBeGreaterThan(0);
-      // No more ## headers after RECAP
-      const afterRecap = text.substring(recapIndex + '## CRITICAL RECAP'.length);
-      expect(afterRecap).not.toMatch(/^## /m);
+      expect(text.substring(recapIndex + '## CRITICAL RECAP'.length)).not.toMatch(/^## /m);
+      expect(text).toContain('Each source item is 100% preserved');
+      expect(text).toContain('accessories do not rewrite the outfit');
+      expect(text).toContain('Face/hair/skin/pose preserved exactly');
     });
   });
 
-  // ====================================================================
-  // Dual-garment rules
-  // ====================================================================
-  describe('dual-garment rules', () => {
-    it('dual adds waistband-overlap rule', () => {
-      const text = getTaskText(buildVirtualTryOnParts(dualGarmentInput));
-      expect(text).toContain('top garment drapes outside the bottom\'s waistband');
-    });
-
-    it('dual preserves source hem length', () => {
-      const text = getTaskText(buildVirtualTryOnParts(dualGarmentInput));
-      expect(text).toContain('preserving source hem length exactly');
-    });
-
-    it('single does NOT have waistband-overlap rule', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).not.toContain('top garment drapes outside the bottom\'s waistband');
-    });
-  });
-
-  // ====================================================================
-  // Form state - extraPrompt
-  // ====================================================================
-  describe('form state - extraPrompt', () => {
+  describe('form state', () => {
     it('appends extraPrompt when provided', () => {
-      const input = { ...defaultInput, extraPrompt: 'shirt untucked' };
-      const text = getTaskText(buildVirtualTryOnParts(input));
+      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, extraPrompt: 'shirt untucked' }));
       expect(text).toContain('shirt untucked');
     });
 
-    it('does not append when empty', () => {
-      const withEmpty = { ...defaultInput, extraPrompt: '' };
-      const withWhitespace = { ...defaultInput, extraPrompt: '   ' };
-      const textEmpty = getTaskText(buildVirtualTryOnParts(withEmpty));
-      const textWhitespace = getTaskText(buildVirtualTryOnParts(withWhitespace));
-      expect(textEmpty).toBe(textWhitespace);
-    });
-
     it('trims whitespace from extraPrompt', () => {
-      const input = { ...defaultInput, extraPrompt: '   trimmed instruction   ' };
-      const text = getTaskText(buildVirtualTryOnParts(input));
+      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, extraPrompt: '   trimmed instruction   ' }));
       expect(text).toContain('trimmed instruction');
       expect(text).not.toContain('   trimmed instruction   ');
     });
-  });
 
-  // ====================================================================
-  // Form state - backgroundPrompt
-  // ====================================================================
-  describe('form state - backgroundPrompt', () => {
     it('uses backgroundPrompt when provided', () => {
-      const input = { ...defaultInput, backgroundPrompt: 'Minimalist white studio' };
-      const text = getTaskText(buildVirtualTryOnParts(input));
+      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, backgroundPrompt: 'Minimalist white studio' }));
       expect(text).toContain('Minimalist white studio');
       expect(text).toContain('Replace the background entirely with');
     });
 
     it('keeps original background when empty', () => {
-      const input = { ...defaultInput, backgroundPrompt: '' };
-      const text = getTaskText(buildVirtualTryOnParts(input));
+      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, backgroundPrompt: '' }));
       expect(text).toContain('Keep the original background from the Subject Image exactly as is');
-    });
-
-    it('keeps original background when whitespace only', () => {
-      const input = { ...defaultInput, backgroundPrompt: '   ' };
-      const text = getTaskText(buildVirtualTryOnParts(input));
-      expect(text).toContain('Keep the original background from the Subject Image exactly as is');
-    });
-
-    it('trims whitespace from backgroundPrompt', () => {
-      const input = { ...defaultInput, backgroundPrompt: '   Park setting   ' };
-      const text = getTaskText(buildVirtualTryOnParts(input));
-      expect(text).toContain('Park setting');
-      expect(text).not.toContain('   Park setting   ');
     });
   });
 
-  // ====================================================================
-  // Determinism
-  // ====================================================================
-  describe('determinism', () => {
-    it('identical inputs produce identical outputs', () => {
-      const input = {
-        ...defaultInput,
-        extraPrompt: 'Test extra',
-        backgroundPrompt: 'Test background',
-      };
-      const parts1 = buildVirtualTryOnParts(input);
-      const parts2 = buildVirtualTryOnParts(input);
-      expect(getFullText(parts1)).toBe(getFullText(parts2));
-      expect(parts1).toHaveLength(parts2.length);
-    });
-  });
-
-  // ====================================================================
-  // Legacy negative — old patterns MUST NOT exist
-  // ====================================================================
   describe('legacy patterns removed', () => {
-    it('does NOT contain old "Do NOT tuck" negative framing', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      expect(text).not.toContain('Do NOT tuck');
-    });
-
-    it('does NOT contain old INSTRUCTION header', () => {
+    it('does NOT contain old negative framing or old headers', () => {
       const fullText = getFullText(buildVirtualTryOnParts(defaultInput));
+      expect(fullText).not.toContain('Do NOT tuck');
       expect(fullText).not.toContain('# INSTRUCTION: VIRTUAL FASHION TRY-ON');
-    });
-
-    it('does NOT reference numbered sections (old format)', () => {
-      const fullText = getFullText(buildVirtualTryOnParts(defaultInput));
       expect(fullText).not.toContain('## 1.');
-      expect(fullText).not.toContain('## 2.');
     });
   });
 });

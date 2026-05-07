@@ -48,13 +48,12 @@ import VirtualTryOn from '../../src/components/VirtualTryOn';
 const baseHookState = {
   subjectItems: [],
   subjectImages: [],
-  clothingItems: [{ id: 1, image: null }],
+  clothingItems: [{ id: 1, image: null, sourceItemType: 'clothing' }],
   backgroundPrompt: '',
   setBackgroundPrompt: vi.fn(),
   extraPrompt: '',
   setExtraPrompt: vi.fn(),
-  sourceItemType: 'clothing',
-  setSourceItemType: vi.fn(),
+  handleSourceItemTypeChange: vi.fn(),
   numImages: 1,
   setNumImages: vi.fn(),
   aspectRatio: 'Default',
@@ -105,25 +104,25 @@ describe('VirtualTryOn component', () => {
     expect(screen.getAllByText('virtualTryOn.outputPanelDescription').length).toBeGreaterThan(0);
   });
 
-  it('renders source item type selector and forwards changes', () => {
+  it('renders source item type selector below each source image and forwards changes', () => {
     render(<VirtualTryOn />);
 
     const select = screen.getByLabelText('virtualTryOn.sourceItemTypeLabel');
     expect(select).toHaveValue('clothing');
 
     fireEvent.change(select, { target: { value: 'bag' } });
-    expect(baseHookState.setSourceItemType).toHaveBeenCalledWith('bag');
+    expect(baseHookState.handleSourceItemTypeChange).toHaveBeenCalledWith(1, 'bag');
   });
 
-  it('disables second source image for non-clothing types', () => {
+  it('keeps add source image enabled for non-clothing source items', () => {
     useVirtualTryOnMock.mockReturnValue({
       ...baseHookState,
-      sourceItemType: 'bag',
+      clothingItems: [{ id: 1, image: null, sourceItemType: 'bag' }],
     });
 
     render(<VirtualTryOn />);
 
-    expect(screen.getByRole('button', { name: 'virtualTryOn.addItem' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'virtualTryOn.addItem' })).toBeEnabled();
   });
 
   it('renders batch results when subject items exist', () => {

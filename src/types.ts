@@ -126,6 +126,7 @@ export type VirtualTryOnSourceItemType = typeof VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES
 export interface VirtualTryOnClothingItem {
   id: number;
   image: ImageFile | null;
+  sourceItemType: VirtualTryOnSourceItemType;
 }
 
 /** One subject image job inside a Virtual Try-On batch run */

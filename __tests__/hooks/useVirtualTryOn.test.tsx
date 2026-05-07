@@ -93,19 +93,20 @@ describe('useVirtualTryOn', () => {
 
 
 
-  it('defaults source item type to clothing and updates it', () => {
+  it('defaults each source item type to clothing and updates it by item', () => {
     const { result } = renderHook(() => useVirtualTryOn());
+    const itemId = result.current.clothingItems[0].id;
 
-    expect(result.current.sourceItemType).toBe('clothing');
+    expect(result.current.clothingItems[0].sourceItemType).toBe('clothing');
 
     act(() => {
-      result.current.setSourceItemType('bag');
+      result.current.handleSourceItemTypeChange(itemId, 'bag');
     });
 
-    expect(result.current.sourceItemType).toBe('bag');
+    expect(result.current.clothingItems[0].sourceItemType).toBe('bag');
   });
 
-  it('passes selected source item type into generated prompt parts', async () => {
+  it('passes each selected source item type into generated prompt parts', async () => {
     vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
 
     const { result } = renderHook(() => useVirtualTryOn());
@@ -113,7 +114,7 @@ describe('useVirtualTryOn', () => {
     act(() => {
       result.current.handleSubjectImagesUpload([SUBJECT_A]);
       result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
-      result.current.setSourceItemType('bag');
+      result.current.handleSourceItemTypeChange(result.current.clothingItems[0].id, 'bag');
     });
 
     await act(async () => {
@@ -121,8 +122,8 @@ describe('useVirtualTryOn', () => {
     });
 
     const partsText = vi.mocked(editImage).mock.calls[0][0].interleavedParts?.filter((part) => part.text).map((part) => part.text).join('\n');
-    expect(partsText).toContain('SOURCE ITEM (bag)');
-    expect(partsText).toContain('User-selected source type: bag');
+    expect(partsText).toContain('SOURCE ITEM #1 (bag)');
+    expect(partsText).toContain('- Source item #1: bag');
   });
 
   it('tracks multiple subject images as batch items', () => {
@@ -342,7 +343,7 @@ describe('useVirtualTryOn', () => {
     expect(result.current.markerPosition).toBeNull();
   });
 
-  it('trims extra source uploaders when changing away from clothing', () => {
+  it('keeps source uploaders when individual items change away from clothing', () => {
     const { result } = renderHook(() => useVirtualTryOn());
 
     act(() => {
@@ -351,24 +352,22 @@ describe('useVirtualTryOn', () => {
     expect(result.current.clothingItems).toHaveLength(2);
 
     act(() => {
-      result.current.setSourceItemType('bag');
+      result.current.handleSourceItemTypeChange(result.current.clothingItems[1].id, 'shoes');
     });
 
-    expect(result.current.clothingItems).toHaveLength(1);
+    expect(result.current.clothingItems).toHaveLength(2);
+    expect(result.current.clothingItems[1].sourceItemType).toBe('shoes');
   });
 
-  it('does not add a second source uploader for non-clothing source types', () => {
+  it('adds source uploaders regardless of individual source types', () => {
     const { result } = renderHook(() => useVirtualTryOn());
 
     act(() => {
-      result.current.setSourceItemType('bag');
-    });
-
-    act(() => {
+      result.current.handleSourceItemTypeChange(result.current.clothingItems[0].id, 'bag');
       result.current.addClothingUploader();
     });
 
-    expect(result.current.clothingItems).toHaveLength(1);
+    expect(result.current.clothingItems).toHaveLength(2);
   });
 
   it('caps clothing uploaders at the shared outfit image limit', () => {
@@ -377,9 +376,11 @@ describe('useVirtualTryOn', () => {
     act(() => {
       result.current.addClothingUploader();
       result.current.addClothingUploader();
+      result.current.addClothingUploader();
+      result.current.addClothingUploader();
     });
 
-    expect(result.current.clothingItems).toHaveLength(2);
+    expect(result.current.clothingItems).toHaveLength(4);
   });
 
   it('keeps one clothing uploader when removeClothingUploader is called with a single item', () => {

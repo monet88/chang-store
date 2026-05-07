@@ -29,8 +29,6 @@ const VirtualTryOn: React.FC = () => {
     setBackgroundPrompt,
     extraPrompt,
     setExtraPrompt,
-    sourceItemType,
-    setSourceItemType,
     numImages,
     setNumImages,
     aspectRatio,
@@ -52,6 +50,7 @@ const VirtualTryOn: React.FC = () => {
     handleRefine,
     handleSubjectImagesUpload,
     handleClothingUpload,
+    handleSourceItemTypeChange,
     addClothingUploader,
     removeClothingUploader,
     handleDownloadAll,
@@ -233,11 +232,30 @@ const VirtualTryOn: React.FC = () => {
                         onImageUpload={(file) => handleClothingUpload(file, item.id)}
                       />
                     </Tooltip>
+                    <div className="mt-3 space-y-2">
+                      <label htmlFor={`source-item-type-${item.id}`} className="text-sm font-semibold text-zinc-200">
+                        {t('virtualTryOn.sourceItemTypeLabel')}
+                      </label>
+                      <select
+                        id={`source-item-type-${item.id}`}
+                        value={item.sourceItemType}
+                        onChange={(e) => handleSourceItemTypeChange(item.id, e.target.value as VirtualTryOnSourceItemType)}
+                        disabled={isLoading}
+                        className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-zinc-100 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                      >
+                        {VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES.map((type) => (
+                          <option key={type} value={type} className="bg-zinc-950 text-zinc-100">
+                            {t(`virtualTryOn.sourceItemTypes.${type}`)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     {clothingItems.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeClothingUploader(item.id)}
-                        className="absolute right-3 top-9 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100"
+                        disabled={isLoading}
+                        className="absolute right-3 top-9 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <DeleteIcon className="h-4 w-4" />
                       </button>
@@ -248,7 +266,7 @@ const VirtualTryOn: React.FC = () => {
                   <button
                     type="button"
                     onClick={addClothingUploader}
-                    disabled={sourceItemType !== 'clothing' || clothingItems.length >= 2}
+                    disabled={isLoading || clothingItems.length >= 4}
                     className={`${secondaryButtonClass} w-full gap-2`}
                   >
                     <AddIcon className="h-4 w-4" />
@@ -268,26 +286,6 @@ const VirtualTryOn: React.FC = () => {
             </div>
 
             <div className="space-y-5">
-              <div className="space-y-2">
-                <label htmlFor="source-item-type" className="text-base font-semibold text-zinc-100">
-                  {t('virtualTryOn.sourceItemTypeLabel')}
-                </label>
-                <select
-                  id="source-item-type"
-                  value={sourceItemType}
-                  onChange={(e) => setSourceItemType(e.target.value as VirtualTryOnSourceItemType)}
-                  disabled={isLoading}
-                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-base text-zinc-100 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                >
-                  {VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES.map((type) => (
-                    <option key={type} value={type} className="bg-zinc-950 text-zinc-100">
-                      {t(`virtualTryOn.sourceItemTypes.${type}`)}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.sourceItemTypeDescription')}</p>
-              </div>
-
               <Tooltip content={t('tooltips.tryOnBackground')} position="bottom" className="w-full">
                 <div className="space-y-2">
                   <label htmlFor="background-prompt" className="text-base font-semibold text-zinc-100">

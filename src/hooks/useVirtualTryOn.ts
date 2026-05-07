@@ -20,7 +20,7 @@ import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
-const MAX_SHARED_OUTFIT_IMAGES = 2;
+const MAX_SHARED_OUTFIT_IMAGES = 4;
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 
 export const useVirtualTryOn = () => {
@@ -29,11 +29,10 @@ export const useVirtualTryOn = () => {
   const [subjectItems, setSubjectItems] = useState<VirtualTryOnBatchItem[]>([]);
   const [selectedSubjectItemId, setSelectedSubjectItemId] = useState<string | null>(null);
   const [clothingItems, setClothingItems] = useState<VirtualTryOnClothingItem[]>([
-    { id: ++clothingIdCounter.current, image: null },
+    { id: ++clothingIdCounter.current, image: null, sourceItemType: 'clothing' },
   ]);
   const [backgroundPrompt, setBackgroundPrompt] = useState('');
   const [extraPrompt, setExtraPrompt] = useState('');
-  const [sourceItemType, setSourceItemTypeState] = useState<VirtualTryOnSourceItemType>('clothing');
   const [numImages, setNumImages] = useState(1);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
@@ -119,13 +118,6 @@ export const useVirtualTryOn = () => {
 
   const canGenerate = subjectItems.length > 0 && validClothingItems.length > 0;
 
-  const setSourceItemType = useCallback((nextType: VirtualTryOnSourceItemType) => {
-    setSourceItemTypeState(nextType);
-    if (nextType !== 'clothing') {
-      setClothingItems((items) => items.slice(0, 1));
-    }
-  }, []);
-
   // Cuando se desactiva el modo multi-persona, limpiar el marcador automáticamente
   const setIsMultiPersonMode = useCallback((value: boolean) => {
     setIsMultiPersonModeState(value);
@@ -188,7 +180,10 @@ export const useVirtualTryOn = () => {
     }
 
 
-    const outfitImages = validClothingItems.map((item) => item.image as ImageFile);
+    const sourceItems = validClothingItems.map((item) => ({
+      image: item.image as ImageFile,
+      sourceItemType: item.sourceItemType,
+    }));
     const jobs: { id: string; subjectImage: ImageFile }[] = subjectItems.map((item) => ({
       id: item.id,
       subjectImage: item.subjectImage,
@@ -231,10 +226,9 @@ export const useVirtualTryOn = () => {
 
             const interleavedParts = buildVirtualTryOnParts({
               subjectImage: finalSubjectImage,
-              clothingImages: outfitImages,
+              sourceItems,
               extraPrompt,
               backgroundPrompt,
-              sourceItemType,
               isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
             });
             const results = await editImage(
@@ -279,7 +273,6 @@ export const useVirtualTryOn = () => {
     imageEditModel,
     numImages,
     resolution,
-    sourceItemType,
     subjectItems,
     t,
     updateSubjectItem,
@@ -292,7 +285,10 @@ export const useVirtualTryOn = () => {
     const targetItem = subjectItems.find((item) => item.id === itemId);
     if (!targetItem || validClothingItems.length === 0) return;
 
-    const outfitImages = validClothingItems.map((item) => item.image as ImageFile);
+    const sourceItems = validClothingItems.map((item) => ({
+      image: item.image as ImageFile,
+      sourceItemType: item.sourceItemType,
+    }));
 
     // Reset only this item
     updateSubjectItem(itemId, { status: 'processing', results: [], error: undefined });
@@ -311,8 +307,7 @@ export const useVirtualTryOn = () => {
 
       const interleavedParts = buildVirtualTryOnParts({
         subjectImage: finalSubjectImage,
-        clothingImages: outfitImages,
-        sourceItemType,
+        sourceItems,
         extraPrompt,
         backgroundPrompt,
         isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
@@ -342,7 +337,6 @@ export const useVirtualTryOn = () => {
     imageEditModel,
     numImages,
     resolution,
-    sourceItemType,
     subjectItems,
     t,
     updateSubjectItem,
@@ -425,19 +419,21 @@ export const useVirtualTryOn = () => {
     );
   }, []);
 
-  const addClothingUploader = useCallback(() => {
-    if (sourceItemType !== 'clothing') {
-      return;
-    }
+  const handleSourceItemTypeChange = useCallback((id: number, sourceItemType: VirtualTryOnSourceItemType) => {
+    setClothingItems((items) =>
+      items.map((item) => (item.id === id ? { ...item, sourceItemType } : item)),
+    );
+  }, []);
 
+  const addClothingUploader = useCallback(() => {
     setClothingItems((prev) => {
       if (prev.length >= MAX_SHARED_OUTFIT_IMAGES) {
         return prev;
       }
 
-      return [...prev, { id: ++clothingIdCounter.current, image: null }];
+      return [...prev, { id: ++clothingIdCounter.current, image: null, sourceItemType: 'clothing' }];
     });
-  }, [sourceItemType]);
+  }, []);
 
   const removeClothingUploader = useCallback((id: number) => {
     setClothingItems((prev) => {
@@ -478,8 +474,6 @@ export const useVirtualTryOn = () => {
     setBackgroundPrompt,
     extraPrompt,
     setExtraPrompt,
-    sourceItemType,
-    setSourceItemType,
     numImages,
     setNumImages,
     aspectRatio,
@@ -502,6 +496,7 @@ export const useVirtualTryOn = () => {
     handleUpscale,
     handleRefine,
     handleClothingUpload,
+    handleSourceItemTypeChange,
     addClothingUploader,
     removeClothingUploader,
     handleDownloadAll,
