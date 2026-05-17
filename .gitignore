@@ -44,9 +44,7 @@ __tests__/AGENTS.md
 __tests__/images-test/
 
 # Local plans and smoke outputs
-plans/*
 nul
-docs/plans/*
 opencode.json
 .osgrep
 
