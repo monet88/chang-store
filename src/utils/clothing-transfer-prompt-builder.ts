@@ -27,15 +27,30 @@ export function buildClothingTransferParts(
     parts.push({ inlineData: { data: ref.image.base64, mimeType: ref.image.mimeType } });
   });
 
-  const taskPrompt = `TASK: Composite the SOURCE OUTFIT clothing into the DESTINATION SCENE, replacing the existing clothing entirely.
+  const taskPrompt = `TASK: Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.
 
-CRITICAL RULES — follow exactly:
-1. SCENE ONLY from DESTINATION: Use the DESTINATION image ONLY for its background, setting, camera angle, lighting, props, hangers, and display arrangement. The destination clothing is IRRELEVANT — treat it as if it does not exist.
-2. CLOTHING ONLY from SOURCE: The output clothing MUST be 100% from the SOURCE OUTFIT images. Copy their exact colors, patterns, textures, fabric drape, and silhouette with zero modification.
-3. ZERO blending or mixing: Do NOT blend, average, or mix colors/textures between the source outfit and the destination outfit. The destination outfit's appearance must have absolutely NO influence on the output clothing.
-4. Display style: Match how items are displayed in the destination (on hanger, flat lay, mannequin, hanging in closet, etc.).
-5. Preserve non-clothing elements: Keep all background elements, props, hangers, and accessories from the destination unchanged.
-6. If the SOURCE OUTFIT has multiple pieces (top + bottom), place each in the same relative positions as in the SOURCE OUTFIT.${extraInstructions ? `\n\nAdditional instructions from user: ${extraInstructions}` : ''}`;
+CRITICAL RULES — follow every rule exactly, in priority order:
+
+**A. DESTINATION SCENE IS THE BLUEPRINT**
+1. The DESTINATION image defines EVERYTHING about the scene: background, camera angle, perspective, lighting direction, shadows, color temperature, props (hangers, shelves, bags, shoes, toys, furniture), and the exact spatial arrangement / display method of clothing (flat lay, hanging in closet, on hanger, draped on chair, etc.).
+2. Replicate the DESTINATION scene pixel-perfectly — same camera distance, same lens distortion, same crop, same ambient lighting. The viewer should feel the output photo was taken in the exact same physical location with the same camera setup.
+3. ALL non-clothing elements from the DESTINATION (floor, walls, hangers, accessories, bags, stuffed animals, shoes, magazines, furniture) must remain in their exact original positions and appearance.
+
+**B. SOURCE OUTFIT IS THE ONLY CLOTHING SOURCE**
+4. Extract ONLY the clothing garments (shirts, tops, pants, skirts, dresses, jackets, etc.) from the SOURCE OUTFIT images. IGNORE everything else visible in the source photo — do NOT transfer accessories, bags, shoes, hangers, stuffed animals, jewelry, props, furniture, or any non-garment objects from the SOURCE into the output.
+5. The extracted clothing MUST be 100% faithful to the SOURCE OUTFIT — exact colors, exact patterns (including pattern scale, repeat, and orientation), exact textures, exact fabric weight and drape characteristics. Copy them with absolute fidelity.
+6. ZERO blending: Do NOT blend, average, or mix any visual attribute (color, texture, pattern, silhouette) between the source and destination outfits. The destination outfit's appearance must have ZERO influence on the output clothing.
+7. Preserve the source garment's silhouette and construction details (collar style, sleeve length, button placement, pleat depth, waistband style).
+
+**C. PLACEMENT & ARRANGEMENT**
+8. Place the source clothing items in the SAME positions, orientations, and arrangement as the clothing in the DESTINATION scene — NOT in the positions from the SOURCE image. The spatial layout follows the DESTINATION.
+9. If the source has multiple pieces (e.g., top + bottom), map each piece to the corresponding position in the DESTINATION layout (top garment position → source top, bottom garment position → source bottom).
+10. Adapt the fabric folds, creases, and drape of the source clothing to match the display method of the DESTINATION (e.g., if destination shows clothes hanging, show source clothes hanging with natural gravity folds; if flat lay, show source clothes laid flat).
+11. Only clothing garments are placed into the scene. All non-clothing props and accessories in the output must come from the DESTINATION scene, never from the SOURCE.
+
+**D. REALISM & CONSISTENCY**
+12. Lighting on the replaced clothing must match the DESTINATION scene's lighting — same direction, intensity, color temperature, and shadow behavior.
+13. The final image must look like a single real photograph — no compositing artifacts, no edge halos, no inconsistent shadows or perspective mismatches.${extraInstructions ? `\n\n**E. USER INSTRUCTIONS**\n${extraInstructions}` : ''}`;
 
   parts.push({ text: taskPrompt });
 
