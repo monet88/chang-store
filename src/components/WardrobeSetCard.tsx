@@ -51,7 +51,7 @@ const WardrobeSetCard: React.FC<WardrobeSetCardProps> = ({
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 max-w-[50%]">
         {items.map((item, idx) => (
           <div key={item.id} className="relative group space-y-2">
             <ImageUploader

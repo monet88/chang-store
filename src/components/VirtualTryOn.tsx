@@ -734,13 +734,13 @@ const VirtualTryOn: React.FC = () => {
                     {resultSet.status === 'error' && (
                       <p className="text-sm text-red-300">{resultSet.error}</p>
                     )}
-                    {resultSet.status === 'processing' && (
+                    {(resultSet.status === 'processing' || resultSet.status === 'pending') && (
                       <div className="flex aspect-[3/4] max-h-48 items-center justify-center rounded-[24px] border border-white/10 bg-black/30 animate-pulse">
                         <div className="animate-spin rounded-full border-b-2 border-white h-8 w-8" />
                       </div>
                     )}
                     {resultSet.status === 'completed' && resultSet.results.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {resultSet.results.map((image, imgIdx) => (
                           <HoverableImage
                             key={`${resultSet.setId}-${imgIdx}`}
