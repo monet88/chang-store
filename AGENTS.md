@@ -60,7 +60,7 @@ AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite SPA wi
 
 No React Router — `src/App.tsx` switches on `Feature` enum with lazy-loading. Path alias: `@/*` maps to `src/`.
 
-Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator`.
+Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator | WardrobeMode`.
 
 Provider nesting order matters:
 `LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent`

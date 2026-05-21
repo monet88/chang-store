@@ -13,6 +13,7 @@ Chang-Store is a modern Single Page Application (SPA) built with React 19, TypeS
 - **Pattern Generator**: Create fashion patterns from text descriptions.
 - **Clothing Transfer**: Transfer clothing between images with generative AI.
 - **Watermark Removal**: Remove watermarks from images with batch processing support.
+- **Wardrobe Mode**: Generate 4 outfit variations in parallel for virtual try-on styling.
 
 ## 🚀 Tech Stack
 

@@ -33,7 +33,7 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only
 
 No React Router — `App.tsx` switches on `Feature` enum with lazy-loading. Path alias: `@/*` → `src/`.
 
-Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator`
+Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator | WardrobeMode`
 
 <important if="you need to run commands to build, test, lint, or type-check">
 
