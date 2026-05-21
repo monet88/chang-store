@@ -25,8 +25,11 @@ Chang-Store is an AI-powered virtual fashion studio built as a React 19 + TypeSc
 - Offer secure, Google Drive-backed local archives and synchronization.
 
 ## Technology Stack
-- **Frontend**: React 19, TypeScript, Vite 6
-- **Styling**: Tailwind CSS v4, PostCSS
+- **Frontend**: React 19.2.3, TypeScript 5.8.3, Vite 6.4.1
+- **Styling**: Tailwind CSS 4.1.18, PostCSS
 - **State Management**: React Context & Hooks
-- **AI Backend**: `@google/genai` (Google Gemini SDK)
-- **Tooling**: ESLint, TSX, Vitest, React Testing Library
+- **AI Backend**: `@google/genai` 1.38.0 (Google Gemini SDK)
+- **Data Persistence**: IndexedDB (via `idb-keyval` 6.2.2), Google Drive API
+- **Export**: ZIP downloads (via `jszip` 3.10.1)
+- **Testing**: Vitest 4.0.17, React Testing Library
+- **Tooling**: ESLint 9.39.2, TSX, SWC transpiler

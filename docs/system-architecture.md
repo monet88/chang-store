@@ -32,3 +32,42 @@ The application is wrapped in a strict provider hierarchy to ensure dependencies
 
 ## Feature Routing
 Routing is handled manually without a router library. The `Feature` enum defines available screens: `TryOn`, `Lookbook`, `Background`, `Pose`, `PhotoAlbum`, `AIEditor`, `WatermarkRemover`, `ClothingTransfer`, `PatternGenerator`.
+
+## Model Registry
+The `src/config/modelRegistry.ts` (218 LOC) maintains a capability registry mapping features to Gemini models. This centralized registry enables:
+- Feature-to-model routing
+- Model capability validation
+- Fallback model selection
+- Version management
+
+## Error Handling Pattern
+All hooks follow a mandatory error handling pattern:
+```typescript
+try {
+  // API call or operation
+} catch (err) {
+  setError(getErrorMessage(err, t));
+} finally {
+  setIsLoading(false);
+}
+```
+
+Error messages are localized via the `useLanguage()` hook and displayed through the `ToastProvider`.
+
+## Data Persistence Layer
+- **IndexedDB**: Gallery images persisted via `idb-keyval` wrapper (`src/utils/galleryDB.ts`)
+- **Google Drive**: Cloud archiving and sync via `src/services/googleDriveService.ts` (411 LOC)
+- **Local Storage**: Settings and user preferences
+
+## Prompt Builder Pattern
+Feature-specific prompt builders in `src/utils/` construct AI prompts with domain-specific logic:
+- `clothing-transfer-prompt-builder.ts` — Enforces source-destination separation and spatial realism
+- `virtual-try-on-prompt-builder.ts` — Handles source type selection and garment notes
+- `lookbookPromptBuilder.ts` — Lookbook composition and styling
+- `pattern-generator-prompt-builder.ts` — Pattern generation parameters
+- `watermark-prompts.ts` — Watermark removal strategies
+
+## Batch Processing
+- `src/utils/batch-image-session.ts` — Multi-image session management
+- `src/utils/run-bounded-workers.ts` — Bounded worker pool for parallel processing
+- Watermark removal and clothing transfer support batch operations

@@ -1,7 +1,8 @@
 # Deployment Guide
 
 ## Prerequisites
-- Node.js environment
+- Node.js v22+ (required for React 19 and Vite 6 compatibility)
+- npm or yarn package manager
 - Google Gemini API Key (`GEMINI_API_KEY`)
 - Google OAuth Client ID (`GOOGLE_CLIENT_ID`) for Drive integration
 

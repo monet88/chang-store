@@ -28,3 +28,33 @@
 Provider nesting order matters and each depends on the parent:
 `LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent`
 (Note: `ToastProvider` lives in `src/components/Toast.tsx`, not in `contexts/`)
+
+## File Organization
+- **Components:** One component per file, thin UI wrappers only
+- **Hooks:** One hook per feature, centralizes all state and logic
+- **Services:** Stateless API facades, organized by domain (Gemini modules in `src/services/gemini/`)
+- **Utils:** Pure functions, prompt builders, helpers organized by concern
+- **Contexts:** Global state providers with strict nesting order
+- **Locales:** i18n strings organized by feature/domain
+
+## Prompt Builder Pattern
+Feature-specific prompt builders in `src/utils/` construct AI prompts:
+- Each builder exports a function that takes feature parameters and returns a prompt string
+- Builders enforce domain-specific constraints (e.g., clothing transfer enforces source-destination separation)
+- Builders are pure functions with no side effects
+
+## Batch Processing Pattern
+- `batch-image-session.ts` manages multi-image sessions
+- `run-bounded-workers.ts` provides a bounded worker pool for parallel processing
+- Features like watermark removal and clothing transfer support batch operations
+- Batch operations respect API rate limits and memory constraints
+
+## Data Persistence
+- **IndexedDB:** Gallery images persisted via `idb-keyval` wrapper in `src/utils/galleryDB.ts`
+- **Google Drive:** Cloud archiving via `src/services/googleDriveService.ts` (411 LOC)
+- **Local Storage:** Settings and user preferences via `src/utils/storage.ts`
+
+## Model Registry
+- `src/config/modelRegistry.ts` (218 LOC) maintains feature-to-model mapping
+- Centralized capability registry enables feature routing and fallback selection
+- Never hardcode model names in components or hooks; use the registry

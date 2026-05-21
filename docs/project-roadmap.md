@@ -14,11 +14,13 @@
 - Lookbook and Photo Album generation
 - Clothing Transfer and Pose Control
 
-## Phase 3: Archive & Export Workflows (Current)
-- Google Drive integration for cloud archiving
-- Enhanced Image Gallery with management tools
-- Watermark Removal batch tools
-- Export and sharing utilities
+## Phase 3: Archive & Export Workflows (Completed)
+- Google Drive integration for cloud archiving (411 LOC service)
+- Enhanced Image Gallery with IndexedDB persistence (273 LOC context)
+- Watermark Removal batch tools with bounded worker pool
+- Export and sharing utilities (ZIP downloads via jszip)
+- Virtual Try-On enhancements: source type selection, per-source item types, garment notes
+- Clothing Transfer improvements: stricter source-destination separation, spatial realism
 
 ## Phase 4: Refinement & Optimization (Upcoming)
 - Advanced prompt tuning for edge cases in clothing transfer
