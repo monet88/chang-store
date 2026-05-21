@@ -139,6 +139,24 @@ export interface VirtualTryOnBatchItem {
   error?: string;
 }
 
+// ============================================
+// VIRTUAL TRY-ON WARDROBE MODE TYPES
+// ============================================
+
+export type VirtualTryOnMode = 'multi-model' | 'wardrobe';
+
+export interface WardrobeSet {
+  id: string;
+  items: VirtualTryOnClothingItem[];
+}
+
+export interface WardrobeResultSet {
+  setId: string;
+  status: BatchImageStatus;
+  results: ImageFile[];
+  error?: string;
+}
+
 /** Shared reference uploader state for Clothing Transfer */
 export interface ClothingTransferReferenceItem {
   id: number;

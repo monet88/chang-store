@@ -9,8 +9,10 @@ import {
   MarkerPosition,
   VirtualTryOnBatchItem,
   VirtualTryOnClothingItem,
+  VirtualTryOnMode,
   VirtualTryOnSourceItemType,
 } from '../types';
+import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
@@ -28,6 +30,7 @@ const normalizeSourcePrompt = (value: string) => value.replace(/\s+/g, ' ').slic
 export const useVirtualTryOn = () => {
   const clothingIdCounter = useRef(0);
   const batchIdCounter = useRef(0);
+  const [mode, setMode] = useState<VirtualTryOnMode>('multi-model');
   const [subjectItems, setSubjectItems] = useState<VirtualTryOnBatchItem[]>([]);
   const [selectedSubjectItemId, setSelectedSubjectItemId] = useState<string | null>(null);
   const [clothingItems, setClothingItems] = useState<VirtualTryOnClothingItem[]>([
@@ -54,6 +57,16 @@ export const useVirtualTryOn = () => {
 
   const { t } = useLanguage();
   const { imageEditModel } = useApi();
+
+  const wardrobe = useWardrobeMode({
+    imageEditModel,
+    numImages,
+    aspectRatio,
+    resolution,
+    isParentGenerating: isLoading,
+  });
+
+  const isAnyGenerating = isLoading || wardrobe.isGenerating;
 
   const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
@@ -176,6 +189,7 @@ export const useVirtualTryOn = () => {
   }, []);
 
   const handleGenerateImage = useCallback(async () => {
+    if (wardrobe.isGenerating) return;
     if (!canGenerate) {
       setError(t('virtualTryOn.inputError'));
       return;
@@ -282,6 +296,7 @@ export const useVirtualTryOn = () => {
     validClothingItems,
     isMultiPersonMode,
     markerPosition,
+    wardrobe.isGenerating,
   ]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
@@ -472,6 +487,10 @@ export const useVirtualTryOn = () => {
   }, [subjectItems, t]);
 
   return {
+    mode,
+    setMode,
+    isAnyGenerating,
+    wardrobe,
     subjectItems,
     subjectImages,
     selectedSubjectItemId,
@@ -517,7 +536,6 @@ export const useVirtualTryOn = () => {
     refinePrompts,
     setRefinePrompts,
     isRefining,
-    // Multi-person marker state
     isMultiPersonMode,
     setIsMultiPersonMode,
     markerPosition,
