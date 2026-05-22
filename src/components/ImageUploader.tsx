@@ -41,7 +41,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
     // Validate file before processing
     const validation = await validateImageFile(file);
     if (!validation.isValid) {
-      console.error("Upload validation failed:", validation.errorKey);
+      if (import.meta.env.DEV) {
+        console.error("Upload validation failed:", validation.errorKey);
+      }
       return;
     }
 
@@ -49,7 +51,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
       const compressedImage = await compressImage(file);
       onImageUpload(compressedImage);
     } catch (error) {
-      console.error("Error compressing image, falling back to original file:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error compressing image, falling back to original file:", error);
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
@@ -58,7 +62,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
         }
       };
       reader.onerror = (err) => {
-        console.error("FileReader error on fallback:", err);
+        if (import.meta.env.DEV) {
+          console.error("FileReader error on fallback:", err);
+        }
       };
       reader.readAsDataURL(file);
     }

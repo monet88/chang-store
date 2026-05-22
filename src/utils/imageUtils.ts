@@ -65,7 +65,8 @@ export const validateImageFile = async (file: File): Promise<ImageValidationResu
                   bytes[2] === MAGIC_BYTES.png[2] &&
                   bytes[3] === MAGIC_BYTES.png[3];
 
-    const isWebp = bytes[0] === MAGIC_BYTES.webp[0] &&
+    const isWebp = bytes.length >= 12 &&
+                   bytes[0] === MAGIC_BYTES.webp[0] &&
                    bytes[1] === MAGIC_BYTES.webp[1] &&
                    bytes[2] === MAGIC_BYTES.webp[2] &&
                    bytes[3] === MAGIC_BYTES.webp[3] &&

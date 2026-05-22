@@ -123,9 +123,11 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   // --- Process Queue ---
-  const processQueue = useCallback(async () => {
-    // Guard: not connected or no token
-    if (!accessToken || !folderId) return;
+  const processQueue = useCallback(async (targetFolderId?: string) => {
+    const currentFolderId = targetFolderId || folderId;
+
+    // Guard: not connected or no token or no folder
+    if (!accessToken || !currentFolderId) return;
 
     // Guard: already processing (atomic check-and-set)
     if (isProcessingRef.current) return;
@@ -145,6 +147,13 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
 
     try {
       while (syncQueueRef.current.length > 0) {
+        // Re-check folderId before each operation to detect mid-processing changes
+        if (!folderId || folderId !== currentFolderId) {
+          // Folder changed or cleared - re-queue remaining ops and abort
+          console.warn('[Sync] Folder changed mid-processing, aborting current cycle');
+          break;
+        }
+
         const op = syncQueueRef.current.shift()!;
 
         try {
@@ -152,7 +161,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
             // Upload new image (queueUpload already checks in-memory map)
             const fileId = await uploadImage(
               accessToken,
-              folderId,
+              currentFolderId,
               op.payload,
               op.mimeType || 'image/png',
               op.feature || 'unknown'
@@ -187,7 +196,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       if (failedOps.length > 0) {
         syncQueueRef.current.push(...failedOps);
         setSyncStatus('error');
-      } else {
+      } else if (syncQueueRef.current.length === 0) {
         setSyncStatus('synced');
         setLastSynced(new Date());
       }
@@ -197,12 +206,12 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
   }, [accessToken, folderId]);
 
   // --- Schedule queue processing with debounce ---
-  const scheduleProcessQueue = useCallback(() => {
+  const scheduleProcessQueue = useCallback((targetFolderId?: string) => {
     if (processTimerRef.current) {
       clearTimeout(processTimerRef.current);
     }
     processTimerRef.current = setTimeout(() => {
-      processQueue();
+      processQueue(targetFolderId);
     }, QUEUE_PROCESS_DELAY_MS);
   }, [processQueue]);
 
@@ -301,9 +310,9 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       processTimerRef.current = null;
     }
 
-    // Process immediately
-    await processQueue();
-  }, [processQueue]);
+    // Process immediately with current folderId
+    await processQueue(folderId || undefined);
+  }, [processQueue, folderId]);
 
   // --- Clear Error ---
   const clearError = useCallback(() => {
@@ -325,7 +334,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
   // --- Auto-process queue when folderId becomes available ---
   useEffect(() => {
     if (folderId && syncQueueRef.current.length > 0 && !isProcessingRef.current) {
-      scheduleProcessQueue();
+      scheduleProcessQueue(folderId);
     }
   }, [folderId, scheduleProcessQueue]);
 

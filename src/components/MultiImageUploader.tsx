@@ -84,7 +84,9 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
           try {
             return await compressImage(file);
           } catch (error) {
-            console.error("Error compressing image, falling back to original:", error);
+            if (import.meta.env.DEV) {
+              console.error("Error compressing image, falling back to original:", error);
+            }
             // Fallback to original file if compression fails
             return new Promise<ImageFile>((resolve, reject) => {
               const reader = new FileReader();
