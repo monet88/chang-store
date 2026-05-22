@@ -27,6 +27,9 @@ dist-ssr
 # Test coverage
 coverage/
 
+# Security reports (keep local only)
+vbsec-reports/
+
 # Temporary test scripts
 test-chat-service.ts
 test-chat-service.mjs

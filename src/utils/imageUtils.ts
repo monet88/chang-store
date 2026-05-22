@@ -1,5 +1,92 @@
 import { ImageFile, MarkerPosition } from "../types";
 
+/**
+ * Allowed MIME types for image uploads
+ */
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+/**
+ * Maximum upload file size: 20 MB
+ */
+const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+
+/**
+ * Magic byte signatures for supported image formats
+ */
+const MAGIC_BYTES = {
+  jpeg: [0xff, 0xd8, 0xff],
+  png: [0x89, 0x50, 0x4e, 0x47],
+  webp: [0x52, 0x49, 0x46, 0x46], // RIFF
+} as const;
+
+/**
+ * Validation result for image file uploads
+ */
+export interface ImageValidationResult {
+  readonly isValid: boolean;
+  readonly errorKey?: string;
+  readonly errorParams?: Record<string, any>;
+}
+
+/**
+ * Validate file size, MIME type, and magic bytes for image uploads.
+ * Rejects SVG, unknown MIME types, oversized files, and signature mismatches.
+ */
+export const validateImageFile = async (file: File): Promise<ImageValidationResult> => {
+  // Check file size
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return {
+      isValid: false,
+      errorKey: 'error.upload.fileTooLarge',
+      errorParams: { maxSize: '20MB' },
+    };
+  }
+
+  // Check MIME type allowlist
+  if (!ALLOWED_MIME_TYPES.includes(file.type as any)) {
+    return {
+      isValid: false,
+      errorKey: 'error.upload.unsupportedType',
+      errorParams: { type: file.type || 'unknown' },
+    };
+  }
+
+  // Read magic bytes to verify file signature
+  try {
+    const buffer = await file.slice(0, 12).arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+
+    const isJpeg = bytes[0] === MAGIC_BYTES.jpeg[0] &&
+                   bytes[1] === MAGIC_BYTES.jpeg[1] &&
+                   bytes[2] === MAGIC_BYTES.jpeg[2];
+
+    const isPng = bytes[0] === MAGIC_BYTES.png[0] &&
+                  bytes[1] === MAGIC_BYTES.png[1] &&
+                  bytes[2] === MAGIC_BYTES.png[2] &&
+                  bytes[3] === MAGIC_BYTES.png[3];
+
+    const isWebp = bytes[0] === MAGIC_BYTES.webp[0] &&
+                   bytes[1] === MAGIC_BYTES.webp[1] &&
+                   bytes[2] === MAGIC_BYTES.webp[2] &&
+                   bytes[3] === MAGIC_BYTES.webp[3] &&
+                   bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+
+    if (!isJpeg && !isPng && !isWebp) {
+      return {
+        isValid: false,
+        errorKey: 'error.upload.invalidSignature',
+      };
+    }
+  } catch (error) {
+    return {
+      isValid: false,
+      errorKey: 'error.upload.invalidSignature',
+    };
+  }
+
+  return { isValid: true };
+};
+
 export const getImageDimensions = (base64: string, mimeType: string): Promise<{ width: number, height: number }> => {
   return new Promise((resolve, reject) => {
     const img = new Image();

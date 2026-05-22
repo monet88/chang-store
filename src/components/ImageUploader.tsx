@@ -4,9 +4,8 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useImageGallery } from '../contexts/ImageGalleryContext';
-import { CloseIcon, CloudUploadIcon, DeleteIcon, GalleryIcon } from './Icons';
-import { compressImage } from '../utils/imageUtils';
+import { CloudUploadIcon, DeleteIcon, GalleryIcon } from './Icons';
+import { compressImage, validateImageFile } from '../utils/imageUtils';
 import ImageSelectionModal from './modals/ImageSelectionModal';
 
 interface ImageUploaderProps {
@@ -37,24 +36,31 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
 
   // Memoize processFile - prevents re-creation on every render
   const processFile = useCallback(async (file: File) => {
-    if (file && file.type.startsWith('image/')) {
-      try {
-        const compressedImage = await compressImage(file);
-        onImageUpload(compressedImage);
-      } catch (error) {
-        console.error("Error compressing image, falling back to original file:", error);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            const base64String = reader.result.split(',')[1];
-            onImageUpload({ base64: base64String, mimeType: file.type });
-          }
-        };
-        reader.onerror = (err) => {
-          console.error("FileReader error on fallback:", err);
-        };
-        reader.readAsDataURL(file);
-      }
+    if (!file) return;
+
+    // Validate file before processing
+    const validation = await validateImageFile(file);
+    if (!validation.isValid) {
+      console.error("Upload validation failed:", validation.errorKey);
+      return;
+    }
+
+    try {
+      const compressedImage = await compressImage(file);
+      onImageUpload(compressedImage);
+    } catch (error) {
+      console.error("Error compressing image, falling back to original file:", error);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          const base64String = reader.result.split(',')[1];
+          onImageUpload({ base64: base64String, mimeType: file.type });
+        }
+      };
+      reader.onerror = (err) => {
+        console.error("FileReader error on fallback:", err);
+      };
+      reader.readAsDataURL(file);
     }
   }, [onImageUpload]);
 

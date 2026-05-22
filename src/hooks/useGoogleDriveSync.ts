@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ImageFile, GalleryImageFile } from '../types';
+import { GalleryImageFile } from '../types';
 import { useGoogleDrive } from '../contexts/GoogleDriveContext';
 import {
   getOrCreateAppFolder,
@@ -321,6 +321,13 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
       }
     };
   }, []);
+
+  // --- Auto-process queue when folderId becomes available ---
+  useEffect(() => {
+    if (folderId && syncQueueRef.current.length > 0 && !isProcessingRef.current) {
+      scheduleProcessQueue();
+    }
+  }, [folderId, scheduleProcessQueue]);
 
   return {
     syncStatus,

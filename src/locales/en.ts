@@ -243,6 +243,11 @@ export const en = {
       geminiFailed: 'Gemini API call failed. Error: {{error}}',
       textToImageNotSupported: 'Text-to-image generation is not supported by the selected API provider.',
     },
+    upload: {
+      fileTooLarge: 'File is too large. Maximum size is {{maxSize}}.',
+      unsupportedType: 'Unsupported file type: {{type}}. Please upload JPEG, PNG, or WebP.',
+      invalidSignature: 'Invalid image file. The file signature does not match the declared type.',
+    },
   },
   gallery: {
     openAria: 'Open image gallery ({{count}} images)',

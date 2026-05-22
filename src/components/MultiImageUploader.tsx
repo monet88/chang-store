@@ -14,6 +14,7 @@ import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CloudUploadIcon, DeleteIcon } from './Icons';
 import { compressImage } from '../utils/imageUtils';
+import { validateImageFile } from '../utils/imageUtils';
 
 /**
  * Props for MultiImageUploader component
@@ -56,18 +57,30 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
    */
   const processFiles = useCallback(async (fileList: FileList) => {
     const files = Array.from(fileList);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+    // Validate each file before processing
+    const validationResults = await Promise.all(
+      files.map(async (file) => ({
+        file,
+        validation: await validateImageFile(file),
+      }))
+    );
+
+    // Filter valid files only
+    const validFiles = validationResults
+      .filter(result => result.validation.isValid)
+      .map(result => result.file);
 
     // Check max images limit
-    if (maxImages && images.length + imageFiles.length > maxImages) {
+    if (maxImages && images.length + validFiles.length > maxImages) {
       console.warn(`Maximum ${maxImages} images allowed`);
       return;
     }
 
     try {
-      // Process all images in parallel
+      // Process all valid images in parallel
       const processedImages = await Promise.all(
-        imageFiles.map(async (file) => {
+        validFiles.map(async (file) => {
           try {
             return await compressImage(file);
           } catch (error) {
