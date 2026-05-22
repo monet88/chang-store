@@ -40,9 +40,7 @@ export default defineConfig(({ mode }) => {
       define: {
         // Only inject Gemini API key in explicit development mode
         // Production must use serverless proxy - see docs/deployment.md
-        'process.env.GEMINI_API_KEY': mode === 'development' && process.env.VITE_ENABLE_DIRECT_GEMINI === 'true'
-          ? JSON.stringify(env.GEMINI_API_KEY)
-          : 'undefined',
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY),
         'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env.GOOGLE_CLIENT_ID)
       },
       resolve: {
