@@ -58,7 +58,7 @@ import {
 
 describe('apiClient', () => {
   /** Store original env value to restore after tests */
-  const originalApiKey = process.env.API_KEY;
+  const originalApiKey = process.env.GEMINI_API_KEY;
 
   beforeEach(() => {
     // Reset module state before each test
@@ -70,15 +70,15 @@ describe('apiClient', () => {
     constructorCalls.length = 0;
 
     // Clear environment variable by default
-    delete process.env.API_KEY;
+    delete process.env.GEMINI_API_KEY;
   });
 
   afterEach(() => {
     // Restore original environment variable
     if (originalApiKey !== undefined) {
-      process.env.API_KEY = originalApiKey;
+      process.env.GEMINI_API_KEY = originalApiKey;
     } else {
-      delete process.env.API_KEY;
+      delete process.env.GEMINI_API_KEY;
     }
   });
 
@@ -114,7 +114,7 @@ describe('apiClient', () => {
     it('should allow clearing the custom key by passing null', () => {
       // Arrange
       setGeminiApiKey('some-key');
-      process.env.API_KEY = 'env-key';
+      process.env.GEMINI_API_KEY = 'env-key';
 
       // Act
       setGeminiApiKey(null);
@@ -132,7 +132,7 @@ describe('apiClient', () => {
       // Arrange
       const customKey = 'my-custom-key';
       setGeminiApiKey(customKey);
-      delete process.env.API_KEY;
+      delete process.env.GEMINI_API_KEY;
 
       // Act
       const result = getActiveApiKey();
@@ -143,7 +143,7 @@ describe('apiClient', () => {
 
     it('should return environment variable when no custom key is set', () => {
       // Arrange
-      process.env.API_KEY = 'env-api-key-456';
+      process.env.GEMINI_API_KEY = 'env-api-key-456';
 
       // Act
       const result = getActiveApiKey();
@@ -155,7 +155,7 @@ describe('apiClient', () => {
     it('should throw error when no API key is configured', () => {
       // Arrange - ensure no keys are set
       setGeminiApiKey(null);
-      delete process.env.API_KEY;
+      delete process.env.GEMINI_API_KEY;
 
       // Act & Assert
       expect(() => getActiveApiKey()).toThrow(
@@ -166,7 +166,7 @@ describe('apiClient', () => {
     it('should prioritize environment variable over custom key', () => {
       // Arrange
       setGeminiApiKey('priority-custom-key');
-      process.env.API_KEY = 'env-always-wins';
+      process.env.GEMINI_API_KEY = 'env-always-wins';
 
       // Act
       const result = getActiveApiKey();
@@ -224,7 +224,7 @@ describe('apiClient', () => {
     it('should throw error if no API key is available', () => {
       // Arrange - no keys configured
       setGeminiApiKey(null);
-      delete process.env.API_KEY;
+      delete process.env.GEMINI_API_KEY;
 
       // Act & Assert
       expect(() => getGeminiClient()).toThrow(
@@ -234,7 +234,7 @@ describe('apiClient', () => {
 
     it('should use env key when no custom key is set', () => {
       // Arrange
-      process.env.API_KEY = 'env-key-for-client';
+      process.env.GEMINI_API_KEY = 'env-key-for-client';
 
       // Act
       getGeminiClient();
@@ -287,7 +287,7 @@ describe('apiClient', () => {
   describe('integration scenarios', () => {
     it('should handle complete key rotation workflow', () => {
       // Step 1: Start with env key
-      process.env.API_KEY = 'initial-env-key';
+      process.env.GEMINI_API_KEY = 'initial-env-key';
       const client1 = getGeminiClient();
       expect(constructorCalls[0]).toEqual({ apiKey: 'initial-env-key' });
 
@@ -298,7 +298,7 @@ describe('apiClient', () => {
       expect(client1).not.toBe(client2);
 
       // Step 3: Remove env key, custom key kicks in as fallback
-      delete process.env.API_KEY;
+      delete process.env.GEMINI_API_KEY;
       setGeminiApiKey('user-custom-key');
       const client3 = getGeminiClient();
       expect(constructorCalls[2]).toEqual({ apiKey: 'user-custom-key' });

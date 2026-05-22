@@ -10,8 +10,8 @@ export function setGeminiApiKey(key: string | null) {
 
 export function getActiveApiKey(): string {
     // Priority 1: Environment variable from .env.local (always wins)
-    if (process.env.API_KEY) {
-      return process.env.API_KEY;
+    if (process.env.GEMINI_API_KEY) {
+      return process.env.GEMINI_API_KEY;
     }
 
     // Priority 2: Custom key from Settings UI (fallback)
