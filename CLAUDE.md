@@ -27,6 +27,21 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only
 | Model registry | `src/config/modelRegistry.ts` |
 | Image processing | `src/utils/imageUtils.ts` |
 
+## Vite Environment Variables & Deployment (CRITICAL)
+
+**Vite only exposes env vars with `VITE_` prefix to client code.** Non-prefixed vars like `GEMINI_API_KEY` require explicit injection via `vite.config.ts` `define` block.
+
+When deploying to Vercel/Netlify/etc.:
+- Set env vars in the hosting platform dashboard (e.g., `GEMINI_API_KEY`)
+- Verify `vite.config.ts` injects the key for **all modes** (not just development):
+  ```js
+  'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY)
+  ```
+- Previously: key was only injected when `mode === 'development' && VITE_ENABLE_DIRECT_GEMINI === 'true'`
+- Result: production build on Vercel failed with "API_KEY is not configured"
+
+**Rule:** Always test production build (`npm run build`) before deploying. Check that Gemini API calls work in production, not just dev server.
+
 ## Architecture
 
 `Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API`
