@@ -52,6 +52,8 @@ opencode.json
 .osgrep
 
 # AI orchestration local files
+.claude/
+.claude/memory/
 .sisyphus/
 .beads/
 .gstack/
