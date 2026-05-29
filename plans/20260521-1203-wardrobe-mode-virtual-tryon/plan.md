@@ -1,6 +1,7 @@
 ---
-status: pending
+status: completed
 created: 2026-05-21
+completed: 2026-05-29
 scope: Virtual Try-On Wardrobe Mode
 brainstorm: plans/reports/brainstorm-20260521-wardrobe-mode.md
 ---
@@ -15,11 +16,11 @@ Add "Wardrobe" mode to Virtual Try-On: 1 model × N outfit sets → N images. In
 
 | # | Phase | Status | Files |
 |---|-------|--------|-------|
-| 1 | Types & data model | pending | `src/types.ts` |
-| 2 | Hook logic (wardrobe sub-hook) | pending | `src/hooks/useWardrobeMode.ts` (new), `src/hooks/useVirtualTryOn.ts` |
-| 3 | Component UI (mode toggle + wardrobe cards) | pending | `src/components/VirtualTryOn.tsx`, `src/components/WardrobeSetCard.tsx` (new) |
-| 4 | i18n strings | pending | `src/locales/en.ts`, `src/locales/vi.ts` |
-| 5 | Tests | pending | `__tests__/hooks/useWardrobeMode.test.tsx` (new), `__tests__/components/VirtualTryOn.test.tsx` |
+| 1 | Types & data model | completed | `src/types.ts` |
+| 2 | Hook logic (wardrobe sub-hook) | completed | `src/hooks/useWardrobeMode.ts` (new), `src/hooks/useVirtualTryOn.ts` |
+| 3 | Component UI (mode toggle + wardrobe cards) | completed | `src/components/VirtualTryOn.tsx`, `src/components/WardrobeSetCard.tsx` (new) |
+| 4 | i18n strings | completed | `src/locales/en.ts`, `src/locales/vi.ts` |
+| 5 | Tests | completed | `__tests__/hooks/useWardrobeMode.test.tsx` (new), `__tests__/components/VirtualTryOn.test.tsx` |
 
 ## Dependencies
 
@@ -42,11 +43,11 @@ Add "Wardrobe" mode to Virtual Try-On: 1 model × N outfit sets → N images. In
 
 | # | Phase | Status | Files |
 |---|-------|--------|-------|
-| 1 | Types & data model | pending | `src/types.ts` |
-| 2 | Hook logic (wardrobe sub-hook) | pending | `src/hooks/useWardrobeMode.ts` (new), `src/hooks/useVirtualTryOn.ts` |
-| 3 | Component UI (mode toggle + wardrobe cards) | pending | `src/components/VirtualTryOn.tsx`, `src/components/WardrobeSetCard.tsx` (new) |
-| 4 | i18n strings | pending | `src/locales/en.ts`, `src/locales/vi.ts` |
-| 5 | Tests | pending | `__tests__/hooks/useWardrobeMode.test.tsx` (new), `__tests__/components/VirtualTryOn.test.tsx` |
+| 1 | Types & data model | completed | `src/types.ts` |
+| 2 | Hook logic (wardrobe sub-hook) | completed | `src/hooks/useWardrobeMode.ts` (new), `src/hooks/useVirtualTryOn.ts` |
+| 3 | Component UI (mode toggle + wardrobe cards) | completed | `src/components/VirtualTryOn.tsx`, `src/components/WardrobeSetCard.tsx` (new) |
+| 4 | i18n strings | completed | `src/locales/en.ts`, `src/locales/vi.ts` |
+| 5 | Tests | completed | `__tests__/hooks/useWardrobeMode.test.tsx` (new), `__tests__/components/VirtualTryOn.test.tsx` |
 
 ## Validation Log
 
@@ -130,3 +131,10 @@ Add "Wardrobe" mode to Virtual Try-On: 1 model × N outfit sets → N images. In
 - Decision deltas checked: 8 (params interface, independent prompts, type mapping, namespaced return, isAnyGenerating, subject snapshot, concurrency cap, error field)
 - Reconciled stale references: 3 (phase-02 architecture, phase-03 requirements, phase-04 keys)
 - Unresolved contradictions: 0
+
+## Completion Sync
+
+### Session — 2026-05-29
+- Code audit verified Wardrobe Mode implementation exists across types, hook, UI, i18n, and tests.
+- Targeted validation passed: `npm run test -- __tests__/hooks/useWardrobeMode.test.tsx __tests__/components/VirtualTryOn.test.tsx` → 2 files, 43 tests.
+- Phase status and checkboxes synced from stale `pending` to `completed`.

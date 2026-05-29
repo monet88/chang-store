@@ -11,7 +11,7 @@
 ## Overview
 
 - Priority: Medium
-- Status: pending
+- Status: completed
 - Add tests for wardrobe sub-hook and wardrobe UI in component
 
 ## Requirements
@@ -44,15 +44,15 @@
 
 ## Todo
 
-- [ ] Hook: mode toggle test
-- [ ] Hook: wardrobe CRUD tests
-- [ ] Hook: generate validation tests
-- [ ] Hook: results grouping tests
-- [ ] Component: mode toggle render test
-- [ ] Component: wardrobe UI interaction tests
-- [ ] Component: generate button state tests
-- [ ] Regression: all existing tests pass
-- [ ] Coverage check
+- [x] Hook: mode toggle test
+- [x] Hook: wardrobe CRUD tests
+- [x] Hook: generate validation tests
+- [x] Hook: results grouping tests
+- [x] Component: mode toggle render test
+- [x] Component: wardrobe UI interaction tests
+- [x] Component: generate button state tests
+- [x] Regression: all existing tests pass
+- [x] Coverage check
 
 ## Success Criteria
 

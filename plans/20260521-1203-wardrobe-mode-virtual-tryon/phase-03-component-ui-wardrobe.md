@@ -11,7 +11,7 @@
 ## Overview
 
 - Priority: High
-- Status: pending
+- Status: completed
 - Add mode toggle UI and wardrobe set cards to VirtualTryOn component
 
 ## Key Insights
@@ -88,16 +88,16 @@ VirtualTryOn.tsx
 
 ## Todo
 
-- [ ] Add mode toggle segmented control
-- [ ] Conditionally render multi-model vs wardrobe UI
-- [ ] Implement wardrobe model uploader section
-- [ ] Create `WardrobeSetCard` component
-- [ ] Implement set management UI (add/remove sets)
-- [ ] Wire shared prompts to wardrobe generate
-- [ ] Implement wardrobe results grid (grouped by set)
-- [ ] Add loading/progress states for wardrobe generation
-- [ ] Verify component stays under 700 LOC (with extraction)
-- [ ] Visual QA in browser
+- [x] Add mode toggle segmented control
+- [x] Conditionally render multi-model vs wardrobe UI
+- [x] Implement wardrobe model uploader section
+- [x] Create `WardrobeSetCard` component
+- [x] Implement set management UI (add/remove sets)
+- [x] Wire shared prompts to wardrobe generate
+- [x] Implement wardrobe results grid (grouped by set)
+- [x] Add loading/progress states for wardrobe generation
+- [x] Verify component stays under 700 LOC (with extraction)
+- [x] Visual QA in browser
 
 ## Success Criteria
 

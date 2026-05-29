@@ -9,7 +9,7 @@
 ## Overview
 
 - Priority: Medium
-- Status: pending
+- Status: completed
 - Add all wardrobe mode translation keys
 
 ## Requirements
@@ -55,10 +55,10 @@ Add keys under `virtualTryOn` namespace for wardrobe mode UI elements.
 
 ## Todo
 
-- [ ] Add English keys
-- [ ] Add Vietnamese keys
-- [ ] Verify no duplicate keys
-- [ ] Verify `npx tsc --noEmit` passes
+- [x] Add English keys
+- [x] Add Vietnamese keys
+- [x] Verify no duplicate keys
+- [x] Verify `npx tsc --noEmit` passes
 
 ## Success Criteria
 

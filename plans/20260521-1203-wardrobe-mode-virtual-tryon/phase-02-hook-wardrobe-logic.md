@@ -12,7 +12,7 @@
 ## Overview
 
 - Priority: High
-- Status: pending
+- Status: completed
 - Create dedicated `useWardrobeMode` sub-hook for wardrobe state + generation. Parent hook adds mode toggle and merges return values.
 
 ## Key Insights
@@ -131,16 +131,16 @@ Return shape: parent returns { mode, setMode, isAnyGenerating, wardrobe: {...} }
 
 ## Todo
 
-- [ ] Create `src/hooks/useWardrobeMode.ts` with hook params interface
-- [ ] Add wardrobe-specific prompt state (independent from multi-model)
-- [ ] Implement CRUD with monotonic ID counter
-- [ ] Implement `generateWardrobe()` with subject snapshot + type mapping + functional updaters
-- [ ] Implement `downloadWardrobeResults()` with per-set prefix naming
-- [ ] Return namespaced object (not flat spread)
-- [ ] Add mode state + `isAnyGenerating` to `useVirtualTryOn.ts`
-- [ ] Integrate sub-hook via params from parent
-- [ ] Verify `npx tsc --noEmit` passes
-- [ ] Verify existing multi-model tests still pass
+- [x] Create `src/hooks/useWardrobeMode.ts` with hook params interface
+- [x] Add wardrobe-specific prompt state (independent from multi-model)
+- [x] Implement CRUD with monotonic ID counter
+- [x] Implement `generateWardrobe()` with subject snapshot + type mapping + functional updaters
+- [x] Implement `downloadWardrobeResults()` with per-set prefix naming
+- [x] Return namespaced object (not flat spread)
+- [x] Add mode state + `isAnyGenerating` to `useVirtualTryOn.ts`
+- [x] Integrate sub-hook via params from parent
+- [x] Verify `npx tsc --noEmit` passes
+- [x] Verify existing multi-model tests still pass
 
 ## Success Criteria
 

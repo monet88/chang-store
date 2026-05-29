@@ -8,7 +8,7 @@
 ## Overview
 
 - Priority: High
-- Status: pending
+- Status: completed
 - Add types for wardrobe mode without breaking existing Multi-Model flow
 
 ## Requirements
@@ -45,10 +45,10 @@
 
 ## Todo
 
-- [ ] Add `VirtualTryOnMode` type
-- [ ] Add `WardrobeSet` interface
-- [ ] Add `WardrobeResultSet` interface
-- [ ] Verify `npx tsc --noEmit` passes
+- [x] Add `VirtualTryOnMode` type
+- [x] Add `WardrobeSet` interface
+- [x] Add `WardrobeResultSet` interface
+- [x] Verify `npx tsc --noEmit` passes
 
 ## Success Criteria
 
