@@ -10,6 +10,8 @@
   `Feature` enum value.
 - Added backfilled docs for deployment, design, roadmap, codebase summary, PDR,
   and system architecture.
+- Added high-risk story packet and short API planning notes for the planned
+  three-provider studio work.
 
 ### Changed
 
@@ -18,6 +20,8 @@
 - Updated `docs/README.md` and `docs/product/README.md` to reflect the current
   documentation map.
 - Documented known service-boundary debt for `useWatermarkRemover.ts`.
+- Corrected the three-provider studio plan to use official xAI/OpenAI request
+  contracts and `ApiProviderContext` ownership for provider settings.
 
 ### Removed
 
