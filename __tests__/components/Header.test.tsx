@@ -11,6 +11,10 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'navigation.closeMenu': 'Close workspace menu',
         'header.title': 'Virtual Fashion Studio',
         'header.description': 'A cinematic AI workspace.',
+        'studio.switch.label': 'Studio',
+        'studio.switch.gemini': 'Gemini',
+        'studio.switch.grok': 'Grok',
+        'studio.switch.gptImage': 'GPT Image',
       };
 
       return translations[key] ?? key;
@@ -37,6 +41,8 @@ describe('Header', () => {
         setActiveFeature={vi.fn()}
         isOpen
         onClose={vi.fn()}
+        studioMode="gemini"
+        onStudioModeChange={vi.fn()}
       />,
     );
 

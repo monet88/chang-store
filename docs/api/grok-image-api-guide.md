@@ -1,6 +1,6 @@
 # Grok Image API Planning Notes
 
-Status: planning reference for `plans/260530-1351-three-provider-studios/`. The app runtime is still Gemini-only until the provider studio implementation lands.
+Status: implemented in the Grok provider studio (`src/services/providers/grok/grokImageService.ts`). This note records the request contract the service depends on. Recheck the official docs before changing the contract.
 
 ## Contract Source
 

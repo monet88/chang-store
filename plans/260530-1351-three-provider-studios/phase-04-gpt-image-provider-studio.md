@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "GPT Image Provider Studio"
-status: pending
+status: complete
 priority: P1
 effort: "1.5d"
 dependencies: [2, 3]

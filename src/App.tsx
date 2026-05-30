@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import { GlobalModelSelector } from './components/GlobalModelSelector';
-import { Feature, ImageFile } from './types';
+import { Feature, ImageFile, StudioMode, PROVIDER_SUPPORTED_FEATURES, isProviderSupportedFeature } from './types';
 import { ImageGalleryProvider } from './contexts/ImageGalleryContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ApiProvider, useApi } from './contexts/ApiProviderContext';
@@ -23,6 +23,9 @@ const AIEditor = lazy(() => import('./components/AIEditor'));
 const WatermarkRemover = lazy(() => import('./components/WatermarkRemover'));
 const ClothingTransfer = lazy(() => import('./components/ClothingTransfer'));
 const PatternGenerator = lazy(() => import('./components/PatternGenerator'));
+
+const GrokStudio = lazy(() => import('./components/studios/GrokStudio'));
+const GptImageStudio = lazy(() => import('./components/studios/GptImageStudio'));
 
 const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
 const PromptLibraryModal = lazy(() => import('./components/modals/PromptLibraryModal'));
@@ -53,6 +56,8 @@ const AppContent: React.FC = () => {
       ? (savedFeature as Feature)
       : Feature.TryOn;
   });
+
+  const [studioMode, setStudioMode] = useState<StudioMode>('gemini');
   
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
@@ -100,6 +105,17 @@ const AppContent: React.FC = () => {
   const handleSetActiveFeature = useCallback((feature: Feature) => {
     setActiveFeature(feature);
     setIsSidebarOpen(false);
+  }, []);
+
+  const handleStudioModeChange = useCallback((mode: StudioMode) => {
+    setStudioMode(mode);
+    setIsSidebarOpen(false);
+    // Clamp activeFeature so Gemini-only features never leak into provider mode.
+    if (mode !== 'gemini') {
+      setActiveFeature((current) =>
+        isProviderSupportedFeature(current) ? current : PROVIDER_SUPPORTED_FEATURES[0],
+      );
+    }
   }, []);
 
   const featureMeta: Record<Feature, { label: string; group: string; description: string }> = {
@@ -205,63 +221,80 @@ const AppContent: React.FC = () => {
           setActiveFeature={handleSetActiveFeature}
           isOpen={isSidebarOpen}
           onClose={handleCloseSidebar}
+          studioMode={studioMode}
+          onStudioModeChange={handleStudioModeChange}
         />
         <MobileMenuButton onClick={handleToggleSidebar} />
         <MobileOverlay isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
 
         <div className="min-h-screen lg:pl-[22rem]">
-          <main className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
-            <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
-              <section className="flex flex-col gap-5 border-b border-white/10 pb-7 sm:flex-row sm:items-end sm:justify-between">
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-                    {currentFeatureMeta.group}
-                  </p>
-                  <div className="space-y-2">
-                    <h2 className="text-4xl font-medium tracking-[-0.045em] text-zinc-50 sm:text-5xl">
-                      {currentFeatureMeta.label}
-                    </h2>
-                    <p className="max-w-4xl text-base leading-7 text-zinc-300 sm:text-lg">
-                      {currentFeatureMeta.description}
+          {studioMode === 'gemini' ? (
+            <main className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
+              <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
+                <section className="flex flex-col gap-5 border-b border-white/10 pb-7 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                      {currentFeatureMeta.group}
                     </p>
-                  </div>
-                </div>
-
-                <div className="flex w-full flex-col gap-3 sm:max-w-2xl sm:items-end">
-                  <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
-                    {activeModelSelectionScope && (
-                      <div className="w-full sm:w-64 shrink-0">
-                        <GlobalModelSelector
-                          ariaLabel={t(activeModelSelectionScope.labelKey)}
-                          label={t(activeModelSelectionScope.labelKey)}
-                          selectedModel={getSelectedModelBySelectionType(activeModelSelectionScope.selectionType)}
-                          options={activeModelSelectionScope.options}
-                          onChange={getModelSetterBySelectionType(activeModelSelectionScope.selectionType)}
-                        />
-                      </div>
-                    )}
-
-                    <div className="w-full sm:w-64 shrink-0">
-                      <GlobalModelSelector
-                        ariaLabel={t('settingsModal.fields.textGeneration')}
-                        label={t('settingsModal.fields.textGeneration')}
-                        selectedModel={textGenerateModel}
-                        options={textGenerationOptions}
-                        onChange={setTextGenerateModel}
-                      />
+                    <div className="space-y-2">
+                      <h2 className="text-4xl font-medium tracking-[-0.045em] text-zinc-50 sm:text-5xl">
+                        {currentFeatureMeta.label}
+                      </h2>
+                      <p className="max-w-4xl text-base leading-7 text-zinc-300 sm:text-lg">
+                        {currentFeatureMeta.description}
+                      </p>
                     </div>
                   </div>
 
-                </div>
-              </section>
+                  <div className="flex w-full flex-col gap-3 sm:max-w-2xl sm:items-end">
+                    <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+                      {activeModelSelectionScope && (
+                        <div className="w-full sm:w-64 shrink-0">
+                          <GlobalModelSelector
+                            ariaLabel={t(activeModelSelectionScope.labelKey)}
+                            label={t(activeModelSelectionScope.labelKey)}
+                            selectedModel={getSelectedModelBySelectionType(activeModelSelectionScope.selectionType)}
+                            options={activeModelSelectionScope.options}
+                            onChange={getModelSetterBySelectionType(activeModelSelectionScope.selectionType)}
+                          />
+                        </div>
+                      )}
 
-              <section className="min-h-[60vh]">
+                      <div className="w-full sm:w-64 shrink-0">
+                        <GlobalModelSelector
+                          ariaLabel={t('settingsModal.fields.textGeneration')}
+                          label={t('settingsModal.fields.textGeneration')}
+                          selectedModel={textGenerateModel}
+                          options={textGenerationOptions}
+                          onChange={setTextGenerateModel}
+                        />
+                      </div>
+                    </div>
+
+                  </div>
+                </section>
+
+                <section className="min-h-[60vh]">
+                  <Suspense fallback={<FeatureLoadingFallback />}>
+                    {renderActiveFeature()}
+                  </Suspense>
+                </section>
+              </div>
+            </main>
+          ) : (
+            <main className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
+              <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
                 <Suspense fallback={<FeatureLoadingFallback />}>
-                  {renderActiveFeature()}
+                  {studioMode === 'grok' && (
+                    <GrokStudio activeFeature={activeFeature} studioMode={studioMode} />
+                  )}
+                  {studioMode === 'gptImage' && (
+                    <GptImageStudio activeFeature={activeFeature} studioMode={studioMode} />
+                  )}
                 </Suspense>
-              </section>
-            </div>
-          </main>
+              </div>
+            </main>
+          )}
 
         </div>
 
@@ -269,6 +302,7 @@ const AppContent: React.FC = () => {
           onOpenGallery={handleOpenGallery}
           onOpenPromptLibrary={handleOpenPromptLibrary}
           onOpenSettings={handleOpenSettings}
+          studioMode={studioMode}
         />
 
         <Suspense fallback={null}>

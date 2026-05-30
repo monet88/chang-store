@@ -1,9 +1,9 @@
 ---
 title: "Three Provider Studios"
 description: "Split app entry into isolated Gemini, Grok, and GPT Image studios while preserving the existing Gemini pipeline."
-status: pending
+status: complete
 priority: P2
-branch: "docs/harness-backfill"
+branch: "feat/three-provider-studios"
 tags: [frontend, providers, image-api]
 blockedBy: []
 blocks: []
@@ -56,11 +56,11 @@ Add a header-level studio switcher with three choices: Gemini, Grok, and GPT Ima
 
 | Phase | Name | Status | Purpose |
 |-------|------|--------|---------|
-| 1 | [Studio Shell](./phase-01-studio-shell.md) | Pending | Add header switch, studio mode routing, sidebar swap — Gemini default, no launcher. |
-| 2 | [Shared Provider Components](./phase-02-shared-provider-studio-ui.md) | Pending | Build shared settings panel, results grid, retry utility, and response parser. |
-| 3 | [Grok Provider Studio](./phase-03-grok-provider-studio.md) | Pending | Implement Grok hook, registry, service, and 5 workflows sequentially. |
-| 4 | [GPT Image Provider Studio](./phase-04-gpt-image-provider-studio.md) | Pending | Implement GPT Image hook, service, multipart upload, and 5 workflows sequentially. |
-| 5 | [Tests Docs Validation](./phase-05-tests-docs-validation.md) | Pending | Add regression/provider tests, docs, and quality gates. |
+| 1 | [Studio Shell](./phase-01-studio-shell.md) | Complete | Add header switch, studio mode routing, sidebar swap — Gemini default, no launcher. |
+| 2 | [Shared Provider Components](./phase-02-shared-provider-studio-ui.md) | Complete | Build shared settings panel, results grid, retry utility, and response parser. |
+| 3 | [Grok Provider Studio](./phase-03-grok-provider-studio.md) | Complete | Implement Grok hook, registry, service, and 5 workflows sequentially. |
+| 4 | [GPT Image Provider Studio](./phase-04-gpt-image-provider-studio.md) | Complete | Implement GPT Image hook, service, multipart upload, and 5 workflows sequentially. |
+| 5 | [Tests Docs Validation](./phase-05-tests-docs-validation.md) | Complete | Add regression/provider tests, docs, and quality gates. |
 
 ## Dependencies
 
@@ -100,20 +100,54 @@ Add a header-level studio switcher with three choices: Gemini, Grok, and GPT Ima
 
 ## Success Criteria
 
-- [ ] App starts directly into Gemini workspace (no launcher gate).
-- [ ] Header shows three-segment studio switch control.
-- [ ] Gemini choice preserves existing app behavior with no provider-model pollution.
-- [ ] Switching to Grok/GPT unmounts previous studio and mounts new one (no state preservation).
-- [ ] Sidebar swaps to 5 provider features when in Grok/GPT mode.
-- [ ] Gallery hidden in UtilityDock when in Grok/GPT mode; Settings and PromptLibrary remain.
-- [ ] Grok/GPT support Virtual Try-On, Lookbook, Clothing Transfer, Pattern Generator, and AI Editor workflows.
-- [ ] Grok studio sends edit requests via official xAI JSON `image`/`images` object contract with user-selected `n` (1–10) and no more than 3 source images.
-- [ ] Grok generation/edit services prove `b64_json` output or fail with a typed unsupported-response error.
-- [ ] GPT Image studio sends edit requests via multipart repeated `image[]` uploads with user-selected quality + size.
-- [ ] Provider settings persist through `ApiProviderContext` (URL, API key) with env defaults.
-- [ ] Provider results remain local-only.
-- [ ] Shared retry utility handles 429/503/auth_unavailable for both providers.
-- [ ] TypeScript, lint, and relevant tests pass.
+- [x] App starts directly into Gemini workspace (no launcher gate).
+- [x] Header shows three-segment studio switch control.
+- [x] Gemini choice preserves existing app behavior with no provider-model pollution.
+- [x] Switching to Grok/GPT unmounts previous studio and mounts new one (no state preservation).
+- [x] Sidebar swaps to 5 provider features when in Grok/GPT mode.
+- [x] Gallery hidden in UtilityDock when in Grok/GPT mode; Settings and PromptLibrary remain.
+- [x] Grok/GPT support Virtual Try-On, Lookbook, Clothing Transfer, Pattern Generator, and AI Editor workflows.
+- [x] Grok studio sends edit requests via official xAI JSON `image`/`images` object contract with user-selected `n` (1–10) and no more than 3 source images.
+- [x] Grok generation/edit services prove `b64_json` output or fail with a typed unsupported-response error.
+- [x] GPT Image studio sends edit requests via multipart repeated `image[]` uploads with user-selected quality + size.
+- [x] Provider settings persist through `ApiProviderContext` (URL, API key) with env defaults.
+- [x] Provider results remain local-only.
+- [x] Shared retry utility handles 429/503/auth_unavailable for both providers.
+- [x] TypeScript, lint, and relevant tests pass.
+
+## Implementation Summary
+
+### Session 6 — 2026-05-30 (implementation via /ck:cook --auto)
+
+All five phases implemented and verified. Quality gates: `npx tsc --noEmit` clean,
+`npm run test` 626 passing across 55 files, `npm run build` succeeds (Grok/GPT
+studios code-split into lazy chunks).
+
+**New files (25):** `StudioModeSwitch`, `GrokStudio`, `GptImageStudio`,
+`ProviderSettingsPanel`, `ProviderResultsGrid`, `providerWorkflows`,
+`useGrokStudio`, `useGptImageStudio`, `grokModelRegistry`,
+`gptImageModelRegistry`, `providerRegistry`, `grokImageService`,
+`gptImageService`, shared `openaiCompatibleResponse` / `withRetry` /
+`validatePrompt` / `ProviderApiError` / `safeFetch`, `provider-url-validation`,
+plus mirrored tests.
+
+**Modified:** `App.tsx`, `types.ts`, `Header.tsx`, `Tabs.tsx`, `UtilityDock.tsx`,
+`ApiProviderContext.tsx`, `vite.config.ts`, `locales/en.ts`, `locales/vi.ts`,
+docs (`ARCHITECTURE.md`, `CHANGELOG.md`, `deployment-guide.md`, `api/*`), `.env.example`.
+
+**Architecture decisions honored:** Component → Hook → Service boundary kept
+(registry option lists exposed through hooks so studio components never import
+`src/config` or `src/services`). Gemini pipeline fully isolated — verified by
+`__tests__/config/providerIsolation.test.ts`.
+
+**Code review remediation (post-implementation):** services now block
+non-HTTPS/invalid base URLs before sending the bearer token; provider error
+i18n keys are self-contained; network failures map to a typed `networkError`
+via shared `safeFetch`.
+
+**Deferred (non-blocking follow-ups):** in-studio feature switch does not abort
+an in-flight request (studio-switch unmount does); a v2 serverless proxy is still
+planned so provider keys never reach the client bundle.
 
 ## Risks
 

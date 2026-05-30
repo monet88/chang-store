@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Grok Provider Studio"
-status: pending
+status: complete
 priority: P1
 effort: "1.5d"
 dependencies: [2]

@@ -19,9 +19,23 @@ non-prefixed `GEMINI_API_KEY` through explicit injection in `vite.config.ts`.
 | `GEMINI_API_KEY` | Yes | Gemini API key injected into the client build |
 | `VITE_GEMINI_API_KEY` | Alternative | Vite-prefixed fallback for Gemini key |
 | `VITE_ENABLE_DIRECT_GEMINI` | Optional | Development flag for direct Gemini usage |
+| `GROK_API_KEY` | For Grok studio | xAI API key injected into the client build |
+| `VITE_GROK_API_KEY` | Alternative | Vite-prefixed fallback for the Grok key |
+| `GROK_BASE_URL` | Optional | Override the Grok base URL (default `https://api.x.ai/v1`) |
+| `VITE_GROK_BASE_URL` | Alternative | Vite-prefixed fallback for the Grok base URL |
+| `GPT_IMAGE_API_KEY` | For GPT Image studio | OpenAI API key injected into the client build |
+| `VITE_GPT_IMAGE_API_KEY` | Alternative | Vite-prefixed fallback for the GPT Image key |
+| `GPT_IMAGE_BASE_URL` | Optional | Override the GPT Image base URL (default `https://api.openai.com/v1`) |
+| `VITE_GPT_IMAGE_BASE_URL` | Alternative | Vite-prefixed fallback for the GPT Image base URL |
 
 Production hosting must set `GEMINI_API_KEY` or `VITE_GEMINI_API_KEY` in the
-hosting dashboard.
+hosting dashboard. The Grok and GPT Image studios are usable without build-time
+keys — users can paste keys into each studio's settings panel at runtime (stored
+in localStorage). Build-time keys only provide a default.
+
+> Security: provider API keys are injected into the client bundle and stored in
+> the browser. This is accepted for v1. A serverless proxy is planned for v2 so
+> secrets never reach the client.
 
 ## Build Process
 

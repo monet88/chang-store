@@ -2,17 +2,27 @@ import React from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
 import Tabs from './Tabs';
-import { Feature } from '../types';
+import { Feature, StudioMode } from '../types';
 import { GalleryIcon } from './Icons';
+import StudioModeSwitch from './studios/StudioModeSwitch';
 
 interface HeaderProps {
   activeFeature: Feature;
   setActiveFeature: (feature: Feature) => void;
   isOpen: boolean;
   onClose: () => void;
+  studioMode: StudioMode;
+  onStudioModeChange: (mode: StudioMode) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeFeature, setActiveFeature, isOpen, onClose }) => {
+const Header: React.FC<HeaderProps> = ({
+  activeFeature,
+  setActiveFeature,
+  isOpen,
+  onClose,
+  studioMode,
+  onStudioModeChange,
+}) => {
   const { t } = useLanguage();
 
   return (
@@ -51,6 +61,12 @@ const Header: React.FC<HeaderProps> = ({ activeFeature, setActiveFeature, isOpen
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-6">
+        <div className="mb-4">
+          <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-zinc-500">
+            {t('studio.switch.label')}
+          </p>
+          <StudioModeSwitch studioMode={studioMode} onChange={onStudioModeChange} />
+        </div>
         <div className="mb-4 flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
             {t('navigation.toolsEyebrow')}
@@ -60,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({ activeFeature, setActiveFeature, isOpen
           </span>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto pb-3 pr-1">
-          <Tabs activeFeature={activeFeature} setActiveFeature={setActiveFeature} />
+          <Tabs activeFeature={activeFeature} setActiveFeature={setActiveFeature} studioMode={studioMode} />
         </nav>
       </div>
 

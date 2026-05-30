@@ -40,6 +40,30 @@ src/
 └── types.ts             # Shared type definitions + Feature enum
 ```
 
+## Studio Modes (three-provider split)
+
+`AppContent` holds a `StudioMode` state (`'gemini' | 'grok' | 'gptImage'`),
+toggled by `StudioModeSwitch` in the header. Gemini is the default and opens
+directly — there is no launcher gate.
+
+```text
+studioMode === 'gemini'  → Gemini workspace header + renderActiveFeature()
+studioMode === 'grok'    → GrokStudio (own content area)
+studioMode === 'gptImage'→ GptImageStudio (own content area)
+```
+
+Switching studios unmounts the previous one (no state preserved) and clamps
+`activeFeature` to `PROVIDER_SUPPORTED_FEATURES[0]` if the current feature is
+Gemini-only. Provider studios support five workflows (Try-On, Lookbook,
+Clothing Transfer, Pattern Generator, AI Editor) and render their own UI — they
+do NOT share the Gemini workspace header, model selector, or gallery.
+
+Provider studios are fully isolated from the Gemini pipeline: separate model
+registries (`grokModelRegistry.ts`, `gptImageModelRegistry.ts`), separate
+services (`src/services/providers/`), and no imports of Gemini prompt builders
+or `imageEditingService.ts`. Shared-only pieces are `ProviderSettingsPanel`,
+`ProviderResultsGrid`, and the utilities in `src/services/providers/shared/`.
+
 ## Feature Routing
 
 No React Router. `App.tsx` switches on the `Feature` enum with lazy-loading:
@@ -56,25 +80,11 @@ Feature.ClothingTransfer → ClothingTransfer.tsx
 Feature.PatternGenerator → PatternGenerator.tsx
 ```
 
-## Provider Nesting (order matters)
-
-```text
-LanguageProvider
-  → ToastProvider (lives in src/components/Toast.tsx)
-    → ApiProvider
-      → GoogleDriveProvider
-        → ImageGalleryProvider
-          → ImageViewerProvider
-            → AppContent
-```
-
-Each provider depends on its parent. Do not reorder.
-
 ## Service Routing
 
-All image operations route through `src/services/imageEditingService.ts`.
+All Gemini image operations route through `src/services/imageEditingService.ts`.
 This facade delegates to `src/services/gemini/image.ts` for the actual SDK
-calls. Never bypass the facade from hooks or components.
+calls. Never bypass the facade from Gemini hooks or components.
 
 ```text
 Hook → imageEditingService.editImage(params, model, config)
@@ -86,6 +96,13 @@ Hook → imageEditingService.editImage(params, model, config)
 
 Text generation routes through `src/services/textService.ts` which uses
 `src/services/gemini/text.ts`.
+
+Grok and GPT Image studios route through their own provider services
+(`src/services/providers/grok/`, `src/services/providers/gpt-image/`), which
+call the provider REST endpoints directly and normalize responses to local
+`ImageFile[]` via the shared OpenAI-compatible parser. xAI edits use a JSON
+`image`/`images` object contract; GPT Image edits use multipart `image[]`
+uploads.
 
 ## Model Selection
 

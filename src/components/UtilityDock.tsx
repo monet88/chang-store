@@ -3,20 +3,24 @@ import { useLanguage } from '../contexts/LanguageContext';
 import GalleryButton from './GalleryButton';
 import PromptLibraryFAB from './PromptLibraryFAB';
 import { ChevronDownIcon, ChevronUpIcon, EditorIcon } from './Icons';
+import { StudioMode } from '../types';
 
 interface UtilityDockProps {
   onOpenGallery: () => void;
   onOpenPromptLibrary: () => void;
   onOpenSettings: () => void;
+  studioMode?: StudioMode;
 }
 
 const UtilityDock: React.FC<UtilityDockProps> = ({
   onOpenGallery,
   onOpenPromptLibrary,
   onOpenSettings,
+  studioMode,
 }) => {
   const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
+  const showGallery = !studioMode || studioMode === 'gemini';
 
   return (
     <div className="fixed inset-x-4 bottom-4 z-30 flex justify-end lg:inset-x-auto lg:right-8 lg:bottom-8">
@@ -53,7 +57,7 @@ const UtilityDock: React.FC<UtilityDockProps> = ({
 
         {isExpanded && (
           <div id="studio-utilities-panel" className="flex flex-col gap-2 border-t border-white/10 pt-2">
-            <GalleryButton onClick={onOpenGallery} />
+            {showGallery && <GalleryButton onClick={onOpenGallery} />}
             <PromptLibraryFAB onClick={onOpenPromptLibrary} />
             <button
               type="button"

@@ -1,18 +1,24 @@
 # API Reference Notes
 
-This project is Gemini-only at runtime today. The provider notes in this
-directory are planning references for the three-provider studio plan and are not
-runtime implementation docs until that feature ships.
+This project ships three image studios at runtime: Gemini (default), Grok, and
+GPT Image. Gemini uses the Google GenAI SDK; the Grok and GPT Image studios call
+provider REST endpoints directly through provider-specific services. The notes
+in this directory document the provider request contracts these services rely
+on.
 
 ## Current Source of Truth
 
 - Gemini SDK usage: `src/services/gemini/`
 - Image service facade: `src/services/imageEditingService.ts`
 - Text service facade: `src/services/textService.ts`
-- Model registry: `src/config/modelRegistry.ts`
+- Gemini model registry: `src/config/modelRegistry.ts`
+- Grok studio service + registry: `src/services/providers/grok/grokImageService.ts`, `src/config/grokModelRegistry.ts`
+- GPT Image studio service + registry: `src/services/providers/gpt-image/gptImageService.ts`, `src/config/gptImageModelRegistry.ts`
+- Shared provider utilities: `src/services/providers/shared/`
+- Provider settings: `src/contexts/ApiProviderContext.tsx`
 - Deployment env vars: `docs/deployment-guide.md`
-- Grok planning notes: `docs/api/grok-image-api-guide.md`
-- GPT Image 2 planning notes: `docs/api/gpt-image-2-api-guide.md`
+- Grok contract notes: `docs/api/grok-image-api-guide.md`
+- GPT Image 2 contract notes: `docs/api/gpt-image-2-api-guide.md`
 
 ## Update Rule
 

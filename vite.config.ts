@@ -38,10 +38,17 @@ export default defineConfig(({ mode }) => {
         },
       },
       define: {
-        // Only inject Gemini API key in explicit development mode
-        // Production must use serverless proxy - see docs/deployment.md
+        // API keys are injected in ALL build modes and exposed in the client
+        // bundle. This is accepted for v1 — plan a serverless proxy for v2.
+        // See docs/deployment.md and the three-provider-studios plan.
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY),
-        'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env.GOOGLE_CLIENT_ID)
+        'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env.GOOGLE_CLIENT_ID),
+        // Provider studio keys/base URLs use non-prefixed hosting names with a
+        // VITE_-prefixed fallback for local .env files.
+        'process.env.GROK_API_KEY': JSON.stringify(env.GROK_API_KEY || env.VITE_GROK_API_KEY),
+        'process.env.GROK_BASE_URL': JSON.stringify(env.GROK_BASE_URL || env.VITE_GROK_BASE_URL),
+        'process.env.GPT_IMAGE_API_KEY': JSON.stringify(env.GPT_IMAGE_API_KEY || env.VITE_GPT_IMAGE_API_KEY),
+        'process.env.GPT_IMAGE_BASE_URL': JSON.stringify(env.GPT_IMAGE_BASE_URL || env.VITE_GPT_IMAGE_BASE_URL),
       },
       resolve: {
         alias: {

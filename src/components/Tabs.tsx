@@ -1,47 +1,71 @@
 import React from 'react';
-import { Feature } from '../types';
+import { Feature, PROVIDER_SUPPORTED_FEATURES, StudioMode } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface TabsProps {
   activeFeature: Feature;
   setActiveFeature: (feature: Feature) => void;
+  studioMode?: StudioMode;
 }
 
-const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature }) => {
+const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature, studioMode }) => {
   const { t } = useLanguage();
 
-  const groups = [
-    {
-      key: 'createLooks',
-      title: t('navigation.createLooks.label'),
-      description: t('navigation.createLooks.description'),
-      items: [
-        { id: Feature.TryOn, label: t('tabs.tryOn') },
-        { id: Feature.Lookbook, label: t('tabs.lookbook') },
-        { id: Feature.ClothingTransfer, label: t('tabs.clothingTransfer') },
-        { id: Feature.PatternGenerator, label: t('tabs.patternGenerator') },
-      ],
-    },
-    {
-      key: 'editImages',
-      title: t('navigation.editImages.label'),
-      description: t('navigation.editImages.description'),
-      items: [
-        { id: Feature.AIEditor, label: t('tabs.aiEditor') },
-        { id: Feature.Background, label: t('tabs.background') },
-        { id: Feature.Pose, label: t('tabs.pose') },
-        { id: Feature.WatermarkRemover, label: t('tabs.watermarkRemover') },
-      ],
-    },
-    {
-      key: 'outputStudio',
-      title: t('navigation.outputStudio.label'),
-      description: t('navigation.outputStudio.description'),
-      items: [
-        { id: Feature.PhotoAlbum, label: t('tabs.photoAlbum') },
-      ],
-    },
-  ];
+  const featureLabels: Record<Feature, string> = {
+    [Feature.TryOn]: t('tabs.tryOn'),
+    [Feature.Lookbook]: t('tabs.lookbook'),
+    [Feature.ClothingTransfer]: t('tabs.clothingTransfer'),
+    [Feature.PatternGenerator]: t('tabs.patternGenerator'),
+    [Feature.AIEditor]: t('tabs.aiEditor'),
+    [Feature.Background]: t('tabs.background'),
+    [Feature.Pose]: t('tabs.pose'),
+    [Feature.WatermarkRemover]: t('tabs.watermarkRemover'),
+    [Feature.PhotoAlbum]: t('tabs.photoAlbum'),
+  };
+
+  const isProviderMode = studioMode === 'grok' || studioMode === 'gptImage';
+
+  const groups = isProviderMode
+    ? [
+        {
+          key: 'providerFeatures',
+          title: t('studio.provider.featuresLabel'),
+          description: t('studio.provider.featuresDescription'),
+          items: PROVIDER_SUPPORTED_FEATURES.map((id) => ({ id, label: featureLabels[id] })),
+        },
+      ]
+    : [
+        {
+          key: 'createLooks',
+          title: t('navigation.createLooks.label'),
+          description: t('navigation.createLooks.description'),
+          items: [
+            { id: Feature.TryOn, label: featureLabels[Feature.TryOn] },
+            { id: Feature.Lookbook, label: featureLabels[Feature.Lookbook] },
+            { id: Feature.ClothingTransfer, label: featureLabels[Feature.ClothingTransfer] },
+            { id: Feature.PatternGenerator, label: featureLabels[Feature.PatternGenerator] },
+          ],
+        },
+        {
+          key: 'editImages',
+          title: t('navigation.editImages.label'),
+          description: t('navigation.editImages.description'),
+          items: [
+            { id: Feature.AIEditor, label: featureLabels[Feature.AIEditor] },
+            { id: Feature.Background, label: featureLabels[Feature.Background] },
+            { id: Feature.Pose, label: featureLabels[Feature.Pose] },
+            { id: Feature.WatermarkRemover, label: featureLabels[Feature.WatermarkRemover] },
+          ],
+        },
+        {
+          key: 'outputStudio',
+          title: t('navigation.outputStudio.label'),
+          description: t('navigation.outputStudio.description'),
+          items: [
+            { id: Feature.PhotoAlbum, label: featureLabels[Feature.PhotoAlbum] },
+          ],
+        },
+      ];
 
   return (
     <div className="space-y-7">
