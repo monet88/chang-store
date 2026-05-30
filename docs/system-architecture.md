@@ -1,50 +1,64 @@
 # System Architecture
 
-## Architecture Overview
-Chang-Store follows a strict unidirectional service architecture focused on separating UI from business logic and AI integration.
+This file is the legacy/living system architecture entrypoint. The detailed
+Harness-era architecture doc is `docs/ARCHITECTURE.md`.
 
-```mermaid
-graph TD
-    UI[Component UI Layer] --> Hook[Custom Hook Layer]
-    Hook --> Svc[imageEditingService.ts Facade]
-    Svc --> GeminiAPI[src/services/gemini/*]
-    GeminiAPI --> Google[Google Gemini API]
-    
-    Hook --> Ctx[Global Contexts]
-    Ctx --> Drive[Google Drive Sync]
+## Architecture Overview
+
+Chang Store is a client-only React/Vite SPA:
+
+```text
+React Component
+  → Feature Hook
+    → Service Facade
+      → Gemini SDK
+        → Google Gemini API
 ```
 
+There is no custom backend server. Persistence is browser-local with optional
+Google Drive sync.
+
 ## Component Roles
-1. **Component (Thin UI)**: Renders Tailwind-styled HTML and handles user interactions. Does not manage complex state or API calls.
-2. **Hook (State + Logic)**: Centralizes all logic, error handling, loading states, and side effects. Connects the Component to the Service layer.
-3. **Service Facade (`imageEditingService.ts`)**: Central router for all image-related API requests. Selects the correct model configuration using the model registry.
-4. **Gemini Service**: Handles low-level payload construction and direct interaction with the `@google/genai` SDK.
+
+| Layer | Responsibility |
+| --- | --- |
+| Components | Render UI and dispatch events |
+| Hooks | Manage feature state, API orchestration, error handling |
+| Services | Stateless provider/API wrappers |
+| Utils | Prompt builders, image helpers, storage/download helpers |
+| Contexts | App-wide state providers |
 
 ## Global State Providers
-The application is wrapped in a strict provider hierarchy to ensure dependencies are properly initialized:
-1. `LanguageProvider`
-2. `ToastProvider`
-3. `ApiProvider` (manages keys)
-4. `GoogleDriveProvider` (depends on ApiProvider)
-5. `ImageGalleryProvider`
-6. `ImageViewerProvider`
-7. `AppContent` (The main switch router based on `Feature` enum)
+
+Provider order:
+
+```text
+LanguageProvider
+  → ToastProvider
+    → ApiProvider
+      → GoogleDriveProvider
+        → ImageGalleryProvider
+          → ImageViewerProvider
+            → AppContent
+```
 
 ## Feature Routing
-Routing is handled manually without a router library. The `Feature` enum defines available screens: `TryOn`, `Lookbook`, `Background`, `Pose`, `PhotoAlbum`, `AIEditor`, `WatermarkRemover`, `ClothingTransfer`, `PatternGenerator`.
+
+`App.tsx` switches on `Feature` enum values and lazy-loads feature components.
+No React Router is used.
 
 ## Model Registry
-The `src/config/modelRegistry.ts` (218 LOC) maintains a capability registry mapping features to Gemini models. This centralized registry enables:
-- Feature-to-model routing
-- Model capability validation
-- Fallback model selection
-- Version management
+
+`src/config/modelRegistry.ts` defines selectable model IDs, labels, selection
+types, and capabilities such as aspect ratio and image size support.
 
 ## Error Handling Pattern
-All hooks follow a mandatory error handling pattern:
-```typescript
+
+Feature hooks should use:
+
+```ts
 try {
-  // API call or operation
+  // API call
 } catch (err) {
   setError(getErrorMessage(err, t));
 } finally {
@@ -52,22 +66,18 @@ try {
 }
 ```
 
-Error messages are localized via the `useLanguage()` hook and displayed through the `ToastProvider`.
-
 ## Data Persistence Layer
-- **IndexedDB**: Gallery images persisted via `idb-keyval` wrapper (`src/utils/galleryDB.ts`)
-- **Google Drive**: Cloud archiving and sync via `src/services/googleDriveService.ts` (411 LOC)
-- **Local Storage**: Settings and user preferences
+
+- IndexedDB: gallery and image cache.
+- localStorage: session state and preferences.
+- Google Drive: optional cloud sync.
 
 ## Prompt Builder Pattern
-Feature-specific prompt builders in `src/utils/` construct AI prompts with domain-specific logic:
-- `clothing-transfer-prompt-builder.ts` — Enforces source-destination separation and spatial realism
-- `virtual-try-on-prompt-builder.ts` — Handles source type selection and garment notes
-- `lookbookPromptBuilder.ts` — Lookbook composition and styling
-- `pattern-generator-prompt-builder.ts` — Pattern generation parameters
-- `watermark-prompts.ts` — Watermark removal strategies
+
+Feature-specific prompt construction lives in `src/utils/*-prompt-builder.ts`.
+This keeps prompts testable and prevents prompt logic from leaking into UI.
 
 ## Batch Processing
-- `src/utils/batch-image-session.ts` — Multi-image session management
-- `src/utils/run-bounded-workers.ts` — Bounded worker pool for parallel processing
-- Watermark removal and clothing transfer support batch operations
+
+Batch-capable features use bounded workers, per-item statuses, and ZIP download
+helpers where appropriate.

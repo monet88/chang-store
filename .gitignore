@@ -68,3 +68,9 @@ opencode.json
 .tokensave
 release-manifest.json
 .neuralmemory
+
+# Harness durable layer
+harness.db
+harness.db-wal
+harness.db-shm
+scripts/bin/harness-cli

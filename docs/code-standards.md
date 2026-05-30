@@ -1,60 +1,139 @@
-# Code Standards & Guidelines
+# Code Standards
 
-## Architecture Rules
-1. **Layered Architecture**: `Component (Thin UI) → Hook (Logic/State) → Service Facade → Gemini API`.
-2. **Components**: Must be thin UI wrappers with zero business logic. Never put business logic in components. Never call services directly from components; go through hooks.
-3. **Hooks**: All state, validation, API calls, and gallery integration belong in paired hooks.
-4. **Service Boundary**: Service routing stays centralized in `src/services/imageEditingService.ts` and fans into Gemini service modules under `src/services/gemini/`. Never bypass `imageEditingService.ts` for API calls.
-5. **No React Router**: `App.tsx` switches on `Feature` enum with lazy-loading.
-6. **Path Aliasing**: `@/*` maps to `src/`.
-
-## Coding Practices
-1. **TypeScript**: Do not suppress type errors with `@ts-ignore` or `any` unless absolutely necessary.
-2. **Error Handling**: Use the mandatory async hook error pattern:
-   ```typescript
-   try { ... } catch (err) { setError(getErrorMessage(err, t)); } finally { setIsLoading(false); }
-   ```
-3. **API Keys**: API keys must come from `ApiProviderContext`, never from hook state.
-4. **Styling**: Tailwind CSS only — no inline styles, no `@apply`. Follow the existing Runway-inspired patterns.
-5. **Localization (i18n)**: Manage strings via `src/locales/en.ts`. Usage pattern: `const { t } = useLanguage(); t('key.path')`.
-6. **File Modification**: Edit existing files in place. Never create duplicate variations like `FeatureV2.tsx` or `Utils_new.ts`.
-
-## Testing
-- After substantive changes, run `npx tsc --noEmit` and `npm run lint`.
-- Use Vitest and React Testing Library for component testing.
-- UI service-import boundary tests are located in `__tests__/components/ui-boundary-imports.test.ts`.
-
-## Contexts & Providers
-Provider nesting order matters and each depends on the parent:
-`LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent`
-(Note: `ToastProvider` lives in `src/components/Toast.tsx`, not in `contexts/`)
+Project-specific conventions for chang-store. These complement the harness
+operating rules and the architecture doc.
 
 ## File Organization
-- **Components:** One component per file, thin UI wrappers only
-- **Hooks:** One hook per feature, centralizes all state and logic
-- **Services:** Stateless API facades, organized by domain (Gemini modules in `src/services/gemini/`)
-- **Utils:** Pure functions, prompt builders, helpers organized by concern
-- **Contexts:** Global state providers with strict nesting order
-- **Locales:** i18n strings organized by feature/domain
 
-## Prompt Builder Pattern
-Feature-specific prompt builders in `src/utils/` construct AI prompts:
-- Each builder exports a function that takes feature parameters and returns a prompt string
-- Builders enforce domain-specific constraints (e.g., clothing transfer enforces source-destination separation)
-- Builders are pure functions with no side effects
+| Directory | Naming | Max Lines |
+| --- | --- | --- |
+| `src/components/` | PascalCase `.tsx` | 200 |
+| `src/hooks/` | camelCase `use*.ts` | 200 |
+| `src/services/` | camelCase `.ts` | 200 |
+| `src/utils/` | kebab-case `.ts` | 200 |
+| `src/contexts/` | PascalCase `*Context.tsx` | 200 |
+| `src/locales/` | lowercase `.ts` | no limit (i18n) |
 
-## Batch Processing Pattern
-- `batch-image-session.ts` manages multi-image sessions
-- `run-bounded-workers.ts` provides a bounded worker pool for parallel processing
-- Features like watermark removal and clothing transfer support batch operations
-- Batch operations respect API rate limits and memory constraints
+When a file exceeds 200 lines, extract into smaller focused modules.
 
-## Data Persistence
-- **IndexedDB:** Gallery images persisted via `idb-keyval` wrapper in `src/utils/galleryDB.ts`
-- **Google Drive:** Cloud archiving via `src/services/googleDriveService.ts` (411 LOC)
-- **Local Storage:** Settings and user preferences via `src/utils/storage.ts`
+## Component Pattern
 
-## Model Registry
-- `src/config/modelRegistry.ts` (218 LOC) maintains feature-to-model mapping
-- Centralized capability registry enables feature routing and fallback selection
-- Never hardcode model names in components or hooks; use the registry
+Components are thin UI wrappers. They:
+
+- Render JSX using data from their paired hook.
+- Dispatch user actions to hook callbacks.
+- Contain zero business logic, zero API calls, zero state derivation.
+
+```tsx
+const MyFeature: React.FC = () => {
+  const { data, isLoading, error, handleGenerate } = useMyFeature();
+  // render only — no logic here
+};
+```
+
+## Hook Pattern
+
+Every feature component has a paired hook (`useFeatureName.ts`). Hooks own:
+
+- All `useState` / `useRef` for the feature.
+- API call orchestration via service facades.
+- Error handling with the standard pattern.
+- Gallery integration (`addImage` from `useImageGallery`).
+
+## Error Handling
+
+Mandatory pattern in all hooks that call services:
+
+```tsx
+try {
+  // API call
+} catch (err) {
+  setError(getErrorMessage(err, t));
+} finally {
+  setIsLoading(false);
+}
+```
+
+`getErrorMessage` from `src/utils/imageUtils.ts` extracts user-friendly
+messages. Always pass the `t` function for i18n error strings.
+
+## Service Boundaries
+
+- Components must not import from `src/services/*` directly.
+- Hooks call `imageEditingService` or `textService` — never `gemini/*` directly.
+- Services are stateless — no `useState`, no context access.
+- API keys come from `ApiProviderContext`, passed through hooks to services.
+
+Known boundary debt: `src/hooks/useWatermarkRemover.ts` currently imports
+`@/services/gemini/image` directly. Treat this as existing debt to fix during a
+service-boundary cleanup, not as the pattern for new hooks.
+
+## Styling
+
+- **Tailwind CSS only** — no inline styles, no `@apply`, no CSS modules.
+- Follow existing Runway-inspired patterns as the canonical UI reference.
+- Use design tokens from Tailwind config for colors, spacing, typography.
+
+## i18n
+
+- Source of truth: `src/locales/en.ts`.
+- Mirror: `src/locales/vi.ts` (must stay in sync).
+- Usage: `const { t } = useLanguage(); t('key.path')`.
+- Never hardcode user-facing strings in components or hooks.
+
+## TypeScript
+
+- Strict mode enabled.
+- No `@ts-ignore` or `any` unless absolutely necessary with a comment.
+- Shared types in `src/types.ts`.
+- Feature-local types can live in the hook file if small.
+- Run `npx tsc --noEmit` after changes to verify.
+
+## Imports
+
+- Path alias: `@/*` maps to `src/`.
+- Prefer `@/` imports over relative paths for cross-directory references.
+- Relative imports within the same directory are fine.
+
+## Naming Conventions
+
+| Entity | Convention | Example |
+| --- | --- | --- |
+| Component | PascalCase | `VirtualTryOn` |
+| Hook | camelCase with `use` prefix | `useVirtualTryOn` |
+| Service function | camelCase | `editImage` |
+| Util function | camelCase | `getErrorMessage` |
+| Prompt builder | kebab-case file, camelCase exports | `virtual-try-on-prompt-builder.ts` |
+| Type/Interface | PascalCase | `ImageFile`, `LookbookSet` |
+| Enum | PascalCase enum, PascalCase values | `Feature.TryOn` |
+| Constants | UPPER_SNAKE_CASE | `MAX_CLOTHING_SLOTS` |
+
+## Quality Gates
+
+Run before committing:
+
+```bash
+npx tsc --noEmit    # Type check
+npm run lint        # ESLint
+npm run test        # Vitest
+```
+
+All three must pass. Do not suppress errors to pass the build.
+
+## Adding a New Feature
+
+1. Add enum value to `src/types.ts` → `Feature.XxxYyy`
+2. Create `src/components/XxxYyy.tsx` — thin UI wrapper
+3. Create `src/hooks/useXxxYyy.ts` — all logic
+4. Add lazy import + switch case in `src/App.tsx`
+5. Add i18n keys to `src/locales/en.ts` and `vi.ts`
+6. If new prompt logic needed: `src/utils/xxx-yyy-prompt-builder.ts`
+
+## Prohibited Patterns
+
+- Business logic in components.
+- Direct service imports in components.
+- Inline styles or CSS files.
+- `console.log` in production code (use `debugService` for API logging).
+- Mutable state patterns — prefer immutable updates.
+- Creating `*V2.tsx` or `*_new.ts` files — edit in place.

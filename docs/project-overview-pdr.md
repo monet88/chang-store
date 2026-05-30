@@ -1,35 +1,52 @@
-# Project Overview & PDR (Product Development Requirements)
+# Project Overview & PDR
 
 ## Project Overview
-Chang-Store is an AI-powered virtual fashion studio built as a React 19 + TypeScript + Vite Single Page Application (SPA). It uses a Gemini-only AI backend via the Google Gemini SDK. The application supports fashion image creation, editing, gallery review, and Google Drive-backed archive workflows.
 
-## Core Features
-1. **Virtual Try-on**: Try clothes on models using generative AI integration.
-2. **Lookbook Generation**: Automatically curate and generate fashion lookbooks.
-3. **Background Replacement**: Swap image backgrounds for varied aesthetics.
-4. **Pose Changing**: Control and change the poses of subjects in fashion shots.
-5. **Photo Album**: Generate complete photo albums with frames, backgrounds, and poses.
-6. **AI Editor**: Prompt-driven AI image generation with refinement and editing.
-7. **Pattern Generator**: Create fashion patterns from text descriptions.
-8. **Clothing Transfer**: Transfer clothing between images with generative AI.
-9. **Watermark Removal**: Remove watermarks from images with batch processing support.
+Chang Store is an AI-powered virtual fashion studio. Users upload people,
+clothing, and reference images, then generate fashion imagery with Gemini AI.
+The product replaces parts of a photoshoot workflow with browser-based AI tools.
 
 ## Target Audience
-- Fashion designers and stylists
-- E-commerce clothing retailers
-- AI fashion enthusiasts and digital artists
 
-## Product Goals
-- Provide a Runway-inspired, premium, and fast user interface.
-- Ensure state-of-the-art AI generation powered strictly by Google Gemini SDK.
-- Offer secure, Google Drive-backed local archives and synchronization.
+- Fashion e-commerce teams.
+- Social/content creators.
+- Designers testing outfit combinations.
+- Individual users exploring virtual styling.
 
-## Technology Stack
-- **Frontend**: React 19.2.3, TypeScript 5.8.3, Vite 6.4.1
-- **Styling**: Tailwind CSS 4.1.18, PostCSS
-- **State Management**: React Context & Hooks
-- **AI Backend**: `@google/genai` 1.38.0 (Google Gemini SDK)
-- **Data Persistence**: IndexedDB (via `idb-keyval` 6.2.2), Google Drive API
-- **Export**: ZIP downloads (via `jszip` 3.10.1)
-- **Testing**: Vitest 4.0.17, React Testing Library
-- **Tooling**: ESLint 9.39.2, TSX, SWC transpiler
+## Core Requirements
+
+- Let users upload image inputs safely in the browser.
+- Generate fashion outputs through Gemini image models.
+- Keep feature UIs fast and understandable.
+- Persist outputs locally and optionally sync to Google Drive.
+- Support English and Vietnamese UI strings.
+- Keep deployment as a static Vite SPA.
+
+## Core Features
+
+| Feature | Requirement |
+| --- | --- |
+| Virtual Try-On | Dress subject images in clothing items |
+| Lookbook | Generate editorial/product fashion spreads |
+| Background | Replace backgrounds with prompts or presets |
+| Pose | Change subject pose from references or library poses |
+| Photo Album | Batch-create themed album images |
+| AI Editor | Free-form image editing with prompt and @mentions |
+| Watermark Remover | Batch remove watermarks with retry/download flows |
+| Clothing Transfer | Transfer worn clothing from source to target person |
+| Pattern Generator | Generate and refine textile/fabric patterns |
+
+## Non-Functional Requirements
+
+- TypeScript compile cleanly.
+- Components remain thin; hooks own business logic.
+- API keys are provided by environment/runtime config, never hardcoded.
+- User-facing text goes through i18n.
+- Generated images are downloadable and storable.
+
+## References
+
+- `docs/product/overview.md`
+- `docs/product/*.md`
+- `docs/ARCHITECTURE.md`
+- `docs/code-standards.md`

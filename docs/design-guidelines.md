@@ -1,35 +1,55 @@
 # Design Guidelines
 
+Chang Store uses a Runway-inspired fashion studio interface: editorial,
+image-forward, dark surfaces, precise controls, and polished tool panels.
+
 ## Visual Style
-- **Aesthetic**: Runway-inspired, premium, and minimalistic.
-- **Styling Strategy**: Use Tailwind CSS v4 exclusively. No inline styles. No `@apply` directives.
-- **Colors & Typography**: Rely on the defined Tailwind theme. Utilize glassmorphism, dynamic animations, and high-contrast elements where appropriate for a "virtual studio" feel.
+
+- Prioritize generated images and uploaded assets over decorative UI.
+- Use high-contrast dark surfaces with subtle borders and layered panels.
+- Keep controls compact but readable for creative workflow density.
+- Preserve strong hierarchy: feature header → upload/config panel → results.
 
 ## Component Design
-- **Thin UI Wrappers**: Components should only contain render logic and UI event bindings.
-- **Error States**: Display errors via the central `ToastProvider` or inline using localized strings.
-- **Loading States**: All generative actions must have clear, elegant loading indicators (spinners or skeleton loaders).
 
-## Localization (i18n)
-- Source of truth is `src/locales/en.ts` (~1,011 LOC).
-- `src/locales/vi.ts` serves as the translation mirror (~1,014 LOC).
-- Always implement text rendering using:
-  ```typescript
-  const { t } = useLanguage();
-  t('key.path');
-  ```
-- Do not hardcode strings in components.
+- Components should look intentional, not default Tailwind templates.
+- Use consistent button, tab, upload, modal, and image-card patterns.
+- Prefer reusable shared components in `src/components/` when behavior repeats.
+- Keep feature components thin; visual composition only.
+
+## Styling Rules
+
+- Tailwind CSS only.
+- No inline styles.
+- No CSS modules.
+- No `@apply`.
+- Follow existing UI patterns before inventing new variants.
+
+## Localization
+
+- All user-facing copy must use `useLanguage()` and `t('key.path')`.
+- `src/locales/en.ts` is source of truth.
+- `src/locales/vi.ts` mirrors the English keys.
+- Avoid hardcoded strings in feature components and hooks.
 
 ## Accessibility
-- Use semantic HTML elements (button, input, form, etc.)
-- Ensure all interactive elements are keyboard accessible
-- Provide ARIA labels for icon-only buttons and complex components
-- Maintain sufficient color contrast (WCAG AA minimum)
-- Test with screen readers during development
+
+- Interactive elements need visible hover/focus/active states.
+- Use semantic HTML for buttons, forms, dialogs, and navigation.
+- Minimum touch target: 44px where practical.
+- Preserve keyboard access for modals and menus.
+- Do not rely on color alone to communicate state.
 
 ## Responsive Design
-- Mobile-first approach using Tailwind breakpoints
-- Test at key breakpoints: 320px, 375px, 768px, 1024px, 1440px, 1920px
-- Ensure no horizontal overflow on mobile devices
-- Touch-friendly interactive elements (minimum 44px tap targets)
-- Flexible layouts using Tailwind's responsive utilities
+
+Test at key breakpoints:
+
+- 320px
+- 375px
+- 768px
+- 1024px
+- 1440px
+- 1920px
+
+Avoid horizontal overflow on mobile. Use Tailwind responsive utilities and keep
+image grids flexible.
