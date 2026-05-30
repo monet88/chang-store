@@ -1,5 +1,7 @@
 # Agent Instructions
 
+Always reponse in Vietnamese
+
 ## Chang Store — AI-Powered Virtual Fashion Studio
 
 React 19 + TypeScript + Vite SPA. Gemini-only AI backend via Google Gemini SDK.
