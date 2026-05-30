@@ -11,15 +11,15 @@ dependencies: [2]
 
 ## Overview
 
-Implement the Grok studio with dedicated hook, model registry, and service. Grok supports five feature workflows through official xAI JSON image generation/edit endpoints. Each workflow is implemented and tested sequentially before moving to the next. Uses shared retry utility and response parser from Phase 2 after the service proves or normalizes `b64_json` image output.
+Implement the Grok studio with dedicated hook, model registry, and service. Grok supports five feature workflows through official xAI JSON image generation/edit endpoints. Each workflow is implemented and tested sequentially before moving to the next. Uses shared retry utility and response parser from Phase 2 with explicit `response_format: 'b64_json'` requests.
 
 ## Requirements
 
 - Functional: Grok studio supports five feature workflows: Virtual Try-On, Lookbook, Clothing Transfer, Pattern Generator, AI Editor.
 - Functional: Workflows implemented sequentially — each tested before starting the next.
-- Functional: Model: `grok-imagine-image-quality` unless current official xAI docs confirm additional supported models before implementation.
+- Functional: Models: support `grok-imagine-image` and `grok-imagine-image-quality`; default to `grok-imagine-image-quality` unless product direction changes.
 - Functional: All requests are JSON; single-image edit uses an `image` object and multi-image edit uses an `images` object array.
-- Functional: User selects output count `n` via slider (1–10); enforce the official multi-image edit limit of 3 source images.
+- Functional: User selects output count `n` via slider (1–10), aspect ratio from xAI-supported presets, and resolution (`1k` or `2k`); enforce the official multi-image edit limit of 3 source images.
 - Functional: Provider settings are read from `ApiProviderContext` with env defaults and localStorage override.
 - Functional: Results are local-only; no `ImageGalleryContext.addImage` calls and no "Send to PhotoAlbum" cross-studio transfer.
 - Non-functional: No imports from Gemini `imageEditingService.ts`, Gemini model registry, or Gemini prompt builders.
@@ -45,20 +45,25 @@ Grok request contracts:
 // generate
 POST /v1/images/generations
 {
-  model: 'grok-imagine-image-quality',
+  model: 'grok-imagine-image' | 'grok-imagine-image-quality',
   prompt: string,
   n: number (1–10),   // user-selected via slider
-  size: '1024x1024'
+  aspect_ratio: '1:1' | '2:3' | '3:2' | '9:16' | '16:9' | 'auto',
+  resolution: '1k' | '2k',
+  response_format: 'b64_json'
 }
 
 // edit
 POST /v1/images/edits
 {
-  model: 'grok-imagine-image-quality',
+  model: 'grok-imagine-image' | 'grok-imagine-image-quality',
   prompt: string,
   image?: { type: 'image_url', url: string },
   images?: Array<{ type: 'image_url', url: string }>,
-  n: number (1–10)   // user-selected via slider
+  n: number (1–10),   // user-selected via slider
+  aspect_ratio?: '1:1' | '2:3' | '3:2' | '9:16' | '16:9' | 'auto',
+  resolution: '1k' | '2k',
+  response_format: 'b64_json'
 }
 ```
 
@@ -91,9 +96,9 @@ Each workflow: implement → test → verify → next.
 
 ## Implementation Steps
 
-1. Define Grok model registry with labels, max outputs (10), max reference images (3), and response-time guidance.
-2. Implement `generateGrokImage` — JSON body, validate n, validate prompt via `validatePrompt()`, request or prove `b64_json` response output, use `withRetry` with AbortSignal, parse with `parseOpenAIResponse`. Throw `ProviderApiError` on non-2xx and throw a typed unsupported-response error if only URLs are returned.
-3. Implement `editGrokImage` — JSON body with official `image` object for one source or `images` object array for multiple sources. Validate max 3 reference images before the network call. Throw `ProviderApiError` on non-2xx.
+1. Define Grok model registry with labels for `grok-imagine-image` and `grok-imagine-image-quality`, max outputs (10), max reference images (3), aspect ratio presets, resolution options (`1k`, `2k`), and response-time guidance.
+2. Implement `generateGrokImage` — JSON body, validate n/aspect ratio/resolution, validate prompt via `validatePrompt()`, request `response_format: 'b64_json'`, use `withRetry` with AbortSignal, parse with `parseOpenAIResponse`. Throw `ProviderApiError` on non-2xx and throw a typed unsupported-response error if the provider returns only URLs.
+3. Implement `editGrokImage` — JSON body with official `image` object for one source or `images` object array for multiple sources, `response_format: 'b64_json'`, selected resolution, and selected aspect ratio when applicable. Validate max 3 reference images before the network call. Throw `ProviderApiError` on non-2xx.
 4. Implement `useGrokStudio` hook: receives `studioMode` as argument (props drilling, no context). Manage feature, settings, model, prompt, images, n (slider), loading, errors, local results. Create `AbortController` on mount; abort on unmount via useEffect cleanup. Pass signal to all service calls. Disable submit button while `loading` is true (prevents double-submit).
 5. Build `GrokStudio.tsx` with its own workflow UI:
    - Sidebar shows 5 provider features (via Phase 1 sidebar swap).
@@ -110,9 +115,9 @@ Each workflow: implement → test → verify → next.
 
 - [ ] Grok studio settings panel loads env defaults and accepts runtime overrides.
 - [ ] All five feature workflows work via Grok service calls.
-- [ ] User can select `n` (1–10) via slider in workflow panel.
+- [ ] User can select `n` (1–10), aspect ratio, and resolution in workflow panel.
 - [ ] Edit sends official xAI JSON `image` or `images` object shape, not multipart and not a raw data URI array.
-- [ ] Service proves `b64_json` output or fails with a typed unsupported-response error before UI wiring depends on local-only images.
+- [ ] Service requests `response_format: 'b64_json'` and fails with a typed unsupported-response error if the provider returns only URLs.
 - [ ] More than 3 reference images fails before network call.
 - [ ] `n > 10` fails before network call.
 - [ ] Retry handles 429/503 transient errors.
@@ -134,3 +139,4 @@ Each workflow: implement → test → verify → next.
 <!-- Updated: Validation Session 2 — Hook receives studioMode as argument (props drilling, no context) -->
 <!-- Updated: Red Team Session — AbortController on mount/unmount, prompt validation, ProviderApiError throw contract, payload size validation, loading state disables submit -->
 <!-- Updated: Session 3 — xAI contract corrected to JSON image/images objects, max 3 sources, ApiProviderContext settings, and explicit b64_json proof requirement -->
+<!-- Updated: Session 5 — xAI REST Images reference proves aspect_ratio/resolution and response_format=b64_json for generation and edits; supports grok-imagine-image and grok-imagine-image-quality -->

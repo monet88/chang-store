@@ -7,6 +7,7 @@ Status: planning reference for `plans/260530-1351-three-provider-studios/`. The 
 - xAI image generation docs: `https://docs.x.ai/developers/model-capabilities/images/generation`
 - xAI image editing docs: `https://docs.x.ai/developers/model-capabilities/images/editing`
 - xAI multi-image editing docs: `https://docs.x.ai/developers/model-capabilities/images/multi-image-editing`
+- xAI REST Images reference: `https://docs.x.ai/developers/rest-api-reference/inference/images`
 
 Recheck these official docs immediately before implementation.
 
@@ -24,14 +25,18 @@ Endpoint: `POST /v1/images/generations`
 {
   "model": "grok-imagine-image-quality",
   "prompt": "A fashion editorial product photo",
-  "n": 1
+  "n": 1,
+  "aspect_ratio": "2:3",
+  "resolution": "1k",
+  "response_format": "b64_json"
 }
 ```
 
 Notes:
 
 - `n` supports 1 to 10 outputs.
-- xAI returns image URLs by default. The Chang Store provider service must request or prove `b64_json` output, or fail with a typed unsupported-response error until URL conversion or a proxy exists.
+- The REST Images reference documents `response_format: "b64_json"` and `data[].b64_json` for image output.
+- xAI supports `aspect_ratio` presets including `1:1`, `2:3`, `3:2`, `9:16`, and `16:9`, plus `resolution` values `1k` and `2k`.
 
 ## Editing
 
@@ -46,7 +51,9 @@ Single-image edit:
   "image": {
     "type": "image_url",
     "url": "data:image/jpeg;base64,..."
-  }
+  },
+  "resolution": "1k",
+  "response_format": "b64_json"
 }
 ```
 
@@ -59,7 +66,10 @@ Multi-image edit:
   "images": [
     { "type": "image_url", "url": "data:image/jpeg;base64,..." },
     { "type": "image_url", "url": "data:image/jpeg;base64,..." }
-  ]
+  ],
+  "aspect_ratio": "3:2",
+  "resolution": "1k",
+  "response_format": "b64_json"
 }
 ```
 
@@ -67,6 +77,7 @@ Notes:
 
 - xAI image editing uses JSON, not multipart.
 - Multi-image editing supports up to 3 source images.
+- The REST Images reference documents `response_format: "b64_json"` and `data[].b64_json` for edits.
 - The raw `images[]` data URI array from earlier plan drafts is incorrect.
 
 ## Plan Implications

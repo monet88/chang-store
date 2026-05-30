@@ -74,3 +74,5 @@ harness.db
 harness.db-wal
 harness.db-shm
 scripts/bin/harness-cli
+.kiro
+.planning

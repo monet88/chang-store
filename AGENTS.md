@@ -16,6 +16,22 @@ React 19 + TypeScript + Vite SPA. Gemini-only AI backend via Google Gemini SDK.
 | Model registry | `src/config/modelRegistry.ts` |
 | i18n strings | `src/locales/en.ts` (source) + `vi.ts` (mirror) |
 | Feature behavior | `docs/product/<feature>.md` |
+| Image processing | `src/utils/imageUtils.ts` |
+| Global state | `src/contexts/` |
+
+### Project Map
+
+| Directory | Role |
+|-----------|------|
+| `src/components/` | UI layer — thin wrappers, feature screens, shared UI, `modals/` |
+| `src/hooks/` | Feature logic + state (one hook per feature) |
+| `src/services/` | API facades (stateless), incl. `gemini/` |
+| `src/contexts/` | Global state providers |
+| `src/utils/` | Pure helpers, prompt builders (`*-prompt-builder.ts`) |
+| `src/config/` | Model capability registry (`modelRegistry.ts`) |
+| `src/locales/` | i18n: `en.ts` (source of truth) + `vi.ts` |
+| `__tests__/` | Mirrors `src/` |
+| `docs/` | Architecture, design guidelines, code standards, API refs |
 
 ### Architecture Pattern
 
@@ -26,16 +42,27 @@ Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API
 - Components: zero business logic, render only.
 - Hooks: own all state, API calls, error handling.
 - Services: stateless facades, never import hooks or components.
-- Components must not import services directly.
+- Components must not import services directly — use paired hooks.
+- No React Router — `App.tsx` switches on `Feature` enum with lazy-loading.
 
 ### Feature Enum
 
 Features route via `Feature` enum in `src/types.ts`:
-`TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator`
+`TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator | WardrobeMode`
+
+### Adding a Feature (5-step checklist)
+
+1. `src/types.ts` → add `Feature.XxxYyy`
+2. `src/components/XxxYyy.tsx` — thin UI (see any existing feature component)
+3. `src/hooks/useXxxYyy.ts` — all logic (see any existing feature hook)
+4. `src/App.tsx` — lazy import + switch case
+5. `src/locales/en.ts` → add keys; `vi.ts` → add translations
 
 ### Provider Order (do not reorder)
 
 `LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent`
+
+`ToastProvider` lives in `src/components/Toast.tsx`, NOT in `contexts/`.
 
 ### Quality Gates
 
@@ -43,15 +70,41 @@ Features route via `Feature` enum in `src/types.ts`:
 npx tsc --noEmit    # Type check
 npm run lint        # ESLint
 npm run test        # Vitest
+npm run dev         # Dev server (port 3000)
+npm run build       # Production build
 ```
+
+After any substantive code changes, run `npx tsc --noEmit` and `npm run lint`. Do not suppress type errors with `@ts-ignore` or `any` unless absolutely necessary.
 
 ### Key Constraints
 
-- Tailwind only — no inline styles, no CSS modules.
+- Tailwind only — no inline styles, no CSS modules, no `@apply`.
 - Never bypass `imageEditingService.ts` for API calls.
 - API keys from `ApiProviderContext`, never hook state.
 - Path alias: `@/*` → `src/`.
 - i18n: never hardcode user-facing strings.
+- Edit files in place. Never create `FeatureV2.tsx` or `Utils_new.ts`.
+- Default branch is `main`. Never use `master`.
+- Mandatory error handling: `try { ... } catch (err) { setError(getErrorMessage(err, t)); } finally { setIsLoading(false); }`
+
+### Vite Environment Variables (Critical)
+
+Vite only exposes env vars with `VITE_` prefix. Non-prefixed vars like `GEMINI_API_KEY` require explicit injection via `vite.config.ts` `define` block. Always test `npm run build` before deploying — verify Gemini API calls work in production, not just dev.
+
+### Service Boundaries
+
+UI service-import debt has been cleaned up. Components must not import `src/services/*` directly; use paired hooks. Boundary coverage: `__tests__/components/ui-boundary-imports.test.ts`.
+
+### Test Images
+
+Test images in `docs/image-test/`:
+- `people.jpg` — person/model
+- `outfit.jpg` — clothing/outfit
+- `shoes.jpg` — footwear
+
+### Third-Party Libraries
+
+Search online for latest documentation via Context7 MCP or web search. Do not hallucinate APIs.
 
 <!-- HARNESS:BEGIN -->
 ## Harness
