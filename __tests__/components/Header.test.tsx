@@ -48,8 +48,6 @@ describe('Header', () => {
 
     expect(screen.getByText('Virtual Fashion Studio')).toBeInTheDocument();
     expect(screen.getByText('A cinematic AI workspace.')).toBeInTheDocument();
-    expect(screen.getByText('Tool clusters')).toBeInTheDocument();
-    expect(screen.getByText('Media-first')).toBeInTheDocument();
     expect(screen.getByText('tabs')).toBeInTheDocument();
     expect(screen.getByText('language-switcher')).toBeInTheDocument();
   });

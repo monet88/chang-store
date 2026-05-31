@@ -49,7 +49,7 @@ const AIEditor: React.FC = () => {
       <div className="flex flex-col gap-6">
         {/* Header */}
         <div className="text-center">
-          <h2 className="text-xl md:text-2xl font-bold mb-1">{t('aiEditor.title')}</h2>
+          <h3 className="text-xl md:text-2xl font-bold mb-1">{t('aiEditor.title')}</h3>
           <p className="text-zinc-400 max-w-lg mx-auto">{t('aiEditor.description')}</p>
         </div>
 

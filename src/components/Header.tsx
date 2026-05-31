@@ -62,18 +62,7 @@ const Header: React.FC<HeaderProps> = ({
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-6">
         <div className="mb-4">
-          <p className="mb-3 text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-            {t('studio.switch.label')}
-          </p>
           <StudioModeSwitch studioMode={studioMode} onChange={onStudioModeChange} />
-        </div>
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            {t('navigation.toolsEyebrow')}
-          </p>
-          <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-zinc-400">
-            {t('navigation.mediaFirstLabel')}
-          </span>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto pb-3 pr-1">
           <Tabs activeFeature={activeFeature} setActiveFeature={setActiveFeature} studioMode={studioMode} />
@@ -81,11 +70,6 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="mt-6 border-t border-white/10 pt-4">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-            {t('navigation.language')}
-          </p>
-        </div>
         <LanguageSwitcher />
       </div>
     </aside>

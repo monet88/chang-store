@@ -105,7 +105,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
               <button
                 type="button"
                 onClick={addReference}
-                className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-white/12 py-3 text-xs uppercase tracking-[0.22em] text-zinc-400 transition-colors hover:border-white/24 hover:text-zinc-100"
+                className="mt-4 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-white/12 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-white/24 hover:text-zinc-100"
               >
                 <AddIcon className="h-3.5 w-3.5" />
                 {t('clothingTransfer.addOutfit')}
@@ -194,7 +194,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                 type="button"
                 onClick={handleGenerate}
                 disabled={isLoading || anyUpscaling || !canGenerate}
-                className="w-full rounded-[1.25rem] bg-[var(--workspace-accent)] px-4 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-[var(--workspace-accent-text)] hover:opacity-92 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500"
+                className="flex min-h-[48px] w-full items-center justify-center rounded-[1.25rem] bg-[var(--workspace-accent)] px-4 py-3.5 text-base font-semibold tracking-[-0.01em] text-[var(--workspace-accent-text)] transition-opacity hover:opacity-92 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500"
               >
                 {isLoading ? <Spinner /> : t('clothingTransfer.generateButton')}
               </button>
@@ -231,7 +231,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                     type="button"
                     onClick={handleDownloadAll}
                     disabled={isLoading}
-                    className="runway-action-secondary px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="runway-action-secondary px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {t('common.downloadBatch')}
                   </button>
@@ -258,89 +258,88 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
               {conceptItems.flatMap((item, itemIdx) =>
                 item.results.length > 0
                   ? item.results.map((image, index) => {
-                      const key = `${item.id}:${index}`;
-                      const isOpen = !!refineOpen[key];
-                      const isCurrentlyRefining = !!isRefining[key];
+                    const key = `${item.id}:${index}`;
+                    const isOpen = !!refineOpen[key];
+                    const isCurrentlyRefining = !!isRefining[key];
 
-                      return (
-                        <div key={key} className="animate-fade-in flex flex-col gap-1" style={{ animationDelay: `${(itemIdx * 4 + index) * 60}ms` }}>
-                          <div className="relative overflow-hidden rounded-[1.5rem] border border-white/8 bg-black/30 p-2">
-                            <HoverableImage
-                              image={image}
-                              altText={`${t('clothingTransfer.conceptBatchLabel', { index: itemIdx + 1 })} - ${t('generatedImage.altText')} ${index + 1}`}
-                              downloadPrefix={Feature.ClothingTransfer}
-                              onRegenerate={() => handleRegenerateSingle(item.id)}
-                              onUpscale={() => handleUpscale(image, index, item.id)}
-                              isGenerating={isLoading}
-                              isUpscaling={upscalingStates[key]}
-                              onSendToFeature={onSendToFeature ? () => onSendToFeature(Feature.PhotoAlbum, image) : undefined}
-                            />
-                            {conceptItems.length > 1 && (
-                              <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full border border-white/10 bg-black/70 px-2 py-1 backdrop-blur-sm">
-                                <div className="h-4 w-4 overflow-hidden rounded border border-zinc-600">
-                                  <img src={`data:${item.conceptImage.mimeType};base64,${item.conceptImage.base64}`} alt="" className="h-full w-full object-cover" />
-                                </div>
-                                <span className="text-[10px] font-medium text-zinc-300">#{itemIdx + 1}</span>
+                    return (
+                      <div key={key} className="animate-fade-in flex flex-col gap-1" style={{ animationDelay: `${(itemIdx * 4 + index) * 60}ms` }}>
+                        <div className="relative overflow-hidden rounded-[1.5rem] border border-white/8 bg-black/30 p-2">
+                          <HoverableImage
+                            image={image}
+                            altText={`${t('clothingTransfer.conceptBatchLabel', { index: itemIdx + 1 })} - ${t('generatedImage.altText')} ${index + 1}`}
+                            downloadPrefix={Feature.ClothingTransfer}
+                            onRegenerate={() => handleRegenerateSingle(item.id)}
+                            onUpscale={() => handleUpscale(image, index, item.id)}
+                            isGenerating={isLoading}
+                            isUpscaling={upscalingStates[key]}
+                            onSendToFeature={onSendToFeature ? () => onSendToFeature(Feature.PhotoAlbum, image) : undefined}
+                          />
+                          {conceptItems.length > 1 && (
+                            <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full border border-white/10 bg-black/70 px-2 py-1 backdrop-blur-sm">
+                              <div className="h-4 w-4 overflow-hidden rounded border border-zinc-600">
+                                <img src={`data:${item.conceptImage.mimeType};base64,${item.conceptImage.base64}`} alt="" className="h-full w-full object-cover" />
                               </div>
-                            )}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => toggleRefine(key)}
-                            className={`mt-2 flex w-fit items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] transition-all ${
-                              isOpen ? 'border-white/10 bg-[var(--workspace-accent)] text-[var(--workspace-accent-text)]' : 'border-transparent text-zinc-500 hover:border-white/10 hover:bg-white/5 hover:text-zinc-200'
-                            }`}
-                          >
-                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
-                            </svg>
-                            {isOpen ? t('imageActions.refineButton') : `✏️ ${t('imageActions.refineButton')}`}
-                          </button>
-
-                          {isOpen && (
-                            <div className="flex animate-fade-in gap-1.5">
-                              <input
-                                type="text"
-                                value={refinePrompts[key] || ''}
-                                onChange={(e) => setRefinePrompts((prev) => ({ ...prev, [key]: e.target.value }))}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleRefine(image, index, item.id, refinePrompts[key] || '');
-                                }}
-                                placeholder={t('imageActions.refinePromptPlaceholder')}
-                                autoFocus
-                                className="workspace-input flex-1 min-w-0 px-3 py-2 text-xs"
-                                disabled={isCurrentlyRefining}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleRefine(image, index, item.id, refinePrompts[key] || '')}
-                                disabled={isCurrentlyRefining || !(refinePrompts[key] || '').trim()}
-                                className="runway-action flex-shrink-0 px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed"
-                              >
-                                {isCurrentlyRefining ? <Spinner /> : '↵'}
-                              </button>
+                              <span className="text-[10px] font-medium text-zinc-300">#{itemIdx + 1}</span>
                             </div>
                           )}
                         </div>
-                      );
-                    })
+
+                        <button
+                          type="button"
+                          onClick={() => toggleRefine(key)}
+                          className={`mt-2 flex w-fit items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] transition-all ${isOpen ? 'border-white/10 bg-[var(--workspace-accent)] text-[var(--workspace-accent-text)]' : 'border-transparent text-zinc-500 hover:border-white/10 hover:bg-white/5 hover:text-zinc-200'
+                            }`}
+                        >
+                          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
+                          </svg>
+                          {isOpen ? t('imageActions.refineButton') : `✏️ ${t('imageActions.refineButton')}`}
+                        </button>
+
+                        {isOpen && (
+                          <div className="flex animate-fade-in gap-1.5">
+                            <input
+                              type="text"
+                              value={refinePrompts[key] || ''}
+                              onChange={(e) => setRefinePrompts((prev) => ({ ...prev, [key]: e.target.value }))}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRefine(image, index, item.id, refinePrompts[key] || '');
+                              }}
+                              placeholder={t('imageActions.refinePromptPlaceholder')}
+                              autoFocus
+                              className="workspace-input flex-1 min-w-0 px-3 py-2 text-xs"
+                              disabled={isCurrentlyRefining}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRefine(image, index, item.id, refinePrompts[key] || '')}
+                              disabled={isCurrentlyRefining || !(refinePrompts[key] || '').trim()}
+                              className="runway-action flex-shrink-0 px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed"
+                            >
+                              {isCurrentlyRefining ? <Spinner /> : '↵'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                   : item.status === 'processing' || item.status === 'pending'
                     ? [
-                        <div key={`${item.id}-skeleton`} className={`relative flex aspect-[3/4] flex-col items-center justify-center gap-2 rounded-[1.5rem] border border-white/8 ${item.status === 'processing' ? 'animate-pulse bg-white/5' : 'bg-white/[0.03]'}`}>
-                          {item.status === 'processing' ? (
-                            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-100" />
-                          ) : (
-                            <p className="text-xs text-zinc-500">{t('clothingTransfer.waitingStatus')}</p>
-                          )}
-                          <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full border border-white/10 bg-black/70 px-2 py-1 backdrop-blur-sm">
-                            <div className="h-4 w-4 overflow-hidden rounded border border-zinc-600">
-                              <img src={`data:${item.conceptImage.mimeType};base64,${item.conceptImage.base64}`} alt="" className="h-full w-full object-cover" />
-                            </div>
-                            <span className="text-[10px] font-medium text-zinc-300">#{itemIdx + 1}</span>
+                      <div key={`${item.id}-skeleton`} className={`relative flex aspect-[3/4] flex-col items-center justify-center gap-2 rounded-[1.5rem] border border-white/8 ${item.status === 'processing' ? 'animate-pulse bg-white/5' : 'bg-white/[0.03]'}`}>
+                        {item.status === 'processing' ? (
+                          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-100" />
+                        ) : (
+                          <p className="text-xs text-zinc-500">{t('clothingTransfer.waitingStatus')}</p>
+                        )}
+                        <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full border border-white/10 bg-black/70 px-2 py-1 backdrop-blur-sm">
+                          <div className="h-4 w-4 overflow-hidden rounded border border-zinc-600">
+                            <img src={`data:${item.conceptImage.mimeType};base64,${item.conceptImage.base64}`} alt="" className="h-full w-full object-cover" />
                           </div>
-                        </div>,
-                      ]
+                          <span className="text-[10px] font-medium text-zinc-300">#{itemIdx + 1}</span>
+                        </div>
+                      </div>,
+                    ]
                     : [],
               )}
             </div>
