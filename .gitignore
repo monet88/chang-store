@@ -81,3 +81,4 @@ scripts/bin/harness-cli
 .impeccable-audit.md
 audit-*.png
 .impeccable/live/sessions/
+.antigravitycli/
