@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { validateProviderBaseUrl } from '../../../utils/provider-url-validation';
+import { panelClass } from './provider-studio-styles';
 
 interface ProviderSettingsPanelProps {
   /** Provider display label (e.g. "Grok", "GPT Image"). */
@@ -32,7 +33,7 @@ const ProviderSettingsPanel: React.FC<ProviderSettingsPanelProps> = ({
   const urlValidation = useMemo(() => validateProviderBaseUrl(baseUrl), [baseUrl]);
 
   return (
-    <div className="workspace-panel flex flex-col gap-4 p-5">
+    <div className={`${panelClass} flex flex-col gap-4`}>
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400">
           {t('studio.settings.title', { provider: providerLabel })}

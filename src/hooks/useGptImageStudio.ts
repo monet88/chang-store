@@ -21,6 +21,12 @@ import { useProviderStudioFields, UseProviderStudioFieldsReturn } from './usePro
 import { useProviderResultActions, UseProviderResultActionsReturn } from './useProviderResultActions';
 import { useProviderTryOnBatch, UseProviderTryOnBatchReturn } from './useProviderTryOnBatch';
 import { useProviderLookbookFields, UseProviderLookbookFieldsReturn } from './useProviderLookbookFields';
+import { useProviderWardrobe, UseProviderWardrobeReturn } from './useProviderWardrobe';
+import { VirtualTryOnMode, VirtualTryOnClothingItem } from '../types';
+
+/** GPT wardrobe caps: 2 sets, concurrency 1 — GPT multipart edits are slow and
+ * tunnel-timeout-prone, so wardrobe is bounded hard (Red Team #3 / plan caps). */
+const GPT_WARDROBE_CONFIG = { maxSets: 2, maxItemsPerSet: 4, concurrency: 1 };
 
 export interface UseGptImageStudioReturn extends UseProviderStudioFieldsReturn, UseProviderResultActionsReturn, UseProviderTryOnBatchReturn, UseProviderLookbookFieldsReturn {
   apiKey: string;
@@ -45,6 +51,9 @@ export interface UseGptImageStudioReturn extends UseProviderStudioFieldsReturn, 
   clearError: () => void;
   handleGenerate: () => Promise<void>;
   maxReferenceImages: number;
+  tryOnMode: VirtualTryOnMode;
+  setTryOnMode: (mode: VirtualTryOnMode) => void;
+  wardrobe: UseProviderWardrobeReturn;
 }
 
 /**
@@ -75,26 +84,9 @@ export const useGptImageStudio = (
   const batch = useProviderTryOnBatch(t);
   const lookbook = useProviderLookbookFields();
 
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [tryOnMode, setTryOnMode] = useState<VirtualTryOnMode>('multi-model');
 
-  // Reset transient workflow state when the active feature changes, and abort
-  // any request that was started for the previous feature so a late-arriving
-  // response cannot overwrite the new feature's state.
-  useEffect(() => {
-    abortControllerRef.current?.abort();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    setPrompt('');
-    setImages([]);
-    setResults([]);
-    setError(null);
-    fields.resetFields();
-    batch.resetExtras();
-    lookbook.resetLookbookFields();
-    return () => {
-      controller.abort();
-    };
-  }, [activeFeature]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Build the request images for one Try-On run: optionally swap the subject
   // (image[0]) for a batch subject and composite the multi-person marker.
@@ -132,6 +124,52 @@ export const useGptImageStudio = (
     },
     [activeFeature, prompt, images, fields, batch.isMultiPersonMode, batch.markerPosition, lookbook.lookbookState, lookbook.lookbookFabricImage, prepareImages, size, quality, settings.apiKey, settings.baseUrl],
   );
+
+  // Wardrobe: generate one set as a multipart edit (subject + the set's items).
+  // Service call lives here so `useProviderWardrobe` stays service-agnostic
+  // (Red Team #2). GPT runs serially with a 2-set cap (config above).
+  const generateSet = useCallback(
+    async (
+      subject: ImageFile,
+      items: VirtualTryOnClothingItem[],
+      prompts: { backgroundPrompt: string; extraPrompt: string },
+      signal?: AbortSignal,
+    ): Promise<ImageFile[]> => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const withImage = items.filter((i) => i.image !== null);
+      const requestImages = [subject, ...withImage.map((i) => i.image as ImageFile)];
+      const composedPrompt = buildProviderStudioPrompt(Feature.TryOn, '', requestImages, {
+        sourceItemTypes: withImage.map((i) => i.sourceItemType),
+        sourceItemNotes: withImage.map((i) => i.sourcePrompt),
+        backgroundPrompt: prompts.backgroundPrompt,
+        extraPrompt: prompts.extraPrompt,
+      });
+      return editGptImage({ model: DEFAULT_GPT_IMAGE_MODEL, prompt: composedPrompt, images: requestImages, size, quality }, config, signal);
+    },
+    [settings.apiKey, settings.baseUrl, size, quality],
+  );
+
+  const wardrobe = useProviderWardrobe(generateSet, GPT_WARDROBE_CONFIG, t);
+
+  // Reset transient workflow state on active-feature change + abort in-flight
+  // requests. Covers tryOnMode + wardrobe sets/results (Red Team #5, #6).
+  useEffect(() => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setPrompt('');
+    setImages([]);
+    setResults([]);
+    setError(null);
+    setTryOnMode('multi-model');
+    fields.resetFields();
+    batch.resetExtras();
+    lookbook.resetLookbookFields();
+    wardrobe.reset();
+    return () => {
+      controller.abort();
+    };
+  }, [activeFeature]);
 
   // Per-tile result actions (refine / upscale / regenerate). GPT Image has no
   // native resolution flag, so upscale relies on a preservation prompt at the
@@ -230,5 +268,8 @@ export const useGptImageStudio = (
     ...batch,
     ...lookbook,
     maxReferenceImages: MAX_GPT_REFERENCE_IMAGES,
+    tryOnMode,
+    setTryOnMode,
+    wardrobe,
   };
 };

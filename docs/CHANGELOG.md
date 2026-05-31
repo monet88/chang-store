@@ -2,6 +2,23 @@
 
 ## [Unreleased] — 2026-05-31
 
+### Added
+
+- Provider studio UI parity with Gemini (Phases 1–4 checkpoint, plan
+  `260531-2132-provider-studio-ui-parity`): extracted a shared
+  `ProviderStudioShell` + `ProviderStudioController` so Grok and GPT studios no
+  longer duplicate layout; stepped, rounded-card panels (Upload → Customize →
+  Generate) via `StepPanel` + shared `provider-studio-styles`; Gemini-style
+  per-item source cards (`ProviderSourceItemCard`/`Grid`) with centralized
+  index-aligned add/remove/update helpers in `useProviderStudioFields`; and a
+  Multi-Model / Wardrobe toggle backed by a service-agnostic
+  `useProviderWardrobe` engine (GPT capped at 2 sets, concurrency 1, with a time
+  warning). Provider results remain local-only; the Gemini pipeline is
+  untouched. Lookbook rich output (Phase 5) is a planned follow-up.
+- Hook-scoped boundary test forbidding `src/services`/`src/config` imports in
+  shared `src/hooks/useProvider*.ts` helpers, and an en/vi locale key-parity
+  test to prevent silent translation drift.
+
 ### Docs
 
 - Resynced `docs/` to current codebase truth (story US-002,

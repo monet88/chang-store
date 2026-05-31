@@ -25,6 +25,11 @@ import { useProviderStudioFields, UseProviderStudioFieldsReturn } from './usePro
 import { useProviderResultActions, UseProviderResultActionsReturn } from './useProviderResultActions';
 import { useProviderTryOnBatch, UseProviderTryOnBatchReturn } from './useProviderTryOnBatch';
 import { useProviderLookbookFields, UseProviderLookbookFieldsReturn } from './useProviderLookbookFields';
+import { useProviderWardrobe, UseProviderWardrobeReturn } from './useProviderWardrobe';
+import { VirtualTryOnMode, VirtualTryOnClothingItem } from '../types';
+
+/** Grok wardrobe caps: 4 sets, 4 items/set, concurrency 4 (Grok handles parallel). */
+const GROK_WARDROBE_CONFIG = { maxSets: 4, maxItemsPerSet: 4, concurrency: 4 };
 
 export interface ProviderOption {
   value: string;
@@ -65,6 +70,10 @@ export interface UseGrokStudioReturn extends UseProviderStudioFieldsReturn, UseP
   maxReferenceImages: number;
   minOutputs: number;
   maxOutputs: number;
+  // Try-On mode (multi-model vs wardrobe) + wardrobe engine
+  tryOnMode: VirtualTryOnMode;
+  setTryOnMode: (mode: VirtualTryOnMode) => void;
+  wardrobe: UseProviderWardrobeReturn;
 }
 
 /**
@@ -94,26 +103,9 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
   const batch = useProviderTryOnBatch(t);
   const lookbook = useProviderLookbookFields();
 
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [tryOnMode, setTryOnMode] = useState<VirtualTryOnMode>('multi-model');
 
-  // Reset transient workflow state when the active feature changes, and abort
-  // any request that was started for the previous feature so a late-arriving
-  // response cannot overwrite the new feature's state.
-  useEffect(() => {
-    abortControllerRef.current?.abort();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    setPrompt('');
-    setImages([]);
-    setResults([]);
-    setError(null);
-    fields.resetFields();
-    batch.resetExtras();
-    lookbook.resetLookbookFields();
-    return () => {
-      controller.abort();
-    };
-  }, [activeFeature]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Build the request images for one Try-On run: optionally swap the subject
   // (image[0]) for a batch subject and composite the multi-person marker.
@@ -153,6 +145,54 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     },
     [activeFeature, prompt, images, fields, batch.isMultiPersonMode, batch.markerPosition, lookbook.lookbookState, lookbook.lookbookFabricImage, prepareImages, model, aspectRatio, resolution, settings.apiKey, settings.baseUrl],
   );
+
+  // Wardrobe: generate one set as a Try-On edit (subject + the set's items as
+  // source images). Service call lives here so `useProviderWardrobe` stays
+  // service-agnostic (Red Team #2). Composes the prompt via the shared adapter.
+  const generateSet = useCallback(
+    async (
+      subject: ImageFile,
+      items: VirtualTryOnClothingItem[],
+      prompts: { backgroundPrompt: string; extraPrompt: string },
+      signal?: AbortSignal,
+    ): Promise<ImageFile[]> => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const withImage = items.filter((i) => i.image !== null);
+      const requestImages = [subject, ...withImage.map((i) => i.image as ImageFile)];
+      const composedPrompt = buildProviderStudioPrompt(Feature.TryOn, '', requestImages, {
+        sourceItemTypes: withImage.map((i) => i.sourceItemType),
+        sourceItemNotes: withImage.map((i) => i.sourcePrompt),
+        backgroundPrompt: prompts.backgroundPrompt,
+        extraPrompt: prompts.extraPrompt,
+      });
+      return editGrokImage({ model, prompt: composedPrompt, images: requestImages, n, aspectRatio, resolution }, config, signal);
+    },
+    [settings.apiKey, settings.baseUrl, model, n, aspectRatio, resolution],
+  );
+
+  const wardrobe = useProviderWardrobe(generateSet, GROK_WARDROBE_CONFIG, t);
+
+  // Reset transient workflow state when the active feature changes, and abort
+  // any request that was started for the previous feature so a late-arriving
+  // response cannot overwrite the new feature's state. Covers tryOnMode +
+  // wardrobe sets/results (Red Team #5, #6).
+  useEffect(() => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setPrompt('');
+    setImages([]);
+    setResults([]);
+    setError(null);
+    setTryOnMode('multi-model');
+    fields.resetFields();
+    batch.resetExtras();
+    lookbook.resetLookbookFields();
+    wardrobe.reset();
+    return () => {
+      controller.abort();
+    };
+  }, [activeFeature]);
 
   // Per-tile result actions (refine / upscale / regenerate). Grok upscale uses
   // the native 2k resolution plus a preservation prompt; results feed back as
@@ -261,5 +301,8 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     maxReferenceImages: GROK_MAX_REFERENCE_IMAGES,
     minOutputs: GROK_MIN_OUTPUTS,
     maxOutputs: GROK_MAX_OUTPUTS,
+    tryOnMode,
+    setTryOnMode,
+    wardrobe,
   };
 };
