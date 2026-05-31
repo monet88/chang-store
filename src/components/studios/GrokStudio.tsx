@@ -7,6 +7,7 @@ import Spinner, { ErrorDisplay } from '../Spinner';
 import ProviderSettingsPanel from './provider-studio/ProviderSettingsPanel';
 import ProviderResultsGrid from './provider-studio/ProviderResultsGrid';
 import ProviderSourceFields from './provider-studio/ProviderSourceFields';
+import ProviderTryOnExtras from './provider-studio/ProviderTryOnExtras';
 import { getProviderWorkflow } from './provider-studio/providerWorkflows';
 
 interface GrokStudioProps {
@@ -82,6 +83,24 @@ const GrokStudio: React.FC<GrokStudioProps> = ({ activeFeature, studioMode }) =>
           extraInstructions={studio.extraInstructions}
           setExtraInstructions={studio.setExtraInstructions}
         />
+
+        {activeFeature === Feature.TryOn && (
+          <ProviderTryOnExtras
+            idPrefix="grok"
+            subjectImage={studio.images[0] ?? null}
+            maxReferenceImages={studio.maxReferenceImages}
+            isMultiPersonMode={studio.isMultiPersonMode}
+            setIsMultiPersonMode={studio.setIsMultiPersonMode}
+            markerPosition={studio.markerPosition}
+            setMarkerPosition={studio.setMarkerPosition}
+            clearMarker={studio.clearMarker}
+            batchSubjects={studio.batchSubjects}
+            setBatchSubjects={studio.setBatchSubjects}
+            batchItems={studio.batchItems}
+            batchCompletedCount={studio.batchCompletedCount}
+            batchFailedCount={studio.batchFailedCount}
+          />
+        )}
 
         <div className="flex flex-col gap-2">
           <label htmlFor="grok-prompt" className="text-sm font-medium text-zinc-300">

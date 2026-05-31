@@ -204,6 +204,27 @@ export const en = {
         label: 'Extra instructions',
         placeholder: 'Specific instructions for the AI, separate from the prompt above.',
       },
+      multiPerson: {
+        label: 'Multi-person targeting',
+        hint: 'Click the subject image to mark the person to dress. Only the marked person is edited.',
+        clearMarker: 'Clear marker',
+        markerAria: 'Target marker',
+        on: 'On',
+        off: 'Off',
+      },
+      batch: {
+        label: 'Batch subjects',
+        hint: 'Add more subject images to run the same outfit across each one.',
+        upload: 'Add subject images for batch',
+        subjectLabel: 'Subject #{{index}}',
+        progress: '{{completed}} / {{total}} completed · {{failed}} failed',
+        status: {
+          pending: 'Pending',
+          processing: 'Processing...',
+          completed: 'Done',
+          error: 'Failed',
+        },
+      },
       aiEditor: {
         title: 'AI Editor',
         description: 'Edit an image with a text instruction.',

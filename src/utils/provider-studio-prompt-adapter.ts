@@ -76,6 +76,12 @@ export interface ProviderStudioPromptOptions {
     sourceItemNotes?: string[];
     backgroundPrompt?: string;
     extraPrompt?: string;
+    /**
+     * Enables the Try-On builder's multi-person targeting block. The caller must
+     * composite the red-dot marker onto the subject image BEFORE generation; this
+     * flag only toggles the matching prohibition text in the prompt.
+     */
+    isMultiPersonMode?: boolean;
 }
 
 /**
@@ -100,7 +106,7 @@ export const buildProviderStudioPrompt = (
             // Requires subject (image[0]) + at least one source item (image[1..]).
             if (images.length < 2) return userPrompt;
             const [subjectImage, ...sourceImages] = images;
-            const { sourceItemTypes = [], sourceItemNotes = [], backgroundPrompt = '', extraPrompt } = options;
+            const { sourceItemTypes = [], sourceItemNotes = [], backgroundPrompt = '', extraPrompt, isMultiPersonMode = false } = options;
             const parts = buildVirtualTryOnParts({
                 subjectImage,
                 sourceItems: sourceImages.map((image, index) => ({
@@ -110,6 +116,7 @@ export const buildProviderStudioPrompt = (
                 })),
                 extraPrompt: (extraPrompt ?? userPrompt) || '',
                 backgroundPrompt,
+                isMultiPersonMode,
             });
             return extractText(parts);
         }

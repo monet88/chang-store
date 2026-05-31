@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Multi-Person Targeting and Batch Subjects"
-status: pending
+status: complete
 priority: P2
 effort: "6h"
 dependencies: [4]

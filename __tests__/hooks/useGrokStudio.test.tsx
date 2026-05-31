@@ -24,12 +24,19 @@ vi.mock('@/services/providers/grok/grokImageService', () => ({
   editGrokImage: vi.fn(),
 }));
 
+vi.mock('@/utils/imageUtils', async () => {
+  const actual = await vi.importActual<typeof import('@/utils/imageUtils')>('@/utils/imageUtils');
+  return { ...actual, compositeMarkerOnImage: vi.fn() };
+});
+
 import { useGrokStudio } from '@/hooks/useGrokStudio';
 import { generateGrokImage, editGrokImage } from '@/services/providers/grok/grokImageService';
+import { compositeMarkerOnImage } from '@/utils/imageUtils';
 import { Feature, ImageFile } from '@/types';
 
 const RESULT: ImageFile = { base64: 'OUT', mimeType: 'image/png' };
 const SOURCE: ImageFile = { base64: 'SRC', mimeType: 'image/jpeg' };
+const SUBJECT: ImageFile = { base64: 'SUBJ', mimeType: 'image/jpeg' };
 
 describe('useGrokStudio', () => {
   beforeEach(() => {
@@ -185,5 +192,46 @@ describe('useGrokStudio', () => {
     const params = vi.mocked(editGrokImage).mock.calls[0][0];
     expect(params.resolution).toBe('2k');
     expect(params.prompt).toContain('4K');
+  });
+
+  it('runs a batch job per subject in Try-On mode', async () => {
+    const { result } = renderHook(() => useGrokStudio(Feature.TryOn, 'grok'));
+
+    act(() => {
+      // image[0] = subject #1, image[1] = clothing source
+      result.current.setImages([SUBJECT, SOURCE]);
+      result.current.setBatchSubjects([{ base64: 'SUBJ2', mimeType: 'image/jpeg' }]);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    // 2 subjects (image[0] + 1 batch subject) → 2 edit calls.
+    await waitFor(() => {
+      expect(result.current.batchItems).toHaveLength(2);
+      expect(result.current.batchCompletedCount).toBe(2);
+    });
+    expect(editGrokImage).toHaveBeenCalledTimes(2);
+  });
+
+  it('composites the marker when multi-person mode is active', async () => {
+    vi.mocked(compositeMarkerOnImage).mockResolvedValue({ base64: 'MARKED', mimeType: 'image/jpeg' });
+    const { result } = renderHook(() => useGrokStudio(Feature.TryOn, 'grok'));
+
+    act(() => {
+      result.current.setImages([SUBJECT, SOURCE]);
+      result.current.setIsMultiPersonMode(true);
+      result.current.setMarkerPosition({ x: 1, y: 1, relX: 0.5, relY: 0.5 });
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    expect(compositeMarkerOnImage).toHaveBeenCalledWith(SUBJECT, expect.objectContaining({ relX: 0.5 }));
+    const params = vi.mocked(editGrokImage).mock.calls[0][0];
+    // image[0] swapped for the marked composite.
+    expect(params.images[0]).toEqual({ base64: 'MARKED', mimeType: 'image/jpeg' });
   });
 });

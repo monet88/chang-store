@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Feature, ImageFile, StudioMode, UpscaleQuality } from '../types';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { getErrorMessage } from '../utils/imageUtils';
+import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
 import {
   GrokModelId,
   GrokAspectRatio,
@@ -23,13 +23,14 @@ import { buildProviderStudioPrompt } from '../utils/provider-studio-prompt-adapt
 import { buildProviderRefinePrompt, PROVIDER_UPSCALE_PROMPTS } from '../utils/provider-refine-prompt';
 import { useProviderStudioFields, UseProviderStudioFieldsReturn } from './useProviderStudioFields';
 import { useProviderResultActions, UseProviderResultActionsReturn } from './useProviderResultActions';
+import { useProviderTryOnBatch, UseProviderTryOnBatchReturn } from './useProviderTryOnBatch';
 
 export interface ProviderOption {
   value: string;
   label: string;
 }
 
-export interface UseGrokStudioReturn extends UseProviderStudioFieldsReturn, UseProviderResultActionsReturn {
+export interface UseGrokStudioReturn extends UseProviderStudioFieldsReturn, UseProviderResultActionsReturn, UseProviderTryOnBatchReturn {
   // Settings (from ApiProviderContext)
   apiKey: string;
   baseUrl: string;
@@ -89,6 +90,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
   const [results, setResults] = useState<ImageFile[]>([]);
 
   const fields = useProviderStudioFields();
+  const batch = useProviderTryOnBatch(t);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -104,29 +106,68 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     setResults([]);
     setError(null);
     fields.resetFields();
+    batch.resetExtras();
     return () => {
       controller.abort();
     };
   }, [activeFeature]);
 
+  // Build the request images for one Try-On run: optionally swap the subject
+  // (image[0]) for a batch subject and composite the multi-person marker.
+  // Non-Try-On features pass their images through unchanged.
+  const prepareImages = useCallback(
+    async (subjectOverride?: ImageFile): Promise<ImageFile[]> => {
+      if (activeFeature !== Feature.TryOn || images.length === 0) {
+        return images;
+      }
+      const [defaultSubject, ...sourceItems] = images;
+      let subject = subjectOverride ?? defaultSubject;
+      if (batch.isMultiPersonMode && batch.markerPosition) {
+        subject = await compositeMarkerOnImage(subject, batch.markerPosition);
+      }
+      return [subject, ...sourceItems];
+    },
+    [activeFeature, images, batch.isMultiPersonMode, batch.markerPosition],
+  );
+
   // Single Grok call for the current inputs. `count` lets regenerate request
-  // exactly one image while the main generate uses the n slider.
+  // exactly one image while the main generate uses the n slider. `subjectOverride`
+  // swaps image[0] for a batch subject.
   const runGeneration = useCallback(
-    async (count: number, signal?: AbortSignal): Promise<ImageFile[]> => {
+    async (count: number, signal?: AbortSignal, subjectOverride?: ImageFile): Promise<ImageFile[]> => {
       const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
-      const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images, fields.buildPromptOptions());
-      return images.length > 0
-        ? editGrokImage({ model, prompt: composedPrompt, images, n: count, aspectRatio, resolution }, config, signal)
+      const requestImages = await prepareImages(subjectOverride);
+      const multiPerson = activeFeature === Feature.TryOn && batch.isMultiPersonMode && batch.markerPosition !== null;
+      const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, requestImages, {
+        ...fields.buildPromptOptions(),
+        isMultiPersonMode: multiPerson,
+      });
+      return requestImages.length > 0
+        ? editGrokImage({ model, prompt: composedPrompt, images: requestImages, n: count, aspectRatio, resolution }, config, signal)
         : generateGrokImage({ model, prompt: composedPrompt, n: count, aspectRatio, resolution }, config, signal);
     },
-    [activeFeature, prompt, images, fields, model, aspectRatio, resolution, settings.apiKey, settings.baseUrl],
+    [activeFeature, prompt, images, fields, batch.isMultiPersonMode, batch.markerPosition, prepareImages, model, aspectRatio, resolution, settings.apiKey, settings.baseUrl],
   );
 
   const handleGenerate = useCallback(async (): Promise<void> => {
-    if (isLoading) return;
+    if (isLoading || batch.isBatchRunning) return;
+
+    setError(null);
+
+    // Batch path: image[0] is subject #1, extra subjects run with the same
+    // shared source set (image[1..]). Results are tracked per subject.
+    if (batch.batchActive && activeFeature === Feature.TryOn && images.length > 0) {
+      setResults([]);
+      const subjects = [images[0], ...batch.batchSubjects];
+      await batch.runBatch(
+        subjects,
+        (subject, signal) => runGeneration(n, signal, subject),
+        abortControllerRef.current?.signal,
+      );
+      return;
+    }
 
     setIsLoading(true);
-    setError(null);
     setResults([]);
 
     try {
@@ -140,7 +181,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, runGeneration, n, t]);
+  }, [isLoading, batch, activeFeature, images, runGeneration, n, t]);
 
   // Per-tile result actions (refine / upscale / regenerate). Grok upscale uses
   // the native 2k resolution plus a preservation prompt; results feed back as
@@ -206,6 +247,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     clearError: () => setError(null),
     handleGenerate,
     ...actions,
+    ...batch,
     maxReferenceImages: GROK_MAX_REFERENCE_IMAGES,
     minOutputs: GROK_MIN_OUTPUTS,
     maxOutputs: GROK_MAX_OUTPUTS,

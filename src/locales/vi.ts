@@ -204,6 +204,27 @@ export const vi: Translation = {
         label: 'Hướng dẫn bổ sung',
         placeholder: 'Hướng dẫn cụ thể cho AI, tách biệt với prompt phía trên.',
       },
+      multiPerson: {
+        label: 'Nhắm nhiều người',
+        hint: 'Nhấp vào ảnh để đánh dấu người cần mặc đồ. Chỉ người được đánh dấu mới bị chỉnh sửa.',
+        clearMarker: 'Xóa đánh dấu',
+        markerAria: 'Điểm đánh dấu mục tiêu',
+        on: 'Bật',
+        off: 'Tắt',
+      },
+      batch: {
+        label: 'Xử lý hàng loạt',
+        hint: 'Thêm nhiều ảnh người mẫu để áp dụng cùng một trang phục cho từng ảnh.',
+        upload: 'Thêm ảnh người mẫu cho batch',
+        subjectLabel: 'Người mẫu #{{index}}',
+        progress: '{{completed}} / {{total}} hoàn tất · {{failed}} thất bại',
+        status: {
+          pending: 'Chờ',
+          processing: 'Đang xử lý...',
+          completed: 'Xong',
+          error: 'Thất bại',
+        },
+      },
       aiEditor: {
         title: 'AI Editor',
         description: 'Chỉnh sửa ảnh bằng một câu lệnh văn bản.',
