@@ -28,6 +28,16 @@
 
 ### Changed
 
+- Polished the global chrome via `/impeccable polish` (2026-05-31): the
+  Tailwind `slate-*` ramp was migrated to `zinc-*` across 18 components for
+  a single neutral family; the amber/orange brand ramp was extracted into
+  `--brand-50`-`--brand-900`, `--brand-glow`, and `--brand-gradient` CSS
+  variables; the ad-hoc `z-10 / 20 / 30 / 40 / 50 / [52] / [60] / [100]`
+  ladder was replaced with a semantic z-index scale
+  (`--z-index-dropdown` through `--z-index-tooltip`) plus matching
+  `@utility z-*` classes; and the duplicated primary-CTA gradient is now
+  expressed once via the `brand-button` utility, replacing 3 hand-rolled
+  callsites.
 - Provider base URL validation now accepts both `http:` and `https:` so local
   proxies (for example `http://localhost:8333/v1`) can be used during
   development. Non-allowlisted hosts still surface a "key will be sent to

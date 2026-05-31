@@ -31,7 +31,7 @@ const GalleryLoadingSkeleton: React.FC = () => (
     {Array.from({ length: 12 }).map((_, i) => (
       <div
         key={i}
-        className="aspect-square bg-slate-700/50 rounded-lg animate-pulse"
+        className="aspect-square bg-zinc-700/50 rounded-lg animate-pulse"
       />
     ))}
   </div>
@@ -55,7 +55,7 @@ const SyncStatusPill: React.FC<{
     if (syncStatus === 'synced') {
       return <CheckCircleIcon className="w-3.5 h-3.5 text-green-400" />;
     }
-    return <CloudIcon className="w-3.5 h-3.5 text-slate-400" />;
+    return <CloudIcon className="w-3.5 h-3.5 text-zinc-400" />;
   };
 
   const getStatusText = (): string => {
@@ -67,13 +67,13 @@ const SyncStatusPill: React.FC<{
     if (syncStatus === 'error' || syncError) return 'bg-red-900/50';
     if (syncStatus === 'synced') return 'bg-green-900/50';
     if (syncStatus === 'syncing' || isLoading) return 'bg-amber-900/50';
-    return 'bg-slate-700/50';
+    return 'bg-zinc-700/50';
   };
 
   return (
     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs ${getBgColor()}`}>
       {renderIcon()}
-      <span className="text-slate-200">{getStatusText()}</span>
+      <span className="text-zinc-200">{getStatusText()}</span>
     </div>
   );
 };
@@ -118,7 +118,7 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex flex-col p-4 animate-fade-in"
+      className="fixed inset-0 bg-black/90 backdrop-blur-sm z-modal-backdrop flex flex-col p-4 animate-fade-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -168,7 +168,7 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
           <GalleryLoadingSkeleton />
         ) : images.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-slate-400 text-xl">{t('gallery.emptyMessage')}</p>
+            <p className="text-zinc-400 text-xl">{t('gallery.emptyMessage')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-w-7xl mx-auto">

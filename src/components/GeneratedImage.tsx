@@ -40,14 +40,14 @@ const GeneratedImage: React.FC<GeneratedImageProps> = React.memo(({
             <div className="flex-grow relative">
                 <HoverableImage image={image} altText={t('generatedImage.altText')} downloadPrefix="generated-image" />
             </div>
-            <div className="flex-shrink-0 bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4">
+            <div className="flex-shrink-0 bg-zinc-900/50 p-4 rounded-lg border border-zinc-700 space-y-4">
                 <div className="flex justify-between items-center">
                     <h3 className="text-base md:text-lg font-semibold text-amber-400">{t('generatedImage.refineLabel')}</h3>
                     <div className="flex items-center gap-2">
-                        <button onClick={onUndo} disabled={!canUndo} aria-label={t('generatedImage.undoAria')} className="p-2 rounded-full bg-slate-700 text-white hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <button onClick={onUndo} disabled={!canUndo} aria-label={t('generatedImage.undoAria')} className="p-2 rounded-full bg-zinc-700 text-white hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                             <UndoIcon className="w-5 h-5" />
                         </button>
-                        <button onClick={onRedo} disabled={!canRedo} aria-label={t('generatedImage.redoAria')} className="p-2 rounded-full bg-slate-700 text-white hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <button onClick={onRedo} disabled={!canRedo} aria-label={t('generatedImage.redoAria')} className="p-2 rounded-full bg-zinc-700 text-white hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                             <RedoIcon className="w-5 h-5" />
                         </button>
                     </div>
@@ -58,15 +58,15 @@ const GeneratedImage: React.FC<GeneratedImageProps> = React.memo(({
                         value={refinePrompt}
                         onChange={(e) => setRefinePrompt(e.target.value)}
                         placeholder={t('generatedImage.refinePlaceholder')}
-                        className="flex-grow bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-amber-500 transition-colors"
+                        className="flex-grow bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 transition-colors"
                     />
-                    <button onClick={handleRefineClick} disabled={isRefining || !refinePrompt.trim()} className="bg-amber-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-amber-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors">
+                    <button onClick={handleRefineClick} disabled={isRefining || !refinePrompt.trim()} className="bg-amber-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-amber-500 disabled:bg-zinc-600 disabled:cursor-not-allowed transition-colors">
                         {isRefining ? <Spinner /> : t('generatedImage.refineButton')}
                     </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {predefinedPrompts.map(prompt => (
-                        <button key={prompt} onClick={() => onRefine(prompt)} disabled={isRefining} className="text-xs bg-slate-700/80 text-slate-200 font-medium py-1.5 px-3 rounded-full hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <button key={prompt} onClick={() => onRefine(prompt)} disabled={isRefining} className="text-xs bg-zinc-700/80 text-zinc-200 font-medium py-1.5 px-3 rounded-full hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                             ✨ {prompt}
                         </button>
                     ))}

@@ -23,20 +23,18 @@ const UtilityDock: React.FC<UtilityDockProps> = ({
   const showGallery = !studioMode || studioMode === 'gemini';
 
   return (
-    <div className="fixed inset-x-4 bottom-4 z-30 flex justify-end lg:inset-x-auto lg:right-8 lg:bottom-8">
+    <div className="fixed inset-x-4 bottom-4 z-sticky flex justify-end lg:inset-x-auto lg:right-8 lg:bottom-8">
       <div
-        className={`workspace-panel flex flex-col gap-2 shadow-[0_18px_60px_rgba(0,0,0,0.32)] transition-all duration-200 ${
-          isExpanded
+        className={`workspace-panel flex flex-col gap-2 shadow-[0_18px_60px_rgba(0,0,0,0.32)] transition-all duration-200 ${isExpanded
             ? 'w-full max-w-[22rem] rounded-[1.75rem] p-2.5'
             : 'w-auto min-w-[12.5rem] rounded-[1.4rem] p-2'
-        }`}
+          }`}
       >
         <button
           type="button"
           onClick={() => setIsExpanded((current) => !current)}
-          className={`flex items-center rounded-2xl text-left transition hover:bg-white/[0.04] ${
-            isExpanded ? 'justify-between gap-3 px-2 py-2' : 'gap-2.5 px-2 py-1.5'
-          }`}
+          className={`flex items-center rounded-2xl text-left transition hover:bg-white/[0.04] ${isExpanded ? 'justify-between gap-3 px-2 py-2' : 'gap-2.5 px-2 py-1.5'
+            }`}
           aria-expanded={isExpanded}
           aria-controls="studio-utilities-panel"
           aria-label={isExpanded ? t('workspace.utility.collapse') : t('workspace.utility.expand')}

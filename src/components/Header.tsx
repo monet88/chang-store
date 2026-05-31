@@ -27,7 +27,7 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 flex w-[22rem] flex-col border-r border-white/10 bg-black/90 px-6 pb-6 pt-7 backdrop-blur-2xl transition-transform duration-300 ease-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : 'max-lg:-translate-x-full'}`}
+      className={`fixed inset-y-0 left-0 z-sticky flex w-[22rem] flex-col border-r border-white/10 bg-black/90 px-6 pb-6 pt-7 backdrop-blur-2xl transition-transform duration-300 ease-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : 'max-lg:-translate-x-full'}`}
     >
       <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
         <div className="space-y-3">

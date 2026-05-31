@@ -52,7 +52,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     <ToastContext.Provider value={{ showToast }}>
       {children}
       {/* Toast container - fixed bottom right */}
-      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2">
+      <div className="fixed bottom-4 right-4 z-toast flex flex-col gap-2">
         {toasts.map(toast => (
           <ToastItem key={toast.id} message={toast.message} onDismiss={() => removeToast(toast.id)} />
         ))}
@@ -71,7 +71,7 @@ const ToastItem: React.FC<{ message: string; onDismiss: () => void }> = ({ messa
   }, [onDismiss]);
 
   return (
-    <div className="bg-slate-800 border border-slate-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
+    <div className="bg-zinc-800 border border-zinc-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
       <CheckCircleIcon className="w-5 h-5 text-green-400" />
       <span className="text-sm">{message}</span>
     </div>

@@ -94,7 +94,7 @@ const AIEditor: React.FC = () => {
           <button
             onClick={handleGenerate}
             disabled={isLoading || images.length === 0}
-            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30"
+            className="brand-button"
           >
             {isLoading ? <Spinner /> : t('aiEditor.generateButton')}
           </button>

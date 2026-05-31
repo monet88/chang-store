@@ -129,7 +129,7 @@ const GptImageStudio: React.FC<GptImageStudioProps> = ({ activeFeature, studioMo
             type="button"
             onClick={studio.handleGenerate}
             disabled={submitDisabled}
-            className="rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-3 font-bold text-white shadow-lg shadow-amber-500/30 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70"
+            className="brand-button"
           >
             {studio.isLoading ? <Spinner /> : t('studio.workflows.generateButton')}
           </button>

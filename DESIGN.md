@@ -43,18 +43,47 @@ amber/skin tones in generated imagery legible.
 The single brand accent. One ramp, used sparingly to mark "active" or
 "primary action".
 
-| Role | Token | Use |
-|------|-------|-----|
-| `accent/strong` | `bg-amber-500` | Selected pose, focus ring base |
-| `accent/primary` | `bg-amber-600` | Default primary CTA |
-| `accent/hover` | `hover:bg-amber-500` | Primary CTA hover |
-| `accent/glow` | `shadow-amber-500/30` | Primary CTA shadow |
-| `accent/secondary` | `text-amber-400` | Inline emphasis on dark |
-| `accent/edge` | `border-amber-500` | Active outline on form fields |
+The ramp lives in `src/index.css` `@theme` as CSS variables. Tune the brand
+once, never re-bake in components.
 
-The bottle of "from-amber-500 to-orange-600" gradient appears on the primary
-CTA across all studios. It's the only gradient in the system; using it
-elsewhere is an anti-pattern.
+| CSS variable | Hex | Use |
+|---|---|---|
+| `--brand-50` | `#fff8eb` | Tints |
+| `--brand-100` | `#ffeac7` | Tints |
+| `--brand-200` | `#fed089` | Tints |
+| `--brand-300` | `#fdba74` | Soft accent |
+| `--brand-400` | `#fbbf24` | Soft accent (alias `bg-amber-400`) |
+| `--brand-500` | `#f59e0b` | Selected pose, focus ring base (alias `bg-amber-500`) |
+| `--brand-600` | `#ea580c` | Default primary CTA stop end (alias `bg-orange-600`) |
+| `--brand-700` | `#c2410c` | Hover end |
+| `--brand-800` | `#9a3412` | Pressed |
+| `--brand-900` | `#7c2d12` | Backdrop tint |
+| `--brand-glow` | `oklch(0.78 0.18 65 / 0.30)` | Primary CTA glow shadow |
+| `--brand-gradient` | `linear-gradient(to right, var(--brand-500), var(--brand-600))` | Single source for the primary CTA gradient |
+
+The bottle of `from-amber-500 to-orange-600` gradient appears on the primary
+CTA across all studios — now expressed once via the `brand-button`
+`@utility`. Using a hand-rolled gradient elsewhere is an anti-pattern.
+
+### Z-index — semantic scale
+
+Replaces the ad-hoc `z-10 / 20 / 30 / 40 / 50 / [52] / [60] / [100]` ladder.
+Defined in `@theme`, exposed via `@utility` classes.
+
+| Token | Value | Utility class | Use |
+|---|---|---|---|
+| `--z-index-base` | 0 | (default) | content layer |
+| `--z-index-dropdown` | 1000 | `z-dropdown` | menus, mention popovers |
+| `--z-index-sticky` | 1100 | `z-sticky` | header / sidebar / mobile chrome |
+| `--z-index-overlay` | 1200 | `z-overlay` | mobile drawer scrim |
+| `--z-index-modal-backdrop` | 1300 | `z-modal-backdrop` | image lightbox, gallery scrim |
+| `--z-index-modal` | 1400 | `z-modal` | settings, prompt library, modal nav buttons |
+| `--z-index-toast` | 1500 | `z-toast` | toast notifications |
+| `--z-index-tooltip` | 1600 | `z-tooltip` | tooltip popovers |
+
+`z-10` / `z-20` / `z-30` are still used for **intra-component** stacking
+(badge over thumbnail, hover overlay over base image). The semantic scale is
+for cross-component fixed/portal layers only.
 
 ### Status
 
@@ -138,18 +167,19 @@ default for chrome.
 
 ### Primary CTA
 
+The single source: `brand-button` utility from `src/index.css`. Replaces the
+hand-rolled `bg-gradient-to-r from-amber-500 to-orange-600 ...` callsite
+duplicated across studios.
+
 ```tsx
-<button className="rounded-full bg-gradient-to-r from-amber-500 to-orange-600
-  px-8 py-3 font-bold text-white shadow-lg shadow-amber-500/30
-  transition-opacity hover:opacity-90 disabled:cursor-not-allowed
-  disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70">
-  {t('common.generate')}
-</button>
+<button className="brand-button">{t('common.generate')}</button>
 ```
 
+Encapsulates: `--brand-gradient` background, white text, `font-bold`,
+`min-h-[44px]` (touch target), pill `rounded-[9999px]`, `--brand-glow` box
+shadow, hover brightness, active translate-y, disabled muted gradient.
+
 Used identically across all 9 Gemini features and all 10 provider workflows.
-Do not branch this style; extract into a `<PrimaryButton>` if its instances
-ever need tuning.
 
 ### Secondary button
 
@@ -219,15 +249,20 @@ identity.
 These are flagged here as documentation, not actions. Address with
 `/impeccable polish` or `/impeccable extract`.
 
-1. **Dual neutrals.** The codebase uses both `zinc-*` (most surfaces) and
+1. ~~**Dual neutrals.** The codebase uses both `zinc-*` (most surfaces) and
    `slate-*` (Quality selector, modals). Standardize on `zinc-*` and migrate
-   `slate-*` callsites in a single pass.
+   `slate-*` callsites in a single pass.~~ **Resolved** (2026-05-31): all
+   `slate-*` utilities migrated to `zinc-*` across 18 files.
 2. **Dual heading scales.** `text-4xl` and `text-5xl` for the same heading
    role; spec the responsive clamp once and use it everywhere.
 3. **Mixed scrollbar tokens.** The custom scrollbar in `index.html` uses
    white-alpha tokens; many panels still use Tailwind defaults. Pick one.
-4. **No `prefers-reduced-motion` declarations.** Add to global stylesheet
-   alongside the existing `@keyframes`.
-5. **No design tokens file.** Tailwind classes are the contract. Extract
-   `--accent`, `--surface`, `--ink` CSS variables in `src/index.css` (or wire
-   Tailwind theme extension) so the amber ramp can be retuned in one place.
+4. ~~**No `prefers-reduced-motion` declarations.**~~ **Resolved** — already
+   declared globally in `src/index.css` lines 137-145.
+5. ~~**No design tokens file.**~~ **Resolved** (2026-05-31): `src/index.css`
+   `@theme` block now declares the brand ramp (`--brand-50` through
+   `--brand-900`), the brand gradient (`--brand-gradient`), the focus glow
+   (`--brand-glow`), and a semantic z-index scale (`--z-index-dropdown`
+   through `--z-index-tooltip`). Eight `@utility z-*` classes generate
+   matching utilities. The primary CTA gradient is now expressed as a single
+   `brand-button` utility, replacing three duplicated callsites.

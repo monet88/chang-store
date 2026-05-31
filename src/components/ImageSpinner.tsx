@@ -102,7 +102,7 @@ const ImageSpinner: React.FC<ImageSpinnerProps> = ({ images, autoplayIntervalMs 
 
   if (!frameCount || !activeImage) {
     return (
-      <div className="flex h-48 w-full items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm text-slate-400">
+      <div className="flex h-48 w-full items-center justify-center rounded-xl border border-dashed border-zinc-700 text-sm text-zinc-400">
         Upload or generate images to preview the spinner.
       </div>
     );
@@ -112,7 +112,7 @@ const ImageSpinner: React.FC<ImageSpinnerProps> = ({ images, autoplayIntervalMs 
     <div className="space-y-4">
       <div
         ref={containerRef}
-        className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-slate-700 bg-slate-900"
+        className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900"
         onWheel={handleWheel}
         onMouseDown={beginPan}
         onMouseMove={continuePan}
@@ -147,7 +147,7 @@ const ImageSpinner: React.FC<ImageSpinnerProps> = ({ images, autoplayIntervalMs 
       </div>
 
       {frameCount > 1 && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+        <div className="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
           <input
             type="range"
             min={0}
@@ -155,14 +155,14 @@ const ImageSpinner: React.FC<ImageSpinnerProps> = ({ images, autoplayIntervalMs 
             step={1}
             value={currentIndex}
             onChange={handleScrub}
-            className="h-2 w-full cursor-pointer rounded-full bg-slate-700 accent-amber-400"
+            className="h-2 w-full cursor-pointer rounded-full bg-zinc-700 accent-amber-400"
             aria-label="Scrub through frames"
           />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="rounded-full bg-slate-800 p-2 text-slate-200 transition hover:bg-slate-700"
+                className="rounded-full bg-zinc-800 p-2 text-zinc-200 transition hover:bg-zinc-700"
                 onClick={zoomOut}
                 aria-label="Zoom out"
               >
@@ -170,14 +170,14 @@ const ImageSpinner: React.FC<ImageSpinnerProps> = ({ images, autoplayIntervalMs 
               </button>
               <button
                 type="button"
-                className="rounded-full bg-slate-800 p-2 text-slate-200 transition hover:bg-slate-700"
+                className="rounded-full bg-zinc-800 p-2 text-zinc-200 transition hover:bg-zinc-700"
                 onClick={zoomIn}
                 aria-label="Zoom in"
               >
                 <ZoomInIcon className="h-4 w-4" />
               </button>
             </div>
-            <span className="text-sm text-slate-400">{Math.round(zoom * 100)}%</span>
+            <span className="text-sm text-zinc-400">{Math.round(zoom * 100)}%</span>
           </div>
         </div>
       )}

@@ -207,7 +207,7 @@ const MentionTextarea: React.FC<MentionTextareaProps> = React.memo(({
           ref={dropdownRef}
           id={`${id}-dropdown`}
           role="listbox"
-          className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl"
+          className="absolute z-dropdown mt-1 w-full max-h-48 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl"
         >
           {options.map((opt, idx) => (
             <button
@@ -215,11 +215,10 @@ const MentionTextarea: React.FC<MentionTextareaProps> = React.memo(({
               type="button"
               role="option"
               aria-selected={idx === selectedIndex}
-              className={`flex items-center gap-3 w-full px-3 py-2 text-left transition-colors ${
-                idx === selectedIndex
+              className={`flex items-center gap-3 w-full px-3 py-2 text-left transition-colors ${idx === selectedIndex
                   ? 'bg-zinc-700 text-white'
                   : 'text-zinc-300 hover:bg-zinc-700/50'
-              }`}
+                }`}
               onClick={() => insertMention(opt.tag)}
               onMouseEnter={() => setSelectedIndex(idx)}
             >

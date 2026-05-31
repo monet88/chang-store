@@ -55,7 +55,7 @@ const ProviderResultsGrid: React.FC<ProviderResultsGridProps> = ({
               <button
                 type="button"
                 onClick={() => openImageViewer(image)}
-                className="pointer-events-auto rounded-full bg-slate-900/70 p-2 text-white transition-colors hover:bg-slate-800"
+                className="pointer-events-auto rounded-full bg-zinc-900/70 p-2 text-white transition-colors hover:bg-zinc-800"
                 aria-label={t('studio.provider.results.view')}
               >
                 <FullscreenIcon className="h-5 w-5" />

@@ -55,7 +55,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
         showToast(t('toast.imageSaved'));
     };
 
-    const defaultClassName = "relative group w-full bg-slate-900 rounded-lg overflow-hidden border border-slate-700 shadow-md aspect-[4/5]";
+    const defaultClassName = "relative group w-full bg-zinc-900 rounded-lg overflow-hidden border border-zinc-700 shadow-md aspect-[4/5]";
 
     const handleExpandClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -112,7 +112,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                             className={`p-2 rounded-full transition-colors ${
                                 isSavedToGallery
                                     ? 'bg-white text-black cursor-default'
-                                    : 'bg-slate-900/50 text-white hover:bg-white/90 hover:text-black'
+                                    : 'bg-zinc-900/50 text-white hover:bg-white/90 hover:text-black'
                             }`}
                             aria-label={isSavedToGallery ? t('imageActions.savedToGallery') : t('imageActions.saveToGallery')}
                             title={isSavedToGallery ? t('imageActions.savedToGallery') : t('imageActions.saveToGallery')}
@@ -140,7 +140,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                         )}
                         <button 
                             onClick={handleExpandClick}
-                            className="p-2 bg-slate-900/50 rounded-full text-white hover:bg-slate-800/80 transition-colors"
+                            className="p-2 bg-zinc-900/50 rounded-full text-white hover:bg-zinc-800/80 transition-colors"
                             aria-label="View full image"
                         >
                             <FullscreenIcon className="w-5 h-5" />
@@ -148,12 +148,12 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                     </div>
                     
                     {/* Bottom buttons */}
-                    <div className="flex justify-center items-center gap-3 bg-slate-950/80 p-2 rounded-full backdrop-blur-sm pointer-events-auto">
+                    <div className="flex justify-center items-center gap-3 bg-zinc-950/80 p-2 rounded-full backdrop-blur-sm pointer-events-auto">
                         {onRegenerate && (
                             <button
                                 onClick={onRegenerate}
                                 disabled={isGenerating || isUpscaling}
-                                className="p-2.5 bg-slate-700/80 rounded-full text-white hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="p-2.5 bg-zinc-700/80 rounded-full text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 aria-label={t('imageActions.regenerate')}
                             >
                                 {isGenerating ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-100"></div> : <RegenerateIcon className="w-5 h-5" />}
@@ -163,7 +163,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                             <button
                                 onClick={onUpscale}
                                 disabled={isGenerating || isUpscaling}
-                                className="p-2.5 bg-slate-700/80 rounded-full text-white hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="p-2.5 bg-zinc-700/80 rounded-full text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 aria-label={t('imageActions.upscale')}
                             >
                                 {isUpscaling ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-100"></div> : <CloudUploadIcon className="w-5 h-5" />}
