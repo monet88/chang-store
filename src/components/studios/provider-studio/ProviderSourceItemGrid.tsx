@@ -57,6 +57,7 @@ const ProviderSourceItemGrid: React.FC<ProviderSourceItemGridProps> = ({
         image={subject}
         onImageUpload={onSetSubject}
         title={t(subjectLabelKey)}
+        hideTitle
         id={`${idPrefix}-subject-upload`}
       />
 

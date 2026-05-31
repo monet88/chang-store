@@ -164,6 +164,7 @@ const ProviderStudioShell: React.FC<ProviderStudioShellProps> = ({
                   images={studio.images}
                   onImagesUpload={studio.setImages}
                   title={t(workflow.uploadLabelKey)}
+                  hideTitle
                   id={`${idPrefix}-studio-upload`}
                   maxImages={studio.maxReferenceImages}
                 />
