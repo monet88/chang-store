@@ -149,6 +149,13 @@ export const en = {
         download: 'Download image',
         empty: 'Your generated images will appear here.',
       },
+      actions: {
+        refine: 'Refine',
+        refineLabel: 'Refine result {{index}}',
+        refinePlaceholder: 'Describe a tweak, e.g. "brighter background"',
+        upscale: 'Upscale {{quality}}',
+        regenerate: 'Regenerate',
+      },
     },
     settings: {
       title: '{{provider}} settings',

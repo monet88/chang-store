@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Feature, ImageFile, StudioMode } from '../types';
+import { Feature, ImageFile, StudioMode, UpscaleQuality } from '../types';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -20,14 +20,16 @@ import {
 } from '../config/grokModelRegistry';
 import { generateGrokImage, editGrokImage } from '../services/providers/grok/grokImageService';
 import { buildProviderStudioPrompt } from '../utils/provider-studio-prompt-adapter';
+import { buildProviderRefinePrompt, PROVIDER_UPSCALE_PROMPTS } from '../utils/provider-refine-prompt';
 import { useProviderStudioFields, UseProviderStudioFieldsReturn } from './useProviderStudioFields';
+import { useProviderResultActions, UseProviderResultActionsReturn } from './useProviderResultActions';
 
 export interface ProviderOption {
   value: string;
   label: string;
 }
 
-export interface UseGrokStudioReturn extends UseProviderStudioFieldsReturn {
+export interface UseGrokStudioReturn extends UseProviderStudioFieldsReturn, UseProviderResultActionsReturn {
   // Settings (from ApiProviderContext)
   apiKey: string;
   baseUrl: string;
@@ -107,6 +109,19 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     };
   }, [activeFeature]);
 
+  // Single Grok call for the current inputs. `count` lets regenerate request
+  // exactly one image while the main generate uses the n slider.
+  const runGeneration = useCallback(
+    async (count: number, signal?: AbortSignal): Promise<ImageFile[]> => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images, fields.buildPromptOptions());
+      return images.length > 0
+        ? editGrokImage({ model, prompt: composedPrompt, images, n: count, aspectRatio, resolution }, config, signal)
+        : generateGrokImage({ model, prompt: composedPrompt, n: count, aspectRatio, resolution }, config, signal);
+    },
+    [activeFeature, prompt, images, fields, model, aspectRatio, resolution, settings.apiKey, settings.baseUrl],
+  );
+
   const handleGenerate = useCallback(async (): Promise<void> => {
     if (isLoading) return;
 
@@ -114,26 +129,8 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     setError(null);
     setResults([]);
 
-    const signal = abortControllerRef.current?.signal;
-    const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
-
-    // Compose the builder-enriched prompt transiently; the textarea state keeps
-    // showing the user's raw words.
-    const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images, fields.buildPromptOptions());
-
     try {
-      const generated = images.length > 0
-        ? await editGrokImage(
-          { model, prompt: composedPrompt, images, n, aspectRatio, resolution },
-          config,
-          signal,
-        )
-        : await generateGrokImage(
-          { model, prompt: composedPrompt, n, aspectRatio, resolution },
-          config,
-          signal,
-        );
-
+      const generated = await runGeneration(n, abortControllerRef.current?.signal);
       setResults(generated);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -143,7 +140,39 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, images, model, prompt, n, aspectRatio, resolution, activeFeature, fields, settings.apiKey, settings.baseUrl, t]);
+  }, [isLoading, runGeneration, n, t]);
+
+  // Per-tile result actions (refine / upscale / regenerate). Grok upscale uses
+  // the native 2k resolution plus a preservation prompt; results feed back as
+  // the edit source (provider endpoints are stateless, like Gemini chat-refine).
+  const actions = useProviderResultActions({
+    results,
+    setResults,
+    getSignal: () => abortControllerRef.current?.signal,
+    t,
+    editOne: async (source, instruction, signal) => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const [edited] = await editGrokImage(
+        { model, prompt: buildProviderRefinePrompt(instruction), images: [source], n: 1, aspectRatio, resolution },
+        config,
+        signal,
+      );
+      return edited;
+    },
+    upscaleOne: async (source, quality, signal) => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const [upscaled] = await editGrokImage(
+        { model, prompt: PROVIDER_UPSCALE_PROMPTS[quality], images: [source], n: 1, aspectRatio, resolution: '2k' },
+        config,
+        signal,
+      );
+      return upscaled;
+    },
+    regenerateOne: async (signal) => {
+      const [regenerated] = await runGeneration(1, signal);
+      return regenerated;
+    },
+  });
 
   return {
     apiKey: settings.apiKey,
@@ -176,6 +205,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     results,
     clearError: () => setError(null),
     handleGenerate,
+    ...actions,
     maxReferenceImages: GROK_MAX_REFERENCE_IMAGES,
     minOutputs: GROK_MIN_OUTPUTS,
     maxOutputs: GROK_MAX_OUTPUTS,

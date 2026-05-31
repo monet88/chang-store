@@ -141,4 +141,49 @@ describe('useGrokStudio', () => {
     expect(mockSetProviderSettings).toHaveBeenCalledWith('grok', { baseUrl: 'https://api.x.ai/v1' });
     expect(mockResetProviderSettings).toHaveBeenCalledWith('grok');
   });
+
+  it('refines a result via edit with a preservation prompt and single source', async () => {
+    const { result } = renderHook(() => useGrokStudio(Feature.AIEditor, 'grok'));
+
+    act(() => {
+      result.current.setPrompt('a cat');
+    });
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    vi.mocked(editGrokImage).mockClear();
+    vi.mocked(editGrokImage).mockResolvedValue([{ base64: 'REFINED', mimeType: 'image/png' }]);
+
+    await act(async () => {
+      await result.current.refine(0, 'make it blue');
+    });
+
+    expect(editGrokImage).toHaveBeenCalledTimes(1);
+    const params = vi.mocked(editGrokImage).mock.calls[0][0];
+    expect(params.images).toHaveLength(1);
+    expect(params.prompt).toContain('make it blue');
+    expect(params.prompt).toContain('Preserve everything else');
+    expect(result.current.results[0]).toEqual({ base64: 'REFINED', mimeType: 'image/png' });
+  });
+
+  it('upscales a result using native 2k resolution', async () => {
+    const { result } = renderHook(() => useGrokStudio(Feature.AIEditor, 'grok'));
+
+    act(() => {
+      result.current.setPrompt('a dog');
+    });
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    vi.mocked(editGrokImage).mockClear();
+    await act(async () => {
+      await result.current.upscale(0, '4K');
+    });
+
+    const params = vi.mocked(editGrokImage).mock.calls[0][0];
+    expect(params.resolution).toBe('2k');
+    expect(params.prompt).toContain('4K');
+  });
 });

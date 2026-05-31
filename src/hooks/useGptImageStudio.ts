@@ -16,9 +16,11 @@ import {
 } from '../config/gptImageModelRegistry';
 import { generateGptImage, editGptImage } from '../services/providers/gpt-image/gptImageService';
 import { buildProviderStudioPrompt } from '../utils/provider-studio-prompt-adapter';
+import { buildProviderRefinePrompt, PROVIDER_UPSCALE_PROMPTS } from '../utils/provider-refine-prompt';
 import { useProviderStudioFields, UseProviderStudioFieldsReturn } from './useProviderStudioFields';
+import { useProviderResultActions, UseProviderResultActionsReturn } from './useProviderResultActions';
 
-export interface UseGptImageStudioReturn extends UseProviderStudioFieldsReturn {
+export interface UseGptImageStudioReturn extends UseProviderStudioFieldsReturn, UseProviderResultActionsReturn {
   apiKey: string;
   baseUrl: string;
   setApiKey: (value: string) => void;
@@ -88,6 +90,18 @@ export const useGptImageStudio = (
     };
   }, [activeFeature]);
 
+  // Single GPT Image call for the current inputs.
+  const runGeneration = useCallback(
+    async (signal?: AbortSignal): Promise<ImageFile[]> => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images, fields.buildPromptOptions());
+      return images.length > 0
+        ? editGptImage({ model: DEFAULT_GPT_IMAGE_MODEL, prompt: composedPrompt, images, size, quality }, config, signal)
+        : generateGptImage({ model: DEFAULT_GPT_IMAGE_MODEL, prompt: composedPrompt, size, quality }, config, signal);
+    },
+    [activeFeature, prompt, images, fields, size, quality, settings.apiKey, settings.baseUrl],
+  );
+
   const handleGenerate = useCallback(async (): Promise<void> => {
     if (isLoading) return;
 
@@ -95,26 +109,8 @@ export const useGptImageStudio = (
     setError(null);
     setResults([]);
 
-    const signal = abortControllerRef.current?.signal;
-    const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
-
-    // Compose the builder-enriched prompt transiently; the textarea state keeps
-    // showing the user's raw words.
-    const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images, fields.buildPromptOptions());
-
     try {
-      const generated = images.length > 0
-        ? await editGptImage(
-          { model: DEFAULT_GPT_IMAGE_MODEL, prompt: composedPrompt, images, size, quality },
-          config,
-          signal,
-        )
-        : await generateGptImage(
-          { model: DEFAULT_GPT_IMAGE_MODEL, prompt: composedPrompt, size, quality },
-          config,
-          signal,
-        );
-
+      const generated = await runGeneration(abortControllerRef.current?.signal);
       setResults(generated);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -124,7 +120,39 @@ export const useGptImageStudio = (
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, images, prompt, size, quality, activeFeature, fields, settings.apiKey, settings.baseUrl, t]);
+  }, [isLoading, runGeneration, t]);
+
+  // Per-tile result actions (refine / upscale / regenerate). GPT Image has no
+  // native resolution flag, so upscale relies on a preservation prompt at the
+  // largest quality; results feed back as the edit source (stateless endpoint).
+  const actions = useProviderResultActions({
+    results,
+    setResults,
+    getSignal: () => abortControllerRef.current?.signal,
+    t,
+    editOne: async (source, instruction, signal) => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const [edited] = await editGptImage(
+        { model: DEFAULT_GPT_IMAGE_MODEL, prompt: buildProviderRefinePrompt(instruction), images: [source], size, quality },
+        config,
+        signal,
+      );
+      return edited;
+    },
+    upscaleOne: async (source, qualityLevel, signal) => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const [upscaled] = await editGptImage(
+        { model: DEFAULT_GPT_IMAGE_MODEL, prompt: PROVIDER_UPSCALE_PROMPTS[qualityLevel], images: [source], size, quality: 'high' },
+        config,
+        signal,
+      );
+      return upscaled;
+    },
+    regenerateOne: async (signal) => {
+      const [regenerated] = await runGeneration(signal);
+      return regenerated;
+    },
+  });
 
   return {
     apiKey: settings.apiKey,
@@ -149,6 +177,7 @@ export const useGptImageStudio = (
     results,
     clearError: () => setError(null),
     handleGenerate,
+    ...actions,
     maxReferenceImages: MAX_GPT_REFERENCE_IMAGES,
   };
 };

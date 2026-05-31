@@ -209,7 +209,22 @@ const GrokStudio: React.FC<GrokStudioProps> = ({ activeFeature, studioMode }) =>
         )}
 
         {!studio.isLoading && studio.results.length > 0 && (
-          <ProviderResultsGrid results={studio.results} downloadPrefix="grok" />
+          <ProviderResultsGrid
+            results={studio.results}
+            downloadPrefix="grok"
+            showActions
+            busyIndex={studio.busyIndex}
+            onRefine={studio.refine}
+            onUpscale={studio.upscale}
+            onRegenerate={studio.regenerate}
+          />
+        )}
+        {studio.actionError && (
+          <ErrorDisplay
+            title={t('common.generationFailed')}
+            message={studio.actionError}
+            onClear={studio.clearActionError}
+          />
         )}
       </div>
     </div>

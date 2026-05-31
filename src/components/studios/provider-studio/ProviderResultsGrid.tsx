@@ -1,23 +1,38 @@
 import React, { useCallback } from 'react';
-import { ImageFile } from '../../../types';
+import { ImageFile, UpscaleQuality } from '../../../types';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useImageViewer } from '../../../contexts/ImageViewerContext';
 import { downloadImageAsJpeg } from '../../../utils/imageDownload';
-import { DownloadIcon, FullscreenIcon } from '../../Icons';
+import ProviderResultTile from './ProviderResultTile';
 
 interface ProviderResultsGridProps {
   results: ImageFile[];
   downloadPrefix?: string;
+  /** Index currently running a post-generation action, or null. */
+  busyIndex?: number | null;
+  /** When false, tiles render view/download only (no refine/upscale/regen). */
+  showActions?: boolean;
+  onRefine?: (index: number, instruction: string) => void;
+  onUpscale?: (index: number, quality: UpscaleQuality) => void;
+  onRegenerate?: (index: number) => void;
 }
+
+const noop = () => { };
 
 /**
  * Local-only results grid for provider studios. Displays generated images with
- * view + download actions. Intentionally has NO gallery context integration —
- * provider results never persist to the Gemini gallery.
+ * view + download actions and the Phase 4 per-tile post-generation tools.
+ * Intentionally has NO gallery context integration — provider results never
+ * persist to the Gemini gallery.
  */
 const ProviderResultsGrid: React.FC<ProviderResultsGridProps> = ({
   results,
   downloadPrefix = 'provider-image',
+  busyIndex = null,
+  showActions = false,
+  onRefine = noop,
+  onUpscale = noop,
+  onRegenerate = noop,
 }) => {
   const { t } = useLanguage();
   const { openImageViewer } = useImageViewer();
@@ -39,40 +54,20 @@ const ProviderResultsGrid: React.FC<ProviderResultsGridProps> = ({
       className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
       aria-label={t('studio.provider.results.label')}
     >
-      {results.map((image, index) => {
-        const src = `data:${image.mimeType};base64,${image.base64}`;
-        return (
-          <div
-            key={`${image.base64.slice(0, 16)}-${index}`}
-            className="group relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/50"
-          >
-            <img
-              src={src}
-              alt={t('studio.provider.results.alt', { index: index + 1 })}
-              className="aspect-[4/5] w-full cursor-pointer object-cover"
-              onClick={() => openImageViewer(image)}
-            />
-            <div className="pointer-events-none absolute inset-0 flex items-start justify-end gap-2 bg-black/40 p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-              <button
-                type="button"
-                onClick={() => openImageViewer(image)}
-                className="pointer-events-auto rounded-full bg-zinc-900/70 p-2 text-white transition-colors hover:bg-zinc-800"
-                aria-label={t('studio.provider.results.view')}
-              >
-                <FullscreenIcon className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDownload(image, index)}
-                className="pointer-events-auto rounded-full bg-white p-2 text-black transition-colors hover:bg-zinc-200"
-                aria-label={t('studio.provider.results.download')}
-              >
-                <DownloadIcon className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        );
-      })}
+      {results.map((image, index) => (
+        <ProviderResultTile
+          key={`${image.base64.slice(0, 16)}-${index}`}
+          image={image}
+          index={index}
+          busy={busyIndex === index}
+          hasActions={showActions}
+          onView={openImageViewer}
+          onDownload={handleDownload}
+          onRefine={onRefine}
+          onUpscale={onUpscale}
+          onRegenerate={onRegenerate}
+        />
+      ))}
     </div>
   );
 };

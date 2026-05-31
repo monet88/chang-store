@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Refine, Upscale and Regenerate-Single"
-status: pending
+status: complete
 priority: P1
 effort: "6h"
 dependencies: [2]

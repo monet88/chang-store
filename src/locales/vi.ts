@@ -149,6 +149,13 @@ export const vi: Translation = {
         download: 'Tải ảnh xuống',
         empty: 'Ảnh bạn tạo sẽ hiển thị ở đây.',
       },
+      actions: {
+        refine: 'Tinh chỉnh',
+        refineLabel: 'Tinh chỉnh kết quả {{index}}',
+        refinePlaceholder: 'Mô tả điều chỉnh, vd: "nền sáng hơn"',
+        upscale: 'Nâng cấp {{quality}}',
+        regenerate: 'Tạo lại',
+      },
     },
     settings: {
       title: 'Cài đặt {{provider}}',

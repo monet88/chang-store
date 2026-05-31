@@ -179,7 +179,22 @@ const GptImageStudio: React.FC<GptImageStudioProps> = ({ activeFeature, studioMo
         )}
 
         {!studio.isLoading && studio.results.length > 0 && (
-          <ProviderResultsGrid results={studio.results} downloadPrefix="gpt-image" />
+          <ProviderResultsGrid
+            results={studio.results}
+            downloadPrefix="gpt-image"
+            showActions
+            busyIndex={studio.busyIndex}
+            onRefine={studio.refine}
+            onUpscale={studio.upscale}
+            onRegenerate={studio.regenerate}
+          />
+        )}
+        {studio.actionError && (
+          <ErrorDisplay
+            title={t('common.generationFailed')}
+            message={studio.actionError}
+            onClear={studio.clearActionError}
+          />
         )}
       </div>
     </div>
