@@ -47,17 +47,16 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
     <div className="flex flex-wrap items-center justify-center gap-2">
       <span className="font-medium text-zinc-300">Quality:</span>
       <div className="flex flex-wrap justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5">
-          {IMAGE_RESOLUTIONS.map(res => (
-              <button
-                  key={res}
-                  onClick={() => setResolution(res)}
-                  className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition-colors duration-200 ${
-                      resolution === res ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
-                  }`}
-              >
-                  {res}
-              </button>
-          ))}
+        {IMAGE_RESOLUTIONS.map(res => (
+          <button
+            key={res}
+            onClick={() => setResolution(res)}
+            className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200 ${resolution === res ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
+              }`}
+          >
+            {res}
+          </button>
+        ))}
       </div>
     </div>
   );

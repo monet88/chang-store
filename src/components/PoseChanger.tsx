@@ -119,7 +119,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                   </p>
                   <button
                     onClick={() => onOpenPoseLibrary(handleConfirmSelection, selectedLibraryPoses)}
-                    className="workspace-button workspace-button-primary min-h-0 px-4 py-2 text-sm font-semibold"
+                    className="workspace-button workspace-button-primary px-4 py-2 text-sm font-semibold"
                   >
                     <PhotoAlbumIcon className="w-5 h-5" />
                     {t('pose.browseLibraryButton')}
@@ -149,7 +149,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
                     <button
                       key={option.key}
                       onClick={() => setCameraView(option.key)}
-                      className={`px-2 py-1.5 text-xs font-semibold rounded-md border transition-colors duration-200 ${cameraView === option.key ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}
+                      className={`flex min-h-[44px] items-center justify-center px-3 py-2 text-xs font-semibold rounded-md border transition-colors duration-200 ${cameraView === option.key ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}
                     >
                       {option.label}
                     </button>

@@ -5,7 +5,7 @@ import type { VirtualTryOnClothingItem, ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { DeleteIcon, AddIcon } from './Icons';
 
-const secondaryButtonClass = 'inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.05] px-5 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-white/25 hover:bg-white/[0.1] hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
+const secondaryButtonClass = 'inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-white/12 bg-white/[0.05] px-5 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-white/25 hover:bg-white/[0.1] hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
 
 interface WardrobeSetCardProps {
   setIndex: number;

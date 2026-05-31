@@ -168,7 +168,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
                     e.stopPropagation();
                     setIsGallerySelectionOpen(true);
                   }}
-                  className="flex min-h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-zinc-100 transition-colors duration-200 hover:border-white/20 hover:bg-white/[0.1]"
+                  className="flex min-h-[44px] items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-zinc-100 transition-colors duration-200 hover:border-white/20 hover:bg-white/[0.1]"
                 >
                   <GalleryIcon className="h-3.5 w-3.5" />
                   <span>{t('imageUploader.selectFromGallery')}</span>

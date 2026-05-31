@@ -35,11 +35,10 @@ const StudioModeSwitch: React.FC<StudioModeSwitchProps> = ({ studioMode, onChang
             role="radio"
             aria-checked={isActive}
             onClick={() => onChange(mode)}
-            className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium tracking-[-0.01em] transition-colors duration-200 ${
-              isActive
+            className={`flex min-h-[44px] flex-1 items-center justify-center rounded-xl px-3 py-2.5 text-sm font-medium tracking-[-0.01em] transition-colors duration-200 ${isActive
                 ? 'bg-white/[0.14] text-zinc-50'
                 : 'text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
-            }`}
+              }`}
           >
             {t(labelKey)}
           </button>
