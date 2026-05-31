@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased] — 2026-05-31
+
+### Docs
+
+- Resynced `docs/` to current codebase truth (story US-002,
+  `E02-docs-harness-sync`).
+- Added `docs/product/provider-studios.md` documenting the three-provider
+  studio split (Gemini / Grok / GPT Image), provider service contracts, and
+  isolation rules.
+- Corrected `docs/product/overview.md` and root `README.md` from "Gemini-only"
+  to the three-provider model.
+- Rewrote the `docs/HARNESS_COMPONENTS.md` File Inventory and NexAU map to match
+  real tracked files; removed upstream harness-template leftovers
+  (`Cargo.*`, `crates/*`, `PHASE2.md`, `docs/demo/*`, installer/release scripts,
+  and stale story trees).
+- Updated `codebase-summary.md`, `system-architecture.md`, `project-roadmap.md`,
+  and `docs/README.md` to include Studio Modes and provider services.
+- Flagged `useSwapFace` and `useInpainting` (plus their locale strings) as
+  unwired dead code; recorded Harness backlog item #2 for cleanup.
+
 ## [Unreleased] — 2026-05-30
 
 ### Added
@@ -92,6 +112,11 @@
   development. Non-allowlisted hosts still surface a "key will be sent to
   <host>" warning. Removed the `urlNotHttps` i18n key and the corresponding
   branch in `ProviderSettingsPanel`.
+- Hardened provider-studio concurrency: full generate, batch generate, and
+  per-tile actions are now mutually exclusive; result updates merge onto the
+  latest state instead of a stale snapshot; and Lookbook controls now expose
+  folded-presentation and product-shot subtypes plus accessory/footwear
+  toggles.
 - Extended `vite.config.ts` watcher ignores with `**/.kiro/**` and
   `**/.gitnexus/**` to prevent ENOSPC under heavy local tooling.
 - Replaced generic architecture scaffold with actual React/Vite SPA architecture

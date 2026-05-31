@@ -1,9 +1,11 @@
 # Chang Store
 
 AI-powered virtual fashion studio built with React 19, TypeScript, and Vite.
-Chang Store lets users generate fashion imagery with Gemini: virtual try-ons,
-lookbooks, background swaps, pose changes, photo albums, image edits, watermark
-removal, clothing transfer, and textile pattern generation.
+Chang Store lets users generate fashion imagery: virtual try-ons, lookbooks,
+background swaps, pose changes, photo albums, image edits, watermark removal,
+clothing transfer, and textile pattern generation. The default studio uses
+Google Gemini; two isolated provider studios (Grok / xAI and GPT Image / OpenAI)
+cover five workflows each.
 
 ## Features
 
@@ -26,6 +28,7 @@ removal, clothing transfer, and textile pattern generation.
 - Vite
 - Tailwind CSS
 - Google Gemini SDK (`@google/genai`)
+- Grok (xAI) and GPT Image (OpenAI) REST in the provider studios
 - IndexedDB via `idb-keyval`
 - Optional Google Drive sync
 
@@ -36,13 +39,16 @@ Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API
 ```
 
 No React Router. `src/App.tsx` switches on the `Feature` enum and lazy-loads
-feature components.
+feature components. `AppContent` also holds a `StudioMode`
+(`gemini | grok | gptImage`) that swaps between the Gemini studio and the
+isolated Grok / GPT Image provider studios.
 
 Key docs:
 
 - `AGENTS.md` — project-specific agent instructions and Harness entrypoints.
 - `docs/README.md` — documentation map.
 - `docs/product/overview.md` — product overview.
+- `docs/product/provider-studios.md` — the three-provider studio split.
 - `docs/ARCHITECTURE.md` — actual app architecture.
 - `docs/code-standards.md` — code conventions and quality gates.
 

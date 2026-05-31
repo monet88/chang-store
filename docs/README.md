@@ -32,6 +32,7 @@ Project documentation for chang-store — an AI-powered virtual fashion studio.
 Feature behavior contracts derived from the codebase:
 
 - `overview.md`: product summary, tech stack, feature list.
+- `provider-studios.md`: three-provider studio split (Gemini/Grok/GPT Image).
 - `try-on.md`: Virtual Try-On + Wardrobe Mode.
 - `lookbook.md`: Lookbook Generator.
 - `background.md`: Background Replacer.
@@ -52,4 +53,7 @@ Feature behavior contracts derived from the codebase:
 ## Current State
 
 Harness v0 is installed. Application code exists and is deployed. Product docs
-reflect the current Feature enum and codebase behavior as of 2026-05-30.
+reflect the current Feature enum and codebase behavior, including the
+three-provider studio split, as of the 2026-05-31 docs resync (story US-002).
+Known dead code (`useSwapFace`, `useInpainting`) is tracked in Harness backlog
+item #2.

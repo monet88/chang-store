@@ -38,16 +38,33 @@ on 2026-05-30.
 - Improve validation coverage for feature flows.
 - Continue UI polish and accessibility checks.
 
+## Phase 4b: Three-Provider Studios — In Progress
+
+- Header studio switch across Gemini (default), Grok (xAI), and GPT Image
+  (OpenAI). See story `E01-provider-studios/US-001-three-provider-studios`.
+- Provider studios cover five workflows each, isolated from the Gemini pipeline.
+- Tracked separately because it adds non-Gemini providers, not just Gemini
+  refinement.
+
 ## Phase 5: Advanced AI Capabilities — Future
 
 - Video rendering or animation based on generated photos.
 - Multi-model comparison workflows.
 - Personalized fashion recommendations based on user history.
 - More robust batch orchestration and recovery.
+- Clean up unwired dead code (`useSwapFace`, `useInpainting`) — backlog #2.
 
 ## Current Documentation Milestone
 
-Harness v0 installed and docs backfilled:
+Docs resync to current codebase (story US-002, 2026-05-31):
+
+- Added `docs/product/provider-studios.md` for the three-provider split.
+- Corrected `overview.md` from "Gemini-only" to the three-provider model.
+- Rewrote `docs/HARNESS_COMPONENTS.md` File Inventory to match real tracked
+  files (removed upstream harness-template leftovers).
+- Flagged `useSwapFace` / `useInpainting` as dead code (backlog #2).
+
+Earlier milestone — Harness v0 installed and docs backfilled (2026-05-30):
 
 - `AGENTS.md` project instructions.
 - `docs/product/*` feature contracts.
