@@ -253,8 +253,13 @@ These are flagged here as documentation, not actions. Address with
    `slate-*` (Quality selector, modals). Standardize on `zinc-*` and migrate
    `slate-*` callsites in a single pass.~~ **Resolved** (2026-05-31): all
    `slate-*` utilities migrated to `zinc-*` across 18 files.
-2. **Dual heading scales.** `text-4xl` and `text-5xl` for the same heading
-   role; spec the responsive clamp once and use it everywhere.
+2. ~~**Dual heading scales.** `text-4xl` and `text-5xl` for the same heading
+   role; spec the responsive clamp once and use it everywhere.~~ **Partially
+   resolved** (2026-05-31): demoted feature panel `<h2>` to `<h3>` across
+   8 Gemini feature components so screen readers no longer announce two
+   sibling `<h2>` headings on every screen. The responsive clamp on the App
+   feature title (`text-4xl sm:text-5xl`) is still implicit; codify in a
+   single utility class in a future polish pass.
 3. **Mixed scrollbar tokens.** The custom scrollbar in `index.html` uses
    white-alpha tokens; many panels still use Tailwind defaults. Pick one.
 4. ~~**No `prefers-reduced-motion` declarations.**~~ **Resolved** — already
@@ -266,3 +271,32 @@ These are flagged here as documentation, not actions. Address with
    through `--z-index-tooltip`). Eight `@utility z-*` classes generate
    matching utilities. The primary CTA gradient is now expressed as a single
    `brand-button` utility, replacing three duplicated callsites.
+6. ~~**Eyebrow over-use.**~~ **Resolved** (2026-05-31): pruned three
+   eyebrow scaffolds from the sidebar and three uppercase-tracked button
+   labels in `ClothingTransfer.tsx`. Sidebar keeps one deliberate
+   "Workspace" kicker; remaining `uppercase tracking-[…]` callsites are
+   genuine badges, kickers, or status pills.
+7. ~~**Touch targets below 44px.**~~ **Resolved** (2026-05-31): all
+   segmented controls and sidebar/dock chrome cleared to ≥44 px on touch.
+8. ~~**Stray purple accent on send-to-album button.**~~ **Resolved**
+   (2026-05-31): single-accent contract restored — every cross-component
+   accent is now amber/orange.
+9. ~~**Non-lazy `<img>` thumbnails.**~~ **Resolved** (2026-05-31): 8
+   thumbnail-style images now use `loading="lazy" decoding="async"`. Hero
+   result images stay eager because they sit in the active result panel.
+10. ~~**Heavy backdrop-blur on always-visible chrome.**~~ **Resolved**
+    (2026-05-31): Header sidebar dropped from `backdrop-blur-2xl` (40 px)
+    to `backdrop-blur-md` (12 px). Modal scrim still uses the heavier
+    blur because the depth cue earns its cost.
+11. ~~**Empty gallery state was a single text line.**~~ **Resolved**
+    (2026-05-31): GalleryModal now renders an icon chip + heading + multi-
+    line description.
+
+## Open follow-ups
+
+- `<html lang>` initial render still ships as `en` from `index.html`; the
+  React effect updates it after hydration. Consider rendering the SSR-safe
+  default (`vi`) directly in `index.html` if a future SSR layer lands.
+- Codify the responsive heading clamp once instead of repeating
+  `text-4xl sm:text-5xl tracking-[-0.045em]` on every studio.
+- Wire skeletons into provider studios for the 60-90 s GPT Image waits.

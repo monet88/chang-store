@@ -28,6 +28,46 @@
 
 ### Changed
 
+- Hardened the global a11y surface (2026-05-31): `LanguageProvider` now
+  mirrors the active locale onto `document.documentElement.lang` so screen
+  readers pronounce VI strings with VI phonemes; added a Vietnamese-first
+  skip-to-main-content link as the first focusable child of the app shell;
+  added a global `:focus-visible` rule that paints a 2px amber outline on
+  every interactive element (button, input, textarea, select, anchor,
+  role=button, tabindex). Fixed two axe violations: `aria-expanded` on the
+  MentionTextarea is now declared with `role=combobox`; `aria-label` on the
+  decorative ImageUploader chip and ProviderResultsGrid container now have
+  matching `role` values.
+- Bumped touch targets to ≥44 px across every segmented control
+  (StudioModeSwitch, LanguageSwitcher, AspectRatioSelector, QualitySelector,
+  ResolutionSelector, VirtualTryOn mode toggle, PoseChanger and
+  BackgroundReplacer camera-view pickers, ImageUploader library button,
+  WardrobeSetCard / VirtualTryOn primary+secondary buttons, the pose
+  browse-library button, and the studio utilities dock toggle). Used literal
+  `min-h-[44px]` arbitrary values because the project sets html font-size to
+  12 px in `src/index.css`, which silently shrinks rem-based utilities.
+- Tightened heading hierarchy: 8 Gemini feature components had nested `<h2>`
+  duplicates with the App.tsx feature heading; demoted to `<h3>`. Pruned
+  three eyebrow scaffolds from the sidebar (Studio label, Tool clusters,
+  Media-first badge, Language label) and three uppercase tracked button
+  labels in ClothingTransfer. The sidebar now keeps one deliberate
+  "Workspace" kicker on the brand block instead of the eyebrow-on-every-
+  section AI grammar pattern.
+- Distilled iconography density: dropped the decorative `MagicWandIcon`
+  inside the RefinementInput textarea (the field already labels itself via
+  placeholder + adjacent Refine button); recolored the HoverableImage
+  send-to-album button from purple to the standard zinc/black-on-white
+  hover treatment used by the surrounding gallery actions, restoring the
+  single-accent contract.
+- Added `loading="lazy" decoding="async"` to 8 thumbnail-style `<img>` tags
+  (ClothingTransfer concept previews, VirtualTryOn subject previews,
+  GoogleDriveSettings avatar, ImageSelectionModal grid items,
+  PoseLibraryModal grid thumbnails, PredefinedBackgroundSelector tiles).
+  Reduced Header sidebar `backdrop-blur` from 2xl (40px) to md (12px) to
+  cut paint cost on the always-visible chrome.
+- Improved the GalleryModal empty state from a single muted text line to an
+  icon-chip + heading + description composition, reaching parity with the
+  product-register empty-state contract.
 - Polished the global chrome via `/impeccable polish` (2026-05-31): the
   Tailwind `slate-*` ramp was migrated to `zinc-*` across 18 components for
   a single neutral family; the amber/orange brand ramp was extracted into
