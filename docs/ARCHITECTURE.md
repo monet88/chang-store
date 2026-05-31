@@ -58,11 +58,59 @@ Gemini-only. Provider studios support five workflows (Try-On, Lookbook,
 Clothing Transfer, Pattern Generator, AI Editor) and render their own UI — they
 do NOT share the Gemini workspace header, model selector, or gallery.
 
-Provider studios are fully isolated from the Gemini pipeline: separate model
-registries (`grokModelRegistry.ts`, `gptImageModelRegistry.ts`), separate
-services (`src/services/providers/`), and no imports of Gemini prompt builders
-or `imageEditingService.ts`. Shared-only pieces are `ProviderSettingsPanel`,
-`ProviderResultsGrid`, and the utilities in `src/services/providers/shared/`.
+Provider studios are isolated from the Gemini **pipeline** (no Gemini hooks,
+services, contexts, or `imageEditingService.ts` calls). They DO reuse the
+Gemini prompt **builders** read-only — `buildVirtualTryOnParts`,
+`buildClothingTransferParts`, `buildPatternGeneratorParts`, `buildLookbookPrompt`
+— through `src/utils/provider-studio-prompt-adapter.ts`, which extracts the
+builder's text segments and passes images to the provider service separately.
+Separate model registries (`grokModelRegistry.ts`, `gptImageModelRegistry.ts`)
+and services (`src/services/providers/`) remain provider-specific. Shared
+pieces: `ProviderSettingsPanel`, `ProviderResultsGrid`, `ProviderResultTile`,
+`ProviderSourceFields`, `ProviderTryOnExtras`, `ProviderLookbookControls`, the
+provider hooks (`useProviderStudioFields`, `useProviderResultActions`,
+`useProviderTryOnBatch`, `useProviderLookbookFields`), and the utilities in
+`src/services/providers/shared/`.
+
+## Provider Studio Parity Matrix (vs Gemini)
+
+Capability coverage for the Grok and GPT Image studios. All provider logic is
+client-side orchestration over the provider edit/generate endpoints; the Gemini
+pipeline is byte-unchanged.
+
+| # | Capability | Gemini | Grok | GPT Image | Notes |
+|---|---|--------|------|-----------|-------|
+| 1 | Prompt builders (garment/preservation rules) | ✅ | ✅ | ✅ | Adapter extracts builder text; images sent separately. |
+| 2 | Per-source-item type (clothing/shoes/bag/accessory) | ✅ | ✅ | ✅ | Try-On only (builder consumes types). |
+| 3 | Per-source-item note | ✅ | ✅ | ✅ | Try-On note + Clothing Transfer reference label. |
+| 4 | Background prompt field | ✅ | ✅ | ✅ | Try-On; feeds builder background section. |
+| 5 | Extra-instructions field | ✅ | ✅ | ✅ | Distinct from main prompt box (Q4=B). |
+| 6 | Refine (iterative edit) | ✅ | ✅ | ✅ | Client-side re-send of result image; stateless endpoint. |
+| 7 | Upscale (2K/4K) | ✅ | ✅ | ⚠️ | Grok uses native `resolution: '2k'`; GPT uses preservation prompt at `quality: 'high'` (no native resolution flag). |
+| 8 | Regenerate single result | ✅ | ✅ | ✅ | Re-runs the slot's request. |
+| 9 | Multi-person targeting (red-dot marker) | ✅ | ✅ | ✅ | Reuses `compositeMarkerOnImage`; Try-On only. |
+| 10 | Batch subjects (bounded concurrency) | ✅ | ✅ | ✅ | `runBoundedWorkers`, cap 3 to respect provider rate limits. |
+| 11 | Lookbook style/garment/fabric/negative controls | ✅ | ✅ | ✅ | Full user-driven `LookbookFormState` drives the builder. |
+| 12 | Lookbook variations | ✅ | ❌ | ❌ | Deferred — variation fan-out multiplies provider cost/latency. |
+| 13 | Lookbook close-ups | ✅ | ❌ | ❌ | Deferred — same cost/latency trade-off. |
+| 14 | Auto-describe clothing (text model) | ✅ | ❌ | ❌ | Provider services have no text endpoint wired; documented off. |
+
+Legend: ✅ supported · ⚠️ supported with a documented provider constraint ·
+❌ deferred/constrained (see Notes).
+
+Empirical check (Phase 7, live local proxy): Try-On with the DEFAULT composed
+prompt (no manual hints) was run end-to-end through the real adapter + real
+provider edit service on BOTH providers:
+
+| Provider | Latency | Outfit applied | Top untucked | Distortion |
+|---|---|---|---|---|
+| Grok (`grok-imagine-image-quality`) | ~9s | ✅ | ✅ | none |
+| GPT Image (`gpt-image-2`) | ~122s | ✅ | ✅ | none |
+
+Both confirm the reused builder rules ("never tucked in") take effect through
+the provider edit endpoints. No fallback to a curated rule excerpt was needed
+(red-team F1/F3 cleared). GPT Image is materially slower (matches the studio's
+60-90s slow-response warning).
 
 ## Feature Routing
 

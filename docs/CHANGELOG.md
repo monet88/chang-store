@@ -25,6 +25,15 @@
   namespaced localStorage overrides).
 - Injected `GROK_API_KEY`, `GROK_BASE_URL`, `GPT_IMAGE_API_KEY`, and
   `GPT_IMAGE_BASE_URL` (with `VITE_`-prefixed fallbacks) in `vite.config.ts`.
+- Brought the Grok and GPT Image studios to feature parity with Gemini: provider
+  studios now reuse the Gemini prompt builders (garment/preservation rules) via
+  `provider-studio-prompt-adapter.ts`; add per-source-item type/note, dedicated
+  background and extra-instruction fields; refine, upscale (2K/4K), and
+  regenerate-single per result tile; multi-person red-dot targeting and batch
+  subjects (bounded concurrency); and the full Lookbook control surface
+  (style/garment/fabric/negative). See the parity matrix in `docs/ARCHITECTURE.md`.
+  Lookbook variations/close-ups and auto-describe are deferred as a documented
+  subset. The Gemini pipeline is unchanged (builders reused read-only).
 
 ### Changed
 

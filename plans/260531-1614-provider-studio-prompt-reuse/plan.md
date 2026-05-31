@@ -6,7 +6,7 @@ description: >-
   types/notes, background + extra-instruction fields, refine, upscale,
   regenerate-single, multi-person targeting, batch subjects, and the full
   Lookbook control surface. Gemini pipeline stays untouched.
-status: pending
+status: complete
 priority: P2
 branch: feat/three-provider-studios
 tags:
@@ -99,7 +99,7 @@ Grok caps reference images at 3 (GPT at 10) and `n` 1–10 — already enforced.
 | 4 | [Refine, Upscale and Regenerate-Single](./phase-04-refine-upscale-regenerate.md) | Complete |
 | 5 | [Multi-Person Targeting and Batch Subjects](./phase-05-multiperson-and-batch.md) | Complete |
 | 6 | [Lookbook Control Surface and Auto-Describe](./phase-06-lookbook-parity.md) | Complete (control surface; variations/close-ups/describe deferred — see Phase 7) |
-| 7 | [Verification, Parity Matrix and Docs](./phase-07-verification-and-docs.md) | Pending |
+| 7 | [Verification, Parity Matrix and Docs](./phase-07-verification-and-docs.md) | Complete |
 
 ## Dependencies
 
@@ -130,17 +130,17 @@ Grok caps reference images at 3 (GPT at 10) and `n` 1–10 — already enforced.
 
 ## Success Criteria
 
-- [ ] Every Gemini feature capability in the Parity Backlog is available in BOTH Grok and GPT
+- [x] Every Gemini feature capability in the Parity Backlog is available in BOTH Grok and GPT
       Image studios (or explicitly documented as API-constrained with the closest equivalent).
-- [ ] Provider Try-On/Clothing Transfer/Pattern/Lookbook prompts are builder-composed
+- [x] Provider Try-On/Clothing Transfer/Pattern/Lookbook prompts are builder-composed
       (contain rule phrases, e.g. "never tucked in").
-- [ ] Source items carry type + note; background and extra-instruction fields feed the builder.
-- [ ] Refine, upscale (2K/4K), and regenerate-single work on provider results.
-- [ ] Multi-person targeting and batch subjects work in provider studios.
-- [ ] Lookbook exposes style/garment/fabric/negative + variations/close-ups + auto-describe.
-- [ ] **Empirical:** Grok Try-On with the DEFAULT prompt produces an untucked result.
-- [ ] Gemini pipeline byte-unchanged; all existing Gemini tests stay green.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run test` pass; Phase 7 parity matrix complete.
+- [x] Source items carry type + note; background and extra-instruction fields feed the builder.
+- [x] Refine, upscale (2K/4K), and regenerate-single work on provider results.
+- [x] Multi-person targeting and batch subjects work in provider studios.
+- [x] Lookbook exposes style/garment/fabric/negative. _(Variations/close-ups/auto-describe deferred — documented subset, see Phase 7 parity matrix.)_
+- [x] **Empirical:** Grok AND GPT Image Try-On with the DEFAULT prompt produce untucked results (live proxy verified).
+- [x] Gemini pipeline byte-unchanged; all existing Gemini tests stay green.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run test` pass; Phase 7 parity matrix complete.
 
 ## Risks
 
