@@ -8,6 +8,7 @@ HARNESS_DB="${HARNESS_DB:-$REPO_ROOT/harness.db}"
 cd "$REPO_ROOT"
 
 python3 - <<'PY'
+import fnmatch
 import os
 import re
 import sqlite3
@@ -70,8 +71,7 @@ else:
         if ref in allowed_local:
             continue
         if "*" in ref:
-            prefix = ref.split("*", 1)[0]
-            if not any(path.startswith(prefix) for path in tracked):
+            if not any(fnmatch.fnmatch(path, ref) for path in tracked):
                 fail(f"HARNESS_COMPONENTS inventory glob has no tracked match: {ref}")
             continue
         if ref not in tracked:

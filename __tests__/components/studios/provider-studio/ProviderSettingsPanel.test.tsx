@@ -23,7 +23,7 @@ vi.mock('../../../../src/contexts/LanguageContext', () => ({
   }),
 }));
 
-import ProviderSettingsPanel from '../../../../src/components/studios/provider-studio/ProviderSettingsPanel';
+import ProviderSettingsPanel from '@/components/studios/provider-studio/ProviderSettingsPanel';
 
 const baseProps = {
   providerLabel: 'Grok',

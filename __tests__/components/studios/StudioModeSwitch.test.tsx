@@ -16,7 +16,7 @@ vi.mock('../../../src/contexts/LanguageContext', () => ({
   }),
 }));
 
-import StudioModeSwitch from '../../../src/components/studios/StudioModeSwitch';
+import StudioModeSwitch from '@/components/studios/StudioModeSwitch';
 
 describe('StudioModeSwitch', () => {
   it('renders three studio segments', () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ImageFile } from '../../../../src/types';
+import { ImageFile } from '@/types';
 
 vi.mock('../../../../src/contexts/LanguageContext', () => ({
   useLanguage: () => ({
@@ -29,7 +29,7 @@ vi.mock('../../../../src/components/ImageUploader', () => ({
   ),
 }));
 
-import ProviderSourceItemGrid from '../../../../src/components/studios/provider-studio/ProviderSourceItemGrid';
+import ProviderSourceItemGrid from '@/components/studios/provider-studio/ProviderSourceItemGrid';
 
 const img = (tag: string): ImageFile => ({ base64: tag, mimeType: 'image/png' });
 

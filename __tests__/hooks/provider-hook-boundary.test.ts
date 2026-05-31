@@ -16,8 +16,8 @@ const HOOKS_DIR = path.join(PROJECT_ROOT, 'src', 'hooks');
 const STUDIO_HOOKS = new Set(['useGrokStudio.ts', 'useGptImageStudio.ts']);
 
 const FORBIDDEN = [
-  { reason: 'imports from src/services are forbidden in shared provider helper hooks', pattern: /from\s+['"](?:@\/services|\.\.\/services)/ },
-  { reason: 'imports from src/config are forbidden in shared provider helper hooks', pattern: /from\s+['"](?:@\/config|\.\.\/config)/ },
+  { reason: 'imports from src/services are forbidden in shared provider helper hooks', pattern: /from\s+['"](?:@\/services|(?:\.\.\/)+services)/ },
+  { reason: 'imports from src/config are forbidden in shared provider helper hooks', pattern: /from\s+['"](?:@\/config|(?:\.\.\/)+config)/ },
 ];
 
 async function collectSharedProviderHooks(): Promise<string[]> {
