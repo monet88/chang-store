@@ -48,7 +48,7 @@ POST /v1/images/generations
   model: 'grok-imagine-image' | 'grok-imagine-image-quality',
   prompt: string,
   n: number (1–10),   // user-selected via slider
-  aspect_ratio: '1:1' | '2:3' | '3:2' | '9:16' | '16:9' | 'auto',
+  aspect_ratio: '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '9:16' | '16:9' | '9:19.5' | '19.5:9' | '9:20' | '20:9' | '1:2' | '2:1' | 'auto',
   resolution: '1k' | '2k',
   response_format: 'b64_json'
 }
@@ -61,11 +61,19 @@ POST /v1/images/edits
   image?: { type: 'image_url', url: string },
   images?: Array<{ type: 'image_url', url: string }>,
   n: number (1–10),   // user-selected via slider
-  aspect_ratio?: '1:1' | '2:3' | '3:2' | '9:16' | '16:9' | 'auto',
+  aspect_ratio?: '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '9:16' | '16:9' | '9:19.5' | '19.5:9' | '9:20' | '20:9' | '1:2' | '2:1' | 'auto',
   resolution: '1k' | '2k',
   response_format: 'b64_json'
 }
 ```
+
+> The xAI REST Images reference accepts a 14-value `aspect_ratio` enum. The
+> Grok studio UI currently exposes a curated subset (`1:1`, `2:3`, `3:2`,
+> `9:16`, `16:9`) plus the `Default` (omit) option that maps to `auto`,
+> because those five cover every fashion-output ratio the product targets.
+> Power users can still send the full enum by typing into a future advanced
+> input; the wire contract above lists every accepted value so the service
+> validator never rejects a legitimate request.
 
 ## Workflow Implementation Order
 
