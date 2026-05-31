@@ -71,7 +71,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
     };
 
     const handleImageClick = () => {
-        if(onClick) {
+        if (onClick) {
             onClick();
         } else {
             openImageViewer(image);
@@ -92,7 +92,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
         <>
             <div className={containerClassName ?? defaultClassName}>
                 <img src={imageUrl} alt={altText} className="object-cover h-full w-full cursor-pointer" onClick={handleImageClick} />
-                
+
                 {isUpscaling && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
                         <div className="flex flex-col items-center gap-2">
@@ -105,22 +105,21 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                 <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-4 z-20 pointer-events-none">
                     {/* Top right icons */}
                     <div className="flex justify-end gap-2 pointer-events-auto">
-                         {/* Save to Gallery button */}
-                         <button
+                        {/* Save to Gallery button */}
+                        <button
                             onClick={handleSaveToGallery}
                             disabled={isSavedToGallery}
-                            className={`p-2 rounded-full transition-colors ${
-                                isSavedToGallery
+                            className={`p-2 rounded-full transition-colors ${isSavedToGallery
                                     ? 'bg-white text-black cursor-default'
                                     : 'bg-zinc-900/50 text-white hover:bg-white/90 hover:text-black'
-                            }`}
+                                }`}
                             aria-label={isSavedToGallery ? t('imageActions.savedToGallery') : t('imageActions.saveToGallery')}
                             title={isSavedToGallery ? t('imageActions.savedToGallery') : t('imageActions.saveToGallery')}
                         >
                             <GalleryIcon className="w-5 h-5" />
                         </button>
                         {onDelete && (
-                            <button 
+                            <button
                                 onClick={handleDeleteClick}
                                 className="p-2 bg-red-600/70 rounded-full text-white hover:bg-red-500/90 transition-colors"
                                 aria-label="Delete image"
@@ -131,14 +130,14 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                         {onSendToFeature && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); onSendToFeature(); }}
-                                className="p-2 bg-purple-600/70 rounded-full text-white hover:bg-purple-500/90 transition-colors"
+                                className="p-2 bg-zinc-900/50 rounded-full text-white hover:bg-white/90 hover:text-black transition-colors"
                                 aria-label={t('imageActions.sendToAlbum')}
                                 title={t('imageActions.sendToAlbum')}
                             >
                                 <SendIcon className="w-5 h-5" />
                             </button>
                         )}
-                        <button 
+                        <button
                             onClick={handleExpandClick}
                             className="p-2 bg-zinc-900/50 rounded-full text-white hover:bg-zinc-800/80 transition-colors"
                             aria-label="View full image"
@@ -146,7 +145,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                             <FullscreenIcon className="w-5 h-5" />
                         </button>
                     </div>
-                    
+
                     {/* Bottom buttons */}
                     <div className="flex justify-center items-center gap-3 bg-zinc-950/80 p-2 rounded-full backdrop-blur-sm pointer-events-auto">
                         {onRegenerate && (
@@ -169,7 +168,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                                 {isUpscaling ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-100"></div> : <CloudUploadIcon className="w-5 h-5" />}
                             </button>
                         )}
-                         <button
+                        <button
                             type="button"
                             onClick={handleDownloadClick}
                             className="rounded-full bg-white p-2.5 text-black transition-colors hover:bg-zinc-200"
