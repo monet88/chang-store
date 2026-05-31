@@ -134,7 +134,7 @@ export const GoogleDriveSettings: React.FC = () => {
         <div className="space-y-3">
           <div className="flex items-center gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
             {user.picture ? (
-              <img src={user.picture} alt={user.name} className="h-11 w-11 rounded-full object-cover" />
+              <img src={user.picture} alt={user.name} loading="lazy" decoding="async" className="h-11 w-11 rounded-full object-cover" />
             ) : (
               <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]">
                 <span className="text-sm font-semibold text-zinc-200">{user.name.charAt(0).toUpperCase()}</span>

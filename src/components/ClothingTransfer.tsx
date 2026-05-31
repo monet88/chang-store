@@ -278,7 +278,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                           {conceptItems.length > 1 && (
                             <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full border border-white/10 bg-black/70 px-2 py-1 backdrop-blur-sm">
                               <div className="h-4 w-4 overflow-hidden rounded border border-zinc-600">
-                                <img src={`data:${item.conceptImage.mimeType};base64,${item.conceptImage.base64}`} alt="" className="h-full w-full object-cover" />
+                                <img src={`data:${item.conceptImage.mimeType};base64,${item.conceptImage.base64}`} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                               </div>
                               <span className="text-[10px] font-medium text-zinc-300">#{itemIdx + 1}</span>
                             </div>
@@ -334,7 +334,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                         )}
                         <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full border border-white/10 bg-black/70 px-2 py-1 backdrop-blur-sm">
                           <div className="h-4 w-4 overflow-hidden rounded border border-zinc-600">
-                            <img src={`data:${item.conceptImage.mimeType};base64,${item.conceptImage.base64}`} alt="" className="h-full w-full object-cover" />
+                            <img src={`data:${item.conceptImage.mimeType};base64,${item.conceptImage.base64}`} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                           </div>
                           <span className="text-[10px] font-medium text-zinc-300">#{itemIdx + 1}</span>
                         </div>

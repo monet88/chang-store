@@ -28,7 +28,7 @@ const PredefinedBackgroundSelector: React.FC<PredefinedBackgroundSelectorProps> 
                                 aria-pressed={isSelected}
                             >
                                 <div className="relative w-full h-full">
-                                    <img src={bg.thumbnailUrl} alt={bg.name} className="w-full h-full object-cover" />
+                                    <img src={bg.thumbnailUrl} alt={bg.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-2">
                                         <p className={`text-xs font-semibold text-white transition-transform duration-200 ${isSelected ? 'translate-y-0' : 'translate-y-1 group-hover:translate-y-0'}`}>{bg.name}</p>
                                     </div>

@@ -158,7 +158,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                                     className={`relative w-20 h-28 rounded-md overflow-hidden flex-shrink-0 transition-all duration-200 group ring-2 ${currentPoseIndex === index ? 'ring-amber-400 scale-105' : 'ring-transparent hover:ring-amber-500/50'
                                         }`}
                                 >
-                                    <img src={pose.imageUrl} alt={pose.title} className="w-full h-full object-cover" />
+                                    <img src={pose.imageUrl} alt={pose.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
                                     {isSelected && (
                                         <div className="absolute top-1 right-1 text-amber-500 bg-zinc-900/60 rounded-full">

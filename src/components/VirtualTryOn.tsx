@@ -490,7 +490,7 @@ const VirtualTryOn: React.FC = () => {
                               {subjectItems.length > 1 && (
                                 <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full border border-white/10 bg-black/70 px-2 py-1 text-[10px] text-zinc-300 backdrop-blur-sm">
                                   <div className="h-4 w-4 overflow-hidden rounded-full border border-white/10">
-                                    <img src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`} alt="" className="h-full w-full object-cover" />
+                                    <img src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                                   </div>
                                   <span>#{itemIdx + 1}</span>
                                 </div>
@@ -548,7 +548,7 @@ const VirtualTryOn: React.FC = () => {
                             )}
                             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/70 px-2 py-1 text-[10px] text-zinc-300">
                               <div className="h-4 w-4 overflow-hidden rounded-full border border-white/10">
-                                <img src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`} alt="" className="h-full w-full object-cover" />
+                                <img src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                               </div>
                               <span>#{itemIdx + 1}</span>
                             </div>

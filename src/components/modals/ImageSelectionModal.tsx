@@ -56,7 +56,7 @@ const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({ isOpen, onClo
                                 className="aspect-square bg-zinc-800 rounded-lg overflow-hidden group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:ring-amber-500 transition-transform transform hover:scale-105"
                                 aria-label={`${t('imageSelectionModal.select')} ${t('gallery.altText', { index: index + 1 })}`}
                             >
-                                <img src={`data:${image.mimeType};base64,${image.base64}`} alt={t('gallery.altText', { index: index + 1 })} className="w-full h-full object-cover" />
+                                <img src={`data:${image.mimeType};base64,${image.base64}`} alt={t('gallery.altText', { index: index + 1 })} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <span className="text-white font-bold">{t('imageSelectionModal.select')}</span>
                                 </div>
