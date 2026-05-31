@@ -76,3 +76,8 @@ harness.db-shm
 scripts/bin/harness-cli
 .kiro
 .planning
+.github/skills/
+.impeccable-baseline.json
+.impeccable-audit.md
+audit-*.png
+.impeccable/live/sessions/
