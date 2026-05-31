@@ -9,7 +9,7 @@ vi.mock('../../../src/contexts/LanguageContext', () => ({
         'studio.switch.label': 'Studio',
         'studio.switch.gemini': 'Gemini',
         'studio.switch.grok': 'Grok',
-        'studio.switch.gptImage': 'GPT Image',
+        'studio.switch.gptImage': 'GPT',
       };
       return translations[key] ?? key;
     },
@@ -24,7 +24,7 @@ describe('StudioModeSwitch', () => {
 
     expect(screen.getByRole('radio', { name: 'Gemini' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Grok' })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'GPT Image' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'GPT' })).toBeInTheDocument();
   });
 
   it('marks the active segment as checked', () => {
@@ -39,7 +39,7 @@ describe('StudioModeSwitch', () => {
     const onChange = vi.fn();
     render(<StudioModeSwitch studioMode="gemini" onChange={onChange} />);
 
-    await user.click(screen.getByRole('radio', { name: 'GPT Image' }));
+    await user.click(screen.getByRole('radio', { name: 'GPT' }));
 
     expect(onChange).toHaveBeenCalledWith('gptImage');
   });

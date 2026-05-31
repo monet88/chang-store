@@ -1,14 +1,15 @@
 # Architecture
 
 Chang Store is a React 19 + TypeScript + Vite single-page application.
-All AI processing happens client-side via the Google Gemini SDK — there is
-no custom backend server.
+Core Gemini workflows run client-side via the Google Gemini SDK, while the
+isolated Grok and GPT Image studios call their provider REST endpoints
+client-side as well. There is no custom backend server.
 
 ## Product Surface
 
 - **Browser SPA** — the only runtime surface.
 - No server, no API routes, no database server.
-- AI calls go directly from the browser to Google Gemini endpoints.
+- AI calls go directly from the browser to Gemini, Grok, or GPT Image endpoints depending on the active studio.
 
 ## Core Pattern
 

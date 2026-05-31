@@ -1,12 +1,14 @@
 # Deployment Guide
 
 Chang Store deploys as a static Vite SPA. There is no custom backend server.
-AI calls go directly from the browser to Google Gemini.
+Gemini calls go directly from the browser to Google Gemini; optional provider
+studios call Grok and GPT Image REST endpoints from the browser as well.
 
 ## Prerequisites
 
 - Node.js and npm available locally.
-- Google Gemini API key.
+- Google Gemini API key for the default studio.
+- Optional Grok and GPT Image keys for provider-studio defaults.
 - Optional Google Drive OAuth configuration if Drive sync is enabled.
 
 ## Environment Variables
@@ -55,7 +57,7 @@ npm run build
 2. Use framework preset: `Vite`.
 3. Add required environment variables in Vercel project settings.
 4. Deploy from the selected branch.
-5. Confirm production Gemini calls work — not only the dev server.
+5. Confirm production Gemini calls and any configured provider-studio calls work — not only the dev server.
 
 ## Static Hosting
 
@@ -67,5 +69,6 @@ provider that supports SPA fallback routing.
 - Open the deployed URL and verify the app loads.
 - Verify model selectors populate from `src/config/modelRegistry.ts` defaults.
 - Run one Gemini-backed feature with a small test image.
-- Verify API key errors are user-visible if the key is missing.
+- If Grok/GPT Image keys are configured, switch studios and run one provider-backed workflow.
+- Verify API key errors are user-visible if a required key is missing.
 - If Drive sync is enabled, verify Google Drive authorization and upload flow.

@@ -14,7 +14,7 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'studio.switch.label': 'Studio',
         'studio.switch.gemini': 'Gemini',
         'studio.switch.grok': 'Grok',
-        'studio.switch.gptImage': 'GPT Image',
+        'studio.switch.gptImage': 'GPT',
       };
 
       return translations[key] ?? key;

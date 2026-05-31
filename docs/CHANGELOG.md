@@ -40,8 +40,8 @@
   and stale story trees).
 - Updated `codebase-summary.md`, `system-architecture.md`, `project-roadmap.md`,
   and `docs/README.md` to include Studio Modes and provider services.
-- Flagged `useSwapFace` and `useInpainting` (plus their locale strings) as
-  unwired dead code; recorded Harness backlog item #2 for cleanup.
+- Removed unwired `useSwapFace` and `useInpainting` hooks plus their locale keys;
+  closed Harness backlog item #2.
 
 ## [Unreleased] — 2026-05-30
 

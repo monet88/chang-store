@@ -135,7 +135,7 @@ export const en = {
       label: 'Studio',
       gemini: 'Gemini',
       grok: 'Grok',
-      gptImage: 'GPT Image',
+      gptImage: 'GPT',
     },
     provider: {
       featuresLabel: 'Provider workflows',
@@ -169,6 +169,7 @@ export const en = {
       urlInvalid: 'Enter a valid URL.',
       urlInsecureHttp: 'http:// is only allowed for localhost or private network proxies. Use https:// for public hosts so the API key is not sent over insecure transport.',
       urlCustomWarning: 'Warning: your API key will be sent to {{host}}. Only continue if you trust this domain.',
+      gptLocalRecommendation: 'GPT multipart uploads may timeout through Cloudflare tunnels. Use a local endpoint (e.g. http://localhost:8333/v1) for best results.',
     },
     workflows: {
       promptLabel: 'Prompt',
@@ -671,23 +672,6 @@ export const en = {
     posesSelectedCount: '{{count}} Selected',
     confirmButton: 'Confirm Selection',
   },
-  swapFace: {
-    title: 'AI Image Recreation',
-    description: 'Recreate an image in the style of a reference photo, but with a new face.',
-    styleImageTitle: 'Style Reference Image',
-    faceImageTitle: 'Face Reference Image',
-    analyzeButton: 'Analyze Style',
-    analyzingStatus: 'Analyzing image style...',
-    promptLabel: 'Generated Recreation Prompt',
-    promptPlaceholder: "Press 'Analyze Style' on the reference image or paste your own prompt here.",
-    generateButton: 'Recreate Image',
-    generatingStatus: 'Recreating image with new face...',
-    error: {
-      styleMissing: 'Please upload a style reference image.',
-      faceMissing: 'Please upload a face reference image.',
-      promptMissing: 'Please analyze a style or enter a prompt.',
-    },
-  },
   photoAlbum: {
     title: 'Create Photo Album',
     description: 'Create a stunning photo album with multiple poses, frames, and backgrounds from a single image.',
@@ -925,30 +909,6 @@ Your task is to generate **4 creative scene suggestions** that are direct extens
 Your final output MUST be a JSON object with a single key "suggestions", which is an array of 4 strings. Example: \`{"suggestions": ["Suggestion 1...", "Suggestion 2...", "Suggestion 3...", "Suggestion 4..."]}\`
 Do not include any other text or markdown.
 `,
-  },
-  inpainting: {
-    title: 'AI Inpainting',
-    description: 'Use a brush to select an area on your image and ask the AI to seamlessly edit, remove, or add content.',
-    uploadTitle: 'Upload Image to Edit',
-    promptLabel: 'Describe Your Edit',
-    promptPlaceholder: 'e.g., "remove the person in the background" or "add a hat"',
-    generateButton: 'Perform Inpainting',
-    selectionInstruction: 'Use the rectangle tool to select an area, or the brush to paint over what you want to change. Use the eraser to refine your selection.',
-    clearSelection: 'Clear Selection',
-    generatingStatus: 'Applying your edits...',
-    error: {
-      noImage: 'Please upload an image first.',
-      noPrompt: 'Please enter a description of the edit you want to make.',
-      noSelection: 'Please paint a selection on the image to indicate the area to edit.',
-    },
-    brushSize: 'Brush Size',
-    brushOpacity: 'Brush Opacity',
-    toolBrush: 'Brush',
-    toolEraser: 'Eraser',
-    toolRectangle: 'Rectangle Select',
-    maskColor: 'Mask Color',
-    maskPreviewOpacity: 'Preview Opacity',
-    toggleMaskVisibility: 'Toggle Mask Visibility',
   },
   aiEditor: {
     title: 'AI Editor',

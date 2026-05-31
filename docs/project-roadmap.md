@@ -6,7 +6,7 @@ on 2026-05-30.
 ## Phase 1: Core Foundation — Completed
 
 - React + TypeScript + Vite SPA.
-- Gemini-only AI provider integration.
+- Gemini AI provider integration as the original/default full-featured studio.
 - Feature enum routing in `App.tsx`.
 - Provider stack for language, API config, Drive sync, gallery, viewer.
 - Local gallery persistence with IndexedDB.
@@ -52,7 +52,7 @@ on 2026-05-30.
 - Multi-model comparison workflows.
 - Personalized fashion recommendations based on user history.
 - More robust batch orchestration and recovery.
-- Clean up unwired dead code (`useSwapFace`, `useInpainting`) — backlog #2.
+- Continue removing unwired or obsolete surfaces as they are discovered.
 
 ## Current Documentation Milestone
 
@@ -62,7 +62,7 @@ Docs resync to current codebase (story US-002, 2026-05-31):
 - Corrected `overview.md` from "Gemini-only" to the three-provider model.
 - Rewrote `docs/HARNESS_COMPONENTS.md` File Inventory to match real tracked
   files (removed upstream harness-template leftovers).
-- Flagged `useSwapFace` / `useInpainting` as dead code (backlog #2).
+- Removed `useSwapFace` / `useInpainting` dead code (backlog #2).
 
 Earlier milestone — Harness v0 installed and docs backfilled (2026-05-30):
 

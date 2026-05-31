@@ -22,6 +22,16 @@ export default defineConfig(({ mode }) => {
           // the OS inotify watcher limit (ENOSPC) on Linux.
           '**/.kiro/**',
           '**/.gitnexus/**',
+          // Playwright MCP writes snapshots/console logs here during browser
+          // testing; watching it triggers HMR full-reloads that wipe app state.
+          '**/.playwright-mcp/**',
+          // Harness/docs tooling rewrites these constantly. None are part of the
+          // app bundle, so watching them only causes spurious dev reloads.
+          '**/docs/**',
+          '**/*.md',
+          '**/harness.db',
+          '**/plans/**',
+          '**/.claude/**',
         ],
       },
     },

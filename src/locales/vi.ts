@@ -135,7 +135,7 @@ export const vi: Translation = {
       label: 'Studio',
       gemini: 'Gemini',
       grok: 'Grok',
-      gptImage: 'GPT Image',
+      gptImage: 'GPT',
     },
     provider: {
       featuresLabel: 'Quy trình của nhà cung cấp',
@@ -169,6 +169,7 @@ export const vi: Translation = {
       urlInvalid: 'Nhập một URL hợp lệ.',
       urlInsecureHttp: 'http:// chỉ được phép cho localhost hoặc proxy mạng nội bộ. Hãy dùng https:// cho các tên miền công khai để API key không bị gửi qua kết nối không an toàn.',
       urlCustomWarning: 'Cảnh báo: API key của bạn sẽ được gửi tới {{host}}. Chỉ tiếp tục nếu bạn tin tưởng tên miền này.',
+      gptLocalRecommendation: 'GPT upload multipart có thể timeout qua Cloudflare tunnel. Nên dùng endpoint local (vd: http://localhost:8333/v1) để có kết quả tốt nhất.',
     },
     workflows: {
       promptLabel: 'Prompt',
@@ -672,23 +673,6 @@ export const vi: Translation = {
     posesSelectedCount: 'Đã chọn {{count}}',
     confirmButton: 'Xác nhận lựa chọn',
   },
-  swapFace: {
-    title: 'Tái tạo Ảnh bằng AI',
-    description: 'Tái tạo một hình ảnh theo phong cách của ảnh tham chiếu, nhưng với một khuôn mặt mới.',
-    styleImageTitle: 'Ảnh tham chiếu phong cách',
-    faceImageTitle: 'Ảnh tham chiếu khuôn mặt',
-    analyzeButton: 'Phân tích phong cách',
-    analyzingStatus: 'Đang phân tích phong cách ảnh...',
-    promptLabel: 'Prompt được tạo để tái tạo',
-    promptPlaceholder: "Nhấn 'Phân tích phong cách' trên ảnh tham chiếu hoặc dán prompt của bạn vào đây.",
-    generateButton: 'Tái tạo ảnh',
-    generatingStatus: 'Đang tái tạo ảnh với khuôn mặt mới...',
-    error: {
-      styleMissing: 'Vui lòng tải lên ảnh tham chiếu phong cách.',
-      faceMissing: 'Vui lòng tải lên ảnh tham chiếu khuôn mặt.',
-      promptMissing: 'Vui lòng phân tích một phong cách hoặc nhập một prompt.',
-    },
-  },
   photoAlbum: {
     title: 'Tạo Album Ảnh',
     description: 'Tạo một album ảnh tuyệt đẹp với nhiều tư thế, khung và nền từ một hình ảnh duy nhất.',
@@ -927,30 +911,6 @@ Nhiệm vụ của bạn là tạo ra **4 gợi ý cảnh sáng tạo** là ph�
 Đầu ra cuối cùng của bạn BẮT BUỘC phải là một đối tượng JSON có một khóa duy nhất "suggestions", là một mảng gồm 4 chuỗi. Ví dụ: \`{"suggestions": ["Gợi ý 1...", "Gợi ý 2...", "Gợi ý 3...", "Gợi ý 4..."]}\`
 Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
 `,
-  },
-  inpainting: {
-    title: 'AI Vẽ lại Vùng chọn',
-    description: 'Dùng cọ để chọn một vùng trên ảnh của bạn và yêu cầu AI chỉnh sửa, xóa hoặc thêm nội dung một cách liền mạch.',
-    uploadTitle: 'Tải ảnh lên để Chỉnh sửa',
-    promptLabel: 'Mô tả Chỉnh sửa của bạn',
-    promptPlaceholder: 'ví dụ: "xóa người ở hậu cảnh" hoặc "thêm một chiếc mũ"',
-    generateButton: 'Thực hiện Vẽ lại',
-    selectionInstruction: 'Dùng công cụ hình chữ nhật để chọn một vùng, hoặc dùng cọ vẽ để tô lên vùng bạn muốn chỉnh sửa. Dùng tẩy để tinh chỉnh vùng chọn.',
-    clearSelection: 'Xóa Vùng chọn',
-    generatingStatus: 'Đang áp dụng chỉnh sửa...',
-    error: {
-      noImage: 'Vui lòng tải ảnh lên trước.',
-      noPrompt: 'Vui lòng nhập mô tả về chỉnh sửa bạn muốn thực hiện.',
-      noSelection: 'Vui lòng vẽ một vùng chọn trên ảnh để chỉ định khu vực cần chỉnh sửa.',
-    },
-    brushSize: 'Kích thước Cọ',
-    brushOpacity: 'Độ mờ Cọ',
-    toolBrush: 'Cọ vẽ',
-    toolEraser: 'Tẩy',
-    toolRectangle: 'Chọn hình chữ nhật',
-    maskColor: 'Màu Vùng chọn',
-    maskPreviewOpacity: 'Độ mờ Xem trước',
-    toggleMaskVisibility: 'Ẩn/Hiện Vùng chọn',
   },
   aiEditor: {
     title: 'AI Editor',

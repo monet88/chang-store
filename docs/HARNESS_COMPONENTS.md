@@ -33,7 +33,7 @@ Status values:
 | 6 | Observability | Partial | `docs/TRACE_SPEC.md`, `trace` table, `scripts/harness query traces`, `scripts/harness query friction`, `docs/HARNESS_MATURITY.md` | Traces can be recorded and Phase 2 defines quality tiers and maturity targets. | No automated trace quality scoring, dashboard, or benchmark ingestion exists in this repo. |
 | 7 | Failure attribution | Partial | `docs/HARNESS_COMPONENTS.md`, `docs/TRACE_SPEC.md`, `trace.errors`, `trace.harness_friction`, `docs/HARNESS_BACKLOG.md`, `backlog` table | Failures can be tied to files, components, friction, and backlog proposals. | No automated attribution from benchmark failures to harness components exists yet. |
 | 8 | Verification | Partial | `docs/TEST_MATRIX.md`, `scripts/harness query matrix`, `story` proof columns, `.github/workflows/ci.yml`, `docs/templates/validation-report.md` | Stories record unit, integration, E2E, and platform proof; CI runs the app quality gates. | No generic verification runner, benchmark protocol file, or required final proof automation exists in this repo. |
-| 9 | Permissions | Partial | `AGENTS.md`, `docs/HARNESS.md`, `docs/FEATURE_INTAKE.md`, `docs/ARCHITECTURE.md`, `.kiro/steering/*` | Policy describes when agents may update docs and when to ask before architecture or workflow changes. | Permissions are instruction-level only; no enforced policy layer or command allowlist exists. |
+| 9 | Permissions | Partial | `AGENTS.md`, `docs/HARNESS.md`, `docs/FEATURE_INTAKE.md`, `docs/ARCHITECTURE.md` | Policy describes when agents may update docs and when to ask before architecture or workflow changes. | Permissions are instruction-level only; no enforced policy layer or command allowlist exists. |
 | 10 | Entropy auditing | Partial | `docs/HARNESS_BACKLOG.md`, `backlog` table, `trace.harness_friction`, `docs/HARNESS_MATURITY.md` | Growth rule captures friction and Phase 2 defines maturity movement. | No drift detector, stale-doc audit, or entropy score exists. |
 | 11 | Intervention recording | Partial | `trace` table, `docs/decisions/*`, `docs/stories/*`, `docs/HARNESS.md` | Traces and decisions can record actions, decisions, and outcomes. | Human interventions are not separated from normal agent actions, and there is no review-event schema. |
 
@@ -44,7 +44,7 @@ Status values:
 | System prompts | `AGENTS.md` plus Harness policy docs | Covered | `AGENTS.md` is the stable shim; `docs/HARNESS.md`, `docs/FEATURE_INTAKE.md`, and `docs/CONTEXT_RULES.md` carry evolving operating instructions. |
 | Tool descriptions | `scripts/README.md`, `docs/HARNESS.md`, CLI help from `scripts/harness help` | Partial | Commands are documented, but there is no standalone tool schema or generated command reference. |
 | Tool implementations | `scripts/harness`, `scripts/bin/harness-cli` (prebuilt), `scripts/schema/001-init.sql` | Covered | The prebuilt Rust CLI behind the stable repo-local entrypoint is the durable-layer implementation; its source is upstream. |
-| Middleware | `scripts/harness`, feature intake workflow, `.kiro/steering/*` | Partial | The launcher and intake process mediate work, but there is no runtime middleware enforcing policies. |
+| Middleware | `scripts/harness`, feature intake workflow | Partial | The launcher and intake process mediate work, but there is no runtime middleware enforcing policies. |
 | Skills | `docs/templates/*`, `docs/FEATURE_INTAKE.md`, `docs/CONTEXT_RULES.md`, `docs/TRACE_SPEC.md` | Partial | Reusable procedures exist as markdown, not executable or installable agent skills. |
 | Sub-agents | None in this repository | Missing | No delegated specialist agents or sub-agent protocols exist. |
 | Long-term memory | `harness.db`, `docs/decisions/*`, `docs/stories/*`, `docs/HARNESS_BACKLOG.md`, `docs/GLOSSARY.md` | Covered | Durable records and markdown decisions preserve task history and project vocabulary. |
@@ -52,7 +52,7 @@ Status values:
 ## File Inventory
 
 This inventory maps the Harness/operating surface tracked in **this** repository
-(root agent files, `docs/`, `scripts/`, `.github/`, `.kiro/steering/`). It does
+(root agent files, `docs/`, `scripts/`, `.github/`). It does
 not enumerate application source under `src/` — that surface is documented in
 `docs/codebase-summary.md`, `docs/ARCHITECTURE.md`, and `docs/product/*`. Every
 row below references a file that exists in the repo (`git ls-files`).
@@ -126,7 +126,7 @@ row below references a file that exists in the repo (`git ls-files`).
 | `docs/templates/high-risk-story/execplan.md` | Task state | Verification |
 | `docs/templates/high-risk-story/validation.md` | Verification | Failure attribution |
 
-### Scripts + CI + steering
+### Scripts + CI
 
 | File | Primary Responsibility | Secondary Responsibilities |
 | --- | --- | --- |
@@ -138,7 +138,6 @@ row below references a file that exists in the repo (`git ls-files`).
 | `harness.db` (gitignored) | Task state | Observability, project memory |
 | `.github/workflows/ci.yml` | Verification | Tool access |
 | `.github/copilot-instructions.md` | Context selection | Task specification |
-| `.kiro/steering/*` | Permissions | Context selection, task specification |
 
 ## Coverage Summary
 

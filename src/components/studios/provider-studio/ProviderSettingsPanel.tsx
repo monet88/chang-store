@@ -77,6 +77,11 @@ const ProviderSettingsPanel: React.FC<ProviderSettingsPanelProps> = ({
             {t('studio.settings.urlCustomWarning', { host: urlValidation.host })}
           </p>
         )}
+        {providerLabel === 'GPT' && (
+          <p className="text-xs text-zinc-500">
+            {t('studio.settings.gptLocalRecommendation')}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">

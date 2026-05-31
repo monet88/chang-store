@@ -55,5 +55,4 @@ Feature behavior contracts derived from the codebase:
 Harness v0 is installed. Application code exists and is deployed. Product docs
 reflect the current Feature enum and codebase behavior, including the
 three-provider studio split, as of the 2026-05-31 docs resync (story US-002).
-Known dead code (`useSwapFace`, `useInpainting`) is tracked in Harness backlog
-item #2.
+Known dead code (`useSwapFace`, `useInpainting`) was removed under Harness backlog item #2.

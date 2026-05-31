@@ -64,9 +64,9 @@ The dev server runs on port 3000.
 ## Environment Variables
 
 Vite only exposes env vars with `VITE_` prefix. This project also supports
-non-prefixed `GEMINI_API_KEY` through explicit injection in `vite.config.ts`.
+non-prefixed provider keys through explicit injection in `vite.config.ts`.
 
-Set one of:
+Core Gemini studio:
 
 ```bash
 GEMINI_API_KEY=your_key_here
@@ -74,7 +74,17 @@ GEMINI_API_KEY=your_key_here
 VITE_GEMINI_API_KEY=your_key_here
 ```
 
-For production deployments, set the same variable in the hosting dashboard.
+Optional provider studios:
+
+```bash
+GROK_API_KEY=your_xai_key_here
+GPT_IMAGE_API_KEY=your_openai_key_here
+# Optional custom/local proxies
+GROK_BASE_URL=https://api.x.ai/v1
+GPT_IMAGE_BASE_URL=https://api.openai.com/v1
+```
+
+For production deployments, set the same variables in the hosting dashboard.
 See `docs/deployment-guide.md`.
 
 ## Quality Gates

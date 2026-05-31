@@ -82,3 +82,5 @@ scripts/bin/harness-cli
 audit-*.png
 .impeccable/live/sessions/
 .antigravitycli/
+cloudflare-tunnel
+.workflow/

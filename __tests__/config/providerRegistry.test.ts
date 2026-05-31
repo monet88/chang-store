@@ -11,7 +11,7 @@ describe('providerRegistry', () => {
   it('registers grok and gptImage providers', () => {
     expect(PROVIDER_IDS).toEqual(['grok', 'gptImage']);
     expect(PROVIDER_REGISTRY.grok.label).toBe('Grok');
-    expect(PROVIDER_REGISTRY.gptImage.label).toBe('GPT Image');
+    expect(PROVIDER_REGISTRY.gptImage.label).toBe('GPT');
   });
 
   it('exposes built-in default base URLs', () => {

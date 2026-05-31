@@ -37,7 +37,7 @@ export const PROVIDER_REGISTRY: Record<ProviderId, ProviderMetadata> = {
   },
   gptImage: {
     id: 'gptImage',
-    label: 'GPT Image',
+    label: 'GPT',
     defaultBaseUrl: GPT_IMAGE_DEFAULT_BASE_URL,
     envApiKey: readEnv(process.env.GPT_IMAGE_API_KEY),
     envBaseUrl: readEnv(process.env.GPT_IMAGE_BASE_URL),

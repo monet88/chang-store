@@ -44,18 +44,11 @@ Provider studios (Grok, GPT Image) support five workflows
 never through the Gemini pipeline. See `docs/product/provider-studios.md` and
 the "Studio Modes" section in `docs/ARCHITECTURE.md`.
 
-## Dead Code (Unwired)
+## Dead Code Cleanup
 
-The following exist in the tree but are **not** wired into any component or
-`App.tsx` (verified by search — no callers):
-
-- `src/hooks/useSwapFace.ts` and `swapFace.*` strings in `src/locales/{en,vi}.ts`.
-- `src/hooks/useInpainting.ts` and `inpainting.*` strings in
-  `src/locales/{en,vi}.ts`.
-
-They are not part of the live `Feature` enum or any studio. Treat them as dead
-code pending cleanup — see Harness backlog item #2
-(`scripts/harness query backlog`). Do not document them as live features.
+Unwired `useSwapFace` / `useInpainting` hooks and their locale keys were removed
+as Harness backlog item #2. They are not part of the live `Feature` enum or any
+studio.
 
 ## Architecture Pattern
 
@@ -92,6 +85,5 @@ services.
   untracked (gitignored).
 - The three-provider studio split (Gemini/Grok/GPT Image) is live; see
   `docs/product/provider-studios.md`.
-- `useSwapFace` / `useInpainting` are unwired dead code (backlog #2), not live
-  features.
+- `useSwapFace` / `useInpainting` were removed as unwired dead code (backlog #2).
 - Last resync of these docs to code: 2026-05-31 (story US-002).
