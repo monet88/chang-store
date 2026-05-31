@@ -184,7 +184,7 @@ export const en = {
       tryOn: {
         title: 'Virtual Try-On',
         description: 'Combine a subject and clothing into a styled result.',
-        upload: 'Upload subject and clothing images',
+        upload: 'Upload subject and clothing images (first image = model/scene, next = clothing)',
         promptPlaceholder: 'Describe how the outfit should be worn.',
       },
       lookbook: {
@@ -196,7 +196,7 @@ export const en = {
       clothingTransfer: {
         title: 'Clothing Transfer',
         description: 'Transfer a reference outfit onto a concept image.',
-        upload: 'Upload reference and concept images',
+        upload: 'Upload reference and concept images (first image = concept/scene, next = source outfit)',
         promptPlaceholder: 'Describe the clothing transfer.',
       },
       patternGenerator: {

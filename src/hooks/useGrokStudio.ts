@@ -19,6 +19,7 @@ import {
   isKnownGrokModel,
 } from '../config/grokModelRegistry';
 import { generateGrokImage, editGrokImage } from '../services/providers/grok/grokImageService';
+import { buildProviderStudioPrompt } from '../utils/provider-studio-prompt-adapter';
 
 export interface ProviderOption {
   value: string;
@@ -112,15 +113,19 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     const signal = abortControllerRef.current?.signal;
     const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
 
+    // Compose the builder-enriched prompt transiently; the textarea state keeps
+    // showing the user's raw words.
+    const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images);
+
     try {
       const generated = images.length > 0
         ? await editGrokImage(
-          { model, prompt, images, n, aspectRatio, resolution },
+          { model, prompt: composedPrompt, images, n, aspectRatio, resolution },
           config,
           signal,
         )
         : await generateGrokImage(
-          { model, prompt, n, aspectRatio, resolution },
+          { model, prompt: composedPrompt, n, aspectRatio, resolution },
           config,
           signal,
         );
@@ -134,7 +139,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, images, model, prompt, n, aspectRatio, resolution, settings.apiKey, settings.baseUrl, t]);
+  }, [isLoading, images, model, prompt, n, aspectRatio, resolution, activeFeature, settings.apiKey, settings.baseUrl, t]);
 
   return {
     apiKey: settings.apiKey,

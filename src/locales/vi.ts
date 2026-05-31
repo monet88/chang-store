@@ -184,7 +184,7 @@ export const vi: Translation = {
       tryOn: {
         title: 'Thử đồ Ảo',
         description: 'Kết hợp người mẫu và trang phục thành kết quả đã phối.',
-        upload: 'Tải lên ảnh người mẫu và trang phục',
+        upload: 'Tải lên ảnh người mẫu và trang phục (ảnh đầu = người mẫu/bối cảnh, ảnh sau = trang phục)',
         promptPlaceholder: 'Mô tả cách mặc trang phục.',
       },
       lookbook: {
@@ -196,7 +196,7 @@ export const vi: Translation = {
       clothingTransfer: {
         title: 'Chuyển Trang phục',
         description: 'Chuyển trang phục tham chiếu lên ảnh ý tưởng.',
-        upload: 'Tải lên ảnh tham chiếu và ý tưởng',
+        upload: 'Tải lên ảnh tham chiếu và ý tưởng (ảnh đầu = ý tưởng/bối cảnh, ảnh sau = trang phục nguồn)',
         promptPlaceholder: 'Mô tả việc chuyển trang phục.',
       },
       patternGenerator: {

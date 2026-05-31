@@ -15,6 +15,7 @@ import {
   MAX_GPT_REFERENCE_IMAGES,
 } from '../config/gptImageModelRegistry';
 import { generateGptImage, editGptImage } from '../services/providers/gpt-image/gptImageService';
+import { buildProviderStudioPrompt } from '../utils/provider-studio-prompt-adapter';
 
 export interface UseGptImageStudioReturn {
   apiKey: string;
@@ -93,15 +94,19 @@ export const useGptImageStudio = (
     const signal = abortControllerRef.current?.signal;
     const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
 
+    // Compose the builder-enriched prompt transiently; the textarea state keeps
+    // showing the user's raw words.
+    const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images);
+
     try {
       const generated = images.length > 0
         ? await editGptImage(
-          { model: DEFAULT_GPT_IMAGE_MODEL, prompt, images, size, quality },
+          { model: DEFAULT_GPT_IMAGE_MODEL, prompt: composedPrompt, images, size, quality },
           config,
           signal,
         )
         : await generateGptImage(
-          { model: DEFAULT_GPT_IMAGE_MODEL, prompt, size, quality },
+          { model: DEFAULT_GPT_IMAGE_MODEL, prompt: composedPrompt, size, quality },
           config,
           signal,
         );
@@ -115,7 +120,7 @@ export const useGptImageStudio = (
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, images, prompt, size, quality, settings.apiKey, settings.baseUrl, t]);
+  }, [isLoading, images, prompt, size, quality, activeFeature, settings.apiKey, settings.baseUrl, t]);
 
   return {
     apiKey: settings.apiKey,
