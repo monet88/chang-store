@@ -86,22 +86,20 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Create an AbortController on mount; abort any in-flight request on unmount
-  // (e.g. when the user switches studios).
+  // Reset transient workflow state when the active feature changes, and abort
+  // any request that was started for the previous feature so a late-arriving
+  // response cannot overwrite the new feature's state.
   useEffect(() => {
+    abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    return () => {
-      controller.abort();
-    };
-  }, []);
-
-  // Reset transient workflow state when the active feature changes.
-  useEffect(() => {
     setPrompt('');
     setImages([]);
     setResults([]);
     setError(null);
+    return () => {
+      controller.abort();
+    };
   }, [activeFeature]);
 
   const handleGenerate = useCallback(async (): Promise<void> => {
