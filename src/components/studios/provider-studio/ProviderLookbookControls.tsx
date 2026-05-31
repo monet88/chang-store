@@ -6,6 +6,8 @@ import {
     LookbookStyle,
     GarmentType,
     MannequinBackgroundStyleKey,
+    FoldedPresentationType,
+    ProductShotSubType,
 } from '../../LookbookGenerator.prompts';
 import ImageUploader from '../../ImageUploader';
 
@@ -119,6 +121,66 @@ const ProviderLookbookControls: React.FC<ProviderLookbookControlsProps> = ({
                             </option>
                         ))}
                     </select>
+                </div>
+            )}
+
+            {/* Folded presentation (folded style only) */}
+            {state.lookbookStyle === 'folded' && (
+                <div className="flex flex-col gap-2">
+                    <p className="text-sm font-medium text-zinc-300">{t('lookbook.presentationTypeLabel')}</p>
+                    <div className={choiceWrap}>
+                        {(['boxed', 'folded'] as FoldedPresentationType[]).map((type) => (
+                            <button
+                                key={type}
+                                type="button"
+                                onClick={() => onChange({ foldedPresentationType: type })}
+                                className={choice(state.foldedPresentationType === type)}
+                            >
+                                {t(type === 'boxed' ? 'lookbook.presentationTypeBoxed' : 'lookbook.presentationTypeFolded')}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Product shot sub-type + accessories/footwear (product shot only) */}
+            {state.lookbookStyle === 'product shot' && (
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2">
+                        <p className="text-sm font-medium text-zinc-300">{t('lookbook.productShotSubTypeLabel')}</p>
+                        <div className={choiceWrap}>
+                            {(['ghost-mannequin', 'clean-flat-lay'] as ProductShotSubType[]).map((subType) => (
+                                <button
+                                    key={subType}
+                                    type="button"
+                                    onClick={() => onChange({ productShotSubType: subType })}
+                                    className={choice(state.productShotSubType === subType)}
+                                >
+                                    {t(subType === 'ghost-mannequin' ? 'lookbook.productShotGhostMannequin' : 'lookbook.productShotCleanFlatLay')}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap gap-4">
+                        <label className="flex items-center gap-2 text-sm text-zinc-300">
+                            <input
+                                type="checkbox"
+                                checked={state.includeAccessories}
+                                onChange={(e) => onChange({ includeAccessories: e.target.checked })}
+                                className="h-4 w-4 rounded border-white/20 bg-black/30 text-white focus:ring-white/20"
+                            />
+                            {t('lookbook.includeAccessories')}
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-zinc-300">
+                            <input
+                                type="checkbox"
+                                checked={state.includeFootwear}
+                                onChange={(e) => onChange({ includeFootwear: e.target.checked })}
+                                className="h-4 w-4 rounded border-white/20 bg-black/30 text-white focus:ring-white/20"
+                            />
+                            {t('lookbook.includeFootwear')}
+                        </label>
+                    </div>
                 </div>
             )}
 

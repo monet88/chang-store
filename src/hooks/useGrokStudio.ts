@@ -154,8 +154,44 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     [activeFeature, prompt, images, fields, batch.isMultiPersonMode, batch.markerPosition, lookbook.lookbookState, lookbook.lookbookFabricImage, prepareImages, model, aspectRatio, resolution, settings.apiKey, settings.baseUrl],
   );
 
+  // Per-tile result actions (refine / upscale / regenerate). Grok upscale uses
+  // the native 2k resolution plus a preservation prompt; results feed back as
+  // the edit source (provider endpoints are stateless, like Gemini chat-refine).
+  // Declared before handleGenerate so the generate flow can block on
+  // `actions.busyIndex` (mutual exclusion — no concurrent requests).
+  const actions = useProviderResultActions({
+    results,
+    setResults,
+    getSignal: () => abortControllerRef.current?.signal,
+    isBusy: isLoading || batch.isBatchRunning,
+    t,
+    editOne: async (source, instruction, signal) => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const [edited] = await editGrokImage(
+        { model, prompt: buildProviderRefinePrompt(instruction), images: [source], n: 1, aspectRatio, resolution },
+        config,
+        signal,
+      );
+      return edited;
+    },
+    upscaleOne: async (source, quality, signal) => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const [upscaled] = await editGrokImage(
+        { model, prompt: PROVIDER_UPSCALE_PROMPTS[quality], images: [source], n: 1, aspectRatio, resolution: '2k' },
+        config,
+        signal,
+      );
+      return upscaled;
+    },
+    regenerateOne: async (signal) => {
+      const [regenerated] = await runGeneration(1, signal);
+      return regenerated;
+    },
+  });
+
   const handleGenerate = useCallback(async (): Promise<void> => {
-    if (isLoading || batch.isBatchRunning) return;
+    // Block while a full/batch generate OR a per-tile action is running.
+    if (isLoading || batch.isBatchRunning || actions.busyIndex !== null) return;
 
     setError(null);
 
@@ -186,39 +222,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, batch, activeFeature, images, runGeneration, n, t]);
-
-  // Per-tile result actions (refine / upscale / regenerate). Grok upscale uses
-  // the native 2k resolution plus a preservation prompt; results feed back as
-  // the edit source (provider endpoints are stateless, like Gemini chat-refine).
-  const actions = useProviderResultActions({
-    results,
-    setResults,
-    getSignal: () => abortControllerRef.current?.signal,
-    t,
-    editOne: async (source, instruction, signal) => {
-      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
-      const [edited] = await editGrokImage(
-        { model, prompt: buildProviderRefinePrompt(instruction), images: [source], n: 1, aspectRatio, resolution },
-        config,
-        signal,
-      );
-      return edited;
-    },
-    upscaleOne: async (source, quality, signal) => {
-      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
-      const [upscaled] = await editGrokImage(
-        { model, prompt: PROVIDER_UPSCALE_PROMPTS[quality], images: [source], n: 1, aspectRatio, resolution: '2k' },
-        config,
-        signal,
-      );
-      return upscaled;
-    },
-    regenerateOne: async (signal) => {
-      const [regenerated] = await runGeneration(1, signal);
-      return regenerated;
-    },
-  });
+  }, [isLoading, batch, actions.busyIndex, activeFeature, images, runGeneration, n, t]);
 
   return {
     apiKey: settings.apiKey,

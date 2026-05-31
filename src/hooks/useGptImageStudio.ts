@@ -133,8 +133,44 @@ export const useGptImageStudio = (
     [activeFeature, prompt, images, fields, batch.isMultiPersonMode, batch.markerPosition, lookbook.lookbookState, lookbook.lookbookFabricImage, prepareImages, size, quality, settings.apiKey, settings.baseUrl],
   );
 
+  // Per-tile result actions (refine / upscale / regenerate). GPT Image has no
+  // native resolution flag, so upscale relies on a preservation prompt at the
+  // largest quality; results feed back as the edit source (stateless endpoint).
+  // Declared before handleGenerate so the generate flow can block on
+  // `actions.busyIndex` (mutual exclusion — no concurrent requests).
+  const actions = useProviderResultActions({
+    results,
+    setResults,
+    getSignal: () => abortControllerRef.current?.signal,
+    isBusy: isLoading || batch.isBatchRunning,
+    t,
+    editOne: async (source, instruction, signal) => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const [edited] = await editGptImage(
+        { model: DEFAULT_GPT_IMAGE_MODEL, prompt: buildProviderRefinePrompt(instruction), images: [source], size, quality },
+        config,
+        signal,
+      );
+      return edited;
+    },
+    upscaleOne: async (source, qualityLevel, signal) => {
+      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+      const [upscaled] = await editGptImage(
+        { model: DEFAULT_GPT_IMAGE_MODEL, prompt: PROVIDER_UPSCALE_PROMPTS[qualityLevel], images: [source], size, quality: 'high' },
+        config,
+        signal,
+      );
+      return upscaled;
+    },
+    regenerateOne: async (signal) => {
+      const [regenerated] = await runGeneration(signal);
+      return regenerated;
+    },
+  });
+
   const handleGenerate = useCallback(async (): Promise<void> => {
-    if (isLoading || batch.isBatchRunning) return;
+    // Block while a full/batch generate OR a per-tile action is running.
+    if (isLoading || batch.isBatchRunning || actions.busyIndex !== null) return;
 
     setError(null);
 
@@ -165,39 +201,7 @@ export const useGptImageStudio = (
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, batch, activeFeature, images, runGeneration, t]);
-
-  // Per-tile result actions (refine / upscale / regenerate). GPT Image has no
-  // native resolution flag, so upscale relies on a preservation prompt at the
-  // largest quality; results feed back as the edit source (stateless endpoint).
-  const actions = useProviderResultActions({
-    results,
-    setResults,
-    getSignal: () => abortControllerRef.current?.signal,
-    t,
-    editOne: async (source, instruction, signal) => {
-      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
-      const [edited] = await editGptImage(
-        { model: DEFAULT_GPT_IMAGE_MODEL, prompt: buildProviderRefinePrompt(instruction), images: [source], size, quality },
-        config,
-        signal,
-      );
-      return edited;
-    },
-    upscaleOne: async (source, qualityLevel, signal) => {
-      const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
-      const [upscaled] = await editGptImage(
-        { model: DEFAULT_GPT_IMAGE_MODEL, prompt: PROVIDER_UPSCALE_PROMPTS[qualityLevel], images: [source], size, quality: 'high' },
-        config,
-        signal,
-      );
-      return upscaled;
-    },
-    regenerateOne: async (signal) => {
-      const [regenerated] = await runGeneration(signal);
-      return regenerated;
-    },
-  });
+  }, [isLoading, batch, actions.busyIndex, activeFeature, images, runGeneration, t]);
 
   return {
     apiKey: settings.apiKey,

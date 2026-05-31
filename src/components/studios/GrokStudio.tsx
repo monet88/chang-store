@@ -28,6 +28,8 @@ const GrokStudio: React.FC<GrokStudioProps> = ({ activeFeature, studioMode }) =>
 
   const submitDisabled =
     studio.isLoading ||
+    studio.isBatchRunning ||
+    studio.busyIndex !== null ||
     !studio.apiKey ||
     (workflow.requiresImages && studio.images.length === 0);
 

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useState } from 'react';
 import { ImageFile, UpscaleQuality } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 
@@ -11,9 +11,15 @@ type TranslateFn = (key: string, options?: { [key: string]: string | number }) =
  */
 export interface ProviderResultActionConfig {
     results: ImageFile[];
-    setResults: (results: ImageFile[]) => void;
+    /** React state setter — functional updates are used to avoid stale overwrites. */
+    setResults: Dispatch<SetStateAction<ImageFile[]>>;
     /** Abort signal accessor (reads the studio's active controller). */
     getSignal: () => AbortSignal | undefined;
+    /**
+     * True when a full generation (or batch) is running. Per-tile actions are
+     * blocked while it is true so they cannot race the generate flow.
+     */
+    isBusy: boolean;
     /** Refine: edit `source` with a preservation-wrapped instruction. */
     editOne: (source: ImageFile, instruction: string, signal?: AbortSignal) => Promise<ImageFile>;
     /** Upscale: produce a higher-res variant of `source`. */
@@ -43,22 +49,25 @@ export interface UseProviderResultActionsReturn {
 export const useProviderResultActions = (
     config: ProviderResultActionConfig,
 ): UseProviderResultActionsReturn => {
-    const { results, setResults, getSignal, editOne, upscaleOne, regenerateOne, t } = config;
+    const { results, setResults, getSignal, isBusy, editOne, upscaleOne, regenerateOne, t } = config;
 
     const [busyIndex, setBusyIndex] = useState<number | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
 
     const replaceSlot = useCallback(
         (index: number, image: ImageFile) => {
-            setResults(results.map((current, i) => (i === index ? image : current)));
+            // Functional update: always merge onto the latest results, never a
+            // stale snapshot captured when the async action started.
+            setResults((prev) => prev.map((current, i) => (i === index ? image : current)));
         },
-        [results, setResults],
+        [setResults],
     );
 
     /** Shared runner: guards concurrent actions, handles abort + errors. */
     const runAction = useCallback(
         async (index: number, produce: (signal?: AbortSignal) => Promise<ImageFile>) => {
-            if (busyIndex !== null) return;
+            // Block while another tile action OR a full generate/batch is running.
+            if (busyIndex !== null || isBusy) return;
             if (index < 0 || index >= results.length) return;
 
             setBusyIndex(index);
@@ -79,7 +88,7 @@ export const useProviderResultActions = (
                 setBusyIndex(null);
             }
         },
-        [busyIndex, results.length, getSignal, replaceSlot, t],
+        [busyIndex, isBusy, results.length, getSignal, replaceSlot, t],
     );
 
     const refine = useCallback(

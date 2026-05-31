@@ -156,4 +156,40 @@ describe('buildProviderStudioPrompt', () => {
 
         expect(prompt).toContain('silk blouse');
     });
+
+    it('reflects the folded presentation type (boxed vs folded) in the Lookbook prompt', () => {
+        const boxed = buildProviderStudioPrompt(Feature.Lookbook, 'x', [mockImage('a')], {
+            lookbookState: { ...DEFAULT_PROVIDER_LOOKBOOK_STATE, lookbookStyle: 'folded', foldedPresentationType: 'boxed' },
+        });
+        const folded = buildProviderStudioPrompt(Feature.Lookbook, 'x', [mockImage('a')], {
+            lookbookState: { ...DEFAULT_PROVIDER_LOOKBOOK_STATE, lookbookStyle: 'folded', foldedPresentationType: 'folded' },
+        });
+        // Boxed presentation mentions a box; flat folded does not.
+        expect(boxed.toLowerCase()).toContain('box');
+        expect(boxed).not.toEqual(folded);
+    });
+
+    it('reflects product-shot subtype and accessory/footwear toggles', () => {
+        const ghost = buildProviderStudioPrompt(Feature.Lookbook, 'x', [mockImage('a')], {
+            lookbookState: {
+                ...DEFAULT_PROVIDER_LOOKBOOK_STATE,
+                lookbookStyle: 'product shot',
+                productShotSubType: 'ghost-mannequin',
+                includeFootwear: true,
+            },
+        });
+        const flatLay = buildProviderStudioPrompt(Feature.Lookbook, 'x', [mockImage('a')], {
+            lookbookState: {
+                ...DEFAULT_PROVIDER_LOOKBOOK_STATE,
+                lookbookStyle: 'product shot',
+                productShotSubType: 'clean-flat-lay',
+                includeFootwear: false,
+            },
+        });
+
+        expect(ghost.toUpperCase()).toContain('GHOST MANNEQUIN');
+        expect(flatLay.toUpperCase()).toContain('FLAT LAY');
+        // Footwear toggle changes the composed text.
+        expect(ghost).not.toEqual(flatLay);
+    });
 });
