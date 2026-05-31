@@ -160,6 +160,7 @@ export const vi: Translation = {
       showKey: 'Hiện',
       hideKey: 'Ẩn',
       urlInvalid: 'Nhập một URL hợp lệ.',
+      urlInsecureHttp: 'http:// chỉ được phép cho localhost hoặc proxy mạng nội bộ. Hãy dùng https:// cho các tên miền công khai để API key không bị gửi qua kết nối không an toàn.',
       urlCustomWarning: 'Cảnh báo: API key của bạn sẽ được gửi tới {{host}}. Chỉ tiếp tục nếu bạn tin tưởng tên miền này.',
     },
     workflows: {

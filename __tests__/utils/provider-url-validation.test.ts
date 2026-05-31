@@ -24,14 +24,58 @@ describe('validateProviderBaseUrl', () => {
     });
   });
 
-  it('accepts non-HTTPS (http) URLs for local proxies', () => {
-    expect(validateProviderBaseUrl('http://api.x.ai/v1')).toMatchObject({
-      status: 'allowed',
-      host: 'api.x.ai',
+  it('accepts http only for localhost and private/loopback hosts', () => {
+    // Allowlisted hosts still match by host name even over http (api.x.ai is public,
+    // but the policy gate on http is the host being private — api.x.ai is not, so this should fail).
+    expect(validateProviderBaseUrl('http://api.x.ai/v1')).toEqual({
+      status: 'invalid',
+      reason: 'insecure-http',
     });
+
+    // localhost / loopback / private network is fine for local proxies.
     expect(validateProviderBaseUrl('http://localhost:8333')).toMatchObject({
       status: 'custom',
       host: 'localhost',
+    });
+    expect(validateProviderBaseUrl('http://127.0.0.1:3000')).toMatchObject({
+      status: 'custom',
+      host: '127.0.0.1',
+    });
+    expect(validateProviderBaseUrl('http://192.168.1.10:8080')).toMatchObject({
+      status: 'custom',
+      host: '192.168.1.10',
+    });
+    expect(validateProviderBaseUrl('http://10.0.0.5:80')).toMatchObject({
+      status: 'custom',
+      host: '10.0.0.5',
+    });
+    expect(validateProviderBaseUrl('http://172.16.5.1')).toMatchObject({
+      status: 'custom',
+      host: '172.16.5.1',
+    });
+    expect(validateProviderBaseUrl('http://[::1]:8000')).toMatchObject({
+      status: 'custom',
+      host: '::1',
+    });
+    expect(validateProviderBaseUrl('http://my-proxy.local')).toMatchObject({
+      status: 'custom',
+      host: 'my-proxy.local',
+    });
+  });
+
+  it('rejects http on public hosts so bearer tokens never go over plain HTTP', () => {
+    expect(validateProviderBaseUrl('http://proxy.example.com/v1')).toEqual({
+      status: 'invalid',
+      reason: 'insecure-http',
+    });
+    expect(validateProviderBaseUrl('http://8.8.8.8')).toEqual({
+      status: 'invalid',
+      reason: 'insecure-http',
+    });
+    // 172.32 is outside the 172.16/12 RFC1918 range, so it's public.
+    expect(validateProviderBaseUrl('http://172.32.0.1')).toEqual({
+      status: 'invalid',
+      reason: 'insecure-http',
     });
   });
 

@@ -160,6 +160,7 @@ export const en = {
       showKey: 'Show',
       hideKey: 'Hide',
       urlInvalid: 'Enter a valid URL.',
+      urlInsecureHttp: 'http:// is only allowed for localhost or private network proxies. Use https:// for public hosts so the API key is not sent over insecure transport.',
       urlCustomWarning: 'Warning: your API key will be sent to {{host}}. Only continue if you trust this domain.',
     },
     workflows: {

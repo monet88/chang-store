@@ -15,6 +15,7 @@ vi.mock('../../../../src/contexts/LanguageContext', () => ({
         'studio.settings.showKey': 'Show',
         'studio.settings.hideKey': 'Hide',
         'studio.settings.urlInvalid': 'Enter a valid URL.',
+        'studio.settings.urlInsecureHttp': 'http:// is only allowed for localhost or private network proxies.',
         'studio.settings.urlCustomWarning': `Warning: key sent to ${params?.host ?? ''}.`,
       };
       return translations[key] ?? key;
@@ -60,6 +61,13 @@ describe('ProviderSettingsPanel', () => {
     render(<ProviderSettingsPanel {...baseProps} baseUrl="http://localhost:8333/v1" />);
     expect(screen.queryByText('Enter a valid URL.')).not.toBeInTheDocument();
     expect(screen.getByText(/Warning: key sent to localhost/)).toBeInTheDocument();
+  });
+
+  it('rejects http on public hosts as insecure transport', () => {
+    render(<ProviderSettingsPanel {...baseProps} baseUrl="http://proxy.evil.com/v1" />);
+    expect(
+      screen.getByText('http:// is only allowed for localhost or private network proxies.'),
+    ).toBeInTheDocument();
   });
 
   it('invokes callbacks on input and reset', async () => {
