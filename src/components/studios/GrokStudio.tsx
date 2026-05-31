@@ -8,6 +8,7 @@ import ProviderSettingsPanel from './provider-studio/ProviderSettingsPanel';
 import ProviderResultsGrid from './provider-studio/ProviderResultsGrid';
 import ProviderSourceFields from './provider-studio/ProviderSourceFields';
 import ProviderTryOnExtras from './provider-studio/ProviderTryOnExtras';
+import ProviderLookbookControls from './provider-studio/ProviderLookbookControls';
 import { getProviderWorkflow } from './provider-studio/providerWorkflows';
 
 interface GrokStudioProps {
@@ -99,6 +100,16 @@ const GrokStudio: React.FC<GrokStudioProps> = ({ activeFeature, studioMode }) =>
             batchItems={studio.batchItems}
             batchCompletedCount={studio.batchCompletedCount}
             batchFailedCount={studio.batchFailedCount}
+          />
+        )}
+
+        {activeFeature === Feature.Lookbook && (
+          <ProviderLookbookControls
+            idPrefix="grok"
+            state={studio.lookbookState}
+            onChange={studio.setLookbookField}
+            fabricImage={studio.lookbookFabricImage}
+            setFabricImage={studio.setLookbookFabricImage}
           />
         )}
 

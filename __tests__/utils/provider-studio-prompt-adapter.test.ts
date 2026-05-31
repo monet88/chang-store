@@ -116,4 +116,44 @@ describe('buildProviderStudioPrompt', () => {
 
         expect(prompt).toContain('floral dress');
     });
+
+    it('enables the multi-person targeting block for Try-On', () => {
+        const prompt = buildProviderStudioPrompt(
+            Feature.TryOn,
+            '',
+            [mockImage('subject'), mockImage('clothing')],
+            { isMultiPersonMode: true },
+        );
+
+        expect(prompt).toContain('red dot');
+    });
+
+    it('uses the user-chosen Lookbook style from the form state', () => {
+        const prompt = buildProviderStudioPrompt(
+            Feature.Lookbook,
+            'linen dress',
+            [mockImage('a')],
+            { lookbookState: { ...DEFAULT_PROVIDER_LOOKBOOK_STATE, lookbookStyle: 'mannequin' } },
+        );
+
+        // Mannequin style emits the mannequin-specific instruction text.
+        expect(prompt).toContain('mannequin');
+        expect(prompt).toContain('linen dress');
+    });
+
+    it('seeds Lookbook clothingDescription from the form state when set', () => {
+        const prompt = buildProviderStudioPrompt(
+            Feature.Lookbook,
+            'main prompt',
+            [mockImage('a')],
+            {
+                lookbookState: {
+                    ...DEFAULT_PROVIDER_LOOKBOOK_STATE,
+                    clothingDescription: 'silk blouse',
+                },
+            },
+        );
+
+        expect(prompt).toContain('silk blouse');
+    });
 });

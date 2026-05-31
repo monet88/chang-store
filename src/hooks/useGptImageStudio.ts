@@ -20,8 +20,9 @@ import { buildProviderRefinePrompt, PROVIDER_UPSCALE_PROMPTS } from '../utils/pr
 import { useProviderStudioFields, UseProviderStudioFieldsReturn } from './useProviderStudioFields';
 import { useProviderResultActions, UseProviderResultActionsReturn } from './useProviderResultActions';
 import { useProviderTryOnBatch, UseProviderTryOnBatchReturn } from './useProviderTryOnBatch';
+import { useProviderLookbookFields, UseProviderLookbookFieldsReturn } from './useProviderLookbookFields';
 
-export interface UseGptImageStudioReturn extends UseProviderStudioFieldsReturn, UseProviderResultActionsReturn, UseProviderTryOnBatchReturn {
+export interface UseGptImageStudioReturn extends UseProviderStudioFieldsReturn, UseProviderResultActionsReturn, UseProviderTryOnBatchReturn, UseProviderLookbookFieldsReturn {
   apiKey: string;
   baseUrl: string;
   setApiKey: (value: string) => void;
@@ -72,6 +73,7 @@ export const useGptImageStudio = (
 
   const fields = useProviderStudioFields();
   const batch = useProviderTryOnBatch(t);
+  const lookbook = useProviderLookbookFields();
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -88,6 +90,7 @@ export const useGptImageStudio = (
     setError(null);
     fields.resetFields();
     batch.resetExtras();
+    lookbook.resetLookbookFields();
     return () => {
       controller.abort();
     };
@@ -120,12 +123,14 @@ export const useGptImageStudio = (
       const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, requestImages, {
         ...fields.buildPromptOptions(),
         isMultiPersonMode: multiPerson,
+        lookbookState: lookbook.lookbookState,
+        fabricTextureImage: lookbook.lookbookFabricImage,
       });
       return requestImages.length > 0
         ? editGptImage({ model: DEFAULT_GPT_IMAGE_MODEL, prompt: composedPrompt, images: requestImages, size, quality }, config, signal)
         : generateGptImage({ model: DEFAULT_GPT_IMAGE_MODEL, prompt: composedPrompt, size, quality }, config, signal);
     },
-    [activeFeature, prompt, images, fields, batch.isMultiPersonMode, batch.markerPosition, prepareImages, size, quality, settings.apiKey, settings.baseUrl],
+    [activeFeature, prompt, images, fields, batch.isMultiPersonMode, batch.markerPosition, lookbook.lookbookState, lookbook.lookbookFabricImage, prepareImages, size, quality, settings.apiKey, settings.baseUrl],
   );
 
   const handleGenerate = useCallback(async (): Promise<void> => {
@@ -219,6 +224,7 @@ export const useGptImageStudio = (
     handleGenerate,
     ...actions,
     ...batch,
+    ...lookbook,
     maxReferenceImages: MAX_GPT_REFERENCE_IMAGES,
   };
 };

@@ -24,13 +24,14 @@ import { buildProviderRefinePrompt, PROVIDER_UPSCALE_PROMPTS } from '../utils/pr
 import { useProviderStudioFields, UseProviderStudioFieldsReturn } from './useProviderStudioFields';
 import { useProviderResultActions, UseProviderResultActionsReturn } from './useProviderResultActions';
 import { useProviderTryOnBatch, UseProviderTryOnBatchReturn } from './useProviderTryOnBatch';
+import { useProviderLookbookFields, UseProviderLookbookFieldsReturn } from './useProviderLookbookFields';
 
 export interface ProviderOption {
   value: string;
   label: string;
 }
 
-export interface UseGrokStudioReturn extends UseProviderStudioFieldsReturn, UseProviderResultActionsReturn, UseProviderTryOnBatchReturn {
+export interface UseGrokStudioReturn extends UseProviderStudioFieldsReturn, UseProviderResultActionsReturn, UseProviderTryOnBatchReturn, UseProviderLookbookFieldsReturn {
   // Settings (from ApiProviderContext)
   apiKey: string;
   baseUrl: string;
@@ -91,6 +92,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
 
   const fields = useProviderStudioFields();
   const batch = useProviderTryOnBatch(t);
+  const lookbook = useProviderLookbookFields();
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -107,6 +109,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     setError(null);
     fields.resetFields();
     batch.resetExtras();
+    lookbook.resetLookbookFields();
     return () => {
       controller.abort();
     };
@@ -141,12 +144,14 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
       const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, requestImages, {
         ...fields.buildPromptOptions(),
         isMultiPersonMode: multiPerson,
+        lookbookState: lookbook.lookbookState,
+        fabricTextureImage: lookbook.lookbookFabricImage,
       });
       return requestImages.length > 0
         ? editGrokImage({ model, prompt: composedPrompt, images: requestImages, n: count, aspectRatio, resolution }, config, signal)
         : generateGrokImage({ model, prompt: composedPrompt, n: count, aspectRatio, resolution }, config, signal);
     },
-    [activeFeature, prompt, images, fields, batch.isMultiPersonMode, batch.markerPosition, prepareImages, model, aspectRatio, resolution, settings.apiKey, settings.baseUrl],
+    [activeFeature, prompt, images, fields, batch.isMultiPersonMode, batch.markerPosition, lookbook.lookbookState, lookbook.lookbookFabricImage, prepareImages, model, aspectRatio, resolution, settings.apiKey, settings.baseUrl],
   );
 
   const handleGenerate = useCallback(async (): Promise<void> => {
@@ -248,6 +253,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     handleGenerate,
     ...actions,
     ...batch,
+    ...lookbook,
     maxReferenceImages: GROK_MAX_REFERENCE_IMAGES,
     minOutputs: GROK_MIN_OUTPUTS,
     maxOutputs: GROK_MAX_OUTPUTS,

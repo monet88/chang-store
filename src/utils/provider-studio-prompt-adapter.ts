@@ -82,6 +82,15 @@ export interface ProviderStudioPromptOptions {
      * flag only toggles the matching prohibition text in the prompt.
      */
     isMultiPersonMode?: boolean;
+    /**
+     * Full Lookbook form state (Phase 6). When provided, the Lookbook branch
+     * composes the prompt from the user-chosen style/garment/fabric/negative
+     * instead of the forced default. `clothingDescription` falls back to the
+     * main user prompt when empty.
+     */
+    lookbookState?: LookbookFormState;
+    /** Optional fabric texture image for the Lookbook branch. */
+    fabricTextureImage?: ImageFile | null;
 }
 
 /**
@@ -146,10 +155,14 @@ export const buildProviderStudioPrompt = (
 
         case Feature.Lookbook: {
             // buildLookbookPrompt already returns a string (no Part[] extraction).
+            // Phase 6: use the user-driven form state when provided; the main
+            // prompt seeds clothingDescription when the form field is empty.
+            const baseState = options.lookbookState ?? DEFAULT_PROVIDER_LOOKBOOK_STATE;
+            const clothingDescription = baseState.clothingDescription.trim() || userPrompt;
             return buildLookbookPrompt(
-                { ...DEFAULT_PROVIDER_LOOKBOOK_STATE, clothingDescription: userPrompt },
+                { ...baseState, clothingDescription },
                 images,
-                null,
+                options.fabricTextureImage ?? baseState.fabricTextureImage ?? null,
             );
         }
 

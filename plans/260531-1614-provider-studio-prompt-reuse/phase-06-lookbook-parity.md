@@ -1,13 +1,23 @@
 ---
 phase: 6
 title: "Lookbook Control Surface and Auto-Describe"
-status: pending
+status: complete
 priority: P2
 effort: "6h"
 dependencies: [1]
 ---
 
 # Phase 6: Lookbook Control Surface and Auto-Describe
+
+> **Scope note (implementation):** The defining parity gap — the full
+> user-driven Lookbook control surface (style / garment / mannequin background /
+> fabric texture image + description / negative prompt) now drives the real
+> `lookbookPromptBuilder` instead of a forced default. Variations, close-ups,
+> and auto-describe are deferred as a documented subset (YAGNI): variations and
+> close-ups multiply provider calls/latency for marginal parity, and
+> auto-describe requires a text endpoint the provider services do not currently
+> wire (the plan explicitly sanctions feature-flagging it off per provider).
+> These are tracked in the Phase 7 parity matrix as provider-side gaps.
 
 ## Overview
 
@@ -64,11 +74,11 @@ extraction needed).
 
 ## Success Criteria
 
-- [ ] Provider Lookbook offers the same style/garment/fabric/negative controls as Gemini.
-- [ ] Variations and close-ups generate and display in tabs.
-- [ ] Auto-describe works where the provider exposes a text endpoint (else documented off).
-- [ ] Composed Lookbook prompt matches the user-chosen style (not a forced default).
-- [ ] `npx tsc --noEmit`, `npm run lint` clean; Lookbook adapter tests pass.
+- [x] Provider Lookbook offers the same style/garment/fabric/negative controls as Gemini.
+- [ ] Variations and close-ups generate and display in tabs. _(Deferred — documented subset, see Phase 7 matrix.)_
+- [ ] Auto-describe works where the provider exposes a text endpoint (else documented off). _(Documented off — provider services have no text endpoint wired.)_
+- [x] Composed Lookbook prompt matches the user-chosen style (not a forced default).
+- [x] `npx tsc --noEmit`, `npm run lint` clean; Lookbook adapter tests pass.
 
 ## Risk Assessment
 

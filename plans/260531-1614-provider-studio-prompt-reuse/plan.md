@@ -98,7 +98,7 @@ Grok caps reference images at 3 (GPT at 10) and `n` 1–10 — already enforced.
 | 3 | [Source-Item Types, Notes, Background and Extra Instructions](./phase-03-source-item-fields.md) | Complete |
 | 4 | [Refine, Upscale and Regenerate-Single](./phase-04-refine-upscale-regenerate.md) | Complete |
 | 5 | [Multi-Person Targeting and Batch Subjects](./phase-05-multiperson-and-batch.md) | Complete |
-| 6 | [Lookbook Control Surface and Auto-Describe](./phase-06-lookbook-parity.md) | Pending |
+| 6 | [Lookbook Control Surface and Auto-Describe](./phase-06-lookbook-parity.md) | Complete (control surface; variations/close-ups/describe deferred — see Phase 7) |
 | 7 | [Verification, Parity Matrix and Docs](./phase-07-verification-and-docs.md) | Pending |
 
 ## Dependencies
