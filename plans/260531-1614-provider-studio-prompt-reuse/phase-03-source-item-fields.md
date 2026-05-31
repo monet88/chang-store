@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Source-Item Types, Notes, Background and Extra Instructions"
-status: pending
+status: complete
 priority: P1
 effort: "5h"
 dependencies: [2]

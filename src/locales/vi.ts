@@ -175,6 +175,28 @@ export const vi: Translation = {
       generateButton: 'Tạo',
       generatingStatus: 'Đang tạo ảnh...',
       slowResponseWarning: 'Nhà cung cấp này có thể mất ~60-90 giây để phản hồi. Vui lòng đợi.',
+      sourceItems: {
+        label: 'Món đồ nguồn',
+        hint: 'Đặt loại và ghi chú tùy chọn cho từng ảnh trang phục/nguồn.',
+        itemLabel: 'Món đồ nguồn #{{index}}',
+        typeLabel: 'Loại cho món đồ nguồn #{{index}}',
+        noteLabel: 'Ghi chú cho món đồ nguồn #{{index}}',
+        notePlaceholder: 'vd: "quần ống rộng, không cho tay vào túi"',
+        types: {
+          clothing: 'Trang phục',
+          shoes: 'Giày',
+          bag: 'Túi',
+          accessory: 'Phụ kiện',
+        },
+      },
+      backgroundField: {
+        label: 'Bối cảnh',
+        placeholder: 'Mô tả bối cảnh. Để trống để giữ nguyên bối cảnh gốc.',
+      },
+      extraInstructions: {
+        label: 'Hướng dẫn bổ sung',
+        placeholder: 'Hướng dẫn cụ thể cho AI, tách biệt với prompt phía trên.',
+      },
       aiEditor: {
         title: 'AI Editor',
         description: 'Chỉnh sửa ảnh bằng một câu lệnh văn bản.',

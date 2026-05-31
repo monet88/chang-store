@@ -70,4 +70,50 @@ describe('buildProviderStudioPrompt', () => {
     it('falls back to the raw prompt when Clothing Transfer is missing images', () => {
         expect(buildProviderStudioPrompt(Feature.ClothingTransfer, 'raw', [mockImage('one')])).toBe('raw');
     });
+
+    it('reflects per-source-item types in the Try-On composed prompt', () => {
+        const prompt = buildProviderStudioPrompt(
+            Feature.TryOn,
+            '',
+            [mockImage('subject'), mockImage('shoes')],
+            { sourceItemTypes: ['shoes'], sourceItemNotes: ['white sneakers'] },
+        );
+
+        expect(prompt).toContain('shoes');
+        expect(prompt).toContain('white sneakers');
+    });
+
+    it('injects the background prompt into the Try-On composed prompt', () => {
+        const prompt = buildProviderStudioPrompt(
+            Feature.TryOn,
+            '',
+            [mockImage('subject'), mockImage('clothing')],
+            { backgroundPrompt: 'sunset beach' },
+        );
+
+        expect(prompt).toContain('sunset beach');
+    });
+
+    it('prefers the dedicated extra prompt over the main user prompt for Try-On', () => {
+        const prompt = buildProviderStudioPrompt(
+            Feature.TryOn,
+            'main box text',
+            [mockImage('subject'), mockImage('clothing')],
+            { extraPrompt: 'keep the sleeves rolled' },
+        );
+
+        expect(prompt).toContain('keep the sleeves rolled');
+        expect(prompt).not.toContain('main box text');
+    });
+
+    it('passes a source-item note as the Clothing Transfer reference label', () => {
+        const prompt = buildProviderStudioPrompt(
+            Feature.ClothingTransfer,
+            '',
+            [mockImage('concept'), mockImage('source')],
+            { sourceItemNotes: ['floral dress'] },
+        );
+
+        expect(prompt).toContain('floral dress');
+    });
 });

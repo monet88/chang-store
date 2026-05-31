@@ -175,6 +175,28 @@ export const en = {
       generateButton: 'Generate',
       generatingStatus: 'Generating images...',
       slowResponseWarning: 'This provider can take ~60-90s to respond. Please wait.',
+      sourceItems: {
+        label: 'Source items',
+        hint: 'Set the type and an optional note for each clothing/source image.',
+        itemLabel: 'Source item #{{index}}',
+        typeLabel: 'Type for source item #{{index}}',
+        noteLabel: 'Note for source item #{{index}}',
+        notePlaceholder: 'e.g., "wide pants, no hand in pocket"',
+        types: {
+          clothing: 'Clothing',
+          shoes: 'Shoes',
+          bag: 'Bag',
+          accessory: 'Accessory',
+        },
+      },
+      backgroundField: {
+        label: 'Background',
+        placeholder: 'Describe the background. Leave blank to keep the original.',
+      },
+      extraInstructions: {
+        label: 'Extra instructions',
+        placeholder: 'Specific instructions for the AI, separate from the prompt above.',
+      },
       aiEditor: {
         title: 'AI Editor',
         description: 'Edit an image with a text instruction.',

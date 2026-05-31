@@ -6,6 +6,7 @@ import MultiImageUploader from '../MultiImageUploader';
 import Spinner, { ErrorDisplay } from '../Spinner';
 import ProviderSettingsPanel from './provider-studio/ProviderSettingsPanel';
 import ProviderResultsGrid from './provider-studio/ProviderResultsGrid';
+import ProviderSourceFields from './provider-studio/ProviderSourceFields';
 import { getProviderWorkflow } from './provider-studio/providerWorkflows';
 
 interface GptImageStudioProps {
@@ -70,6 +71,20 @@ const GptImageStudio: React.FC<GptImageStudioProps> = ({ activeFeature, studioMo
             </p>
           </div>
         )}
+
+        <ProviderSourceFields
+          workflow={workflow}
+          images={studio.images}
+          idPrefix="gpt-image"
+          sourceItemTypes={studio.sourceItemTypes}
+          setSourceItemType={studio.setSourceItemType}
+          sourceItemNotes={studio.sourceItemNotes}
+          setSourceItemNote={studio.setSourceItemNote}
+          backgroundPrompt={studio.backgroundPrompt}
+          setBackgroundPrompt={studio.setBackgroundPrompt}
+          extraInstructions={studio.extraInstructions}
+          setExtraInstructions={studio.setExtraInstructions}
+        />
 
         <div className="flex flex-col gap-2">
           <label htmlFor="gpt-prompt" className="text-sm font-medium text-zinc-300">

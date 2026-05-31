@@ -95,7 +95,7 @@ Grok caps reference images at 3 (GPT at 10) and `n` 1–10 — already enforced.
 |-------|------|--------|
 | 1 | [Shared Prompt Text Extraction](./phase-01-shared-prompt-text-extraction.md) | Complete |
 | 2 | [Provider Studio Adapter Wiring](./phase-02-provider-studio-adapter-wiring.md) | Complete |
-| 3 | [Source-Item Types, Notes, Background and Extra Instructions](./phase-03-source-item-fields.md) | Pending |
+| 3 | [Source-Item Types, Notes, Background and Extra Instructions](./phase-03-source-item-fields.md) | Complete |
 | 4 | [Refine, Upscale and Regenerate-Single](./phase-04-refine-upscale-regenerate.md) | Pending |
 | 5 | [Multi-Person Targeting and Batch Subjects](./phase-05-multiperson-and-batch.md) | Pending |
 | 6 | [Lookbook Control Surface and Auto-Describe](./phase-06-lookbook-parity.md) | Pending |

@@ -20,6 +20,21 @@ export interface ProviderWorkflowConfig {
   requiresImages: boolean;
   /** i18n key for the prompt textarea placeholder. */
   promptPlaceholderKey: string;
+  /**
+   * Whether per-source-item TYPE selectors apply (clothing/shoes/bag/accessory).
+   * The FIRST uploaded image is the subject/concept; source items are images[1..].
+   * Only Try-On consumes item types in the prompt builder.
+   */
+  hasSourceItemTypes?: boolean;
+  /**
+   * Whether per-source-item NOTE inputs apply. Try-On uses notes as per-item
+   * guidance; Clothing Transfer uses them as the reference outfit label.
+   */
+  hasSourceItemNotes?: boolean;
+  /** Whether a dedicated background-prompt field applies (Try-On). */
+  hasBackgroundField?: boolean;
+  /** Whether a dedicated extra-instructions field applies. */
+  hasExtraInstructionsField?: boolean;
 }
 
 export const PROVIDER_WORKFLOWS: Record<Feature, ProviderWorkflowConfig> = {
@@ -40,6 +55,10 @@ export const PROVIDER_WORKFLOWS: Record<Feature, ProviderWorkflowConfig> = {
     acceptsImages: true,
     requiresImages: true,
     promptPlaceholderKey: 'studio.workflows.tryOn.promptPlaceholder',
+    hasSourceItemTypes: true,
+    hasSourceItemNotes: true,
+    hasBackgroundField: true,
+    hasExtraInstructionsField: true,
   },
   [Feature.Lookbook]: {
     feature: Feature.Lookbook,
@@ -58,6 +77,8 @@ export const PROVIDER_WORKFLOWS: Record<Feature, ProviderWorkflowConfig> = {
     acceptsImages: true,
     requiresImages: true,
     promptPlaceholderKey: 'studio.workflows.clothingTransfer.promptPlaceholder',
+    hasSourceItemNotes: true,
+    hasExtraInstructionsField: true,
   },
   [Feature.PatternGenerator]: {
     feature: Feature.PatternGenerator,

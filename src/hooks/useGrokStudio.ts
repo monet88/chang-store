@@ -20,13 +20,14 @@ import {
 } from '../config/grokModelRegistry';
 import { generateGrokImage, editGrokImage } from '../services/providers/grok/grokImageService';
 import { buildProviderStudioPrompt } from '../utils/provider-studio-prompt-adapter';
+import { useProviderStudioFields, UseProviderStudioFieldsReturn } from './useProviderStudioFields';
 
 export interface ProviderOption {
   value: string;
   label: string;
 }
 
-export interface UseGrokStudioReturn {
+export interface UseGrokStudioReturn extends UseProviderStudioFieldsReturn {
   // Settings (from ApiProviderContext)
   apiKey: string;
   baseUrl: string;
@@ -85,6 +86,8 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ImageFile[]>([]);
 
+  const fields = useProviderStudioFields();
+
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Reset transient workflow state when the active feature changes, and abort
@@ -98,6 +101,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     setImages([]);
     setResults([]);
     setError(null);
+    fields.resetFields();
     return () => {
       controller.abort();
     };
@@ -115,7 +119,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
 
     // Compose the builder-enriched prompt transiently; the textarea state keeps
     // showing the user's raw words.
-    const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images);
+    const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images, fields.buildPromptOptions());
 
     try {
       const generated = images.length > 0
@@ -139,7 +143,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, images, model, prompt, n, aspectRatio, resolution, activeFeature, settings.apiKey, settings.baseUrl, t]);
+  }, [isLoading, images, model, prompt, n, aspectRatio, resolution, activeFeature, fields, settings.apiKey, settings.baseUrl, t]);
 
   return {
     apiKey: settings.apiKey,
@@ -147,6 +151,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     setApiKey: (value: string) => setProviderSettings('grok', { apiKey: value }),
     setBaseUrl: (value: string) => setProviderSettings('grok', { baseUrl: value }),
     resetSettings: () => resetProviderSettings('grok'),
+    ...fields,
     model,
     setModel: (value: string) => {
       if (isKnownGrokModel(value)) {

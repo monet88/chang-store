@@ -16,8 +16,9 @@ import {
 } from '../config/gptImageModelRegistry';
 import { generateGptImage, editGptImage } from '../services/providers/gpt-image/gptImageService';
 import { buildProviderStudioPrompt } from '../utils/provider-studio-prompt-adapter';
+import { useProviderStudioFields, UseProviderStudioFieldsReturn } from './useProviderStudioFields';
 
-export interface UseGptImageStudioReturn {
+export interface UseGptImageStudioReturn extends UseProviderStudioFieldsReturn {
   apiKey: string;
   baseUrl: string;
   setApiKey: (value: string) => void;
@@ -66,6 +67,8 @@ export const useGptImageStudio = (
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ImageFile[]>([]);
 
+  const fields = useProviderStudioFields();
+
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Reset transient workflow state when the active feature changes, and abort
@@ -79,6 +82,7 @@ export const useGptImageStudio = (
     setImages([]);
     setResults([]);
     setError(null);
+    fields.resetFields();
     return () => {
       controller.abort();
     };
@@ -96,7 +100,7 @@ export const useGptImageStudio = (
 
     // Compose the builder-enriched prompt transiently; the textarea state keeps
     // showing the user's raw words.
-    const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images);
+    const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, images, fields.buildPromptOptions());
 
     try {
       const generated = images.length > 0
@@ -120,7 +124,7 @@ export const useGptImageStudio = (
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, images, prompt, size, quality, activeFeature, settings.apiKey, settings.baseUrl, t]);
+  }, [isLoading, images, prompt, size, quality, activeFeature, fields, settings.apiKey, settings.baseUrl, t]);
 
   return {
     apiKey: settings.apiKey,
@@ -128,6 +132,7 @@ export const useGptImageStudio = (
     setApiKey: (value: string) => setProviderSettings('gptImage', { apiKey: value }),
     setBaseUrl: (value: string) => setProviderSettings('gptImage', { baseUrl: value }),
     resetSettings: () => resetProviderSettings('gptImage'),
+    ...fields,
     model: DEFAULT_GPT_IMAGE_MODEL,
     prompt,
     setPrompt,

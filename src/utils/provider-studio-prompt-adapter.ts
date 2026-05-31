@@ -14,7 +14,7 @@
  */
 
 import type { Part } from '@google/genai';
-import { Feature, ImageFile } from '../types';
+import { Feature, ImageFile, VirtualTryOnSourceItemType } from '../types';
 import { buildVirtualTryOnParts } from './virtual-try-on-prompt-builder';
 import { buildClothingTransferParts } from './clothing-transfer-prompt-builder';
 import { buildPatternGeneratorParts, TASK_PROMPT } from './pattern-generator-prompt-builder';
@@ -61,27 +61,55 @@ export const DEFAULT_PROVIDER_LOOKBOOK_STATE: LookbookFormState = {
 };
 
 /**
+ * Optional structured metadata for a richer composed prompt (Phase 3).
+ *
+ * - `sourceItemTypes[i]` types the i-th SOURCE image (image[1..] for Try-On).
+ *   Index 0 corresponds to the first source item (i.e. images[1]).
+ * - `sourceItemNotes[i]` is a short per-source-item note (capped by the caller).
+ * - `backgroundPrompt` maps to the Try-On builder's background section.
+ * - `extraPrompt` maps to the builder's extra-instructions section. When
+ *   provided, it takes precedence over `userPrompt` as the builder's extra note
+ *   (the studio's main prompt box and the dedicated extra field stay distinct).
+ */
+export interface ProviderStudioPromptOptions {
+    sourceItemTypes?: VirtualTryOnSourceItemType[];
+    sourceItemNotes?: string[];
+    backgroundPrompt?: string;
+    extraPrompt?: string;
+}
+
+/**
  * Compose a builder-enriched prompt string for a provider studio request.
  *
  * Images are NOT embedded — they flow to the service separately, so only the
  * builder's text segments are returned. Falls back to the raw `userPrompt` when
  * a builder's image preconditions are not met (the adapter never throws).
+ *
+ * `options` carries the Phase 3 structured fields (source-item types/notes,
+ * background, extra instructions). It is optional so callers without those
+ * fields keep working unchanged.
  */
 export const buildProviderStudioPrompt = (
     feature: Feature,
     userPrompt: string,
     images: ImageFile[],
+    options: ProviderStudioPromptOptions = {},
 ): string => {
     switch (feature) {
         case Feature.TryOn: {
             // Requires subject (image[0]) + at least one source item (image[1..]).
             if (images.length < 2) return userPrompt;
             const [subjectImage, ...sourceImages] = images;
+            const { sourceItemTypes = [], sourceItemNotes = [], backgroundPrompt = '', extraPrompt } = options;
             const parts = buildVirtualTryOnParts({
                 subjectImage,
-                sourceItems: sourceImages.map((image) => ({ image, sourceItemType: 'clothing' })),
-                extraPrompt: userPrompt,
-                backgroundPrompt: '',
+                sourceItems: sourceImages.map((image, index) => ({
+                    image,
+                    sourceItemType: sourceItemTypes[index] ?? 'clothing',
+                    sourcePrompt: sourceItemNotes[index] ?? '',
+                })),
+                extraPrompt: (extraPrompt ?? userPrompt) || '',
+                backgroundPrompt,
             });
             return extractText(parts);
         }
@@ -90,10 +118,11 @@ export const buildProviderStudioPrompt = (
             // Requires concept (image[0]) + at least one source outfit (image[1..]).
             if (images.length < 2) return userPrompt;
             const [conceptImage, ...referenceImages] = images;
+            const { sourceItemNotes = [], extraPrompt } = options;
             const parts = buildClothingTransferParts(
                 conceptImage,
-                referenceImages.map((image) => ({ image, label: '' })),
-                userPrompt,
+                referenceImages.map((image, index) => ({ image, label: sourceItemNotes[index] ?? '' })),
+                (extraPrompt ?? userPrompt) || '',
             );
             return extractText(parts);
         }
