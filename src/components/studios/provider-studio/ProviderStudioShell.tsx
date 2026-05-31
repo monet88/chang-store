@@ -10,6 +10,7 @@ import ProviderSourceItemGrid from './ProviderSourceItemGrid';
 import ProviderTryOnExtras from './ProviderTryOnExtras';
 import ProviderLookbookControls from './ProviderLookbookControls';
 import ProviderWardrobePanel from './ProviderWardrobePanel';
+import ProviderLookbookOutput from './ProviderLookbookOutput';
 import StepPanel from './StepPanel';
 import { ProviderWorkflowConfig } from './providerWorkflows';
 import { ProviderStudioController } from './provider-studio-controller';
@@ -283,15 +284,23 @@ const ProviderStudioShell: React.FC<ProviderStudioShellProps> = ({
         )}
 
         {!studio.isLoading && studio.results.length > 0 && (
-          <ProviderResultsGrid
-            results={studio.results}
-            downloadPrefix={idPrefix}
-            showActions
-            busyIndex={studio.busyIndex}
-            onRefine={studio.refine}
-            onUpscale={studio.upscale}
-            onRegenerate={studio.regenerate}
-          />
+          activeFeature === Feature.Lookbook ? (
+            <ProviderLookbookOutput
+              output={studio.lookbookOutput}
+              idPrefix={idPrefix}
+              showSlowWarning={showSlowWarning}
+            />
+          ) : (
+            <ProviderResultsGrid
+              results={studio.results}
+              downloadPrefix={idPrefix}
+              showActions
+              busyIndex={studio.busyIndex}
+              onRefine={studio.refine}
+              onUpscale={studio.upscale}
+              onRegenerate={studio.regenerate}
+            />
+          )
         )}
         {studio.actionError && (
           <ErrorDisplay

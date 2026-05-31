@@ -14,7 +14,13 @@
   Multi-Model / Wardrobe toggle backed by a service-agnostic
   `useProviderWardrobe` engine (GPT capped at 2 sets, concurrency 1, with a time
   warning). Provider results remain local-only; the Gemini pipeline is
-  untouched. Lookbook rich output (Phase 5) is a planned follow-up.
+  untouched.
+- Provider Lookbook rich output (Phase 5): a provider-specific
+  `ProviderLookbookOutput` with main / variations / close-up tabs and a
+  refinement version history, driven by a service-agnostic
+  `useProviderLookbookOutput` engine (GPT capped at 1 variation, serial). Built
+  on the shared lookbook prompt builders; the Gemini `LookbookOutput` stays a
+  visual reference only and is unchanged.
 - Hook-scoped boundary test forbidding `src/services`/`src/config` imports in
   shared `src/hooks/useProvider*.ts` helpers, and an en/vi locale key-parity
   test to prevent silent translation drift.

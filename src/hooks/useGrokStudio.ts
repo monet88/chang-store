@@ -26,10 +26,14 @@ import { useProviderResultActions, UseProviderResultActionsReturn } from './useP
 import { useProviderTryOnBatch, UseProviderTryOnBatchReturn } from './useProviderTryOnBatch';
 import { useProviderLookbookFields, UseProviderLookbookFieldsReturn } from './useProviderLookbookFields';
 import { useProviderWardrobe, UseProviderWardrobeReturn } from './useProviderWardrobe';
+import { useProviderLookbookOutput, UseProviderLookbookOutputReturn } from './useProviderLookbookOutput';
+import { buildVariationPrompt, buildCloseUpPrompts, buildCloseUpNegativePrompt } from '../utils/lookbookPromptBuilder';
 import { VirtualTryOnMode, VirtualTryOnClothingItem } from '../types';
 
 /** Grok wardrobe caps: 4 sets, 4 items/set, concurrency 4 (Grok handles parallel). */
 const GROK_WARDROBE_CONFIG = { maxSets: 4, maxItemsPerSet: 4, concurrency: 4 };
+/** Grok lookbook: up to 4 variations. */
+const GROK_LOOKBOOK_MAX_VARIATIONS = 4;
 
 export interface ProviderOption {
   value: string;
@@ -74,6 +78,7 @@ export interface UseGrokStudioReturn extends UseProviderStudioFieldsReturn, UseP
   tryOnMode: VirtualTryOnMode;
   setTryOnMode: (mode: VirtualTryOnMode) => void;
   wardrobe: UseProviderWardrobeReturn;
+  lookbookOutput: UseProviderLookbookOutputReturn;
 }
 
 /**
@@ -172,10 +177,58 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
 
   const wardrobe = useProviderWardrobe(generateSet, GROK_WARDROBE_CONFIG, t);
 
+  // Lookbook rich output: variations / close-ups / refine built on the shared
+  // prompt builders + Grok edit service (service import stays here, not in the
+  // engine hook — boundary-safe).
+  const lookbookOutput = useProviderLookbookOutput(
+    {
+      generateVariations: async (base, count, signal) => {
+        const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+        return editGrokImage(
+          { model, prompt: buildVariationPrompt(lookbook.lookbookState.lookbookStyle, count), images: [base], n: count, aspectRatio, resolution },
+          config,
+          signal,
+        );
+      },
+      generateCloseUps: async (base, signal) => {
+        const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+        const negative = buildCloseUpNegativePrompt(lookbook.lookbookState.negativePrompt);
+        const out: ImageFile[] = [];
+        for (const prompt of buildCloseUpPrompts()) {
+          const [img] = await editGrokImage(
+            { model, prompt: `${prompt}\n\nAvoid: ${negative}`, images: [base], n: 1, aspectRatio, resolution },
+            config,
+            signal,
+          );
+          if (img) out.push(img);
+        }
+        return out;
+      },
+      refine: async (base, instruction, signal) => {
+        const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+        const [edited] = await editGrokImage(
+          { model, prompt: buildProviderRefinePrompt(instruction), images: [base], n: 1, aspectRatio, resolution },
+          config,
+          signal,
+        );
+        return edited;
+      },
+    },
+    { maxVariations: GROK_LOOKBOOK_MAX_VARIATIONS, getSignal: () => abortControllerRef.current?.signal },
+    t,
+  );
+
+  // Sync the lookbook rich-output main image from the latest generate result.
+  useEffect(() => {
+    if (activeFeature === Feature.Lookbook) {
+      lookbookOutput.setMain(results[0] ?? null);
+    }
+  }, [results, activeFeature]);
+
   // Reset transient workflow state when the active feature changes, and abort
   // any request that was started for the previous feature so a late-arriving
   // response cannot overwrite the new feature's state. Covers tryOnMode +
-  // wardrobe sets/results (Red Team #5, #6).
+  // wardrobe sets/results + lookbook output (Red Team #5, #6).
   useEffect(() => {
     abortControllerRef.current?.abort();
     const controller = new AbortController();
@@ -189,6 +242,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     batch.resetExtras();
     lookbook.resetLookbookFields();
     wardrobe.reset();
+    lookbookOutput.reset();
     return () => {
       controller.abort();
     };
@@ -304,5 +358,6 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     tryOnMode,
     setTryOnMode,
     wardrobe,
+    lookbookOutput,
   };
 };

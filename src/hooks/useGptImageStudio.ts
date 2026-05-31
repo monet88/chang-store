@@ -22,11 +22,15 @@ import { useProviderResultActions, UseProviderResultActionsReturn } from './useP
 import { useProviderTryOnBatch, UseProviderTryOnBatchReturn } from './useProviderTryOnBatch';
 import { useProviderLookbookFields, UseProviderLookbookFieldsReturn } from './useProviderLookbookFields';
 import { useProviderWardrobe, UseProviderWardrobeReturn } from './useProviderWardrobe';
+import { useProviderLookbookOutput, UseProviderLookbookOutputReturn } from './useProviderLookbookOutput';
+import { buildVariationPrompt, buildCloseUpPrompts, buildCloseUpNegativePrompt } from '../utils/lookbookPromptBuilder';
 import { VirtualTryOnMode, VirtualTryOnClothingItem } from '../types';
 
 /** GPT wardrobe caps: 2 sets, concurrency 1 — GPT multipart edits are slow and
  * tunnel-timeout-prone, so wardrobe is bounded hard (Red Team #3 / plan caps). */
 const GPT_WARDROBE_CONFIG = { maxSets: 2, maxItemsPerSet: 4, concurrency: 1 };
+/** GPT lookbook: exactly 1 variation, serial (Red Team #3 / plan caps). */
+const GPT_LOOKBOOK_MAX_VARIATIONS = 1;
 
 export interface UseGptImageStudioReturn extends UseProviderStudioFieldsReturn, UseProviderResultActionsReturn, UseProviderTryOnBatchReturn, UseProviderLookbookFieldsReturn {
   apiKey: string;
@@ -54,6 +58,7 @@ export interface UseGptImageStudioReturn extends UseProviderStudioFieldsReturn, 
   tryOnMode: VirtualTryOnMode;
   setTryOnMode: (mode: VirtualTryOnMode) => void;
   wardrobe: UseProviderWardrobeReturn;
+  lookbookOutput: UseProviderLookbookOutputReturn;
 }
 
 /**
@@ -151,8 +156,61 @@ export const useGptImageStudio = (
 
   const wardrobe = useProviderWardrobe(generateSet, GPT_WARDROBE_CONFIG, t);
 
+  // Lookbook rich output: variations (capped at 1) / close-ups / refine via GPT
+  // multipart edit. Service import stays here, not in the engine (boundary-safe).
+  const lookbookOutput = useProviderLookbookOutput(
+    {
+      generateVariations: async (base, count, signal) => {
+        const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+        const out: ImageFile[] = [];
+        // Serial — GPT multipart edits are slow; count is capped at 1.
+        for (let i = 0; i < count; i++) {
+          const [img] = await editGptImage(
+            { model: DEFAULT_GPT_IMAGE_MODEL, prompt: buildVariationPrompt(lookbook.lookbookState.lookbookStyle, 1), images: [base], size, quality },
+            config,
+            signal,
+          );
+          if (img) out.push(img);
+        }
+        return out;
+      },
+      generateCloseUps: async (base, signal) => {
+        const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+        const negative = buildCloseUpNegativePrompt(lookbook.lookbookState.negativePrompt);
+        const out: ImageFile[] = [];
+        for (const prompt of buildCloseUpPrompts()) {
+          const [img] = await editGptImage(
+            { model: DEFAULT_GPT_IMAGE_MODEL, prompt: `${prompt}\n\nAvoid: ${negative}`, images: [base], size, quality },
+            config,
+            signal,
+          );
+          if (img) out.push(img);
+        }
+        return out;
+      },
+      refine: async (base, instruction, signal) => {
+        const config = { apiKey: settings.apiKey, baseUrl: settings.baseUrl };
+        const [edited] = await editGptImage(
+          { model: DEFAULT_GPT_IMAGE_MODEL, prompt: buildProviderRefinePrompt(instruction), images: [base], size, quality },
+          config,
+          signal,
+        );
+        return edited;
+      },
+    },
+    { maxVariations: GPT_LOOKBOOK_MAX_VARIATIONS, getSignal: () => abortControllerRef.current?.signal },
+    t,
+  );
+
+  // Sync the lookbook rich-output main image from the latest generate result.
+  useEffect(() => {
+    if (activeFeature === Feature.Lookbook) {
+      lookbookOutput.setMain(results[0] ?? null);
+    }
+  }, [results, activeFeature]);
+
   // Reset transient workflow state on active-feature change + abort in-flight
-  // requests. Covers tryOnMode + wardrobe sets/results (Red Team #5, #6).
+  // requests. Covers tryOnMode + wardrobe + lookbook output (Red Team #5, #6).
   useEffect(() => {
     abortControllerRef.current?.abort();
     const controller = new AbortController();
@@ -166,6 +224,7 @@ export const useGptImageStudio = (
     batch.resetExtras();
     lookbook.resetLookbookFields();
     wardrobe.reset();
+    lookbookOutput.reset();
     return () => {
       controller.abort();
     };
@@ -271,5 +330,6 @@ export const useGptImageStudio = (
     tryOnMode,
     setTryOnMode,
     wardrobe,
+    lookbookOutput,
   };
 };

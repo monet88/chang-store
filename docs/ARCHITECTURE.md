@@ -90,10 +90,14 @@ pipeline is byte-unchanged.
 | 8 | Regenerate single result | ✅ | ✅ | ✅ | Re-runs the slot's request. |
 | 9 | Multi-person targeting (red-dot marker) | ✅ | ✅ | ✅ | Reuses `compositeMarkerOnImage`; Try-On only. |
 | 10 | Batch subjects (bounded concurrency) | ✅ | ✅ | ✅ | `runBoundedWorkers`, cap 3 to respect provider rate limits. |
-| 11 | Lookbook style/garment/fabric/negative controls | ✅ | ✅ | ✅ | Full user-driven `LookbookFormState` drives the builder. |
-| 12 | Lookbook variations | ✅ | ❌ | ❌ | Deferred — variation fan-out multiplies provider cost/latency. |
-| 13 | Lookbook close-ups | ✅ | ❌ | ❌ | Deferred — same cost/latency trade-off. |
-| 14 | Auto-describe clothing (text model) | ✅ | ❌ | ❌ | Provider services have no text endpoint wired; documented off. |
+| 11 | Lookbook style/garment/fabric/negative controls | ✅ | ✅ | ✅ | Full user-driven `LookbookFormState` drives the builder, including folded presentation type and product-shot subtypes plus accessory/footwear toggles. |
+| 12 | Lookbook variations | ✅ | ✅ | ⚠️ | `useProviderLookbookOutput`; Grok up to 4, GPT capped at 1 (serial) for cost/latency. |
+| 13 | Lookbook close-ups | ✅ | ✅ | ✅ | Three serial close-up edits via the shared close-up prompt builder. |
+| 14 | Lookbook refinement version history | ✅ | ✅ | ✅ | Client-side re-send feeds result back as source; step back/forward through versions. |
+| 15 | Stepped panel UI (Upload/Customize/Generate) | ✅ | ✅ | ✅ | Shared `ProviderStudioShell` + `StepPanel`; mirrors Gemini class vocabulary. |
+| 16 | Per-item source cards (uploader + type + note + Add) | ✅ | ✅ | ✅ | `ProviderSourceItemGrid`; index alignment owned by `useProviderStudioFields`. |
+| 17 | Multi-Model / Wardrobe toggle + sets engine | ✅ | ✅ | ⚠️ | `useProviderWardrobe` (service-agnostic); GPT capped at 2 sets, concurrency 1. |
+| 18 | Auto-describe clothing (text model) | ✅ | ❌ | ❌ | Provider services have no text endpoint wired; documented off. |
 
 Legend: ✅ supported · ⚠️ supported with a documented provider constraint ·
 ❌ deferred/constrained (see Notes).

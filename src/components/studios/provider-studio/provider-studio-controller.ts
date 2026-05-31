@@ -4,6 +4,7 @@ import { UseProviderResultActionsReturn } from '../../../hooks/useProviderResult
 import { UseProviderTryOnBatchReturn } from '../../../hooks/useProviderTryOnBatch';
 import { UseProviderLookbookFieldsReturn } from '../../../hooks/useProviderLookbookFields';
 import { UseProviderWardrobeReturn } from '../../../hooks/useProviderWardrobe';
+import { UseProviderLookbookOutputReturn } from '../../../hooks/useProviderLookbookOutput';
 import { VirtualTryOnMode } from '../../../types';
 
 /**
@@ -37,4 +38,5 @@ export interface ProviderStudioController
   tryOnMode: VirtualTryOnMode;
   setTryOnMode: (mode: VirtualTryOnMode) => void;
   wardrobe: UseProviderWardrobeReturn;
+  lookbookOutput: UseProviderLookbookOutputReturn;
 }
