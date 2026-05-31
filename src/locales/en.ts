@@ -18,6 +18,7 @@ export const en = {
     promptLibrary: 'Prompt Library',
     galleryArchive: 'Gallery Archive',
     settings: 'Studio Settings',
+    skipToContent: 'Skip to main content',
     createLooks: {
       label: 'Create looks',
       description: 'Build try-ons, lookbooks, and garment concepts with the result canvas leading the workflow.',

@@ -157,6 +157,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
             <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-3 text-center text-zinc-400">
               <div
                 className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] p-3 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+                role="img"
                 aria-label={isDragging ? t('imageUploader.drop') : t('imageUploader.upload')}
               >
                 <CloudUploadIcon className="mx-auto h-10 w-10 text-zinc-300" />

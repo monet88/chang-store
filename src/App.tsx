@@ -49,7 +49,7 @@ const AppContent: React.FC = () => {
     textGenerateModel,
     setTextGenerateModel,
   } = useApi();
-  
+
   const [activeFeature, setActiveFeature] = useState<Feature>(() => {
     const savedFeature = getSessionState<string>('activeFeature', Feature.TryOn);
     return Object.values(Feature).includes(savedFeature as Feature)
@@ -58,7 +58,7 @@ const AppContent: React.FC = () => {
   });
 
   const [studioMode, setStudioMode] = useState<StudioMode>('gemini');
-  
+
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -216,6 +216,12 @@ const AppContent: React.FC = () => {
   return (
     <>
       <div className="min-h-screen bg-transparent text-zinc-100">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-toast focus:rounded-md focus:bg-amber-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-zinc-950 focus:shadow-lg focus:outline-none"
+        >
+          {t('navigation.skipToContent')}
+        </a>
         <Header
           activeFeature={activeFeature}
           setActiveFeature={handleSetActiveFeature}
@@ -229,7 +235,7 @@ const AppContent: React.FC = () => {
 
         <div className="min-h-screen lg:pl-[22rem]">
           {studioMode === 'gemini' ? (
-            <main className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
+            <main id="main-content" className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
               <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
                 <section className="flex flex-col gap-5 border-b border-white/10 pb-7 sm:flex-row sm:items-end sm:justify-between">
                   <div className="space-y-3">
@@ -282,7 +288,7 @@ const AppContent: React.FC = () => {
               </div>
             </main>
           ) : (
-            <main className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
+            <main id="main-content" className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
               <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
                 <Suspense fallback={<FeatureLoadingFallback />}>
                   {studioMode === 'grok' && (

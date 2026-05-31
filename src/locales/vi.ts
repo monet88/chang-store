@@ -18,6 +18,7 @@ export const vi: Translation = {
     promptLibrary: 'Thư viện prompt',
     galleryArchive: 'Kho lưu trữ',
     settings: 'Cài đặt studio',
+    skipToContent: 'Bỏ qua menu, vào nội dung chính',
     createLooks: {
       label: 'Tạo concept',
       description: 'Tạo try-on, lookbook và concept trang phục với kết quả luôn ở trung tâm.',

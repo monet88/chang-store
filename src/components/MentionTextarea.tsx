@@ -196,6 +196,7 @@ const MentionTextarea: React.FC<MentionTextareaProps> = React.memo(({
         placeholder={placeholder}
         rows={rows}
         className="w-full px-4 py-3 bg-zinc-800/50 rounded-lg border border-zinc-700 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 text-white placeholder-zinc-500 resize-none transition-colors"
+        role="combobox"
         aria-autocomplete="list"
         aria-expanded={showDropdown}
         aria-controls={showDropdown ? `${id}-dropdown` : undefined}
@@ -216,8 +217,8 @@ const MentionTextarea: React.FC<MentionTextareaProps> = React.memo(({
               role="option"
               aria-selected={idx === selectedIndex}
               className={`flex items-center gap-3 w-full px-3 py-2 text-left transition-colors ${idx === selectedIndex
-                  ? 'bg-zinc-700 text-white'
-                  : 'text-zinc-300 hover:bg-zinc-700/50'
+                ? 'bg-zinc-700 text-white'
+                : 'text-zinc-300 hover:bg-zinc-700/50'
                 }`}
               onClick={() => insertMention(opt.tag)}
               onMouseEnter={() => setSelectedIndex(idx)}

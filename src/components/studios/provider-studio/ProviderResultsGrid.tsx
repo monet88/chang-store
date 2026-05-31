@@ -35,6 +35,7 @@ const ProviderResultsGrid: React.FC<ProviderResultsGridProps> = ({
 
   return (
     <div
+      role="region"
       className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
       aria-label={t('studio.provider.results.label')}
     >
