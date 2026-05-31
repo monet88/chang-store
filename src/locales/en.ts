@@ -351,6 +351,8 @@ export const en = {
     title: 'Image Gallery',
     closeAria: 'Close gallery',
     emptyMessage: 'Your generated and uploaded images will appear here.',
+    emptyHeading: 'No images yet',
+    emptyDescription: 'Generate or save an image to start your gallery. You can also send images from any feature directly to the gallery.',
     altText: 'Gallery image {{index}}',
     clearAll: 'Clear All',
     clearAllConfirmation: 'Are you sure you want to permanently delete all {{count}} images from your gallery? This action cannot be undone.',

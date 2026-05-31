@@ -10,7 +10,7 @@ import { useImageGallery } from '../../contexts/ImageGalleryContext';
 import { useGoogleDrive } from '../../contexts/GoogleDriveContext';
 import HoverableImage from '../HoverableImage';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { CloseIcon, CloudIcon, CheckCircleIcon, WarningIcon, RefreshIcon } from '../Icons';
+import { CloseIcon, CloudIcon, CheckCircleIcon, WarningIcon, RefreshIcon, GalleryIcon } from '../Icons';
 import Spinner from '../Spinner';
 
 // ============================================================================
@@ -167,8 +167,18 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
         {isLoadingFromDrive ? (
           <GalleryLoadingSkeleton />
         ) : images.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-zinc-400 text-xl">{t('gallery.emptyMessage')}</p>
+          <div className="flex h-full items-center justify-center">
+            <div className="flex max-w-md flex-col items-center gap-4 px-6 text-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-300">
+                <GalleryIcon className="h-10 w-10" />
+              </div>
+              <h3 className="text-2xl font-medium tracking-[-0.02em] text-zinc-50">
+                {t('gallery.emptyHeading')}
+              </h3>
+              <p className="text-base leading-7 text-zinc-400">
+                {t('gallery.emptyDescription')}
+              </p>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-w-7xl mx-auto">

@@ -352,6 +352,8 @@ export const vi: Translation = {
     title: 'Thư viện ảnh',
     closeAria: 'Đóng thư viện',
     emptyMessage: 'Các ảnh bạn tạo và tải lên sẽ xuất hiện ở đây.',
+    emptyHeading: 'Chưa có ảnh nào',
+    emptyDescription: 'Tạo hoặc lưu một ảnh để bắt đầu thư viện. Bạn cũng có thể gửi ảnh từ bất kỳ tính năng nào trực tiếp vào thư viện.',
     altText: 'Ảnh thư viện {{index}}',
     clearAll: 'Xóa tất cả',
     clearAllConfirmation: 'Bạn có chắc chắn muốn xóa vĩnh viễn tất cả {{count}} ảnh khỏi thư viện không? Hành động này không thể hoàn tác.',
