@@ -44,7 +44,7 @@ const assertConfig = (config: GptImageServiceConfig): void => {
   if (!config.apiKey) {
     throw new ProviderApiError('error.provider.missingApiKey', 401, 'missing_api_key');
   }
-  // Enforce HTTPS + a parseable URL before sending the bearer token anywhere.
+  // Require a parseable HTTP(S) URL before sending the bearer token anywhere.
   const urlCheck = validateProviderBaseUrl(config.baseUrl);
   if (urlCheck.status === 'invalid') {
     throw new ProviderApiError('error.provider.missingBaseUrl', 400, 'invalid_base_url');

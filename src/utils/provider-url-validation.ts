@@ -12,17 +12,20 @@ export const ALLOWED_PROVIDER_HOSTS = ['api.x.ai', 'api.openai.com'] as const;
 export type ProviderUrlValidationResult =
   | { status: 'allowed'; url: string; host: string }
   | { status: 'custom'; url: string; host: string }
-  | { status: 'invalid'; reason: 'not-a-url' | 'not-https' | 'empty' };
+  | { status: 'invalid'; reason: 'not-a-url' | 'empty' };
 
 const normalizeHost = (host: string): string => host.toLowerCase().replace(/^www\./, '');
 
 /**
  * Validate a provider base URL.
  *
- * - `allowed`: HTTPS URL on a known provider host — safe to use silently.
- * - `custom`: valid HTTPS URL on an unknown host — caller must confirm with the
+ * - `allowed`: HTTP(S) URL on a known provider host — safe to use silently.
+ * - `custom`: valid HTTP(S) URL on an unknown host — caller must confirm with the
  *   user that the API key will be sent to this domain.
- * - `invalid`: empty, malformed, or non-HTTPS URL — must be rejected.
+ * - `invalid`: empty or malformed URL — must be rejected.
+ *
+ * Both `http:` and `https:` are accepted so local proxies (e.g.
+ * `http://localhost:8333`) can be used for development and testing.
  */
 export function validateProviderBaseUrl(rawUrl: string): ProviderUrlValidationResult {
   const trimmed = (rawUrl ?? '').trim();
@@ -37,8 +40,8 @@ export function validateProviderBaseUrl(rawUrl: string): ProviderUrlValidationRe
     return { status: 'invalid', reason: 'not-a-url' };
   }
 
-  if (parsed.protocol !== 'https:') {
-    return { status: 'invalid', reason: 'not-https' };
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    return { status: 'invalid', reason: 'not-a-url' };
   }
 
   const host = normalizeHost(parsed.hostname);
@@ -51,7 +54,7 @@ export function validateProviderBaseUrl(rawUrl: string): ProviderUrlValidationRe
     : { status: 'custom', url: trimmed, host };
 }
 
-/** Convenience guard: true when the URL is a valid HTTPS provider URL (allowed or custom). */
+/** Convenience guard: true when the URL is a valid HTTP(S) provider URL (allowed or custom). */
 export function isUsableProviderBaseUrl(rawUrl: string): boolean {
   const result = validateProviderBaseUrl(rawUrl);
   return result.status === 'allowed' || result.status === 'custom';

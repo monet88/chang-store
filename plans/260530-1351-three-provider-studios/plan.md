@@ -149,6 +149,56 @@ via shared `safeFetch`.
 an in-flight request (studio-switch unmount does); a v2 serverless proxy is still
 planned so provider keys never reach the client bundle.
 
+### Session 7 — 2026-05-31 (E2E validation against local proxy)
+
+**Trigger:** User-driven end-to-end smoke test of all 10 provider workflows
+(5 Grok + 5 GPT Image) against an OpenAI-compatible proxy at
+`http://localhost:8333` with API key `monet-4292`.
+
+**HTTPS validation relaxed.** Original allowlist required `https:` only, which
+blocked local proxies. `validateProviderBaseUrl` now accepts both `http:` and
+`https:`; non-allowlisted hosts (including `localhost`) still surface a custom
+warning so the user knows the bearer token is going to an unfamiliar domain.
+The Grok/GPT services drop the explicit "Enforce HTTPS" comments and rely on
+the shared validator to reject non-parseable URLs.
+
+**Files touched:**
+
+- `src/utils/provider-url-validation.ts` — accept `http:` + `https:`
+- `src/services/providers/grok/grokImageService.ts` — comment update
+- `src/services/providers/gpt-image/gptImageService.ts` — comment update
+- `src/components/studios/provider-studio/ProviderSettingsPanel.tsx` — drop
+  `not-https` branch
+- `src/locales/en.ts`, `src/locales/vi.ts` — remove `urlNotHttps` key
+- `__tests__/utils/provider-url-validation.test.ts`,
+  `__tests__/services/providers/grok/grokImageService.test.ts`,
+  `__tests__/components/studios/provider-studio/ProviderSettingsPanel.test.tsx`
+  — drop the not-https expectations
+- `vite.config.ts` — add `**/.kiro/**` and `**/.gitnexus/**` to watcher ignores
+  to prevent ENOSPC under heavy local tooling.
+
+**Quality gates:** `npx tsc --noEmit` clean, `npm run test` 627/627 passing,
+ESLint clean on touched files, `gitnexus_detect_changes` reports zero
+symbol-level changes (logic stayed within existing functions).
+
+**E2E results — all HTTP 200:**
+
+| Provider | Workflow | Endpoint | Body shape |
+|---|---|---|---|
+| Grok | Pattern Generator | `/images/generations` | JSON |
+| Grok | Try-On | `/images/edits` | JSON `images[]` data URLs |
+| Grok | AI Editor | `/images/edits` | JSON `images[]` data URLs |
+| Grok | Lookbook | `/images/edits` | JSON `images[]` data URLs |
+| Grok | Clothing Transfer | `/images/edits` | JSON `images[]` data URLs |
+| GPT Image | Pattern Generator | `/images/generations` | JSON |
+| GPT Image | Try-On | `/images/edits` | multipart `image[]` |
+| GPT Image | AI Editor | `/images/edits` | multipart `image[]` |
+| GPT Image | Lookbook | `/images/edits` | multipart `image[]` |
+| GPT Image | Clothing Transfer | `/images/edits` | multipart `image[]` |
+
+Outputs render and persist in their respective results grids; per-provider
+`localStorage` settings survive studio switches as expected.
+
 ## Risks
 
 - App shell changes can regress current navigation. Mitigate with minimal wrapper and tests.

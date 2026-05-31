@@ -24,10 +24,14 @@ describe('validateProviderBaseUrl', () => {
     });
   });
 
-  it('rejects non-HTTPS URLs', () => {
-    expect(validateProviderBaseUrl('http://api.x.ai/v1')).toEqual({
-      status: 'invalid',
-      reason: 'not-https',
+  it('accepts non-HTTPS (http) URLs for local proxies', () => {
+    expect(validateProviderBaseUrl('http://api.x.ai/v1')).toMatchObject({
+      status: 'allowed',
+      host: 'api.x.ai',
+    });
+    expect(validateProviderBaseUrl('http://localhost:8333')).toMatchObject({
+      status: 'custom',
+      host: 'localhost',
     });
   });
 
@@ -45,7 +49,8 @@ describe('validateProviderBaseUrl', () => {
   it('isUsableProviderBaseUrl is true for allowed and custom, false for invalid', () => {
     expect(isUsableProviderBaseUrl('https://api.x.ai/v1')).toBe(true);
     expect(isUsableProviderBaseUrl('https://proxy.example.com')).toBe(true);
-    expect(isUsableProviderBaseUrl('http://api.x.ai')).toBe(false);
+    expect(isUsableProviderBaseUrl('http://localhost:8333')).toBe(true);
+    expect(isUsableProviderBaseUrl('not a url')).toBe(false);
   });
 
   it('exposes the expected allowlist', () => {

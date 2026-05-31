@@ -159,7 +159,6 @@ export const en = {
       showKey: 'Show',
       hideKey: 'Hide',
       urlInvalid: 'Enter a valid URL.',
-      urlNotHttps: 'Base URL must use HTTPS.',
       urlCustomWarning: 'Warning: your API key will be sent to {{host}}. Only continue if you trust this domain.',
     },
     workflows: {

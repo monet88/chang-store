@@ -63,9 +63,7 @@ const ProviderSettingsPanel: React.FC<ProviderSettingsPanelProps> = ({
         />
         {urlValidation.status === 'invalid' && (
           <p className="text-xs text-red-400">
-            {urlValidation.reason === 'not-https'
-              ? t('studio.settings.urlNotHttps')
-              : t('studio.settings.urlInvalid')}
+            {t('studio.settings.urlInvalid')}
           </p>
         )}
         {urlValidation.status === 'custom' && (

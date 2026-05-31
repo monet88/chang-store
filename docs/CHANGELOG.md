@@ -28,6 +28,13 @@
 
 ### Changed
 
+- Provider base URL validation now accepts both `http:` and `https:` so local
+  proxies (for example `http://localhost:8333/v1`) can be used during
+  development. Non-allowlisted hosts still surface a "key will be sent to
+  <host>" warning. Removed the `urlNotHttps` i18n key and the corresponding
+  branch in `ProviderSettingsPanel`.
+- Extended `vite.config.ts` watcher ignores with `**/.kiro/**` and
+  `**/.gitnexus/**` to prevent ENOSPC under heavy local tooling.
 - Replaced generic architecture scaffold with actual React/Vite SPA architecture
   in `docs/ARCHITECTURE.md`.
 - Updated `docs/README.md` and `docs/product/README.md` to reflect the current

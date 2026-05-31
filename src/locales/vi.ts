@@ -159,7 +159,6 @@ export const vi: Translation = {
       showKey: 'Hiện',
       hideKey: 'Ẩn',
       urlInvalid: 'Nhập một URL hợp lệ.',
-      urlNotHttps: 'URL cơ sở phải dùng HTTPS.',
       urlCustomWarning: 'Cảnh báo: API key của bạn sẽ được gửi tới {{host}}. Chỉ tiếp tục nếu bạn tin tưởng tên miền này.',
     },
     workflows: {

@@ -102,14 +102,24 @@ describe('grokImageService', () => {
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('blocks a non-HTTPS base URL before any network call', async () => {
+    it('blocks an unparseable base URL before any network call', async () => {
       await expect(
         generateGrokImage(
           { model: 'grok-imagine-image', prompt: 'x', n: 1, aspectRatio: '1:1', resolution: '1k' },
-          { apiKey: 'k', baseUrl: 'http://api.x.ai/v1' },
+          { apiKey: 'k', baseUrl: 'not a url' },
         ),
       ).rejects.toMatchObject({ code: 'invalid_base_url' });
       expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('allows an http base URL (local proxy) and sends the request', async () => {
+      fetchMock.mockResolvedValue(okResponse({ data: [{ b64_json: 'AAAA' }] }));
+      await generateGrokImage(
+        { model: 'grok-imagine-image', prompt: 'x', n: 1, aspectRatio: '1:1', resolution: '1k' },
+        { apiKey: 'k', baseUrl: 'http://localhost:8333/v1' },
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:8333/v1/images/generations');
     });
 
     it('maps a network failure to a typed networkError', async () => {
