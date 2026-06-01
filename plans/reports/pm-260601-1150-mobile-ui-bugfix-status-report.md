@@ -28,7 +28,7 @@ No active plan. Bugfix completed in one session. Not tracked against plan.
 
 **Root cause:** `index.html` viewport meta tag used `interactive-widget=resizes-visual` (default behavior), which does NOT resize the layout viewport when the keyboard opens. Combined with `position: fixed` on the utility dock, the dock stayed anchored to visual-bottom, overlapping the keyboard. Content below the keyboard was unreachable.
 
-**Fix:** Changed to `interactive-widget=resizes-content` in the viewport meta tag. This causes the browser to resize the layout viewport when the soft keyboard opens, so fixed-position elements re-flow above the keyboard. Applied `position: sticky` fallback on the utility dock for browsers that don't support the new viewport behavior.
+**Fix:** Changed to `interactive-widget=resizes-content` in the viewport meta tag. This causes supporting browsers to resize the layout viewport when the soft keyboard opens, so fixed-position elements can re-flow with the content viewport. Updated the utility dock with dynamic viewport/safe-area-aware bottom positioning instead of a hardcoded `bottom-4` offset.
 
 ---
 
@@ -40,10 +40,10 @@ No active plan. Bugfix completed in one session. Not tracked against plan.
 | `src/index.css` | Adjusted z-index utility classes for sidebar/overlay layering |
 | `src/App.tsx` | Layout container height handling for keyboard-safe viewport |
 | `src/components/Header.tsx` | Header z-index corrected to use semantic token |
-| `src/components/UtilityDock.tsx` | Dock position behavior: `fixed` -> `sticky` fallback for keyboard |
+| `src/components/UtilityDock.tsx` | Dock position behavior: safe-area-aware fixed bottom offset and mobile width bounds |
 | `__tests__/components/Header.test.tsx` | Updated assertions for new z-index class |
 | `__tests__/components/UtilityDock.test.tsx` | Updated assertions for new position behavior |
-| `docs/design-guidelines.md` | Added mobile layout section documenting safe-area, keyboard behavior, z-index layer rules |
+| `docs/design-guidelines.md` | Added z-index layer scale with sidebar ordering |
 
 ---
 
@@ -67,10 +67,7 @@ No active plan. Bugfix completed in one session. Not tracked against plan.
 
 ## Docs Impact
 
-**Minor.** Updated `docs/design-guidelines.md` to:
-- Document the `interactive-widget=resizes-content` requirement for mobile
-- Add safe-area inset usage notes
-- Document the z-index layer ordering with sidebar (1250) between overlay (1200) and modal-backdrop (1300)
+**Minor.** Updated `docs/design-guidelines.md` to document the z-index layer ordering with sidebar (1250) between overlay (1200) and modal-backdrop (1300).
 
 ---
 
@@ -91,7 +88,7 @@ None. Ad-hoc bugfix, no scope deviation from the original fix objectives.
 | Risk | Status | Note |
 |------|--------|------|
 | `interactive-widget=resizes-content` browser compatibility | Resolved | Widely supported: Chrome 108+, Safari 16.4+, Firefox 121+. iOS Safari 16.4+ handles correctly. |
-| Fixed->sticky dock behavior regression on desktop | Resolved | Sticky and fixed behave identically on non-scrollable viewports. On scrollable mobile views, sticky is the correct behavior. |
+| Fixed dock behavior regression on desktop | Resolved | UtilityDock remains fixed, with mobile width bounds and a safe-area-aware bottom offset. |
 | GitNexus detect_changes false negative | Open (minor) | Tool reports no changes despite obvious git diff. Likely needs `npx gitnexus analyze` re-index. Does not block merge. |
 
 ---

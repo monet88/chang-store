@@ -24,10 +24,10 @@ This is the kind of bug that makes you look sloppy on a phone demo. The sidebar 
 **Bug 2 -- mobile keyboard viewport clipping:**
 - `src/App.tsx` used `min-h-screen` on two containers, which maps to `100vh`. Mobile browsers treat `100vh` as the full screen height including browser chrome, so when the keyboard opens, the visible area shrinks but the layout still thinks it has 100vh. Bottom-anchored elements get pushed below the fold.
 - `src/components/UtilityDock.tsx` used `bottom-4` (a fixed `1rem` offset). No safe-area awareness.
-- Fix: `min-h-screen` -> `min-h-dvh` (dynamic viewport height, recalculated when the keyboard toggles). UtilityDock: `bottom-[calc(1rem+env(safe-area-inset-bottom))]`.
+- Fix: `min-h-screen` -> `min-h-dvh` (dynamic viewport height, recalculated when the keyboard toggles). UtilityDock: `bottom-[calc(1rem_+_env(safe-area-inset-bottom))]`.
 - `index.html`: added `viewport-fit=cover` and `interactive-widget=resizes-content` to the viewport meta tag.
 
-**Files touched (7):** `src/index.css`, `src/App.tsx`, `src/components/Header.tsx`, `src/components/UtilityDock.tsx`, `index.html`, `__tests__/components/Header.test.tsx`, `__tests__/components/UtilityDock.test.tsx`, `docs/design-guidelines.md`.
+**Files touched (8):** `src/index.css`, `src/App.tsx`, `src/components/Header.tsx`, `src/components/UtilityDock.tsx`, `index.html`, `__tests__/components/Header.test.tsx`, `__tests__/components/UtilityDock.test.tsx`, `docs/design-guidelines.md`.
 
 **Validation:** `npx tsc --noEmit` (pass), `npm run lint` (pass), `npm run test` (66 files, 696 tests -- pass), `npm run build` (pass).
 

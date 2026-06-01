@@ -56,7 +56,11 @@ describe('UtilityDock', () => {
 
     expect(screen.getByText('Studio utilities')).toBeInTheDocument();
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByTestId('utility-dock')).toHaveClass('bottom-[calc(1rem+env(safe-area-inset-bottom))]');
+    expect(screen.getByTestId('utility-dock')).toHaveClass(
+      'right-4',
+      'max-w-[calc(100vw-2rem)]',
+      'bottom-[calc(1rem_+_env(safe-area-inset-bottom))]',
+    );
     expect(screen.queryByText('Open your archive, saved prompts, and workspace settings.')).not.toBeInTheDocument();
     expect(screen.queryByText('gallery-action')).not.toBeInTheDocument();
     expect(screen.queryByText('prompt-action')).not.toBeInTheDocument();
