@@ -42,6 +42,7 @@
   --z-index-dropdown: 1000;
   --z-index-sticky: 1100;
   --z-index-overlay: 1200;
+  --z-index-sidebar: 1250;
   --z-index-modal-backdrop: 1300;
   --z-index-modal: 1400;
   --z-index-toast: 1500;
@@ -372,6 +373,10 @@
 
 @utility z-overlay {
   z-index: var(--z-index-overlay);
+}
+
+@utility z-sidebar {
+  z-index: var(--z-index-sidebar);
 }
 
 @utility z-modal-backdrop {

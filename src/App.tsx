@@ -215,7 +215,7 @@ const AppContent: React.FC = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-transparent text-zinc-100">
+      <div className="min-h-dvh bg-transparent text-zinc-100">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-toast focus:rounded-md focus:bg-amber-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-zinc-950 focus:shadow-lg focus:outline-none"
@@ -233,7 +233,7 @@ const AppContent: React.FC = () => {
         <MobileMenuButton onClick={handleToggleSidebar} />
         <MobileOverlay isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
 
-        <div className="min-h-screen lg:pl-[22rem]">
+        <div className="min-h-dvh lg:pl-[22rem]">
           {studioMode === 'gemini' ? (
             <main id="main-content" className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
               <div className="mx-auto flex max-w-[1760px] flex-col gap-8">

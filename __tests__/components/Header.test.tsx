@@ -51,4 +51,19 @@ describe('Header', () => {
     expect(screen.getByText('tabs')).toBeInTheDocument();
     expect(screen.getByText('language-switcher')).toBeInTheDocument();
   });
+
+  it('keeps the mobile sidebar above the backdrop layer', () => {
+    render(
+      <Header
+        activeFeature={Feature.TryOn}
+        setActiveFeature={vi.fn()}
+        isOpen
+        onClose={vi.fn()}
+        studioMode="gemini"
+        onStudioModeChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('complementary')).toHaveClass('z-sidebar');
+  });
 });

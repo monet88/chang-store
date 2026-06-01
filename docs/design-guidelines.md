@@ -25,6 +25,26 @@ image-forward, dark surfaces, precise controls, and polished tool panels.
 - No `@apply`.
 - Follow existing UI patterns before inventing new variants.
 
+## Z-Index Layer Scale
+
+Semantic z-index tokens defined in `src/index.css`. Use the matching
+`@utility z-*` classes instead of ad-hoc `z-50` / `z-[60]`:
+
+| Token | Value | Usage |
+|---|---|---|
+| `--z-index-base` | 0 | Default document flow |
+| `--z-index-dropdown` | 1000 | Dropdown menus, popups |
+| `--z-index-sticky` | 1100 | Sticky chrome (header menu button, utility dock) |
+| `--z-index-overlay` | 1200 | Backdrop overlays (mobile nav overlay) |
+| `--z-index-sidebar` | 1250 | Mobile sidebar/drawer panels (slides over overlay) |
+| `--z-index-modal-backdrop` | 1300 | Modal dialog backdrops |
+| `--z-index-modal` | 1400 | Modal dialog panels |
+| `--z-index-toast` | 1500 | Toast notifications |
+| `--z-index-tooltip` | 1600 | Tooltips, floating hints |
+
+`z-sidebar` lives between `z-overlay` and `z-modal-backdrop` so that a
+sidebar/drawer panel sits above its backdrop but below modal dialogs.
+
 ## Localization
 
 - All user-facing copy must use `useLanguage()` and `t('key.path')`.

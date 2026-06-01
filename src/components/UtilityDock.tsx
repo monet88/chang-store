@@ -23,9 +23,12 @@ const UtilityDock: React.FC<UtilityDockProps> = ({
   const showGallery = !studioMode || studioMode === 'gemini';
 
   return (
-    <div className="fixed inset-x-4 bottom-4 z-sticky flex justify-end lg:inset-x-auto lg:right-8 lg:bottom-8">
+    <div
+      className="fixed bottom-[calc(1rem_+_env(safe-area-inset-bottom))] right-4 z-sticky max-w-[calc(100vw-2rem)] lg:right-8 lg:bottom-8"
+      data-testid="utility-dock"
+    >
       <div
-        className={`workspace-panel flex flex-col gap-2 shadow-[0_18px_60px_rgba(0,0,0,0.32)] transition-all duration-200 ${isExpanded
+        className={`workspace-panel flex max-w-full flex-col gap-2 shadow-[0_18px_60px_rgba(0,0,0,0.32)] transition-all duration-200 ${isExpanded
           ? 'w-full max-w-[22rem] rounded-[1.75rem] p-2.5'
           : 'w-auto min-w-[12.5rem] rounded-[1.4rem] p-2'
           }`}
