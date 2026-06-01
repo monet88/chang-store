@@ -12,10 +12,12 @@ interface ImageUploaderProps {
   image: ImageFile | null;
   onImageUpload: (file: ImageFile | null) => void;
   title: string;
+  /** Keep the title accessible without rendering a duplicate visible heading */
+  hideTitle?: boolean;
   id: string;
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImageUpload, title, id }) => {
+const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImageUpload, title, hideTitle = false, id }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isGallerySelectionOpen, setIsGallerySelectionOpen] = useState(false);
   const { t } = useLanguage();
@@ -124,7 +126,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
   return (
     <>
       <div className="w-full">
-        <label htmlFor={id} className="mb-2 block text-base font-semibold text-zinc-100">{title}</label>
+        <label htmlFor={id} className={hideTitle ? 'sr-only' : 'mb-2 block text-base font-semibold text-zinc-100'}>{title}</label>
         <div
           className={`relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[24px] border border-dashed bg-black/35 transition-colors duration-300 ${isDragging ? 'border-white/40 bg-white/[0.08]' : 'border-white/12'
             } ${!image ? 'cursor-pointer hover:border-white/30 hover:bg-white/[0.04]' : ''}`}
@@ -157,6 +159,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
             <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-3 text-center text-zinc-400">
               <div
                 className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] p-3 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+                role="img"
                 aria-label={isDragging ? t('imageUploader.drop') : t('imageUploader.upload')}
               >
                 <CloudUploadIcon className="mx-auto h-10 w-10 text-zinc-300" />
@@ -168,7 +171,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
                     e.stopPropagation();
                     setIsGallerySelectionOpen(true);
                   }}
-                  className="flex min-h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-zinc-100 transition-colors duration-200 hover:border-white/20 hover:bg-white/[0.1]"
+                  className="flex min-h-[44px] items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-zinc-100 transition-colors duration-200 hover:border-white/20 hover:bg-white/[0.1]"
                 >
                   <GalleryIcon className="h-3.5 w-3.5" />
                   <span>{t('imageUploader.selectFromGallery')}</span>

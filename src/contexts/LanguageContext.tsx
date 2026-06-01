@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { en, Translation } from '../locales/en';
 import { vi } from '../locales/vi';
 
@@ -26,6 +26,15 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>('vi');
+
+  // Mirror the active locale onto <html lang> so screen readers pronounce
+  // Vietnamese strings with Vietnamese phonemes. Without this, the index.html
+  // fixed `lang="en"` bakes English pronunciation onto the default VI surface.
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = language;
+    }
+  }, [language]);
 
   const t = useCallback((key: string, options?: { [key: string]: string | number } | { returnObjects: true }): any => {
     const langDict = translations[language];

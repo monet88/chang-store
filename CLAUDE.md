@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only AI backend via the Google Gemini SDK.
+AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini is the default full-featured studio; isolated Grok and GPT Image provider studios run five workflows through provider REST services.
 
 ## Project map
 
@@ -8,10 +8,10 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only
 |-----------|------|
 | `src/components/` | UI layer — thin wrappers, feature screens, shared UI, and `modals/` |
 | `src/hooks/` | Feature logic + state (one hook per feature) |
-| `src/services/` | API facades (stateless), incl. `gemini/` |
+| `src/services/` | API facades (stateless), incl. `gemini/` and provider services under `providers/` |
 | `src/contexts/` | Global state providers |
 | `src/utils/` | Pure helpers, prompt builders (`*-prompt-builder.ts`) |
-| `src/config/` | Model capability registry (`modelRegistry.ts`) |
+| `src/config/` | Model capability registries (`modelRegistry.ts`, provider registries) |
 | `src/locales/` | i18n: `en.ts` (source of truth) + `vi.ts` |
 | `__tests__/` | Mirrors `src/` |
 | `docs/` | Architecture, design guidelines, code standards, API refs |
@@ -21,10 +21,11 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only
 | Task | Location |
 |------|----------|
 | Add a feature | `src/types.ts` → `src/components/` → `src/hooks/` → `src/App.tsx` → `src/locales/en.ts` |
-| Service routing | `src/services/imageEditingService.ts` (unified facade) |
+| Gemini service routing | `src/services/imageEditingService.ts` (unified Gemini facade) |
+| Provider studio routing | `src/services/providers/*`, `src/config/providerRegistry.ts`, `docs/product/provider-studios.md` |
 | Global state | `src/contexts/` (see `src/contexts/AGENTS.md`) |
 | i18n strings | `src/locales/en.ts` |
-| Model registry | `src/config/modelRegistry.ts` |
+| Model registry | `src/config/modelRegistry.ts`, `grokModelRegistry.ts`, `gptImageModelRegistry.ts` |
 | Image processing | `src/utils/imageUtils.ts` |
 
 ## Vite Environment Variables & Deployment (CRITICAL)
@@ -32,7 +33,7 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini-only
 **Vite only exposes env vars with `VITE_` prefix to client code.** Non-prefixed vars like `GEMINI_API_KEY` require explicit injection via `vite.config.ts` `define` block.
 
 When deploying to Vercel/Netlify/etc.:
-- Set env vars in the hosting platform dashboard (e.g., `GEMINI_API_KEY`)
+- Set env vars in the hosting platform dashboard (e.g., `GEMINI_API_KEY`, `GROK_API_KEY`, `GPT_IMAGE_API_KEY`)
 - Verify `vite.config.ts` injects the key for **all modes** (not just development):
   ```js
   'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY)
@@ -40,15 +41,17 @@ When deploying to Vercel/Netlify/etc.:
 - Previously: key was only injected when `mode === 'development' && VITE_ENABLE_DIRECT_GEMINI === 'true'`
 - Result: production build on Vercel failed with "API_KEY is not configured"
 
-**Rule:** Always test production build (`npm run build`) before deploying. Check that Gemini API calls work in production, not just dev server.
+**Rule:** Always test production build (`npm run build`) before deploying. Check that Gemini and configured provider studio API calls work in production, not just dev server.
 
 ## Architecture
 
-`Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API`
+Gemini workflows: `Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API`
 
-No React Router — `App.tsx` switches on `Feature` enum with lazy-loading. Path alias: `@/*` → `src/`.
+Provider studios: `Provider Studio UI → Provider Hook → src/services/providers/* → Grok/GPT Image REST`.
 
-Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator | WardrobeMode`
+No React Router — `App.tsx` switches on `Feature` enum with lazy-loading and keeps `StudioMode = 'gemini' | 'grok' | 'gptImage'`. Path alias: `@/*` → `src/`.
+
+Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbum | AIEditor | WatermarkRemover | ClothingTransfer | PatternGenerator`
 
 <important if="you need to run commands to build, test, lint, or type-check">
 
@@ -75,9 +78,9 @@ After any substantive code changes, run `npx tsc --noEmit` and `npm run lint` to
 
 <important if="you are modifying service routing, API calls, or provider integration">
 
-Service routing stays centralized in `src/services/imageEditingService.ts` and fans into Gemini service modules under `src/services/gemini/`.
+Gemini service routing stays centralized in `src/services/imageEditingService.ts` and fans into Gemini service modules under `src/services/gemini/`.
 
-Never bypass `imageEditingService.ts` for API calls. API keys must come from `ApiProviderContext`, never hook state.
+Grok and GPT Image provider studios route through `src/services/providers/*` and never through the Gemini facade. Provider API keys and base URLs must come from `ApiProviderContext`, never hook state. See `docs/product/provider-studios.md` before changing provider contracts.
 </important>
 
 <important if="you are modifying providers, context, or global state">
@@ -110,7 +113,7 @@ Tailwind only — no inline styles, no `@apply`. Follow the existing Runway-insp
 
 <important if="you are refactoring or touching service boundaries">
 
-UI service-import debt has been cleaned up. Components must not import `src/services/*` directly; add or extend a paired hook instead. Boundary coverage lives in `__tests__/components/ui-boundary-imports.test.ts`.
+UI service-import debt has been cleaned up. Components must not import `src/services/*` directly; add or extend a paired hook instead. Provider studio components also go through provider hooks. Boundary coverage lives in `__tests__/components/ui-boundary-imports.test.ts`.
 </important>
 
 <important if="you are about to delete files, run destructive git commands, or perform irreversible operations">
@@ -162,7 +165,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **chang-store** (3438 symbols, 5369 relationships, 209 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **chang-store** (4220 symbols, 6950 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

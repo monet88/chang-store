@@ -3,7 +3,12 @@
 Stories are work packets. They turn product intent into bounded implementation
 and validation work.
 
-No story packets are active yet.
+## Active Stories
+
+| Story | Epic | Lane | Packet | Status |
+| --- | --- | --- | --- | --- |
+| US-001-three-provider-studios | E01 Provider Studios | high-risk | `epics/E01-provider-studios/US-001-three-provider-studios/` | planned |
+| US-002-docs-backfill-resync | E02 Docs/Harness Sync | normal | `epics/E02-docs-harness-sync/US-002-docs-backfill-resync.md` | implemented |
 
 ## Normal Story
 

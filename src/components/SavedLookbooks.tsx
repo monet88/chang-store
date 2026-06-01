@@ -24,24 +24,24 @@ const SavedLookbooks: React.FC = () => {
     if (savedSets.length === 0) {
         return (
             <div>
-                <h2 className="text-xl md:text-2xl font-bold text-center mb-1">Saved Lookbooks</h2>
-                <p className="text-slate-400 text-center mb-6">You haven't saved any lookbooks yet.</p>
-                <p className="text-slate-500 text-center">Generated lookbooks can be saved from the 'Lookbook Generation' tab.</p>
+                <h3 className="text-xl md:text-2xl font-bold text-center mb-1">Saved Lookbooks</h3>
+                <p className="text-zinc-400 text-center mb-6">You haven't saved any lookbooks yet.</p>
+                <p className="text-zinc-500 text-center">Generated lookbooks can be saved from the 'Lookbook Generation' tab.</p>
             </div>
         );
     }
 
     return (
         <div>
-            <h2 className="text-xl md:text-2xl font-bold text-center mb-1">Saved Lookbooks</h2>
-            <p className="text-slate-400 text-center mb-6">Review and download your saved collections.</p>
+            <h3 className="text-xl md:text-2xl font-bold text-center mb-1">Saved Lookbooks</h3>
+            <p className="text-zinc-400 text-center mb-6">Review and download your saved collections.</p>
             <div className="space-y-12">
                 {savedSets.map(set => (
-                    <div key={set.id} className="bg-slate-800/60 p-6 rounded-xl border border-slate-700">
+                    <div key={set.id} className="bg-zinc-800/60 p-6 rounded-xl border border-zinc-700">
                         <div className="flex justify-between items-center mb-4">
                             <div>
                                 <h3 className="text-base md:text-lg font-semibold text-amber-400">Lookbook Collection</h3>
-                                <p className="text-sm text-slate-400">
+                                <p className="text-sm text-zinc-400">
                                     Saved on: {new Date(set.createdAt).toLocaleString()}
                                 </p>
                             </div>

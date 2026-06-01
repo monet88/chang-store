@@ -26,10 +26,10 @@ const CheckCircleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 
 
 interface PoseLibraryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (selectedPoses: string[]) => void;
-  initialSelectedPoses: string[];
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: (selectedPoses: string[]) => void;
+    initialSelectedPoses: string[];
 }
 
 const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, onConfirm, initialSelectedPoses }) => {
@@ -41,7 +41,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
 
     const activeCollection = useMemo(() => collections.find(c => c.title === activeCollectionTitle) || collections[0], [activeCollectionTitle, collections]);
     const currentPose = activeCollection.poses[currentPoseIndex];
-    
+
     useEffect(() => {
         if (!isOpen) return;
         document.body.style.overflow = 'hidden';
@@ -68,25 +68,25 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
     const handlePrev = () => setCurrentPoseIndex(prev => (prev - 1 + activeCollection.poses.length) % activeCollection.poses.length);
 
     const togglePoseSelection = (poseLabel: string) => {
-        setSelectedPoses(prev => 
-            prev.includes(poseLabel) 
+        setSelectedPoses(prev =>
+            prev.includes(poseLabel)
                 ? prev.filter(p => p !== poseLabel)
                 : [...prev, poseLabel]
         );
     };
-    
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[60] flex flex-col p-4 sm:p-6 lg:p-8 animate-fade-in" role="dialog" aria-modal="true">
-            <header className="flex-shrink-0 flex items-center justify-between pb-4 border-b border-slate-700">
+        <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-modal flex flex-col p-4 sm:p-6 lg:p-8 animate-fade-in" role="dialog" aria-modal="true">
+            <header className="flex-shrink-0 flex items-center justify-between pb-4 border-b border-zinc-700">
                 <div>
                     <h2 className="text-xl md:text-2xl font-bold text-white">{t('poseModal.title')}</h2>
-                    <p className="text-sm text-slate-400">{t('poseModal.description')}</p>
+                    <p className="text-sm text-zinc-400">{t('poseModal.description')}</p>
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                    className="p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
                     aria-label={t('poseModal.closeAria')}
                 >
                     <CloseIcon className="w-7 h-7" />
@@ -100,55 +100,53 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                             <button
                                 key={collection.title}
                                 onClick={() => handleCollectionChange(collection.title)}
-                                className={`w-full text-left p-3 rounded-lg text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${
-                                    activeCollectionTitle === collection.title
+                                className={`w-full text-left p-3 rounded-lg text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${activeCollectionTitle === collection.title
                                         ? 'bg-amber-600 text-white'
-                                        : 'text-slate-300 hover:bg-slate-700/50'
-                                }`}
+                                        : 'text-zinc-300 hover:bg-zinc-700/50'
+                                    }`}
                             >
                                 {collection.title}
                             </button>
                         ))}
                     </nav>
                 </aside>
-                
+
                 <div className="flex-grow flex flex-col lg:flex-row gap-6 overflow-hidden min-w-0 min-h-0">
                     <div className="flex-grow flex flex-col items-center justify-center gap-4 overflow-hidden relative">
                         <div className="relative w-full h-full max-h-[50vh] lg:max-h-[70vh] flex items-center justify-center">
                             {currentPose && <img src={currentPose.imageUrl} alt={currentPose.title} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />}
-                        
+
                             <button onClick={handlePrev} className="absolute left-0 sm:left-4 top-1/2 -translate-y-1/2 p-3 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors" aria-label={t('poseModal.prevAria')}><ChevronLeftIcon className="w-6 h-6" /></button>
                             <button onClick={handleNext} className="absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 p-3 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors" aria-label={t('poseModal.nextAria')}><ChevronRightIcon className="w-6 h-6" /></button>
-                        
+
                             {currentPose && (
-                                <button 
+                                <button
                                     onClick={() => togglePoseSelection(currentPose.label)}
-                                    className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 font-bold py-2 px-6 rounded-full transition-all duration-200 text-sm shadow-lg ${
-                                        selectedPoses.includes(currentPose.label)
-                                        ? 'bg-amber-500 text-slate-900'
-                                        : 'bg-slate-800/80 text-white hover:bg-slate-700'
-                                    }`}
+                                    className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 font-bold py-2 px-6 rounded-full transition-all duration-200 text-sm shadow-lg ${selectedPoses.includes(currentPose.label)
+                                            ? 'bg-amber-500 text-zinc-900'
+                                            : 'bg-zinc-800/80 text-white hover:bg-zinc-700'
+                                        }`}
                                 >
                                     {selectedPoses.includes(currentPose.label) ? `✓ ${t('poseModal.selected')}` : t('poseModal.selectPose')}
                                 </button>
                             )}
                         </div>
                     </div>
-                    <aside className="w-full lg:w-64 xl:w-72 flex-shrink-0 bg-slate-900/50 border border-slate-700 rounded-lg p-4 overflow-y-auto max-h-48 lg:max-h-full">
+                    <aside className="w-full lg:w-64 xl:w-72 flex-shrink-0 bg-zinc-900/50 border border-zinc-700 rounded-lg p-4 overflow-y-auto max-h-48 lg:max-h-full">
                         <h3 className="text-base md:text-lg font-semibold text-amber-400 mb-3">{t('poseModal.poseDescription')}</h3>
                         {currentPose ? (
-                             <div>
+                            <div>
                                 <h4 className="text-base font-semibold text-white mb-2">{currentPose.title}</h4>
-                                <p className="text-slate-300 text-sm leading-relaxed">{currentPose.label}</p>
+                                <p className="text-zinc-300 text-sm leading-relaxed">{currentPose.label}</p>
                             </div>
                         ) : (
-                            <p className="text-slate-500">{t('poseModal.noPoseSelected')}</p>
+                            <p className="text-zinc-500">{t('poseModal.noPoseSelected')}</p>
                         )}
                     </aside>
                 </div>
             </main>
-            
-            <footer className="flex-shrink-0 mt-4 pt-4 border-t border-slate-700 flex flex-col gap-4">
+
+            <footer className="flex-shrink-0 mt-4 pt-4 border-t border-zinc-700 flex flex-col gap-4">
                 <div className="overflow-x-auto w-full">
                     <div className="flex gap-3 pb-2 w-max">
                         {activeCollection.poses.map((pose, index) => {
@@ -157,14 +155,13 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                                 <button
                                     key={pose.imageUrl}
                                     onClick={() => setCurrentPoseIndex(index)}
-                                    className={`relative w-20 h-28 rounded-md overflow-hidden flex-shrink-0 transition-all duration-200 group ring-2 ${
-                                        currentPoseIndex === index ? 'ring-amber-400 scale-105' : 'ring-transparent hover:ring-amber-500/50'
-                                    }`}
+                                    className={`relative w-20 h-28 rounded-md overflow-hidden flex-shrink-0 transition-all duration-200 group ring-2 ${currentPoseIndex === index ? 'ring-amber-400 scale-105' : 'ring-transparent hover:ring-amber-500/50'
+                                        }`}
                                 >
-                                    <img src={pose.imageUrl} alt={pose.title} className="w-full h-full object-cover"/>
+                                    <img src={pose.imageUrl} alt={pose.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
                                     {isSelected && (
-                                        <div className="absolute top-1 right-1 text-amber-500 bg-slate-900/60 rounded-full">
+                                        <div className="absolute top-1 right-1 text-amber-500 bg-zinc-900/60 rounded-full">
                                             <CheckCircleIcon className="w-5 h-5" />
                                         </div>
                                     )}

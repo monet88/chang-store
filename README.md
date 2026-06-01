@@ -1,9 +1,11 @@
 # Chang Store
 
 AI-powered virtual fashion studio built with React 19, TypeScript, and Vite.
-Chang Store lets users generate fashion imagery with Gemini: virtual try-ons,
-lookbooks, background swaps, pose changes, photo albums, image edits, watermark
-removal, clothing transfer, and textile pattern generation.
+Chang Store lets users generate fashion imagery: virtual try-ons, lookbooks,
+background swaps, pose changes, photo albums, image edits, watermark removal,
+clothing transfer, and textile pattern generation. The default studio uses
+Google Gemini; two isolated provider studios (Grok / xAI and GPT Image / OpenAI)
+cover five workflows each.
 
 ## Features
 
@@ -26,6 +28,7 @@ removal, clothing transfer, and textile pattern generation.
 - Vite
 - Tailwind CSS
 - Google Gemini SDK (`@google/genai`)
+- Grok (xAI) and GPT Image (OpenAI) REST in the provider studios
 - IndexedDB via `idb-keyval`
 - Optional Google Drive sync
 
@@ -36,13 +39,16 @@ Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API
 ```
 
 No React Router. `src/App.tsx` switches on the `Feature` enum and lazy-loads
-feature components.
+feature components. `AppContent` also holds a `StudioMode`
+(`gemini | grok | gptImage`) that swaps between the Gemini studio and the
+isolated Grok / GPT Image provider studios.
 
 Key docs:
 
 - `AGENTS.md` — project-specific agent instructions and Harness entrypoints.
 - `docs/README.md` — documentation map.
 - `docs/product/overview.md` — product overview.
+- `docs/product/provider-studios.md` — the three-provider studio split.
 - `docs/ARCHITECTURE.md` — actual app architecture.
 - `docs/code-standards.md` — code conventions and quality gates.
 
@@ -58,9 +64,9 @@ The dev server runs on port 3000.
 ## Environment Variables
 
 Vite only exposes env vars with `VITE_` prefix. This project also supports
-non-prefixed `GEMINI_API_KEY` through explicit injection in `vite.config.ts`.
+non-prefixed provider keys through explicit injection in `vite.config.ts`.
 
-Set one of:
+Core Gemini studio:
 
 ```bash
 GEMINI_API_KEY=your_key_here
@@ -68,7 +74,17 @@ GEMINI_API_KEY=your_key_here
 VITE_GEMINI_API_KEY=your_key_here
 ```
 
-For production deployments, set the same variable in the hosting dashboard.
+Optional provider studios:
+
+```bash
+GROK_API_KEY=your_xai_key_here
+GPT_IMAGE_API_KEY=your_openai_key_here
+# Optional custom/local proxies
+GROK_BASE_URL=https://api.x.ai/v1
+GPT_IMAGE_BASE_URL=https://api.openai.com/v1
+```
+
+For production deployments, set the same variables in the hosting dashboard.
 See `docs/deployment-guide.md`.
 
 ## Quality Gates

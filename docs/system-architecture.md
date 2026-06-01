@@ -47,6 +47,16 @@ LanguageProvider
 `App.tsx` switches on `Feature` enum values and lazy-loads feature components.
 No React Router is used.
 
+## Studio Modes
+
+`AppContent` holds a `StudioMode` (`gemini | grok | gptImage`, default
+`gemini`), toggled by the header `StudioModeSwitch`. The Gemini studio uses the
+pipeline above. The Grok and GPT Image studios are isolated: separate model
+registries (`grokModelRegistry.ts`, `gptImageModelRegistry.ts`) and services
+(`src/services/providers/grok`, `gpt-image`, with `shared/` helpers), no Gemini
+pipeline calls, and local-only results (no Gallery writes). See
+`docs/ARCHITECTURE.md` "Studio Modes" and `docs/product/provider-studios.md`.
+
 ## Model Registry
 
 `src/config/modelRegistry.ts` defines selectable model IDs, labels, selection

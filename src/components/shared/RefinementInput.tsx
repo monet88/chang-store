@@ -2,7 +2,7 @@ import React, { useState, useRef, KeyboardEvent, ChangeEvent } from 'react';
 import { RefinementHistoryItem } from '../../types';
 import Spinner from '../Spinner';
 import Tooltip from '../Tooltip';
-import { ChevronDownIcon, ChevronUpIcon, HistoryIcon, RefreshIcon, MagicWandIcon } from '../Icons';
+import { ChevronDownIcon, ChevronUpIcon, HistoryIcon, RefreshIcon } from '../Icons';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface RefinementInputProps {
@@ -85,11 +85,8 @@ export const RefinementInput: React.FC<RefinementInputProps> = ({
               placeholder={t('generatedImage.refinePlaceholder')}
               disabled={disabled || isRefining}
               rows={1}
-              className="w-full pl-10 pr-4 py-3 bg-zinc-900/80 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed resize-none transition-all shadow-sm min-h-[48px]"
+              className="w-full px-4 py-3 bg-zinc-900/80 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed resize-none transition-all shadow-sm min-h-[48px]"
             />
-            <div className="absolute left-3 top-3.5 text-zinc-500">
-              <MagicWandIcon className="w-5 h-5" />
-            </div>
           </div>
 
           <Tooltip content={t('tooltips.lookbookRefinement')} position="bottom">
@@ -106,7 +103,7 @@ export const RefinementInput: React.FC<RefinementInputProps> = ({
         {/* Action Buttons */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-             {history.length > 0 && (
+            {history.length > 0 && (
               <button
                 onClick={toggleHistory}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-zinc-800/50 text-zinc-400 rounded-lg hover:bg-zinc-800 hover:text-zinc-200 transition-colors border border-transparent hover:border-zinc-700"
@@ -121,7 +118,7 @@ export const RefinementInput: React.FC<RefinementInputProps> = ({
               </button>
             )}
           </div>
-          
+
           {history.length > 0 && (
             <button
               onClick={handleReset}

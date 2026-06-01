@@ -78,7 +78,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-modal flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
@@ -193,16 +193,14 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                   </div>
                   <button
                     onClick={handleDebugToggle}
-                    className={`relative h-7 w-14 rounded-full border transition-colors ${
-                      debugMode ? 'border-white/40 bg-white/90' : 'border-white/10 bg-white/[0.08]'
-                    }`}
+                    className={`relative h-7 w-14 rounded-full border transition-colors ${debugMode ? 'border-white/40 bg-white/90' : 'border-white/10 bg-white/[0.08]'
+                      }`}
                     aria-pressed={debugMode}
                     aria-label={t('settingsModal.developer.toggleDebugAria')}
                   >
                     <span
-                      className={`absolute top-[3px] h-5 w-5 rounded-full bg-[#09090b] transition-transform ${
-                        debugMode ? 'translate-x-8' : 'translate-x-1'
-                      }`}
+                      className={`absolute top-[3px] h-5 w-5 rounded-full bg-[#09090b] transition-transform ${debugMode ? 'translate-x-8' : 'translate-x-1'
+                        }`}
                     />
                   </button>
                 </div>

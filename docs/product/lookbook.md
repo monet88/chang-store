@@ -8,7 +8,8 @@ main shots, variations, and close-up details in a single generation flow.
 ## Behavior
 
 1. User uploads clothing images (up to 8 slots).
-2. User selects style, garment type, and presentation options.
+2. User selects style, garment type, and presentation options, including
+   folded presentation type or product-shot subtype/toggles when relevant.
 3. Optional: fabric texture image/prompt, clothing description, negative prompt.
 4. AI generates a lookbook set: main image + variations + close-ups.
 5. Results can be refined, upscaled, or downloaded as ZIP.
@@ -28,7 +29,9 @@ mannequin, folded presentation, and more.
 | Fabric texture | No | Reference image or text description |
 | Clothing description | No | Auto-generated or manual |
 | Negative prompt | No | What to avoid in output |
-| Product shot sub-type | No | For product shot style only |
+| Product shot sub-type | No | For product shot style only; ghost mannequin, flat lay, or similar variants |
+| Accessories / footwear toggles | No | Include accessories and/or footwear when composing product-shot prompts |
+| Folded presentation type | No | Boxed or folded presentation when folded style is selected |
 
 ## Output Structure
 

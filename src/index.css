@@ -21,6 +21,31 @@
   --workspace-radius-sm: 10px;
   --workspace-radius-md: 18px;
   --workspace-radius-lg: 24px;
+
+  /* Brand accent ramp — single amber/orange gradient that marks active,
+     primary action, or focus ring. Tune here, never re-bake in components. */
+  --brand-50: #fff8eb;
+  --brand-100: #ffeac7;
+  --brand-200: #fed089;
+  --brand-300: #fdba74;
+  --brand-400: #fbbf24;
+  --brand-500: #f59e0b;
+  --brand-600: #ea580c;
+  --brand-700: #c2410c;
+  --brand-800: #9a3412;
+  --brand-900: #7c2d12;
+  --brand-glow: oklch(0.78 0.18 65 / 0.30);
+  --brand-gradient: linear-gradient(to right, var(--brand-500), var(--brand-600));
+
+  /* Semantic z-index scale. Replaces ad-hoc z-10/20/30/[52]/[60]/[100]. */
+  --z-index-base: 0;
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1100;
+  --z-index-overlay: 1200;
+  --z-index-modal-backdrop: 1300;
+  --z-index-modal: 1400;
+  --z-index-toast: 1500;
+  --z-index-tooltip: 1600;
 }
 
 @layer base {
@@ -83,9 +108,13 @@
   button:focus-visible,
   input:focus-visible,
   textarea:focus-visible,
-  select:focus-visible {
-    outline: 2px solid var(--workspace-ring);
+  select:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--brand-500);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 
   ::selection {
@@ -112,6 +141,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
@@ -193,7 +223,7 @@
 }
 
 @utility compact-uploader {
-  & > div > div {
+  &>div>div {
     min-height: 11rem;
   }
 
@@ -325,5 +355,77 @@
   &:hover {
     background: rgba(255, 255, 255, 0.06);
     border-color: rgba(255, 255, 255, 0.14);
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * Semantic z-index utilities. Use these instead of raw `z-50` / `z-[60]`.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+@utility z-dropdown {
+  z-index: var(--z-index-dropdown);
+}
+
+@utility z-sticky {
+  z-index: var(--z-index-sticky);
+}
+
+@utility z-overlay {
+  z-index: var(--z-index-overlay);
+}
+
+@utility z-modal-backdrop {
+  z-index: var(--z-index-modal-backdrop);
+}
+
+@utility z-modal {
+  z-index: var(--z-index-modal);
+}
+
+@utility z-toast {
+  z-index: var(--z-index-toast);
+}
+
+@utility z-tooltip {
+  z-index: var(--z-index-tooltip);
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * Brand primary button. Single source for the amber-orange gradient CTA.
+ * Replaces the 19+ duplicated `bg-gradient-to-r from-amber-500 to-orange-600
+ * px-8 py-3 font-bold text-white` callsites.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+@utility brand-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.75rem 2rem;
+  border-radius: 9999px;
+  background: var(--brand-gradient);
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  box-shadow: 0 10px 24px -8px var(--brand-glow);
+  transition: filter 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow: 0 14px 32px -8px var(--brand-glow);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: 0 6px 14px -8px var(--brand-glow);
+  }
+
+  &:disabled {
+    background: linear-gradient(to right, oklch(0.42 0 0), oklch(0.35 0 0));
+    color: var(--workspace-text-faint);
+    cursor: not-allowed;
+    opacity: 0.7;
+    box-shadow: none;
   }
 }

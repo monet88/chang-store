@@ -50,7 +50,7 @@ const PatternGenerator: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
       <div className="flex flex-col gap-6">
         <div className="space-y-2">
-          <h2 className="text-xl md:text-2xl font-bold text-center flex-shrink-0">{t('patternGenerator.title')}</h2>
+          <h3 className="text-xl md:text-2xl font-bold text-center flex-shrink-0">{t('patternGenerator.title')}</h3>
           <p className="text-xs text-center text-zinc-400">{t('patternGenerator.providerNotice')}</p>
         </div>
 

@@ -64,7 +64,7 @@ export const PhotoAlbumCreator: React.FC<PhotoAlbumCreatorProps> = ({ transferre
       {/* Left Column: Inputs */}
       <div className="flex flex-col gap-6">
         <div className="text-center">
-          <h2 className="text-xl md:text-2xl font-bold mb-1">{t('photoAlbum.title')}</h2>
+          <h3 className="text-xl md:text-2xl font-bold mb-1">{t('photoAlbum.title')}</h3>
           <p className="text-zinc-400">{t('photoAlbum.description')}</p>
         </div>
 

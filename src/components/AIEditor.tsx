@@ -49,7 +49,7 @@ const AIEditor: React.FC = () => {
       <div className="flex flex-col gap-6">
         {/* Header */}
         <div className="text-center">
-          <h2 className="text-xl md:text-2xl font-bold mb-1">{t('aiEditor.title')}</h2>
+          <h3 className="text-xl md:text-2xl font-bold mb-1">{t('aiEditor.title')}</h3>
           <p className="text-zinc-400 max-w-lg mx-auto">{t('aiEditor.description')}</p>
         </div>
 
@@ -94,7 +94,7 @@ const AIEditor: React.FC = () => {
           <button
             onClick={handleGenerate}
             disabled={isLoading || images.length === 0}
-            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-3 px-8 rounded-full hover:opacity-90 disabled:from-zinc-600 disabled:to-zinc-700 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30"
+            className="brand-button"
           >
             {isLoading ? <Spinner /> : t('aiEditor.generateButton')}
           </button>

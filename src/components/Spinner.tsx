@@ -24,8 +24,8 @@ export const ProgressBar: React.FC<{ progress: number; total: number }> = ({ pro
   const percentage = total > 0 ? Math.round((progress / total) * 100) : 0;
   return (
     <div className="w-full max-w-xs mx-auto">
-        <div className="text-right text-xs font-semibold text-slate-400 mb-1">{percentage}%</div>
-        <div className="w-full bg-slate-700 rounded-full h-2">
+        <div className="text-right text-xs font-semibold text-zinc-400 mb-1">{percentage}%</div>
+        <div className="w-full bg-zinc-700 rounded-full h-2">
             <div 
             className="bg-gradient-to-r from-amber-500 to-green-500 h-2 rounded-full transition-all duration-300 ease-linear" 
             style={{ width: `${percentage}%` }}

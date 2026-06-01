@@ -19,7 +19,7 @@ const Tooltip: React.FC<TooltipProps> = ({ children, content, className = '', po
     <div className={`relative group ${className}`}>
       {children}
       {content && (
-        <div className={`absolute ${positionClasses[position]} w-max max-w-xs p-2 text-xs font-semibold text-white bg-slate-800 border border-slate-700 rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none z-50`}>
+        <div className={`absolute ${positionClasses[position]} w-max max-w-xs p-2 text-xs font-semibold text-white bg-zinc-800 border border-zinc-700 rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none z-tooltip`}>
           {content}
         </div>
       )}

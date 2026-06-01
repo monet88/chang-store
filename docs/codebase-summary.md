@@ -1,7 +1,8 @@
 # Codebase Summary
 
 Chang Store is a React 19 + TypeScript + Vite SPA for AI-powered fashion image
-workflows. The app is client-only and uses Google Gemini SDK for AI operations.
+workflows. Core workflows use the Google Gemini SDK, while isolated Grok and
+GPT Image studios call provider REST endpoints directly from the browser.
 
 ## Source Layout
 
@@ -11,9 +12,10 @@ workflows. The app is client-only and uses Google Gemini SDK for AI operations.
 | `src/hooks/` | Feature state and orchestration logic |
 | `src/services/` | Stateless API facades and provider wrappers |
 | `src/services/gemini/` | Gemini SDK image/text/chat/video modules |
+| `src/services/providers/` | Grok + GPT Image studio services and shared helpers |
 | `src/contexts/` | Global providers for language, API config, gallery, Drive, viewer |
 | `src/utils/` | Prompt builders, image helpers, storage, downloads, workers |
-| `src/config/` | Model registry and capability metadata |
+| `src/config/` | Model registry and capability metadata (Gemini + provider registries) |
 | `src/locales/` | i18n strings (`en.ts` source, `vi.ts` mirror) |
 | `__tests__/` | Unit and boundary tests mirroring source behavior |
 
@@ -32,6 +34,21 @@ Current feature set in `src/types.ts`:
 - `PatternGenerator`
 
 Each feature has an operational product doc under `docs/product/`.
+
+## Studio Modes
+
+`AppContent` also holds a `StudioMode` (`'gemini' | 'grok' | 'gptImage'`,
+default `gemini`). A header `StudioModeSwitch` toggles three isolated studios.
+Provider studios (Grok, GPT Image) support five workflows
+(`PROVIDER_SUPPORTED_FEATURES`) and route through `src/services/providers/*`,
+never through the Gemini pipeline. See `docs/product/provider-studios.md` and
+the "Studio Modes" section in `docs/ARCHITECTURE.md`.
+
+## Dead Code Cleanup
+
+Unwired `useSwapFace` / `useInpainting` hooks and their locale keys were removed
+as Harness backlog item #2. They are not part of the live `Feature` enum or any
+studio.
 
 ## Architecture Pattern
 
@@ -64,4 +81,9 @@ services.
 ## Known Documentation Notes
 
 - Harness v0 docs and scripts are present under `docs/` and `scripts/`.
-- `harness.db` is local operational state and should remain untracked.
+- `harness.db` and `scripts/bin/harness-cli` are local artifacts and remain
+  untracked (gitignored).
+- The three-provider studio split (Gemini/Grok/GPT Image) is live; see
+  `docs/product/provider-studios.md`.
+- `useSwapFace` / `useInpainting` were removed as unwired dead code (backlog #2).
+- Last resync of these docs to code: 2026-05-31 (story US-002).

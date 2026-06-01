@@ -75,7 +75,7 @@ const BackgroundReplacer: React.FC = () => {
       {/* --- Left Column: Inputs & Controls --- */}
       <div className="flex flex-col gap-6">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-1">{t('background.title')}</h2>
+          <h3 className="text-xl md:text-2xl font-bold text-center mb-1">{t('background.title')}</h3>
           <p className="text-zinc-400 text-center">{t('background.description')}</p>
         </div>
 
@@ -159,7 +159,7 @@ const BackgroundReplacer: React.FC = () => {
           <div className="flex justify-center">
             <div className="flex flex-wrap justify-center gap-2 p-1.5 bg-zinc-800/50 rounded-lg">
               {cameraViewOptions.map((opt) => (
-                <button key={opt.key} onClick={() => setCameraView(opt.key)} className={`px-4 py-2 text-xs font-semibold rounded-md border transition-colors duration-200 ${cameraView === opt.key ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>
+                <button key={opt.key} onClick={() => setCameraView(opt.key)} className={`flex min-h-[44px] items-center justify-center px-4 py-2.5 text-xs font-semibold rounded-md border transition-colors duration-200 ${cameraView === opt.key ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>
                   {opt.label}
                 </button>
               ))}

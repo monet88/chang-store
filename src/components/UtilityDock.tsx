@@ -3,36 +3,38 @@ import { useLanguage } from '../contexts/LanguageContext';
 import GalleryButton from './GalleryButton';
 import PromptLibraryFAB from './PromptLibraryFAB';
 import { ChevronDownIcon, ChevronUpIcon, EditorIcon } from './Icons';
+import { StudioMode } from '../types';
 
 interface UtilityDockProps {
   onOpenGallery: () => void;
   onOpenPromptLibrary: () => void;
   onOpenSettings: () => void;
+  studioMode?: StudioMode;
 }
 
 const UtilityDock: React.FC<UtilityDockProps> = ({
   onOpenGallery,
   onOpenPromptLibrary,
   onOpenSettings,
+  studioMode,
 }) => {
   const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
+  const showGallery = !studioMode || studioMode === 'gemini';
 
   return (
-    <div className="fixed inset-x-4 bottom-4 z-30 flex justify-end lg:inset-x-auto lg:right-8 lg:bottom-8">
+    <div className="fixed inset-x-4 bottom-4 z-sticky flex justify-end lg:inset-x-auto lg:right-8 lg:bottom-8">
       <div
-        className={`workspace-panel flex flex-col gap-2 shadow-[0_18px_60px_rgba(0,0,0,0.32)] transition-all duration-200 ${
-          isExpanded
-            ? 'w-full max-w-[22rem] rounded-[1.75rem] p-2.5'
-            : 'w-auto min-w-[12.5rem] rounded-[1.4rem] p-2'
-        }`}
+        className={`workspace-panel flex flex-col gap-2 shadow-[0_18px_60px_rgba(0,0,0,0.32)] transition-all duration-200 ${isExpanded
+          ? 'w-full max-w-[22rem] rounded-[1.75rem] p-2.5'
+          : 'w-auto min-w-[12.5rem] rounded-[1.4rem] p-2'
+          }`}
       >
         <button
           type="button"
           onClick={() => setIsExpanded((current) => !current)}
-          className={`flex items-center rounded-2xl text-left transition hover:bg-white/[0.04] ${
-            isExpanded ? 'justify-between gap-3 px-2 py-2' : 'gap-2.5 px-2 py-1.5'
-          }`}
+          className={`flex min-h-[44px] items-center rounded-2xl text-left transition hover:bg-white/[0.04] ${isExpanded ? 'justify-between gap-3 px-2 py-2' : 'gap-2.5 px-2 py-1.5'
+            }`}
           aria-expanded={isExpanded}
           aria-controls="studio-utilities-panel"
           aria-label={isExpanded ? t('workspace.utility.collapse') : t('workspace.utility.expand')}
@@ -53,7 +55,7 @@ const UtilityDock: React.FC<UtilityDockProps> = ({
 
         {isExpanded && (
           <div id="studio-utilities-panel" className="flex flex-col gap-2 border-t border-white/10 pt-2">
-            <GalleryButton onClick={onOpenGallery} />
+            {showGallery && <GalleryButton onClick={onOpenGallery} />}
             <PromptLibraryFAB onClick={onOpenPromptLibrary} />
             <button
               type="button"

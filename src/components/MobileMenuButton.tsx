@@ -9,7 +9,7 @@ const MobileMenuButton: React.FC<MobileMenuButtonProps> = ({ onClick }) => {
     <button
       type="button"
       onClick={onClick}
-      className="fixed left-4 top-4 z-50 rounded-full border border-white/10 bg-black/70 p-3 text-zinc-200 backdrop-blur-xl transition-colors hover:border-white/20 hover:bg-black/85 hover:text-white lg:hidden"
+      className="fixed left-4 top-4 z-sticky rounded-full border border-white/10 bg-black/70 p-3 text-zinc-200 backdrop-blur-xl transition-colors hover:border-white/20 hover:bg-black/85 hover:text-white lg:hidden"
       aria-label="Toggle menu"
     >
       <svg

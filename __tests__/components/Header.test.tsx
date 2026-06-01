@@ -11,6 +11,10 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'navigation.closeMenu': 'Close workspace menu',
         'header.title': 'Virtual Fashion Studio',
         'header.description': 'A cinematic AI workspace.',
+        'studio.switch.label': 'Studio',
+        'studio.switch.gemini': 'Gemini',
+        'studio.switch.grok': 'Grok',
+        'studio.switch.gptImage': 'GPT',
       };
 
       return translations[key] ?? key;
@@ -37,13 +41,13 @@ describe('Header', () => {
         setActiveFeature={vi.fn()}
         isOpen
         onClose={vi.fn()}
+        studioMode="gemini"
+        onStudioModeChange={vi.fn()}
       />,
     );
 
     expect(screen.getByText('Virtual Fashion Studio')).toBeInTheDocument();
     expect(screen.getByText('A cinematic AI workspace.')).toBeInTheDocument();
-    expect(screen.getByText('Tool clusters')).toBeInTheDocument();
-    expect(screen.getByText('Media-first')).toBeInTheDocument();
     expect(screen.getByText('tabs')).toBeInTheDocument();
     expect(screen.getByText('language-switcher')).toBeInTheDocument();
   });

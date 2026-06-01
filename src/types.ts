@@ -10,6 +10,29 @@ export enum Feature {
   PatternGenerator = 'pattern-generator',
 }
 
+// ============================================
+// STUDIO MODE (Three Provider Studios)
+// ============================================
+
+/** Studio mode for the three-provider split. Gemini is default. */
+export type StudioMode = 'gemini' | 'grok' | 'gptImage';
+
+/**
+ * Subset of features available inside Grok and GPT Image provider studios.
+ * Provider studios only support these five workflows.
+ */
+export const PROVIDER_SUPPORTED_FEATURES: Feature[] = [
+  Feature.TryOn,
+  Feature.Lookbook,
+  Feature.ClothingTransfer,
+  Feature.PatternGenerator,
+  Feature.AIEditor,
+];
+
+/** Returns true when a feature is supported inside provider studios. */
+export const isProviderSupportedFeature = (feature: Feature): boolean =>
+  PROVIDER_SUPPORTED_FEATURES.includes(feature);
+
 export interface ImageFile {
   base64: string;
   mimeType: string;
