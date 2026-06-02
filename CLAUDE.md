@@ -28,6 +28,10 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini is t
 | Model registry | `src/config/modelRegistry.ts`, `grokModelRegistry.ts`, `gptImageModelRegistry.ts` |
 | Image processing | `src/utils/imageUtils.ts` |
 
+## Codebase Understanding
+
+If you need broader project context, architecture traversal, or cross-file relationships, refer to the existing Understand Anything knowledge graph artifacts in `.understand-anything/` and use the related Understand Anything skills/dashboard before deep exploration.
+
 ## Vite Environment Variables & Deployment (CRITICAL)
 
 **Vite only exposes env vars with `VITE_` prefix to client code.** Non-prefixed vars like `GEMINI_API_KEY` require explicit injection via `vite.config.ts` `define` block.

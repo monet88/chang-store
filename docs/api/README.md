@@ -19,6 +19,7 @@ on.
 - Deployment env vars: `docs/deployment-guide.md`
 - Grok contract notes: `docs/api/grok-image-api-guide.md`
 - GPT Image 2 contract notes: `docs/api/gpt-image-2-api-guide.md`
+- Vertex AI contract & authentication notes: `docs/api/vertex-ai-api-guide.md`
 
 ## Update Rule
 

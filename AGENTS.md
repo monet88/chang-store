@@ -22,6 +22,10 @@ React 19 + TypeScript + Vite SPA. Gemini is the default full-featured studio; is
 | Image processing | `src/utils/imageUtils.ts` |
 | Global state | `src/contexts/` |
 
+### Codebase Understanding
+
+If you need broader project context or cross-file relationships, refer to the existing Understand Anything knowledge graph artifacts in `.understand-anything/` and use the related Understand Anything skills/dashboard before deep exploration.
+
 ### Project Map
 
 | Directory | Role |
