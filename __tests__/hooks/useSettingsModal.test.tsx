@@ -213,7 +213,7 @@ describe('useSettingsModal', () => {
 
     expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-2.5-flash-image');
     expect(setImageGenerateModelMock).toHaveBeenCalledWith('imagen-4.0-generate-001');
-    expect(setTextGenerateModelMock).toHaveBeenCalledWith('gemini-2.5-pro');
+    expect(setTextGenerateModelMock).toHaveBeenCalledWith('gemini-3.5-flash');
     expect(onCloseMock).toHaveBeenCalled();
   });
 
@@ -274,7 +274,7 @@ describe('useSettingsModal', () => {
     const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
 
     await act(async () => {
-      await result.current.handleClear();
+      result.current.handleClear();
     });
 
     expect(clearAppDataMock).toHaveBeenCalled();
@@ -288,7 +288,7 @@ describe('useSettingsModal', () => {
     const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
 
     await act(async () => {
-      await result.current.handleClear();
+      result.current.handleClear();
     });
 
     expect(clearAppDataMock).not.toHaveBeenCalled();
@@ -408,8 +408,7 @@ describe('useSettingsModal', () => {
 
   it('does not re-initialize local state when model deps change while open', () => {
     const { result, rerender } = renderHook(
-      ({ imageEditModel }) =>
-        useSettingsModal({ isOpen: true, onClose: onCloseMock }),
+      () => useSettingsModal({ isOpen: true, onClose: onCloseMock }),
       { initialProps: { imageEditModel: 'gemini-2.5-flash-image' } },
     );
 

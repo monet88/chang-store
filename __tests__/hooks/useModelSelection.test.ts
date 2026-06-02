@@ -19,7 +19,7 @@ describe('useModelSelection', () => {
         activeFeature,
         imageEditModel: 'gemini-3.1-flash-image-preview',
         imageGenerateModel: 'imagen-4.0-generate-001',
-        textGenerateModel: 'gemini-3-flash-preview',
+        textGenerateModel: 'gemini-3.5-flash',
         setImageEditModel,
         setImageGenerateModel,
         setTextGenerateModel,
@@ -50,7 +50,7 @@ describe('useModelSelection', () => {
       activeFeature: Feature.TryOn,
       imageEditModel: 'gemini-2.5-flash-image',
       imageGenerateModel: 'imagen-4.0-ultra-generate-001',
-      textGenerateModel: 'gemini-2.5-pro',
+      textGenerateModel: 'gemini-3.5-flash',
       setImageEditModel,
       setImageGenerateModel,
       setTextGenerateModel,
@@ -58,14 +58,14 @@ describe('useModelSelection', () => {
 
     expect(result.current.getSelectedModelBySelectionType('imageEdit')).toBe('gemini-2.5-flash-image');
     expect(result.current.getSelectedModelBySelectionType('imageGenerate')).toBe('imagen-4.0-ultra-generate-001');
-    expect(result.current.getSelectedModelBySelectionType('textGenerate')).toBe('gemini-2.5-pro');
+    expect(result.current.getSelectedModelBySelectionType('textGenerate')).toBe('gemini-3.5-flash');
 
     result.current.getModelSetterBySelectionType('imageEdit')('gemini-3-pro-image-preview');
     result.current.getModelSetterBySelectionType('imageGenerate')('imagen-4.0-fast-generate-001');
-    result.current.getModelSetterBySelectionType('textGenerate')('gemini-3.1-pro-preview');
+    result.current.getModelSetterBySelectionType('textGenerate')('gemini-3.1-pro');
 
     expect(setImageEditModel).toHaveBeenCalledWith('gemini-3-pro-image-preview');
     expect(setImageGenerateModel).toHaveBeenCalledWith('imagen-4.0-fast-generate-001');
-    expect(setTextGenerateModel).toHaveBeenCalledWith('gemini-3.1-pro-preview');
+    expect(setTextGenerateModel).toHaveBeenCalledWith('gemini-3.1-pro');
   });
 });

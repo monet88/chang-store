@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased] — 2026-06-02
+
+### Added
+
+- Vertex CLI Proxy Toggle for Gemini settings and runtime routing: a new Settings modal section stores `vertexProxySettings` (`enabled`, `url`, `apiKey`) in localStorage with fail-closed restore validation, browser warning copy, and exact `@google/genai` proxy client wiring through `httpOptions.baseUrl` + `apiVersion: 'v1beta'`.
+- Proxy-aware Gemini text-to-image generation path: `generateImageFromText()` now switches to `models.generateContent()` with `responseModalities: [IMAGE]`, inlineData parsing, one-request-per-image loop, 30s request timeout, and automatic quota fallback to `imagen-4.0-fast-generate-001` with surfaced fallback warning metadata.
+
+### Changed
+
+- Gemini text defaults migrated to exact Gemini 3 model IDs: default text model is now `gemini-3.5-flash`; Pro text model is `gemini-3.1-pro`; stale Gemini 2 / preview hardcodes were removed from `src/services/gemini/text.ts`, `src/services/textService.ts`, and related model-selection tests.
+- Video/Veo Gemini flows now explicitly bypass proxy mode through `getDirectGeminiClient()` so long-polling video operations are isolated from cliproxy routing.
+- Expanded verification coverage for proxy client wiring, settings persistence, proxy image generation, fallback behavior, and model-default migration. Full repo quality gates passed: `npx tsc --noEmit`, `npm run lint`, `npm run test`, `npm run build`.
+
 ## [Unreleased] — 2026-05-31
 
 ### Added

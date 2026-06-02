@@ -50,6 +50,12 @@ interface ApiContextType {
   setImageGenerateModel: ReturnType<typeof vi.fn>;
   textGenerateModel: string;
   setTextGenerateModel: ReturnType<typeof vi.fn>;
+  vertexProxySettings: {
+    enabled: boolean;
+    url: string;
+    apiKey: string;
+  };
+  setVertexProxySettings: ReturnType<typeof vi.fn>;
   getModelsForFeature: ReturnType<typeof vi.fn>;
 }
 
@@ -145,13 +151,19 @@ export const mockUseApi = (
     setImageEditModel: vi.fn(),
     imageGenerateModel: 'imagen-4.0-generate-001',
     setImageGenerateModel: vi.fn(),
-    textGenerateModel: 'gemini-2.5-pro',
+    textGenerateModel: 'gemini-3.5-flash',
     setTextGenerateModel: vi.fn(),
+    vertexProxySettings: {
+      enabled: false,
+      url: 'https://cliproxy.monet.uno',
+      apiKey: '',
+    },
+    setVertexProxySettings: vi.fn(),
     /** Default returns all current models */
     getModelsForFeature: vi.fn((_feature: Feature) => ({
       imageEditModel: overrides.imageEditModel ?? 'gemini-2.5-flash-image',
       imageGenerateModel: overrides.imageGenerateModel ?? 'imagen-4.0-generate-001',
-      textGenerateModel: overrides.textGenerateModel ?? 'gemini-2.5-pro',
+      textGenerateModel: overrides.textGenerateModel ?? 'gemini-3.5-flash',
     })),
   };
 

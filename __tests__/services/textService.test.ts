@@ -69,7 +69,7 @@ describe('textService', () => {
 
       const result = await generateImageDescription(TEST_IMAGE, 'gemini-2.5-pro');
 
-      expect(geminiTextService.generateImageDescription).toHaveBeenCalledWith(TEST_IMAGE);
+      expect(geminiTextService.generateImageDescription).toHaveBeenCalledWith(TEST_IMAGE, 'gemini-2.5-pro');
       expect(result).toBe('desc');
       expect(logApiCallMock).toHaveBeenCalledWith(expect.objectContaining({
         status: 'success',
@@ -96,7 +96,7 @@ describe('textService', () => {
 
       const result = await generateClothingDescription(TEST_IMAGE, 'gemini-2.5-pro');
 
-      expect(geminiTextService.generateClothingDescription).toHaveBeenCalledWith(TEST_IMAGE);
+      expect(geminiTextService.generateClothingDescription).toHaveBeenCalledWith(TEST_IMAGE, 'gemini-2.5-pro');
       expect(result).toBe('clothing desc');
       expect(logApiCallMock).toHaveBeenCalledWith(expect.objectContaining({
         status: 'success',
@@ -123,7 +123,7 @@ describe('textService', () => {
 
       const result = await generatePoseDescription(TEST_IMAGE, 'gemini-2.5-pro');
 
-      expect(geminiTextService.generatePoseDescription).toHaveBeenCalledWith(TEST_IMAGE);
+      expect(geminiTextService.generatePoseDescription).toHaveBeenCalledWith(TEST_IMAGE, 'gemini-2.5-pro');
       expect(result).toBe('pose desc');
       expect(logApiCallMock).toHaveBeenCalledWith(expect.objectContaining({
         status: 'success',

@@ -1113,6 +1113,10 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
         title: 'Chọn model mặc định',
         description: 'Xem lại các model mặc định từ registry cho text, chỉnh sửa ảnh và tạo ảnh.',
       },
+      vertexProxy: {
+        title: 'Vertex Proxy',
+        description: 'Định tuyến request Gemini qua base URL tương thích cliproxy với một proxy API key riêng.',
+      },
       cloud: {
         title: 'Đồng bộ đám mây',
         description: 'Kết nối Drive để giữ kho thư viện và bản sao lưu studio luôn sẵn sàng.',
@@ -1130,6 +1134,19 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       textGeneration: 'Tạo văn bản',
       imageEditing: 'Chỉnh sửa ảnh',
       imageGeneration: 'Tạo ảnh',
+    },
+    vertexProxy: {
+      toggleTitle: 'Bật Vertex Proxy',
+      toggleDescription: 'Gửi request Gemini qua endpoint cliproxy tùy chỉnh thay vì Google API trực tiếp.',
+      toggleAria: 'Bật tắt Vertex Proxy',
+      urlLabel: 'Proxy URL',
+      urlInvalid: 'Hãy nhập proxy URL HTTPS hợp lệ, hoặc HTTP local/private chỉ dành cho môi trường phát triển.',
+      urlCustomWarning: 'Cảnh báo: proxy API key của bạn sẽ được gửi tới {{host}}. Chỉ tiếp tục nếu bạn tin tưởng host này.',
+      apiKeyLabel: 'Proxy API key',
+      apiKeyPlaceholder: 'Nhập proxy API key của bạn',
+      apiKeyHint: 'Khóa này chỉ dùng cho proxy endpoint ở trên. Không dán account JSON vào đây.',
+      apiKeyMissing: 'Hãy nhập proxy API key trước khi bật Vertex Proxy.',
+      storageWarning: 'Proxy API key được lưu dạng plaintext trong localStorage của trình duyệt. Chỉ dùng trên thiết bị cá nhân đáng tin cậy.',
     },
     storage: {
       title: 'Dung lượng lưu trữ cục bộ',
@@ -1149,6 +1166,9 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       invalidFileType: 'Loại tệp không hợp lệ. Chỉ hỗ trợ tệp JSON.',
       fileTooLarge: 'Tệp quá lớn. Dung lượng tối đa cho phép là 50MB.',
       clearSuccess: 'Đã xóa toàn bộ dữ liệu ứng dụng. Trang sẽ tải lại.',
+      vertexProxyInvalidUrl: 'Hãy nhập proxy URL hợp lệ trước khi lưu cài đặt Vertex Proxy.',
+      vertexProxyMissingApiKey: 'Hãy nhập proxy API key trước khi lưu cài đặt Vertex Proxy.',
+      vertexProxyRestoreInvalid: 'Cấu hình Vertex Proxy đã lưu không hợp lệ và đã bị tắt cho tới khi bạn cập nhật lại.',
     },
     developer: {
       debugTitle: 'Chế độ debug',

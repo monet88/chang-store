@@ -1111,6 +1111,10 @@ Do not include any other text or markdown.
         title: 'Default model selection',
         description: 'Review the registry-backed defaults for text, image editing, and image generation.',
       },
+      vertexProxy: {
+        title: 'Vertex Proxy',
+        description: 'Route Gemini requests through a cliproxy-compatible base URL with a separate proxy API key.',
+      },
       cloud: {
         title: 'Cloud sync',
         description: 'Connect Drive to keep the gallery archive and studio backups portable.',
@@ -1128,6 +1132,19 @@ Do not include any other text or markdown.
       textGeneration: 'Text generation',
       imageEditing: 'Image editing',
       imageGeneration: 'Image generation',
+    },
+    vertexProxy: {
+      toggleTitle: 'Enable Vertex Proxy',
+      toggleDescription: 'Send Gemini requests through a custom cliproxy-compatible endpoint instead of the direct Google API.',
+      toggleAria: 'Toggle Vertex Proxy',
+      urlLabel: 'Proxy URL',
+      urlInvalid: 'Enter a valid HTTPS proxy URL, or a local/private HTTP URL for development only.',
+      urlCustomWarning: 'Warning: your proxy API key will be sent to {{host}}. Only continue if you trust this host.',
+      apiKeyLabel: 'Proxy API key',
+      apiKeyPlaceholder: 'Enter your proxy API key',
+      apiKeyHint: 'This key is used only for the proxy endpoint above. Do not paste account JSON here.',
+      apiKeyMissing: 'Enter a proxy API key before enabling Vertex Proxy.',
+      storageWarning: 'Proxy API keys are stored in browser localStorage as plaintext. Only use this on a personal device you trust.',
     },
     storage: {
       title: 'Local storage usage',
@@ -1147,6 +1164,9 @@ Do not include any other text or markdown.
       invalidFileType: 'Invalid file type. Only JSON files are supported.',
       fileTooLarge: 'File is too large. Maximum size allowed is 50MB.',
       clearSuccess: 'All application data has been cleared. The page will now reload.',
+      vertexProxyInvalidUrl: 'Enter a valid proxy URL before saving Vertex Proxy settings.',
+      vertexProxyMissingApiKey: 'Enter a proxy API key before saving Vertex Proxy settings.',
+      vertexProxyRestoreInvalid: 'Stored Vertex Proxy settings were invalid and have been disabled until you update them.',
     },
     developer: {
       debugTitle: 'Debug mode',

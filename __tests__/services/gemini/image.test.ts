@@ -29,9 +29,13 @@ const mockGeminiClient = {
   },
 };
 
-/** Mock getGeminiClient to return our mock client */
+const { mockIsProxyEnabled } = vi.hoisted(() => ({
+  mockIsProxyEnabled: vi.fn(() => false),
+}));
+
 vi.mock('@/services/apiClient', () => ({
   getGeminiClient: vi.fn(() => mockGeminiClient),
+  isProxyEnabled: mockIsProxyEnabled,
 }));
 
 // Import after mocking
@@ -41,6 +45,7 @@ import {
   upscaleImage,
   type EditImageParams,
 } from '@/services/gemini/image';
+import { isProxyEnabled } from '@/services/apiClient';
 
 // ============================================================================
 // Test Fixtures
@@ -146,26 +151,13 @@ function createTextOnlyResponse(text: string) {
 /**
  * Creates a response with empty content parts
  */
-function createNoContentResponse() {
-  return {
-    candidates: [
-      {
-        finishReason: 'STOP',
-        content: {
-          parts: [],
-        },
-      },
-    ],
-  };
-}
-
 /**
  * Creates a successful generateImages response
  * @param count - Number of images to generate
  */
 function createSuccessGenerateImagesResponse(count: number = 1) {
   return {
-    generatedImages: Array.from({ length: count }, (_, i) => ({
+    generatedImages: Array.from({ length: count }, () => ({
       image: {
         imageBytes: `aW1hZ2UtYnl0ZXMtJHtpfQ==`, // base64 "image-bytes-${i}"
       },
@@ -206,9 +198,10 @@ describe('services/gemini/image.ts', () => {
 
       // Assert
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
+      expect(result[0]).toMatchObject({
         base64: 'cmVzdWx0LWltYWdl',
         mimeType: 'image/png',
+        metadata: { requestedModel: 'gemini-2.5-flash-image' },
       });
       expect(mockGenerateContent).toHaveBeenCalledTimes(1);
       expect(mockGenerateContent).toHaveBeenCalledWith(
@@ -406,6 +399,63 @@ describe('services/gemini/image.ts', () => {
   // generateImageFromText Tests
   // ==========================================================================
   describe('generateImageFromText', () => {
+  it('should use generateContent and parse inlineData when proxy is enabled', async () => {
+    vi.mocked(isProxyEnabled).mockReturnValueOnce(true);
+    mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse('cHJveHktaW1hZ2U='));
+
+    const result = await generateImageFromText('Proxy prompt', '16:9', 1, 'imagen-4.0-ultra-generate-001');
+
+    expect(mockGenerateImages).not.toHaveBeenCalled();
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'imagen-4.0-ultra-generate-001',
+        contents: [{ role: 'user', parts: [{ text: 'Proxy prompt' }] }],
+        config: expect.objectContaining({
+          responseModalities: ['IMAGE'],
+          imageConfig: { aspectRatio: '16:9' },
+          httpOptions: { timeout: 30000 },
+        }),
+      }),
+    );
+    expect(result[0]).toMatchObject({
+      base64: 'cHJveHktaW1hZ2U=',
+      mimeType: 'image/png',
+      metadata: { requestedModel: 'imagen-4.0-ultra-generate-001' },
+    });
+  });
+
+  it('should loop one proxy generateContent request per image', async () => {
+    vi.mocked(isProxyEnabled).mockReturnValueOnce(true);
+    mockGenerateContent
+      .mockResolvedValueOnce(createSuccessImageResponse('aW1hZ2Ux'))
+      .mockResolvedValueOnce(createSuccessImageResponse('aW1hZ2Uy'));
+
+    const result = await generateImageFromText('Proxy prompt', '1:1', 2, 'imagen-4.0-ultra-generate-001');
+
+    expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+    expect(result).toHaveLength(2);
+  });
+
+  it('should retry once with Imagen Fast on proxy quota errors', async () => {
+    vi.mocked(isProxyEnabled).mockReturnValueOnce(true);
+    mockGenerateContent
+      .mockRejectedValueOnce(new Error('429 RESOURCE_EXHAUSTED'))
+      .mockResolvedValueOnce(createSuccessImageResponse('ZmFsbGJhY2s='));
+
+    const result = await generateImageFromText('Proxy prompt', '1:1', 1, 'imagen-4.0-ultra-generate-001');
+
+    expect(mockGenerateContent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ model: 'imagen-4.0-fast-generate-001' }),
+    );
+    expect(result[0]).toMatchObject({
+      metadata: {
+        requestedModel: 'imagen-4.0-ultra-generate-001',
+        fallbackModel: 'imagen-4.0-fast-generate-001',
+      },
+    });
+  });
+
     it('should successfully generate a single image from text', async () => {
       // Arrange
       mockGenerateImages.mockResolvedValueOnce(
@@ -561,9 +611,10 @@ describe('services/gemini/image.ts', () => {
       const result = await upscaleImage(sampleImage);
 
       // Assert
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         base64: upscaledBase64,
         mimeType: 'image/png',
+        metadata: { requestedModel: 'gemini-3.1-flash-image-preview' },
       });
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({

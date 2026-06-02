@@ -1,6 +1,7 @@
 import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, UpscaleQuality } from '../types';
 import type { ImageResolution } from '../types';
 import * as geminiImageService from './gemini/image';
+import type { GeneratedImageFile } from './gemini/image';
 import { getImageDimensions } from '../utils/imageUtils';
 import { logApiCall } from './debugService';
 
@@ -67,7 +68,12 @@ export const generateImage = async (
     const startTime = Date.now();
 
     try {
-        const result = await geminiImageService.generateImageFromText(prompt, aspectRatio, numberOfImages, model);
+    const result: GeneratedImageFile[] = await geminiImageService.generateImageFromText(prompt, aspectRatio, numberOfImages, model);
+
+        const fallbackModel = result.find((image) => image.metadata?.fallbackModel)?.metadata?.fallbackModel;
+        if (fallbackModel) {
+            config.onStatusUpdate(`warning:fallback:${fallbackModel}`);
+        }
 
         logApiCall({
             provider: 'Gemini',

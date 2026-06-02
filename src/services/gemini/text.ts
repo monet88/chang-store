@@ -3,17 +3,12 @@ import { Part } from "@google/genai";
 import { ImageFile } from '../../types';
 import { getGeminiClient } from '../apiClient';
 
-export const generateText = async (prompt: string, model: string = 'gemini-2.5-pro'): Promise<string> => {
+export const generateText = async (prompt: string, model: string = 'gemini-3.5-flash'): Promise<string> => {
   const ai = getGeminiClient();
   try {
     const response = await ai.models.generateContent({
-      model: model,
+      model,
       contents: prompt,
-      config: {
-        thinkingConfig: {
-            thinkingBudget: 32768,
-        },
-      },
     });
 
     if (response.promptFeedback?.blockReason) {
@@ -48,7 +43,7 @@ export const generateText = async (prompt: string, model: string = 'gemini-2.5-p
   }
 };
 
-export const generateImageDescription = async (image: ImageFile): Promise<string> => {
+export const generateImageDescription = async (image: ImageFile, model: string = 'gemini-3.5-flash'): Promise<string> => {
   const ai = getGeminiClient();
   try {
     const imagePart: Part = {
@@ -61,7 +56,7 @@ export const generateImageDescription = async (image: ImageFile): Promise<string
     const textPart: Part = { text: prompt };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model,
       contents: { parts: [imagePart, textPart] },
     });
 
@@ -97,7 +92,7 @@ export const generateImageDescription = async (image: ImageFile): Promise<string
   }
 };
 
-export const generateClothingDescription = async (image: ImageFile): Promise<string> => {
+export const generateClothingDescription = async (image: ImageFile, model: string = 'gemini-3.5-flash'): Promise<string> => {
   const ai = getGeminiClient();
   try {
     const imagePart: Part = {
@@ -110,7 +105,7 @@ export const generateClothingDescription = async (image: ImageFile): Promise<str
     const textPart: Part = { text: prompt };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model,
       contents: { parts: [imagePart, textPart] },
     });
 
@@ -145,7 +140,7 @@ export const generateClothingDescription = async (image: ImageFile): Promise<str
   }
 };
 
-export const generatePoseDescription = async (image: ImageFile): Promise<string> => {
+export const generatePoseDescription = async (image: ImageFile, model: string = 'gemini-3.5-flash'): Promise<string> => {
   const ai = getGeminiClient();
   try {
     const imagePart: Part = {
@@ -158,7 +153,7 @@ export const generatePoseDescription = async (image: ImageFile): Promise<string>
     const textPart: Part = { text: prompt };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model,
       contents: { parts: [imagePart, textPart] },
     });
 
@@ -194,7 +189,7 @@ export const generatePoseDescription = async (image: ImageFile): Promise<string>
   }
 };
 
-export const generateStylePromptFromImage = async (image: ImageFile, model: string = 'gemini-2.5-pro'): Promise<string> => {
+export const generateStylePromptFromImage = async (image: ImageFile, model: string = 'gemini-3.5-flash'): Promise<string> => {
     const ai = getGeminiClient();
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
     const prompt = `# ROLE
@@ -213,13 +208,8 @@ Return a single, comprehensive paragraph that synthesizes all the above points i
     const textPart: Part = { text: prompt };
 
     const response = await ai.models.generateContent({
-      model: model,
+      model,
       contents: { parts: [imagePart, textPart] },
-      config: {
-        thinkingConfig: {
-            thinkingBudget: 32768,
-        },
-      },
     });
   
       if (response.promptFeedback?.blockReason) {
@@ -236,7 +226,7 @@ Return a single, comprehensive paragraph that synthesizes all the above points i
     throw new Error('error.api.noTextDescription');
 };
 
-export const analyzeScene = async (image: ImageFile, model: string = 'gemini-2.5-pro'): Promise<string> => {
+export const analyzeScene = async (image: ImageFile, model: string = 'gemini-3.5-flash'): Promise<string> => {
   const ai = getGeminiClient();
   const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
   const prompt = `# ROLE
@@ -272,13 +262,8 @@ Do not include stylistic opinions or hypothetical scenes.`;
   const textPart: Part = { text: prompt };
 
   const response = await ai.models.generateContent({
-    model: model,
+    model,
     contents: { parts: [imagePart, textPart] },
-    config: {
-      thinkingConfig: {
-          thinkingBudget: 32768,
-      },
-    },
   });
 
     if (response.promptFeedback?.blockReason) {

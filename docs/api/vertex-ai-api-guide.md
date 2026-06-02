@@ -1,214 +1,219 @@
-# Hướng Dẫn Sử Dụng Vertex AI API & Xác Thực Bằng Service Account JSON
+# CLI Proxy API Guide — Vertex AI / Imagen 4
 
-Tài liệu này hướng dẫn cách kết nối, xác thực và gọi các mô hình AI (Gemini & Imagen) trên nền tảng **Google Cloud Vertex AI** sử dụng tài khoản dịch vụ (Service Account JSON) và thiết lập môi trường bằng gcloud CLI cho dự án Chang Store.
-
-## 1. Mức Độ Hỗ Trợ Mô Hình (Model Support & Naming)
-
-Khi sử dụng Vertex AI, cấu trúc định danh của các mô hình chính thức (1P Models) không có hậu tố `-preview` như trên Google AI Studio. 
-
-### Mô hình Tạo & Sửa ảnh (Image Generation & Editing)
-| Loại | Tên mô hình (API Studio) | Model ID chuẩn trên Vertex AI | Khả năng (Capabilities) |
-| :--- | :--- | :--- | :--- |
-| **Gemini 3.1 Flash Image** | `gemini-3.1-flash-image-preview` | `gemini-3.1-flash-image` | Tạo ảnh, Sửa ảnh, Upscale, Hỗ trợ tỉ lệ màn hình & Kích thước |
-| **Gemini 3 Pro Image** | `gemini-3-pro-image-preview` | `gemini-3-pro-image` | Chỉnh sửa ảnh nâng cao |
-| **Gemini 2.5 Flash Image** | `gemini-2.5-flash-image` | `gemini-2.5-flash-image` | Chỉnh sửa ảnh ổn định phiên bản 2.5 |
-| **Imagen 3.0 Standard** | - | `imagen-3.0-generate-002` | Sinh ảnh nghệ thuật từ văn bản (tối ưu nhất) |
-| **Imagen 4.0 Standard** | - | `imagen-4.0-generate-001` | Sinh ảnh thế hệ mới |
-
-### Mô hình Xử lý Văn bản & Logic (Text Generation)
-| Tên mô hình (API Studio) | Model ID chuẩn trên Vertex AI | Ngày ngưng hoạt động (GCP) |
-| :--- | :--- | :--- |
-| `gemini-3.1-flash-lite-preview` | `gemini-3.1-flash-lite` | Chưa công bố |
-| `gemini-3-flash-preview` | `gemini-3.0-flash` (hoặc dùng `gemini-3.1-flash-lite`) | Đã đóng bản cũ từ 01/06/2026 |
-| `gemini-2.5-pro` | `gemini-2.5-pro` | Không trước 16/10/2026 |
-| `gemini-2.5-flash` | `gemini-2.5-flash` | Không trước 16/10/2026 |
-
-### Danh sách các mô hình hoạt động thực tế qua Proxy (Đã kiểm tra ngày 02/06/2026)
-
-Dưới đây là danh sách các model ID được kiểm tra thành công qua Proxy (`https://cliproxy.monet.uno/` với API Key `monet-4292`):
-
-#### Mô hình Văn bản & Logic (Text generation)
-- `gemini-3.1-pro`: **Hoạt động tốt** (Tự động ánh xạ sang `gemini-3.1-pro-preview` ở location `global` trên Vertex AI).
-- `gemini-3.1-flash-lite-preview`: **Hoạt động tốt** (Tự động ánh xạ sang `gemini-3.1-flash-lite` ở location `global` trên Vertex AI).
-- `gemini-3.5-flash`: **Hoạt động tốt** (Chạy trực tiếp).
-- `gemini-2.5-flash`: **Hoạt động tốt** (Chạy trực tiếp).
-- `gemini-2.5-flash-lite`: **Hoạt động tốt** (Chạy trực tiếp).
-- `gemini-2.5-pro`: **Hoạt động tốt** (Chạy trực tiếp).
-
-*Lưu ý:* Tránh gọi trực tiếp `gemini-3.1-pro-preview` vì proxy sẽ không định tuyến được (báo lỗi `unknown provider`). Hãy gọi thông qua tên `gemini-3.1-pro`.
-
-#### Mô hình Hình ảnh (Image Generation/Editing - Gọi qua Native Endpoint `/v1beta`)
-- `gemini-3.1-flash-image-preview`: **Hoạt động tốt** (Tự động ánh xạ sang `gemini-3.1-flash-image` trên Vertex AI).
-- `gemini-3-pro-image-preview`: **Hoạt động tốt** (Tự động ánh xạ sang `gemini-3-pro-image` trên Vertex AI).
-- `gemini-2.5-flash-image`: **Hoạt động tốt** (Chạy trực tiếp).
+> Tested: 2026-06-02  
+> Base URL: `https://cliproxy.monet.uno`  
+> API Key: Stored in environment — use `VITE_CLIPROXY_API_KEY`
 
 ---
 
-## 2. Xác Thực Bằng Service Account JSON
+## Authentication
 
-Tài khoản dịch vụ (Service Account Key JSON) được cấu hình để đại diện cho một danh tính lập trình có quyền gọi API Google Cloud.
+Hai cách xác thực đều hoạt động:
 
-### A. Cách hoạt động của Luồng Xác Thực (OAuth2 Token Exchange)
-Mô hình SDK của Google hoặc mã nguồn tự viết sẽ ký mã thông báo JWT (JSON Web Token) bằng khóa riêng tư (`private_key`) chứa trong tệp JSON, sau đó gửi yêu cầu đổi lấy mã truy cập tạm thời (Access Token) từ API của Google.
+```
+Authorization: Bearer <api-key>
+x-api-key: <api-key>
+```
 
-Ví dụ mã nguồn tạo Access Token bằng Node.js thuần (không phụ thuộc thư viện ngoài):
-```javascript
-const fs = require('fs');
-const crypto = require('crypto');
+---
 
-function base64url(stringOrBuffer) {
-  const base64 = Buffer.isBuffer(stringOrBuffer)
-    ? stringOrBuffer.toString('base64')
-    : Buffer.from(stringOrBuffer).toString('base64');
-  return base64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-}
+## Available Endpoints
 
-async function getAccessToken(credentialsPath) {
-  const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: credentials.client_email,
-    sub: credentials.client_email,
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600,
-    scope: 'https://www.googleapis.com/auth/cloud-platform'
-  };
+| Method | Path | Style |
+|--------|------|-------|
+| `POST` | `/v1/chat/completions` | OpenAI-compatible |
+| `POST` | `/v1/completions` | OpenAI-compatible |
+| `GET`  | `/v1/models` | OpenAI-compatible |
+| `POST` | `/v1beta/models/{model}:generateContent` | Google Gemini-style |
+| `POST` | `/v1beta/models/{model}:predict` | Google Vertex-style |
+| `GET`  | `/v1beta/models` | Google-style model list |
 
-  const encodedHeader = base64url(JSON.stringify(header));
-  const encodedPayload = base64url(JSON.stringify(payload));
-  const unsignedJwt = `${encodedHeader}.${encodedPayload}`;
+---
 
-  const signer = crypto.createSign('RSA-SHA256');
-  signer.update(unsignedJwt);
-  const signature = signer.sign(credentials.private_key);
-  const encodedSignature = base64url(signature);
-  const jwt = `${unsignedJwt}.${encodedSignature}`;
+## Available Models
 
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt
-    })
-  });
+### Image Generation
 
-  const data = await res.json();
-  return data.access_token; // Hạn dùng 3600 giây (1 giờ)
+| Model ID | Provider | Status | Notes |
+|----------|----------|--------|-------|
+| `imagen-4.0-ultra-generate-001` | Google | ⚠️ Quota limited | High quality, bị rate limit thường xuyên |
+| `imagen-4.0-fast-generate-001` | Google | ✅ OK | Nhanh (~8s), chất lượng tốt |
+| `gpt-image-2` | OpenAI | Available | Chưa test |
+
+### Text / Multimodal
+
+| Model ID | Provider |
+|----------|----------|
+| `gemini-2.5-flash` | Google |
+| `gemini-3-pro-preview` | Google |
+| `gemini-3-flash-preview` | Google |
+| `gemini-3.1-pro` | Google |
+| `gemini-3.1-flash-image-preview` | Google |
+| `gemini-3-pro-image-preview` | Google |
+| `gpt-5.5` | OpenAI |
+| `gpt-5.4-mini` | OpenAI |
+| `claude-opus-4-6` | Anthropic |
+| `claude-sonnet-4-6` | Anthropic |
+| `claude-haiku-4-5` | Anthropic |
+| `grok-4.20-multi-agent-0309` | xAI |
+| `grok-4.20-0309-reasoning` | xAI |
+| `deepseek-v4-flash` | DeepSeek |
+| `deepseek-v4-pro` | DeepSeek |
+
+### Video Generation
+
+| Model ID | Provider |
+|----------|----------|
+| `grok-imagine-video` | xAI |
+| `grok-imagine-video-1.5-preview` | xAI |
+
+---
+
+## Image Generation — Usage Examples
+
+### 1. OpenAI-Compatible (Recommended)
+
+```bash
+curl -X POST https://cliproxy.monet.uno/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <api-key>" \
+  -d '{
+    "model": "imagen-4.0-fast-generate-001",
+    "messages": [{
+      "role": "user",
+      "content": "A professional product photo of white sneakers on a marble surface"
+    }]
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "id": "imagen-1780385828284721897",
+  "object": "chat.completion",
+  "model": "imagen-4.0-fast-generate-001",
+  "choices": [{
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": null,
+      "images": [{
+        "type": "image_url",
+        "image_url": {
+          "url": "data:image/png;base64,iVBORw0KGgo..."
+        }
+      }]
+    },
+    "finish_reason": "stop"
+  }]
 }
 ```
 
-### B. Thiết Lập Môi Trường Local (gcloud CLI & ADC)
-Để cấu hình khóa trên máy tính lập trình để gcloud CLI và mã nguồn tự nhận diện:
+**Trích xuất ảnh (JavaScript):**
 
-1. **Đặt biến môi trường Application Default Credentials (ADC):**
-   Thêm dòng sau vào tệp cấu hình Shell (ví dụ: `~/.bashrc`):
-   ```bash
-   export GOOGLE_APPLICATION_CREDENTIALS="/đường-dẫn-đến/tệp-khóa-tài-khoản-dịch-vụ.json"
-   ```
-   *Sau đó chạy lệnh `source ~/.bashrc` để áp dụng.*
+```javascript
+const response = await fetch('https://cliproxy.monet.uno/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`
+  },
+  body: JSON.stringify({
+    model: 'imagen-4.0-fast-generate-001',
+    messages: [{ role: 'user', content: prompt }]
+  })
+});
 
-2. **Kích hoạt tài khoản dịch vụ trên gcloud CLI:**
-   ```bash
-   gcloud auth activate-service-account --key-file="/đường-dẫn-đến/tệp-khóa-tài-khoản-dịch-vụ.json"
-   gcloud config set project [PROJECT_ID_CỦA_BẠN]
-   ```
+const json = await response.json();
+const dataUrl = json.choices[0].message.images[0].image_url.url;
+// dataUrl = "data:image/png;base64,..."
+```
 
-3. **Kiểm tra trạng thái:**
-   ```bash
-   gcloud auth list
-   # Sẽ hiển thị danh sách tài khoản, tài khoản dịch vụ có dấu * (Active)
-   ```
+### 2. Google Gemini-Style (v1beta generateContent)
 
----
-
-## 3. Cấu Trúc Lệnh Gọi API REST (REST API Contract)
-
-Dưới đây là cấu trúc định dạng JSON payload khi thực hiện gọi trực tiếp đến API Vertex AI.
-
-### A. Sinh ảnh bằng Gemini 3.1 Flash Image (Định dạng generateContent)
-* **Phương thức:** `POST`
-* **Endpoint:** `https://us-central1-aiplatform.googleapis.com/v1/projects/[PROJECT_ID]/locations/us-central1/publishers/google/models/gemini-3.1-flash-image:generateContent`
-* **Headers:**
-  * `Content-Type: application/json`
-  * `Authorization: Bearer [OAUTH2_ACCESS_TOKEN]`
-* **Request Body:**
-  ```json
-  {
-    "contents": [
-      {
-        "role": "user",
-        "parts": [
-          {
-            "text": "A seamless tileable vintage textile pattern with gold roses, solid black background, flat 2D"
-          }
-        ]
-      }
-    ],
+```bash
+curl -X POST https://cliproxy.monet.uno/v1beta/models/imagen-4.0-fast-generate-001:generateContent \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <api-key>" \
+  -d '{
+    "contents": [{
+      "parts": [{
+        "text": "A professional product photo of white sneakers"
+      }]
+    }],
     "generationConfig": {
       "responseModalities": ["IMAGE"]
     }
-  }
-  ```
-* **Response Body (Success):**
-  ```json
-  {
-    "candidates": [
-      {
-        "content": {
-          "parts": [
-            {
-              "inlineData": {
-                "mimeType": "image/png",
-                "data": "[DỮ_LIỆU_ẢNH_BASE64_SIÊU_DÀI]"
-              }
-            }
-          ],
-          "role": "model"
-        },
-        "finishReason": "STOP",
-        "avgLogprobs": -0.05
-      }
-    ],
-    "usageMetadata": {
-      "promptTokenCount": 18,
-      "candidatesTokenCount": 1120,
-      "totalTokenCount": 1138
-    }
-  }
-  ```
+  }'
+```
 
-### B. Sinh ảnh bằng Imagen 3.0 (Định dạng predict)
-* **Phương thức:** `POST`
-* **Endpoint:** `https://us-central1-aiplatform.googleapis.com/v1/projects/[PROJECT_ID]/locations/us-central1/publishers/google/models/imagen-3.0-generate-002:predict`
-* **Headers:**
-  * `Content-Type: application/json`
-  * `Authorization: Bearer [OAUTH2_ACCESS_TOKEN]`
-* **Request Body:**
-  ```json
-  {
-    "instances": [
-      {
-        "prompt": "A red apple on a table, 2D vector style"
-      }
-    ],
+**Response:**
+
+```json
+{
+  "candidates": [{
+    "content": {
+      "parts": [{
+        "inlineData": {
+          "data": "iVBORw0KGgo...",
+          "mimeType": "image/png"
+        }
+      }]
+    }
+  }]
+}
+```
+
+### 3. Google Vertex-Style (v1beta predict)
+
+```bash
+curl -X POST https://cliproxy.monet.uno/v1beta/models/imagen-4.0-fast-generate-001:predict \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <api-key>" \
+  -d '{
+    "instances": [{
+      "prompt": "A professional product photo of white sneakers"
+    }],
     "parameters": {
       "sampleCount": 1,
-      "aspectRatio": "1:1",
-      "outputMimeType": "image/png"
+      "aspectRatio": "1:1"
     }
+  }'
+```
+
+> ⚠️ Endpoint predict trả về response trống trong test. Ưu tiên dùng `/v1/chat/completions` hoặc `generateContent`.
+
+---
+
+## Error Handling
+
+### 429 — Quota Exceeded
+
+```json
+{
+  "error": {
+    "code": 429,
+    "message": "Quota exceeded for aiplatform.googleapis.com/online_prediction_requests_per_base_model with base model: imagen-4.0-ultra-generate.",
+    "status": "RESOURCE_EXHAUSTED"
   }
-  ```
-* **Response Body (Success):**
-  ```json
-  {
-    "predictions": [
-      {
-        "bytesBase64Encoded": "[DỮ_LIỆU_ẢNH_BASE64_SIÊU_DÀI]",
-        "mimeType": "image/png"
-      }
-    ]
-  }
-  ```
+}
+```
+
+**Xử lý:** Fallback từ `ultra` sang `fast`, hoặc retry sau vài giây.
+
+### Fallback Strategy
+
+```
+imagen-4.0-ultra-generate-001  →  imagen-4.0-fast-generate-001  →  gpt-image-2
+```
+
+---
+
+## Integration Notes
+
+- **Output format:** PNG, base64-encoded trong response
+- **Image size:** ~1.3 MB per image (1024×1024)
+- **Latency:** ~8s cho `fast`, chưa đo được `ultra` (quota limited)
+- **Rate limits:** `ultra` model bị quota giới hạn nghiêm ngặt hơn `fast`
+- **Không cần Google Cloud credentials** — proxy xử lý auth phía server

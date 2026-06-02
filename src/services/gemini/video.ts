@@ -1,7 +1,7 @@
 
-import { Part, Type, GenerateVideosOperation, Modality } from "@google/genai";
+import { Part, Type } from "@google/genai";
 import { ImageFile } from '../../types';
-import { getGeminiClient } from '../apiClient';
+import { getDirectGeminiClient } from '../apiClient';
 
 export const generateVideoSceneSuggestions = async (
   image: ImageFile,
@@ -10,7 +10,7 @@ export const generateVideoSceneSuggestions = async (
   promptTemplate: string,
   model: string = 'gemini-2.5-pro',
 ): Promise<string[]> => {
-  const ai = getGeminiClient();
+  const ai = getDirectGeminiClient();
   const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
 
   const filledPrompt = promptTemplate
@@ -71,7 +71,7 @@ export const generateVideoSceneSuggestions = async (
 };
 
 export const enhanceSceneDescription = async (baseDescription: string, model: string = 'gemini-2.5-pro'): Promise<string> => {
-  const ai = getGeminiClient();
+  const ai = getDirectGeminiClient();
   const prompt = `# ROLE
 You are a creative director and cinematic script doctor. Your specialty is transforming simple ideas into visually rich, evocative scenes.
 
@@ -118,7 +118,7 @@ Take the user's basic scene description and rewrite it into a single, vivid para
 
 
 export const enforceVisualPreservation = async (rawRequestText: string, duration: number, cameraAngle: string): Promise<string> => {
-  const ai = getGeminiClient();
+  const ai = getDirectGeminiClient();
   const prompt = `# ROLE
 You are a Visual Preservation Quality Inspector AI.
 Your task is to refine and validate the provided text to ensure all visual details from the original image remain accurate, while enhancing realism and cinematic readiness.
@@ -161,7 +161,7 @@ ${rawRequestText}
 `;
 
   const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash',
       contents: prompt,
   });
 
@@ -185,7 +185,7 @@ export const fuseStyleForCompactPrompt = async (
   gender: string,
   duration: number
 ): Promise<string> => {
-  const ai = getGeminiClient();
+  const ai = getDirectGeminiClient();
 
   const prompt = `# ROLE
 You are a Compact AI Cinematic Fusion Engine.
@@ -207,7 +207,7 @@ Return a single, valid JSON object that strictly adheres to the provided schema.
 `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash',
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -283,7 +283,7 @@ export const generateGRWMVideoPrompt = async (
   mode: GRWMMode,
   outfitDescription: string
 ): Promise<string> => {
-  const ai = getGeminiClient();
+  const ai = getDirectGeminiClient();
   const imagePart: Part = { inlineData: { data: outfitImage.base64, mimeType: outfitImage.mimeType } };
 
   const prompt = `
@@ -313,7 +313,7 @@ Generate a detailed, scene-by-scene JSON plan for a 15-20 second vertical video.
   const textPart: Part = { text: prompt };
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash',
     contents: { parts: [imagePart, textPart] },
     config: {
       responseMimeType: "application/json",
@@ -353,7 +353,7 @@ Generate a detailed, scene-by-scene JSON plan for a 15-20 second vertical video.
 export const summarizeGRWMVideoPrompt = async (
   jsonPlan: string
 ): Promise<string> => {
-  const ai = getGeminiClient();
+  const ai = getDirectGeminiClient();
   const prompt = `
 # ROLE
 You are an expert video prompt writer. Your task is to convert a structured JSON video plan into a single, cohesive, and descriptive paragraph that a video generation AI can understand.
@@ -378,7 +378,7 @@ ${jsonPlan}
 `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash',
     contents: prompt,
   });
 
@@ -400,7 +400,7 @@ ${jsonPlan}
 export const generateGRWMVideoSequencePrompts = async (
   images: ImageFile[],
 ): Promise<string[]> => {
-  const ai = getGeminiClient();
+  const ai = getDirectGeminiClient();
   
   const imageParts: Part[] = images.map(image => ({
     inlineData: {
@@ -476,7 +476,7 @@ Return a single valid JSON array. The array must contain one JSON object for eac
   const textPart: Part = { text: prompt };
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash',
     contents: { parts: [...imageParts, textPart] },
     config: {
       responseMimeType: "application/json",
@@ -531,7 +531,7 @@ export const generateVideo = async (
   onStatusUpdate: (message: string) => void,
   model: string = 'veo-3.1-fast-generate-preview'
 ): Promise<string> => {
-  const ai = getGeminiClient();
+  const ai = getDirectGeminiClient();
   try {
     onStatusUpdate('Initiating video generation...');
     let operation = await ai.models.generateVideos({
@@ -631,7 +631,7 @@ interface VideoVariationParams {
 }
 
 export const generateVideoContinuitySequence = async (params: VideoContinuityParams): Promise<Scene[]> => {
-    const ai = getGeminiClient();
+    const ai = getDirectGeminiClient();
     
     const prompt = `
 # ROLE
@@ -697,7 +697,7 @@ Return a valid JSON object with a single key "scenes", which is an array of stri
 };
 
 export const generateVideoPromptVariations = async (params: VideoVariationParams): Promise<Scene[]> => {
-    const ai = getGeminiClient();
+    const ai = getDirectGeminiClient();
 
     const prompt = `
 # ROLE

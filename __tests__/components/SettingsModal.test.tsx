@@ -1,4 +1,3 @@
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { SettingsModal } from '@/components/modals/SettingsModal';
@@ -11,6 +10,8 @@ const translations: Record<string, string> = {
   'settingsModal.closeAria': 'Close settings',
   'settingsModal.sections.models.title': 'Default model selection',
   'settingsModal.sections.models.description': 'Choose defaults.',
+  'settingsModal.sections.vertexProxy.title': 'Vertex Proxy',
+  'settingsModal.sections.vertexProxy.description': 'Route Gemini through a proxy.',
   'settingsModal.sections.cloud.title': 'Cloud sync',
   'settingsModal.sections.cloud.description': 'Connect sync.',
   'settingsModal.sections.data.title': 'Application data',
@@ -20,6 +21,17 @@ const translations: Record<string, string> = {
   'settingsModal.fields.textGeneration': 'Text generation',
   'settingsModal.fields.imageEditing': 'Image editing',
   'settingsModal.fields.imageGeneration': 'Image generation',
+  'settingsModal.vertexProxy.toggleTitle': 'Enable Vertex Proxy',
+  'settingsModal.vertexProxy.toggleDescription': 'Send Gemini requests through a proxy.',
+  'settingsModal.vertexProxy.toggleAria': 'Toggle Vertex Proxy',
+  'settingsModal.vertexProxy.urlLabel': 'Proxy URL',
+  'settingsModal.vertexProxy.urlInvalid': 'Invalid proxy URL',
+  'settingsModal.vertexProxy.urlCustomWarning': 'Custom host warning',
+  'settingsModal.vertexProxy.apiKeyLabel': 'Proxy API key',
+  'settingsModal.vertexProxy.apiKeyPlaceholder': 'Enter proxy API key',
+  'settingsModal.vertexProxy.apiKeyHint': 'Proxy key only.',
+  'settingsModal.vertexProxy.apiKeyMissing': 'Proxy key missing',
+  'settingsModal.vertexProxy.storageWarning': 'Stored in plaintext localStorage.',
   'settingsModal.storage.title': 'Local storage usage',
   'settingsModal.storage.usageHint': 'Usage hint',
   'settingsModal.actions.backup': 'Backup data',
@@ -45,8 +57,14 @@ vi.mock('@/contexts/ApiProviderContext', () => ({
     setImageEditModel: vi.fn(),
     imageGenerateModel: 'imagen-4.0-generate-001',
     setImageGenerateModel: vi.fn(),
-    textGenerateModel: 'gemini-3-flash-preview',
+    textGenerateModel: 'gemini-3.5-flash',
     setTextGenerateModel: vi.fn(),
+    vertexProxySettings: {
+      enabled: false,
+      url: 'https://cliproxy.monet.uno',
+      apiKey: '',
+    },
+    setVertexProxySettings: vi.fn(),
   }),
 }));
 
@@ -99,7 +117,9 @@ describe('SettingsModal', () => {
 
     expect(screen.getByRole('option', { name: 'Gemini 3.1 Flash Image (Preview)' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Imagen 4 Ultra' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Gemini 2.5 Pro' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Gemini 3.5 Flash' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Proxy URL')).toHaveValue('https://cliproxy.monet.uno');
+    expect(screen.getByLabelText('Proxy API key')).toHaveValue('');
   });
 
   it('does not reset unsaved model selections when gallery images change while open', async () => {

@@ -20,7 +20,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { Feature, ImageFile } from '../../src/types';
+import { ImageFile } from '../../src/types';
 import {
   mockUseLanguage,
   mockUseImageGallery,
@@ -358,7 +358,7 @@ describe('useLookbookGenerator', () => {
 
       expect(generateClothingDescription).toHaveBeenCalledWith(
         TEST_CLOTHING_IMAGE,
-        'gemini-2.5-pro',
+        'gemini-3.5-flash',
       );
       expect(result.current.formState.clothingDescription).toBe('A beautiful red dress');
       expect(result.current.isGeneratingDescription).toBe(false);

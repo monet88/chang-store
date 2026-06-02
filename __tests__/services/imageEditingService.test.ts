@@ -149,6 +149,32 @@ describe('generateImage', () => {
     );
     expect(result).toEqual(mockResult);
   });
+
+  it('should surface fallback warning when proxy generation auto-falls back', async () => {
+    // Arrange
+    const mockResult = [{
+      base64: 'generated',
+      mimeType: 'image/png',
+      metadata: {
+        requestedModel: 'imagen-4.0-ultra-generate-001',
+        fallbackModel: 'imagen-4.0-fast-generate-001',
+      },
+    }];
+    vi.mocked(geminiImageService.generateImageFromText).mockResolvedValueOnce(mockResult);
+
+    // Act
+    const result = await generateImage(
+      'A beautiful sunset',
+      '16:9',
+      1,
+      'imagen-4.0-ultra-generate-001',
+      DEFAULT_CONFIG,
+    );
+
+    // Assert
+    expect(DEFAULT_CONFIG.onStatusUpdate).toHaveBeenCalledWith('warning:fallback:imagen-4.0-fast-generate-001');
+    expect(result).toEqual(mockResult);
+  });
 });
 
 // ============================================================================

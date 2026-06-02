@@ -84,32 +84,20 @@ const IMAGE_GENERATE_MODELS: RegisteredModel[] = [
 const TEXT_GENERATE_MODELS: RegisteredModel[] = [
   {
     providerId: 'google',
-    modelId: 'gemini-3.1-pro-preview',
-    label: 'Gemini 3.1 Pro (Preview)',
+    modelId: 'gemini-3.1-pro',
+    label: 'Gemini 3.1 Pro',
     selectionType: 'textGenerate',
   },
   {
     providerId: 'google',
-    modelId: 'gemini-3-flash-preview',
-    label: 'Gemini 3 Flash (Preview)',
+    modelId: 'gemini-3.5-flash',
+    label: 'Gemini 3.5 Flash',
     selectionType: 'textGenerate',
   },
   {
     providerId: 'google',
     modelId: 'gemini-3.1-flash-lite-preview',
     label: 'Gemini 3.1 Flash-Lite (Preview)',
-    selectionType: 'textGenerate',
-  },
-  {
-    providerId: 'google',
-    modelId: 'gemini-2.5-pro',
-    label: 'Gemini 2.5 Pro',
-    selectionType: 'textGenerate',
-  },
-  {
-    providerId: 'google',
-    modelId: 'gemini-2.5-flash',
-    label: 'Gemini 2.5 Flash',
     selectionType: 'textGenerate',
   },
 ];
@@ -123,7 +111,7 @@ export const MODEL_REGISTRY: RegisteredModel[] = [
 export const DEFAULT_MODEL_BY_SELECTION_TYPE: Record<ModelSelectionType, string> = {
   imageEdit: 'gemini-3.1-flash-image-preview',
   imageGenerate: 'imagen-4.0-generate-001',
-  textGenerate: 'gemini-3-flash-preview',
+  textGenerate: 'gemini-3.5-flash',
 };
 
 const MODEL_REGISTRY_BY_SELECTION_TYPE: Record<ModelSelectionType, RegisteredModel[]> = {

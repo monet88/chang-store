@@ -65,7 +65,7 @@ vi.mock('../src/contexts/ApiProviderContext', () => ({
     setImageEditModel: mockSetImageEditModel,
     imageGenerateModel: 'imagen-4.0-generate-001',
     setImageGenerateModel: mockSetImageGenerateModel,
-    textGenerateModel: 'gemini-3-flash-preview',
+    textGenerateModel: 'gemini-3.5-flash',
     setTextGenerateModel: mockSetTextGenerateModel,
   }),
 }));

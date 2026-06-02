@@ -56,9 +56,19 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
     localImageEditModel,
     localImageGenerateModel,
     localTextGenerateModel,
+    localVertexProxyEnabled,
+    localVertexProxyUrl,
+    localVertexProxyApiKey,
+    isVertexProxyUrlInvalid,
+    isVertexProxyUrlCustom,
+    isVertexProxyApiKeyMissing,
+    customVertexProxyHost,
     setLocalImageEditModel,
     setLocalImageGenerateModel,
     setLocalTextGenerateModel,
+    setLocalVertexProxyEnabled,
+    setLocalVertexProxyUrl,
+    setLocalVertexProxyApiKey,
     debugMode,
     handleDebugToggle,
     restoreInputRef,
@@ -132,6 +142,71 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                     selectedModel={localImageGenerateModel}
                     onModelChange={setLocalImageGenerateModel}
                   />
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                title={t('settingsModal.sections.vertexProxy.title')}
+                description={t('settingsModal.sections.vertexProxy.description')}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-4 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
+                    <div className="space-y-1">
+                      <p className={sectionTitleClassName}>{t('settingsModal.vertexProxy.toggleTitle')}</p>
+                      <p className="text-sm leading-6 text-zinc-400">{t('settingsModal.vertexProxy.toggleDescription')}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLocalVertexProxyEnabled(!localVertexProxyEnabled)}
+                      className={`relative h-7 w-14 rounded-full border transition-colors ${localVertexProxyEnabled ? 'border-white/40 bg-white/90' : 'border-white/10 bg-white/[0.08]'}`}
+                      aria-pressed={localVertexProxyEnabled}
+                      aria-label={t('settingsModal.vertexProxy.toggleAria')}
+                    >
+                      <span
+                        className={`absolute top-[3px] h-5 w-5 rounded-full bg-[#09090b] transition-transform ${localVertexProxyEnabled ? 'translate-x-8' : 'translate-x-1'}`}
+                      />
+                    </button>
+                  </div>
+
+                  <label className="block space-y-2">
+                    <span className={sectionTitleClassName}>{t('settingsModal.vertexProxy.urlLabel')}</span>
+                    <input
+                      aria-label={t('settingsModal.vertexProxy.urlLabel')}
+                      type="url"
+                      value={localVertexProxyUrl}
+                      onChange={(e) => setLocalVertexProxyUrl(e.target.value)}
+                      placeholder="https://cliproxy.monet.uno"
+                      className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
+                    />
+                    {isVertexProxyUrlInvalid && (
+                      <p className="text-xs text-red-400">{t('settingsModal.vertexProxy.urlInvalid')}</p>
+                    )}
+                    {isVertexProxyUrlCustom && customVertexProxyHost && (
+                      <p className="text-xs text-amber-400">
+                        {t('settingsModal.vertexProxy.urlCustomWarning', { host: customVertexProxyHost })}
+                      </p>
+                    )}
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className={sectionTitleClassName}>{t('settingsModal.vertexProxy.apiKeyLabel')}</span>
+                    <input
+                      aria-label={t('settingsModal.vertexProxy.apiKeyLabel')}
+                      type="password"
+                      value={localVertexProxyApiKey}
+                      onChange={(e) => setLocalVertexProxyApiKey(e.target.value)}
+                      autoComplete="off"
+                      placeholder={t('settingsModal.vertexProxy.apiKeyPlaceholder')}
+                      className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
+                    />
+                    {isVertexProxyApiKeyMissing && (
+                      <p className="text-xs text-red-400">{t('settingsModal.vertexProxy.apiKeyMissing')}</p>
+                    )}
+                    <p className="text-xs text-zinc-500">{t('settingsModal.vertexProxy.apiKeyHint')}</p>
+                    <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">
+                      {t('settingsModal.vertexProxy.storageWarning')}
+                    </p>
+                  </label>
                 </div>
               </SectionCard>
 
