@@ -5,6 +5,7 @@ import {
   buildPatternGeneratorParts,
   REFINE_CORRECTION,
   TASK_PROMPT,
+  TEXT_ONLY_TASK_PROMPT,
 } from '@/utils/pattern-generator-prompt-builder';
 
 const mockImage = (id: string) => ({
@@ -32,6 +33,21 @@ describe('buildPatternGeneratorParts', () => {
 
     expect(getTextParts(parts)).toContain(TASK_PROMPT);
     expect(parts[parts.length - 1]).toEqual({ text: TASK_PROMPT });
+  });
+
+  it('locks the extraction prompt to seamless flat textile requirements', () => {
+    expect(TASK_PROMPT).toContain('tileable textile pattern repeat unit');
+    expect(TASK_PROMPT).toContain('PATTERN ONLY — NO GARMENT STRUCTURE');
+    expect(TASK_PROMPT).toContain('Any motif crossing one edge must continue naturally on the opposite edge');
+    expect(TASK_PROMPT).toContain('No mockup, no perspective, no shadows, no fabric folds, no text, no watermark, no logo');
+    expect(TASK_PROMPT).toContain('If the reference fabric has no clear printed motif');
+  });
+
+  it('exports a reference-agnostic text-only prompt for provider studios', () => {
+    expect(TEXT_ONLY_TASK_PROMPT).toContain("from the user's text prompt");
+    expect(TEXT_ONLY_TASK_PROMPT).toContain('NO SCENE OR NON-PATTERN ELEMENTS');
+    expect(TEXT_ONLY_TASK_PROMPT).toContain('flat, top-down, orthographic 2D textile repeat unit');
+    expect(TEXT_ONLY_TASK_PROMPT).not.toContain('reference image');
   });
 
   it('exports the refinement correction text verbatim', () => {
