@@ -1,7 +1,10 @@
 
 import { Part, Type } from "@google/genai";
 import { ImageFile } from '../../types';
+import { getDefaultModelForSelectionType } from '../../config/modelRegistry';
 import { getDirectGeminiClient } from '../apiClient';
+
+const DEFAULT_TEXT_GENERATION_MODEL = getDefaultModelForSelectionType('textGenerate');
 
 export const generateVideoSceneSuggestions = async (
   image: ImageFile,
@@ -161,7 +164,7 @@ ${rawRequestText}
 `;
 
   const response = await ai.models.generateContent({
-      model: 'gemini-3-flash',
+      model: DEFAULT_TEXT_GENERATION_MODEL,
       contents: prompt,
   });
 
@@ -207,7 +210,7 @@ Return a single, valid JSON object that strictly adheres to the provided schema.
 `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash',
+    model: DEFAULT_TEXT_GENERATION_MODEL,
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -313,7 +316,7 @@ Generate a detailed, scene-by-scene JSON plan for a 15-20 second vertical video.
   const textPart: Part = { text: prompt };
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash',
+    model: DEFAULT_TEXT_GENERATION_MODEL,
     contents: { parts: [imagePart, textPart] },
     config: {
       responseMimeType: "application/json",
@@ -378,7 +381,7 @@ ${jsonPlan}
 `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash',
+    model: DEFAULT_TEXT_GENERATION_MODEL,
     contents: prompt,
   });
 
@@ -476,7 +479,7 @@ Return a single valid JSON array. The array must contain one JSON object for eac
   const textPart: Part = { text: prompt };
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash',
+    model: DEFAULT_TEXT_GENERATION_MODEL,
     contents: { parts: [...imageParts, textPart] },
     config: {
       responseMimeType: "application/json",

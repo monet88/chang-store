@@ -182,6 +182,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       safeStorage.removeItem(VERTEX_PROXY_API_KEY_KEY);
     }
 
+    restoredVertexProxyRef.current.invalidRestore = false;
     showToast(t('settingsModal.notifications.vertexProxyRestoreInvalid'));
   }, [showToast, t]);
 

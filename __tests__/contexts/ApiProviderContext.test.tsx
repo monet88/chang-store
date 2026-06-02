@@ -410,6 +410,29 @@ describe('ApiProviderContext', () => {
     });
   });
 
+  describe('vertex proxy restore handling', () => {
+    it('shows the invalid restore toast only once across rerenders', () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'vertex_proxy_enabled') return 'true';
+        if (key === 'vertex_proxy_url') return 'not-a-valid-url';
+        if (key === 'vertex_proxy_api_key') return '';
+        return null;
+      });
+
+      const { result, rerender } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.vertexProxySettings.enabled).toBe(false);
+      expect(result.current.vertexProxySettings.url).toBe('https://cliproxy.monet.uno');
+      expect(mockShowToast).toHaveBeenCalledTimes(1);
+
+      rerender();
+
+      expect(mockShowToast).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('provider settings', () => {
     it('exposes grok and gptImage default settings with built-in base URLs', () => {
       const { result } = renderHook(() => useApi(), {
