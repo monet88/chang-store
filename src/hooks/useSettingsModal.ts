@@ -31,6 +31,7 @@ export interface UseSettingsModalReturn {
   localImageEditModel: string;
   localImageGenerateModel: string;
   localTextGenerateModel: string;
+  localDirectGeminiApiKey: string;
   localVertexProxyEnabled: boolean;
   localVertexProxyUrl: string;
   localVertexProxyApiKey: string;
@@ -41,6 +42,7 @@ export interface UseSettingsModalReturn {
   setLocalImageEditModel: (modelId: string) => void;
   setLocalImageGenerateModel: (modelId: string) => void;
   setLocalTextGenerateModel: (modelId: string) => void;
+  setLocalDirectGeminiApiKey: (apiKey: string) => void;
   setLocalVertexProxyEnabled: (enabled: boolean) => void;
   setLocalVertexProxyUrl: (url: string) => void;
   setLocalVertexProxyApiKey: (apiKey: string) => void;
@@ -74,6 +76,8 @@ const DEFAULT_STORAGE_INFO: StorageInfo = {
 export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): UseSettingsModalReturn => {
   const { t } = useLanguage();
   const {
+    googleApiKey,
+    setGoogleApiKey,
     imageEditModel,
     setImageEditModel,
     imageGenerateModel,
@@ -89,6 +93,7 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
   const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
   const [localImageGenerateModel, setLocalImageGenerateModel] = useState(imageGenerateModel);
   const [localTextGenerateModel, setLocalTextGenerateModel] = useState(textGenerateModel);
+  const [localDirectGeminiApiKey, setLocalDirectGeminiApiKey] = useState(googleApiKey ?? '');
   const [localVertexProxyEnabled, setLocalVertexProxyEnabled] = useState(vertexProxySettings.enabled);
   const [localVertexProxyUrl, setLocalVertexProxyUrl] = useState(vertexProxySettings.url);
   const [localVertexProxyApiKey, setLocalVertexProxyApiKey] = useState(vertexProxySettings.apiKey);
@@ -138,11 +143,13 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     setLocalImageEditModel(imageEditModel);
     setLocalImageGenerateModel(imageGenerateModel);
     setLocalTextGenerateModel(textGenerateModel);
+    setLocalDirectGeminiApiKey(googleApiKey ?? '');
     setLocalVertexProxyEnabled(vertexProxySettings.enabled);
     setLocalVertexProxyUrl(vertexProxySettings.url);
     setLocalVertexProxyApiKey(vertexProxySettings.apiKey);
   }, [
     isOpen,
+    googleApiKey,
     imageEditModel,
     imageGenerateModel,
     textGenerateModel,
@@ -185,6 +192,7 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
       }
     }
 
+    setGoogleApiKey(localDirectGeminiApiKey.trim() || null);
     setImageEditModel(localImageEditModel);
     setImageGenerateModel(localImageGenerateModel);
     setTextGenerateModel(localTextGenerateModel);
@@ -196,6 +204,7 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     onClose();
   }, [
     isVertexProxyUrlInvalid,
+    localDirectGeminiApiKey,
     localImageEditModel,
     localImageGenerateModel,
     localTextGenerateModel,
@@ -203,6 +212,7 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     localVertexProxyEnabled,
     localVertexProxyUrl,
     onClose,
+    setGoogleApiKey,
     setImageEditModel,
     setImageGenerateModel,
     setTextGenerateModel,
@@ -275,6 +285,7 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     localImageEditModel,
     localImageGenerateModel,
     localTextGenerateModel,
+    localDirectGeminiApiKey,
     localVertexProxyEnabled,
     localVertexProxyUrl,
     localVertexProxyApiKey,
@@ -285,6 +296,7 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     setLocalImageEditModel,
     setLocalImageGenerateModel,
     setLocalTextGenerateModel,
+    setLocalDirectGeminiApiKey,
     setLocalVertexProxyEnabled,
     setLocalVertexProxyUrl,
     setLocalVertexProxyApiKey,

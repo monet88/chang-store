@@ -56,6 +56,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
     localImageEditModel,
     localImageGenerateModel,
     localTextGenerateModel,
+    localDirectGeminiApiKey,
     localVertexProxyEnabled,
     localVertexProxyUrl,
     localVertexProxyApiKey,
@@ -66,6 +67,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
     setLocalImageEditModel,
     setLocalImageGenerateModel,
     setLocalTextGenerateModel,
+    setLocalDirectGeminiApiKey,
     setLocalVertexProxyEnabled,
     setLocalVertexProxyUrl,
     setLocalVertexProxyApiKey,
@@ -186,6 +188,20 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                         {t('settingsModal.vertexProxy.urlCustomWarning', { host: customVertexProxyHost })}
                       </p>
                     )}
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className={sectionTitleClassName}>{t('settingsModal.vertexProxy.directApiKeyLabel')}</span>
+                    <input
+                      aria-label={t('settingsModal.vertexProxy.directApiKeyLabel')}
+                      type="password"
+                      value={localDirectGeminiApiKey}
+                      onChange={(e) => setLocalDirectGeminiApiKey(e.target.value)}
+                      autoComplete="off"
+                      placeholder={t('settingsModal.vertexProxy.directApiKeyPlaceholder')}
+                      className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
+                    />
+                    <p className="text-xs text-zinc-500">{t('settingsModal.vertexProxy.directApiKeyHint')}</p>
                   </label>
 
                   <label className="block space-y-2">

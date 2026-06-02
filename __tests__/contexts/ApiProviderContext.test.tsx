@@ -142,23 +142,18 @@ describe('ApiProviderContext', () => {
       expect(result.current.googleApiKey).toBeNull();
     });
 
-    it('clears legacy Google API key from localStorage on mount', () => {
-      renderHook(() => useApi(), {
-        wrapper: createWrapper(),
+    it('loads Google API key from localStorage on mount when present', () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'google_api_key') return 'stored-api-key';
+        return null;
       });
-
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_api_key');
-    });
-
-    it('does not load Google API key from localStorage on mount', () => {
-      localStorageMock.getItem.mockReturnValueOnce('stored-api-key');
 
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
-      expect(localStorageMock.getItem).not.toHaveBeenCalledWith('google_api_key');
-      expect(result.current.googleApiKey).toBeNull();
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('google_api_key');
+      expect(result.current.googleApiKey).toBe('stored-api-key');
     });
 
     it('loads model selections from localStorage on mount when valid', () => {
@@ -203,7 +198,7 @@ describe('ApiProviderContext', () => {
   });
 
   describe('setGoogleApiKey', () => {
-    it('keeps key in memory only when setting a value', () => {
+    it('persists Google API key to localStorage when setting a value', () => {
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
@@ -212,7 +207,7 @@ describe('ApiProviderContext', () => {
         result.current.setGoogleApiKey('new-api-key');
       });
 
-      expect(localStorageMock.setItem).not.toHaveBeenCalledWith('google_api_key', 'new-api-key');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('google_api_key', 'new-api-key');
       expect(result.current.googleApiKey).toBe('new-api-key');
     });
 
@@ -233,12 +228,10 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      // First set a key
       act(() => {
         result.current.setGoogleApiKey('temp-key');
       });
 
-      // Then remove it
       act(() => {
         result.current.setGoogleApiKey(null);
       });
@@ -334,9 +327,27 @@ describe('ApiProviderContext', () => {
       expect(secondMount.result.current.textGenerateModel).toBe('gemini-3.5-flash');
     });
 
-    it('falls back safely when localStorage reads or cleanup throw', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('rehydrates persisted Google API key after remounting the provider', () => {
+      const firstMount = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
 
+      act(() => {
+        firstMount.result.current.setGoogleApiKey('persisted-google-key');
+      });
+
+      firstMount.unmount();
+      localStorageMock.getItem.mockClear();
+
+      const secondMount = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(secondMount.result.current.googleApiKey).toBe('persisted-google-key');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('google_api_key');
+    });
+
+    it('falls back safely when localStorage reads or cleanup throw', () => {
       localStorageMock.getItem.mockImplementation(() => {
         throw new Error('read failed');
       });
@@ -351,9 +362,7 @@ describe('ApiProviderContext', () => {
       expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image-preview');
       expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
       expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
-      expect(consoleWarnSpy).toHaveBeenCalled();
-
-      consoleWarnSpy.mockRestore();
+      expect(result.current.googleApiKey).toBeNull();
     });
 
     it('keeps in-memory model updates even when localStorage writes fail', () => {

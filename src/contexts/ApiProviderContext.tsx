@@ -107,7 +107,8 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const { showToast } = useToast();
   const { t } = useLanguage();
   const restoredVertexProxyRef = useRef(resolveStoredVertexProxySettings());
-  const [googleApiKey, setGoogleApiKeyState] = useState<string | null>(null);
+  const storedGoogleApiKey = safeStorage.getItem(LEGACY_GOOGLE_API_KEY)?.trim() || null;
+  const [googleApiKey, setGoogleApiKeyState] = useState<string | null>(storedGoogleApiKey);
   const [vertexProxySettings, setVertexProxySettingsState] = useState<VertexProxySettings>(
     restoredVertexProxyRef.current.settings,
   );
@@ -168,8 +169,6 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   useEffect(() => {
-    safeStorage.removeItem(LEGACY_GOOGLE_API_KEY);
-
     if (!restoredVertexProxyRef.current.invalidRestore) {
       return;
     }
@@ -226,8 +225,14 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [googleApiKey, vertexProxySettings]);
 
   const setGoogleApiKey = (key: string | null) => {
-    setGoogleApiKeyState(key);
-    setGeminiApiKey(key);
+    const trimmedKey = key?.trim() || null;
+    setGoogleApiKeyState(trimmedKey);
+    if (trimmedKey) {
+      safeStorage.setItem(LEGACY_GOOGLE_API_KEY, trimmedKey);
+    } else {
+      safeStorage.removeItem(LEGACY_GOOGLE_API_KEY);
+    }
+    setGeminiApiKey(trimmedKey);
   };
 
   const setVertexProxySettings = (settings: VertexProxySettings) => {
