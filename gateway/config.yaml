@@ -11,7 +11,7 @@ corsOrigins:
 
 # Vertex server-side auth and routing
 googleProject: project-b82b6a5a-13c8-42e4-a56
-googleCredentialsFile: /run/vertex-accounts/vertex-account-2.json
+googleCredentialsFile: /run/vertex-accounts/nguyenphuonglinh05092000-account.json
 googleLocation: global
 googleApiVersion: v1
 

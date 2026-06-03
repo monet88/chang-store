@@ -89,6 +89,8 @@ skills-lock.json
 .ref/
 gateway/compiled/
 gateway/.env
+gateway/accounts/*
+!gateway/accounts/.gitkeep
 gcp/cloud-run.env.yaml
 .codegraph/
 test-results/
