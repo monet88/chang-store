@@ -91,8 +91,14 @@ const stripYamlComment = (line: string): string => {
   let quote: '"' | '\'' | null = null;
   for (let index = 0; index < line.length; index += 1) {
     const char = line[index];
-    if ((char === '"' || char === '\'') && !isEscapedQuote(line, index)) {
-      quote = quote === char ? null : (quote ?? char);
+    if (char === '"' || char === '\'') {
+      if (quote === null) {
+        quote = char;
+        continue;
+      }
+      if (quote === char && (char !== '"' || !isEscapedQuote(line, index))) {
+        quote = null;
+      }
       continue;
     }
     if (char === '#' && quote === null) {

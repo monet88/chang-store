@@ -1,6 +1,9 @@
 import type { Server } from 'node:http';
+import { EventEmitter } from 'node:events';
+import type { ServerResponse } from 'node:http';
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
+import { sendSseStream } from '../src/http/sse-response.js';
 import { testConfig } from './test-config.js';
 
 const listen = async (server: Server): Promise<string> => new Promise((resolve) => {
@@ -13,6 +16,18 @@ const listen = async (server: Server): Promise<string> => new Promise((resolve) 
 async function* streamChunks() {
   yield { candidates: [{ content: { parts: [{ text: 'hel' }] } }] };
   yield { candidates: [{ content: { parts: [{ text: 'lo' }] }, finishReason: 'STOP' }] };
+}
+
+class FakeSseResponse extends EventEmitter {
+  statusCode = 0;
+  readonly headers = new Map<string, string>();
+  write = vi.fn(() => false);
+  end = vi.fn();
+  flushHeaders = vi.fn();
+
+  setHeader(name: string, value: string): void {
+    this.headers.set(name, value);
+  }
 }
 
 describe('streaming compatibility routes', () => {
@@ -76,5 +91,23 @@ describe('streaming compatibility routes', () => {
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
+  });
+
+  it('stops waiting for drain when the client closes during backpressure', async () => {
+    const chunks = (async function* () {
+      yield { text: 'first' };
+      yield { text: 'second' };
+    })();
+    const res = new FakeSseResponse();
+    const sendPromise = sendSseStream(res as unknown as ServerResponse, chunks);
+
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(res.write).toHaveBeenCalledTimes(1);
+    res.emit('close');
+
+    await expect(Promise.race([
+      sendPromise.then(() => 'closed'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timed out')), 50)),
+    ])).resolves.toBe('closed');
   });
 });
