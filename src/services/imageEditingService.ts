@@ -1,6 +1,7 @@
 import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, UpscaleQuality } from '../types';
 import type { ImageResolution } from '../types';
 import * as geminiImageService from './gemini/image';
+import type { GeneratedImageFile } from './gemini/image';
 import { getImageDimensions } from '../utils/imageUtils';
 import { logApiCall } from './debugService';
 
@@ -27,8 +28,8 @@ export const editImage = async (
     try {
         let resolvedModel = model;
         if (!resolvedModel) {
-            console.warn('[ImageEditingService] Model is undefined or empty, falling back to gemini-3.1-flash-image-preview');
-            resolvedModel = 'gemini-3.1-flash-image-preview';
+            console.warn('[ImageEditingService] Model is undefined or empty, falling back to gemini-3.1-flash-image');
+            resolvedModel = 'gemini-3.1-flash-image';
         }
         const result = await geminiImageService.editImage({ ...params, model: resolvedModel });
 
@@ -67,7 +68,7 @@ export const generateImage = async (
     const startTime = Date.now();
 
     try {
-        const result = await geminiImageService.generateImageFromText(prompt, aspectRatio, numberOfImages, model);
+        const result: GeneratedImageFile[] = await geminiImageService.generateImageFromText(prompt, aspectRatio, numberOfImages, model);
 
         logApiCall({
             provider: 'Gemini',

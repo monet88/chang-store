@@ -9,12 +9,16 @@
     "build": "vite build",
     "build:analyze": "vite build --mode analyze",
     "preview": "vite preview",
+    "gateway:compile": "npm --prefix gateway run compile",
+    "gateway:test": "npm --prefix gateway run test",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "vitest --run --passWithNoTests",
     "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
+    "baseline-browser-mapping": "^2.10.33",
+    "caniuse-lite": "^1.0.30001793",
     "idb-keyval": "^6.2.2",
     "iii-sdk": "^0.11.2",
     "jszip": "^3.10.1",

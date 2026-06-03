@@ -10,6 +10,7 @@ const PatternGenerator: React.FC = () => {
   const {
     referenceImages,
     generatedPatterns,
+    prompt,
     numImages,
     selectedPatternIndex,
     showTilingPreview,
@@ -22,6 +23,7 @@ const PatternGenerator: React.FC = () => {
     canRefine,
     selectedPattern,
     setReferenceImages,
+    setPrompt,
     setNumImages,
     setSelectedPatternIndex,
     setShowTilingPreview,
@@ -55,44 +57,61 @@ const PatternGenerator: React.FC = () => {
         </div>
 
         <div className="workspace-panel space-y-4 p-5">
-          <h3 className="text-lg font-semibold text-center text-zinc-100">{t('patternGenerator.referenceTitle')}</h3>
-          <p className="text-sm text-center text-zinc-400">{t('patternGenerator.referenceHint')}</p>
-          <MultiImageUploader
-            images={referenceImages}
-            id="pattern-generator-reference-images"
-            title={t('patternGenerator.referenceTitle')}
-            hideTitle
-            onImagesUpload={setReferenceImages}
-          />
-
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-sm text-zinc-400">
-              <span>{t('patternGenerator.numImagesLabel')}</span>
-              <span className="bg-zinc-100 text-zinc-950 text-xs font-bold rounded-full h-6 w-6 flex-shrink-0 flex items-center justify-center">
-                {numImages}
-              </span>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={4}
-              step={1}
-              value={numImages}
-              onChange={(e) => setNumImages(Number(e.target.value))}
-              className="w-full accent-zinc-100 cursor-pointer"
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-center text-zinc-100">{t('patternGenerator.referenceTitle')}</h3>
+            <p className="text-sm text-center text-zinc-400">{t('patternGenerator.referenceHint')}</p>
+            <MultiImageUploader
+              images={referenceImages}
+              id="pattern-generator-reference-images"
+              title={t('patternGenerator.referenceTitle')}
+              hideTitle
+              onImagesUpload={setReferenceImages}
             />
-            <div className="flex justify-between text-xs text-zinc-600 select-none">
-              <span>1</span><span>2</span><span>3</span><span>4</span>
-            </div>
-          </div>
 
-          <button
-            onClick={handleGenerate}
-            disabled={!canGenerate}
-            className="workspace-button workspace-button-primary w-full px-8 py-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? <Spinner /> : t('patternGenerator.generateButton')}
-          </button>
+            <div className="space-y-2">
+              <label htmlFor="pattern-generator-prompt" className="block text-sm font-medium text-zinc-300">
+                {t('patternGenerator.promptLabel')}
+              </label>
+              <textarea
+                id="pattern-generator-prompt"
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder={t('patternGenerator.promptPlaceholder')}
+                rows={4}
+                className="workspace-input min-h-[120px] w-full px-4 py-3 text-sm text-zinc-100"
+              />
+              <p className="text-xs text-zinc-500">{t('patternGenerator.promptHint')}</p>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-sm text-zinc-400">
+                <span>{t('patternGenerator.numImagesLabel')}</span>
+                <span className="bg-zinc-100 text-zinc-950 text-xs font-bold rounded-full h-6 w-6 flex-shrink-0 flex items-center justify-center">
+                  {numImages}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={4}
+                step={1}
+                value={numImages}
+                onChange={(e) => setNumImages(Number(e.target.value))}
+                className="w-full accent-zinc-100 cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-zinc-600 select-none">
+                <span>1</span><span>2</span><span>3</span><span>4</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleGenerate}
+              disabled={!canGenerate}
+              className="workspace-button workspace-button-primary w-full px-8 py-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? <Spinner /> : t('patternGenerator.generateButton')}
+            </button>
+          </div>
         </div>
       </div>
 

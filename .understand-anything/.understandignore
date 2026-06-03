@@ -1,0 +1,81 @@
+# .understandignore — patterns for files/dirs to exclude from analysis
+# Syntax: same as .gitignore (globs, # comments, ! negation, trailing / for dirs)
+# Lines below are suggestions — uncomment to activate.
+# Use ! prefix to force-include something excluded by defaults.
+#
+# Built-in defaults (always excluded unless negated):
+#   node_modules/, .git/, dist/, build/, obj/, *.lock, *.min.js, etc.
+#
+# --- From .gitignore (uncomment to exclude) ---
+
+# logs
+# npm-debug.log*
+# yarn-debug.log*
+# yarn-error.log*
+# pnpm-debug.log*
+# lerna-debug.log*
+# dist-ssr
+# *.local
+# .vscode/*
+# !.vscode/extensions.json
+# .DS_Store
+# *.suo
+# *.ntvs*
+# *.njsproj
+# *.sln
+# *.sw?
+# .context/
+# vbsec-reports/
+# test-chat-service.ts
+# test-chat-service.mjs
+# test-*.ts
+# test-*.mjs
+# src-tauri/target/
+# *.tsbuildinfo
+# __tests__/AGENTS.md
+# __tests__/images-test/
+# nul
+# opencode.json
+# .osgrep
+# .claude/
+# .claude/memory/
+# .sisyphus/
+# .beads/
+# .gstack/
+# .gitnexus
+# .vera
+# .omx/
+# .playwright-mcp/
+# .claude
+# .ck
+# .agents
+# .brv/
+# .tokensave
+# release-manifest.json
+# .neuralmemory
+# harness.db
+# harness.db-wal
+# harness.db-shm
+# scripts/bin/harness-cli
+# .kiro
+# .planning
+# .github/skills/
+# .impeccable-baseline.json
+# .impeccable-audit.md
+# audit-*.png
+# .impeccable/live/sessions/
+# .antigravitycli/
+# cloudflare-tunnel
+# .workflow/
+
+# --- Detected directories (uncomment to exclude) ---
+
+# __tests__/
+# docs/
+# scripts/
+
+# --- Test file patterns (uncomment to exclude) ---
+
+# *.test.*
+# *.spec.*
+# *.snap

@@ -4,8 +4,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
-import { buildPatternGeneratorParts, TASK_PROMPT, REFINE_CORRECTION } from '../utils/pattern-generator-prompt-builder';
+import { createImageChatSession, editImage, ImageChatSession } from '../services/imageEditingService';
+import { buildPatternGeneratorParts, REFINE_CORRECTION, TASK_PROMPT } from '../utils/pattern-generator-prompt-builder';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
 export function usePatternGenerator() {
@@ -15,6 +15,7 @@ export function usePatternGenerator() {
 
   const [referenceImages, setReferenceImages] = useState<ImageFile[]>([]);
   const [generatedPatterns, setGeneratedPatterns] = useState<ImageFile[]>([]);
+  const [prompt, setPrompt] = useState('');
   const [numImages, setNumImagesState] = useState(1);
   const [selectedPatternIndex, setSelectedPatternIndex] = useState(0);
   const [showTilingPreview, setShowTilingPreview] = useState(false);
@@ -25,12 +26,21 @@ export function usePatternGenerator() {
   const [isRefining, setIsRefining] = useState(false);
 
   const chatSessionsRef = useRef<Record<number, ImageChatSession>>({});
+  const isGeneratingRef = useRef(false);
 
-  const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
-    onStatusUpdate,
-  }), []);
+  const handleStatusUpdate = useCallback((message: string) => {
+    setLoadingMessage(message);
+  }, []);
 
-  const canGenerate = referenceImages.length > 0 && !isLoading && !isRefining;
+  const buildImageServiceConfig = useCallback(
+    (onStatusUpdate: (message: string) => void) => ({
+      onStatusUpdate,
+    }),
+    [],
+  );
+
+  const canGenerate = (!isLoading && !isRefining)
+    && referenceImages.length > 0;
   const canRefine = generatedPatterns.length > 0
     && generatedPatterns[selectedPatternIndex] !== undefined
     && !isRefining
@@ -42,24 +52,25 @@ export function usePatternGenerator() {
   }, []);
 
   const handleGenerate = useCallback(async () => {
+    const trimmedPrompt = prompt.trim();
     if (referenceImages.length === 0) {
       setError(t('patternGenerator.inputError'));
       return;
     }
 
-    if (isRefining) {
+    if (isRefining || isGeneratingRef.current) {
       return;
     }
 
-    setIsLoading(true);
+    isGeneratingRef.current = true;
     setLoadingMessage(t('patternGenerator.generatingStatus'));
+    setIsLoading(true);
     setError(null);
     chatSessionsRef.current = {};
     setGeneratedPatterns([]);
     setSelectedPatternIndex(0);
 
     try {
-      const interleavedParts = buildPatternGeneratorParts(referenceImages, TASK_PROMPT);
       const results = await editImage(
         {
           images: referenceImages,
@@ -67,10 +78,10 @@ export function usePatternGenerator() {
           numberOfImages: numImages,
           aspectRatio: '1:1',
           resolution: '4K',
-          interleavedParts,
+          interleavedParts: buildPatternGeneratorParts(referenceImages, trimmedPrompt ? `${TASK_PROMPT}\n\n${trimmedPrompt}` : TASK_PROMPT),
         },
         imageEditModel,
-        buildImageServiceConfig(setLoadingMessage),
+        buildImageServiceConfig(handleStatusUpdate),
       );
 
       setGeneratedPatterns(results);
@@ -78,10 +89,11 @@ export function usePatternGenerator() {
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
+      isGeneratingRef.current = false;
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [referenceImages, numImages, imageEditModel, buildImageServiceConfig, addImage, t, isRefining]);
+  }, [referenceImages, prompt, numImages, imageEditModel, buildImageServiceConfig, handleStatusUpdate, addImage, t, isRefining]);
 
   const handleRefine = useCallback(async () => {
     const currentImage = generatedPatterns[selectedPatternIndex];
@@ -147,6 +159,7 @@ export function usePatternGenerator() {
   return {
     referenceImages,
     generatedPatterns,
+    prompt,
     numImages,
     selectedPatternIndex,
     showTilingPreview,
@@ -159,6 +172,7 @@ export function usePatternGenerator() {
     canRefine,
     selectedPattern,
     setReferenceImages,
+    setPrompt,
     setNumImages,
     setSelectedPatternIndex,
     setShowTilingPreview,

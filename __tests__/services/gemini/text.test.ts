@@ -164,11 +164,8 @@ describe('services/gemini/text.ts', () => {
       expect(result).toBe(expectedText);
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-pro',
+          model: 'gemini-3.5-flash',
           contents: 'Generate a greeting',
-          config: expect.objectContaining({
-            thinkingConfig: { thinkingBudget: 32768 },
-          }),
         })
       );
     });
@@ -180,12 +177,12 @@ describe('services/gemini/text.ts', () => {
       );
 
       // Act
-      await generateText('Prompt', 'gemini-2.5-flash');
+      await generateText('Prompt', 'gemini-3.5-flash');
 
       // Assert
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
         })
       );
     });
@@ -311,7 +308,7 @@ describe('services/gemini/text.ts', () => {
       expect(result).toBe(expectedDescription);
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
         })
       );
       // Verify image part was included
@@ -412,7 +409,7 @@ describe('services/gemini/text.ts', () => {
       expect(result).toBe(expectedDescription);
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
         })
       );
     });
@@ -506,7 +503,7 @@ describe('services/gemini/text.ts', () => {
       expect(result).toBe(expectedDescription);
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
         })
       );
     });
@@ -598,10 +595,7 @@ describe('services/gemini/text.ts', () => {
       expect(result).toBe(expectedPrompt);
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-pro',
-          config: expect.objectContaining({
-            thinkingConfig: { thinkingBudget: 32768 },
-          }),
+          model: 'gemini-3.5-flash',
         })
       );
     });
@@ -613,12 +607,12 @@ describe('services/gemini/text.ts', () => {
       );
 
       // Act
-      await generateStylePromptFromImage(sampleImage, 'gemini-2.5-flash');
+      await generateStylePromptFromImage(sampleImage, 'gemini-3.5-flash');
 
       // Assert
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
         })
       );
     });
@@ -698,10 +692,7 @@ describe('services/gemini/text.ts', () => {
       expect(result).toBe(expectedAnalysis);
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-pro',
-          config: expect.objectContaining({
-            thinkingConfig: { thinkingBudget: 32768 },
-          }),
+          model: 'gemini-3.5-flash',
         })
       );
     });
@@ -713,12 +704,12 @@ describe('services/gemini/text.ts', () => {
       );
 
       // Act
-      await analyzeScene(sampleImage, 'gemini-2.5-flash');
+      await analyzeScene(sampleImage, 'gemini-3.5-flash');
 
       // Assert
       expect(mockGenerateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
         })
       );
     });

@@ -7,6 +7,7 @@ import { isDebugEnabled, setDebugEnabled } from '../services/debugService';
 import { SelectableModel } from '../types';
 import { useToast } from '../components/Toast';
 import { backupData, clearAppData, getLocalStorageUsage, restoreData } from '../utils/storage';
+import { validateProviderBaseUrl } from '../utils/provider-url-validation';
 
 interface UseSettingsModalParams {
   isOpen: boolean;
@@ -19,6 +20,10 @@ interface StorageInfo {
   storagePercentage: number;
 }
 
+const VERTEX_PROXY_ENABLED_KEY = 'vertex_proxy_enabled';
+const VERTEX_PROXY_URL_KEY = 'vertex_proxy_url';
+const VERTEX_PROXY_API_KEY_KEY = 'vertex_proxy_api_key';
+
 export interface UseSettingsModalReturn {
   imageEditModels: SelectableModel[];
   imageGenerateModels: SelectableModel[];
@@ -26,9 +31,21 @@ export interface UseSettingsModalReturn {
   localImageEditModel: string;
   localImageGenerateModel: string;
   localTextGenerateModel: string;
+  localDirectGeminiApiKey: string;
+  localVertexProxyEnabled: boolean;
+  localVertexProxyUrl: string;
+  localVertexProxyApiKey: string;
+  isVertexProxyUrlInvalid: boolean;
+  isVertexProxyUrlCustom: boolean;
+  isVertexProxyApiKeyMissing: boolean;
+  customVertexProxyHost: string | null;
   setLocalImageEditModel: (modelId: string) => void;
   setLocalImageGenerateModel: (modelId: string) => void;
   setLocalTextGenerateModel: (modelId: string) => void;
+  setLocalDirectGeminiApiKey: (apiKey: string) => void;
+  setLocalVertexProxyEnabled: (enabled: boolean) => void;
+  setLocalVertexProxyUrl: (url: string) => void;
+  setLocalVertexProxyApiKey: (apiKey: string) => void;
   debugMode: boolean;
   handleDebugToggle: () => void;
   restoreInputRef: React.RefObject<HTMLInputElement>;
@@ -59,12 +76,16 @@ const DEFAULT_STORAGE_INFO: StorageInfo = {
 export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): UseSettingsModalReturn => {
   const { t } = useLanguage();
   const {
+    googleApiKey,
+    setGoogleApiKey,
     imageEditModel,
     setImageEditModel,
     imageGenerateModel,
     setImageGenerateModel,
     textGenerateModel,
     setTextGenerateModel,
+    vertexProxySettings,
+    setVertexProxySettings,
   } = useApi();
   const { images } = useImageGallery();
   const { showToast } = useToast();
@@ -72,11 +93,24 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
   const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
   const [localImageGenerateModel, setLocalImageGenerateModel] = useState(imageGenerateModel);
   const [localTextGenerateModel, setLocalTextGenerateModel] = useState(textGenerateModel);
+  const [localDirectGeminiApiKey, setLocalDirectGeminiApiKey] = useState(googleApiKey ?? '');
+  const [localVertexProxyEnabled, setLocalVertexProxyEnabled] = useState(vertexProxySettings.enabled);
+  const [localVertexProxyUrl, setLocalVertexProxyUrl] = useState(vertexProxySettings.url);
+  const [localVertexProxyApiKey, setLocalVertexProxyApiKey] = useState(vertexProxySettings.apiKey);
   const [debugMode, setDebugMode] = useState(() => isDebugEnabled());
   const [storageInfo, setStorageInfo] = useState<StorageInfo>(DEFAULT_STORAGE_INFO);
 
   const restoreInputRef = useRef<HTMLInputElement>(null);
   const wasOpenRef = useRef(false);
+
+  const vertexProxyUrlValidation = useMemo(
+    () => validateProviderBaseUrl(localVertexProxyUrl),
+    [localVertexProxyUrl],
+  );
+  const isVertexProxyUrlInvalid = vertexProxyUrlValidation.status === 'invalid';
+  const isVertexProxyUrlCustom = vertexProxyUrlValidation.status === 'custom';
+  const isVertexProxyApiKeyMissing = localVertexProxyEnabled && localVertexProxyApiKey.trim().length === 0;
+  const customVertexProxyHost = isVertexProxyUrlCustom ? vertexProxyUrlValidation.host : null;
 
   const refreshStorageUsage = useCallback(async (): Promise<void> => {
     const { usage, quota } = await getLocalStorageUsage();
@@ -109,7 +143,18 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     setLocalImageEditModel(imageEditModel);
     setLocalImageGenerateModel(imageGenerateModel);
     setLocalTextGenerateModel(textGenerateModel);
-  }, [isOpen, imageEditModel, imageGenerateModel, textGenerateModel]);
+    setLocalDirectGeminiApiKey(googleApiKey ?? '');
+    setLocalVertexProxyEnabled(vertexProxySettings.enabled);
+    setLocalVertexProxyUrl(vertexProxySettings.url);
+    setLocalVertexProxyApiKey(vertexProxySettings.apiKey);
+  }, [
+    isOpen,
+    googleApiKey,
+    imageEditModel,
+    imageGenerateModel,
+    textGenerateModel,
+    vertexProxySettings,
+  ]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -135,18 +180,45 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
   }, [isOpen, onClose]);
 
   const handleSave = useCallback(() => {
+    if (localVertexProxyEnabled) {
+      if (isVertexProxyUrlInvalid) {
+        showToast(t('settingsModal.notifications.vertexProxyInvalidUrl'));
+        return;
+      }
+
+      if (localVertexProxyApiKey.trim().length === 0) {
+        showToast(t('settingsModal.notifications.vertexProxyMissingApiKey'));
+        return;
+      }
+    }
+
+    setGoogleApiKey(localDirectGeminiApiKey.trim() || null);
     setImageEditModel(localImageEditModel);
     setImageGenerateModel(localImageGenerateModel);
     setTextGenerateModel(localTextGenerateModel);
+    setVertexProxySettings({
+      enabled: localVertexProxyEnabled,
+      url: localVertexProxyUrl.trim(),
+      apiKey: localVertexProxyApiKey.trim(),
+    });
     onClose();
   }, [
+    isVertexProxyUrlInvalid,
+    localDirectGeminiApiKey,
     localImageEditModel,
     localImageGenerateModel,
     localTextGenerateModel,
+    localVertexProxyApiKey,
+    localVertexProxyEnabled,
+    localVertexProxyUrl,
+    onClose,
+    setGoogleApiKey,
     setImageEditModel,
     setImageGenerateModel,
     setTextGenerateModel,
-    onClose,
+    setVertexProxySettings,
+    showToast,
+    t,
   ]);
 
   const handleRestore = useCallback(
@@ -157,14 +229,12 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
         return;
       }
 
-      // Validation: Only JSON files allowed
       if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
         showToast(t('settingsModal.notifications.invalidFileType'));
         input.value = '';
         return;
       }
 
-      // Validation: Size limit 50MB
       if (file.size > 50 * 1024 * 1024) {
         showToast(t('settingsModal.notifications.fileTooLarge'));
         input.value = '';
@@ -193,6 +263,9 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
       return;
     }
 
+    localStorage.removeItem(VERTEX_PROXY_ENABLED_KEY);
+    localStorage.removeItem(VERTEX_PROXY_URL_KEY);
+    localStorage.removeItem(VERTEX_PROXY_API_KEY_KEY);
     await clearAppData();
     alert(t('settingsModal.notifications.clearSuccess'));
     window.location.reload();
@@ -212,9 +285,21 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     localImageEditModel,
     localImageGenerateModel,
     localTextGenerateModel,
+    localDirectGeminiApiKey,
+    localVertexProxyEnabled,
+    localVertexProxyUrl,
+    localVertexProxyApiKey,
+    isVertexProxyUrlInvalid,
+    isVertexProxyUrlCustom,
+    isVertexProxyApiKeyMissing,
+    customVertexProxyHost,
     setLocalImageEditModel,
     setLocalImageGenerateModel,
     setLocalTextGenerateModel,
+    setLocalDirectGeminiApiKey,
+    setLocalVertexProxyEnabled,
+    setLocalVertexProxyUrl,
+    setLocalVertexProxyApiKey,
     debugMode,
     handleDebugToggle,
     restoreInputRef,

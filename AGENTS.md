@@ -22,6 +22,10 @@ React 19 + TypeScript + Vite SPA. Gemini is the default full-featured studio; is
 | Image processing | `src/utils/imageUtils.ts` |
 | Global state | `src/contexts/` |
 
+### Codebase Understanding
+
+If you need broader project context or cross-file relationships, refer to the existing Understand Anything knowledge graph artifacts in `.understand-anything/` and use the related Understand Anything skills/dashboard before deep exploration.
+
 ### Project Map
 
 | Directory | Role |
@@ -128,48 +132,165 @@ This repo uses Harness. Before work, read:
 Use the Rust Harness CLI as the main operational tool. Run it through the
 stable repo-local entrypoint `scripts/harness`, which uses the prebuilt Rust
 binary at `scripts/bin/harness-cli` in installed projects.
+
+### Mandatory Harness Operating Loop
+
+Every meaningful agent task in this repo must leave durable Harness evidence.
+Do this before coding, while working, and before final handoff. Tiny typo/docs
+tasks may skip story creation, but must still run intake and trace when the work
+is user-requested and repo-scoped.
+
+1. Start with intake before planning or implementation:
+
+```bash
+scripts/harness intake \
+  --type "Maintenance request" \
+  --summary "Short task summary" \
+  --lane normal \
+  --flags "Existing behavior,Weak proof" \
+  --docs "docs/HARNESS.md,docs/FEATURE_INTAKE.md" \
+  --notes "Context notes"
+```
+
+Use lanes consistently:
+
+- `tiny`: small docs/copy/config touch with low risk.
+- `normal`: ordinary bugfix, feature, or process work.
+- `high-risk`: auth, data loss, migration, external provider, security, or public contract work.
+
+2. For trackable work that is not tiny, create or update a durable story:
+
+```bash
+scripts/harness story add \
+  --id "OPS-SHORT-ID" \
+  --title "Human readable title" \
+  --lane normal \
+  --contract "What should be true after this work" \
+  --notes "Extra context"
+```
+
+After proof exists, update story status and proof flags. Current CLI proof flags
+use `0`/`1`, not `yes`/`no`:
+
+```bash
+scripts/harness story update \
+  --id "OPS-SHORT-ID" \
+  --status implemented \
+  --unit 0 \
+  --integration 0 \
+  --e2e 0 \
+  --platform 1 \
+  --evidence "What proof exists"
+```
+
+3. When repeated friction or process pain appears, add backlog instead of losing
+the learning:
+
+```bash
+scripts/harness backlog add \
+  --title "Reusable recovery checklist" \
+  --while "Where the pain appeared" \
+  --pain "What was hard, repeated, or ambiguous" \
+  --suggestion "What should be added or improved" \
+  --risk normal \
+  --predicted "Expected benefit"
+```
+
+4. When a long-lived decision is made, write a decision record under
+`docs/decisions/` and add a durable decision row when the CLI decision workflow
+is available. Per upstream decision `0006`, `trace --decisions` does not replace
+the decision log for high-risk or durable decisions.
+
+5. End every meaningful task with trace. This is the most important step for
+future agents:
+
+```bash
+scripts/harness trace \
+  --summary "What was completed" \
+  --intake 2 \
+  --story "OPS-SHORT-ID" \
+  --agent codex \
+  --outcome completed \
+  --actions "read docs,updated files,ran validation" \
+  --read "docs/HARNESS.md,scripts/harness query matrix" \
+  --changed "AGENTS.md" \
+  --decisions "none" \
+  --errors "none" \
+  --friction "none"
+```
+
+6. Query Harness frequently to avoid guessing:
+
+```bash
+scripts/harness query stats
+scripts/harness query matrix
+scripts/harness query backlog
+scripts/harness query decisions
+scripts/harness query traces
+scripts/harness query friction
+```
+
+Use `matrix` for proof status, `backlog` for unresolved process/tooling pain,
+`decisions` for durable choices, `traces` for prior work, and `friction` for
+repeated issues that need improvement.
+
+7. When updating Harness from upstream, follow the current installer/update
+instructions in `docs/HARNESS.md` and then run:
+
+```bash
+scripts/harness migrate
+scripts/harness query stats
+git diff --check
+```
+
+If `--merge` preserves an older `scripts/bin/harness-cli`, update the binary
+from the matching release asset or choose an installer mode that intentionally
+overwrites with backups.
 <!-- HARNESS:END -->
 
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+# CodeGraph — Code Intelligence
 
-This project is indexed by GitNexus as **chang-store** (4220 symbols, 6950 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
-
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+This repo works better with CodeGraph than GitNexus right now, especially under
+`gateway/`. Use CodeGraph MCP tools as the default semantic navigation layer.
 
 ## Always Do
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+- **Check CodeGraph index health first** with `codegraph_status` when starting a
+  non-trivial code-reading or refactor task.
+- **Before editing a function, class, or method, inspect blast radius** with
+  `codegraph_impact(symbol)` when it resolves cleanly. If impact is ambiguous,
+  at minimum inspect `codegraph_callers(symbol)` and `codegraph_callees(symbol)`
+  and report the direct surface you found.
+- When exploring unfamiliar code, start with `codegraph_search` or
+  `codegraph_context` instead of broad grep.
+- When you need exact symbol detail, use `codegraph_node`.
+- When you need inbound or outbound usage, use `codegraph_callers` and
+  `codegraph_callees`.
+- When you need an end-to-end flow, use `codegraph_trace(from, to)`.
 
 ## Never Do
 
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+- NEVER rely on GitNexus as the primary analysis tool for this repo unless the
+  user explicitly asks for it.
+- NEVER rename symbols with blind find-and-replace when CodeGraph can first show
+  callers, callees, and impact.
+- NEVER skip blast-radius review for shared gateway or service-layer code. If
+  `codegraph_impact` does not resolve, fall back to callers/callees plus
+  targeted file reads before editing.
 
-## Resources
+## Recommended Workflow
 
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/chang-store/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/chang-store/clusters` | All functional areas |
-| `gitnexus://repo/chang-store/processes` | All execution flows |
-| `gitnexus://repo/chang-store/process/{name}` | Step-by-step execution trace |
+1. `codegraph_status` — verify the index is available.
+2. `codegraph_search` — find the symbol or file quickly.
+3. `codegraph_node` — inspect signature and location.
+4. `codegraph_impact` — check likely blast radius when available.
+5. `codegraph_callers` / `codegraph_callees` — confirm direct usage.
+6. `codegraph_trace` — answer concrete flow questions.
 
-## CLI
+## Notes
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-
-<!-- gitnexus:end -->
+- `codegraph_context` is useful for broad architecture questions, but for this
+  repo it can be noisier than `search + node + callers/callees` on narrow
+  gateway tasks.
+- If CodeGraph misses a known symbol, fall back to targeted `rg` and direct file
+  reads rather than switching the whole workflow to GitNexus.

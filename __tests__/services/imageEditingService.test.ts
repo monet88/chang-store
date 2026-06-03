@@ -136,7 +136,7 @@ describe('generateImage', () => {
       'A beautiful sunset',
       '16:9',
       1,
-      'imagen-4.0-generate-001',
+      'gemini-3.1-flash-image',
       DEFAULT_CONFIG
     );
 
@@ -145,7 +145,7 @@ describe('generateImage', () => {
       'A beautiful sunset',
       '16:9',
       1,
-      'imagen-4.0-generate-001'
+      'gemini-3.1-flash-image'
     );
     expect(result).toEqual(mockResult);
   });

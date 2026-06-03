@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased] — 2026-06-02
+
+### Added
+
+- Vertex CLI Proxy Toggle for Gemini settings and runtime routing: a new Settings modal section stores `vertexProxySettings` (`enabled`, `url`, `apiKey`) in localStorage with fail-closed restore validation, browser warning copy, and exact `@google/genai` proxy client wiring through `httpOptions.baseUrl` + `apiVersion: 'v1beta'`.
+- Proxy-aware Gemini text-to-image generation path: `generateImageFromText()` uses `models.generateContent()` with `responseModalities: [IMAGE]`, inlineData parsing, one-request-per-image loop, and 30s proxy request timeout.
+- Cloud Run deployment artifacts under `gcp/`: a bootstrap script for APIs / Artifact Registry / runtime service account / Secret Manager, a deploy script for Cloud Run, and a rollout plan tied to the current GCP project context.
+
+### Changed
+
+- Gemini model defaults now align with the tested Vertex gateway list: image edit and image generation default to `gemini-3.1-flash-image`; text generation defaults to `gemini-3.5-flash`; Pro text uses `gemini-3.1-pro-preview`.
+- Gateway image upscale now also falls back to the stable default image model `gemini-3.1-flash-image` instead of the old preview alias, keeping local app, gateway runtime, and rollout docs consistent.
+- Removed app and gateway support for retired Google image generation paths and fallback metadata. Gemini image generation now stays on the Gemini image models in `src/config/modelRegistry.ts`.
+- Removed Gemini video generation service and tests because video workflows are not part of the supported model set.
+- Expanded verification coverage for proxy client wiring, settings persistence, Gemini image generation, and model-default migration.
+
 ## [Unreleased] — 2026-05-31
 
 ### Added

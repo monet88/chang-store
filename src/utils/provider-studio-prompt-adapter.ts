@@ -17,7 +17,7 @@ import type { Part } from '@google/genai';
 import { Feature, ImageFile, VirtualTryOnSourceItemType } from '../types';
 import { buildVirtualTryOnParts } from './virtual-try-on-prompt-builder';
 import { buildClothingTransferParts } from './clothing-transfer-prompt-builder';
-import { buildPatternGeneratorParts, TASK_PROMPT } from './pattern-generator-prompt-builder';
+import { buildPatternGeneratorParts, TASK_PROMPT, TEXT_ONLY_TASK_PROMPT } from './pattern-generator-prompt-builder';
 import { buildLookbookPrompt, LookbookFormState } from './lookbookPromptBuilder';
 
 /**
@@ -30,11 +30,10 @@ const extractText = (parts: Part[]): string =>
         .join('\n\n');
 
 /**
- * Reference-agnostic Pattern Generator task (text-only path): drops the
- * "based on the reference image(s) above" wording so the prompt stays coherent
- * when no reference image is uploaded (red-team F5).
+ * Reference-agnostic Pattern Generator task for text-only provider requests.
+ * Keeps the no-image flow coherent while the image flow uses `TASK_PROMPT`.
  */
-const PATTERN_TASK_TEXT_ONLY = TASK_PROMPT.replace(' based on the reference image(s) above', '');
+const PATTERN_TASK_TEXT_ONLY = TEXT_ONLY_TASK_PROMPT;
 
 /**
  * Initial Lookbook form value for provider studios.

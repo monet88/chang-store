@@ -4,14 +4,13 @@
 # gemini
 
 ## Purpose
-Provider-specific implementation layer cho Gemini/Google AI flows. Facades ở `src/services/` gọi vào đây để thực hiện image editing/generation, text generation, chat, và video-related logic.
+Provider-specific implementation layer cho Gemini/Google AI flows. Facades ở `src/services/` gọi vào đây để thực hiện image editing/generation, text generation, và chat logic.
 
 ## Key Files
 | File | Description |
 |------|-------------|
 | `image.ts` | Gemini image edit/generate request assembly, response parsing, capability-aware config, và safety/no-content handling. |
 | `text.ts` | Gemini text generation workflows cho analysis, critique, và prompt generation. |
-| `video.ts` | Video generation/polling logic và prompt-heavy video workflows. |
 | `chat.ts` | Chat-style Gemini interaction helpers. |
 
 ## Subdirectories

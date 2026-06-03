@@ -61,11 +61,11 @@ vi.mock('../src/contexts/ImageGalleryContext', () => ({
 vi.mock('../src/contexts/ApiProviderContext', () => ({
   ApiProvider: passthrough,
   useApi: () => ({
-    imageEditModel: 'gemini-3.1-flash-image-preview',
+    imageEditModel: 'gemini-3.1-flash-image',
     setImageEditModel: mockSetImageEditModel,
-    imageGenerateModel: 'imagen-4.0-generate-001',
+    imageGenerateModel: 'gemini-3.1-flash-image',
     setImageGenerateModel: mockSetImageGenerateModel,
-    textGenerateModel: 'gemini-3-flash-preview',
+    textGenerateModel: 'gemini-3.5-flash',
     setTextGenerateModel: mockSetTextGenerateModel,
   }),
 }));
@@ -221,12 +221,12 @@ describe('App utility dock regression', () => {
 
     render(<App />);
 
-    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
+    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image');
     await user.selectOptions(screen.getByLabelText('Image editing model'), 'gemini-2.5-flash-image');
     expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
 
     await user.click(screen.getByText('feature-pattern-generator'));
-    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
+    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image');
 
     await user.click(screen.getByText('feature-watermark-remover'));
     expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
@@ -240,7 +240,7 @@ describe('App utility dock regression', () => {
     render(<App />);
 
     expect(await screen.findByText('virtual-try-on')).toBeInTheDocument();
-    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image-preview');
+    expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image');
 
     await waitFor(() => {
       expect(localStorage.getItem('cs_session_activeFeature')).toBe(JSON.stringify('try-on'));

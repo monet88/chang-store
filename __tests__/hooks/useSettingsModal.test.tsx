@@ -7,6 +7,7 @@ const {
   setDebugEnabledMock,
   showToastMock,
   clearAppDataMock,
+  setGoogleApiKeyMock,
   setImageEditModelMock,
   setImageGenerateModelMock,
   setTextGenerateModelMock,
@@ -17,6 +18,7 @@ const {
   setDebugEnabledMock: vi.fn(),
   showToastMock: vi.fn(),
   clearAppDataMock: vi.fn(),
+  setGoogleApiKeyMock: vi.fn(),
   setImageEditModelMock: vi.fn(),
   setImageGenerateModelMock: vi.fn(),
   setTextGenerateModelMock: vi.fn(),
@@ -25,6 +27,7 @@ const {
 }));
 
 // Wire hoisted mocks into apiOverrides after hoisting
+apiOverrides.setGoogleApiKey = setGoogleApiKeyMock;
 apiOverrides.setImageEditModel = setImageEditModelMock;
 apiOverrides.setImageGenerateModel = setImageGenerateModelMock;
 apiOverrides.setTextGenerateModel = setTextGenerateModelMock;
@@ -211,9 +214,10 @@ describe('useSettingsModal', () => {
       result.current.handleSave();
     });
 
-    expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-2.5-flash-image');
-    expect(setImageGenerateModelMock).toHaveBeenCalledWith('imagen-4.0-generate-001');
-    expect(setTextGenerateModelMock).toHaveBeenCalledWith('gemini-2.5-pro');
+    expect(setGoogleApiKeyMock).toHaveBeenCalledWith(null);
+    expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-3.1-flash-image');
+    expect(setImageGenerateModelMock).toHaveBeenCalledWith('gemini-3.1-flash-image');
+    expect(setTextGenerateModelMock).toHaveBeenCalledWith('gemini-3.5-flash');
     expect(onCloseMock).toHaveBeenCalled();
   });
 
@@ -274,7 +278,7 @@ describe('useSettingsModal', () => {
     const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
 
     await act(async () => {
-      await result.current.handleClear();
+      result.current.handleClear();
     });
 
     expect(clearAppDataMock).toHaveBeenCalled();
@@ -288,7 +292,7 @@ describe('useSettingsModal', () => {
     const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
 
     await act(async () => {
-      await result.current.handleClear();
+      result.current.handleClear();
     });
 
     expect(clearAppDataMock).not.toHaveBeenCalled();
@@ -330,6 +334,11 @@ describe('useSettingsModal', () => {
       result.current.setLocalTextGenerateModel('custom-text-model');
     });
     expect(result.current.localTextGenerateModel).toBe('custom-text-model');
+
+    act(() => {
+      result.current.setLocalDirectGeminiApiKey('direct-gemini-key');
+    });
+    expect(result.current.localDirectGeminiApiKey).toBe('direct-gemini-key');
   });
 
   // ── restoreInputRef ─────────────────────────────────────────────────
@@ -408,8 +417,7 @@ describe('useSettingsModal', () => {
 
   it('does not re-initialize local state when model deps change while open', () => {
     const { result, rerender } = renderHook(
-      ({ imageEditModel }) =>
-        useSettingsModal({ isOpen: true, onClose: onCloseMock }),
+      () => useSettingsModal({ isOpen: true, onClose: onCloseMock }),
       { initialProps: { imageEditModel: 'gemini-2.5-flash-image' } },
     );
 
@@ -421,9 +429,9 @@ describe('useSettingsModal', () => {
 
     // Mutate the API mock to return a different value, then rerender.
     // The wasOpenRef guard at line 105 blocks re-initialization.
-    apiOverrides.imageEditModel = 'gemini-3-pro-image-preview';
+    apiOverrides.imageEditModel = 'gemini-3-pro-image';
 
-    rerender({ imageEditModel: 'gemini-3-pro-image-preview' });
+    rerender({ imageEditModel: 'gemini-3-pro-image' });
 
     // Local state must NOT be overwritten because wasOpenRef is true
     expect(result.current.localImageEditModel).toBe('custom-changed-model');
@@ -442,12 +450,14 @@ describe('useSettingsModal', () => {
       result.current.setLocalImageEditModel('my-custom-edit-model');
       result.current.setLocalImageGenerateModel('my-custom-gen-model');
       result.current.setLocalTextGenerateModel('my-custom-text-model');
+      result.current.setLocalDirectGeminiApiKey('persisted-direct-key');
     });
 
     act(() => {
       result.current.handleSave();
     });
 
+    expect(setGoogleApiKeyMock).toHaveBeenCalledWith('persisted-direct-key');
     expect(setImageEditModelMock).toHaveBeenCalledWith('my-custom-edit-model');
     expect(setImageGenerateModelMock).toHaveBeenCalledWith('my-custom-gen-model');
     expect(setTextGenerateModelMock).toHaveBeenCalledWith('my-custom-text-model');
@@ -455,6 +465,7 @@ describe('useSettingsModal', () => {
 
     // Simulate modal closed then reopened
     vi.clearAllMocks();
+    apiOverrides.googleApiKey = 'persisted-direct-key';
     apiOverrides.imageEditModel = 'my-custom-edit-model';
     apiOverrides.imageGenerateModel = 'my-custom-gen-model';
     apiOverrides.textGenerateModel = 'my-custom-text-model';
@@ -465,6 +476,7 @@ describe('useSettingsModal', () => {
     expect(result.current.localImageEditModel).toBe('my-custom-edit-model');
     expect(result.current.localImageGenerateModel).toBe('my-custom-gen-model');
     expect(result.current.localTextGenerateModel).toBe('my-custom-text-model');
+    expect(result.current.localDirectGeminiApiKey).toBe('persisted-direct-key');
   });
 
   it('does not call API setters when Escape closes modal without save', () => {

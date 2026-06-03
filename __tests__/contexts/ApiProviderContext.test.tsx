@@ -10,18 +10,33 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { ApiProvider, useApi } from '@/contexts/ApiProviderContext';
 
 // -----------------------------------------------------------------------------
 // Mocks
 // -----------------------------------------------------------------------------
 
-/** Mock setGeminiApiKey from apiClient */
+/** Mock apiClient wiring */
 const mockSetGeminiApiKey = vi.fn();
+const mockConfigureGeminiClient = vi.fn();
+const mockShowToast = vi.fn();
 
 vi.mock('@/services/apiClient', () => ({
   setGeminiApiKey: (key: string | null) => mockSetGeminiApiKey(key),
+  configureGeminiClient: (config: unknown) => mockConfigureGeminiClient(config),
+}));
+
+vi.mock('@/components/Toast', () => ({
+  useToast: () => ({
+    showToast: mockShowToast,
+  }),
+}));
+
+vi.mock('@/contexts/LanguageContext', () => ({
+  useLanguage: () => ({
+    t: (key: string) => key,
+  }),
 }));
 
 /** localStorage mock implementation */
@@ -114,9 +129,9 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image-preview');
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
-      expect(result.current.textGenerateModel).toBe('gemini-3-flash-preview');
+      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image');
+      expect(result.current.imageGenerateModel).toBe('gemini-3.1-flash-image');
+      expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
     });
 
     it('has null Google API key by default', () => {
@@ -127,30 +142,25 @@ describe('ApiProviderContext', () => {
       expect(result.current.googleApiKey).toBeNull();
     });
 
-    it('clears legacy Google API key from localStorage on mount', () => {
-      renderHook(() => useApi(), {
-        wrapper: createWrapper(),
+    it('loads Google API key from localStorage on mount when present', () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'google_api_key') return 'stored-api-key';
+        return null;
       });
-
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_api_key');
-    });
-
-    it('does not load Google API key from localStorage on mount', () => {
-      localStorageMock.getItem.mockReturnValueOnce('stored-api-key');
 
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
-      expect(localStorageMock.getItem).not.toHaveBeenCalledWith('google_api_key');
-      expect(result.current.googleApiKey).toBeNull();
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('google_api_key');
+      expect(result.current.googleApiKey).toBe('stored-api-key');
     });
 
     it('loads model selections from localStorage on mount when valid', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {
         if (key === 'image_edit_model') return 'gemini-2.5-flash-image';
-        if (key === 'image_generate_model') return 'imagen-4.0-ultra-generate-001';
-        if (key === 'text_generate_model') return 'gemini-2.5-flash';
+        if (key === 'image_generate_model') return 'gemini-3-pro-image';
+        if (key === 'text_generate_model') return 'gemini-3.5-flash';
         return null;
       });
 
@@ -162,8 +172,8 @@ describe('ApiProviderContext', () => {
       expect(localStorageMock.getItem).toHaveBeenCalledWith('image_generate_model');
       expect(localStorageMock.getItem).toHaveBeenCalledWith('text_generate_model');
       expect(result.current.imageEditModel).toBe('gemini-2.5-flash-image');
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
-      expect(result.current.textGenerateModel).toBe('gemini-2.5-flash');
+      expect(result.current.imageGenerateModel).toBe('gemini-3-pro-image');
+      expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
     });
 
     it('falls back to default models if legacy local/anti models are found in localStorage', () => {
@@ -178,17 +188,17 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image-preview');
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
-      expect(result.current.textGenerateModel).toBe('gemini-3-flash-preview');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-3.1-flash-image-preview');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'imagen-4.0-generate-001');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3-flash-preview');
+      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image');
+      expect(result.current.imageGenerateModel).toBe('gemini-3.1-flash-image');
+      expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-3.1-flash-image');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'gemini-3.1-flash-image');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3.5-flash');
     });
   });
 
   describe('setGoogleApiKey', () => {
-    it('keeps key in memory only when setting a value', () => {
+    it('persists Google API key to localStorage when setting a value', () => {
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
@@ -197,7 +207,7 @@ describe('ApiProviderContext', () => {
         result.current.setGoogleApiKey('new-api-key');
       });
 
-      expect(localStorageMock.setItem).not.toHaveBeenCalledWith('google_api_key', 'new-api-key');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('google_api_key', 'new-api-key');
       expect(result.current.googleApiKey).toBe('new-api-key');
     });
 
@@ -218,19 +228,15 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      const removeCallsBefore = localStorageMock.removeItem.mock.calls.length;
-
-      // First set a key
       act(() => {
         result.current.setGoogleApiKey('temp-key');
       });
 
-      // Then remove it
       act(() => {
         result.current.setGoogleApiKey(null);
       });
 
-      expect(localStorageMock.removeItem.mock.calls.length).toBe(removeCallsBefore);
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_api_key');
       expect(result.current.googleApiKey).toBeNull();
       expect(mockSetGeminiApiKey).toHaveBeenLastCalledWith(null);
     });
@@ -255,10 +261,10 @@ describe('ApiProviderContext', () => {
       });
 
       act(() => {
-        result.current.setImageGenerateModel('imagen-4.0-ultra-generate-001');
+        result.current.setImageGenerateModel('gemini-3-pro-image');
       });
 
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
+      expect(result.current.imageGenerateModel).toBe('gemini-3-pro-image');
     });
 
     it('setTextGenerateModel updates textGenerateModel', () => {
@@ -267,10 +273,10 @@ describe('ApiProviderContext', () => {
       });
 
       act(() => {
-        result.current.setTextGenerateModel('gemini-2.5-flash');
+        result.current.setTextGenerateModel('gemini-3.5-flash');
       });
 
-      expect(result.current.textGenerateModel).toBe('gemini-2.5-flash');
+      expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
     });
 
     it('persists model selections to localStorage', () => {
@@ -280,13 +286,13 @@ describe('ApiProviderContext', () => {
 
       act(() => {
         result.current.setImageEditModel('gemini-2.5-flash-image');
-        result.current.setImageGenerateModel('imagen-4.0-ultra-generate-001');
-        result.current.setTextGenerateModel('gemini-2.5-flash');
+        result.current.setImageGenerateModel('gemini-3-pro-image');
+        result.current.setTextGenerateModel('gemini-3.5-flash');
       });
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-2.5-flash-image');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'imagen-4.0-ultra-generate-001');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-2.5-flash');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'gemini-3-pro-image');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3.5-flash');
     });
 
     it('rehydrates persisted model selections after remounting the provider', () => {
@@ -296,13 +302,13 @@ describe('ApiProviderContext', () => {
 
       act(() => {
         firstMount.result.current.setImageEditModel('gemini-2.5-flash-image');
-        firstMount.result.current.setImageGenerateModel('imagen-4.0-ultra-generate-001');
-        firstMount.result.current.setTextGenerateModel('gemini-2.5-flash');
+        firstMount.result.current.setImageGenerateModel('gemini-3-pro-image');
+        firstMount.result.current.setTextGenerateModel('gemini-3.5-flash');
       });
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-2.5-flash-image');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'imagen-4.0-ultra-generate-001');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-2.5-flash');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'gemini-3-pro-image');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3.5-flash');
 
       firstMount.unmount();
       localStorageMock.getItem.mockClear();
@@ -317,13 +323,31 @@ describe('ApiProviderContext', () => {
       expect(localStorageMock.getItem).toHaveBeenCalledWith('image_generate_model');
       expect(localStorageMock.getItem).toHaveBeenCalledWith('text_generate_model');
       expect(secondMount.result.current.imageEditModel).toBe('gemini-2.5-flash-image');
-      expect(secondMount.result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
-      expect(secondMount.result.current.textGenerateModel).toBe('gemini-2.5-flash');
+      expect(secondMount.result.current.imageGenerateModel).toBe('gemini-3-pro-image');
+      expect(secondMount.result.current.textGenerateModel).toBe('gemini-3.5-flash');
+    });
+
+    it('rehydrates persisted Google API key after remounting the provider', () => {
+      const firstMount = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        firstMount.result.current.setGoogleApiKey('persisted-google-key');
+      });
+
+      firstMount.unmount();
+      localStorageMock.getItem.mockClear();
+
+      const secondMount = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(secondMount.result.current.googleApiKey).toBe('persisted-google-key');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('google_api_key');
     });
 
     it('falls back safely when localStorage reads or cleanup throw', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
       localStorageMock.getItem.mockImplementation(() => {
         throw new Error('read failed');
       });
@@ -335,12 +359,10 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image-preview');
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
-      expect(result.current.textGenerateModel).toBe('gemini-3-flash-preview');
-      expect(consoleWarnSpy).toHaveBeenCalled();
-
-      consoleWarnSpy.mockRestore();
+      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image');
+      expect(result.current.imageGenerateModel).toBe('gemini-3.1-flash-image');
+      expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
+      expect(result.current.googleApiKey).toBeNull();
     });
 
     it('keeps in-memory model updates even when localStorage writes fail', () => {
@@ -356,14 +378,14 @@ describe('ApiProviderContext', () => {
       expect(() => {
         act(() => {
           result.current.setImageEditModel('gemini-2.5-flash-image');
-          result.current.setImageGenerateModel('imagen-4.0-ultra-generate-001');
-          result.current.setTextGenerateModel('gemini-2.5-pro');
+          result.current.setImageGenerateModel('gemini-3-pro-image');
+          result.current.setTextGenerateModel('gemini-3.5-flash');
         });
       }).not.toThrow();
 
       expect(result.current.imageEditModel).toBe('gemini-2.5-flash-image');
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
-      expect(result.current.textGenerateModel).toBe('gemini-2.5-pro');
+      expect(result.current.imageGenerateModel).toBe('gemini-3-pro-image');
+      expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
       expect(consoleWarnSpy).toHaveBeenCalled();
 
       consoleWarnSpy.mockRestore();
@@ -385,6 +407,29 @@ describe('ApiProviderContext', () => {
       expect(result.current.imageEditModel).toBe('edit-1');
       expect(result.current.imageGenerateModel).toBe('gen-1');
       expect(result.current.textGenerateModel).toBe('text-1');
+    });
+  });
+
+  describe('vertex proxy restore handling', () => {
+    it('shows the invalid restore toast only once across rerenders', () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'vertex_proxy_enabled') return 'true';
+        if (key === 'vertex_proxy_url') return 'not-a-valid-url';
+        if (key === 'vertex_proxy_api_key') return '';
+        return null;
+      });
+
+      const { result, rerender } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.vertexProxySettings.enabled).toBe(false);
+      expect(result.current.vertexProxySettings.url).toBe('https://cliproxy.monet.uno');
+      expect(mockShowToast).toHaveBeenCalledTimes(1);
+
+      rerender();
+
+      expect(mockShowToast).toHaveBeenCalledTimes(1);
     });
   });
 

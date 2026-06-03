@@ -1,0 +1,289 @@
+import { randomUUID } from 'node:crypto';
+import type { ClassifiedRoute } from '../http/request-classifier.js';
+import { GatewayError } from '../http/error-response.js';
+import type { GenAiClient } from '../lib/google-genai-client.js';
+
+interface OpenAIChatMessage {
+  role: string;
+  content?: unknown;
+  tool_calls?: Array<{
+    id?: string;
+    type?: string;
+    function?: { name?: string; arguments?: string };
+  }>;
+  tool_call_id?: string;
+  name?: string;
+}
+
+interface OpenAIChatCompletionRequest {
+  model?: string;
+  messages?: OpenAIChatMessage[];
+  temperature?: number;
+  top_p?: number;
+  max_tokens?: number;
+  stop?: string | string[];
+  n?: number;
+  stream?: boolean;
+  tools?: Array<{
+    type?: string;
+    function?: {
+      name?: string;
+      description?: string;
+      parameters?: Record<string, unknown>;
+    };
+  }>;
+}
+
+const OPENAI_MODEL_IDS = [
+  'gemini-3.5-flash',
+  'gemini-3.1-pro-preview',
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+] as const;
+
+const parseJsonString = (value: string): Record<string, unknown> => {
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : { value: parsed };
+  } catch {
+    return { value };
+  }
+};
+
+const toGeminiPartList = (content: unknown, allowImages: boolean): Array<Record<string, unknown>> => {
+  if (typeof content === 'string') {
+    return content ? [{ text: content }] : [];
+  }
+
+  if (!Array.isArray(content)) {
+    return [];
+  }
+
+  const parts: Array<Record<string, unknown>> = [];
+  for (const item of content) {
+    if (!item || typeof item !== 'object') continue;
+    const typedItem = item as Record<string, unknown>;
+    if (typedItem.type === 'text' && typeof typedItem.text === 'string') {
+      parts.push({ text: typedItem.text });
+      continue;
+    }
+    if (
+      allowImages &&
+      typedItem.type === 'image_url' &&
+      typedItem.image_url &&
+      typeof typedItem.image_url === 'object' &&
+      typeof (typedItem.image_url as { url?: unknown }).url === 'string'
+    ) {
+      const url = ((typedItem.image_url as { url: string }).url || '').trim();
+      const dataUrl = url.match(/^data:(.+?);base64,(.+)$/);
+      if (!dataUrl) {
+        throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible image_url currently requires a data URL.');
+      }
+      parts.push({
+        inlineData: {
+          mimeType: dataUrl[1],
+          data: dataUrl[2],
+        },
+      });
+    }
+  }
+  return parts;
+};
+
+const buildGeminiRequest = (body: OpenAIChatCompletionRequest): Record<string, unknown> => {
+  if (!body.model?.trim()) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible requests require a model.');
+  }
+  if (body.stream) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible streaming is not implemented yet.');
+  }
+  if (!Array.isArray(body.messages) || body.messages.length === 0) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible requests require at least one message.');
+  }
+
+  const contents: Array<Record<string, unknown>> = [];
+  const systemParts: Array<Record<string, unknown>> = [];
+  const toolCallNames = new Map<string, string>();
+
+  for (const message of body.messages) {
+    if (!message || typeof message.role !== 'string') {
+      throw new GatewayError(400, 'VALIDATION_FAILED', 'Each OpenAI-compatible message requires a role.');
+    }
+
+    if (message.role === 'system' || message.role === 'developer') {
+      systemParts.push(...toGeminiPartList(message.content, false));
+      continue;
+    }
+
+    if (message.role === 'user') {
+      contents.push({ role: 'user', parts: toGeminiPartList(message.content, true) });
+      continue;
+    }
+
+    if (message.role === 'assistant') {
+      const parts = toGeminiPartList(message.content, false);
+      for (const toolCall of message.tool_calls ?? []) {
+        if (toolCall.type && toolCall.type !== 'function') {
+          throw new GatewayError(400, 'VALIDATION_FAILED', 'Only function tool calls are supported for OpenAI-compatible assistant messages.');
+        }
+        if (!toolCall.function?.name) {
+          throw new GatewayError(400, 'VALIDATION_FAILED', 'Assistant tool calls require a function name.');
+        }
+        if (toolCall.id) {
+          toolCallNames.set(toolCall.id, toolCall.function.name);
+        }
+        parts.push({
+          functionCall: {
+            name: toolCall.function.name,
+            args: toolCall.function.arguments ? parseJsonString(toolCall.function.arguments) : {},
+          },
+        });
+      }
+      contents.push({ role: 'model', parts });
+      continue;
+    }
+
+    if (message.role === 'tool') {
+      const toolName = message.name || (message.tool_call_id ? toolCallNames.get(message.tool_call_id) : undefined);
+      if (!toolName) {
+        throw new GatewayError(400, 'VALIDATION_FAILED', 'Tool messages require a name or a matching tool_call_id.');
+      }
+      const responsePayload = typeof message.content === 'string'
+        ? parseJsonString(message.content)
+        : (message.content && typeof message.content === 'object' ? message.content as Record<string, unknown> : {});
+      contents.push({
+        role: 'user',
+        parts: [{
+          functionResponse: {
+            name: toolName,
+            response: responsePayload,
+          },
+        }],
+      });
+      continue;
+    }
+
+    throw new GatewayError(400, 'VALIDATION_FAILED', `Unsupported OpenAI-compatible role: ${message.role}.`);
+  }
+
+  const config: Record<string, unknown> = {};
+  if (typeof body.temperature === 'number') config.temperature = body.temperature;
+  if (typeof body.top_p === 'number') config.topP = body.top_p;
+  if (typeof body.max_tokens === 'number') config.maxOutputTokens = body.max_tokens;
+  if (typeof body.n === 'number') config.candidateCount = body.n;
+  if (typeof body.stop === 'string') config.stopSequences = [body.stop];
+  if (Array.isArray(body.stop)) config.stopSequences = body.stop.filter((item): item is string => typeof item === 'string');
+  if (systemParts.length > 0) config.systemInstruction = { parts: systemParts };
+
+  const tools = (body.tools ?? [])
+    .filter((tool) => tool?.type === 'function' && tool.function?.name)
+    .map((tool) => ({
+      functionDeclarations: [{
+        name: tool.function!.name!,
+        ...(tool.function!.description ? { description: tool.function!.description } : {}),
+        ...(tool.function!.parameters ? { parameters: tool.function!.parameters } : {}),
+      }],
+    }));
+  if (tools.length > 0) config.tools = tools;
+
+  return {
+    model: body.model.trim(),
+    contents,
+    ...(Object.keys(config).length > 0 ? { config } : {}),
+  };
+};
+
+const mapFinishReason = (value: unknown, hasToolCalls: boolean): 'stop' | 'length' | 'tool_calls' | null => {
+  if (hasToolCalls) return 'tool_calls';
+  if (typeof value !== 'string') return null;
+  if (value === 'MAX_TOKENS') return 'length';
+  if (value === 'STOP') return 'stop';
+  return null;
+};
+
+const convertGeminiResponseToOpenAI = (response: Record<string, unknown>, model: string): Record<string, unknown> => {
+  const candidates = Array.isArray(response.candidates) ? response.candidates as Array<Record<string, unknown>> : [];
+  const choices = (candidates.length > 0 ? candidates : [{}]).map((candidate, index) => {
+    const content = candidate.content && typeof candidate.content === 'object' ? candidate.content as Record<string, unknown> : {};
+    const parts = Array.isArray(content.parts) ? content.parts as Array<Record<string, unknown>> : [];
+
+    const textSegments: string[] = [];
+    const toolCalls: Array<Record<string, unknown>> = [];
+
+    for (const part of parts) {
+      if (typeof part.text === 'string' && part.text) {
+        textSegments.push(part.text);
+      }
+      if (part.functionCall && typeof part.functionCall === 'object') {
+        const functionCall = part.functionCall as { name?: unknown; args?: unknown };
+        if (typeof functionCall.name === 'string') {
+          toolCalls.push({
+            id: `call_${randomUUID().replace(/-/g, '')}`,
+            type: 'function',
+            function: {
+              name: functionCall.name,
+              arguments: JSON.stringify(functionCall.args ?? {}),
+            },
+          });
+        }
+      }
+    }
+
+    return {
+      index,
+      message: {
+        role: 'assistant',
+        content: textSegments.join('') || null,
+        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+      },
+      finish_reason: mapFinishReason(candidate.finishReason, toolCalls.length > 0),
+    };
+  });
+  const usageMetadata = response.usageMetadata && typeof response.usageMetadata === 'object'
+    ? response.usageMetadata as Record<string, unknown>
+    : {};
+
+  return {
+    id: `chatcmpl_${randomUUID().replace(/-/g, '')}`,
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model: typeof response.modelVersion === 'string' ? response.modelVersion : model,
+    choices,
+    usage: {
+      prompt_tokens: typeof usageMetadata.promptTokenCount === 'number' ? usageMetadata.promptTokenCount : 0,
+      completion_tokens: typeof usageMetadata.candidatesTokenCount === 'number' ? usageMetadata.candidatesTokenCount : 0,
+      total_tokens: typeof usageMetadata.totalTokenCount === 'number' ? usageMetadata.totalTokenCount : 0,
+    },
+  };
+};
+
+const listModels = (): Record<string, unknown> => ({
+  object: 'list',
+  data: OPENAI_MODEL_IDS.map((id) => ({
+    id,
+    object: 'model',
+    created: 0,
+    owned_by: 'google',
+  })),
+});
+
+export const runOpenAiCompatibleRoute = async (
+  route: ClassifiedRoute,
+  body: Record<string, unknown>,
+  ai: GenAiClient,
+): Promise<Record<string, unknown>> => {
+  if (route.operation === 'models') {
+    return listModels();
+  }
+  if (route.operation !== 'chatCompletions') {
+    throw new GatewayError(404, 'NOT_FOUND', 'OpenAI-compatible route is not implemented.');
+  }
+
+  const request = buildGeminiRequest(body as OpenAIChatCompletionRequest);
+  const response = await ai.models.generateContent(request);
+  return convertGeminiResponseToOpenAI(response, String(request.model));
+};

@@ -12,8 +12,8 @@
 /** Available models for watermark removal */
 export const WATERMARK_MODELS = [
   { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
-  { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image' },
-  { id: 'gemini-3.1-flash-image-preview', name: 'Gemini 3.1 Flash Image (Preview)' },
+  { id: 'gemini-3-pro-image', name: 'Gemini 3 Pro Image' },
+  { id: 'gemini-3.1-flash-image', name: 'Gemini 3.1 Flash Image' },
 ] as const;
 
 export type WatermarkModel = typeof WATERMARK_MODELS[number]['id'];

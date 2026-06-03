@@ -19,7 +19,7 @@ a human-readable mirror from the 2026-05-31 docs resync.
 | Story | Contract | Unit | Integration | E2E | Platform | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | US-001-three-provider-studios | Three provider studios | no | no | no | no | planned | Plan remediation only; implementation and runtime verification pending. |
-| US-002-docs-backfill-resync | Docs backfill and codebase resync | no | no | no | no | implemented | Docs-only resync done. `provider-studios.md` added; `HARNESS_COMPONENTS` inventory matches `git ls-files`; overview/README de-Gemini-only-ed; dead code flagged in backlog #2. See `docs/CHANGELOG.md` 2026-05-31. |
+| US-003-vertex-cli-proxy-toggle | Vertex CLI proxy toggle for Gemini | yes | yes | no | no | implemented | Proxy toggle/settings, direct vs proxy routing, proxy image generateContent path, Gemini 3.5/3.1 model cleanup, and quota fallback warning path implemented. Proof: `__tests__/services/apiClient.test.ts`, `__tests__/contexts/ApiProviderContext.test.tsx`, `__tests__/hooks/useSettingsModal.test.tsx`, `__tests__/components/SettingsModal.test.tsx`, `__tests__/services/gemini/image.test.ts`, `__tests__/services/gemini/text.test.ts`, `__tests__/services/imageEditingService.test.ts`, `__tests__/services/textService.test.ts`; quality gates passed: `npx tsc --noEmit`, `npm run lint`, `npm run test`, `npm run build`. |
 
 ## Evidence Rules
 

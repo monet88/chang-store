@@ -35,6 +35,7 @@ test-chat-service.ts
 test-chat-service.mjs
 test-*.ts
 test-*.mjs
+!gateway/test/test-config.ts
 
 # Tauri build artifacts
 src-tauri/target/
@@ -84,3 +85,21 @@ audit-*.png
 .antigravitycli/
 cloudflare-tunnel
 .workflow/
+skills-lock.json
+.ref/
+gateway/compiled/
+gateway/.env
+gateway/accounts/*
+!gateway/accounts/.gitkeep
+gcp/cloud-run.env.yaml
+.codegraph/
+test-results/
+.codex/
+.mcp.json
+
+# Harness durable layer
+harness.db
+harness.db-wal
+harness.db-shm
+scripts/bin/harness-cli
+scripts/bin/harness-cli.exe

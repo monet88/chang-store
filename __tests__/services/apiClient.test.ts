@@ -31,11 +31,6 @@ vi.mock('@google/genai', () => {
     this.config = config;
     this.models = {
       generateContent: vi.fn(),
-      generateImages: vi.fn(),
-      generateVideos: vi.fn(),
-    };
-    this.operations = {
-      getVideosOperation: vi.fn(),
     };
 
     // Track for assertions
@@ -189,7 +184,7 @@ describe('apiClient', () => {
 
       // Assert
       expect(constructorCalls).toHaveLength(1);
-      expect(constructorCalls[0]).toEqual({ apiKey: 'test-api-key' });
+      expect(constructorCalls[0]).toMatchObject({ apiKey: 'test-api-key', apiVersion: 'v1beta' });
     });
 
     it('should return the same instance on subsequent calls (singleton pattern)', () => {
@@ -240,7 +235,7 @@ describe('apiClient', () => {
       getGeminiClient();
 
       // Assert
-      expect(constructorCalls[0]).toEqual({ apiKey: 'env-key-for-client' });
+      expect(constructorCalls[0]).toMatchObject({ apiKey: 'env-key-for-client', apiVersion: 'v1beta' });
     });
   });
 
@@ -277,7 +272,7 @@ describe('apiClient', () => {
       getGeminiClient();
 
       // Assert - second call should use new key
-      expect(constructorCalls[constructorCalls.length - 1]).toEqual({ apiKey: 'second-key' });
+      expect(constructorCalls[constructorCalls.length - 1]).toMatchObject({ apiKey: 'second-key', apiVersion: 'v1beta' });
     });
   });
 
@@ -289,19 +284,19 @@ describe('apiClient', () => {
       // Step 1: Start with env key
       process.env.GEMINI_API_KEY = 'initial-env-key';
       const client1 = getGeminiClient();
-      expect(constructorCalls[0]).toEqual({ apiKey: 'initial-env-key' });
+      expect(constructorCalls[0]).toMatchObject({ apiKey: 'initial-env-key', apiVersion: 'v1beta' });
 
       // Step 2: User sets custom key — but env should still win
       setGeminiApiKey('user-custom-key');
       const client2 = getGeminiClient();
-      expect(constructorCalls[1]).toEqual({ apiKey: 'initial-env-key' });
+      expect(constructorCalls[1]).toMatchObject({ apiKey: 'initial-env-key', apiVersion: 'v1beta' });
       expect(client1).not.toBe(client2);
 
       // Step 3: Remove env key, custom key kicks in as fallback
       delete process.env.GEMINI_API_KEY;
       setGeminiApiKey('user-custom-key');
-      const client3 = getGeminiClient();
-      expect(constructorCalls[2]).toEqual({ apiKey: 'user-custom-key' });
+      getGeminiClient();
+      expect(constructorCalls[2]).toMatchObject({ apiKey: 'user-custom-key', apiVersion: 'v1beta' });
 
       // Verify total instances created
       expect(constructorCalls).toHaveLength(3);

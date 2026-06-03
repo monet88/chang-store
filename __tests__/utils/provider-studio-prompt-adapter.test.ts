@@ -44,8 +44,9 @@ describe('buildProviderStudioPrompt', () => {
     it('uses a reference-agnostic Pattern task when no images are uploaded', () => {
         const prompt = buildProviderStudioPrompt(Feature.PatternGenerator, 'floral', []);
 
+        expect(prompt).toContain("from the user's text prompt");
         expect(prompt).toContain('tile seamlessly');
-        expect(prompt).not.toContain('based on the reference image(s) above');
+        expect(prompt).not.toContain('reference image');
         expect(prompt).toContain('floral');
     });
 

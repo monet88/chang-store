@@ -1,8 +1,16 @@
 
 import { Part, Modality } from "@google/genai";
 import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel, UpscaleQuality } from '../../types';
-import { getGeminiClient } from '../apiClient';
+import { getActiveApiKey, getGeminiBaseUrl, getGeminiClient, isProxyEnabled } from '../apiClient';
 import { getModelCapabilities } from '../../config/modelRegistry';
+
+const PROXY_IMAGE_TIMEOUT_MS = 30_000;
+
+export interface GeneratedImageFile extends ImageFile {
+  metadata?: {
+    requestedModel?: string;
+  };
+}
 
 export interface EditImageParams {
   images: ImageFile[];
@@ -16,11 +24,160 @@ export interface EditImageParams {
   interleavedParts?: Part[];
 }
 
-export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-image', aspectRatio, resolution, negativePrompt, numberOfImages = 1, interleavedParts }: EditImageParams): Promise<ImageFile[]> => {
+const isSafetyFinishReason = (finishReason: string | undefined): boolean =>
+  finishReason === 'SAFETY' || finishReason === 'RECITATION' || finishReason === 'OTHER';
+
+const createGeminiFailedError = (error: unknown): Error => {
+  const errorMessage = error instanceof Error ? error.message : 'error.unknown';
+  return new Error(errorMessage.startsWith('error.') ? errorMessage : `error.api.geminiFailed:${errorMessage}`);
+};
+
+const extractInlineImagePart = (
+  response: {
+    promptFeedback?: { blockReason?: string };
+    candidates?: Array<{
+      finishReason?: string;
+      safetyRatings?: unknown;
+      content?: { parts?: Array<{ inlineData?: { data?: string; mimeType?: string } }> };
+    }>;
+    text?: string;
+  },
+  metadata?: GeneratedImageFile['metadata'],
+): GeneratedImageFile => {
+  if (response.promptFeedback?.blockReason) {
+    throw new Error('error.api.safetyBlock');
+  }
+
+  if (!response.candidates || response.candidates.length === 0) {
+    throw new Error('error.api.safetyBlock');
+  }
+
+  const candidate = response.candidates[0];
+  if (isSafetyFinishReason(candidate.finishReason)) {
+    throw new Error('error.api.safetyBlock');
+  }
+
+  if (candidate.finishReason === 'NO_IMAGE') {
+    throw new Error('error.api.noImageGenerated');
+  }
+
+  const parts = candidate.content?.parts ?? [];
+  for (const part of parts) {
+    if (part.inlineData?.data && part.inlineData.mimeType) {
+      return {
+        base64: part.inlineData.data,
+        mimeType: part.inlineData.mimeType,
+        ...(metadata && { metadata }),
+      };
+    }
+  }
+
+  if (response.text) {
+    throw new Error(`error.api.textOnlyResponse:${response.text}`);
+  }
+
+  if (parts.length === 0) {
+    throw new Error('error.api.noContent');
+  }
+
+  throw new Error('error.api.noImageInParts');
+};
+
+const buildProxyImageRequest = (prompt: string, aspectRatio: ImageAspectRatio) => ({
+  contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  config: {
+    responseModalities: [Modality.IMAGE],
+    ...(aspectRatio !== 'Default' && {
+      imageConfig: {
+        aspectRatio,
+      },
+    }),
+    httpOptions: {
+      timeout: PROXY_IMAGE_TIMEOUT_MS,
+    },
+  },
+});
+
+const getGatewayRootUrl = (): string | null => {
+  const baseUrl = getGeminiBaseUrl();
+  if (!baseUrl) return null;
+
+  const trimmedBaseUrl = baseUrl.trim().replace(/\/+$/, '');
+  if (!trimmedBaseUrl.endsWith('/gemini')) return null;
+
+  return trimmedBaseUrl.slice(0, -'/gemini'.length);
+};
+
+const toGatewayImage = (dataUrl: string): ImageFile => {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error('error.api.invalidGatewayImage');
+  }
+
+  return {
+    mimeType: match[1],
+    base64: match[2],
+  };
+};
+
+const callGatewayImageRoute = async (
+  path: '/api/images/edit' | '/api/images/generate' | '/api/images/upscale',
+  body: Record<string, unknown>,
+): Promise<ImageFile[]> => {
+  const gatewayRoot = getGatewayRootUrl();
+  if (!gatewayRoot) {
+    throw new Error('error.api.invalidGatewayBaseUrl');
+  }
+
+  const response = await fetch(`${gatewayRoot}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': getActiveApiKey(),
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload = await response.json().catch(() => null) as
+    | { success?: boolean; images?: Array<{ dataUrl?: string }>; error?: { message?: string } }
+    | null;
+
+  if (!response.ok || !payload?.success) {
+    const errorMessage = payload?.error?.message || `Gateway image route failed with status ${response.status}`;
+    throw new Error(errorMessage);
+  }
+
+  if (!Array.isArray(payload.images) || payload.images.length === 0) {
+    throw new Error('error.api.noImageGenerated');
+  }
+
+  return payload.images
+    .map((image) => image.dataUrl)
+    .filter((dataUrl): dataUrl is string => typeof dataUrl === 'string' && dataUrl.length > 0)
+    .map(toGatewayImage);
+};
+
+const generateProxyImage = async (
+  prompt: string,
+  aspectRatio: ImageAspectRatio,
+  model: string,
+): Promise<GeneratedImageFile> => {
+  const ai = getGeminiClient();
+  const request = buildProxyImageRequest(prompt, aspectRatio);
+
+  const response = await ai.models.generateContent({
+    model,
+    ...request,
+  });
+
+  return extractInlineImagePart(response, { requestedModel: model });
+};
+
+export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-image', aspectRatio, resolution, negativePrompt, numberOfImages = 1, interleavedParts }: EditImageParams): Promise<ImageFile[]> => {
   const ai = getGeminiClient();
   try {
-    // Build content parts: use interleaved parts if provided, otherwise default pattern
     let contentParts: Part[];
+    let finalPrompt = prompt;
     if (interleavedParts && interleavedParts.length > 0) {
       contentParts = interleavedParts;
     } else {
@@ -31,7 +188,6 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
         },
       }));
 
-      let finalPrompt = prompt;
       if (negativePrompt?.trim()) {
         finalPrompt += ` Negative prompt: strictly avoid including ${negativePrompt.trim()}.`;
       }
@@ -39,192 +195,135 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
       contentParts = [...imageParts, { text: finalPrompt }];
     }
 
+    const gatewayRoot = getGatewayRootUrl();
+    if (gatewayRoot && !interleavedParts) {
+      const gatewayImages = images.map((image) => ({
+        data: image.base64,
+        mimeType: image.mimeType,
+      }));
+
+      return callGatewayImageRoute('/api/images/edit', {
+        model,
+        images: gatewayImages,
+        prompt: finalPrompt,
+        aspectRatio,
+        resolution,
+        numberOfImages,
+      });
+    }
+
     const generateSingleImage = async (): Promise<ImageFile> => {
-        // Build imageConfig - only include imageSize for models that support it
-        const capabilities = getModelCapabilities(model);
-        const imageConfig: { aspectRatio?: string; imageSize?: string } = {};
-        
-        if (aspectRatio && aspectRatio !== 'Default' && capabilities.supportsAspectRatio) {
-            imageConfig.aspectRatio = aspectRatio;
-        }
-        if (resolution && capabilities.supportsImageSize) {
-            imageConfig.imageSize = resolution;
-        }
+      const capabilities = getModelCapabilities(model);
+      const imageConfig: { aspectRatio?: string; imageSize?: string } = {};
 
-        // Debug logging: Track aspect ratio configuration
-        console.log('📐 Gemini Image Config:', {
-            model,
-            aspectRatio,
-            resolution,
-            imageConfig,
-            capabilities
-        });
+      if (aspectRatio && aspectRatio !== 'Default' && capabilities.supportsAspectRatio) {
+        imageConfig.aspectRatio = aspectRatio;
+      }
+      if (resolution && capabilities.supportsImageSize) {
+        imageConfig.imageSize = resolution;
+      }
 
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: { parts: contentParts },
-            config: {
-                responseModalities: [Modality.IMAGE],
-                ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
-            },
-        });
-        
-        if (response.promptFeedback?.blockReason) {
-            console.error("Request blocked due to prompt feedback:", JSON.stringify(response.promptFeedback, null, 2));
-            throw new Error('error.api.safetyBlock');
-        }
+      const response = await ai.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts: contentParts }],
+        config: {
+          responseModalities: [Modality.IMAGE],
+          ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
+        },
+      });
 
-        if (!response.candidates || response.candidates.length === 0) {
-            console.error("API response contained no candidates, likely due to a safety block. Full response:", JSON.stringify(response, null, 2));
-            throw new Error('error.api.safetyBlock');
-        }
-
-        const candidate = response.candidates[0];
-
-        const finishReason = candidate.finishReason;
-        if (finishReason === 'SAFETY' || finishReason === 'RECITATION' || finishReason === 'OTHER') {
-            const safetyRatings = candidate.safetyRatings;
-            console.error("Request blocked due to content safety reason:", finishReason, JSON.stringify(safetyRatings, null, 2));
-            throw new Error('error.api.safetyBlock');
-        }
-
-        if (finishReason === 'NO_IMAGE') {
-            console.error("Model could not generate an image. This can happen with complex edits or certain image content.");
-            throw new Error('error.api.noImageGenerated');
-        }
-
-        const content = candidate.content;
-        
-        if (content?.parts && content.parts.length > 0) {
-            for (const part of content.parts) {
-              if (part.inlineData) {
-                return {
-                    base64: part.inlineData.data,
-                    mimeType: part.inlineData.mimeType,
-                };
-              }
-            }
-        }
-        
-        const textResponse = response.text;
-        if (textResponse) {
-            console.error("API response contained text but no image. Text:", textResponse);
-            throw new Error(`error.api.textOnlyResponse:${textResponse}`);
-        }
-
-        if (!content || !content.parts || content.parts.length === 0) {
-            console.error("API response had no content parts. Full response:", JSON.stringify(response, null, 2));
-            throw new Error('error.api.noContent');
-        }
-
-        console.error("API response contained parts but no image and no text. Full response:", JSON.stringify(response, null, 2));
-        throw new Error('error.api.noImageInParts');
+      return extractInlineImagePart(response, { requestedModel: model });
     };
-    
-    const generationPromises = Array.from({ length: numberOfImages }, () => generateSingleImage());
-    return await Promise.all(generationPromises);
 
+    return await Promise.all(Array.from({ length: numberOfImages }, () => generateSingleImage()));
   } catch (error) {
     console.error("Error editing image with Gemini API:", error);
-    const errorMessage = error instanceof Error ? error.message : "error.unknown";
-    throw new Error(errorMessage.startsWith('error.') ? errorMessage : `error.api.geminiFailed:${errorMessage}`);
+    throw createGeminiFailedError(error);
   }
 };
 
-export const generateImageFromText = async (prompt: string, aspectRatio: ImageAspectRatio = '1:1', numberOfImages: number = 1, model: string = 'imagen-4.0-generate-001'): Promise<ImageFile[]> => {
-    const ai = getGeminiClient();
-    try {
-        const response = await ai.models.generateImages({
-            model: model,
-            prompt: prompt,
-            config: {
-                numberOfImages: numberOfImages,
-                outputMimeType: 'image/png',
-                aspectRatio: aspectRatio === 'Default' ? '1:1' : aspectRatio,
-            },
-        });
+export const generateImageFromText = async (
+  prompt: string,
+  aspectRatio: ImageAspectRatio = '1:1',
+  numberOfImages: number = 1,
+  model: string = 'gemini-3.1-flash-image',
+): Promise<GeneratedImageFile[]> => {
+  const ai = getGeminiClient();
 
-        if (!response.generatedImages || response.generatedImages.length === 0) {
-            throw new Error('error.api.noImageInParts');
-        }
+  try {
+    const normalizedAspectRatio = aspectRatio === 'Default' ? '1:1' : aspectRatio;
+    const gatewayRoot = getGatewayRootUrl();
 
-        return response.generatedImages.map(img => ({
-            base64: img.image.imageBytes,
-            mimeType: 'image/png',
-        }));
-
-    } catch (error) {
-        console.error("Error generating image from text with Gemini API:", error);
-        const errorMessage = error instanceof Error ? error.message : "error.unknown";
-        throw new Error(errorMessage.startsWith('error.') ? errorMessage : `error.api.geminiFailed:${errorMessage}`);
+    if (gatewayRoot) {
+      const gatewayResults = await callGatewayImageRoute('/api/images/generate', {
+        model,
+        prompt,
+        aspectRatio: normalizedAspectRatio,
+        numberOfImages,
+      });
+      return gatewayResults.map((image) => ({ ...image, metadata: { requestedModel: model } }));
     }
+
+    if (!isProxyEnabled()) {
+      return await Promise.all(Array.from({ length: numberOfImages }, async () => {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          config: {
+            responseModalities: [Modality.IMAGE],
+            imageConfig: { aspectRatio: normalizedAspectRatio },
+          },
+        });
+        return extractInlineImagePart(response, { requestedModel: model });
+      }));
+    }
+
+    return await Promise.all(Array.from({ length: numberOfImages }, () =>
+      generateProxyImage(prompt, normalizedAspectRatio, model),
+    ));
+  } catch (error) {
+    console.error("Error generating image from text with Gemini API:", error);
+    throw createGeminiFailedError(error);
+  }
 };
 
-export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '2K', prompt?: string, model: string = 'gemini-3.1-flash-image-preview'): Promise<ImageFile> => {
+export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '2K', prompt?: string, model: string = 'gemini-3.1-flash-image'): Promise<ImageFile> => {
   const ai = getGeminiClient();
   try {
+    const gatewayRoot = getGatewayRootUrl();
+    if (gatewayRoot) {
+      const [gatewayImage] = await callGatewayImageRoute('/api/images/upscale', {
+        model,
+        image: {
+          data: image.base64,
+          mimeType: image.mimeType,
+        },
+        quality,
+        prompt,
+      });
+
+      if (!gatewayImage) {
+        throw new Error('error.api.noImageGenerated');
+      }
+
+      return gatewayImage;
+    }
+
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
     const textPart: Part = { text: prompt ?? `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
 
     const response = await ai.models.generateContent({
       model,
-      contents: { parts: [imagePart, textPart] },
+      contents: [{ role: 'user', parts: [imagePart, textPart] }],
       config: {
         responseModalities: [Modality.IMAGE],
-        imageConfig: { imageSize: quality }, // "2K" or "4K" - Gemini 3 format
+        imageConfig: { imageSize: quality },
       },
     });
 
-    if (response.promptFeedback?.blockReason) {
-        console.error("Request blocked due to prompt feedback:", JSON.stringify(response.promptFeedback, null, 2));
-        throw new Error('error.api.safetyBlock');
-    }
-
-    if (!response.candidates || response.candidates.length === 0) {
-        console.error("API response contained no candidates, likely due to a safety block. Full response:", JSON.stringify(response, null, 2));
-        throw new Error('error.api.safetyBlock');
-    }
-
-    const candidate = response.candidates[0];
-
-    const finishReason = candidate.finishReason;
-    if (finishReason === 'SAFETY' || finishReason === 'RECITATION' || finishReason === 'OTHER') {
-        const safetyRatings = candidate.safetyRatings;
-        console.error("Request blocked due to content safety reason:", finishReason, JSON.stringify(safetyRatings, null, 2));
-        throw new Error('error.api.safetyBlock');
-    }
-
-    const content = candidate.content;
-    
-    if (content?.parts && content.parts.length > 0) {
-        for (const part of content.parts) {
-          if (part.inlineData) {
-            return {
-                base64: part.inlineData.data,
-                mimeType: part.inlineData.mimeType,
-            };
-          }
-        }
-    }
-
-    const textResponse = response.text;
-    if (textResponse) {
-        console.error("API response for upscale contained text but no image. Text:", textResponse);
-        throw new Error(`error.api.textOnlyResponse:${textResponse}`);
-    }
-
-    if (!content || !content.parts || content.parts.length === 0) {
-        console.error("API response had no content parts during upscale. Full response:", JSON.stringify(response, null, 2));
-        throw new Error('error.api.noContent');
-    }
-
-    console.error("API response contained parts but no image and no text during upscale. Full response:", JSON.stringify(response, null, 2));
-    throw new Error('error.api.noImageInParts');
-
+    return extractInlineImagePart(response, { requestedModel: model });
   } catch (error) {
     console.error("Error upscaling image with Gemini API:", error);
-    const errorMessage = error instanceof Error ? error.message : "error.unknown";
-    throw new Error(errorMessage.startsWith('error.') ? errorMessage : `error.api.geminiFailed:${errorMessage}`);
+    throw createGeminiFailedError(error);
   }
 };
-

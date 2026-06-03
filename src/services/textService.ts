@@ -88,7 +88,7 @@ export const generateImageDescription = async (
   const startTime = Date.now();
 
   try {
-    const result = await geminiTextService.generateImageDescription(image);
+    const result = await geminiTextService.generateImageDescription(image, model);
 
     logApiCall({
       provider: 'Gemini',
@@ -122,7 +122,7 @@ export const generateClothingDescription = async (
   const startTime = Date.now();
 
   try {
-    const result = await geminiTextService.generateClothingDescription(image);
+    const result = await geminiTextService.generateClothingDescription(image, model);
 
     logApiCall({
       provider: 'Gemini',
@@ -156,7 +156,7 @@ export const generatePoseDescription = async (
   const startTime = Date.now();
 
   try {
-    const result = await geminiTextService.generatePoseDescription(image);
+    const result = await geminiTextService.generatePoseDescription(image, model);
 
     logApiCall({
       provider: 'Gemini',

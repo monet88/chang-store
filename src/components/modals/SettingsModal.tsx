@@ -56,9 +56,21 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
     localImageEditModel,
     localImageGenerateModel,
     localTextGenerateModel,
+    localDirectGeminiApiKey,
+    localVertexProxyEnabled,
+    localVertexProxyUrl,
+    localVertexProxyApiKey,
+    isVertexProxyUrlInvalid,
+    isVertexProxyUrlCustom,
+    isVertexProxyApiKeyMissing,
+    customVertexProxyHost,
     setLocalImageEditModel,
     setLocalImageGenerateModel,
     setLocalTextGenerateModel,
+    setLocalDirectGeminiApiKey,
+    setLocalVertexProxyEnabled,
+    setLocalVertexProxyUrl,
+    setLocalVertexProxyApiKey,
     debugMode,
     handleDebugToggle,
     restoreInputRef,
@@ -136,6 +148,85 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
               </SectionCard>
 
               <SectionCard
+                title={t('settingsModal.sections.vertexProxy.title')}
+                description={t('settingsModal.sections.vertexProxy.description')}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
+                    <div className="min-w-0 space-y-1 pr-2">
+                      <p className={sectionTitleClassName}>{t('settingsModal.vertexProxy.toggleTitle')}</p>
+                      <p className="text-sm leading-6 text-zinc-400">{t('settingsModal.vertexProxy.toggleDescription')}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLocalVertexProxyEnabled(!localVertexProxyEnabled)}
+                      className={`relative h-8 w-14 shrink-0 rounded-full border shadow-inner transition-colors ${localVertexProxyEnabled ? 'border-emerald-400/50 bg-emerald-400/20' : 'border-white/15 bg-zinc-800/80'}`}
+                      aria-pressed={localVertexProxyEnabled}
+                      aria-label={t('settingsModal.vertexProxy.toggleAria')}
+                    >
+                      <span
+                        className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.45)] transition-transform ${localVertexProxyEnabled ? 'translate-x-6' : 'translate-x-0'}`}
+                      />
+                    </button>
+                  </div>
+
+                  <label className="block space-y-2">
+                    <span className={sectionTitleClassName}>{t('settingsModal.vertexProxy.urlLabel')}</span>
+                    <input
+                      aria-label={t('settingsModal.vertexProxy.urlLabel')}
+                      type="url"
+                      value={localVertexProxyUrl}
+                      onChange={(e) => setLocalVertexProxyUrl(e.target.value)}
+                      placeholder="https://chang-store-vertex-gateway-eeqmzij23a-as.a.run.app/gemini or https://cliproxy.monet.uno"
+                      className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
+                    />
+                    {isVertexProxyUrlInvalid && (
+                      <p className="text-xs text-red-400">{t('settingsModal.vertexProxy.urlInvalid')}</p>
+                    )}
+                    {isVertexProxyUrlCustom && customVertexProxyHost && (
+                      <p className="text-xs text-amber-400">
+                        {t('settingsModal.vertexProxy.urlCustomWarning', { host: customVertexProxyHost })}
+                      </p>
+                    )}
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className={sectionTitleClassName}>{t('settingsModal.vertexProxy.directApiKeyLabel')}</span>
+                    <input
+                      aria-label={t('settingsModal.vertexProxy.directApiKeyLabel')}
+                      type="password"
+                      value={localDirectGeminiApiKey}
+                      onChange={(e) => setLocalDirectGeminiApiKey(e.target.value)}
+                      autoComplete="off"
+                      placeholder={t('settingsModal.vertexProxy.directApiKeyPlaceholder')}
+                      className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
+                    />
+                    <p className="text-xs text-zinc-500">{t('settingsModal.vertexProxy.directApiKeyHint')}</p>
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className={sectionTitleClassName}>{t('settingsModal.vertexProxy.apiKeyLabel')}</span>
+                    <input
+                      aria-label={t('settingsModal.vertexProxy.apiKeyLabel')}
+                      type="password"
+                      value={localVertexProxyApiKey}
+                      onChange={(e) => setLocalVertexProxyApiKey(e.target.value)}
+                      autoComplete="off"
+                      placeholder={t('settingsModal.vertexProxy.apiKeyPlaceholder')}
+                      className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
+                    />
+                    {isVertexProxyApiKeyMissing && (
+                      <p className="text-xs text-red-400">{t('settingsModal.vertexProxy.apiKeyMissing')}</p>
+                    )}
+                    <p className="text-xs text-zinc-500">{t('settingsModal.vertexProxy.apiKeyHint')}</p>
+                    <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">
+                      {t('settingsModal.vertexProxy.storageWarning')}
+                    </p>
+                  </label>
+                </div>
+              </SectionCard>
+
+              <SectionCard
                 title={t('settingsModal.sections.cloud.title')}
                 description={t('settingsModal.sections.cloud.description')}
               >
@@ -186,21 +277,19 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                 title={t('settingsModal.sections.developer.title')}
                 description={t('settingsModal.sections.developer.description')}
               >
-                <div className="flex items-center justify-between gap-4 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
-                  <div className="space-y-1">
+                <div className="flex items-center justify-between gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
+                  <div className="min-w-0 space-y-1 pr-2">
                     <p className={sectionTitleClassName}>{t('settingsModal.developer.debugTitle')}</p>
                     <p className="text-sm leading-6 text-zinc-400">{t('settingsModal.developer.debugDescription')}</p>
                   </div>
                   <button
                     onClick={handleDebugToggle}
-                    className={`relative h-7 w-14 rounded-full border transition-colors ${debugMode ? 'border-white/40 bg-white/90' : 'border-white/10 bg-white/[0.08]'
-                      }`}
+                    className={`relative h-8 w-14 shrink-0 rounded-full border shadow-inner transition-colors ${debugMode ? 'border-emerald-400/50 bg-emerald-400/20' : 'border-white/15 bg-zinc-800/80'}`}
                     aria-pressed={debugMode}
                     aria-label={t('settingsModal.developer.toggleDebugAria')}
                   >
                     <span
-                      className={`absolute top-[3px] h-5 w-5 rounded-full bg-[#09090b] transition-transform ${debugMode ? 'translate-x-8' : 'translate-x-1'
-                        }`}
+                      className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.45)] transition-transform ${debugMode ? 'translate-x-6' : 'translate-x-0'}`}
                     />
                   </button>
                 </div>

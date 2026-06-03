@@ -28,6 +28,10 @@ AI-powered virtual fashion studio. React 19 + TypeScript + Vite SPA. Gemini is t
 | Model registry | `src/config/modelRegistry.ts`, `grokModelRegistry.ts`, `gptImageModelRegistry.ts` |
 | Image processing | `src/utils/imageUtils.ts` |
 
+## Codebase Understanding
+
+If you need broader project context, architecture traversal, or cross-file relationships, refer to the existing Understand Anything knowledge graph artifacts in `.understand-anything/` and use the related Understand Anything skills/dashboard before deep exploration.
+
 ## Vite Environment Variables & Deployment (CRITICAL)
 
 **Vite only exposes env vars with `VITE_` prefix to client code.** Non-prefixed vars like `GEMINI_API_KEY` require explicit injection via `vite.config.ts` `define` block.
@@ -162,49 +166,55 @@ If gstack skills aren't working: `cd .claude/skills/gstack && ./setup --prefix`
 Search online for latest documentation via Context7 MCP or web search. Do not hallucinate APIs.
 </important>
 
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+<!-- codegraph:start -->
+# CodeGraph — Code Intelligence
 
-This project is indexed by GitNexus as **chang-store** (4220 symbols, 6950 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
-
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+This repo works better with CodeGraph than GitNexus right now, especially under
+`gateway/`. Use CodeGraph MCP tools as the default semantic navigation layer.
 
 ## Always Do
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+- **Check CodeGraph index health first** with `codegraph_status` when starting a
+  non-trivial code-reading or refactor task.
+- **Before editing a function, class, or method, inspect blast radius** with
+  `codegraph_impact(symbol)` when it resolves cleanly. If impact is ambiguous,
+  at minimum inspect `codegraph_callers(symbol)` and `codegraph_callees(symbol)`
+  and report the direct surface you found.
+- When exploring unfamiliar code, start with `codegraph_search` or
+  `codegraph_context` instead of broad grep.
+- When you need exact symbol detail, use `codegraph_node`.
+- When you need inbound or outbound usage, use `codegraph_callers` and
+  `codegraph_callees`.
+- When you need an end-to-end flow, use `codegraph_trace(from, to)`.
 
 ## Never Do
 
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+- NEVER rely on GitNexus as the primary analysis tool for this repo unless the
+  user explicitly asks for it.
+- NEVER rename symbols with blind find-and-replace when CodeGraph can first show
+  callers, callees, and impact.
+- NEVER skip blast-radius review for shared gateway or service-layer code. If
+  `codegraph_impact` does not resolve, fall back to callers/callees plus
+  targeted file reads before editing.
 
-## Resources
+## Recommended Workflow
 
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/chang-store/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/chang-store/clusters` | All functional areas |
-| `gitnexus://repo/chang-store/processes` | All execution flows |
-| `gitnexus://repo/chang-store/process/{name}` | Step-by-step execution trace |
+1. `codegraph_status` — verify the index is available.
+2. `codegraph_search` — find the symbol or file quickly.
+3. `codegraph_node` — inspect signature and location.
+4. `codegraph_impact` — check likely blast radius when available.
+5. `codegraph_callers` / `codegraph_callees` — confirm direct usage.
+6. `codegraph_trace` — answer concrete flow questions.
 
-## CLI
+## Notes
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+- `codegraph_context` is useful for broad architecture questions, but for this
+  repo it can be noisier than `search + node + callers/callees` on narrow
+  gateway tasks.
+- If CodeGraph misses a known symbol, fall back to targeted `rg` and direct file
+  reads rather than switching the whole workflow to GitNexus.
 
-<!-- gitnexus:end -->
+<!-- codegraph:end -->
 
 ## GBrain Configuration (configured by /setup-gbrain)
 - Engine: postgres

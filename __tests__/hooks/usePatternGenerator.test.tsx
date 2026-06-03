@@ -5,6 +5,7 @@ const addImageMock = vi.fn();
 
 vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
+  generateImage: vi.fn(),
   createImageChatSession: vi.fn(),
 }));
 
@@ -28,6 +29,7 @@ vi.mock('../../src/contexts/ImageGalleryContext', () => ({
 vi.mock('../../src/contexts/ApiProviderContext', () => ({
   useApi: () => ({
     imageEditModel: 'gemini-2.5-flash-image',
+    imageGenerateModel: 'gemini-3.1-flash-image',
     getModelsForFeature: vi.fn(() => ({ imageEditModel: 'gemini-2.5-flash-image' })),
   }),
 }));
@@ -37,7 +39,7 @@ vi.mock('../../src/utils/zipDownload', () => ({
 }));
 
 import { usePatternGenerator } from '../../src/hooks/usePatternGenerator';
-import { editImage, createImageChatSession } from '../../src/services/imageEditingService';
+import { createImageChatSession, editImage } from '../../src/services/imageEditingService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 import { REFINE_CORRECTION } from '../../src/utils/pattern-generator-prompt-builder';
 
@@ -119,6 +121,54 @@ describe('usePatternGenerator', () => {
     expect(addImageMock).toHaveBeenCalledTimes(2);
     expect(addImageMock).toHaveBeenNthCalledWith(1, GENERATED_PATTERN_A);
     expect(addImageMock).toHaveBeenNthCalledWith(2, GENERATED_PATTERN_B);
+  });
+
+  it('sets isLoading while generation is pending', async () => {
+    let resolveGeneration: (images: typeof GENERATED_PATTERN_A[]) => void = () => {};
+    vi.mocked(editImage).mockReturnValueOnce(new Promise((resolve) => {
+      resolveGeneration = resolve;
+    }));
+    const { result } = renderHook(() => usePatternGenerator());
+
+    act(() => {
+      result.current.setReferenceImages([REFERENCE_IMAGE]);
+    });
+
+    act(() => {
+      void result.current.handleGenerate();
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.loadingMessage).toBe('patternGenerator.generatingStatus');
+
+    await act(async () => {
+      resolveGeneration([GENERATED_PATTERN_A]);
+    });
+
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('ignores duplicate generate calls while a generation is pending', async () => {
+    let resolveGeneration: (images: typeof GENERATED_PATTERN_A[]) => void = () => {};
+    vi.mocked(editImage).mockReturnValue(new Promise((resolve) => {
+      resolveGeneration = resolve;
+    }));
+    const { result } = renderHook(() => usePatternGenerator());
+
+    act(() => {
+      result.current.setReferenceImages([REFERENCE_IMAGE]);
+    });
+
+    act(() => {
+      void result.current.handleGenerate();
+      void result.current.handleGenerate();
+    });
+
+    expect(editImage).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveGeneration([GENERATED_PATTERN_A]);
+    });
   });
 
   it('sets error and resets isLoading when editImage rejects', async () => {
