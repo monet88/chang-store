@@ -1,5 +1,18 @@
 import { GoogleGenAI } from "@google/genai";
 
+interface DebuggableGeminiClient {
+  apiClient?: {
+    getBaseUrl?: () => string;
+    setBaseUrl?: (url: string) => void;
+    clientOptions?: {
+      httpOptions?: {
+        baseUrl?: string;
+        apiVersion?: string;
+      };
+    };
+  };
+}
+
 interface GeminiClientConfiguration {
   apiKey: string | null;
   baseUrl: string | null;
@@ -17,20 +30,53 @@ const trimToNull = (value: string | null | undefined): string | null => {
   return trimmedValue ? trimmedValue : null;
 };
 
+const logGeminiClientDebug = (label: string, payload: Record<string, unknown>): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const globalWindow = window as Window & { __DEBUG__?: boolean };
+  if (!globalWindow.__DEBUG__) {
+    return;
+  }
+
+  console.info(`[GeminiClientDebug] ${label}`, payload);
+};
+
+const getGeminiClientDebugState = (client: GoogleGenAI): Record<string, unknown> => {
+  const debugClient = client as GoogleGenAI & DebuggableGeminiClient;
+  const runtimeBaseUrl = debugClient.apiClient?.getBaseUrl?.();
+  const configuredHttpOptions = debugClient.apiClient?.clientOptions?.httpOptions;
+
+  return {
+    runtimeBaseUrl,
+    configuredBaseUrl: configuredHttpOptions?.baseUrl,
+    configuredApiVersion: configuredHttpOptions?.apiVersion,
+  };
+};
+
 const getEnvGeminiApiKey = (): string | null => {
   const envApiKey = process.env.GEMINI_API_KEY?.trim();
   return envApiKey ? envApiKey : null;
 };
 
 const buildGeminiClient = (apiKey: string, baseUrl: string | null): GoogleGenAI => {
-  return new GoogleGenAI({
+  const client = new GoogleGenAI({
     apiKey,
     apiVersion: 'v1beta',
     ...(baseUrl && {
       httpOptions: { baseUrl },
     }),
   });
+
+  if (baseUrl) {
+    const debugClient = client as GoogleGenAI & DebuggableGeminiClient;
+    debugClient.apiClient?.setBaseUrl?.(baseUrl);
+  }
+
+  return client;
 };
+
 
 const getDirectApiKey = (): string => {
   const envApiKey = getEnvGeminiApiKey();
@@ -78,10 +124,20 @@ export function configureGeminiClient({
   customBaseUrl = trimToNull(baseUrl);
   requireExplicitApiKey = Boolean(customBaseUrl) && shouldRequireExplicitApiKey;
   geminiClientInstance = null;
+
+  logGeminiClientDebug('configureGeminiClient', {
+    hasApiKey: Boolean(activeApiKeyOverride),
+    customBaseUrl,
+    requireExplicitApiKey,
+  });
 }
 
 export function isProxyEnabled(): boolean {
   return customBaseUrl !== null;
+}
+
+export function getGeminiBaseUrl(): string | null {
+  return customBaseUrl;
 }
 
 export function getActiveApiKey(): string {
@@ -112,6 +168,19 @@ export function getActiveApiKey(): string {
 export function getGeminiClient(): GoogleGenAI {
   if (!geminiClientInstance) {
     geminiClientInstance = buildGeminiClient(getActiveApiKey(), customBaseUrl);
+    logGeminiClientDebug('createGeminiClient', {
+      customBaseUrl,
+      requireExplicitApiKey,
+      hasActiveApiKeyOverride: Boolean(activeApiKeyOverride),
+      ...getGeminiClientDebugState(geminiClientInstance),
+    });
+  } else {
+    logGeminiClientDebug('reuseGeminiClient', {
+      customBaseUrl,
+      requireExplicitApiKey,
+      hasActiveApiKeyOverride: Boolean(activeApiKeyOverride),
+      ...getGeminiClientDebugState(geminiClientInstance),
+    });
   }
 
   return geminiClientInstance;

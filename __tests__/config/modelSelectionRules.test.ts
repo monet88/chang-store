@@ -34,8 +34,8 @@ describe('model selection rules', () => {
     expect(getModelOptionsBySelectionType('textGenerate')).toHaveLength(3);
   });
 
-  it('preserves existing capability checks for Gemini and Imagen models', () => {
-    expect(getModelCapabilities('gemini-3-pro-image-preview')).toEqual({
+  it('preserves existing capability checks for Gemini image models', () => {
+    expect(getModelCapabilities('gemini-3-pro-image')).toEqual({
       supportsImageSize: true,
       supportsAspectRatio: true,
     });
@@ -45,7 +45,7 @@ describe('model selection rules', () => {
       supportsAspectRatio: true,
     });
 
-    expect(getModelCapabilities('imagen-4.0-generate-001')).toEqual({
+    expect(getModelCapabilities('gemini-3.1-flash-image')).toEqual({
       supportsImageSize: true,
       supportsAspectRatio: true,
     });

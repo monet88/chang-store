@@ -28,8 +28,8 @@ export const editImage = async (
     try {
         let resolvedModel = model;
         if (!resolvedModel) {
-            console.warn('[ImageEditingService] Model is undefined or empty, falling back to gemini-3.1-flash-image-preview');
-            resolvedModel = 'gemini-3.1-flash-image-preview';
+            console.warn('[ImageEditingService] Model is undefined or empty, falling back to gemini-3.1-flash-image');
+            resolvedModel = 'gemini-3.1-flash-image';
         }
         const result = await geminiImageService.editImage({ ...params, model: resolvedModel });
 
@@ -68,12 +68,7 @@ export const generateImage = async (
     const startTime = Date.now();
 
     try {
-    const result: GeneratedImageFile[] = await geminiImageService.generateImageFromText(prompt, aspectRatio, numberOfImages, model);
-
-        const fallbackModel = result.find((image) => image.metadata?.fallbackModel)?.metadata?.fallbackModel;
-        if (fallbackModel) {
-            config.onStatusUpdate(`warning:fallback:${fallbackModel}`);
-        }
+        const result: GeneratedImageFile[] = await geminiImageService.generateImageFromText(prompt, aspectRatio, numberOfImages, model);
 
         logApiCall({
             provider: 'Gemini',

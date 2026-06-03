@@ -4,13 +4,13 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { createImageChatSession, editImage, generateImage, ImageChatSession } from '../services/imageEditingService';
-import { buildPatternGeneratorParts, REFINE_CORRECTION, TASK_PROMPT, TEXT_ONLY_TASK_PROMPT } from '../utils/pattern-generator-prompt-builder';
+import { createImageChatSession, editImage, ImageChatSession } from '../services/imageEditingService';
+import { buildPatternGeneratorParts, REFINE_CORRECTION, TASK_PROMPT } from '../utils/pattern-generator-prompt-builder';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
 export function usePatternGenerator() {
   const { t } = useLanguage();
-  const { imageEditModel, imageGenerateModel } = useApi();
+  const { imageEditModel } = useApi();
   const { addImage } = useImageGallery();
 
   const [referenceImages, setReferenceImages] = useState<ImageFile[]>([]);
@@ -21,25 +21,15 @@ export function usePatternGenerator() {
   const [showTilingPreview, setShowTilingPreview] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
-  const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refinePrompt, setRefinePrompt] = useState('');
   const [isRefining, setIsRefining] = useState(false);
 
   const chatSessionsRef = useRef<Record<number, ImageChatSession>>({});
 
-  const handleStatusUpdate = useCallback(
-    (message: string) => {
-      if (message.startsWith('warning:fallback:')) {
-        const fallbackModel = message.replace('warning:fallback:', '');
-        setWarningMessage(t('patternGenerator.fallbackWarning', { model: fallbackModel }));
-        return;
-      }
-
-      setLoadingMessage(message);
-    },
-    [t],
-  );
+  const handleStatusUpdate = useCallback((message: string) => {
+    setLoadingMessage(message);
+  }, []);
 
   const buildImageServiceConfig = useCallback(
     (onStatusUpdate: (message: string) => void) => ({
@@ -49,7 +39,7 @@ export function usePatternGenerator() {
   );
 
   const canGenerate = (!isLoading && !isRefining)
-    && (referenceImages.length > 0 || prompt.trim().length > 0);
+    && referenceImages.length > 0;
   const canRefine = generatedPatterns.length > 0
     && generatedPatterns[selectedPatternIndex] !== undefined
     && !isRefining
@@ -62,7 +52,7 @@ export function usePatternGenerator() {
 
   const handleGenerate = useCallback(async () => {
     const trimmedPrompt = prompt.trim();
-    if (referenceImages.length === 0 && trimmedPrompt.length === 0) {
+    if (referenceImages.length === 0) {
       setError(t('patternGenerator.inputError'));
       return;
     }
@@ -72,33 +62,24 @@ export function usePatternGenerator() {
     }
 
     setLoadingMessage(t('patternGenerator.generatingStatus'));
-    setWarningMessage(null);
     setError(null);
     chatSessionsRef.current = {};
     setGeneratedPatterns([]);
     setSelectedPatternIndex(0);
 
     try {
-      const results = referenceImages.length > 0
-        ? await editImage(
-          {
-            images: referenceImages,
-            prompt: '',
-            numberOfImages: numImages,
-            aspectRatio: '1:1',
-            resolution: '4K',
-            interleavedParts: buildPatternGeneratorParts(referenceImages, trimmedPrompt ? `${TASK_PROMPT}\n\n${trimmedPrompt}` : TASK_PROMPT),
-          },
-          imageEditModel,
-          buildImageServiceConfig(handleStatusUpdate),
-        )
-        : await generateImage(
-          trimmedPrompt ? `${TEXT_ONLY_TASK_PROMPT}\n\n${trimmedPrompt}` : TEXT_ONLY_TASK_PROMPT,
-          '1:1',
-          numImages,
-          imageGenerateModel,
-          buildImageServiceConfig(handleStatusUpdate),
-        );
+      const results = await editImage(
+        {
+          images: referenceImages,
+          prompt: '',
+          numberOfImages: numImages,
+          aspectRatio: '1:1',
+          resolution: '4K',
+          interleavedParts: buildPatternGeneratorParts(referenceImages, trimmedPrompt ? `${TASK_PROMPT}\n\n${trimmedPrompt}` : TASK_PROMPT),
+        },
+        imageEditModel,
+        buildImageServiceConfig(handleStatusUpdate),
+      );
 
       setGeneratedPatterns(results);
       results.forEach((img) => addImage(img));
@@ -108,7 +89,7 @@ export function usePatternGenerator() {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [referenceImages, prompt, numImages, imageEditModel, imageGenerateModel, buildImageServiceConfig, handleStatusUpdate, addImage, t, isRefining]);
+  }, [referenceImages, prompt, numImages, imageEditModel, buildImageServiceConfig, handleStatusUpdate, addImage, t, isRefining]);
 
   const handleRefine = useCallback(async () => {
     const currentImage = generatedPatterns[selectedPatternIndex];
@@ -180,7 +161,6 @@ export function usePatternGenerator() {
     showTilingPreview,
     isLoading,
     loadingMessage,
-    warningMessage,
     error,
     refinePrompt,
     isRefining,

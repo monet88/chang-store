@@ -147,9 +147,9 @@ export const mockUseApi = (
   const defaults: ApiContextType = {
     googleApiKey: null,
     setGoogleApiKey: vi.fn(),
-    imageEditModel: 'gemini-2.5-flash-image',
+    imageEditModel: 'gemini-3.1-flash-image',
     setImageEditModel: vi.fn(),
-    imageGenerateModel: 'imagen-4.0-generate-001',
+    imageGenerateModel: 'gemini-3.1-flash-image',
     setImageGenerateModel: vi.fn(),
     textGenerateModel: 'gemini-3.5-flash',
     setTextGenerateModel: vi.fn(),
@@ -161,8 +161,8 @@ export const mockUseApi = (
     setVertexProxySettings: vi.fn(),
     /** Default returns all current models */
     getModelsForFeature: vi.fn((_feature: Feature) => ({
-      imageEditModel: overrides.imageEditModel ?? 'gemini-2.5-flash-image',
-      imageGenerateModel: overrides.imageGenerateModel ?? 'imagen-4.0-generate-001',
+      imageEditModel: overrides.imageEditModel ?? 'gemini-3.1-flash-image',
+      imageGenerateModel: overrides.imageGenerateModel ?? 'gemini-3.1-flash-image',
       textGenerateModel: overrides.textGenerateModel ?? 'gemini-3.5-flash',
     })),
   };

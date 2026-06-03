@@ -29,7 +29,7 @@ vi.mock('../../src/contexts/ImageGalleryContext', () => ({
 vi.mock('../../src/contexts/ApiProviderContext', () => ({
   useApi: () => ({
     imageEditModel: 'gemini-2.5-flash-image',
-    imageGenerateModel: 'imagen-4.0-generate-001',
+    imageGenerateModel: 'gemini-3.1-flash-image',
     getModelsForFeature: vi.fn(() => ({ imageEditModel: 'gemini-2.5-flash-image' })),
   }),
 }));
@@ -39,7 +39,7 @@ vi.mock('../../src/utils/zipDownload', () => ({
 }));
 
 import { usePatternGenerator } from '../../src/hooks/usePatternGenerator';
-import { createImageChatSession, editImage, generateImage } from '../../src/services/imageEditingService';
+import { createImageChatSession, editImage } from '../../src/services/imageEditingService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 import { REFINE_CORRECTION } from '../../src/utils/pattern-generator-prompt-builder';
 
@@ -89,49 +89,6 @@ describe('usePatternGenerator', () => {
       'gemini-2.5-flash-image',
       expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
     );
-  });
-
-  it('calls generateImage for text-only pattern generation when no reference image is uploaded', async () => {
-    vi.mocked(generateImage).mockResolvedValueOnce([GENERATED_PATTERN_A]);
-    const { result } = renderHook(() => usePatternGenerator());
-
-    act(() => {
-      result.current.setPrompt('Geometric monochrome weave');
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    expect(generateImage).toHaveBeenCalledWith(
-      expect.stringContaining('Geometric monochrome weave'),
-      '1:1',
-      1,
-      'imagen-4.0-generate-001',
-      expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
-    );
-    expect(editImage).not.toHaveBeenCalled();
-  });
-
-  it('surfaces fallback warnings from text-only generation to the user-facing error state', async () => {
-    vi.mocked(generateImage).mockImplementationOnce(async (_prompt, _aspectRatio, _count, _model, config) => {
-      config.onStatusUpdate('warning:fallback:imagen-4.0-fast-generate-001');
-      return [GENERATED_PATTERN_A];
-    });
-
-    const { result } = renderHook(() => usePatternGenerator());
-
-    act(() => {
-      result.current.setPrompt('Dense floral jacquard');
-    });
-
-    await act(async () => {
-      await result.current.handleGenerate();
-    });
-
-    expect(result.current.warningMessage).toBe('patternGenerator.fallbackWarning');
-    expect(result.current.error).toBeNull();
-    expect(result.current.generatedPatterns).toEqual([GENERATED_PATTERN_A]);
   });
 
   it('numImages is clamped between 1 and 4', () => {

@@ -1,15 +1,13 @@
 
 import { Part, Modality } from "@google/genai";
 import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel, UpscaleQuality } from '../../types';
-import { getGeminiClient, isProxyEnabled } from '../apiClient';
+import { getActiveApiKey, getGeminiBaseUrl, getGeminiClient, isProxyEnabled } from '../apiClient';
 import { getModelCapabilities } from '../../config/modelRegistry';
 
 const PROXY_IMAGE_TIMEOUT_MS = 30_000;
-const PROXY_FAST_FALLBACK_MODEL = 'imagen-4.0-fast-generate-001';
 
 export interface GeneratedImageFile extends ImageFile {
   metadata?: {
-    fallbackModel?: string;
     requestedModel?: string;
   };
 }
@@ -28,11 +26,6 @@ export interface EditImageParams {
 
 const isSafetyFinishReason = (finishReason: string | undefined): boolean =>
   finishReason === 'SAFETY' || finishReason === 'RECITATION' || finishReason === 'OTHER';
-
-const isQuotaError = (errorMessage: string): boolean => {
-  const normalized = errorMessage.toLowerCase();
-  return normalized.includes('429') || normalized.includes('resource_exhausted');
-};
 
 const createGeminiFailedError = (error: unknown): Error => {
   const errorMessage = error instanceof Error ? error.message : 'error.unknown';
@@ -105,6 +98,65 @@ const buildProxyImageRequest = (prompt: string, aspectRatio: ImageAspectRatio) =
   },
 });
 
+const getGatewayRootUrl = (): string | null => {
+  const baseUrl = getGeminiBaseUrl();
+  if (!baseUrl) return null;
+
+  const trimmedBaseUrl = baseUrl.trim().replace(/\/+$/, '');
+  if (!trimmedBaseUrl.endsWith('/gemini')) return null;
+
+  return trimmedBaseUrl.slice(0, -'/gemini'.length);
+};
+
+const toGatewayImage = (dataUrl: string): ImageFile => {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error('error.api.invalidGatewayImage');
+  }
+
+  return {
+    mimeType: match[1],
+    base64: match[2],
+  };
+};
+
+const callGatewayImageRoute = async (
+  path: '/api/images/edit' | '/api/images/generate' | '/api/images/upscale',
+  body: Record<string, unknown>,
+): Promise<ImageFile[]> => {
+  const gatewayRoot = getGatewayRootUrl();
+  if (!gatewayRoot) {
+    throw new Error('error.api.invalidGatewayBaseUrl');
+  }
+
+  const response = await fetch(`${gatewayRoot}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': getActiveApiKey(),
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload = await response.json().catch(() => null) as
+    | { success?: boolean; images?: Array<{ dataUrl?: string }>; error?: { message?: string } }
+    | null;
+
+  if (!response.ok || !payload?.success) {
+    const errorMessage = payload?.error?.message || `Gateway image route failed with status ${response.status}`;
+    throw new Error(errorMessage);
+  }
+
+  if (!Array.isArray(payload.images) || payload.images.length === 0) {
+    throw new Error('error.api.noImageGenerated');
+  }
+
+  return payload.images
+    .map((image) => image.dataUrl)
+    .filter((dataUrl): dataUrl is string => typeof dataUrl === 'string' && dataUrl.length > 0)
+    .map(toGatewayImage);
+};
+
 const generateProxyImage = async (
   prompt: string,
   aspectRatio: ImageAspectRatio,
@@ -113,34 +165,19 @@ const generateProxyImage = async (
   const ai = getGeminiClient();
   const request = buildProxyImageRequest(prompt, aspectRatio);
 
-  try {
-    const response = await ai.models.generateContent({
-      model,
-      ...request,
-    });
+  const response = await ai.models.generateContent({
+    model,
+    ...request,
+  });
 
-    return extractInlineImagePart(response, { requestedModel: model });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'error.unknown';
-    if (model !== PROXY_FAST_FALLBACK_MODEL && isQuotaError(errorMessage)) {
-      const fallbackResponse = await ai.models.generateContent({
-        model: PROXY_FAST_FALLBACK_MODEL,
-        ...request,
-      });
-      return extractInlineImagePart(fallbackResponse, {
-        requestedModel: model,
-        fallbackModel: PROXY_FAST_FALLBACK_MODEL,
-      });
-    }
-
-    throw error;
-  }
+  return extractInlineImagePart(response, { requestedModel: model });
 };
 
-export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-image', aspectRatio, resolution, negativePrompt, numberOfImages = 1, interleavedParts }: EditImageParams): Promise<ImageFile[]> => {
+export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-image', aspectRatio, resolution, negativePrompt, numberOfImages = 1, interleavedParts }: EditImageParams): Promise<ImageFile[]> => {
   const ai = getGeminiClient();
   try {
     let contentParts: Part[];
+    let finalPrompt = prompt;
     if (interleavedParts && interleavedParts.length > 0) {
       contentParts = interleavedParts;
     } else {
@@ -151,12 +188,28 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
         },
       }));
 
-      let finalPrompt = prompt;
       if (negativePrompt?.trim()) {
         finalPrompt += ` Negative prompt: strictly avoid including ${negativePrompt.trim()}.`;
       }
 
       contentParts = [...imageParts, { text: finalPrompt }];
+    }
+
+    const gatewayRoot = getGatewayRootUrl();
+    if (gatewayRoot && !interleavedParts) {
+      const gatewayImages = images.map((image) => ({
+        data: image.base64,
+        mimeType: image.mimeType,
+      }));
+
+      return callGatewayImageRoute('/api/images/edit', {
+        model,
+        images: gatewayImages,
+        prompt: finalPrompt,
+        aspectRatio,
+        resolution,
+        numberOfImages,
+      });
     }
 
     const generateSingleImage = async (): Promise<ImageFile> => {
@@ -172,7 +225,7 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
 
       const response = await ai.models.generateContent({
         model,
-        contents: { parts: contentParts },
+        contents: [{ role: 'user', parts: contentParts }],
         config: {
           responseModalities: [Modality.IMAGE],
           ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
@@ -182,8 +235,12 @@ export const editImage = async ({ images, prompt, model = 'gemini-2.5-flash-imag
       return extractInlineImagePart(response, { requestedModel: model });
     };
 
-    const generationPromises = Array.from({ length: numberOfImages }, () => generateSingleImage());
-    return await Promise.all(generationPromises);
+    const results: ImageFile[] = [];
+    for (let index = 0; index < numberOfImages; index += 1) {
+      results.push(await generateSingleImage());
+    }
+
+    return results;
   } catch (error) {
     console.error("Error editing image with Gemini API:", error);
     throw createGeminiFailedError(error);
@@ -194,34 +251,41 @@ export const generateImageFromText = async (
   prompt: string,
   aspectRatio: ImageAspectRatio = '1:1',
   numberOfImages: number = 1,
-  model: string = 'imagen-4.0-generate-001',
+  model: string = 'gemini-3.1-flash-image',
 ): Promise<GeneratedImageFile[]> => {
   const ai = getGeminiClient();
 
   try {
-    if (!isProxyEnabled()) {
-      const response = await ai.models.generateImages({
-        model,
-        prompt,
-        config: {
-          numberOfImages,
-          outputMimeType: 'image/png',
-          aspectRatio: aspectRatio === 'Default' ? '1:1' : aspectRatio,
-        },
-      });
-
-      if (!response.generatedImages || response.generatedImages.length === 0) {
-        throw new Error('error.api.noImageInParts');
-      }
-
-      return response.generatedImages.map((img) => ({
-        base64: img.image.imageBytes,
-        mimeType: 'image/png',
-      }));
-    }
-
     const normalizedAspectRatio = aspectRatio === 'Default' ? '1:1' : aspectRatio;
     const results: GeneratedImageFile[] = [];
+
+    const gatewayRoot = getGatewayRootUrl();
+
+    if (gatewayRoot) {
+      const gatewayResults = await callGatewayImageRoute('/api/images/generate', {
+        model,
+        prompt,
+        aspectRatio: normalizedAspectRatio,
+        numberOfImages,
+      });
+      return gatewayResults.map((image) => ({ ...image, metadata: { requestedModel: model } }));
+    }
+
+    if (!isProxyEnabled()) {
+      for (let index = 0; index < numberOfImages; index += 1) {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          config: {
+            responseModalities: [Modality.IMAGE],
+            imageConfig: { aspectRatio: normalizedAspectRatio },
+          },
+        });
+        results.push(extractInlineImagePart(response, { requestedModel: model }));
+      }
+
+      return results;
+    }
 
     for (let index = 0; index < numberOfImages; index += 1) {
       results.push(await generateProxyImage(prompt, normalizedAspectRatio, model));
@@ -234,15 +298,34 @@ export const generateImageFromText = async (
   }
 };
 
-export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '2K', prompt?: string, model: string = 'gemini-3.1-flash-image-preview'): Promise<ImageFile> => {
+export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '2K', prompt?: string, model: string = 'gemini-3.1-flash-image'): Promise<ImageFile> => {
   const ai = getGeminiClient();
   try {
+    const gatewayRoot = getGatewayRootUrl();
+    if (gatewayRoot) {
+      const [gatewayImage] = await callGatewayImageRoute('/api/images/upscale', {
+        model,
+        image: {
+          data: image.base64,
+          mimeType: image.mimeType,
+        },
+        quality,
+        prompt,
+      });
+
+      if (!gatewayImage) {
+        throw new Error('error.api.noImageGenerated');
+      }
+
+      return gatewayImage;
+    }
+
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
     const textPart: Part = { text: prompt ?? `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
 
     const response = await ai.models.generateContent({
       model,
-      contents: { parts: [imagePart, textPart] },
+      contents: [{ role: 'user', parts: [imagePart, textPart] }],
       config: {
         responseModalities: [Modality.IMAGE],
         imageConfig: { imageSize: quality },

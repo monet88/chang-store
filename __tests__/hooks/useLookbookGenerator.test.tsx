@@ -857,7 +857,7 @@ describe('useLookbookGenerator', () => {
       });
 
       expect(createImageChatSession).toHaveBeenCalledWith(
-        'gemini-2.5-flash-image',
+        'gemini-3.1-flash-image',
         expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
       );
       expect(refineSessionMock.sendRefinement).toHaveBeenCalledWith('make it sharper', GENERATED_IMAGE);

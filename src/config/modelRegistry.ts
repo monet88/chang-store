@@ -19,10 +19,6 @@ const CAPABILITY_RULES = [
     capabilities: { supportsImageSize: true, supportsAspectRatio: true },
   },
   {
-    pattern: /imagen-[34]/,
-    capabilities: { supportsImageSize: true, supportsAspectRatio: true },
-  },
-  {
     pattern: /gemini-2\.5/,
     capabilities: { supportsImageSize: false, supportsAspectRatio: true },
   },
@@ -36,15 +32,15 @@ const DEFAULT_CAPABILITIES: ModelCapability = {
 const IMAGE_EDIT_MODELS: RegisteredModel[] = [
   {
     providerId: 'google',
-    modelId: 'gemini-3-pro-image-preview',
-    label: 'Gemini 3 Pro Image (Preview)',
+    modelId: 'gemini-3-pro-image',
+    label: 'Gemini 3 Pro Image',
     selectionType: 'imageEdit',
     capabilities: { supportsImageSize: true, supportsAspectRatio: true },
   },
   {
     providerId: 'google',
-    modelId: 'gemini-3.1-flash-image-preview',
-    label: 'Gemini 3.1 Flash Image (Preview)',
+    modelId: 'gemini-3.1-flash-image',
+    label: 'Gemini 3.1 Flash Image',
     selectionType: 'imageEdit',
     capabilities: { supportsImageSize: true, supportsAspectRatio: true },
   },
@@ -60,32 +56,32 @@ const IMAGE_EDIT_MODELS: RegisteredModel[] = [
 const IMAGE_GENERATE_MODELS: RegisteredModel[] = [
   {
     providerId: 'google',
-    modelId: 'imagen-4.0-ultra-generate-001',
-    label: 'Imagen 4 Ultra',
+    modelId: 'gemini-3-pro-image',
+    label: 'Gemini 3 Pro Image',
     selectionType: 'imageGenerate',
     capabilities: { supportsImageSize: true, supportsAspectRatio: true },
   },
   {
     providerId: 'google',
-    modelId: 'imagen-4.0-generate-001',
-    label: 'Imagen 4',
+    modelId: 'gemini-3.1-flash-image',
+    label: 'Gemini 3.1 Flash Image',
     selectionType: 'imageGenerate',
     capabilities: { supportsImageSize: true, supportsAspectRatio: true },
   },
   {
     providerId: 'google',
-    modelId: 'imagen-4.0-fast-generate-001',
-    label: 'Imagen 4 Fast',
+    modelId: 'gemini-2.5-flash-image',
+    label: 'Gemini 2.5 Flash Image',
     selectionType: 'imageGenerate',
-    capabilities: { supportsImageSize: true, supportsAspectRatio: true },
+    capabilities: { supportsImageSize: false, supportsAspectRatio: true },
   },
 ];
 
 const TEXT_GENERATE_MODELS: RegisteredModel[] = [
   {
     providerId: 'google',
-    modelId: 'gemini-3.1-pro',
-    label: 'Gemini 3.1 Pro',
+    modelId: 'gemini-3.1-pro-preview',
+    label: 'Gemini 3.1 Pro (Preview)',
     selectionType: 'textGenerate',
   },
   {
@@ -96,8 +92,8 @@ const TEXT_GENERATE_MODELS: RegisteredModel[] = [
   },
   {
     providerId: 'google',
-    modelId: 'gemini-3.1-flash-lite-preview',
-    label: 'Gemini 3.1 Flash-Lite (Preview)',
+    modelId: 'gemini-3.1-flash-lite',
+    label: 'Gemini 3.1 Flash-Lite',
     selectionType: 'textGenerate',
   },
 ];
@@ -109,8 +105,8 @@ export const MODEL_REGISTRY: RegisteredModel[] = [
 ];
 
 export const DEFAULT_MODEL_BY_SELECTION_TYPE: Record<ModelSelectionType, string> = {
-  imageEdit: 'gemini-3.1-flash-image-preview',
-  imageGenerate: 'imagen-4.0-generate-001',
+  imageEdit: 'gemini-3.1-flash-image',
+  imageGenerate: 'gemini-3.1-flash-image',
   textGenerate: 'gemini-3.5-flash',
 };
 

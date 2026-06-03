@@ -65,9 +65,9 @@ their own provider services (`src/services/providers/*`). See
 
 Three model selection types managed by `ApiProviderContext`:
 
-- **imageEdit** — models for editing existing images (Gemini 3 Pro Image, etc.)
-- **imageGenerate** — models for generating new images (Imagen 4, etc.)
-- **textGenerate** — models for text/prompt generation (Gemini 2.5 Flash, etc.)
+- **imageEdit** — Gemini image models for editing existing images; default `gemini-3.1-flash-image`
+- **imageGenerate** — Gemini image models for generating new images; default `gemini-3.1-flash-image`
+- **textGenerate** — Gemini text models for prompt generation; default `gemini-3.5-flash`
 
 Model registry at `src/config/modelRegistry.ts` defines capabilities per model
 (aspect ratio support, image size support).

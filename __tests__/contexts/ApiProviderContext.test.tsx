@@ -129,8 +129,8 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image-preview');
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
+      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image');
+      expect(result.current.imageGenerateModel).toBe('gemini-3.1-flash-image');
       expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
     });
 
@@ -159,7 +159,7 @@ describe('ApiProviderContext', () => {
     it('loads model selections from localStorage on mount when valid', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {
         if (key === 'image_edit_model') return 'gemini-2.5-flash-image';
-        if (key === 'image_generate_model') return 'imagen-4.0-ultra-generate-001';
+        if (key === 'image_generate_model') return 'gemini-3-pro-image';
         if (key === 'text_generate_model') return 'gemini-3.5-flash';
         return null;
       });
@@ -172,7 +172,7 @@ describe('ApiProviderContext', () => {
       expect(localStorageMock.getItem).toHaveBeenCalledWith('image_generate_model');
       expect(localStorageMock.getItem).toHaveBeenCalledWith('text_generate_model');
       expect(result.current.imageEditModel).toBe('gemini-2.5-flash-image');
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
+      expect(result.current.imageGenerateModel).toBe('gemini-3-pro-image');
       expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
     });
 
@@ -188,11 +188,11 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image-preview');
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
+      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image');
+      expect(result.current.imageGenerateModel).toBe('gemini-3.1-flash-image');
       expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-3.1-flash-image-preview');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'imagen-4.0-generate-001');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-3.1-flash-image');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'gemini-3.1-flash-image');
       expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3.5-flash');
     });
   });
@@ -261,10 +261,10 @@ describe('ApiProviderContext', () => {
       });
 
       act(() => {
-        result.current.setImageGenerateModel('imagen-4.0-ultra-generate-001');
+        result.current.setImageGenerateModel('gemini-3-pro-image');
       });
 
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
+      expect(result.current.imageGenerateModel).toBe('gemini-3-pro-image');
     });
 
     it('setTextGenerateModel updates textGenerateModel', () => {
@@ -286,12 +286,12 @@ describe('ApiProviderContext', () => {
 
       act(() => {
         result.current.setImageEditModel('gemini-2.5-flash-image');
-        result.current.setImageGenerateModel('imagen-4.0-ultra-generate-001');
+        result.current.setImageGenerateModel('gemini-3-pro-image');
         result.current.setTextGenerateModel('gemini-3.5-flash');
       });
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-2.5-flash-image');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'imagen-4.0-ultra-generate-001');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'gemini-3-pro-image');
       expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3.5-flash');
     });
 
@@ -302,12 +302,12 @@ describe('ApiProviderContext', () => {
 
       act(() => {
         firstMount.result.current.setImageEditModel('gemini-2.5-flash-image');
-        firstMount.result.current.setImageGenerateModel('imagen-4.0-ultra-generate-001');
+        firstMount.result.current.setImageGenerateModel('gemini-3-pro-image');
         firstMount.result.current.setTextGenerateModel('gemini-3.5-flash');
       });
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-2.5-flash-image');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'imagen-4.0-ultra-generate-001');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'gemini-3-pro-image');
       expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3.5-flash');
 
       firstMount.unmount();
@@ -323,7 +323,7 @@ describe('ApiProviderContext', () => {
       expect(localStorageMock.getItem).toHaveBeenCalledWith('image_generate_model');
       expect(localStorageMock.getItem).toHaveBeenCalledWith('text_generate_model');
       expect(secondMount.result.current.imageEditModel).toBe('gemini-2.5-flash-image');
-      expect(secondMount.result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
+      expect(secondMount.result.current.imageGenerateModel).toBe('gemini-3-pro-image');
       expect(secondMount.result.current.textGenerateModel).toBe('gemini-3.5-flash');
     });
 
@@ -359,8 +359,8 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image-preview');
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-generate-001');
+      expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image');
+      expect(result.current.imageGenerateModel).toBe('gemini-3.1-flash-image');
       expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
       expect(result.current.googleApiKey).toBeNull();
     });
@@ -378,13 +378,13 @@ describe('ApiProviderContext', () => {
       expect(() => {
         act(() => {
           result.current.setImageEditModel('gemini-2.5-flash-image');
-          result.current.setImageGenerateModel('imagen-4.0-ultra-generate-001');
+          result.current.setImageGenerateModel('gemini-3-pro-image');
           result.current.setTextGenerateModel('gemini-3.5-flash');
         });
       }).not.toThrow();
 
       expect(result.current.imageEditModel).toBe('gemini-2.5-flash-image');
-      expect(result.current.imageGenerateModel).toBe('imagen-4.0-ultra-generate-001');
+      expect(result.current.imageGenerateModel).toBe('gemini-3-pro-image');
       expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
       expect(consoleWarnSpy).toHaveBeenCalled();
 

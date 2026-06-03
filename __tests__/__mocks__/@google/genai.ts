@@ -11,21 +11,10 @@ import { vi } from 'vitest';
  *
  * Returns a mock instance with stubbed methods for:
  * - models.generateContent - Text/multimodal content generation
- * - models.generateImages - Image generation (Imagen)
- * - models.generateVideos - Video generation (Veo)
- * - operations.getVideosOperation - Video operation status polling
  */
 export const GoogleGenAI = vi.fn().mockImplementation(() => ({
   models: {
     /** Mock for text/multimodal content generation */
     generateContent: vi.fn(),
-    /** Mock for image generation (Imagen models) */
-    generateImages: vi.fn(),
-    /** Mock for video generation (Veo models) */
-    generateVideos: vi.fn(),
-  },
-  operations: {
-    /** Mock for polling video generation operation status */
-    getVideosOperation: vi.fn(),
   },
 }));

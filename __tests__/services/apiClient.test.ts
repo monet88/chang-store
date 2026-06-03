@@ -31,11 +31,6 @@ vi.mock('@google/genai', () => {
     this.config = config;
     this.models = {
       generateContent: vi.fn(),
-      generateImages: vi.fn(),
-      generateVideos: vi.fn(),
-    };
-    this.operations = {
-      getVideosOperation: vi.fn(),
     };
 
     // Track for assertions

@@ -12,7 +12,7 @@ dependencies: [1, 2]
 ## Context links
 
 - `src/services/gemini/image.ts:134-161`
-- `docs/api/vertex-ai-api-guide.md:133-185`
+- `docs/api/cliproxy-vertex-ai-api-guide.md`
 - `implementation_plan.md:78-97`
 
 ## Overview

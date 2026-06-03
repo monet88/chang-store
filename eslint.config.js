@@ -23,6 +23,8 @@ export default [
       '.kiro/**',
       '.impeccable/**',
       '.github/**',
+      '.ref/**',
+      'gateway/compiled/**',
     ],
   },
   js.configs.recommended,

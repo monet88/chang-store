@@ -215,8 +215,8 @@ describe('useSettingsModal', () => {
     });
 
     expect(setGoogleApiKeyMock).toHaveBeenCalledWith(null);
-    expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-2.5-flash-image');
-    expect(setImageGenerateModelMock).toHaveBeenCalledWith('imagen-4.0-generate-001');
+    expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-3.1-flash-image');
+    expect(setImageGenerateModelMock).toHaveBeenCalledWith('gemini-3.1-flash-image');
     expect(setTextGenerateModelMock).toHaveBeenCalledWith('gemini-3.5-flash');
     expect(onCloseMock).toHaveBeenCalled();
   });
@@ -429,9 +429,9 @@ describe('useSettingsModal', () => {
 
     // Mutate the API mock to return a different value, then rerender.
     // The wasOpenRef guard at line 105 blocks re-initialization.
-    apiOverrides.imageEditModel = 'gemini-3-pro-image-preview';
+    apiOverrides.imageEditModel = 'gemini-3-pro-image';
 
-    rerender({ imageEditModel: 'gemini-3-pro-image-preview' });
+    rerender({ imageEditModel: 'gemini-3-pro-image' });
 
     // Local state must NOT be overwritten because wasOpenRef is true
     expect(result.current.localImageEditModel).toBe('custom-changed-model');

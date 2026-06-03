@@ -16,7 +16,6 @@ const PatternGenerator: React.FC = () => {
     showTilingPreview,
     isLoading,
     loadingMessage,
-    warningMessage,
     error,
     refinePrompt,
     isRefining,
@@ -118,17 +117,6 @@ const PatternGenerator: React.FC = () => {
 
       <div className="sticky top-8">
         <div className="relative w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-4 flex flex-col gap-4">
-          {warningMessage && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-              <div className="flex items-start justify-between gap-3">
-                <span>{warningMessage}</span>
-                <button type="button" onClick={() => setError(null)} className="text-xs text-amber-100 hover:text-white">
-                  {t('common.close')}
-                </button>
-              </div>
-            </div>
-          )}
-
           {error && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
               <div className="flex items-start justify-between gap-3">

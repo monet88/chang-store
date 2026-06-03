@@ -85,3 +85,6 @@ audit-*.png
 cloudflare-tunnel
 .workflow/
 skills-lock.json
+.ref/
+gateway/compiled/
+gateway/.env

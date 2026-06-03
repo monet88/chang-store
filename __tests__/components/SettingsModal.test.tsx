@@ -53,9 +53,9 @@ vi.mock('@/contexts/LanguageContext', () => ({
 
 vi.mock('@/contexts/ApiProviderContext', () => ({
   useApi: () => ({
-    imageEditModel: 'gemini-3.1-flash-image-preview',
+    imageEditModel: 'gemini-3.1-flash-image',
     setImageEditModel: vi.fn(),
-    imageGenerateModel: 'imagen-4.0-generate-001',
+    imageGenerateModel: 'gemini-3.1-flash-image',
     setImageGenerateModel: vi.fn(),
     textGenerateModel: 'gemini-3.5-flash',
     setTextGenerateModel: vi.fn(),
@@ -115,9 +115,9 @@ describe('SettingsModal', () => {
     expect(within(imageEditSelect).getAllByRole('option')).toHaveLength(getModelOptionsBySelectionType('imageEdit').length);
     expect(within(imageGenerateSelect).getAllByRole('option')).toHaveLength(getModelOptionsBySelectionType('imageGenerate').length);
 
-    expect(screen.getByRole('option', { name: 'Gemini 3.1 Flash Image (Preview)' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Imagen 4 Ultra' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Gemini 3.5 Flash' })).toBeInTheDocument();
+    expect(within(imageEditSelect).getByRole('option', { name: 'Gemini 3.1 Flash Image' })).toBeInTheDocument();
+    expect(within(imageGenerateSelect).getByRole('option', { name: 'Gemini 3 Pro Image' })).toBeInTheDocument();
+    expect(within(textSelect).getByRole('option', { name: 'Gemini 3.5 Flash' })).toBeInTheDocument();
     expect(screen.getByLabelText('Proxy URL')).toHaveValue('https://cliproxy.monet.uno');
     expect(screen.getByLabelText('Proxy API key')).toHaveValue('');
   });

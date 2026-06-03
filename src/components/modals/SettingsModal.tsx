@@ -152,20 +152,20 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                 description={t('settingsModal.sections.vertexProxy.description')}
               >
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-4 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
-                    <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
+                    <div className="min-w-0 space-y-1 pr-2">
                       <p className={sectionTitleClassName}>{t('settingsModal.vertexProxy.toggleTitle')}</p>
                       <p className="text-sm leading-6 text-zinc-400">{t('settingsModal.vertexProxy.toggleDescription')}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setLocalVertexProxyEnabled(!localVertexProxyEnabled)}
-                      className={`relative h-7 w-14 rounded-full border transition-colors ${localVertexProxyEnabled ? 'border-white/40 bg-white/90' : 'border-white/10 bg-white/[0.08]'}`}
+                      className={`relative h-8 w-14 shrink-0 rounded-full border shadow-inner transition-colors ${localVertexProxyEnabled ? 'border-emerald-400/50 bg-emerald-400/20' : 'border-white/15 bg-zinc-800/80'}`}
                       aria-pressed={localVertexProxyEnabled}
                       aria-label={t('settingsModal.vertexProxy.toggleAria')}
                     >
                       <span
-                        className={`absolute top-[3px] h-5 w-5 rounded-full bg-[#09090b] transition-transform ${localVertexProxyEnabled ? 'translate-x-8' : 'translate-x-1'}`}
+                        className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.45)] transition-transform ${localVertexProxyEnabled ? 'translate-x-6' : 'translate-x-0'}`}
                       />
                     </button>
                   </div>
@@ -177,7 +177,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                       type="url"
                       value={localVertexProxyUrl}
                       onChange={(e) => setLocalVertexProxyUrl(e.target.value)}
-                      placeholder="https://cliproxy.monet.uno"
+                      placeholder="https://cliproxy.monet.uno or http://localhost:19088/gemini"
                       className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
                     />
                     {isVertexProxyUrlInvalid && (
@@ -277,21 +277,19 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                 title={t('settingsModal.sections.developer.title')}
                 description={t('settingsModal.sections.developer.description')}
               >
-                <div className="flex items-center justify-between gap-4 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
-                  <div className="space-y-1">
+                <div className="flex items-center justify-between gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
+                  <div className="min-w-0 space-y-1 pr-2">
                     <p className={sectionTitleClassName}>{t('settingsModal.developer.debugTitle')}</p>
                     <p className="text-sm leading-6 text-zinc-400">{t('settingsModal.developer.debugDescription')}</p>
                   </div>
                   <button
                     onClick={handleDebugToggle}
-                    className={`relative h-7 w-14 rounded-full border transition-colors ${debugMode ? 'border-white/40 bg-white/90' : 'border-white/10 bg-white/[0.08]'
-                      }`}
+                    className={`relative h-8 w-14 shrink-0 rounded-full border shadow-inner transition-colors ${debugMode ? 'border-emerald-400/50 bg-emerald-400/20' : 'border-white/15 bg-zinc-800/80'}`}
                     aria-pressed={debugMode}
                     aria-label={t('settingsModal.developer.toggleDebugAria')}
                   >
                     <span
-                      className={`absolute top-[3px] h-5 w-5 rounded-full bg-[#09090b] transition-transform ${debugMode ? 'translate-x-8' : 'translate-x-1'
-                        }`}
+                      className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.45)] transition-transform ${debugMode ? 'translate-x-6' : 'translate-x-0'}`}
                     />
                   </button>
                 </div>
