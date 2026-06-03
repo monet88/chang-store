@@ -10,7 +10,7 @@ import { applyCors } from './lib/cors.js';
 import { readJsonBody } from './lib/read-json.js';
 import type { GenAiFactory } from './lib/google-genai-client.js';
 import { createGoogleGenAiClient } from './lib/google-genai-client.js';
-import { healthResponse, readyResponse } from './routes/health-routes.js';
+import { healthResponse, readyResponse, rootResponse } from './routes/health-routes.js';
 import { runCustomImageRoute } from './routes/custom-image-routes.js';
 import { runGeminiCompatibleRoute } from './routes/gemini-compatible-routes.js';
 import { runOpenAiCompatibleRoute } from './routes/openai-compatible-routes.js';
@@ -38,8 +38,11 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: Ap
       }
 
       const url = new URL(req.url ?? '/', 'http://gateway.local');
-      const route = classifyRoute(req.method ?? 'GET', url.pathname);
 
+      if (req.method === 'GET' && url.pathname === '/') {
+        sendJson(res, 200, rootResponse());
+        return;
+      }
       if (url.pathname === '/healthz') {
         sendJson(res, 200, healthResponse());
         return;
@@ -49,6 +52,7 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: Ap
         return;
       }
 
+      const route = classifyRoute(req.method ?? 'GET', url.pathname);
       requireGatewayAuth(req, config);
       const body = req.method === 'GET'
         ? {}

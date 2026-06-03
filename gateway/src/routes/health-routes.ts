@@ -1,6 +1,21 @@
 import type { GatewayConfig } from '../config/env.js';
 import { getGoogleAuthStatus } from '../auth/google-auth.js';
 
+export const rootResponse = () => ({
+  endpoints: [
+    'GET /',
+    'GET /readyz',
+    'GET /gemini/v1beta/models',
+    'POST /gemini/v1beta/models/{model}:generateContent',
+    'POST /gemini/v1beta/models/{model}:streamGenerateContent',
+    'GET /openai/v1/models',
+    'POST /openai/v1/chat/completions',
+    'POST /vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:generateContent',
+    'POST /vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:streamGenerateContent',
+  ],
+  message: 'Chang Store Vertex Gateway',
+});
+
 export const healthResponse = () => ({
   ok: true,
   service: 'chang-store-vertex-gateway',
