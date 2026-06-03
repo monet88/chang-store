@@ -4,6 +4,7 @@ export type GatewayErrorCode =
   | 'AUTH_INVALID'
   | 'CORS_DENIED'
   | 'NOT_FOUND'
+  | 'NOT_IMPLEMENTED'
   | 'METHOD_NOT_ALLOWED'
   | 'VALIDATION_FAILED'
   | 'PAYLOAD_TOO_LARGE'

@@ -32,14 +32,17 @@ Validation layers:
 
 1. Unit tests for translators.
 2. Integration tests using local `createApp`.
-3. Local SDK smoke scripts.
-4. Cloud Run smoke after deploy.
-5. Abuse-control and CORS policy checks.
-6. Docs and rollout notes.
+3. Current focused local coverage for Gemini/Vertex stream branches.
+4. Local SDK smoke scripts.
+5. Cloud Run smoke after deploy.
+6. Abuse-control and CORS policy checks.
+7. Docs and rollout notes.
 
 ## Related Code Files
 
-- Modify: `gateway/test/*`
+- Existing: `gateway/test/streaming-routes.test.ts`
+- Existing: `gateway/test/openai-compatible-routes.test.ts`
+- Modify/extend: `gateway/test/*`
 - Create: `gateway/test/openai-sdk-smoke.test.ts` or script equivalent if SDK
   test is too heavy for Vitest.
 - Modify: `gateway/package.json` to add `openai` as a dev dependency, or document
@@ -54,11 +57,12 @@ Validation layers:
 
 ## Implementation Steps
 
-1. Run focused gateway tests:
+1. Run focused gateway tests, including current and future coverage:
    - request classifier
    - OpenAI chat completions
    - OpenAI responses
-   - Gemini/Vertex stream routes
+   - Gemini/Vertex stream routes in `gateway/test/streaming-routes.test.ts`
+   - CORS and root metadata routes touched after this plan was created
 2. Run gateway gates:
    - `npm --prefix gateway run compile`
    - `npm --prefix gateway run test`
@@ -66,7 +70,7 @@ Validation layers:
    - `npx tsc --noEmit`
    - `npm run lint`
    - `npm run test` if implementation touched shared app code
-4. Add local SDK smoke examples:
+4. Add or rerun local SDK smoke examples:
    - OpenAI `chat.completions.create({ stream: true })`
    - OpenAI `responses.create({ model, input })`
    - OpenAI `responses.create({ stream: true })`
@@ -109,6 +113,8 @@ Validation layers:
 - [ ] Local SDK smoke succeeds for OpenAI Chat streaming and Responses.
 - [ ] Local SDK smoke succeeds for Gemini/Vertex stream routes or explicitly
       documents credential-gated coverage repeated after deploy.
+- [x] Focused local Gemini/Vertex stream route tests exist for SSE headers,
+      upstream chunk forwarding, `[DONE]`, and disconnect cleanup.
 - [ ] Cloud Run custom-domain smoke succeeds after deployment.
 - [ ] Deployed smoke covers Responses streaming, Gemini streaming, and Vertex
       streaming where configured.

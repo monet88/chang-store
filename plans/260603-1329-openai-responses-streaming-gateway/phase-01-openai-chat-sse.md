@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "OpenAI Chat SSE"
-status: pending
+status: completed
 priority: P1
 effort: "1d"
 dependencies: [0]
@@ -11,9 +11,11 @@ dependencies: [0]
 
 ## Overview
 
-Make the existing OpenAI-compatible Chat Completions route support
-`stream: true` with `text/event-stream`, while preserving the current
-non-streaming route behavior.
+OpenAI-compatible Chat Completions now support `stream: true` with
+`text/event-stream`, while preserving the existing non-streaming response path.
+The implementation deliberately keeps Phase 1 to the text-first subset: one
+choice, no streaming tool-call deltas, and explicit pre-header rejection for
+unsupported risky features.
 
 ## Requirements
 
@@ -61,7 +63,7 @@ document the residual upstream-cancellation limitation.
 
 ## Related Code Files
 
-- Create: `gateway/src/lib/sse.ts`
+- Reuse/extend: `gateway/src/http/sse-response.ts`
 - Modify: `gateway/src/lib/google-genai-client.ts`
 - Modify: `gateway/src/routes/openai-compatible-routes.ts`
 - Modify: `gateway/src/app.ts`
@@ -69,14 +71,16 @@ document the residual upstream-cancellation limitation.
 
 ## Implementation Steps
 
-1. Use CodeGraph to re-check `createApp`, `runOpenAiCompatibleRoute`, and
+1. Done: used CodeGraph to re-check `createApp`, `runOpenAiCompatibleRoute`, and
    `GenAiClient` call surfaces.
-2. Add `GenAiClient.models.generateContentStream` and implement it through
-   `@google/genai` using the Phase 0 verified `config` request shape.
-3. Add `gateway/src/lib/sse.ts` for headers and `data:` framing.
-4. Split OpenAI chat handling into non-streaming and streaming functions without
-   changing existing non-streaming output shape.
-5. Convert each Gemini stream chunk into an OpenAI
+2. Done: reuse `GenAiClient.models.generateContentStream` with the Phase 0
+   verified `config` request shape.
+3. Done: extended `gateway/src/http/sse-response.ts` with reusable JSON,
+   error, and done SSE helpers plus iterator cleanup and post-header error
+   ownership.
+4. Done: split OpenAI chat handling into non-streaming and streaming functions
+   without changing existing non-streaming output shape.
+5. Done: convert each Gemini stream chunk into an OpenAI
    `chat.completion.chunk` object:
    - `id`
    - `object: "chat.completion.chunk"`
@@ -85,20 +89,20 @@ document the residual upstream-cancellation limitation.
    - `choices[0].delta.role`
    - `choices[0].delta.content`
    - `choices[0].finish_reason`
-6. End every successful stream with `data: [DONE]`.
-7. Add streaming error ownership:
+6. Done: end every successful stream with `data: [DONE]`.
+7. Done: add streaming error ownership:
    - before headers: regular JSON `sendError` is allowed
    - after headers: write sanitized SSE error/final frames where compatible,
      close cleanly, and never let the outer app catch append JSON
-8. Add disconnect/backpressure handling:
+8. Done: add disconnect/backpressure handling:
    - `req`/`res` close listeners
-   - `AbortController` when supported by the SDK
    - async-generator `return()` cleanup when supported
-   - max stream lifetime and idle timeout hooks exposed for Phase 4
-9. Add explicit 400 handling for unsupported streaming features that are too
+   - shared SSE helper now also closes iterators on disconnect
+   - max stream lifetime and idle timeout remain Phase 4 rollout work
+9. Done: add explicit 400 handling for unsupported streaming features that are too
    risky for Phase 1, such as complex tool-call argument deltas if the upstream
    shape cannot be converted safely.
-10. Add tests for:
+10. Done: add tests for:
    - stream headers
    - multiple chunks
    - `[DONE]`
@@ -111,19 +115,39 @@ document the residual upstream-cancellation limitation.
 
 ## Success Criteria
 
-- [ ] `stream: true` no longer returns `VALIDATION_FAILED`.
-- [ ] SSE response has `content-type: text/event-stream`.
-- [ ] Test verifies at least two `chat.completion.chunk` events plus `[DONE]`.
-- [ ] Test proves first chunk arrives before upstream generator completion.
-- [ ] Post-header errors stay SSE-framed/sanitized and never emit JSON.
-- [ ] Client disconnect test proves upstream iterator cleanup.
-- [ ] Existing non-streaming OpenAI Chat test still passes.
-- [ ] Gateway compile and tests pass.
+- [x] `stream: true` no longer returns `VALIDATION_FAILED`.
+- [x] SSE response has `content-type: text/event-stream`.
+- [x] Test verifies at least two `chat.completion.chunk` events plus `[DONE]`.
+- [x] Test proves first chunk arrives before upstream generator completion.
+- [x] Post-header errors stay SSE-framed/sanitized and never emit JSON.
+- [x] Client disconnect test proves upstream iterator cleanup.
+- [x] Existing non-streaming OpenAI Chat test still passes.
+- [x] Gateway compile and tests pass.
+
+## Evidence
+
+- `gateway/src/app.ts` now branches `POST /openai/v1/chat/completions` to a
+  dedicated streaming handler when `body.stream === true`.
+- `gateway/src/routes/openai-compatible-routes.ts` now exposes
+  `runOpenAiCompatibleStreamRoute(...)`, translates Gemini stream chunks into
+  OpenAI `chat.completion.chunk` frames, writes `[DONE]`, and rejects
+  unsupported streaming tools pre-header.
+- `gateway/src/http/sse-response.ts` now provides reusable SSE JSON/error/done
+  helpers and explicitly closes iterators on disconnect or post-header failure.
+- `gateway/test/openai-compatible-routes.test.ts` now covers success streaming,
+  first-byte-before-completion, post-header sanitized errors, disconnect
+  cleanup, and unsupported streaming-tool rejection.
+- Validation:
+  - `npm --prefix gateway run compile`
+  - `npm --prefix gateway run test -- openai-compatible-routes.test.ts stream-contract-proof.test.ts streaming-routes.test.ts`
+  - `npx tsc --noEmit`
+  - `npm run lint`
 
 ## Risk Assessment
 
 Risk: SDKs are strict about SSE framing.
-Mitigation: test raw response text and an OpenAI SDK smoke where feasible.
+Mitigation: Phase 0 already proved the accepted Chat chunk fixture against the
+OpenAI SDK parser; Phase 4 still needs live custom-base-url SDK smoke.
 
 Risk: a leaked key can hold long-lived streams open.
 Mitigation: Phase 1 exposes stream lifecycle hooks; Phase 4 makes active stream

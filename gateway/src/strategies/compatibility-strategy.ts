@@ -68,7 +68,7 @@ export const runCompatibilityStreamRoute = async (
   ai: GenAiClient,
 ): Promise<AsyncIterable<Record<string, unknown>>> => {
   if (!ai.models.generateContentStream) {
-    throw new GatewayError(501, 'NOT_FOUND', 'Streaming is not implemented by the configured GenAI client.');
+    throw new GatewayError(501, 'NOT_IMPLEMENTED', 'Streaming is not implemented by the configured GenAI client.');
   }
   return ai.models.generateContentStream(buildGenerateRequest(route, body));
 };

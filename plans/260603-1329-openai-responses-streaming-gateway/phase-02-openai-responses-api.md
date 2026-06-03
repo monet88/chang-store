@@ -75,7 +75,7 @@ sanitized SSE error contract from Phase 1.
 - Modify: `gateway/src/http/request-classifier.ts`
 - Modify: `gateway/src/app.ts`
 - Create: `gateway/src/routes/openai-responses-routes.ts`
-- Reuse: `gateway/src/lib/sse.ts`
+- Reuse/extend: `gateway/src/http/sse-response.ts`
 - Modify: `gateway/test/request-classifier.test.ts`
 - Create: `gateway/test/openai-responses-routes.test.ts`
 - Modify: `docs/api/vertex-gateway-api-guide.md`

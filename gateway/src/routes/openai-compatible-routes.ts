@@ -1,6 +1,8 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import type { ClassifiedRoute } from '../http/request-classifier.js';
 import { GatewayError } from '../http/error-response.js';
+import { writeSseDone, writeSseError, writeSseJson } from '../http/sse-response.js';
 import type { GenAiClient } from '../lib/google-genai-client.js';
 
 interface OpenAIChatMessage {
@@ -94,11 +96,14 @@ const toGeminiPartList = (content: unknown, allowImages: boolean): Array<Record<
   return parts;
 };
 
-const buildGeminiRequest = (body: OpenAIChatCompletionRequest): Record<string, unknown> => {
+const buildGeminiRequest = (
+  body: OpenAIChatCompletionRequest,
+  mode: 'sync' | 'stream' = 'sync',
+): Record<string, unknown> => {
   if (!body.model?.trim()) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible requests require a model.');
   }
-  if (body.stream) {
+  if (mode === 'sync' && body.stream) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible streaming is not implemented yet.');
   }
   if (!Array.isArray(body.messages) || body.messages.length === 0) {
@@ -261,6 +266,44 @@ const convertGeminiResponseToOpenAI = (response: Record<string, unknown>, model:
   };
 };
 
+const normalizeStreamChunk = (
+  response: Record<string, unknown>,
+): { text: string; finishReason: 'stop' | 'length' | 'tool_calls' | null; hasToolCalls: boolean; model?: string } => {
+  const candidate = Array.isArray(response.candidates) ? response.candidates[0] as Record<string, unknown> | undefined : undefined;
+  const content = candidate?.content && typeof candidate.content === 'object' ? candidate.content as Record<string, unknown> : undefined;
+  const parts = Array.isArray(content?.parts) ? content.parts as Array<Record<string, unknown>> : [];
+
+  const textSegments: string[] = [];
+  let hasToolCalls = false;
+  for (const part of parts) {
+    if (typeof part.text === 'string' && part.text) {
+      textSegments.push(part.text);
+    }
+    if (part.functionCall && typeof part.functionCall === 'object') {
+      hasToolCalls = true;
+    }
+  }
+
+  return {
+    text: textSegments.join(''),
+    finishReason: mapFinishReason(candidate?.finishReason, hasToolCalls),
+    hasToolCalls,
+    model: typeof response.modelVersion === 'string' ? response.modelVersion : undefined,
+  };
+};
+
+const assertOpenAiStreamRequestSupported = (body: OpenAIChatCompletionRequest): void => {
+  if (body.stream !== true) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible streaming requires `stream: true`.');
+  }
+  if (typeof body.n === 'number' && body.n !== 1) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible streaming currently supports only `n: 1`.');
+  }
+  if ((body.tools?.length ?? 0) > 0) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible streaming tool calls are not implemented yet.');
+  }
+};
+
 const listModels = (): Record<string, unknown> => ({
   object: 'list',
   data: OPENAI_MODEL_IDS.map((id) => ({
@@ -286,4 +329,120 @@ export const runOpenAiCompatibleRoute = async (
   const request = buildGeminiRequest(body as OpenAIChatCompletionRequest);
   const response = await ai.models.generateContent(request);
   return convertGeminiResponseToOpenAI(response, String(request.model));
+};
+
+export const runOpenAiCompatibleStreamRoute = async (
+  req: IncomingMessage,
+  res: ServerResponse,
+  route: ClassifiedRoute,
+  body: Record<string, unknown>,
+  ai: GenAiClient,
+): Promise<void> => {
+  if (route.operation !== 'chatCompletions') {
+    throw new GatewayError(404, 'NOT_FOUND', 'OpenAI-compatible route is not implemented.');
+  }
+  if (!ai.models.generateContentStream) {
+    throw new GatewayError(501, 'NOT_IMPLEMENTED', 'Streaming is not implemented by the configured GenAI client.');
+  }
+
+  const requestBody = body as OpenAIChatCompletionRequest;
+  assertOpenAiStreamRequestSupported(requestBody);
+  const request = buildGeminiRequest(requestBody, 'stream');
+  const stream = await ai.models.generateContentStream(request);
+  const iterator = stream[Symbol.asyncIterator]();
+  const completionId = `chatcmpl_${randomUUID().replace(/-/g, '')}`;
+  const created = Math.floor(Date.now() / 1000);
+  let closed = false;
+  let iteratorClosed = false;
+  let sentRole = false;
+  let wroteFrame = false;
+
+  const closeIterator = async () => {
+    if (iteratorClosed) return;
+    iteratorClosed = true;
+    if (typeof iterator.return === 'function') {
+      try {
+        await iterator.return();
+      } catch {
+        // Ignore cleanup failures after disconnect.
+      }
+    }
+  };
+
+  const onClose = () => {
+    closed = true;
+    void closeIterator();
+  };
+
+  req.once('close', onClose);
+  req.once('error', onClose);
+  res.once('close', onClose);
+  res.once('error', onClose);
+
+  try {
+    while (!closed) {
+      let step: IteratorResult<Record<string, unknown>>;
+      try {
+        step = await iterator.next();
+      } catch (error) {
+        if (!closed && !wroteFrame && !res.headersSent) {
+          throw error;
+        }
+        if (!closed) {
+          await writeSseError(res, error);
+        }
+        return;
+      }
+
+      if (step.done || closed) break;
+
+      const normalized = normalizeStreamChunk(step.value);
+      if (normalized.hasToolCalls) {
+        if (!closed) {
+          await writeSseError(res, new GatewayError(
+            400,
+            'VALIDATION_FAILED',
+            'OpenAI-compatible streaming tool calls are not implemented yet.',
+          ));
+        }
+        return;
+      }
+
+      const delta: Record<string, unknown> = {};
+      if (!sentRole) {
+        delta.role = 'assistant';
+        sentRole = true;
+      }
+      if (normalized.text) {
+        delta.content = normalized.text;
+      }
+      if (Object.keys(delta).length === 0 && normalized.finishReason === null) {
+        continue;
+      }
+
+      wroteFrame = true;
+      const status = await writeSseJson(res, {
+        id: completionId,
+        object: 'chat.completion.chunk',
+        created,
+        model: normalized.model ?? String(request.model),
+        choices: [{
+          index: 0,
+          delta,
+          finish_reason: normalized.finishReason,
+        }],
+      });
+      if (status === 'closed') return;
+    }
+
+    if (!closed) {
+      writeSseDone(res);
+    }
+  } finally {
+    req.off('close', onClose);
+    req.off('error', onClose);
+    res.off('close', onClose);
+    res.off('error', onClose);
+    await closeIterator();
+  }
 };

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Server } from 'node:http';
+import OpenAI from 'openai';
 import { createApp } from '../src/app.js';
 import { testConfig } from './test-config.js';
 
@@ -16,6 +17,7 @@ describe('openai-compatible routes', () => {
   afterEach(async () => {
     await new Promise<void>((resolve) => server?.close(() => resolve()));
     server = undefined;
+    vi.restoreAllMocks();
   });
 
   it('returns OpenAI-compatible chat completions from Gemini responses', async () => {
@@ -213,7 +215,271 @@ describe('openai-compatible routes', () => {
     expect(generateContent).not.toHaveBeenCalled();
   });
 
-  it('rejects unsupported OpenAI-compatible streaming requests explicitly', async () => {
+  it('streams OpenAI-compatible chat completion chunks followed by [DONE]', async () => {
+    async function* streamChunks() {
+      yield { candidates: [{ content: { parts: [{ text: 'hel' }] } }], modelVersion: 'gemini-3.5-flash' };
+      yield { candidates: [{ content: { parts: [{ text: 'lo' }] }, finishReason: 'STOP' }], modelVersion: 'gemini-3.5-flash' };
+    }
+
+    const generateContent = vi.fn();
+    const generateContentStream = vi.fn(async () => streamChunks());
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent, generateContentStream } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        stream: true,
+        messages: [{ role: 'user', content: 'hello' }],
+      }),
+    });
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/event-stream');
+    expect(body).toContain('"object":"chat.completion.chunk"');
+    expect(body).toContain('"delta":{"role":"assistant","content":"hel"}');
+    expect(body).toContain('"delta":{"content":"lo"},"finish_reason":"stop"');
+    expect(body).toContain('data: [DONE]');
+    expect(generateContentStream).toHaveBeenCalledWith({
+      model: 'gemini-3.5-flash',
+      contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+    });
+    expect(generateContent).not.toHaveBeenCalled();
+  });
+
+  it('is consumable by the OpenAI SDK against the local chat completions route', async () => {
+    async function* streamChunks() {
+      yield { candidates: [{ content: { parts: [{ text: 'hel' }] } }], modelVersion: 'gemini-3.5-flash' };
+      yield { candidates: [{ content: { parts: [{ text: 'lo' }] }, finishReason: 'STOP' }], modelVersion: 'gemini-3.5-flash' };
+    }
+
+    const generateContentStream = vi.fn(async () => streamChunks());
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent: vi.fn(), generateContentStream } }) });
+    const baseUrl = await listen(server);
+    const client = new OpenAI({
+      apiKey: 'test-key',
+      baseURL: `${baseUrl}/openai/v1`,
+    });
+
+    const stream = await client.chat.completions.create({
+      model: 'gemini-3.5-flash',
+      stream: true,
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+
+    const deltas: string[] = [];
+    for await (const event of stream) {
+      const content = event.choices[0]?.delta?.content;
+      if (content) deltas.push(content);
+    }
+
+    expect(deltas.join('')).toBe('hello');
+  });
+
+  it('emits the first OpenAI SSE chunk before the upstream generator completes', async () => {
+    let releaseCompletion!: () => void;
+    const completionGate = new Promise<void>((resolve) => {
+      releaseCompletion = resolve;
+    });
+    async function* delayedStream() {
+      yield { candidates: [{ content: { parts: [{ text: 'first' }] } }], modelVersion: 'gemini-3.5-flash' };
+      await completionGate;
+      yield { candidates: [{ content: { parts: [{ text: 'second' }] }, finishReason: 'STOP' }], modelVersion: 'gemini-3.5-flash' };
+    }
+
+    const generateContentStream = vi.fn(async () => delayedStream());
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent: vi.fn(), generateContentStream } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        stream: true,
+        messages: [{ role: 'user', content: 'hello' }],
+      }),
+    });
+
+    const reader = response.body?.getReader();
+    expect(reader).toBeDefined();
+    const firstChunk = await reader!.read();
+    expect(new TextDecoder().decode(firstChunk.value)).toContain('"delta":{"role":"assistant","content":"first"}');
+
+    let completed = false;
+    const remainderPromise = (async () => {
+      let body = '';
+      while (true) {
+        const next = await reader!.read();
+        if (next.done) break;
+        body += new TextDecoder().decode(next.value);
+      }
+      completed = true;
+      return body;
+    })();
+
+    expect(completed).toBe(false);
+    releaseCompletion();
+    const remainder = await remainderPromise;
+
+    expect(remainder).toContain('"delta":{"content":"second"},"finish_reason":"stop"');
+    expect(remainder).toContain('data: [DONE]');
+  });
+
+  it('keeps post-header upstream errors inside SSE frames and never appends JSON', async () => {
+    async function* brokenStream() {
+      yield { candidates: [{ content: { parts: [{ text: 'partial' }] } }], modelVersion: 'gemini-3.5-flash' };
+      throw new Error('sk-live-secret leaked from /tmp/path');
+    }
+
+    const generateContentStream = vi.fn(async () => brokenStream());
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent: vi.fn(), generateContentStream } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        stream: true,
+        messages: [{ role: 'user', content: 'hello' }],
+      }),
+    });
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('event: error');
+    expect(body).toContain('"code":"INTERNAL"');
+    expect(body).toContain('"message":"Internal gateway error."');
+    expect(body).not.toContain('sk-live-secret');
+    expect(body).not.toContain('/tmp/path');
+    expect(body).not.toContain('"success":false');
+  });
+
+  it('returns a regular JSON error when the upstream stream fails before the first SSE frame', async () => {
+    const brokenStream = {
+      [Symbol.asyncIterator]: () => ({
+        next: async () => {
+          throw new Error('boom before first frame');
+        },
+      }),
+    };
+
+    const generateContentStream = vi.fn(async () => brokenStream);
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent: vi.fn(), generateContentStream } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        stream: true,
+        messages: [{ role: 'user', content: 'hello' }],
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(body.error.code).toBe('INTERNAL');
+    expect(body.error.message).toBe('Internal gateway error.');
+  });
+
+  it('stops downstream streaming and cleans up the upstream iterator when the client disconnects', async () => {
+    let resolvePause!: () => void;
+    let returnCalled = false;
+    const pause = new Promise<void>((resolve) => {
+      resolvePause = resolve;
+    });
+    const iterator: AsyncIterator<Record<string, unknown>> = {
+      async next() {
+        if (!returnCalled) {
+          returnCalled = true;
+          return {
+            done: false,
+            value: { candidates: [{ content: { parts: [{ text: 'first' }] } }], modelVersion: 'gemini-3.5-flash' },
+          };
+        }
+        await pause;
+        return {
+          done: false,
+          value: { candidates: [{ content: { parts: [{ text: 'second' }] }, finishReason: 'STOP' }], modelVersion: 'gemini-3.5-flash' },
+        };
+      },
+      async return() {
+        returnCalled = true;
+        resolvePause();
+        return { done: true, value: undefined };
+      },
+    };
+    const iterable = {
+      [Symbol.asyncIterator]: () => iterator,
+    };
+    const returnSpy = vi.spyOn(iterator, 'return');
+    const generateContentStream = vi.fn(async () => iterable);
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent: vi.fn(), generateContentStream } }) });
+    const baseUrl = await listen(server);
+    const controller = new AbortController();
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        stream: true,
+        messages: [{ role: 'user', content: 'hello' }],
+      }),
+      signal: controller.signal,
+    });
+
+    const reader = response.body?.getReader();
+    expect(reader).toBeDefined();
+    const firstChunk = await reader!.read();
+    expect(new TextDecoder().decode(firstChunk.value)).toContain('"delta":{"role":"assistant","content":"first"}');
+
+    controller.abort();
+    await vi.waitFor(() => {
+      expect(returnSpy).toHaveBeenCalled();
+    });
+  });
+
+  it('rejects unsupported OpenAI-compatible streaming tool requests before opening SSE', async () => {
+    const generateContent = vi.fn();
+    const generateContentStream = vi.fn();
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent, generateContentStream } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        stream: true,
+        messages: [{ role: 'user', content: 'hello' }],
+        tools: [{
+          type: 'function',
+          function: {
+            name: 'lookup',
+            parameters: { type: 'object' },
+          },
+        }],
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(body.error.code).toBe('VALIDATION_FAILED');
+    expect(body.error.message).toMatch(/tool calls/i);
+    expect(generateContent).not.toHaveBeenCalled();
+    expect(generateContentStream).not.toHaveBeenCalled();
+  });
+
+  it('returns a 501 JSON error when the configured GenAI client does not support streaming', async () => {
     const generateContent = vi.fn();
     server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
     const baseUrl = await listen(server);
@@ -229,9 +495,36 @@ describe('openai-compatible routes', () => {
     });
     const body = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(body.error.code).toBe('VALIDATION_FAILED');
-    expect(body.error.message).toMatch(/streaming/i);
+    expect(response.status).toBe(501);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(body.error.code).toBe('NOT_IMPLEMENTED');
+    expect(body.error.message).toMatch(/streaming is not implemented/i);
     expect(generateContent).not.toHaveBeenCalled();
+  });
+
+  it('rejects OpenAI-compatible streaming requests with n greater than one before opening SSE', async () => {
+    const generateContent = vi.fn();
+    const generateContentStream = vi.fn();
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent, generateContentStream } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        stream: true,
+        n: 2,
+        messages: [{ role: 'user', content: 'hello' }],
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(body.error.code).toBe('VALIDATION_FAILED');
+    expect(body.error.message).toMatch(/n: 1/i);
+    expect(generateContent).not.toHaveBeenCalled();
+    expect(generateContentStream).not.toHaveBeenCalled();
   });
 });

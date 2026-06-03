@@ -1,6 +1,6 @@
 # Vertex Gateway API Guide
 
-> Tested: 2026-06-02  
+> Tested: 2026-06-03
 > Base URL: `<gateway-origin>`  
 > Gateway API Key: set by `GATEWAY_API_KEYS` on the gateway server
 
@@ -58,7 +58,7 @@ OAuth client JSON với top-level `installed` hoặc `web` sẽ bị reject.
 | `POST` | `/gemini/v1beta/models/{model}:generateContent` | Gemini-compatible | Main Gemini-style route |
 | `POST` | `/gemini/v1beta/models/{model}:streamGenerateContent` | Gemini-compatible | Streaming route |
 | `GET` | `/openai/v1/models` | OpenAI-compatible | Minimal OpenAI model list |
-| `POST` | `/openai/v1/chat/completions` | OpenAI-compatible | OpenAI Chat Completions compatibility route |
+| `POST` | `/openai/v1/chat/completions` | OpenAI-compatible | OpenAI Chat Completions compatibility route, supports both JSON and SSE |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:generateContent` | Vertex-compatible | Canonical Vertex-style route |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:streamGenerateContent` | Vertex-compatible | Canonical Vertex-style streaming |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:predict` | Vertex-compatible | Vertex predict route |
@@ -76,6 +76,16 @@ OpenAI SDK note: set `baseURL` to the `/openai/v1` prefix, for example
 `https://gemini.monet.uno/openai/v1`. This gateway currently implements
 `GET /models` and `POST /chat/completions` on that prefix. `responses` is not
 implemented yet.
+
+For `POST /openai/v1/chat/completions`:
+
+- Default behavior returns a normal JSON `chat.completion` response.
+- `stream: true` returns `text/event-stream` with OpenAI-style
+  `chat.completion.chunk` frames and a final `data: [DONE]`.
+- Phase 1 limits: only `n: 1` is accepted for streaming, and streaming tool
+  calls are rejected with a pre-header `400 VALIDATION_FAILED`.
+- If the configured GenAI client does not expose upstream streaming, the
+  gateway returns `501 NOT_IMPLEMENTED`.
 
 ---
 
@@ -147,7 +157,7 @@ curl -X POST http://localhost:19089/gemini/v1beta/models/gemini-3.5-flash:genera
   }'
 ```
 
-### 3. OpenAI-Compatible `chat.completions`
+### 3. OpenAI-Compatible `chat.completions` (JSON)
 
 ```bash
 curl -X POST http://localhost:19089/openai/v1/chat/completions \
@@ -162,7 +172,34 @@ curl -X POST http://localhost:19089/openai/v1/chat/completions \
   }'
 ```
 
-### 4. Custom Text Validation Route
+### 4. OpenAI-Compatible `chat.completions` (SSE)
+
+```bash
+curl -N -X POST http://localhost:19089/openai/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <gateway-api-key>" \
+  -d '{
+    "model": "gemini-3.5-flash",
+    "stream": true,
+    "messages": [
+      { "role": "user", "content": "Reply with exactly: ok" }
+    ]
+  }'
+```
+
+Expected stream shape:
+
+```text
+data: {"id":"chatcmpl_...","object":"chat.completion.chunk","created":...,"model":"gemini-3.5-flash","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl_...","object":"chat.completion.chunk","created":...,"model":"gemini-3.5-flash","choices":[{"index":0,"delta":{"content":"ok"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl_...","object":"chat.completion.chunk","created":...,"model":"gemini-3.5-flash","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+data: [DONE]
+```
+
+### 5. Custom Text Validation Route
 
 ```bash
 curl -X POST http://localhost:19089/api/session/validate \
@@ -174,7 +211,7 @@ curl -X POST http://localhost:19089/api/session/validate \
   }'
 ```
 
-### 5. Custom Image Generate Route
+### 6. Custom Image Generate Route
 
 ```bash
 curl -X POST http://localhost:19089/api/images/generate \
