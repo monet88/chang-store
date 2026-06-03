@@ -106,7 +106,7 @@ curl -X POST https://cliproxy.monet.uno/v1beta/models/gemini-3.5-flash:generateC
 
 ## Integration Notes
 
-- **Cảnh báo lỗi 502 cho model mặc định:** Mặc dù mã nguồn của ứng dụng hiện tại đang đăng ký mặc định dùng `gemini-3.1-flash-image` (cho image edit/generate) và `gemini-3.1-flash-lite` (cho text generation), nhưng khi gọi qua proxy các model này sẽ bị lỗi **HTTP 502 (unknown provider)**. Cần chuyển sang sử dụng bản preview tương ứng: `gemini-3.1-flash-image-preview` và `gemini-3.1-flash-lite-preview`.
+- **Cảnh báo lỗi 502 cho model mặc định:** Mặc dù mã nguồn của ứng dụng hiện tại đang đăng ký mặc định dùng `gemini-3.1-flash-image` (cho image edit/generate) và `gemini-3.5-flash` (cho text generation), nhưng khi gọi qua proxy các model Gemini 3.0/3.1 không có suffix `-preview` sẽ bị lỗi **HTTP 502 (unknown provider)**. Cần chuyển image model sang bản preview tương ứng: `gemini-3.1-flash-image-preview`; text model mặc định `gemini-3.5-flash` không cần suffix.
 - **Bắt buộc sử dụng suffix `-preview`:** Bắt buộc đối với toàn bộ các model Gemini thuộc dòng 3.0 và 3.1 để proxy nhận diện được provider (ví dụ: `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite-preview`, `gemini-3.1-flash-image-preview`, `gemini-3-pro-image-preview`).
 - **Dòng Gemini 2.5 và 3.5:** Các model thuộc dòng 2.5 (như `gemini-2.5-flash`, `gemini-2.5-flash-image`) và 3.5 (như `gemini-3.5-flash`) hoạt động tốt mà không cần suffix `-preview`.
 - **Không cần Google Cloud credentials:** Proxy xử lý xác thực (authentication) và phân quyền ở phía server, ứng dụng client chỉ cần sử dụng API Key cấu hình trong môi trường.

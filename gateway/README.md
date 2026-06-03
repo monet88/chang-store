@@ -56,7 +56,7 @@ GATEWAY_HOST_PORT=19123 docker compose up -d --build
 App cấu hình:
 
 - Proxy URL: `http://localhost:19089/gemini`
-- Proxy API Key: `monet-4292`
+- Proxy API Key: giá trị bạn đặt trong `GATEWAY_API_KEYS` của `gateway/.env`
 
 ## Đổi Service Account
 

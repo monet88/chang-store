@@ -71,7 +71,7 @@ Edit:
 
 Required values:
 
-- `GATEWAY_API_KEYS`: replace `monet-4292`
+- `GATEWAY_API_KEYS`: production gateway API key from Secret Manager or CI secret store
 - `GATEWAY_CORS_ORIGINS`: production frontend domain(s)
 - `GOOGLE_VERTEX_PROJECT`: `project-b82b6a5a-13c8-42e4-a56`
 - `GOOGLE_VERTEX_LOCATION`: `global`

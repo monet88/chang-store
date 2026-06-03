@@ -153,7 +153,7 @@ planned so provider keys never reach the client bundle.
 
 **Trigger:** User-driven end-to-end smoke test of all 10 provider workflows
 (5 Grok + 5 GPT Image) against an OpenAI-compatible proxy at
-`http://localhost:8333` with API key `monet-4292`.
+`http://localhost:8333` with a local proxy API key supplied out of band.
 
 **HTTPS validation relaxed.** Original allowlist required `https:` only, which
 blocked local proxies. `validateProviderBaseUrl` now accepts both `http:` and

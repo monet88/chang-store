@@ -43,14 +43,23 @@ export const sendError = (res: ServerResponse, requestId: string, error: unknown
   });
 };
 
+const safeErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  try {
+    return String(error);
+  } catch {
+    return '';
+  }
+};
+
 export const toGatewayError = (error: unknown): GatewayError => {
   if (error instanceof GatewayError) return error;
-  const message = error instanceof Error ? error.message : String(error);
+  const message = safeErrorMessage(error);
   if (/429|resource_exhausted|quota/i.test(message)) {
     return new GatewayError(429, 'UPSTREAM_QUOTA', 'Upstream quota exhausted.', true);
   }
   if (/timeout|aborted/i.test(message)) {
     return new GatewayError(504, 'TIMEOUT', 'Upstream request timed out.', true);
   }
-  return new GatewayError(500, 'INTERNAL', message);
+  return new GatewayError(500, 'INTERNAL', 'Internal gateway error.');
 };

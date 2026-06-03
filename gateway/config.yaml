@@ -1,9 +1,8 @@
 # Gateway bind port inside container
 port: 8080
 
-# Browser/client keys accepted by Authorization: Bearer or x-api-key
-gatewayKeys:
-  - monet-4292
+# Browser/client keys accepted by Authorization: Bearer or x-api-key.
+# Set GATEWAY_API_KEYS in gateway/.env or your deployment secret store.
 
 # Allowed browser origins for CORS
 corsOrigins:

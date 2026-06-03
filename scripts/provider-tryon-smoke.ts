@@ -7,7 +7,7 @@
  * edit paths.
  *
  * Run: npx tsx scripts/provider-tryon-smoke.ts [grok|gpt|both]
- * Env: SMOKE_BASE_URL, SMOKE_API_KEY (defaults to the local proxy).
+ * Env: SMOKE_BASE_URL, SMOKE_API_KEY.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -19,7 +19,10 @@ import { DEFAULT_GROK_MODEL, DEFAULT_GROK_ASPECT_RATIO } from '../src/config/gro
 import { DEFAULT_GPT_IMAGE_MODEL } from '../src/config/gptImageModelRegistry';
 
 const BASE_URL = process.env.SMOKE_BASE_URL ?? 'http://localhost:8333/v1';
-const API_KEY = process.env.SMOKE_API_KEY ?? 'monet-4292';
+const API_KEY = process.env.SMOKE_API_KEY;
+if (!API_KEY) {
+    throw new Error('SMOKE_API_KEY is required.');
+}
 const config = { apiKey: API_KEY, baseUrl: BASE_URL };
 
 const loadImage = (path: string): ImageFile => {

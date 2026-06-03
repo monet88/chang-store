@@ -55,11 +55,22 @@ type GatewayFileConfig = Partial<{
   enableImageRoutes: boolean;
 }>;
 
+const parseQuotedScalar = (trimmed: string): string => {
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      return JSON.parse(trimmed) as string;
+    } catch {
+      return trimmed.slice(1, -1);
+    }
+  }
+  return trimmed.slice(1, -1);
+};
+
 const normalizeScalar = (value: string): string | number | boolean | null => {
   const trimmed = value.trim();
   if (!trimmed) return '';
   if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith('\'') && trimmed.endsWith('\''))) {
-    return trimmed.slice(1, -1);
+    return parseQuotedScalar(trimmed);
   }
   if (trimmed === 'null') return null;
   if (trimmed === 'true') return true;
@@ -68,11 +79,19 @@ const normalizeScalar = (value: string): string | number | boolean | null => {
   return Number.isFinite(numeric) && /^-?\d+(\.\d+)?$/.test(trimmed) ? numeric : trimmed;
 };
 
+const isEscapedQuote = (line: string, quoteIndex: number): boolean => {
+  let backslashes = 0;
+  for (let index = quoteIndex - 1; index >= 0 && line[index] === '\\'; index -= 1) {
+    backslashes += 1;
+  }
+  return backslashes % 2 === 1;
+};
+
 const stripYamlComment = (line: string): string => {
   let quote: '"' | '\'' | null = null;
   for (let index = 0; index < line.length; index += 1) {
     const char = line[index];
-    if ((char === '"' || char === '\'') && line[index - 1] !== '\\') {
+    if ((char === '"' || char === '\'') && !isEscapedQuote(line, index)) {
       quote = quote === char ? null : (quote ?? char);
       continue;
     }
@@ -81,6 +100,59 @@ const stripYamlComment = (line: string): string => {
     }
   }
   return line;
+};
+
+const assertStringArray = (config: Record<string, unknown>, key: string, filePath: string): void => {
+  const value = config[key];
+  if (value === undefined) return;
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    throw new Error(`Invalid ${filePath}: ${key} must be a string array.`);
+  }
+};
+
+const assertString = (config: Record<string, unknown>, key: string, filePath: string): void => {
+  const value = config[key];
+  if (value !== undefined && typeof value !== 'string') {
+    throw new Error(`Invalid ${filePath}: ${key} must be a string.`);
+  }
+};
+
+const assertNullableString = (config: Record<string, unknown>, key: string, filePath: string): void => {
+  const value = config[key];
+  if (value !== undefined && value !== null && typeof value !== 'string') {
+    throw new Error(`Invalid ${filePath}: ${key} must be a string or null.`);
+  }
+};
+
+const assertPositiveNumber = (config: Record<string, unknown>, key: string, filePath: string): void => {
+  const value = config[key];
+  if (value === undefined) return;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    throw new Error(`Invalid ${filePath}: ${key} must be a positive number.`);
+  }
+};
+
+const assertBoolean = (config: Record<string, unknown>, key: string, filePath: string): void => {
+  const value = config[key];
+  if (value !== undefined && typeof value !== 'boolean') {
+    throw new Error(`Invalid ${filePath}: ${key} must be a boolean.`);
+  }
+};
+
+const validateFileConfig = (config: Record<string, unknown>, filePath: string): GatewayFileConfig => {
+  assertStringArray(config, 'gatewayKeys', filePath);
+  assertStringArray(config, 'corsOrigins', filePath);
+  for (const key of ['googleProject', 'googleLocation', 'googleApiVersion']) {
+    assertString(config, key, filePath);
+  }
+  assertNullableString(config, 'googleCredentialsFile', filePath);
+  for (const key of ['port', 'maxJsonBytes', 'maxImages', 'maxDecodedImageBytes', 'upstreamTimeoutMs', 'upstreamConcurrency']) {
+    assertPositiveNumber(config, key, filePath);
+  }
+  for (const key of ['enableGeminiRoutes', 'enableOpenAiRoutes', 'enableVertexRoutes', 'enableVtxRoutes', 'enableImageRoutes']) {
+    assertBoolean(config, key, filePath);
+  }
+  return config as GatewayFileConfig;
 };
 
 const loadFileConfig = (): GatewayFileConfig => {
@@ -92,7 +164,7 @@ const loadFileConfig = (): GatewayFileConfig => {
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new Error(`Invalid ${filePath}: expected a JSON object.`);
     }
-    return parsed as GatewayFileConfig;
+    return validateFileConfig(parsed as Record<string, unknown>, filePath);
   }
 
   const config: Record<string, unknown> = {};
@@ -127,7 +199,7 @@ const loadFileConfig = (): GatewayFileConfig => {
     currentListKey = null;
   }
 
-  return config as GatewayFileConfig;
+  return validateFileConfig(config, filePath);
 };
 
 const boolEnv = (value: string | undefined, fallback: boolean): boolean => {

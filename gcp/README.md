@@ -234,6 +234,6 @@ OpenAI-compatible; `responses` chưa được implement.
 ## Ghi chú vận hành
 
 - Giữ `GOOGLE_VERTEX_LOCATION=global` cho matrix model hiện tại.
-- Cloud Run production nên dùng API key riêng, không dùng `monet-4292`.
+- Cloud Run production phải dùng API key riêng qua `GATEWAY_API_KEYS`; không commit hoặc tái dùng key mẫu công khai.
 - Nếu app web của bạn chỉ chạy ở một vài domain, giới hạn chặt `GATEWAY_CORS_ORIGINS`.
 - Vì flow này không sửa code, gateway vẫn đọc file credentials như local; khác ở chỗ file đó được Secret Manager mount vào runtime.

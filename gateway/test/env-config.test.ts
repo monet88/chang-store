@@ -123,4 +123,48 @@ describe('gateway config file', () => {
     expect(config.gatewayKeys).toEqual(['json#key']);
     expect(config.googleProject).toBe('json-project');
   });
+
+  it('strips comments after quoted YAML values ending with an escaped backslash', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-config-'));
+    const configPath = path.join(dir, 'config.yaml');
+    fs.writeFileSync(configPath, [
+      'gatewayKeys:',
+      '  - test-key',
+      'googleProject: "project\\\\\\\\" # inline comment',
+      'googleCredentialsFile: null',
+      'googleLocation: global',
+    ].join('\n'));
+
+    process.env.GATEWAY_CONFIG_FILE = configPath;
+    delete process.env.GATEWAY_API_KEYS;
+    delete process.env.GOOGLE_VERTEX_PROJECT;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.GOOGLE_VERTEX_LOCATION;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    delete process.env.GCLOUD_PROJECT;
+
+    const config = loadConfig();
+    expect(config.googleProject).toBe('project\\\\');
+  });
+
+  it('rejects malformed JSON config field types before runtime auth checks', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-config-'));
+    const configPath = path.join(dir, 'config.json');
+    fs.writeFileSync(configPath, JSON.stringify({
+      gatewayKeys: 'not-a-list',
+      googleProject: 123,
+      googleCredentialsFile: null,
+      googleLocation: 'global',
+    }));
+
+    process.env.GATEWAY_CONFIG_FILE = configPath;
+    delete process.env.GATEWAY_API_KEYS;
+    delete process.env.GOOGLE_VERTEX_PROJECT;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.GOOGLE_VERTEX_LOCATION;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    delete process.env.GCLOUD_PROJECT;
+
+    expect(() => loadConfig()).toThrow(/gatewayKeys must be a string array/);
+  });
 });
