@@ -61,6 +61,59 @@ describe('openai-compatible routes', () => {
     });
   });
 
+  it('returns one OpenAI choice for each requested Gemini candidate', async () => {
+    const generateContent = vi.fn(async () => ({
+      modelVersion: 'gemini-3.5-flash',
+      candidates: [
+        {
+          content: { parts: [{ text: 'first' }] },
+          finishReason: 'STOP',
+        },
+        {
+          content: { parts: [{ text: 'second' }] },
+          finishReason: 'MAX_TOKENS',
+        },
+      ],
+      usageMetadata: {
+        promptTokenCount: 5,
+        candidatesTokenCount: 9,
+        totalTokenCount: 14,
+      },
+    }));
+
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        n: 2,
+        messages: [{ role: 'user', content: 'Give two options' }],
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.choices).toHaveLength(2);
+    expect(body.choices[0]).toMatchObject({
+      index: 0,
+      message: { role: 'assistant', content: 'first' },
+      finish_reason: 'stop',
+    });
+    expect(body.choices[1]).toMatchObject({
+      index: 1,
+      message: { role: 'assistant', content: 'second' },
+      finish_reason: 'length',
+    });
+    expect(generateContent).toHaveBeenCalledWith({
+      model: 'gemini-3.5-flash',
+      contents: [{ role: 'user', parts: [{ text: 'Give two options' }] }],
+      generationConfig: { candidateCount: 2 },
+    });
+  });
+
   it('lists OpenAI-compatible models behind the /openai prefix', async () => {
     const generateContent = vi.fn();
     server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });

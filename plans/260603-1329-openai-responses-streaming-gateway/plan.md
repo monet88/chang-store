@@ -238,5 +238,5 @@ decision had a safer blocking option in the red-team findings.
 Recommended execution command after review:
 
 ```bash
-/ck:cook /media/monet/SSD Web/CodeBase/chang-store/plans/260603-1329-openai-responses-streaming-gateway/plan.md
+/ck:cook "/media/monet/SSD Web/CodeBase/chang-store/plans/260603-1329-openai-responses-streaming-gateway/plan.md"
 ```

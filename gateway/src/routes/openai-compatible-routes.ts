@@ -207,33 +207,42 @@ const mapFinishReason = (value: unknown, hasToolCalls: boolean): 'stop' | 'lengt
 
 const convertGeminiResponseToOpenAI = (response: Record<string, unknown>, model: string): Record<string, unknown> => {
   const candidates = Array.isArray(response.candidates) ? response.candidates as Array<Record<string, unknown>> : [];
-  const candidate = candidates[0] ?? {};
-  const content = candidate.content && typeof candidate.content === 'object' ? candidate.content as Record<string, unknown> : {};
-  const parts = Array.isArray(content.parts) ? content.parts as Array<Record<string, unknown>> : [];
+  const choices = (candidates.length > 0 ? candidates : [{}]).map((candidate, index) => {
+    const content = candidate.content && typeof candidate.content === 'object' ? candidate.content as Record<string, unknown> : {};
+    const parts = Array.isArray(content.parts) ? content.parts as Array<Record<string, unknown>> : [];
 
-  const textSegments: string[] = [];
-  const toolCalls: Array<Record<string, unknown>> = [];
+    const textSegments: string[] = [];
+    const toolCalls: Array<Record<string, unknown>> = [];
 
-  for (const part of parts) {
-    if (typeof part.text === 'string' && part.text) {
-      textSegments.push(part.text);
-    }
-    if (part.functionCall && typeof part.functionCall === 'object') {
-      const functionCall = part.functionCall as { name?: unknown; args?: unknown };
-      if (typeof functionCall.name === 'string') {
-        toolCalls.push({
-          id: `call_${randomUUID().replace(/-/g, '')}`,
-          type: 'function',
-          function: {
-            name: functionCall.name,
-            arguments: JSON.stringify(functionCall.args ?? {}),
-          },
-        });
+    for (const part of parts) {
+      if (typeof part.text === 'string' && part.text) {
+        textSegments.push(part.text);
+      }
+      if (part.functionCall && typeof part.functionCall === 'object') {
+        const functionCall = part.functionCall as { name?: unknown; args?: unknown };
+        if (typeof functionCall.name === 'string') {
+          toolCalls.push({
+            id: `call_${randomUUID().replace(/-/g, '')}`,
+            type: 'function',
+            function: {
+              name: functionCall.name,
+              arguments: JSON.stringify(functionCall.args ?? {}),
+            },
+          });
+        }
       }
     }
-  }
 
-  const finishReason = mapFinishReason(candidate.finishReason, toolCalls.length > 0);
+    return {
+      index,
+      message: {
+        role: 'assistant',
+        content: textSegments.join('') || null,
+        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+      },
+      finish_reason: mapFinishReason(candidate.finishReason, toolCalls.length > 0),
+    };
+  });
   const usageMetadata = response.usageMetadata && typeof response.usageMetadata === 'object'
     ? response.usageMetadata as Record<string, unknown>
     : {};
@@ -243,15 +252,7 @@ const convertGeminiResponseToOpenAI = (response: Record<string, unknown>, model:
     object: 'chat.completion',
     created: Math.floor(Date.now() / 1000),
     model: typeof response.modelVersion === 'string' ? response.modelVersion : model,
-    choices: [{
-      index: 0,
-      message: {
-        role: 'assistant',
-        content: textSegments.join('') || null,
-        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
-      },
-      finish_reason: finishReason,
-    }],
+    choices,
     usage: {
       prompt_tokens: typeof usageMetadata.promptTokenCount === 'number' ? usageMetadata.promptTokenCount : 0,
       completion_tokens: typeof usageMetadata.candidatesTokenCount === 'number' ? usageMetadata.candidatesTokenCount : 0,

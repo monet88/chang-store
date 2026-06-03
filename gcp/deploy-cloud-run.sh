@@ -13,7 +13,7 @@ GCP_ENV_FILE="${GCP_ENV_FILE:-gcp/cloud-run.env.yaml}"
 GCP_RUNTIME_SA_NAME="${GCP_RUNTIME_SA_NAME:-chang-store-vertex-gateway}"
 GCP_RUNTIME_SA_EMAIL="${GCP_RUNTIME_SA_EMAIL:-${GCP_RUNTIME_SA_NAME}@${GCP_PROJECT_ID}.iam.gserviceaccount.com}"
 
-if [[ -z "${GCP_PROJECT_ID}" ]]; then
+if [[ -z "${GCP_PROJECT_ID}" || "${GCP_PROJECT_ID}" == "(unset)" ]]; then
   echo "Missing GCP project. Set GCP_PROJECT_ID or run: gcloud config set project YOUR_PROJECT_ID" >&2
   exit 1
 fi

@@ -9,7 +9,7 @@ RUNTIME_SA_EMAIL="${GCP_RUNTIME_SA_EMAIL:-${RUNTIME_SA_NAME}@${PROJECT_ID}.iam.g
 SECRET_NAME="${GCP_SECRET_NAME:-chang-store-vertex-account}"
 ACCOUNT_JSON_PATH="${GCP_ACCOUNT_JSON_PATH:-}"
 
-if [[ -z "${PROJECT_ID}" ]]; then
+if [[ -z "${PROJECT_ID}" || "${PROJECT_ID}" == "(unset)" ]]; then
   echo "Missing GCP project. Set GCP_PROJECT_ID or run: gcloud config set project YOUR_PROJECT_ID" >&2
   exit 1
 fi
