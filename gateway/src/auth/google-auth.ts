@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import type { GatewayConfig } from '../config/env.js';
 
 export interface ServiceAccountCredential {
@@ -26,7 +26,28 @@ const readCredentialJson = (credentialsFile: string): Record<string, unknown> =>
   }
 };
 
-const credentialCache = new Map<string, ServiceAccountCredential>();
+interface CachedCredential {
+  fingerprint: string;
+  credential: ServiceAccountCredential;
+}
+
+const readCredentialFingerprint = (credentialsFile: string): string => {
+  try {
+    const stat = statSync(credentialsFile);
+    return [
+      stat.dev,
+      stat.ino,
+      stat.size,
+      stat.mtimeMs,
+      stat.ctimeMs,
+    ].join(':');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown error';
+    throw new Error(`Vertex credential JSON is not readable: ${message}`);
+  }
+};
+
+const credentialCache = new Map<string, CachedCredential>();
 
 export const loadServiceAccountCredential = (
   credentialsFile: string | null,
@@ -35,9 +56,10 @@ export const loadServiceAccountCredential = (
     return null;
   }
 
+  const fingerprint = readCredentialFingerprint(credentialsFile);
   const cachedCredential = credentialCache.get(credentialsFile);
-  if (cachedCredential) {
-    return cachedCredential;
+  if (cachedCredential?.fingerprint === fingerprint) {
+    return cachedCredential.credential;
   }
 
   const credential = readCredentialJson(credentialsFile);
@@ -68,7 +90,7 @@ export const loadServiceAccountCredential = (
     client_email: clientEmail.trim(),
     private_key: privateKey,
   };
-  credentialCache.set(credentialsFile, serviceAccount);
+  credentialCache.set(credentialsFile, { fingerprint, credential: serviceAccount });
   return serviceAccount;
 };
 

@@ -35,7 +35,7 @@ describe('google auth status', () => {
     });
   });
 
-  it('caches parsed service account credentials by file path', () => {
+  it('reloads service account credentials when the file is rotated', () => {
     const credentialFile = writeCredential({
       type: 'service_account',
       project_id: 'service-project',
@@ -43,10 +43,32 @@ describe('google auth status', () => {
       private_key: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n',
     });
 
-    const credential = loadServiceAccountCredential(credentialFile);
+    expect(loadServiceAccountCredential(credentialFile)?.client_email).toBe('svc@example.test');
+    writeFileSync(credentialFile, JSON.stringify({
+      type: 'service_account',
+      project_id: 'rotated-project',
+      client_email: 'rotated@example.test',
+      private_key: '-----BEGIN PRIVATE KEY-----\nrotated\n-----END PRIVATE KEY-----\n',
+    }));
+
+    expect(loadServiceAccountCredential(credentialFile)).toMatchObject({
+      project_id: 'rotated-project',
+      client_email: 'rotated@example.test',
+    });
+  });
+
+  it('does not mask invalid service account JSON after file rotation', () => {
+    const credentialFile = writeCredential({
+      type: 'service_account',
+      project_id: 'service-project',
+      client_email: 'svc@example.test',
+      private_key: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n',
+    });
+
+    expect(loadServiceAccountCredential(credentialFile)?.client_email).toBe('svc@example.test');
     writeFileSync(credentialFile, JSON.stringify({ installed: { client_id: 'oauth-client' } }));
 
-    expect(loadServiceAccountCredential(credentialFile)).toEqual(credential);
+    expect(() => loadServiceAccountCredential(credentialFile)).toThrow(/service account key/);
   });
 
   it('rejects OAuth client JSON because Vertex needs service account credentials', () => {
