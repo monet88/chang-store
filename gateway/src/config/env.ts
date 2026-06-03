@@ -5,6 +5,7 @@ export interface GatewayConfig {
   port: number;
   gatewayKeys: string[];
   corsOrigins: string[];
+  allowWildcardCors: boolean;
   googleProject: string;
   googleLocation: string;
   googleCredentialsFile: string | null;
@@ -14,6 +15,10 @@ export interface GatewayConfig {
   maxDecodedImageBytes: number;
   upstreamTimeoutMs: number;
   upstreamConcurrency: number;
+  streamMaxDurationMs: number;
+  streamIdleTimeoutMs: number;
+  streamPerKeyLimit: number;
+  streamQueueLimit: number;
   enableGeminiRoutes: boolean;
   enableOpenAiRoutes: boolean;
   enableVertexRoutes: boolean;
@@ -30,6 +35,10 @@ const DEFAULTS = {
   maxDecodedImageBytes: 6 * 1024 * 1024,
   upstreamTimeoutMs: 45_000,
   upstreamConcurrency: 4,
+  streamMaxDurationMs: 240_000,
+  streamIdleTimeoutMs: 30_000,
+  streamPerKeyLimit: 2,
+  streamQueueLimit: 4,
 };
 
 const splitList = (value: string | undefined): string[] =>
@@ -39,6 +48,7 @@ type GatewayFileConfig = Partial<{
   port: number;
   gatewayKeys: string[];
   corsOrigins: string[];
+  allowWildcardCors: boolean;
   googleProject: string;
   googleLocation: string;
   googleCredentialsFile: string | null;
@@ -48,6 +58,10 @@ type GatewayFileConfig = Partial<{
   maxDecodedImageBytes: number;
   upstreamTimeoutMs: number;
   upstreamConcurrency: number;
+  streamMaxDurationMs: number;
+  streamIdleTimeoutMs: number;
+  streamPerKeyLimit: number;
+  streamQueueLimit: number;
   enableGeminiRoutes: boolean;
   enableOpenAiRoutes: boolean;
   enableVertexRoutes: boolean;
@@ -152,10 +166,10 @@ const validateFileConfig = (config: Record<string, unknown>, filePath: string): 
     assertString(config, key, filePath);
   }
   assertNullableString(config, 'googleCredentialsFile', filePath);
-  for (const key of ['port', 'maxJsonBytes', 'maxImages', 'maxDecodedImageBytes', 'upstreamTimeoutMs', 'upstreamConcurrency']) {
+  for (const key of ['port', 'maxJsonBytes', 'maxImages', 'maxDecodedImageBytes', 'upstreamTimeoutMs', 'upstreamConcurrency', 'streamMaxDurationMs', 'streamIdleTimeoutMs', 'streamPerKeyLimit', 'streamQueueLimit']) {
     assertPositiveNumber(config, key, filePath);
   }
-  for (const key of ['enableGeminiRoutes', 'enableOpenAiRoutes', 'enableVertexRoutes', 'enableVtxRoutes', 'enableImageRoutes']) {
+  for (const key of ['allowWildcardCors', 'enableGeminiRoutes', 'enableOpenAiRoutes', 'enableVertexRoutes', 'enableVtxRoutes', 'enableImageRoutes']) {
     assertBoolean(config, key, filePath);
   }
   return config as GatewayFileConfig;
@@ -241,6 +255,7 @@ export const loadConfig = (): GatewayConfig => {
     corsOrigins: splitList(process.env.GATEWAY_CORS_ORIGINS).length > 0
       ? splitList(process.env.GATEWAY_CORS_ORIGINS)
       : (fileConfig.corsOrigins ?? []),
+    allowWildcardCors: boolEnv(process.env.GATEWAY_ALLOW_WILDCARD_CORS, fileConfig.allowWildcardCors ?? false),
     googleProject,
     googleLocation: process.env.GOOGLE_VERTEX_LOCATION?.trim() || fileConfig.googleLocation || DEFAULTS.googleLocation,
     googleCredentialsFile: process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim() || fileConfig.googleCredentialsFile || null,
@@ -250,6 +265,10 @@ export const loadConfig = (): GatewayConfig => {
     maxDecodedImageBytes: numberEnv('GATEWAY_MAX_DECODED_IMAGE_BYTES', fileConfig.maxDecodedImageBytes ?? DEFAULTS.maxDecodedImageBytes),
     upstreamTimeoutMs: numberEnv('GATEWAY_UPSTREAM_TIMEOUT_MS', fileConfig.upstreamTimeoutMs ?? DEFAULTS.upstreamTimeoutMs),
     upstreamConcurrency: numberEnv('GATEWAY_UPSTREAM_CONCURRENCY', fileConfig.upstreamConcurrency ?? DEFAULTS.upstreamConcurrency),
+    streamMaxDurationMs: numberEnv('GATEWAY_STREAM_MAX_DURATION_MS', fileConfig.streamMaxDurationMs ?? DEFAULTS.streamMaxDurationMs),
+    streamIdleTimeoutMs: numberEnv('GATEWAY_STREAM_IDLE_TIMEOUT_MS', fileConfig.streamIdleTimeoutMs ?? DEFAULTS.streamIdleTimeoutMs),
+    streamPerKeyLimit: numberEnv('GATEWAY_STREAM_PER_KEY_LIMIT', fileConfig.streamPerKeyLimit ?? DEFAULTS.streamPerKeyLimit),
+    streamQueueLimit: numberEnv('GATEWAY_STREAM_QUEUE_LIMIT', fileConfig.streamQueueLimit ?? DEFAULTS.streamQueueLimit),
     enableGeminiRoutes: boolEnv(process.env.GATEWAY_ENABLE_GEMINI_ROUTES, fileConfig.enableGeminiRoutes ?? true),
     enableOpenAiRoutes: boolEnv(process.env.GATEWAY_ENABLE_OPENAI_ROUTES, fileConfig.enableOpenAiRoutes ?? true),
     enableVertexRoutes: boolEnv(process.env.GATEWAY_ENABLE_VERTEX_ROUTES, fileConfig.enableVertexRoutes ?? true),

@@ -41,7 +41,8 @@ gcloud run deploy "${GCP_SERVICE_NAME}" \
   --port 8080 \
   --memory 1Gi \
   --cpu 1 \
-  --timeout 300 \
+  --concurrency 20 \
+  --timeout 180 \
   --max-instances 10 \
   --env-vars-file "${ROOT_DIR}/${GCP_ENV_FILE}" \
   --update-secrets "/run/secrets/vertex-account.json=${GCP_SECRET_NAME}:${GCP_SECRET_VERSION}"

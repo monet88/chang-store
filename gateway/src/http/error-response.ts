@@ -2,6 +2,7 @@ import type { ServerResponse } from 'node:http';
 
 export type GatewayErrorCode =
   | 'AUTH_INVALID'
+  | 'RATE_LIMITED'
   | 'CORS_DENIED'
   | 'NOT_FOUND'
   | 'NOT_IMPLEMENTED'

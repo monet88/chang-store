@@ -59,6 +59,7 @@ OAuth client JSON với top-level `installed` hoặc `web` sẽ bị reject.
 | `POST` | `/gemini/v1beta/models/{model}:streamGenerateContent` | Gemini-compatible | Streaming route |
 | `GET` | `/openai/v1/models` | OpenAI-compatible | Minimal OpenAI model list |
 | `POST` | `/openai/v1/chat/completions` | OpenAI-compatible | OpenAI Chat Completions compatibility route, supports both JSON and SSE |
+| `POST` | `/openai/v1/responses` | OpenAI-compatible | Text-first Responses subset, supports JSON and semantic SSE |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:generateContent` | Vertex-compatible | Canonical Vertex-style route |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:streamGenerateContent` | Vertex-compatible | Canonical Vertex-style streaming |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:predict` | Vertex-compatible | Vertex predict route |
@@ -74,8 +75,7 @@ the public verification path to rely on after Cloud Run cutover.
 
 OpenAI SDK note: set `baseURL` to the `/openai/v1` prefix, for example
 `https://gemini.monet.uno/openai/v1`. This gateway currently implements
-`GET /models` and `POST /chat/completions` on that prefix. `responses` is not
-implemented yet.
+`GET /models`, `POST /chat/completions`, and `POST /responses` on that prefix.
 
 For `POST /openai/v1/chat/completions`:
 
@@ -86,6 +86,36 @@ For `POST /openai/v1/chat/completions`:
   calls are rejected with a pre-header `400 VALIDATION_FAILED`.
 - If the configured GenAI client does not expose upstream streaming, the
   gateway returns `501 NOT_IMPLEMENTED`.
+
+For `POST /openai/v1/responses`:
+
+- Supported input subset:
+  - `input` as a string
+  - `input` as a message array with `type: "message"` items
+  - `instructions`
+  - `temperature`, `top_p`, `max_output_tokens`
+  - custom function `tools` for non-streaming requests
+- Supported `tool_choice` subset for non-streaming requests:
+  - `auto`
+  - `none`
+  - `required`
+  - `{ "type": "function", "name": "<tool-name>" }`
+- `stream: true` returns semantic Responses SSE events such as
+  `response.created`, `response.output_text.delta`, and `response.completed`.
+- Current Phase 2 limits:
+  - streaming is text-first only
+  - streaming tool calls are rejected
+  - `parallel_tool_calls: true` is rejected
+  - persistence/state fields such as `background`, `conversation`, `store`,
+    and `previous_response_id` are rejected
+  - built-in/hosted tools are rejected
+
+For native Gemini/Vertex streaming routes:
+
+- The gateway returns SSE `data: <json>` frames and closes on EOF.
+- It does **not** append `data: [DONE]` on native Gemini/Vertex streams.
+- This shape is deliberate so the official `@google/genai` stream parser can
+  consume the response through a custom base URL.
 
 ---
 
@@ -155,6 +185,29 @@ curl -X POST http://localhost:19089/gemini/v1beta/models/gemini-3.5-flash:genera
       }]
     }]
   }'
+```
+
+### 2b. Gemini SDK `streamGenerateContent`
+
+```ts
+import { GoogleGenAI } from '@google/genai';
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GATEWAY_API_KEY,
+  httpOptions: {
+    baseUrl: 'https://gemini.monet.uno/gemini',
+    apiVersion: 'v1beta',
+  },
+});
+
+const stream = await ai.models.generateContentStream({
+  model: 'gemini-2.5-flash',
+  contents: 'Reply with exactly: ok',
+});
+
+for await (const chunk of stream) {
+  console.log(chunk.text);
+}
 ```
 
 ### 3. OpenAI-Compatible `chat.completions` (JSON)
@@ -239,6 +292,61 @@ Expected response shape:
 }
 ```
 
+### 7. OpenAI-Compatible `responses` (JSON)
+
+```bash
+curl -X POST http://localhost:19089/openai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <gateway-api-key>" \
+  -d '{
+    "model": "gemini-3.5-flash",
+    "input": "Reply with exactly: ok"
+  }'
+```
+
+OpenAI SDK example:
+
+```ts
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  apiKey: process.env.GATEWAY_API_KEY,
+  baseURL: 'https://YOUR_CLOUD_RUN_URL/openai/v1',
+});
+
+const response = await client.responses.create({
+  model: 'gemini-3.5-flash',
+  input: 'Reply with exactly: ok',
+});
+```
+
+### 8. OpenAI-Compatible `responses` (SSE)
+
+```bash
+curl -N -X POST http://localhost:19089/openai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <gateway-api-key>" \
+  -d '{
+    "model": "gemini-3.5-flash",
+    "input": "Reply with exactly: ok",
+    "stream": true
+  }'
+```
+
+OpenAI SDK example:
+
+```ts
+const stream = await client.responses.create({
+  model: 'gemini-3.5-flash',
+  input: 'Reply with exactly: ok',
+  stream: true,
+});
+
+for await (const event of stream) {
+  console.log(event.type);
+}
+```
+
 ---
 
 ## Integration Notes
@@ -256,3 +364,9 @@ Expected response shape:
   - Image edit/generate: `gemini-3.1-flash-image`
 - Không dùng `imagen-4.0*` trong app hoặc gateway flow mới.
 - Không đưa service account JSON vào Vite env, localStorage, hoặc request từ browser.
+- Production wildcard CORS mặc định nên để **tắt** (`GATEWAY_ALLOW_WILDCARD_CORS=false`).
+- Stream production controls hiện có trong gateway config:
+  - `GATEWAY_STREAM_MAX_DURATION_MS`
+  - `GATEWAY_STREAM_IDLE_TIMEOUT_MS`
+  - `GATEWAY_STREAM_PER_KEY_LIMIT`
+  - `GATEWAY_STREAM_QUEUE_LIMIT`

@@ -28,6 +28,10 @@ describe('request classifier', () => {
       family: 'openai',
       operation: 'chatCompletions',
     });
+    expect(classifyRoute('POST', '/openai/v1/responses')).toMatchObject({
+      family: 'openai',
+      operation: 'responses',
+    });
   });
 
   it('does not allow root v1beta aliases', () => {

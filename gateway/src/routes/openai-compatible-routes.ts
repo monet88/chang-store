@@ -4,6 +4,7 @@ import type { ClassifiedRoute } from '../http/request-classifier.js';
 import { GatewayError } from '../http/error-response.js';
 import { writeSseDone, writeSseError, writeSseJson } from '../http/sse-response.js';
 import type { GenAiClient } from '../lib/google-genai-client.js';
+import { nextStreamStep } from '../lib/stream-guards.js';
 
 interface OpenAIChatMessage {
   role: string;
@@ -337,6 +338,7 @@ export const runOpenAiCompatibleStreamRoute = async (
   route: ClassifiedRoute,
   body: Record<string, unknown>,
   ai: GenAiClient,
+  streamConfig: { idleTimeoutMs: number; maxDurationMs: number },
 ): Promise<void> => {
   if (route.operation !== 'chatCompletions') {
     throw new GatewayError(404, 'NOT_FOUND', 'OpenAI-compatible route is not implemented.');
@@ -352,6 +354,7 @@ export const runOpenAiCompatibleStreamRoute = async (
   const iterator = stream[Symbol.asyncIterator]();
   const completionId = `chatcmpl_${randomUUID().replace(/-/g, '')}`;
   const created = Math.floor(Date.now() / 1000);
+  const startedAt = Date.now();
   let closed = false;
   let iteratorClosed = false;
   let sentRole = false;
@@ -383,7 +386,7 @@ export const runOpenAiCompatibleStreamRoute = async (
     while (!closed) {
       let step: IteratorResult<Record<string, unknown>>;
       try {
-        step = await iterator.next();
+        step = await nextStreamStep(iterator, { ...streamConfig, startedAt });
       } catch (error) {
         if (!closed && !wroteFrame && !res.headersSent) {
           throw error;

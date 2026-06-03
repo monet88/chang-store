@@ -27,4 +27,24 @@ describe('cors', () => {
     const res = createResponse();
     expect(() => applyCors(requestWithOrigin('http://localhost:3999'), res, testConfig())).toThrow(/not allowed/);
   });
+
+  it('rejects wildcard CORS for non-local origins by default', () => {
+    const res = createResponse();
+    expect(() => applyCors(
+      requestWithOrigin('https://evil.example'),
+      res,
+      testConfig({ corsOrigins: ['*'], allowWildcardCors: false }),
+    )).toThrow(/wildcard c o r s|wildcard cors/i);
+  });
+
+  it('allows wildcard CORS for localhost during local development', () => {
+    const res = createResponse();
+    applyCors(
+      requestWithOrigin('http://localhost:3001'),
+      res,
+      testConfig({ corsOrigins: ['*'], allowWildcardCors: false }),
+    );
+
+    expect(res.getHeader('access-control-allow-origin')).toBe('http://localhost:3001');
+  });
 });

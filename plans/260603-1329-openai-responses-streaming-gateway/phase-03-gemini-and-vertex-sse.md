@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: Gemini and Vertex SSE
-status: in-progress
+status: completed
 priority: P1
 effort: 0.5-1d
 dependencies:
@@ -13,10 +13,10 @@ dependencies:
 
 ## Overview
 
-Local implementation now routes Gemini-compatible and Vertex-compatible
-`streamGenerateContent` through upstream `generateContentStream` and shared SSE
-framing. This phase remains open only for SDK custom-base-url proof and rollout
-validation that were not covered by the focused local tests.
+Gemini-compatible and Vertex-compatible `streamGenerateContent` now route
+through upstream `generateContentStream`, use a native SDK-compatible SSE shape
+without OpenAI-style `[DONE]`, and have local Google SDK custom-base-url proof
+for both `/gemini` and `/vertex`.
 
 ## Requirements
 
@@ -63,29 +63,49 @@ current `data: <json>` frames and `[DONE]` terminator.
 4. Done locally: add focused tests proving stream routes call
    `generateContentStream`, send `text/event-stream`, write upstream chunks, end
    with `[DONE]`, and clean up on disconnect.
-5. Remaining: re-check and cite the Phase 0 accepted contract for
+5. Done: re-check and cite the Phase 0 accepted contract for
    `@google/genai` custom-base-url `streamGenerateContent`.
-6. Remaining: add SDK smoke for Gemini and Vertex stream routes, or document a
-   credential-free fixture that will be repeated live in Phase 4.
-7. Remaining: if SDK proof rejects the current SSE format, update the helper and
-   streaming route tests to match the verified wire contract.
+6. Done: add local Google SDK smoke for Gemini and Vertex stream routes.
+7. Done: update the shared SSE helper so native Gemini/Vertex streams end on
+   EOF instead of `data: [DONE]`, which the Google SDK parser rejects.
 
 ## Success Criteria
 
 - [x] Gemini stream route no longer calls non-streaming `generateContent`.
 - [x] Vertex stream route no longer calls non-streaming `generateContent`.
 - [x] Stream routes return `text/event-stream`.
-- [ ] Gemini and Vertex SDK smoke can parse the stream through the custom base
+- [x] Gemini and Vertex SDK smoke can parse the stream through the custom base
       URL contract verified in Phase 0.
 - [x] Focused non-streaming compatibility tests stayed green in the commits that
       introduced the local streaming branch.
 
+## Evidence
+
+- `gateway/src/http/sse-response.ts` now supports protocol-specific stream
+  termination so native Gemini/Vertex routes close on EOF instead of appending
+  `[DONE]`.
+- `gateway/src/app.ts` explicitly passes `includeDone: false` for native Gemini
+  and Vertex stream routes.
+- `gateway/test/streaming-routes.test.ts` now proves:
+  - native Gemini stream route returns `text/event-stream` without `[DONE]`
+  - native Vertex stream route returns `text/event-stream` without `[DONE]`
+  - the official `GoogleGenAI` SDK can stream through both local custom base
+    URL contracts
+  - idle timeout failures stay inside sanitized SSE error framing
+- Validation:
+  - `npm --prefix gateway run test -- streaming-routes.test.ts`
+  - `npm --prefix gateway run test`
+  - `npm --prefix gateway run compile`
+  - `npx tsc --noEmit`
+  - `npm run lint`
+  - `git diff --check`
+
 ## Risk Assessment
 
-Risk: Google SDK custom-base-url stream parser may expect exact upstream wire
-format, not generic SSE.
-Mitigation: Phase 0 validates the contract before implementation and Phase 4
-repeats SDK smoke before production rollout.
+Risk: Google SDK custom-base-url stream parser may reject OpenAI-like stream
+terminators.
+Mitigation: native Gemini/Vertex routes now terminate on EOF and are covered by
+direct local SDK smoke.
 
 Risk: One streaming branch could accidentally affect image custom routes.
 Mitigation: keep custom image routes isolated from compatibility streaming.

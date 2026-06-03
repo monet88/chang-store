@@ -1,6 +1,7 @@
 import type { ServerResponse } from 'node:http';
 import type { GatewayErrorCode } from './error-response.js';
-import { toGatewayError } from './error-response.js';
+import { GatewayError, toGatewayError } from './error-response.js';
+import { nextStreamStep } from '../lib/stream-guards.js';
 
 const initializeSse = (res: ServerResponse): void => {
   if (res.headersSent) return;
@@ -87,10 +88,15 @@ export const writeSseError = async (
 export const sendSseStream = async (
   res: ServerResponse,
   chunks: AsyncIterable<Record<string, unknown>>,
+  options: { includeDone?: boolean; idleTimeoutMs?: number; maxDurationMs?: number } = {},
 ): Promise<void> => {
+  const includeDone = options.includeDone ?? false;
+  const idleTimeoutMs = options.idleTimeoutMs ?? 30_000;
+  const maxDurationMs = options.maxDurationMs ?? 240_000;
   let closed = false;
   let iteratorClosed = false;
   let wroteFrame = false;
+  const startedAt = Date.now();
   const iterator = chunks[Symbol.asyncIterator]();
 
   const closeIterator = async () => {
@@ -117,7 +123,7 @@ export const sendSseStream = async (
     while (!closed) {
       let step: IteratorResult<Record<string, unknown>>;
       try {
-        step = await iterator.next();
+        step = await nextStreamStep(iterator, { idleTimeoutMs, maxDurationMs, startedAt });
       } catch (error) {
         if (!closed && !wroteFrame && !res.headersSent) {
           throw error;
@@ -134,7 +140,17 @@ export const sendSseStream = async (
       wroteFrame = true;
       if (await writeSseJson(res, step.value) === 'closed') return;
     }
-    if (!closed) writeSseDone(res);
+    if (!closed) {
+      if (includeDone) {
+        writeSseDone(res);
+      } else if (!res.destroyed && !res.writableEnded) {
+        try {
+          res.end();
+        } catch {
+          // Socket closed after the state check.
+        }
+      }
+    }
   } finally {
     res.off('close', onClose);
     res.off('error', onClose);

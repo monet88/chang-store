@@ -32,6 +32,7 @@ describe('root route', () => {
       'GET /gemini/v1beta/models',
       'POST /gemini/v1beta/models/{model}:generateContent',
       'POST /openai/v1/chat/completions',
+      'POST /openai/v1/responses',
     ]));
     expect(generateContent).not.toHaveBeenCalled();
   });

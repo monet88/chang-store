@@ -70,7 +70,9 @@ const createOpenAiFixtureServer = (): Server => createServer((req: IncomingMessa
       '{"type":"response.content_part.added","sequence_number":2,"item_id":"msg_test","output_index":0,"content_index":0,"part":{"type":"output_text","text":""}}',
       '{"type":"response.output_text.delta","sequence_number":3,"item_id":"msg_test","output_index":0,"content_index":0,"delta":"ok"}',
       '{"type":"response.output_text.done","sequence_number":4,"item_id":"msg_test","output_index":0,"content_index":0,"text":"ok"}',
-      '{"type":"response.completed","sequence_number":5,"response":{"id":"resp_test","object":"response","status":"completed","model":"gemini-2.5-flash","output_text":"ok"}}',
+      '{"type":"response.content_part.done","sequence_number":5,"item_id":"msg_test","output_index":0,"content_index":0,"part":{"type":"output_text","text":"ok","annotations":[]}}',
+      '{"type":"response.output_item.done","sequence_number":6,"output_index":0,"item":{"id":"msg_test","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"ok","annotations":[]}]}}',
+      '{"type":"response.completed","sequence_number":7,"response":{"id":"resp_test","object":"response","status":"completed","model":"gemini-2.5-flash","output":[{"id":"msg_test","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"ok","annotations":[]}]}],"output_text":"ok"}}',
     ]);
     return;
   }
@@ -112,7 +114,7 @@ describe('stream contract proof', () => {
       generatorCompleted = true;
     }
     const res = new FakeSseResponse();
-    const sendPromise = sendSseStream(res as unknown as ServerResponse, delayedStream());
+    const sendPromise = sendSseStream(res as unknown as ServerResponse, delayedStream(), { includeDone: true });
 
     await vi.waitFor(() => {
       expect(res.write).toHaveBeenCalledTimes(1);
@@ -148,7 +150,9 @@ describe('stream contract proof', () => {
       'data: {"type":"response.content_part.added","sequence_number":2,"item_id":"msg_test","output_index":0,"content_index":0,"part":{"type":"output_text","text":""}}',
       'data: {"type":"response.output_text.delta","sequence_number":3,"item_id":"msg_test","output_index":0,"content_index":0,"delta":"ok"}',
       'data: {"type":"response.output_text.done","sequence_number":4,"item_id":"msg_test","output_index":0,"content_index":0,"text":"ok"}',
-      'data: {"type":"response.completed","sequence_number":5,"response":{"id":"resp_test","object":"response","status":"completed","model":"gemini-2.5-flash","output_text":"ok"}}',
+      'data: {"type":"response.content_part.done","sequence_number":5,"item_id":"msg_test","output_index":0,"content_index":0,"part":{"type":"output_text","text":"ok","annotations":[]}}',
+      'data: {"type":"response.output_item.done","sequence_number":6,"output_index":0,"item":{"id":"msg_test","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"ok","annotations":[]}]}}',
+      'data: {"type":"response.completed","sequence_number":7,"response":{"id":"resp_test","object":"response","status":"completed","model":"gemini-2.5-flash","output":[{"id":"msg_test","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"ok","annotations":[]}]}],"output_text":"ok"}}',
       'data: [DONE]',
       '',
     ].join('\n\n'));
@@ -160,9 +164,11 @@ describe('stream contract proof', () => {
       'response.content_part.added',
       'response.output_text.delta',
       'response.output_text.done',
+      'response.content_part.done',
+      'response.output_item.done',
       'response.completed',
     ]);
-    expect(semanticEvents.map((event) => event.sequence_number)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(semanticEvents.map((event) => event.sequence_number)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
 
     const googleFrames = parseSseDataFrames([
       'data: {"candidates":[{"content":{"parts":[{"text":"hel"}]}}]}',
