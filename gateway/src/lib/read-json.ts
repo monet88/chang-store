@@ -7,7 +7,9 @@ export const readJsonBody = async <T>(req: IncomingMessage, maxBytes: number): P
   for await (const chunk of req) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     total += buffer.length;
-    if (total > maxBytes) throw new GatewayError(413, 'PAYLOAD_TOO_LARGE', 'JSON body exceeds gateway limit.');
+    if (total > maxBytes) {
+      throw new GatewayError(413, 'PAYLOAD_TOO_LARGE', 'JSON body exceeds gateway limit.');
+    }
     chunks.push(buffer);
   }
   if (chunks.length === 0) return {} as T;

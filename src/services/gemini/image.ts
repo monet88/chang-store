@@ -235,12 +235,7 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
       return extractInlineImagePart(response, { requestedModel: model });
     };
 
-    const results: ImageFile[] = [];
-    for (let index = 0; index < numberOfImages; index += 1) {
-      results.push(await generateSingleImage());
-    }
-
-    return results;
+    return await Promise.all(Array.from({ length: numberOfImages }, () => generateSingleImage()));
   } catch (error) {
     console.error("Error editing image with Gemini API:", error);
     throw createGeminiFailedError(error);
@@ -257,8 +252,6 @@ export const generateImageFromText = async (
 
   try {
     const normalizedAspectRatio = aspectRatio === 'Default' ? '1:1' : aspectRatio;
-    const results: GeneratedImageFile[] = [];
-
     const gatewayRoot = getGatewayRootUrl();
 
     if (gatewayRoot) {
@@ -272,7 +265,7 @@ export const generateImageFromText = async (
     }
 
     if (!isProxyEnabled()) {
-      for (let index = 0; index < numberOfImages; index += 1) {
+      return await Promise.all(Array.from({ length: numberOfImages }, async () => {
         const response = await ai.models.generateContent({
           model,
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -281,17 +274,13 @@ export const generateImageFromText = async (
             imageConfig: { aspectRatio: normalizedAspectRatio },
           },
         });
-        results.push(extractInlineImagePart(response, { requestedModel: model }));
-      }
-
-      return results;
+        return extractInlineImagePart(response, { requestedModel: model });
+      }));
     }
 
-    for (let index = 0; index < numberOfImages; index += 1) {
-      results.push(await generateProxyImage(prompt, normalizedAspectRatio, model));
-    }
-
-    return results;
+    return await Promise.all(Array.from({ length: numberOfImages }, () =>
+      generateProxyImage(prompt, normalizedAspectRatio, model),
+    ));
   } catch (error) {
     console.error("Error generating image from text with Gemini API:", error);
     throw createGeminiFailedError(error);

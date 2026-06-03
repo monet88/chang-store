@@ -123,6 +123,54 @@ describe('usePatternGenerator', () => {
     expect(addImageMock).toHaveBeenNthCalledWith(2, GENERATED_PATTERN_B);
   });
 
+  it('sets isLoading while generation is pending', async () => {
+    let resolveGeneration: (images: typeof GENERATED_PATTERN_A[]) => void = () => {};
+    vi.mocked(editImage).mockReturnValueOnce(new Promise((resolve) => {
+      resolveGeneration = resolve;
+    }));
+    const { result } = renderHook(() => usePatternGenerator());
+
+    act(() => {
+      result.current.setReferenceImages([REFERENCE_IMAGE]);
+    });
+
+    act(() => {
+      void result.current.handleGenerate();
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.loadingMessage).toBe('patternGenerator.generatingStatus');
+
+    await act(async () => {
+      resolveGeneration([GENERATED_PATTERN_A]);
+    });
+
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('ignores duplicate generate calls while a generation is pending', async () => {
+    let resolveGeneration: (images: typeof GENERATED_PATTERN_A[]) => void = () => {};
+    vi.mocked(editImage).mockReturnValue(new Promise((resolve) => {
+      resolveGeneration = resolve;
+    }));
+    const { result } = renderHook(() => usePatternGenerator());
+
+    act(() => {
+      result.current.setReferenceImages([REFERENCE_IMAGE]);
+    });
+
+    act(() => {
+      void result.current.handleGenerate();
+      void result.current.handleGenerate();
+    });
+
+    expect(editImage).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveGeneration([GENERATED_PATTERN_A]);
+    });
+  });
+
   it('sets error and resets isLoading when editImage rejects', async () => {
     vi.mocked(editImage).mockRejectedValueOnce(new Error('generation failed'));
     const { result } = renderHook(() => usePatternGenerator());

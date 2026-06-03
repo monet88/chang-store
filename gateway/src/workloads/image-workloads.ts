@@ -43,6 +43,25 @@ const buildImageParts = (images: ImageInput[]) => images.map((image) => ({
   inlineData: { mimeType: image.mimeType, data: image.data },
 }));
 
+const parseNumberOfImages = (value: unknown, maxImages: number): number => {
+  const numberOfImages = Math.min(Number(value ?? 1), maxImages);
+  if (!Number.isInteger(numberOfImages) || numberOfImages < 1) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'numberOfImages must be between 1 and maxImages.');
+  }
+  return numberOfImages;
+};
+
+const buildImageConfig = (body: Record<string, unknown>): { aspectRatio?: string; imageSize?: string } => {
+  const imageConfig: { aspectRatio?: string; imageSize?: string } = {};
+  if (typeof body.aspectRatio === 'string' && body.aspectRatio !== 'Default') {
+    imageConfig.aspectRatio = body.aspectRatio;
+  }
+  if (typeof body.resolution === 'string' && body.resolution.trim() !== '') {
+    imageConfig.imageSize = body.resolution;
+  }
+  return imageConfig;
+};
+
 export class ImageWorkloads {
   private readonly semaphore: Semaphore;
 
@@ -54,19 +73,16 @@ export class ImageWorkloads {
     const prompt = assertString(body, 'prompt');
     const model = typeof body.model === 'string' ? body.model : defaultGenerateModel;
     const aspectRatio = typeof body.aspectRatio === 'string' && body.aspectRatio !== 'Default' ? body.aspectRatio : '1:1';
-    const numberOfImages = Math.min(Number(body.numberOfImages ?? 1), this.config.maxImages);
-    if (!Number.isInteger(numberOfImages) || numberOfImages < 1) {
-      throw new GatewayError(400, 'VALIDATION_FAILED', 'numberOfImages must be between 1 and maxImages.');
-    }
-    const images: ImageDto[] = [];
-    for (let index = 0; index < numberOfImages; index += 1) {
+    const numberOfImages = parseNumberOfImages(body.numberOfImages, this.config.maxImages);
+    const results = await Promise.all(Array.from({ length: numberOfImages }, async (_, index) => {
       const response = await this.safeGenerate(() => this.ai.models.generateContent({
-        model,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio } },
-      }));
-      images.push(...normalizeInlineImages(response, { model, requestedIndex: index }));
-    }
+          model,
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          config: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio } },
+        }));
+      return normalizeInlineImages(response, { model, requestedIndex: index });
+    }));
+    const images = results.flat();
     return { images: images.map((image, index) => ({ ...image, index })) };
   }
 
@@ -74,12 +90,21 @@ export class ImageWorkloads {
     const prompt = assertString(body, 'prompt');
     const images = validateImages(body.images, this.config);
     const model = typeof body.model === 'string' ? body.model : defaultImageModel;
-    const response = await this.unsafeGenerate(() => this.ai.models.generateContent({
-      model,
-      contents: [{ role: 'user', parts: [...buildImageParts(images), { text: prompt }] }],
-      config: { responseModalities: ['IMAGE'] },
+    const numberOfImages = parseNumberOfImages(body.numberOfImages, this.config.maxImages);
+    const imageConfig = buildImageConfig(body);
+    const results = await Promise.all(Array.from({ length: numberOfImages }, async (_, index) => {
+      const response = await this.unsafeGenerate(() => this.ai.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts: [...buildImageParts(images), { text: prompt }] }],
+        config: {
+          responseModalities: ['IMAGE'],
+          ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
+        },
+      }));
+      return normalizeInlineImages(response, { model, requestedIndex: index });
     }));
-    return { images: normalizeInlineImages(response, { model }) };
+    const outputImages = results.flat();
+    return { images: outputImages.map((image, index) => ({ ...image, index })) };
   }
 
   async upscale(body: Record<string, unknown>): Promise<{ images: ImageDto[] }> {

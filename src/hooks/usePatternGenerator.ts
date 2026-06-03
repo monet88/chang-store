@@ -26,6 +26,7 @@ export function usePatternGenerator() {
   const [isRefining, setIsRefining] = useState(false);
 
   const chatSessionsRef = useRef<Record<number, ImageChatSession>>({});
+  const isGeneratingRef = useRef(false);
 
   const handleStatusUpdate = useCallback((message: string) => {
     setLoadingMessage(message);
@@ -57,11 +58,13 @@ export function usePatternGenerator() {
       return;
     }
 
-    if (isRefining) {
+    if (isRefining || isGeneratingRef.current) {
       return;
     }
 
+    isGeneratingRef.current = true;
     setLoadingMessage(t('patternGenerator.generatingStatus'));
+    setIsLoading(true);
     setError(null);
     chatSessionsRef.current = {};
     setGeneratedPatterns([]);
@@ -86,6 +89,7 @@ export function usePatternGenerator() {
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
+      isGeneratingRef.current = false;
       setIsLoading(false);
       setLoadingMessage('');
     }

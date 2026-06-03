@@ -8,7 +8,7 @@ export const runCompatibilityRoute = async (
 ): Promise<Record<string, unknown>> => {
   if (route.operation === 'models') return { models: [] };
   if (route.operation === 'predict') {
-    return ai.models.generateContent({ model: route.model, ...(body.instances ? { instances: body.instances } : body) });
+    return ai.models.generateContent({ ...(body.instances ? { instances: body.instances } : body), model: route.model });
   }
-  return ai.models.generateContent({ model: route.model, ...body });
+  return ai.models.generateContent({ ...body, model: route.model });
 };

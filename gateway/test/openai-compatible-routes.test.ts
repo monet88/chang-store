@@ -56,8 +56,10 @@ describe('openai-compatible routes', () => {
     expect(body.usage).toMatchObject({ prompt_tokens: 11, completion_tokens: 7, total_tokens: 18 });
     expect(generateContent).toHaveBeenCalledWith({
       model: 'gemini-3.5-flash',
-      systemInstruction: { parts: [{ text: 'You are concise.' }] },
       contents: [{ role: 'user', parts: [{ text: 'Reply with exactly ok' }] }],
+      config: {
+        systemInstruction: { parts: [{ text: 'You are concise.' }] },
+      },
     });
   });
 
@@ -110,7 +112,86 @@ describe('openai-compatible routes', () => {
     expect(generateContent).toHaveBeenCalledWith({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'Give two options' }] }],
-      generationConfig: { candidateCount: 2 },
+      config: { candidateCount: 2 },
+    });
+  });
+
+  it('maps OpenAI generation options into Gemini config', async () => {
+    const generateContent = vi.fn(async () => ({
+      modelVersion: 'gemini-3.5-flash',
+      candidates: [{ content: { parts: [{ text: 'ok' }] }, finishReason: 'STOP' }],
+    }));
+
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        temperature: 0.2,
+        top_p: 0.9,
+        max_tokens: 64,
+        stop: ['END'],
+        messages: [{ role: 'user', content: 'hello' }],
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledWith({
+      model: 'gemini-3.5-flash',
+      contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+      config: {
+        temperature: 0.2,
+        topP: 0.9,
+        maxOutputTokens: 64,
+        stopSequences: ['END'],
+      },
+    });
+  });
+
+  it('maps OpenAI tools into Gemini config tools', async () => {
+    const generateContent = vi.fn(async () => ({
+      modelVersion: 'gemini-3.5-flash',
+      candidates: [{ content: { parts: [{ text: 'ok' }] }, finishReason: 'STOP' }],
+    }));
+
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        temperature: 0.1,
+        messages: [{ role: 'user', content: 'call a tool' }],
+        tools: [{
+          type: 'function',
+          function: {
+            name: 'lookup',
+            description: 'Lookup data',
+            parameters: { type: 'object', properties: { id: { type: 'string' } } },
+          },
+        }],
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledWith({
+      model: 'gemini-3.5-flash',
+      contents: [{ role: 'user', parts: [{ text: 'call a tool' }] }],
+      config: {
+        temperature: 0.1,
+        tools: [{
+          functionDeclarations: [{
+            name: 'lookup',
+            description: 'Lookup data',
+            parameters: { type: 'object', properties: { id: { type: 'string' } } },
+          }],
+        }],
+      },
     });
   });
 

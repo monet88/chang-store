@@ -26,11 +26,18 @@ const readCredentialJson = (credentialsFile: string): Record<string, unknown> =>
   }
 };
 
+const credentialCache = new Map<string, ServiceAccountCredential>();
+
 export const loadServiceAccountCredential = (
   credentialsFile: string | null,
 ): ServiceAccountCredential | null => {
   if (!credentialsFile) {
     return null;
+  }
+
+  const cachedCredential = credentialCache.get(credentialsFile);
+  if (cachedCredential) {
+    return cachedCredential;
   }
 
   const credential = readCredentialJson(credentialsFile);
@@ -55,12 +62,14 @@ export const loadServiceAccountCredential = (
     throw new Error('Vertex service account JSON is missing private_key.');
   }
 
-  return {
+  const serviceAccount: ServiceAccountCredential = {
     type,
     project_id: projectId.trim(),
     client_email: clientEmail.trim(),
     private_key: privateKey,
   };
+  credentialCache.set(credentialsFile, serviceAccount);
+  return serviceAccount;
 };
 
 export const getGoogleAuthStatus = (config: GatewayConfig): GoogleAuthStatus => {

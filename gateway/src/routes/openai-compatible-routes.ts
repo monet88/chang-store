@@ -170,13 +170,14 @@ const buildGeminiRequest = (body: OpenAIChatCompletionRequest): Record<string, u
     throw new GatewayError(400, 'VALIDATION_FAILED', `Unsupported OpenAI-compatible role: ${message.role}.`);
   }
 
-  const generationConfig: Record<string, unknown> = {};
-  if (typeof body.temperature === 'number') generationConfig.temperature = body.temperature;
-  if (typeof body.top_p === 'number') generationConfig.topP = body.top_p;
-  if (typeof body.max_tokens === 'number') generationConfig.maxOutputTokens = body.max_tokens;
-  if (typeof body.n === 'number') generationConfig.candidateCount = body.n;
-  if (typeof body.stop === 'string') generationConfig.stopSequences = [body.stop];
-  if (Array.isArray(body.stop)) generationConfig.stopSequences = body.stop.filter((item): item is string => typeof item === 'string');
+  const config: Record<string, unknown> = {};
+  if (typeof body.temperature === 'number') config.temperature = body.temperature;
+  if (typeof body.top_p === 'number') config.topP = body.top_p;
+  if (typeof body.max_tokens === 'number') config.maxOutputTokens = body.max_tokens;
+  if (typeof body.n === 'number') config.candidateCount = body.n;
+  if (typeof body.stop === 'string') config.stopSequences = [body.stop];
+  if (Array.isArray(body.stop)) config.stopSequences = body.stop.filter((item): item is string => typeof item === 'string');
+  if (systemParts.length > 0) config.systemInstruction = { parts: systemParts };
 
   const tools = (body.tools ?? [])
     .filter((tool) => tool?.type === 'function' && tool.function?.name)
@@ -187,13 +188,12 @@ const buildGeminiRequest = (body: OpenAIChatCompletionRequest): Record<string, u
         ...(tool.function!.parameters ? { parameters: tool.function!.parameters } : {}),
       }],
     }));
+  if (tools.length > 0) config.tools = tools;
 
   return {
     model: body.model.trim(),
     contents,
-    ...(systemParts.length > 0 ? { systemInstruction: { parts: systemParts } } : {}),
-    ...(Object.keys(generationConfig).length > 0 ? { generationConfig } : {}),
-    ...(tools.length > 0 ? { tools } : {}),
+    ...(Object.keys(config).length > 0 ? { config } : {}),
   };
 };
 

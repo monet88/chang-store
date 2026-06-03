@@ -37,6 +37,62 @@ describe('custom image routes', () => {
     expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.1-flash-image' }));
   });
 
+  it('dispatches one generate request for each requested output image', async () => {
+    const generateContent = vi.fn()
+      .mockResolvedValueOnce({ candidates: [{ content: { parts: [{ inlineData: { data: 'one', mimeType: 'image/png' } }] } }] })
+      .mockResolvedValueOnce({ candidates: [{ content: { parts: [{ inlineData: { data: 'two', mimeType: 'image/png' } }] } }] });
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/api/images/generate`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({ prompt: 'dress', numberOfImages: 2, aspectRatio: '16:9' }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.images.map((image: { index: number; dataUrl: string }) => ({ index: image.index, dataUrl: image.dataUrl }))).toEqual([
+      { index: 0, dataUrl: 'data:image/png;base64,one' },
+      { index: 1, dataUrl: 'data:image/png;base64,two' },
+    ]);
+    expect(generateContent).toHaveBeenCalledTimes(2);
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
+      config: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '16:9' } },
+    }));
+  });
+
+  it('honors edit image count and image config options', async () => {
+    const generateContent = vi.fn()
+      .mockResolvedValueOnce({ candidates: [{ content: { parts: [{ inlineData: { data: 'edit-one', mimeType: 'image/png' } }] } }] })
+      .mockResolvedValueOnce({ candidates: [{ content: { parts: [{ inlineData: { data: 'edit-two', mimeType: 'image/png' } }] } }] });
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/api/images/edit`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'edit',
+        images: [{ mimeType: 'image/png', data: 'YWJj' }],
+        numberOfImages: 2,
+        aspectRatio: '1:1',
+        resolution: '2K',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.images.map((image: { index: number; dataUrl: string }) => ({ index: image.index, dataUrl: image.dataUrl }))).toEqual([
+      { index: 0, dataUrl: 'data:image/png;base64,edit-one' },
+      { index: 1, dataUrl: 'data:image/png;base64,edit-two' },
+    ]);
+    expect(generateContent).toHaveBeenCalledTimes(2);
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
+      config: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '1:1', imageSize: '2K' } },
+    }));
+  });
+
   it('rejects oversize input images before upstream work', async () => {
     const generateContent = vi.fn();
     server = createApp({ config: testConfig({ maxDecodedImageBytes: 2 }), genAiFactory: () => ({ models: { generateContent } }) });

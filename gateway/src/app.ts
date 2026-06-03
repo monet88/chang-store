@@ -75,6 +75,9 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: Ap
 
       throw new GatewayError(404, 'NOT_FOUND', 'Route is not implemented.');
     } catch (error) {
+      if (error instanceof GatewayError && error.code === 'PAYLOAD_TOO_LARGE') {
+        res.once('finish', () => req.destroy());
+      }
       sendError(res, ctx.id, error);
     } finally {
       ctx.log('request.complete', { status: res.statusCode, latencyMs: Date.now() - ctx.startedAt });

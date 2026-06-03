@@ -156,6 +156,7 @@ describe('services/gemini/image.ts', () => {
   // Reset mocks before each test
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGenerateContent.mockReset();
     // Suppress console.error during tests
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -235,6 +236,28 @@ describe('services/gemini/image.ts', () => {
       expect(result).toHaveLength(3);
       expect(result.map((image) => image.base64)).toEqual(['aW1hZ2UxJA==', 'aW1hZ2UyJA==', 'aW1hZ2UzJA==']);
       expect(mockGenerateContent).toHaveBeenCalledTimes(3);
+    });
+
+    it('dispatches edit variations in parallel', async () => {
+      let resolveFirst: (response: unknown) => void = () => {};
+      let resolveSecond: (response: unknown) => void = () => {};
+      mockGenerateContent
+        .mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; }))
+        .mockReturnValueOnce(new Promise((resolve) => { resolveSecond = resolve; }));
+
+      const promise = editImage({
+        images: [sampleImage],
+        prompt: 'Generate variations',
+        numberOfImages: 2,
+      });
+      await Promise.resolve();
+
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+      resolveFirst(createSuccessImageResponse('Zmlyc3Q='));
+      resolveSecond(createSuccessImageResponse('c2Vjb25k'));
+      const result = await promise;
+
+      expect(result.map((image) => image.base64)).toEqual(['Zmlyc3Q=', 'c2Vjb25k']);
     });
 
     it('should use imageConfig for aspect ratio when provided', async () => {
@@ -436,6 +459,24 @@ describe('services/gemini/image.ts', () => {
           }),
         })
       );
+    });
+
+    it('dispatches text-to-image variations in parallel', async () => {
+      let resolveFirst: (response: unknown) => void = () => {};
+      let resolveSecond: (response: unknown) => void = () => {};
+      mockGenerateContent
+        .mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; }))
+        .mockReturnValueOnce(new Promise((resolve) => { resolveSecond = resolve; }));
+
+      const promise = generateImageFromText('Abstract art', '1:1', 2);
+      await Promise.resolve();
+
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+      resolveFirst(createSuccessImageResponse('Zmlyc3Q='));
+      resolveSecond(createSuccessImageResponse('c2Vjb25k'));
+      const result = await promise;
+
+      expect(result.map((image) => image.base64)).toEqual(['Zmlyc3Q=', 'c2Vjb25k']);
     });
 
     it('should use custom model when provided', async () => {

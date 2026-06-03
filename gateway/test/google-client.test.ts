@@ -35,6 +35,20 @@ describe('google auth status', () => {
     });
   });
 
+  it('caches parsed service account credentials by file path', () => {
+    const credentialFile = writeCredential({
+      type: 'service_account',
+      project_id: 'service-project',
+      client_email: 'svc@example.test',
+      private_key: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n',
+    });
+
+    const credential = loadServiceAccountCredential(credentialFile);
+    writeFileSync(credentialFile, JSON.stringify({ installed: { client_id: 'oauth-client' } }));
+
+    expect(loadServiceAccountCredential(credentialFile)).toEqual(credential);
+  });
+
   it('rejects OAuth client JSON because Vertex needs service account credentials', () => {
     const credentialFile = writeCredential({
       installed: {
