@@ -28,6 +28,9 @@ const validateImages = (images: unknown, config: GatewayConfig): ImageInput[] =>
   if (!Array.isArray(images) || images.length === 0) throw new GatewayError(400, 'VALIDATION_FAILED', 'images is required.');
   if (images.length > config.maxImages) throw new GatewayError(413, 'PAYLOAD_TOO_LARGE', 'Too many input images.');
   return images.map((image) => {
+    if (!image || typeof image !== 'object') {
+      throw new GatewayError(400, 'VALIDATION_FAILED', 'Each image must be an object.');
+    }
     const candidate = image as Partial<ImageInput>;
     if (typeof candidate.mimeType !== 'string' || !/^image\/(png|jpeg|jpg|webp)$/.test(candidate.mimeType)) {
       throw new GatewayError(400, 'VALIDATION_FAILED', 'Unsupported image mimeType.');

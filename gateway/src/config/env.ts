@@ -68,15 +68,38 @@ const normalizeScalar = (value: string): string | number | boolean | null => {
   return Number.isFinite(numeric) && /^-?\d+(\.\d+)?$/.test(trimmed) ? numeric : trimmed;
 };
 
+const stripYamlComment = (line: string): string => {
+  let quote: '"' | '\'' | null = null;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if ((char === '"' || char === '\'') && line[index - 1] !== '\\') {
+      quote = quote === char ? null : (quote ?? char);
+      continue;
+    }
+    if (char === '#' && quote === null) {
+      return line.slice(0, index);
+    }
+  }
+  return line;
+};
+
 const loadFileConfig = (): GatewayFileConfig => {
   const filePath = process.env.GATEWAY_CONFIG_FILE?.trim();
   if (!filePath) return {};
   const source = fs.readFileSync(filePath, 'utf8');
+  if (filePath.endsWith('.json')) {
+    const parsed = JSON.parse(source);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error(`Invalid ${filePath}: expected a JSON object.`);
+    }
+    return parsed as GatewayFileConfig;
+  }
+
   const config: Record<string, unknown> = {};
   let currentListKey: string | null = null;
 
   for (const rawLine of source.split(/\r?\n/)) {
-    const line = rawLine.replace(/#.*$/, '');
+    const line = stripYamlComment(rawLine);
     if (!line.trim()) continue;
 
     const listItem = line.match(/^\s*-\s*(.+?)\s*$/);

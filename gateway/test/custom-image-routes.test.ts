@@ -110,6 +110,24 @@ describe('custom image routes', () => {
     expect(generateContent).not.toHaveBeenCalled();
   });
 
+  it('rejects non-object image entries before upstream work', async () => {
+    const generateContent = vi.fn();
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/api/images/edit`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({ prompt: 'edit', images: [null] }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error.code).toBe('VALIDATION_FAILED');
+    expect(body.error.message).toBe('Each image must be an object.');
+    expect(generateContent).not.toHaveBeenCalled();
+  });
+
   it('uses the stable default image model for /api/images/upscale', async () => {
     const generateContent = vi.fn(async () => ({
       candidates: [{ content: { parts: [{ inlineData: { data: 'abc', mimeType: 'image/png' } }] } }],

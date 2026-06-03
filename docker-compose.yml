@@ -14,7 +14,7 @@ services:
       GATEWAY_CONFIG_FILE: /app/config.yaml
     volumes:
       - ./gateway/config.yaml:/app/config.yaml:ro
-      - "/media/monet/SSD Web/CodeBase:/run/vertex-accounts:ro"
+      - "${VERTEX_ACCOUNTS_DIR:-./gateway/accounts}:/run/vertex-accounts:ro"
     healthcheck:
       test:
         [

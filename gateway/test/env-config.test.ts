@@ -76,4 +76,51 @@ describe('gateway config file', () => {
     expect(config.gatewayKeys).toEqual(['from-env']);
     expect(config.googleProject).toBe('from-env-project');
   });
+
+  it('keeps hash characters inside quoted YAML scalar values', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-config-'));
+    const configPath = path.join(dir, 'config.yaml');
+    fs.writeFileSync(configPath, [
+      'gatewayKeys:',
+      '  - "monet#4292"',
+      'googleProject: "project#hash"',
+      'googleCredentialsFile: null',
+      'googleLocation: global',
+    ].join('\n'));
+
+    process.env.GATEWAY_CONFIG_FILE = configPath;
+    delete process.env.GATEWAY_API_KEYS;
+    delete process.env.GOOGLE_VERTEX_PROJECT;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.GOOGLE_VERTEX_LOCATION;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    delete process.env.GCLOUD_PROJECT;
+
+    const config = loadConfig();
+    expect(config.gatewayKeys).toEqual(['monet#4292']);
+    expect(config.googleProject).toBe('project#hash');
+  });
+
+  it('loads JSON config files without YAML parsing', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-config-'));
+    const configPath = path.join(dir, 'config.json');
+    fs.writeFileSync(configPath, JSON.stringify({
+      gatewayKeys: ['json#key'],
+      googleProject: 'json-project',
+      googleCredentialsFile: null,
+      googleLocation: 'global',
+    }));
+
+    process.env.GATEWAY_CONFIG_FILE = configPath;
+    delete process.env.GATEWAY_API_KEYS;
+    delete process.env.GOOGLE_VERTEX_PROJECT;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.GOOGLE_VERTEX_LOCATION;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    delete process.env.GCLOUD_PROJECT;
+
+    const config = loadConfig();
+    expect(config.gatewayKeys).toEqual(['json#key']);
+    expect(config.googleProject).toBe('json-project');
+  });
 });

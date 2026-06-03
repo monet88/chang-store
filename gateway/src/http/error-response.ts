@@ -45,7 +45,7 @@ export const sendError = (res: ServerResponse, requestId: string, error: unknown
 
 export const toGatewayError = (error: unknown): GatewayError => {
   if (error instanceof GatewayError) return error;
-  const message = error instanceof Error ? error.message : 'Unexpected gateway error.';
+  const message = error instanceof Error ? error.message : String(error);
   if (/429|resource_exhausted|quota/i.test(message)) {
     return new GatewayError(429, 'UPSTREAM_QUOTA', 'Upstream quota exhausted.', true);
   }

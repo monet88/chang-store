@@ -17,6 +17,7 @@ export const createGoogleGenAiClient: GenAiFactory = (config) => {
     project: serviceAccount?.project_id ?? config.googleProject,
     location: config.googleLocation,
     apiVersion: config.googleApiVersion,
+    httpOptions: { timeout: config.upstreamTimeoutMs },
   };
   if (serviceAccount) {
     options.googleAuthOptions = {

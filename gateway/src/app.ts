@@ -48,7 +48,9 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: Ap
       }
 
       requireGatewayAuth(req, config);
-      const body = await readJsonBody<Record<string, unknown>>(req, config.maxJsonBytes);
+      const body = req.method === 'GET'
+        ? {}
+        : await readJsonBody<Record<string, unknown>>(req, config.maxJsonBytes);
 
       if (route.family === 'gemini') {
         if (!config.enableGeminiRoutes) throw new GatewayError(404, 'NOT_FOUND', 'Gemini-compatible routes are disabled.');
