@@ -1,7 +1,7 @@
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
-COPY gateway/package.json gateway/tsconfig.json ./
-RUN npm install --omit=optional
+COPY gateway/package.json gateway/package-lock.json gateway/tsconfig.json ./
+RUN npm ci --omit=optional
 
 FROM deps AS compile
 COPY gateway/src ./src

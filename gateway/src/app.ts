@@ -5,6 +5,7 @@ import { requireGatewayAuth } from './auth/gateway-auth.js';
 import { sendError, sendJson, GatewayError } from './http/error-response.js';
 import { createRequestContext } from './http/request-context.js';
 import { classifyRoute } from './http/request-classifier.js';
+import { sendSseStream } from './http/sse-response.js';
 import { applyCors } from './lib/cors.js';
 import { readJsonBody } from './lib/read-json.js';
 import type { GenAiFactory } from './lib/google-genai-client.js';
@@ -14,6 +15,7 @@ import { runCustomImageRoute } from './routes/custom-image-routes.js';
 import { runGeminiCompatibleRoute } from './routes/gemini-compatible-routes.js';
 import { runOpenAiCompatibleRoute } from './routes/openai-compatible-routes.js';
 import { runVertexCompatibleRoute } from './routes/vertex-compatible-routes.js';
+import { runCompatibilityStreamRoute } from './strategies/compatibility-strategy.js';
 import { ImageWorkloads } from './workloads/image-workloads.js';
 
 export interface AppOptions {
@@ -54,6 +56,10 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: Ap
 
       if (route.family === 'gemini') {
         if (!config.enableGeminiRoutes) throw new GatewayError(404, 'NOT_FOUND', 'Gemini-compatible routes are disabled.');
+        if (route.stream) {
+          await sendSseStream(res, await runCompatibilityStreamRoute(route, body, ai));
+          return;
+        }
         sendJson(res, 200, await runGeminiCompatibleRoute(route, body, ai));
         return;
       }
@@ -65,6 +71,10 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: Ap
       if (route.family === 'vertex' || route.family === 'vtx') {
         if ((route.family === 'vertex' && !config.enableVertexRoutes) || (route.family === 'vtx' && !config.enableVtxRoutes)) {
           throw new GatewayError(404, 'NOT_FOUND', 'Vertex-compatible routes are disabled.');
+        }
+        if (route.stream) {
+          await sendSseStream(res, await runCompatibilityStreamRoute(route, body, ai));
+          return;
         }
         sendJson(res, 200, await runVertexCompatibleRoute(route, body, ai));
         return;

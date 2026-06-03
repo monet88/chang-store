@@ -5,6 +5,7 @@ import { loadServiceAccountCredential } from '../auth/google-auth.js';
 export interface GenAiClient {
   models: {
     generateContent: (request: Record<string, unknown>) => Promise<Record<string, unknown>>;
+    generateContentStream?: (request: Record<string, unknown>) => Promise<AsyncIterable<Record<string, unknown>>>;
   };
 }
 

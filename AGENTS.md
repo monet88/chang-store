@@ -132,6 +132,120 @@ This repo uses Harness. Before work, read:
 Use the Rust Harness CLI as the main operational tool. Run it through the
 stable repo-local entrypoint `scripts/harness`, which uses the prebuilt Rust
 binary at `scripts/bin/harness-cli` in installed projects.
+
+### Mandatory Harness Operating Loop
+
+Every meaningful agent task in this repo must leave durable Harness evidence.
+Do this before coding, while working, and before final handoff. Tiny typo/docs
+tasks may skip story creation, but must still run intake and trace when the work
+is user-requested and repo-scoped.
+
+1. Start with intake before planning or implementation:
+
+```bash
+scripts/harness intake \
+  --type "Maintenance request" \
+  --summary "Short task summary" \
+  --lane normal \
+  --flags "Existing behavior,Weak proof" \
+  --docs "docs/HARNESS.md,docs/FEATURE_INTAKE.md" \
+  --notes "Context notes"
+```
+
+Use lanes consistently:
+
+- `tiny`: small docs/copy/config touch with low risk.
+- `normal`: ordinary bugfix, feature, or process work.
+- `high-risk`: auth, data loss, migration, external provider, security, or public contract work.
+
+2. For trackable work that is not tiny, create or update a durable story:
+
+```bash
+scripts/harness story add \
+  --id "OPS-SHORT-ID" \
+  --title "Human readable title" \
+  --lane normal \
+  --contract "What should be true after this work" \
+  --notes "Extra context"
+```
+
+After proof exists, update story status and proof flags. Current CLI proof flags
+use `0`/`1`, not `yes`/`no`:
+
+```bash
+scripts/harness story update \
+  --id "OPS-SHORT-ID" \
+  --status implemented \
+  --unit 0 \
+  --integration 0 \
+  --e2e 0 \
+  --platform 1 \
+  --evidence "What proof exists"
+```
+
+3. When repeated friction or process pain appears, add backlog instead of losing
+the learning:
+
+```bash
+scripts/harness backlog add \
+  --title "Reusable recovery checklist" \
+  --while "Where the pain appeared" \
+  --pain "What was hard, repeated, or ambiguous" \
+  --suggestion "What should be added or improved" \
+  --risk normal \
+  --predicted "Expected benefit"
+```
+
+4. When a long-lived decision is made, write a decision record under
+`docs/decisions/` and add a durable decision row when the CLI decision workflow
+is available. Per upstream decision `0006`, `trace --decisions` does not replace
+the decision log for high-risk or durable decisions.
+
+5. End every meaningful task with trace. This is the most important step for
+future agents:
+
+```bash
+scripts/harness trace \
+  --summary "What was completed" \
+  --intake 2 \
+  --story "OPS-SHORT-ID" \
+  --agent codex \
+  --outcome completed \
+  --actions "read docs,updated files,ran validation" \
+  --read "docs/HARNESS.md,scripts/harness query matrix" \
+  --changed "AGENTS.md" \
+  --decisions "none" \
+  --errors "none" \
+  --friction "none"
+```
+
+6. Query Harness frequently to avoid guessing:
+
+```bash
+scripts/harness query stats
+scripts/harness query matrix
+scripts/harness query backlog
+scripts/harness query decisions
+scripts/harness query traces
+scripts/harness query friction
+```
+
+Use `matrix` for proof status, `backlog` for unresolved process/tooling pain,
+`decisions` for durable choices, `traces` for prior work, and `friction` for
+repeated issues that need improvement.
+
+7. When updating Harness from upstream, follow the current installer/update
+instructions in `docs/HARNESS.md` and then run:
+
+```bash
+scripts/harness migrate
+scripts/harness query stats
+git diff --check
+```
+
+If `--merge` preserves an older `scripts/bin/harness-cli`, update the binary
+from the matching release asset or choose an installer mode that intentionally
+overwrites with backups.
 <!-- HARNESS:END -->
 
 # CodeGraph — Code Intelligence

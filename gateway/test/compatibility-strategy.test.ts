@@ -47,7 +47,7 @@ describe('compatibility strategy', () => {
 
     expect(generateContent).toHaveBeenCalledWith({
       model: 'url-predict-model',
-      instances: [{ prompt: 'hello' }],
+      contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
     });
   });
 });
