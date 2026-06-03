@@ -19,6 +19,17 @@ describe('request classifier', () => {
     });
   });
 
+  it('classifies OpenAI-compatible routes under /openai prefix', () => {
+    expect(classifyRoute('GET', '/openai/v1/models')).toMatchObject({
+      family: 'openai',
+      operation: 'models',
+    });
+    expect(classifyRoute('POST', '/openai/v1/chat/completions')).toMatchObject({
+      family: 'openai',
+      operation: 'chatCompletions',
+    });
+  });
+
   it('does not allow root v1beta aliases', () => {
     expect(() => classifyRoute('POST', '/v1beta/models/gemini-2.5-flash:generateContent')).toThrow(/allowlist/);
   });

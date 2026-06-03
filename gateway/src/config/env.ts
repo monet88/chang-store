@@ -15,6 +15,7 @@ export interface GatewayConfig {
   upstreamTimeoutMs: number;
   upstreamConcurrency: number;
   enableGeminiRoutes: boolean;
+  enableOpenAiRoutes: boolean;
   enableVertexRoutes: boolean;
   enableVtxRoutes: boolean;
   enableImageRoutes: boolean;
@@ -48,6 +49,7 @@ type GatewayFileConfig = Partial<{
   upstreamTimeoutMs: number;
   upstreamConcurrency: number;
   enableGeminiRoutes: boolean;
+  enableOpenAiRoutes: boolean;
   enableVertexRoutes: boolean;
   enableVtxRoutes: boolean;
   enableImageRoutes: boolean;
@@ -148,6 +150,7 @@ export const loadConfig = (): GatewayConfig => {
     upstreamTimeoutMs: numberEnv('GATEWAY_UPSTREAM_TIMEOUT_MS', fileConfig.upstreamTimeoutMs ?? DEFAULTS.upstreamTimeoutMs),
     upstreamConcurrency: numberEnv('GATEWAY_UPSTREAM_CONCURRENCY', fileConfig.upstreamConcurrency ?? DEFAULTS.upstreamConcurrency),
     enableGeminiRoutes: boolEnv(process.env.GATEWAY_ENABLE_GEMINI_ROUTES, fileConfig.enableGeminiRoutes ?? true),
+    enableOpenAiRoutes: boolEnv(process.env.GATEWAY_ENABLE_OPENAI_ROUTES, fileConfig.enableOpenAiRoutes ?? true),
     enableVertexRoutes: boolEnv(process.env.GATEWAY_ENABLE_VERTEX_ROUTES, fileConfig.enableVertexRoutes ?? true),
     enableVtxRoutes: boolEnv(process.env.GATEWAY_ENABLE_VTX_ROUTES, fileConfig.enableVtxRoutes ?? true),
     enableImageRoutes: boolEnv(process.env.GATEWAY_ENABLE_IMAGE_ROUTES, fileConfig.enableImageRoutes ?? true),

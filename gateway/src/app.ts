@@ -12,6 +12,7 @@ import { createGoogleGenAiClient } from './lib/google-genai-client.js';
 import { healthResponse, readyResponse } from './routes/health-routes.js';
 import { runCustomImageRoute } from './routes/custom-image-routes.js';
 import { runGeminiCompatibleRoute } from './routes/gemini-compatible-routes.js';
+import { runOpenAiCompatibleRoute } from './routes/openai-compatible-routes.js';
 import { runVertexCompatibleRoute } from './routes/vertex-compatible-routes.js';
 import { ImageWorkloads } from './workloads/image-workloads.js';
 
@@ -52,6 +53,11 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: Ap
       if (route.family === 'gemini') {
         if (!config.enableGeminiRoutes) throw new GatewayError(404, 'NOT_FOUND', 'Gemini-compatible routes are disabled.');
         sendJson(res, 200, await runGeminiCompatibleRoute(route, body, ai));
+        return;
+      }
+      if (route.family === 'openai') {
+        if (!config.enableOpenAiRoutes) throw new GatewayError(404, 'NOT_FOUND', 'OpenAI-compatible routes are disabled.');
+        sendJson(res, 200, await runOpenAiCompatibleRoute(route, body, ai));
         return;
       }
       if (route.family === 'vertex' || route.family === 'vtx') {

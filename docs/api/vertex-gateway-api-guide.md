@@ -57,11 +57,25 @@ OAuth client JSON với top-level `installed` hoặc `web` sẽ bị reject.
 | `GET` | `/gemini/v1beta/models` | Gemini-compatible | Model list |
 | `POST` | `/gemini/v1beta/models/{model}:generateContent` | Gemini-compatible | Main Gemini-style route |
 | `POST` | `/gemini/v1beta/models/{model}:streamGenerateContent` | Gemini-compatible | Streaming route |
+| `GET` | `/openai/v1/models` | OpenAI-compatible | Minimal OpenAI model list |
+| `POST` | `/openai/v1/chat/completions` | OpenAI-compatible | OpenAI Chat Completions compatibility route |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:generateContent` | Vertex-compatible | Canonical Vertex-style route |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:streamGenerateContent` | Vertex-compatible | Canonical Vertex-style streaming |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:predict` | Vertex-compatible | Vertex predict route |
 | `POST` | `/api/session/validate` | Custom | Text smoke / session validation |
 | `POST` | `/api/images/generate` | Custom | Frontend-friendly image generate |
+
+---
+
+Cloud Run note: for the current public and custom-domain deployment, use
+`/readyz` as the primary smoke/readiness endpoint. `GET /healthz` remains
+available in the gateway app for local/container-level checks, but it is not
+the public verification path to rely on after Cloud Run cutover.
+
+OpenAI SDK note: set `baseURL` to the `/openai/v1` prefix, for example
+`https://gemini.monet.uno/openai/v1`. This gateway currently implements
+`GET /models` and `POST /chat/completions` on that prefix. `responses` is not
+implemented yet.
 
 ---
 
@@ -112,6 +126,12 @@ Expected:
 { "ok": true }
 ```
 
+Cloud Run/public smoke should use:
+
+```bash
+curl -X GET https://YOUR_CLOUD_RUN_URL/readyz
+```
+
 ### 2. Gemini-Compatible `generateContent`
 
 ```bash
@@ -127,7 +147,22 @@ curl -X POST http://localhost:19089/gemini/v1beta/models/gemini-3.5-flash:genera
   }'
 ```
 
-### 3. Custom Text Validation Route
+### 3. OpenAI-Compatible `chat.completions`
+
+```bash
+curl -X POST http://localhost:19089/openai/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <gateway-api-key>" \
+  -d '{
+    "model": "gemini-3.5-flash",
+    "messages": [
+      { "role": "system", "content": "You are concise." },
+      { "role": "user", "content": "Reply with exactly: ok" }
+    ]
+  }'
+```
+
+### 4. Custom Text Validation Route
 
 ```bash
 curl -X POST http://localhost:19089/api/session/validate \
@@ -139,7 +174,7 @@ curl -X POST http://localhost:19089/api/session/validate \
   }'
 ```
 
-### 4. Custom Image Generate Route
+### 5. Custom Image Generate Route
 
 ```bash
 curl -X POST http://localhost:19089/api/images/generate \
@@ -173,6 +208,10 @@ Expected response shape:
 
 - Dùng `global` làm `GOOGLE_VERTEX_LOCATION` nếu project/account hiện tại bị giới hạn alias ở `us-central1`.
 - Với `docker compose`, gateway local mặc định publish ở `http://localhost:19089`.
+- Cloud Run production hiện tại của repo này:
+  - Frontend: `https://changstore.vercel.app`
+  - Gateway base URL: `https://chang-store-vertex-gateway-eeqmzij23a-as.a.run.app/gemini`
+  - Gateway readiness URL: `https://chang-store-vertex-gateway-eeqmzij23a-as.a.run.app/readyz`
 - `docker-compose.yml` mount sẵn thư mục `/media/monet/SSD Web/CodeBase` vào `/run/vertex-accounts`, nên đổi service account chỉ cần sửa `GOOGLE_APPLICATION_CREDENTIALS` trong `gateway/.env`.
 - Gateway này khác `cliproxy`: model dòng `3.0/3.1` không cần ép sang hậu tố `-preview` nếu smoke matrix đã pass với alias hiện tại.
 - Mặc định hiện tại phù hợp với app:

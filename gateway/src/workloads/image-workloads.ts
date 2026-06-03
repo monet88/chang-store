@@ -85,7 +85,7 @@ export class ImageWorkloads {
   async upscale(body: Record<string, unknown>): Promise<{ images: ImageDto[] }> {
     const image = validateImages([body.image], this.config);
     const quality = typeof body.quality === 'string' ? body.quality : '2K';
-    const model = typeof body.model === 'string' ? body.model : 'gemini-3.1-flash-image-preview';
+    const model = typeof body.model === 'string' ? body.model : defaultImageModel;
     const response = await this.unsafeGenerate(() => this.ai.models.generateContent({
       model,
       contents: [{ role: 'user', parts: [...buildImageParts(image), { text: `Upscale this image to ${quality}. Preserve the original subject and composition.` }] }],

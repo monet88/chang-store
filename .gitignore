@@ -88,3 +88,8 @@ skills-lock.json
 .ref/
 gateway/compiled/
 gateway/.env
+gcp/cloud-run.env.yaml
+.codegraph/
+test-results/
+.codex/
+.mcp.json

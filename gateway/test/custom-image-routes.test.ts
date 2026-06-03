@@ -53,4 +53,26 @@ describe('custom image routes', () => {
     expect(body.error.code).toBe('PAYLOAD_TOO_LARGE');
     expect(generateContent).not.toHaveBeenCalled();
   });
+
+  it('uses the stable default image model for /api/images/upscale', async () => {
+    const generateContent = vi.fn(async () => ({
+      candidates: [{ content: { parts: [{ inlineData: { data: 'abc', mimeType: 'image/png' } }] } }],
+    }));
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/api/images/upscale`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        image: { mimeType: 'image/png', data: 'YWJj' },
+        quality: '2K',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.images[0]).toMatchObject({ dataUrl: 'data:image/png;base64,abc', mimeType: 'image/png' });
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.1-flash-image' }));
+  });
 });

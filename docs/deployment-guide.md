@@ -64,6 +64,15 @@ npm run build
 The app can run on Vercel, Netlify, Cloudflare Pages, or any static hosting
 provider that supports SPA fallback routing.
 
+## Optional Backend Gateway
+
+If you do not want browser clients to hold Google Vertex credentials or direct
+Gemini API access, this repo also includes an optional backend gateway under
+`gateway/`.
+
+- Local Docker flow: `gateway/README.md`
+- Cloud Run deployment artifacts without changing gateway runtime code: `gcp/`
+
 ## Post-Deployment Validation
 
 - Open the deployed URL and verify the app loads.

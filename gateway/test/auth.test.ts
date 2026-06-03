@@ -15,6 +15,11 @@ describe('gateway auth', () => {
     expect(() => requireGatewayAuth(requestWithHeaders({ authorization: 'Bearer test-key' }), testConfig())).not.toThrow();
   });
 
+  it('accepts x-api-key and x-goog-api-key gateway keys', () => {
+    expect(() => requireGatewayAuth(requestWithHeaders({ 'x-api-key': 'test-key' }), testConfig())).not.toThrow();
+    expect(() => requireGatewayAuth(requestWithHeaders({ 'x-goog-api-key': 'test-key' }), testConfig())).not.toThrow();
+  });
+
   it('rejects missing and invalid keys', () => {
     expect(() => requireGatewayAuth(requestWithHeaders({}), testConfig())).toThrow(/required/);
     expect(() => requireGatewayAuth(requestWithHeaders({ 'x-api-key': 'wrong' }), testConfig())).toThrow(/invalid/);

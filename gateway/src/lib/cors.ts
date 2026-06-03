@@ -10,6 +10,9 @@ export const applyCors = (req: IncomingMessage, res: ServerResponse, config: Gat
   }
   res.setHeader('access-control-allow-origin', origin);
   res.setHeader('vary', 'origin');
-  res.setHeader('access-control-allow-headers', 'authorization, content-type, x-api-key, x-request-id');
+  res.setHeader(
+    'access-control-allow-headers',
+    'authorization, content-type, x-api-key, x-goog-api-key, x-goog-api-client, x-request-id',
+  );
   res.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
 };
