@@ -1,7 +1,7 @@
 import { GatewayError } from './error-response.js';
 
 export type RouteFamily = 'health' | 'gemini' | 'openai' | 'vertex' | 'vtx' | 'custom';
-export type RouteOperation = 'models' | 'generateContent' | 'streamGenerateContent' | 'predict' | 'chatCompletions' | 'imageGenerate' | 'imageEdit' | 'imageUpscale' | 'imageDescribe' | 'sessionValidate';
+export type RouteOperation = 'models' | 'generateContent' | 'streamGenerateContent' | 'predict' | 'chatCompletions' | 'responses' | 'openaiImageGenerations' | 'openaiImageEdits' | 'imageGenerate' | 'imageEdit' | 'imageUpscale' | 'imageDescribe' | 'sessionValidate';
 
 export interface ClassifiedRoute {
   family: RouteFamily;
@@ -39,6 +39,15 @@ export const classifyRoute = (method: string, pathname: string): ClassifiedRoute
 
   if (method === 'POST' && pathname === '/openai/v1/chat/completions') {
     return { family: 'openai', operation: 'chatCompletions', stateful: true, stream: false };
+  }
+  if (method === 'POST' && pathname === '/openai/v1/responses') {
+    return { family: 'openai', operation: 'responses', stateful: true, stream: false };
+  }
+  if (method === 'POST' && pathname === '/openai/v1/images/generations') {
+    return { family: 'openai', operation: 'openaiImageGenerations', stateful: true, stream: false };
+  }
+  if (method === 'POST' && pathname === '/openai/v1/images/edits') {
+    return { family: 'openai', operation: 'openaiImageEdits', stateful: true, stream: false };
   }
 
   const vertex = pathname.match(/^\/vertex\/v1\/projects\/([^/]+)\/locations\/([^/]+)\/publishers\/google\/models\/(.+):(generateContent|streamGenerateContent|predict)$/);

@@ -2,8 +2,10 @@ import type { ServerResponse } from 'node:http';
 
 export type GatewayErrorCode =
   | 'AUTH_INVALID'
+  | 'RATE_LIMITED'
   | 'CORS_DENIED'
   | 'NOT_FOUND'
+  | 'NOT_IMPLEMENTED'
   | 'METHOD_NOT_ALLOWED'
   | 'VALIDATION_FAILED'
   | 'PAYLOAD_TOO_LARGE'
@@ -55,11 +57,20 @@ const safeErrorMessage = (error: unknown): string => {
 export const toGatewayError = (error: unknown): GatewayError => {
   if (error instanceof GatewayError) return error;
   const message = safeErrorMessage(error);
+  if (/400|validation|invalid argument|bad request/i.test(message)) {
+    return new GatewayError(400, 'VALIDATION_FAILED', 'Upstream request was rejected as invalid.');
+  }
+  if (/401|403|permission|unauthorized|forbidden|invalid credentials|auth/i.test(message)) {
+    return new GatewayError(401, 'AUTH_INVALID', 'Upstream authentication failed.');
+  }
   if (/429|resource_exhausted|quota/i.test(message)) {
     return new GatewayError(429, 'UPSTREAM_QUOTA', 'Upstream quota exhausted.', true);
   }
   if (/timeout|aborted/i.test(message)) {
     return new GatewayError(504, 'TIMEOUT', 'Upstream request timed out.', true);
+  }
+  if (/5\d\d|unavailable|internal server error|bad gateway|service unavailable|upstream/i.test(message)) {
+    return new GatewayError(503, 'UPSTREAM_UNAVAILABLE', 'Upstream service is unavailable.', true);
   }
   return new GatewayError(500, 'INTERNAL', 'Internal gateway error.');
 };

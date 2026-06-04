@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import type { GatewayConfig } from '../config/env.js';
+import type { GatewayConfig, ResolvedVertexTargetConfig } from '../config/env.js';
 import { loadServiceAccountCredential } from '../auth/google-auth.js';
 
 export interface GenAiClient {
@@ -10,13 +10,17 @@ export interface GenAiClient {
 }
 
 export type GenAiFactory = (config: GatewayConfig) => GenAiClient;
+export type GenAiTargetClientFactory = (
+  config: GatewayConfig,
+  target: ResolvedVertexTargetConfig,
+) => GenAiClient;
 
-export const createGoogleGenAiClient: GenAiFactory = (config) => {
-  const serviceAccount = loadServiceAccountCredential(config.googleCredentialsFile);
+export const createGoogleGenAiClientForTarget: GenAiTargetClientFactory = (config, target) => {
+  const serviceAccount = loadServiceAccountCredential(target.credentialsFile);
   const options: Record<string, unknown> = {
     vertexai: true,
-    project: serviceAccount?.project_id ?? config.googleProject,
-    location: config.googleLocation,
+    project: serviceAccount?.project_id ?? target.project,
+    location: target.location,
     apiVersion: config.googleApiVersion,
     httpOptions: { timeout: config.upstreamTimeoutMs },
   };
@@ -31,3 +35,6 @@ export const createGoogleGenAiClient: GenAiFactory = (config) => {
   }
   return new GoogleGenAI(options) as unknown as GenAiClient;
 };
+
+export const createGoogleGenAiClient: GenAiFactory = (config) =>
+  createGoogleGenAiClientForTarget(config, config.resolvedVertexTargets[0]);

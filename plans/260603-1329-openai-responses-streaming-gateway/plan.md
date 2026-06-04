@@ -1,15 +1,23 @@
 ---
-title: "OpenAI Responses and Streaming Gateway"
-description: "Add OpenAI SDK streaming and Responses compatibility to the existing Vertex-backed gateway, then implement real Gemini/Vertex SSE streaming."
-status: pending
+title: OpenAI Responses and Streaming Gateway
+description: >-
+  Add OpenAI SDK streaming and Responses compatibility to the existing
+  Vertex-backed gateway, then implement real Gemini/Vertex SSE streaming.
+status: completed
 priority: P1
-effort: "4-5d"
-branch: "feat/vertex-cli-proxy-toggle"
-tags: [gateway, openai, gemini, vertex, streaming, sse]
+effort: 4-5d
+branch: feat/vertex-cli-proxy-toggle
+tags:
+  - gateway
+  - openai
+  - gemini
+  - vertex
+  - streaming
+  - sse
 blockedBy: []
 blocks: []
-created: "2026-06-03T06:29:38.850Z"
-createdBy: "ck:plan"
+created: '2026-06-03T06:29:38.850Z'
+createdBy: 'ck:plan'
 source: skill
 ---
 
@@ -24,13 +32,22 @@ existing OpenAI Chat Completions route stream, add `/openai/v1/responses`, and
 finally make the existing Gemini/Vertex `streamGenerateContent` routes stream
 for real.
 
-Current code state:
+Current code state after refresh on 2026-06-03:
 
-- `POST /openai/v1/chat/completions` exists, but rejects `stream: true`.
-- `POST /openai/v1/responses` does not exist.
+- `POST /openai/v1/chat/completions` now supports `stream: true` and emits
+  OpenAI Chat Completion SSE chunks plus `data: [DONE]`.
+- `POST /openai/v1/responses` now supports a text-first JSON + semantic SSE
+  subset, including non-streaming custom function tools.
 - `POST /gemini/v1beta/models/{model}:streamGenerateContent` and Vertex
-  stream route names classify, but route execution still calls non-streaming
-  `generateContent` and returns JSON via `sendJson`.
+  stream routes now use upstream `generateContentStream(...)` and a native
+  SDK-compatible SSE shape without `[DONE]`.
+- `gateway/src/http/sse-response.ts` is the current SSE helper and replaces the
+  earlier planned helper path.
+- Disconnect/backpressure handling has focused coverage in
+  `gateway/test/streaming-routes.test.ts`.
+- `/openai/v1/responses`, production stream caps, and deployed Cloud
+  Run/custom-domain stream smokes remain pending. Phase 0 now includes local
+  OpenAI SDK parser smokes; deployed SDK smoke stays in Phase 4.
 - CodeGraph resolves gateway symbols; use CodeGraph before implementation.
 
 ## Scope Challenge
@@ -53,7 +70,7 @@ Current code state:
   `response.created`, `response.output_text.delta`, and `response.completed`.
 - Vertex/Gemini supports `generateContent` and `streamGenerateContent`; the
   gateway must call the streaming upstream method when serving streaming routes.
-- Local `@google/genai` 1.46.0 evidence shows `generateContentStream` returns a
+- Installed `@google/genai` declaration evidence shows `generateContentStream` returns a
   `Promise<AsyncGenerator<GenerateContentResponse>>` and uses `config` inside
   `GenerateContentParameters`; do not implement against a guessed
   `AsyncIterable<Record<string, unknown>>` shape.
@@ -75,11 +92,11 @@ References:
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 0 | [Upstream Stream Contract Proof](./phase-00-upstream-stream-contract-proof.md) | Pending |
-| 1 | [OpenAI Chat SSE](./phase-01-openai-chat-sse.md) | Pending |
-| 2 | [OpenAI Responses API](./phase-02-openai-responses-api.md) | Pending |
-| 3 | [Gemini and Vertex SSE](./phase-03-gemini-and-vertex-sse.md) | Pending |
-| 4 | [Validation and Rollout](./phase-04-validation-and-rollout.md) | Pending |
+| 0 | [Upstream Stream Contract Proof](./phase-00-upstream-stream-contract-proof.md) | Completed |
+| 1 | [OpenAI Chat SSE](./phase-01-openai-chat-sse.md) | Completed |
+| 2 | [OpenAI Responses API](./phase-02-openai-responses-api.md) | Completed |
+| 3 | [Gemini and Vertex SSE](./phase-03-gemini-and-vertex-sse.md) | Completed |
+| 4 | [Validation and Rollout](./phase-04-validation-and-rollout.md) | Completed |
 
 ## Primary Touchpoints
 
@@ -87,14 +104,14 @@ References:
 - Modify: `gateway/src/lib/google-genai-client.ts`
 - Modify: `gateway/src/http/request-classifier.ts`
 - Modify: `gateway/src/routes/openai-compatible-routes.ts`
-- Create: `gateway/src/lib/sse.ts`
+- Reuse/extend: `gateway/src/http/sse-response.ts`
 - Create: `gateway/src/routes/openai-responses-routes.ts`
 - Modify: `gateway/src/strategies/compatibility-strategy.ts`
 - Modify: `gateway/src/routes/gemini-compatible-routes.ts`
 - Modify: `gateway/src/routes/vertex-compatible-routes.ts`
 - Modify: `gateway/src/lib/concurrency.ts`
 - Modify: `gateway/src/lib/cors.ts`
-- Modify: `gateway/package.json` or add a script if SDK smoke needs `openai`
+- Updated: `gateway/package.json` includes `openai` for local SDK smoke proof
 - Add tests under `gateway/test/`
 - Update `docs/api/vertex-gateway-api-guide.md` and `gcp/README.md`
 
@@ -205,21 +222,171 @@ decision had a safer blocking option in the red-team findings.
 - Reconciled stale references: 5.
 - Unresolved contradictions: 0.
 
+### Session 2 - 2026-06-03
+
+**Trigger:** User requested plan refresh after subsequent gateway code changes.
+
+#### Verification Results
+
+- Git history after plan creation contains gateway commits through
+  `e2e775e feat(gateway): expose root endpoint metadata`.
+- Working tree was clean before this plan refresh.
+- `gateway/src/http/sse-response.ts` now owns SSE headers/framing and disconnect
+  cleanup coverage.
+- `gateway/src/app.ts` routes Gemini/Vertex stream operations through
+  `sendSseStream(...)` and `runCompatibilityStreamRoute(...)`.
+- `gateway/src/strategies/compatibility-strategy.ts` calls
+  `ai.models.generateContentStream(...)` for streaming compatibility routes.
+- `gateway/test/streaming-routes.test.ts` covers Gemini and Vertex stream routes,
+  `text/event-stream`, `[DONE]`, and disconnect cleanup.
+- `gateway/test/openai-compatible-routes.test.ts` still expects OpenAI
+  `stream: true` to fail with a 400 streaming validation error.
+- No `gateway/src/routes/openai-responses-routes.ts` file exists yet, and
+  `request-classifier` has no `/openai/v1/responses` route.
+
+#### Impact on Phases
+
+- Phase 0 remains pending as SDK parser proof, OpenAI Responses event proof, and
+  custom-base-url stream smoke proof are still missing.
+- Phase 1 remains pending because OpenAI Chat streaming still rejects
+  `stream: true`.
+- Phase 2 remains pending because `/openai/v1/responses` is not implemented.
+- Phase 3 is in progress: local Gemini/Vertex SSE implementation and focused
+  tests exist, but SDK custom-base-url/live smoke and rollout validation still
+  belong to Phase 4.
+- Phase 4 remains pending for compile/test reruns, SDK smokes, abuse controls,
+  production CORS checks, docs, and deployed Cloud Run/custom-domain validation.
+
+### Session 3 - 2026-06-03
+
+**Trigger:** User requested `cook ... phase 1`.
+
+#### Verification Results
+
+- `gateway/src/app.ts` now routes OpenAI Chat requests with `body.stream === true`
+  to `runOpenAiCompatibleStreamRoute(...)` while preserving the existing
+  non-streaming JSON path.
+- `gateway/src/routes/openai-compatible-routes.ts` now translates Gemini stream
+  chunks into OpenAI `chat.completion.chunk` SSE frames, ends successful
+  streams with `[DONE]`, sanitizes post-header errors, rejects `tools` and
+  `n !== 1` pre-header, and returns `501 NOT_IMPLEMENTED` when the configured
+  GenAI client lacks streaming support.
+- `gateway/src/http/sse-response.ts` now owns reusable SSE JSON/error/done
+  writes, closes iterators on disconnect, and rethrows pre-header upstream
+  errors so app-level JSON handling still owns that boundary.
+- `gateway/src/strategies/compatibility-strategy.ts` now uses
+  `NOT_IMPLEMENTED` instead of `NOT_FOUND` for missing streaming capability.
+- `gateway/test/openai-compatible-routes.test.ts` now covers Chat SSE success,
+  first-byte-before-completion, post-header sanitized errors, pre-header JSON
+  errors, disconnect cleanup, unsupported `tools`, unsupported `n > 1`, and
+  missing-stream-client `501`.
+- Validation passed:
+  - `npm --prefix gateway run compile`
+  - `npm --prefix gateway run test -- openai-compatible-routes.test.ts stream-contract-proof.test.ts streaming-routes.test.ts`
+  - `npx tsc --noEmit`
+  - `npm run lint`
+
+#### Impact on Phases
+
+- Phase 1 is now completed.
+- Phase 2 remains pending because `/openai/v1/responses` is not implemented.
+- Phase 3 remains in progress with local Gemini/Vertex SSE already in place.
+- Phase 4 remains pending for live SDK/custom-domain smoke, stream-abuse
+  controls, docs rollout updates, and deployed validation.
+
+### Session 4 - 2026-06-03
+
+**Trigger:** User requested `continue phase 2`.
+
+#### Verification Results
+
+- `gateway/src/http/request-classifier.ts` now classifies
+  `POST /openai/v1/responses`.
+- `gateway/src/routes/openai-responses-routes.ts` now implements a text-first
+  OpenAI Responses subset for both non-streaming JSON and semantic SSE
+  streaming, with explicit pre-upstream rejections for unsupported fields and
+  hosted tools.
+- `gateway/src/app.ts` now dispatches `/openai/v1/responses` separately from
+  Chat Completions for both `stream: true` and non-streaming calls.
+- `gateway/test/openai-responses-routes.test.ts` now proves:
+  - string input works
+  - message-array input + `instructions` work
+  - custom function tools and supported `tool_choice` map to Gemini config for
+    non-streaming requests
+  - unsupported built-in tools, invalid `tool_choice`, and
+    `parallel_tool_calls: true` fail before upstream calls
+  - streaming emits the exact semantic event sequence with monotonic
+    `sequence_number`
+  - OpenAI SDK `client.responses.create(...)` works against the local route for
+    both non-streaming and streaming
+- `gateway/test/stream-contract-proof.test.ts` now uses the fuller Responses
+  event sequence, including `response.content_part.done` and
+  `response.output_item.done`, in the parser proof fixtures.
+- Validation passed:
+  - `npm --prefix gateway run test`
+  - `npm --prefix gateway run compile`
+  - `npx tsc --noEmit`
+  - `npm run lint`
+  - `git diff --check`
+
+#### Impact on Phases
+
+- Phase 2 is now completed.
+- Phase 3 remains in progress for Gemini/Vertex SSE rollout-proof and any
+  remaining SDK contract validation.
+- Phase 4 remains pending for deployed smoke, abuse controls, and rollout.
+
+### Session 5 - 2026-06-03
+
+**Trigger:** User asked to continue through the remaining phases.
+
+#### Verification Results
+
+- Native Gemini and Vertex stream routes were adjusted to close on EOF instead
+  of appending `[DONE]`, which the official `@google/genai` parser rejects.
+- `gateway/test/streaming-routes.test.ts` now proves local `GoogleGenAI` SDK
+  streaming against both `/gemini` and `/vertex` custom base URLs.
+- Stream hardening landed:
+  - per-key admission and bounded queue
+  - idle timeout and max lifetime guards
+  - hostile-origin wildcard CORS rejection by default
+- Added `gateway/scripts/cloud-run-smoke.mjs` for reusable deployed smoke.
+- Deployment completed:
+  - Cloud Build image:
+    `asia-southeast1-docker.pkg.dev/project-b82b6a5a-13c8-42e4-a56/chang-store/chang-store-vertex-gateway:20260603-224211`
+  - Cloud Run revision:
+    `chang-store-vertex-gateway-00007-zwv`
+- Deployed smoke passed on the current public/custom-domain surface for:
+  - readiness
+  - OpenAI models
+  - OpenAI chat JSON + stream
+  - OpenAI responses JSON + stream
+  - Gemini SDK native stream
+  - Vertex SDK native stream
+
+#### Impact on Phases
+
+- Phase 3 is now completed.
+- Phase 4 is now completed.
+- The overall plan is now completed.
+
 ## Success Criteria
 
-- [ ] OpenAI SDK `client.chat.completions.create({ stream: true })` receives
+- [x] OpenAI SDK `client.chat.completions.create({ stream: true })` receives
       valid SSE chunks from `/openai/v1/chat/completions`.
-- [ ] OpenAI SDK `client.responses.create({ model, input })` works non-streaming for text
+- [x] OpenAI SDK `client.responses.create({ model, input })` works non-streaming for text
       input and simple message-array input.
-- [ ] OpenAI SDK `client.responses.create({ stream: true })` receives semantic
+- [x] OpenAI SDK `client.responses.create({ stream: true })` receives semantic
       Responses events for text output.
-- [ ] Gemini SDK-style `streamGenerateContent` route uses upstream streaming and
+- [x] Gemini SDK-style `streamGenerateContent` route uses upstream streaming and
       no longer returns a buffered JSON response.
-- [ ] Vertex `streamGenerateContent` route uses the same streaming engine where
+- [x] Vertex `streamGenerateContent` route uses the same streaming engine where
       applicable.
-- [ ] Unsupported OpenAI Responses features fail with explicit 400 errors, not
+- [x] Unsupported OpenAI Responses features fail with explicit 400 errors, not
       silent malformed responses.
-- [ ] First-byte-before-completion tests prove real streaming, not buffered
+- [x] First-byte-before-completion tests prove real streaming, not buffered
+- [x] Cloud Run custom-domain smoke passed for OpenAI, Gemini, and Vertex
+      compatibility routes.
       pseudo-streaming.
 - [ ] Public Cloud Run rollout includes active stream caps, bounded queue limits,
       stream lifetime/idle limits, and production CORS restrictions.

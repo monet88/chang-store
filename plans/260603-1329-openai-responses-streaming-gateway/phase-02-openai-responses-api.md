@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "OpenAI Responses API"
-status: pending
+status: completed
 priority: P1
 effort: "1-1.5d"
 dependencies: [0, 1]
@@ -11,8 +11,9 @@ dependencies: [0, 1]
 
 ## Overview
 
-Add `/openai/v1/responses` for OpenAI SDK compatibility. Implement a deliberately
-small text/function-call subset first, then stream semantic Responses events.
+`/openai/v1/responses` is now implemented for a deliberately small text-first
+subset, with non-streaming JSON responses, semantic Responses SSE events for
+`stream: true`, and non-streaming custom function tools.
 
 ## Requirements
 
@@ -75,7 +76,7 @@ sanitized SSE error contract from Phase 1.
 - Modify: `gateway/src/http/request-classifier.ts`
 - Modify: `gateway/src/app.ts`
 - Create: `gateway/src/routes/openai-responses-routes.ts`
-- Reuse: `gateway/src/lib/sse.ts`
+- Reuse/extend: `gateway/src/http/sse-response.ts`
 - Modify: `gateway/test/request-classifier.test.ts`
 - Create: `gateway/test/openai-responses-routes.test.ts`
 - Modify: `docs/api/vertex-gateway-api-guide.md`
@@ -83,8 +84,8 @@ sanitized SSE error contract from Phase 1.
 
 ## Implementation Steps
 
-1. Add route classification for `POST /openai/v1/responses`.
-2. Add request validation:
+1. Done: add route classification for `POST /openai/v1/responses`.
+2. Done: add request validation:
    - require `model`
    - allow `input` string
    - allow `input` message-array subset
@@ -92,7 +93,7 @@ sanitized SSE error contract from Phase 1.
    - allow `temperature`, `top_p`, `max_output_tokens`
    - allow no `tools`, or basic custom function declarations only after the
      request schema is enumerated in tests
-3. Reject unsupported fields with clear 400 errors:
+3. Done: reject unsupported fields with clear 400 errors:
    - `background`
    - `conversation`
    - `previous_response_id`, stored response retrieval, and persistence fields
@@ -102,35 +103,57 @@ sanitized SSE error contract from Phase 1.
    - unsupported `tool_choice` values
    - `parallel_tool_calls: true` until tool-call streaming is proven safe
    - audio/realtime-only fields
-4. Implement non-streaming translator and response object builder.
-5. Implement streaming translator using Phase 1 SSE helper and Gemini upstream
+4. Done: implement non-streaming translator and response object builder.
+5. Done: implement streaming translator using Phase 1 SSE helper and Gemini upstream
    streaming.
-6. Add tests for string input, message-array input, unsupported built-in tools,
+6. Done: add tests for string input, message-array input, unsupported built-in tools,
    unsupported `tool_choice`, unsupported `parallel_tool_calls`, non-streaming
    output shape, and full typed streaming event sequence.
-7. Update docs with SDK examples:
+7. Done: update docs with SDK examples:
    - `client.responses.create({ model, input })`
    - `client.responses.create({ model, input, stream: true })`
 
 ## Success Criteria
 
-- [ ] `client.responses.create({ model, input: "Reply with exactly ok" })` has a compatible
+- [x] `client.responses.create({ model, input: "Reply with exactly ok" })` has a compatible
       gateway route.
-- [ ] `stream: true` emits semantic Responses SSE events.
-- [ ] Unsupported Responses features fail explicitly.
-- [ ] Tests assert exact `response.output_text.delta` object fields and
+- [x] `stream: true` emits semantic Responses SSE events.
+- [x] Unsupported Responses features fail explicitly.
+- [x] Tests assert exact `response.output_text.delta` object fields and
       `sequence_number` monotonicity.
-- [ ] Tests prove unsupported hosted tools/tool choices fail before upstream
+- [x] Tests prove unsupported hosted tools/tool choices fail before upstream
       Gemini calls.
-- [ ] Docs make the supported subset clear.
-- [ ] Gateway tests cover both non-streaming and streaming paths.
+- [x] Docs make the supported subset clear.
+- [x] Gateway tests cover both non-streaming and streaming paths.
+
+## Evidence
+
+- Added `gateway/src/routes/openai-responses-routes.ts`.
+- Updated `gateway/src/http/request-classifier.ts` and `gateway/src/app.ts` to
+  dispatch `/openai/v1/responses` for both JSON and SSE flows.
+- Updated `gateway/src/routes/health-routes.ts` so root metadata and readiness
+  observability surfaces include the OpenAI route family.
+- Added `gateway/test/openai-responses-routes.test.ts` with direct fetch and
+  OpenAI SDK local-baseURL proofs for both non-streaming and streaming paths.
+- Updated `gateway/test/request-classifier.test.ts`,
+  `gateway/test/root-routes.test.ts`, and
+  `gateway/test/stream-contract-proof.test.ts` to keep the public/API and proof
+  surfaces aligned with the Responses implementation.
+- Updated `docs/api/vertex-gateway-api-guide.md` and `gcp/README.md` with the
+  supported subset and SDK examples.
+- Validation:
+  - `npm --prefix gateway run test`
+  - `npm --prefix gateway run compile`
+  - `npx tsc --noEmit`
+  - `npm run lint`
+  - `git diff --check`
 
 ## Risk Assessment
 
 Risk: Overclaiming Responses compatibility.
-Mitigation: docs and validation name the supported subset and fail unsupported
-features loudly.
+Mitigation: docs and validation name the supported subset, streaming remains
+text-first, and unsupported features fail loudly before upstream calls.
 
 Risk: SDK expects `output_text`.
 Mitigation: include `output_text` in non-streaming responses and verify through
-tests.
+tests and local OpenAI SDK route smoke.

@@ -24,6 +24,7 @@ describe('compatibility strategy', () => {
     expect(generateContent).toHaveBeenCalledWith({
       model: 'url-model',
       contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+      __gatewayRouteFamily: 'gemini',
     });
   });
 
@@ -48,6 +49,7 @@ describe('compatibility strategy', () => {
     expect(generateContent).toHaveBeenCalledWith({
       model: 'url-predict-model',
       contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+      __gatewayRouteFamily: 'vertex',
     });
   });
 });

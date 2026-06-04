@@ -97,9 +97,14 @@ Sửa các giá trị cần thiết:
 
 - `GATEWAY_API_KEYS`
 - `GATEWAY_CORS_ORIGINS`
+- `GATEWAY_ALLOW_WILDCARD_CORS=false`
 - `GOOGLE_VERTEX_PROJECT`
 - `GOOGLE_VERTEX_LOCATION`
 - `GOOGLE_APPLICATION_CREDENTIALS`
+- `GATEWAY_STREAM_MAX_DURATION_MS`
+- `GATEWAY_STREAM_IDLE_TIMEOUT_MS`
+- `GATEWAY_STREAM_PER_KEY_LIMIT`
+- `GATEWAY_STREAM_QUEUE_LIMIT`
 
 Không thêm `PORT` vào file env cho Cloud Run vì đây là biến reserved do nền tảng tự inject.
 
@@ -182,6 +187,31 @@ vào `GATEWAY_CORS_ORIGINS` rồi redeploy Cloud Run. Hiện template đã inclu
 
 ## 7. Smoke test
 
+### Local Docker proof gate first
+
+Trước khi đem lên Linux VM/VPS, proof gate bắt buộc là local Docker với mounted
+volume cho `file-store`.
+
+Ví dụ mục tiêu mount:
+
+```text
+./gateway-data/auths:/data/auths
+```
+
+Checklist local Docker tối thiểu:
+
+- `/readyz` pass và chỉ trả summary-safe pool info
+- `/gemini/v1beta/...` JSON + stream pass
+- `/openai/v1/chat/completions` JSON + stream pass
+- `/openai/v1/responses` JSON + stream pass
+- `/openai/v1/images/generations` pass
+- `/openai/v1/images/edits` pass
+- `/api/images/generate` pass
+- admin login/list/import/test/delete pass khi bật admin
+- restart container xong dữ liệu `file-store` vẫn còn
+
+Chỉ sau khi local Docker gate xanh mới rollout Linux VM/VPS Docker cùng layout volume đó.
+
 Readiness:
 
 ```bash
@@ -228,12 +258,74 @@ Nếu dùng OpenAI SDK, đặt `baseURL` là:
 https://YOUR_CLOUD_RUN_URL/openai/v1
 ```
 
-Hiện gateway mới support `GET /models` và `POST /chat/completions` trên prefix
-OpenAI-compatible; `responses` chưa được implement.
+Hiện gateway support `GET /models`, `POST /chat/completions`, và
+`POST /responses` trên prefix OpenAI-compatible.
+
+OpenAI-compatible image routes:
+
+```bash
+curl -X POST "https://YOUR_CLOUD_RUN_URL/openai/v1/images/generations" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_GATEWAY_API_KEY" \
+  -d '{
+    "model": "gemini-2.5-flash-image",
+    "prompt": "Generate a simple fashion product icon",
+    "n": 1,
+    "size": "1024x1024"
+  }'
+```
+
+```bash
+curl -X POST "https://YOUR_CLOUD_RUN_URL/openai/v1/images/edits" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_GATEWAY_API_KEY" \
+  -d '{
+    "model": "gemini-2.5-flash-image",
+    "prompt": "Edit this input into a clean fashion icon",
+    "n": 1,
+    "size": "1024x1024",
+    "image": "data:image/png;base64,<BASE64>"
+  }'
+```
+
+OpenAI Responses hiện là subset text-first:
+
+- `input` string hoặc message-array
+- `instructions`
+- non-streaming custom function tools
+- semantic SSE cho `stream: true`
+
+Chưa hỗ trợ:
+
+- built-in/hosted tools
+- streaming tool calls
+- `parallel_tool_calls: true`
+- persistence/state fields như `background`, `conversation`, `store`,
+  `previous_response_id`
+
+Nếu dùng Gemini SDK trực tiếp với route native:
+
+```ts
+import { GoogleGenAI } from '@google/genai';
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GATEWAY_API_KEY,
+  httpOptions: {
+    baseUrl: 'https://YOUR_CLOUD_RUN_URL/gemini',
+    apiVersion: 'v1beta',
+  },
+});
+```
 
 ## Ghi chú vận hành
 
 - Giữ `GOOGLE_VERTEX_LOCATION=global` cho matrix model hiện tại.
 - Cloud Run production phải dùng API key riêng qua `GATEWAY_API_KEYS`; không commit hoặc tái dùng key mẫu công khai.
 - Nếu app web của bạn chỉ chạy ở một vài domain, giới hạn chặt `GATEWAY_CORS_ORIGINS`.
+- Không bật wildcard production CORS cho browser-exposed key flow trừ khi bạn cố ý override `GATEWAY_ALLOW_WILDCARD_CORS=true`.
+- Khuyến nghị stream rollout:
+  - giữ `GATEWAY_STREAM_PER_KEY_LIMIT` thấp
+  - giữ `GATEWAY_STREAM_QUEUE_LIMIT` hữu hạn để fail fast thay vì chờ vô hạn
+  - đặt `GATEWAY_STREAM_IDLE_TIMEOUT_MS` và `GATEWAY_STREAM_MAX_DURATION_MS` thấp hơn timeout thực tế của Cloud Run
+- Với Cloud Run nên cân nhắc hạ timeout/instance blast radius cho route stream thay vì để mặc định quá rộng; hiện gateway đã có guard trong app nhưng deploy config vẫn nên giữ bảo thủ.
 - Vì flow này không sửa code, gateway vẫn đọc file credentials như local; khác ở chỗ file đó được Secret Manager mount vào runtime.

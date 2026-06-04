@@ -62,12 +62,7 @@ const ProviderSettingsPanel: React.FC<ProviderSettingsPanelProps> = ({
           placeholder="https://api.example.com/v1"
           className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-100 focus:border-white/30 focus:outline-none"
         />
-        {urlValidation.status === 'invalid' && urlValidation.reason === 'insecure-http' && (
-          <p className="text-xs text-red-400">
-            {t('studio.settings.urlInsecureHttp')}
-          </p>
-        )}
-        {urlValidation.status === 'invalid' && urlValidation.reason !== 'insecure-http' && (
+        {urlValidation.status === 'invalid' && (
           <p className="text-xs text-red-400">
             {t('studio.settings.urlInvalid')}
           </p>

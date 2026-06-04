@@ -2,6 +2,7 @@ import type { Server } from 'node:http';
 import { EventEmitter } from 'node:events';
 import type { ServerResponse } from 'node:http';
 import { describe, expect, it, vi } from 'vitest';
+import { GoogleGenAI } from '@google/genai';
 import { createApp } from '../src/app.js';
 import { sendSseStream } from '../src/http/sse-response.js';
 import { testConfig } from './test-config.js';
@@ -52,10 +53,11 @@ describe('streaming compatibility routes', () => {
       expect(response.headers.get('content-type')).toContain('text/event-stream');
       expect(body).toContain('data: {"candidates":[{"content":{"parts":[{"text":"hel"}]}}]}');
       expect(body).toContain('data: {"candidates":[{"content":{"parts":[{"text":"lo"}]},"finishReason":"STOP"}]}');
-      expect(body).toContain('data: [DONE]');
+      expect(body).not.toContain('data: [DONE]');
       expect(generateContentStream).toHaveBeenCalledWith({
         model: 'gemini-2.5-flash',
         contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
+        __gatewayRouteFamily: 'gemini',
       });
       expect(generateContent).not.toHaveBeenCalled();
     } finally {
@@ -82,10 +84,11 @@ describe('streaming compatibility routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/event-stream');
-      expect(body).toContain('data: [DONE]');
+      expect(body).not.toContain('data: [DONE]');
       expect(generateContentStream).toHaveBeenCalledWith({
         model: 'gemini-2.5-flash',
         contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
+        __gatewayRouteFamily: 'vertex',
       });
       expect(generateContent).not.toHaveBeenCalled();
     } finally {
@@ -109,5 +112,100 @@ describe('streaming compatibility routes', () => {
       sendPromise.then(() => 'closed'),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timed out')), 50)),
     ])).resolves.toBe('closed');
+  });
+
+  it('is consumable by the Google Gemini SDK against the local gemini stream route', async () => {
+    const generateContent = vi.fn();
+    const generateContentStream = vi.fn(async () => streamChunks());
+    const server = createApp({
+      config: testConfig(),
+      genAiFactory: () => ({ models: { generateContent, generateContentStream } }),
+    });
+    const baseUrl = await listen(server);
+
+    try {
+      const client = new GoogleGenAI({
+        apiKey: 'test-key',
+        httpOptions: {
+          baseUrl: `${baseUrl}/gemini`,
+          apiVersion: 'v1beta',
+        },
+      });
+      const stream = await client.models.generateContentStream({
+        model: 'gemini-2.5-flash',
+        contents: 'hi',
+      });
+      let text = '';
+      for await (const chunk of stream) {
+        text += chunk.text ?? '';
+      }
+
+      expect(text).toBe('hello');
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it('is consumable by the Google Gemini SDK against the local vertex stream route', async () => {
+    const generateContent = vi.fn();
+    const generateContentStream = vi.fn(async () => streamChunks());
+    const server = createApp({
+      config: testConfig(),
+      genAiFactory: () => ({ models: { generateContent, generateContentStream } }),
+    });
+    const baseUrl = await listen(server);
+
+    try {
+      const client = new GoogleGenAI({
+        apiKey: 'test-key',
+        httpOptions: {
+          baseUrl: `${baseUrl}/vertex/v1/projects/p/locations/us-central1/publishers/google`,
+          apiVersion: '',
+        },
+      });
+      const stream = await client.models.generateContentStream({
+        model: 'gemini-2.5-flash',
+        contents: 'hi',
+      });
+      let text = '';
+      for await (const chunk of stream) {
+        text += chunk.text ?? '';
+      }
+
+      expect(text).toBe('hello');
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it('emits a sanitized SSE error when the native stream exceeds the idle timeout', async () => {
+    async function* slowStream() {
+      yield { candidates: [{ content: { parts: [{ text: 'hel' }] } }] };
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      yield { candidates: [{ content: { parts: [{ text: 'lo' }] }, finishReason: 'STOP' }] };
+    }
+
+    const server = createApp({
+      config: testConfig({ streamIdleTimeoutMs: 20, streamMaxDurationMs: 200 }),
+      genAiFactory: () => ({ models: { generateContent: vi.fn(), generateContentStream: async () => slowStream() } }),
+    });
+    const baseUrl = await listen(server);
+
+    try {
+      const response = await fetch(`${baseUrl}/gemini/v1beta/models/gemini-2.5-flash:streamGenerateContent`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'hi' }] }] }),
+      });
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('data: {"candidates":[{"content":{"parts":[{"text":"hel"}]}}]}');
+      expect(body).toContain('event: error');
+      expect(body).toContain('"code":"TIMEOUT"');
+      expect(body).not.toContain('data: [DONE]');
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 });

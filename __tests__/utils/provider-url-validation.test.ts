@@ -24,15 +24,11 @@ describe('validateProviderBaseUrl', () => {
     });
   });
 
-  it('accepts http only for localhost and private/loopback hosts', () => {
-    // Allowlisted hosts still match by host name even over http (api.x.ai is public,
-    // but the policy gate on http is the host being private — api.x.ai is not, so this should fail).
-    expect(validateProviderBaseUrl('http://api.x.ai/v1')).toEqual({
-      status: 'invalid',
-      reason: 'insecure-http',
+  it('accepts http and https on arbitrary hosts as long as the URL is valid', () => {
+    expect(validateProviderBaseUrl('http://api.x.ai/v1')).toMatchObject({
+      status: 'allowed',
+      host: 'api.x.ai',
     });
-
-    // localhost / loopback / private network is fine for local proxies.
     expect(validateProviderBaseUrl('http://localhost:8333')).toMatchObject({
       status: 'custom',
       host: 'localhost',
@@ -61,21 +57,17 @@ describe('validateProviderBaseUrl', () => {
       status: 'custom',
       host: 'my-proxy.local',
     });
-  });
-
-  it('rejects http on public hosts so bearer tokens never go over plain HTTP', () => {
-    expect(validateProviderBaseUrl('http://proxy.example.com/v1')).toEqual({
-      status: 'invalid',
-      reason: 'insecure-http',
+    expect(validateProviderBaseUrl('http://proxy.example.com/v1')).toMatchObject({
+      status: 'custom',
+      host: 'proxy.example.com',
     });
-    expect(validateProviderBaseUrl('http://8.8.8.8')).toEqual({
-      status: 'invalid',
-      reason: 'insecure-http',
+    expect(validateProviderBaseUrl('http://8.8.8.8')).toMatchObject({
+      status: 'custom',
+      host: '8.8.8.8',
     });
-    // 172.32 is outside the 172.16/12 RFC1918 range, so it's public.
-    expect(validateProviderBaseUrl('http://172.32.0.1')).toEqual({
-      status: 'invalid',
-      reason: 'insecure-http',
+    expect(validateProviderBaseUrl('http://34.80.24.117:8333/')).toMatchObject({
+      status: 'custom',
+      host: '34.80.24.117',
     });
   });
 

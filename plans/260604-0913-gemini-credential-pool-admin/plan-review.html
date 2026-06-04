@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gemini Credential Pool and Admin Dashboard MVP - Plan Review</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-2: #f0f3f7;
+      --text: #20242a;
+      --muted: #626b76;
+      --line: #d9dee7;
+      --accent: #0f766e;
+      --accent-2: #155e75;
+      --warn: #a16207;
+      --danger: #b42318;
+      --ok: #087443;
+      --shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.55 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--accent-2);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 24px 18px;
+      border-right: 1px solid var(--line);
+      background: #ffffff;
+      overflow: auto;
+    }
+
+    main {
+      min-width: 0;
+      padding: 28px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    nav {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    nav a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 34px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      color: #28323c;
+      font-size: 13px;
+    }
+
+    nav a:hover,
+    nav a.active {
+      background: var(--panel-2);
+      text-decoration: none;
+    }
+
+    .section {
+      max-width: 1180px;
+      margin: 0 auto 22px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.85fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .panel,
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel h2,
+    .panel h3 {
+      margin: 0 0 12px;
+    }
+
+    .panel h2 {
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .panel h3 {
+      font-size: 16px;
+    }
+
+    .panel p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .meta {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fbfcfd;
+    }
+
+    .meta span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .meta strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 13px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #e6f4f1;
+      color: #075e54;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .chip.warn {
+      background: #fef3c7;
+      color: #854d0e;
+    }
+
+    .chip.danger {
+      background: #fee4e2;
+      color: #912018;
+    }
+
+    .chip.neutral {
+      background: #eef2f7;
+      color: #475467;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      padding: 16px;
+      box-shadow: none;
+    }
+
+    .card h3,
+    .card h4 {
+      margin: 0 0 8px;
+    }
+
+    .card h3 {
+      font-size: 16px;
+    }
+
+    .card h4 {
+      font-size: 14px;
+    }
+
+    .card p,
+    li {
+      color: var(--muted);
+    }
+
+    ul,
+    ol {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    li + li {
+      margin-top: 5px;
+    }
+
+    .phase-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 16px;
+    }
+
+    .phase-tabs button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #27313d;
+      min-height: 34px;
+      padding: 7px 10px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 650;
+    }
+
+    .phase-tabs button.active {
+      border-color: var(--accent);
+      background: #e6f4f1;
+      color: #075e54;
+    }
+
+    .phase-panel {
+      display: none;
+    }
+
+    .phase-panel.active {
+      display: block;
+    }
+
+    .phase-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .phase-header h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .phase-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+      gap: 14px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 680px;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #344054;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: #eef2f7;
+      color: #243244;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+    }
+
+    pre {
+      overflow: auto;
+      margin: 12px 0 0;
+      padding: 14px;
+      border-radius: 8px;
+      background: #111827;
+      color: #e5e7eb;
+      font-size: 12px;
+    }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: #f0fdfa;
+      padding: 12px 14px;
+      border-radius: 6px;
+      color: #134e4a;
+    }
+
+    .callout.warn {
+      border-left-color: var(--warn);
+      background: #fffbeb;
+      color: #713f12;
+    }
+
+    .callout.danger {
+      border-left-color: var(--danger);
+      background: #fff1f0;
+      color: #7a271a;
+    }
+
+    .footer {
+      max-width: 1180px;
+      margin: 20px auto 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 960px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        position: relative;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      nav {
+        flex-direction: row;
+        overflow-x: auto;
+      }
+
+      nav a {
+        white-space: nowrap;
+      }
+
+      main {
+        padding: 18px;
+      }
+
+      .hero,
+      .phase-body,
+      .grid.cols-2,
+      .grid.cols-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand">
+        <h1>Gemini Pool Admin Plan</h1>
+        <p>HTML review artifact for <code>260604-0913</code></p>
+      </div>
+      <nav aria-label="Plan sections">
+        <a href="#overview" class="active">Overview <span>01</span></a>
+        <a href="#decisions">Decisions <span>02</span></a>
+        <a href="#red-team">Red Team <span>03</span></a>
+        <a href="#phases">Phases <span>04</span></a>
+        <a href="#validation">Validation <span>05</span></a>
+        <a href="#files">Files <span>06</span></a>
+      </nav>
+    </aside>
+
+    <main>
+      <section id="overview" class="section hero">
+        <div class="panel">
+          <h2>Gemini Credential Pool and Admin Dashboard MVP</h2>
+          <p>Add an n-project/n-service-account Gemini credential pool with weighted round-robin and failover, then expose a narrow internal admin dashboard for importing and managing credential JSON files, model allowlists, and pool health.</p>
+          <div class="chips">
+            <span class="chip">n project / n json</span>
+            <span class="chip">Gemini</span>
+            <span class="chip">OpenAI-compatible</span>
+            <span class="chip">Admin opt-in</span>
+            <span class="chip">Docker file-store</span>
+            <span class="chip">Linux VPS</span>
+            <span class="chip warn">Cloud Run out of MVP</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Plan State</h3>
+          <div class="meta-grid">
+            <div class="meta">
+              <span>Status</span>
+              <strong>Pending, 0/6 phases</strong>
+            </div>
+            <div class="meta">
+              <span>Effort</span>
+              <strong>4-6d</strong>
+            </div>
+            <div class="meta">
+              <span>Validate</span>
+              <strong>Passed, 0 warnings</strong>
+            </div>
+            <div class="meta">
+              <span>Harness</span>
+              <strong>Plan + review traces recorded</strong>
+            </div>
+          </div>
+          <div class="callout warn" style="margin-top: 12px;">
+            Blocks stale plan <code>260602-2051-hybrid-vertex-gateway</code> until this gateway auth/runtime direction is cooked or the old plan is refreshed.
+          </div>
+        </div>
+      </section>
+
+      <section id="decisions" class="section">
+        <div class="panel">
+          <h2>Decisions</h2>
+          <div class="grid cols-3">
+            <div class="card">
+              <h3>Backend First</h3>
+              <p>Implement config, runtime pool, health, and failover before building dashboard controls.</p>
+            </div>
+            <div class="card">
+              <h3>Pool Runtime</h3>
+              <p>Use <code>GenAiRuntime</code> with immutable active snapshots and explicit <code>reload()</code> for admin mutations.</p>
+            </div>
+            <div class="card">
+              <h3>Model Source</h3>
+              <p>Use Phase 1 <code>modelCatalog</code> as the only model-admin source of truth.</p>
+            </div>
+            <div class="card">
+              <h3>Docker Store</h3>
+              <p>Use <code>file-store</code> with a mounted persistent Docker/VPS volume. Cloud Run mutable import is out of MVP.</p>
+            </div>
+            <div class="card">
+              <h3>Dashboard Import</h3>
+              <p>Borrow CLIProxyAPI-style JSON import, credential cards, health counters, model list, enable/disable, test, edit, and delete flows.</p>
+            </div>
+            <div class="card">
+              <h3>Secret Redaction</h3>
+              <p>Never return or log raw service-account JSON, <code>private_key</code>, or <code>private_key_id</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Admin Auth</h3>
+              <p>All <code>/admin/api/*</code> requests use <code>Authorization: Bearer &lt;GATEWAY_ADMIN_TOKEN&gt;</code>. No query string, cookie, or public gateway key fallback.</p>
+            </div>
+            <div class="card">
+              <h3>No Full Clone</h3>
+              <p>Borrow CLIProxyAPI credential/model UX only. Defer Anthropic, Claude Code, generic API console, proxies, and RBAC.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="red-team" class="section">
+        <div class="panel">
+          <h2>Red Team Remediation</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Finding</th>
+                  <th>Severity</th>
+                  <th>Plan Fix</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Admin import/patch/delete wrote store state without applying it to the live pool.</td>
+                  <td><span class="chip danger">Blocker</span></td>
+                  <td>Phase 2 now defines <code>GenAiRuntime.reload()</code> and atomic snapshot swap. Phase 4 mutations must reload or rollback.</td>
+                </tr>
+                <tr>
+                  <td>Model admin endpoints had no schema/source-of-truth.</td>
+                  <td><span class="chip danger">Blocker</span></td>
+                  <td>Phase 1 now defines <code>modelCatalog</code>. Phase 4/5 can only edit that contract.</td>
+                </tr>
+                <tr>
+                  <td>Container-local file-store safety was only documented, not enforced.</td>
+                  <td><span class="chip warn">High</span></td>
+                  <td>Plan now targets Docker/VPS mounted volumes and requires a hard startup guard for <code>K_SERVICE</code> + <code>file-store</code> mutations.</td>
+                </tr>
+                <tr>
+                  <td>Credential import needed scope, collision, overwrite, and project matching rules.</td>
+                  <td><span class="chip warn">High</span></td>
+                  <td>Phase 4 now requires sanitized IDs, collision rejection, explicit <code>replace=true</code>, and <code>project_id</code> matching.</td>
+                </tr>
+                <tr>
+                  <td>Redaction proof was narrower than the security requirement.</td>
+                  <td><span class="chip warn">High</span></td>
+                  <td>Validation now covers <code>private_key</code>, <code>private_key_id</code>, raw blobs, generic errors, and request logs.</td>
+                </tr>
+                <tr>
+                  <td>Compatibility proof did not cover all Phase 0-4 gateway contracts.</td>
+                  <td><span class="chip warn">High</span></td>
+                  <td>Phase 6 now carries an explicit compatibility matrix for OpenAI, Gemini, Vertex, images, and admin security.</td>
+                </tr>
+                <tr>
+                  <td>The current app-wide auth and CORS flow would let admin routes inherit public gateway behavior.</td>
+                  <td><span class="chip danger">Blocker</span></td>
+                  <td>Phase 4 now requires early <code>/admin</code> dispatch before public route classification/auth and a separate admin-only CORS/auth path.</td>
+                </tr>
+                <tr>
+                  <td>The two-file config decision had no discovery contract in the current single-<code>GATEWAY_CONFIG_FILE</code> loader.</td>
+                  <td><span class="chip danger">Blocker</span></td>
+                  <td>Phase 1 now defines explicit overlay discovery with <code>GATEWAY_POOL_CONFIG_FILE</code>.</td>
+                </tr>
+                <tr>
+                  <td>Detailed per-target health on public <code>/readyz</code> would widen unauthenticated metadata exposure.</td>
+                  <td><span class="chip warn">High</span></td>
+                  <td>Phase 3 and Phase 6 now keep <code>/readyz</code> summary-only and move detailed target health to authenticated admin APIs.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="phases" class="section">
+        <div class="panel">
+          <div class="phase-header">
+            <div>
+              <h2>Phase Review</h2>
+              <p>Sequential by design. Do not cook dashboard work before runtime pool and mutation/reload contract exist.</p>
+            </div>
+            <span class="chip neutral">6 phases</span>
+          </div>
+
+          <div class="phase-tabs" role="tablist" aria-label="Plan phases">
+            <button class="active" data-phase="phase-1">Phase 1</button>
+            <button data-phase="phase-2">Phase 2</button>
+            <button data-phase="phase-3">Phase 3</button>
+            <button data-phase="phase-4">Phase 4</button>
+            <button data-phase="phase-5">Phase 5</button>
+            <button data-phase="phase-6">Phase 6</button>
+          </div>
+
+          <article id="phase-1" class="phase-panel active">
+            <div class="phase-header">
+              <h3>Contract and Config Schema</h3>
+              <span class="chip">P1 - 0.75-1d</span>
+            </div>
+            <div class="phase-body">
+              <div class="card">
+                <h4>Delivers</h4>
+                <ul>
+                  <li><code>vertexPools[]</code> with arbitrary length.</li>
+                  <li><code>modelCatalog</code> for Gemini/OpenAI defaults, aliases, allowlists, and disabled models.</li>
+                  <li>Admin gates: <code>enableAdminRoutes</code>, <code>adminAllowMutations</code>, <code>adminStoreMode</code>.</li>
+                  <li>Docker/VPS <code>adminFileStoreDir</code> config for dashboard import.</li>
+                  <li>Startup guard for unsupported Cloud Run + file-store mutations.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Proof Focus</h4>
+                <ul>
+                  <li>Legacy single credential still works.</li>
+                  <li>JSON config with 1, 3, or n entries validates.</li>
+                  <li>Invalid entries fail fast with actionable errors.</li>
+                  <li>Readiness never leaks private key fields.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article id="phase-2" class="phase-panel">
+            <div class="phase-header">
+              <h3>Credential Pool Runtime</h3>
+              <span class="chip">P1 - 1-1.5d</span>
+            </div>
+            <div class="phase-body">
+              <div class="card">
+                <h4>Delivers</h4>
+                <ul>
+                  <li><code>GenAiRuntime</code> with <code>client</code>, <code>getSnapshot()</code>, and <code>reload()</code>.</li>
+                  <li><code>GenAiPoolClient</code> implementing current <code>GenAiClient</code>.</li>
+                  <li>Weighted round-robin with disabled target skipping.</li>
+                  <li>Atomic validate-build-swap behavior for future admin mutations.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Proof Focus</h4>
+                <ul>
+                  <li><code>n=1</code>, <code>n=3</code>, and weighted target selection.</li>
+                  <li>Successful reload changes future traffic.</li>
+                  <li>Failed reload preserves old traffic.</li>
+                  <li>Image generation uses the same pool seam.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article id="phase-3" class="phase-panel">
+            <div class="phase-header">
+              <h3>Health Metrics and Failover</h3>
+              <span class="chip">P1 - 1d</span>
+            </div>
+            <div class="phase-body">
+              <div class="card">
+                <h4>Delivers</h4>
+                <ul>
+                  <li>Per-target success/failure counters.</li>
+                  <li>Cooldown and target skipping on classified upstream failures.</li>
+                  <li>Route-family health labels for Gemini, Vertex, OpenAI Chat, Responses, and images.</li>
+                  <li>Pool-aware redacted <code>/readyz</code>.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Proof Focus</h4>
+                <ul>
+                  <li>One failing target cools down and traffic moves on.</li>
+                  <li>Invalid client requests do not trigger cross-project retries.</li>
+                  <li>Failover before downstream yield, including first upstream <code>iterator.next()</code> rejection.</li>
+                  <li>No target switch after the pool wrapper yields the first downstream chunk.</li>
+                  <li>Logs include target ID but no prompts or credential data.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article id="phase-4" class="phase-panel">
+            <div class="phase-header">
+              <h3>Admin API and Persistence</h3>
+              <span class="chip">P2 - 0.75-1d</span>
+            </div>
+            <div class="phase-body">
+              <div class="card">
+                <h4>Delivers</h4>
+                <ul>
+                  <li>Opt-in admin auth and API under <code>/admin/api/*</code>.</li>
+                  <li><code>Authorization: Bearer &lt;GATEWAY_ADMIN_TOKEN&gt;</code> is the only admin token transport.</li>
+                  <li>Credential import/list/detail/patch/delete/test.</li>
+                  <li>Model endpoints backed by <code>modelCatalog</code>.</li>
+                  <li>Mutation adapters: <code>static-config</code> and <code>file-store</code>.</li>
+                  <li>Mutation rollback if runtime reload fails.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Proof Focus</h4>
+                <ul>
+                  <li>Admin disabled by default and separately authenticated.</li>
+                  <li>Gateway API keys, query tokens, and cookies do not authorize admin.</li>
+                  <li>OAuth installed/web JSON rejected.</li>
+                  <li>Collision requires explicit <code>replace=true</code>.</li>
+                  <li>Path traversal and unsafe filenames are rejected.</li>
+                  <li>Cloud Run file-store mutation startup guard tested with <code>K_SERVICE</code>.</li>
+                  <li>No secret fields in API responses or errors.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article id="phase-5" class="phase-panel">
+            <div class="phase-header">
+              <h3>Admin Dashboard UI</h3>
+              <span class="chip">P2 - 1-1.5d</span>
+            </div>
+            <div class="phase-body">
+              <div class="card">
+                <h4>Delivers</h4>
+                <ul>
+                  <li>Gateway-served static dashboard at <code>/admin</code>.</li>
+                  <li>CLIProxyAPI-style JSON import, account cards, detail/edit modal, test, enable/disable, and delete actions.</li>
+                  <li>Credentials view with health, actions, and detail/edit drawer.</li>
+                  <li>Models view for Gemini/OpenAI provider catalogs.</li>
+                  <li>Security/access view with store mode, mutation status, and reload status.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Proof Focus</h4>
+                <ul>
+                  <li>UI cannot submit edits when API reports read-only or guarded mode.</li>
+                  <li>Upload clears raw JSON from UI state after request.</li>
+                  <li>First screen, modal, and model list render without overlap.</li>
+                  <li>No raw service-account JSON in browser storage.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article id="phase-6" class="phase-panel">
+            <div class="phase-header">
+              <h3>Validation and Rollout</h3>
+              <span class="chip">P1 - 0.75-1d</span>
+            </div>
+            <div class="phase-body">
+              <div class="card">
+                <h4>Delivers</h4>
+                <ul>
+                  <li>Full unit, compile, lint, app test, build, and diff checks.</li>
+                  <li>Docker Compose volume examples and <code>file-store</code> import config.</li>
+                  <li>Optional pool health and per-target smoke checks.</li>
+                  <li>Admin disabled by default in live rollout.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h4>Proof Focus</h4>
+                <ul>
+                  <li>Compatibility matrix has explicit evidence for each public surface.</li>
+                  <li>Redaction tests cover logs, errors, and sensitive service-account fields.</li>
+                  <li>Runtime reload success/failure and rollback are proven.</li>
+                  <li>Docker/VPS import/list/test/delete smoke uses <code>file-store</code> and survives container restart.</li>
+                  <li>Public smoke passes before enabling admin.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="validation" class="section">
+        <div class="panel">
+          <h2>Validation Matrix</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Surface</th>
+                  <th>Required Proof</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>OpenAI Chat JSON</td><td>Existing response shape still passes under pool mode.</td></tr>
+                <tr><td>OpenAI Chat SSE</td><td><code>[DONE]</code>, first-byte-before-completion, disconnect cleanup.</td></tr>
+                <tr><td>OpenAI Responses JSON</td><td>Text-first response object and unsupported-feature rejects.</td></tr>
+                <tr><td>OpenAI Responses SSE</td><td>Semantic SSE events and <code>[DONE]</code>.</td></tr>
+                <tr><td>Gemini native JSON</td><td><code>generateContent</code> route with pool target selection.</td></tr>
+                <tr><td>Gemini native SSE</td><td>Google SDK stream smoke, no <code>[DONE]</code>.</td></tr>
+                <tr><td>Vertex native SSE</td><td>Google SDK stream smoke through <code>/vertex</code>, failover before downstream yield, no target switch after downstream first chunk.</td></tr>
+                <tr><td>Custom image generate</td><td>Multiple image calls distribute through pool while respecting upstream concurrency.</td></tr>
+                <tr><td>Admin/security</td><td>Disabled by default, <code>Authorization: Bearer</code> required, gateway API keys ignored, redaction/log/error tests.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <pre><code>npm --prefix gateway run test
+npm --prefix gateway run compile
+npx tsc --noEmit
+npm run lint
+npm run test
+npm run build
+git diff --check</code></pre>
+        </div>
+      </section>
+
+      <section id="files" class="section">
+        <div class="panel">
+          <h2>Plan Files</h2>
+          <div class="grid cols-2">
+            <div class="card">
+              <h3>Main Plan</h3>
+              <p><a href="./plan.md">plan.md</a></p>
+              <p><a href="./research/gateway-scout.md">research/gateway-scout.md</a></p>
+              <p><a href="./research/cliproxyapi-admin-scout.md">research/cliproxyapi-admin-scout.md</a></p>
+            </div>
+            <div class="card">
+              <h3>Phase Files</h3>
+              <p><a href="./phase-01-contract-and-config-schema.md">Phase 1 - Contract and Config Schema</a></p>
+              <p><a href="./phase-02-credential-pool-runtime.md">Phase 2 - Credential Pool Runtime</a></p>
+              <p><a href="./phase-03-health-metrics-and-failover.md">Phase 3 - Health Metrics and Failover</a></p>
+              <p><a href="./phase-04-admin-api-and-persistence.md">Phase 4 - Admin API and Persistence</a></p>
+              <p><a href="./phase-05-admin-dashboard-ui.md">Phase 5 - Admin Dashboard UI</a></p>
+              <p><a href="./phase-06-validation-and-rollout.md">Phase 6 - Validation and Rollout</a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <p class="footer">Generated for local review. Source of truth remains the markdown plan files in this directory.</p>
+    </main>
+  </div>
+
+  <script>
+    const tabButtons = Array.from(document.querySelectorAll('.phase-tabs button'));
+    const panels = Array.from(document.querySelectorAll('.phase-panel'));
+
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        tabButtons.forEach((item) => item.classList.remove('active'));
+        panels.forEach((panel) => panel.classList.remove('active'));
+        button.classList.add('active');
+        document.getElementById(button.dataset.phase).classList.add('active');
+      });
+    });
+
+    const navLinks = Array.from(document.querySelectorAll('nav a'));
+    const sections = navLinks
+      .map((link) => document.querySelector(link.getAttribute('href')))
+      .filter(Boolean);
+
+    const setActiveNav = () => {
+      let current = sections[0];
+      for (const section of sections) {
+        if (section.getBoundingClientRect().top <= 120) current = section;
+      }
+      navLinks.forEach((link) => {
+        link.classList.toggle('active', link.getAttribute('href') === `#${current.id}`);
+      });
+    };
+
+    document.addEventListener('scroll', setActiveNav, { passive: true });
+    setActiveNav();
+  </script>
+</body>
+</html>

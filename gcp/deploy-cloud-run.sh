@@ -41,6 +41,7 @@ gcloud run deploy "${GCP_SERVICE_NAME}" \
   --port 8080 \
   --memory 1Gi \
   --cpu 1 \
+  --concurrency 20 \
   --timeout 300 \
   --max-instances 10 \
   --env-vars-file "${ROOT_DIR}/${GCP_ENV_FILE}" \
