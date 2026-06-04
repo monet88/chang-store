@@ -117,6 +117,16 @@ Lưu ý:
 | `GET` | `/healthz` | Gateway | Health check |
 | `GET` | `/readyz` | Gateway | Readiness + auth mode summary |
 | `GET` | `/admin/api/health/pool` | Admin | Detailed redacted pool health, requires `Authorization: Bearer <GATEWAY_ADMIN_TOKEN>` |
+| `GET` | `/admin/api/health` | Admin | Admin health summary |
+| `GET` | `/admin/api/vertex-credentials` | Admin | List redacted credential targets |
+| `POST` | `/admin/api/vertex-credentials/import` | Admin | Import service-account JSON into file-store |
+| `GET` | `/admin/api/vertex-credentials/{id}` | Admin | Redacted credential detail |
+| `PATCH` | `/admin/api/vertex-credentials/{id}` | Admin | Update label/weight/enabled/model filters |
+| `DELETE` | `/admin/api/vertex-credentials/{id}` | Admin | Remove a credential target |
+| `POST` | `/admin/api/vertex-credentials/{id}/test` | Admin | Probe one target through the gateway runtime |
+| `GET` | `/admin/api/models?provider=gemini|openai` | Admin | Read provider model catalog |
+| `PUT` | `/admin/api/models/{provider}` | Admin | Persist provider model catalog |
+| `POST` | `/admin/api/runtime/reload` | Admin | Force runtime snapshot reload from current store |
 | `GET` | `/gemini/v1beta/models` | Gemini-compatible | Model list |
 | `POST` | `/gemini/v1beta/models/{model}:generateContent` | Gemini-compatible | Main Gemini-style route |
 | `POST` | `/gemini/v1beta/models/{model}:streamGenerateContent` | Gemini-compatible | Streaming route |
@@ -138,6 +148,13 @@ the public verification path to rely on after Cloud Run cutover.
 
 `/readyz` ở pool mode chỉ trả summary count/selection. Nó không trả raw service
 account JSON, private key, hay chi tiết từng target.
+
+Admin note:
+
+- `/admin` chỉ là shell tĩnh, không trả secret data.
+- Mọi `/admin/api/*` chỉ chấp nhận `Authorization: Bearer <GATEWAY_ADMIN_TOKEN>`.
+- Admin không nhận query token, cookie, `x-api-key`, `x-goog-api-key`, hay gateway key thường.
+- `file-store` dành cho Docker/VPS có persistent mounted volume; ví dụ mount `./gateway-data/auths:/data/auths`.
 
 OpenAI SDK note: set `baseURL` to the `/openai/v1` prefix, for example
 `https://gemini.monet.uno/openai/v1`. This gateway currently implements

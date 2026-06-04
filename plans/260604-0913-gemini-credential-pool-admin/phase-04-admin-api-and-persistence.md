@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Admin API and Persistence"
-status: pending
+status: completed
 priority: P2
 effort: "0.75-1d"
 dependencies: [3]

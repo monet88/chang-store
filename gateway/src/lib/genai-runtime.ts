@@ -1,4 +1,4 @@
-import type { GatewayConfig } from '../config/env.js';
+import type { GatewayConfig, ResolvedVertexTargetConfig } from '../config/env.js';
 import {
   createGenAiPoolSnapshot,
   GenAiPoolClient,
@@ -17,7 +17,14 @@ export interface GenAiRuntimeSnapshotView {
   active: GenAiPoolSnapshotView;
 }
 
-export class GenAiRuntime {
+export interface GenAiRuntimeLike {
+  client: GenAiClient;
+  getSnapshot(): GenAiRuntimeSnapshotView;
+  reload(nextConfig?: GatewayConfig): GenAiRuntimeSnapshotView;
+  probeTarget(target: ResolvedVertexTargetConfig): Promise<Record<string, unknown>>;
+}
+
+export class GenAiRuntime implements GenAiRuntimeLike {
   readonly client: GenAiClient;
 
   private version = 0;
@@ -46,6 +53,14 @@ export class GenAiRuntime {
     this.currentConfig = nextConfig;
     this.version = nextSnapshot.version;
     return this.getSnapshot();
+  }
+
+  async probeTarget(target: ResolvedVertexTargetConfig): Promise<Record<string, unknown>> {
+    const client = this.factory(this.currentConfig, target);
+    return client.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [{ role: 'user', parts: [{ text: 'Reply with exactly: ok' }] }],
+    });
   }
 }
 

@@ -539,6 +539,26 @@ export const loadConfig = (): GatewayConfig => {
   return config;
 };
 
+export const createDerivedConfig = (
+  config: GatewayConfig,
+  overrides: Partial<Pick<GatewayConfig, 'vertexPools' | 'modelCatalog' | 'runtimeMode' | 'resolvedVertexTargets'>>,
+): GatewayConfig => {
+  const nextConfig: GatewayConfig = {
+    ...config,
+    ...(overrides.vertexPools ? { vertexPools: overrides.vertexPools.map((entry) => ({ ...entry })) } : {}),
+    ...(overrides.modelCatalog ? { modelCatalog: normalizeModelCatalog(overrides.modelCatalog) } : {}),
+    runtimeMode: overrides.vertexPools
+      ? (overrides.vertexPools.length > 0 ? 'pool' : 'single')
+      : (overrides.runtimeMode ?? config.runtimeMode),
+    resolvedVertexTargets: [],
+  };
+  nextConfig.resolvedVertexTargets = overrides.resolvedVertexTargets
+    ? overrides.resolvedVertexTargets.map((entry) => ({ ...entry }))
+    : resolveVertexTargets(nextConfig);
+  validateConfig(nextConfig);
+  return nextConfig;
+};
+
 export const validateConfig = (config: GatewayConfig): void => {
   if (config.gatewayKeys.length === 0) throw new Error('GATEWAY_API_KEYS is required.');
   if (config.vertexPoolSelection !== 'round-robin' && config.vertexPoolSelection !== 'weighted-round-robin') {

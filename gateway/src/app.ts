@@ -11,8 +11,8 @@ import { readJsonBody } from './lib/read-json.js';
 import { StreamAdmission } from './lib/stream-admission.js';
 import type { GenAiFactory } from './lib/google-genai-client.js';
 import { createGoogleGenAiClient } from './lib/google-genai-client.js';
-import { createGenAiRuntime } from './lib/genai-runtime.js';
-import { maybeHandleAdminRoute } from './routes/admin-routes.js';
+import { createGenAiRuntime, type GenAiRuntimeLike } from './lib/genai-runtime.js';
+import { maybeHandleAdminRoute } from './admin/admin-routes.js';
 import { healthResponse, readyResponse, rootResponse } from './routes/health-routes.js';
 import { runCustomImageRoute } from './routes/custom-image-routes.js';
 import { runGeminiCompatibleRoute } from './routes/gemini-compatible-routes.js';
@@ -25,12 +25,13 @@ import { ImageWorkloads } from './workloads/image-workloads.js';
 export interface AppOptions {
   config: GatewayConfig;
   genAiFactory?: GenAiFactory;
+  runtimeFactory?: (config: GatewayConfig) => GenAiRuntimeLike;
 }
 
-export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: AppOptions) => {
-  const runtime = genAiFactory === createGoogleGenAiClient
-    ? createGenAiRuntime(config)
-    : null;
+export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runtimeFactory }: AppOptions) => {
+  const runtime = runtimeFactory
+    ? runtimeFactory(config)
+    : (genAiFactory === createGoogleGenAiClient ? createGenAiRuntime(config) : null);
   const ai = runtime?.client ?? genAiFactory(config);
   const workloads = new ImageWorkloads(ai, config);
   const streamAdmission = new StreamAdmission(config.streamPerKeyLimit, config.streamQueueLimit);
@@ -43,7 +44,7 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: Ap
     const ctx = createRequestContext(req, res);
     try {
       const url = new URL(req.url ?? '/', 'http://gateway.local');
-      if (maybeHandleAdminRoute(req, res, url, config, runtime?.getSnapshot())) {
+      if (await maybeHandleAdminRoute(req, res, url, config, runtime ?? undefined)) {
         return;
       }
 

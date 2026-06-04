@@ -1,6 +1,7 @@
 import type { Server } from 'node:http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
+import type { GenAiRuntimeLike } from '../src/lib/genai-runtime.js';
 import { testConfig } from './test-config.js';
 
 const listen = async (server: Server): Promise<string> => new Promise((resolve) => {
@@ -8,6 +9,52 @@ const listen = async (server: Server): Promise<string> => new Promise((resolve) 
     const address = server.address();
     if (typeof address === 'object' && address) resolve(`http://127.0.0.1:${address.port}`);
   });
+});
+
+const createFakeRuntime = (): GenAiRuntimeLike => ({
+  client: { models: { generateContent: vi.fn(async () => ({})) } },
+  getSnapshot: () => ({
+    mode: 'pool',
+    active: {
+      version: 1,
+      selection: 'round-robin',
+      targetCount: 1,
+      healthyTargets: 1,
+      cooldownTargets: 0,
+      targets: [{
+        id: 'project-a',
+        project: 'project-a',
+        location: 'global',
+        weight: 1,
+        health: {
+          status: 'healthy',
+          success: 0,
+          failure: 0,
+          recent: [],
+          routeFamilyBuckets: {
+            gemini: { success: 0, failure: 0 },
+            vertex: { success: 0, failure: 0 },
+            'openai-chat': { success: 0, failure: 0 },
+            'openai-responses': { success: 0, failure: 0 },
+            images: { success: 0, failure: 0 },
+            unknown: { success: 0, failure: 0 },
+          },
+        },
+      }],
+    },
+  }),
+  reload: vi.fn((nextConfig) => ({
+    mode: nextConfig?.runtimeMode ?? 'pool',
+    active: {
+      version: 2,
+      selection: nextConfig?.vertexPoolSelection ?? 'round-robin',
+      targetCount: nextConfig?.resolvedVertexTargets.length ?? 0,
+      healthyTargets: nextConfig?.resolvedVertexTargets.length ?? 0,
+      cooldownTargets: 0,
+      targets: [],
+    },
+  })),
+  probeTarget: vi.fn(async () => ({ ok: true })),
 });
 
 describe('root route', () => {
@@ -83,6 +130,7 @@ describe('root route', () => {
         ],
       }),
       genAiFactory: () => ({ models: { generateContent } }),
+      runtimeFactory: () => createFakeRuntime(),
     });
     const baseUrl = await listen(server);
 
@@ -145,6 +193,7 @@ describe('root route', () => {
         ],
       }),
       genAiFactory: () => ({ models: { generateContent } }),
+      runtimeFactory: () => createFakeRuntime(),
     });
     const baseUrl = await listen(server);
 
