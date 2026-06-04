@@ -4,6 +4,7 @@ import type { ClassifiedRoute } from '../http/request-classifier.js';
 import { GatewayError } from '../http/error-response.js';
 import { writeSseDone, writeSseError, writeSseJson } from '../http/sse-response.js';
 import type { GenAiClient } from '../lib/google-genai-client.js';
+import { withGenAiRequestMetadata } from '../lib/genai-request-metadata.js';
 import { nextStreamStep } from '../lib/stream-guards.js';
 
 interface OpenAIChatMessage {
@@ -327,7 +328,10 @@ export const runOpenAiCompatibleRoute = async (
     throw new GatewayError(404, 'NOT_FOUND', 'OpenAI-compatible route is not implemented.');
   }
 
-  const request = buildGeminiRequest(body as OpenAIChatCompletionRequest);
+  const request = withGenAiRequestMetadata(
+    buildGeminiRequest(body as OpenAIChatCompletionRequest),
+    { routeFamily: 'openai-chat' },
+  );
   const response = await ai.models.generateContent(request);
   return convertGeminiResponseToOpenAI(response, String(request.model));
 };
@@ -349,7 +353,16 @@ export const runOpenAiCompatibleStreamRoute = async (
 
   const requestBody = body as OpenAIChatCompletionRequest;
   assertOpenAiStreamRequestSupported(requestBody);
-  const request = buildGeminiRequest(requestBody, 'stream');
+  const request = withGenAiRequestMetadata(
+    buildGeminiRequest(requestBody, 'stream'),
+    {
+      routeFamily: 'openai-chat',
+      streamGuard: {
+        idleTimeoutMs: streamConfig.idleTimeoutMs,
+        maxDurationMs: streamConfig.maxDurationMs,
+      },
+    },
+  );
   const stream = await ai.models.generateContentStream(request);
   const iterator = stream[Symbol.asyncIterator]();
   const completionId = `chatcmpl_${randomUUID().replace(/-/g, '')}`;

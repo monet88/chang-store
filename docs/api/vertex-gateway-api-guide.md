@@ -57,6 +57,7 @@ Gateway hiện hỗ trợ 2 lớp config:
    - `vertexPools`
    - `modelCatalog`
    - `vertexPoolSelection`
+   - `vertexPoolFailoverCooldownMs`
    - `enableAdminRoutes`
    - `adminAllowMutations`
    - `adminStoreMode`
@@ -104,6 +105,7 @@ Lưu ý:
 
 - Nested pool config là JSON-first. Không nhét `vertexPools` hoặc `modelCatalog` vào YAML phẳng cũ.
 - `GATEWAY_ADMIN_TOKEN` không được trùng với bất kỳ key nào trong `GATEWAY_API_KEYS`.
+- `GATEWAY_VERTEX_POOL_FAILOVER_COOLDOWN_MS` chỉnh thời gian cooldown cho target bị quota/auth/timeout, mặc định `60000`.
 - `adminStoreMode: "file-store"` + `adminAllowMutations: true` hiện chỉ dành cho Docker/VPS có mounted persistent volume. Cloud Run sẽ fail fast ở startup.
 
 ---
@@ -114,6 +116,7 @@ Lưu ý:
 |--------|------|-------|-------|
 | `GET` | `/healthz` | Gateway | Health check |
 | `GET` | `/readyz` | Gateway | Readiness + auth mode summary |
+| `GET` | `/admin/api/health/pool` | Admin | Detailed redacted pool health, requires `Authorization: Bearer <GATEWAY_ADMIN_TOKEN>` |
 | `GET` | `/gemini/v1beta/models` | Gemini-compatible | Model list |
 | `POST` | `/gemini/v1beta/models/{model}:generateContent` | Gemini-compatible | Main Gemini-style route |
 | `POST` | `/gemini/v1beta/models/{model}:streamGenerateContent` | Gemini-compatible | Streaming route |

@@ -30,7 +30,7 @@ export class GenAiRuntime {
   ) {
     this.currentConfig = config;
     this.activeSnapshot = createGenAiPoolSnapshot(config, this.factory, this.version);
-    this.client = new GenAiPoolClient(() => this.activeSnapshot);
+    this.client = new GenAiPoolClient(() => this.activeSnapshot, config.vertexPoolFailoverCooldownMs);
   }
 
   getSnapshot(): GenAiRuntimeSnapshotView {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Server } from 'node:http';
-import OpenAI from 'openai';
 import { createApp } from '../src/app.js';
+import { createOpenAiTestClient } from './openai-test-client.js';
 import { testConfig } from './test-config.js';
 
 const listen = async (server: Server): Promise<string> => new Promise((resolve) => {
@@ -62,6 +62,7 @@ describe('openai-compatible routes', () => {
       config: {
         systemInstruction: { parts: [{ text: 'You are concise.' }] },
       },
+      __gatewayRouteFamily: 'openai-chat',
     });
   });
 
@@ -115,6 +116,7 @@ describe('openai-compatible routes', () => {
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'Give two options' }] }],
       config: { candidateCount: 2 },
+      __gatewayRouteFamily: 'openai-chat',
     });
   });
 
@@ -150,6 +152,7 @@ describe('openai-compatible routes', () => {
         maxOutputTokens: 64,
         stopSequences: ['END'],
       },
+      __gatewayRouteFamily: 'openai-chat',
     });
   });
 
@@ -194,6 +197,7 @@ describe('openai-compatible routes', () => {
           }],
         }],
       },
+      __gatewayRouteFamily: 'openai-chat',
     });
   });
 
@@ -246,6 +250,11 @@ describe('openai-compatible routes', () => {
     expect(generateContentStream).toHaveBeenCalledWith({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+      __gatewayRouteFamily: 'openai-chat',
+      __gatewayStreamGuard: {
+        idleTimeoutMs: 250,
+        maxDurationMs: 10000,
+      },
     });
     expect(generateContent).not.toHaveBeenCalled();
   });
@@ -259,10 +268,7 @@ describe('openai-compatible routes', () => {
     const generateContentStream = vi.fn(async () => streamChunks());
     server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent: vi.fn(), generateContentStream } }) });
     const baseUrl = await listen(server);
-    const client = new OpenAI({
-      apiKey: 'test-key',
-      baseURL: `${baseUrl}/openai/v1`,
-    });
+    const client = createOpenAiTestClient(`${baseUrl}/openai/v1`);
 
     const stream = await client.chat.completions.create({
       model: 'gemini-3.5-flash',

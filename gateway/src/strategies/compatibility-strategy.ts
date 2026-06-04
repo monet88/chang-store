@@ -1,6 +1,7 @@
 import type { ClassifiedRoute } from '../http/request-classifier.js';
 import { GatewayError } from '../http/error-response.js';
 import type { GenAiClient } from '../lib/google-genai-client.js';
+import { withGenAiRequestMetadata } from '../lib/genai-request-metadata.js';
 
 const instanceToContent = (instance: unknown): Record<string, unknown> => {
   if (typeof instance === 'string') {
@@ -32,7 +33,10 @@ const instanceToContent = (instance: unknown): Record<string, unknown> => {
 const buildGenerateRequest = (
   route: ClassifiedRoute,
   body: Record<string, unknown>,
-): Record<string, unknown> => ({ ...body, model: route.model });
+): Record<string, unknown> => withGenAiRequestMetadata(
+  { ...body, model: route.model },
+  { routeFamily: route.family === 'gemini' ? 'gemini' : 'vertex' },
+);
 
 const buildPredictRequest = (
   route: ClassifiedRoute,
@@ -57,7 +61,10 @@ export const runCompatibilityRoute = async (
 ): Promise<Record<string, unknown>> => {
   if (route.operation === 'models') return { models: [] };
   if (route.operation === 'predict') {
-    return ai.models.generateContent(buildPredictRequest(route, body));
+    return ai.models.generateContent(withGenAiRequestMetadata(
+      buildPredictRequest(route, body),
+      { routeFamily: 'vertex' },
+    ));
   }
   return ai.models.generateContent(buildGenerateRequest(route, body));
 };

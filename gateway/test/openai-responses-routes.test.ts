@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Server } from 'node:http';
-import OpenAI from 'openai';
 import { createApp } from '../src/app.js';
+import { createOpenAiTestClient } from './openai-test-client.js';
 import { testConfig } from './test-config.js';
 
 const listen = async (server: Server): Promise<string> => new Promise((resolve) => {
@@ -45,7 +45,7 @@ describe('openai responses routes', () => {
 
     server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
     const baseUrl = await listen(server);
-    const client = new OpenAI({ apiKey: 'test-key', baseURL: `${baseUrl}/openai/v1` });
+    const client = createOpenAiTestClient(`${baseUrl}/openai/v1`);
 
     const response = await client.responses.create({
       model: 'gemini-3.5-flash',
@@ -63,6 +63,7 @@ describe('openai responses routes', () => {
     expect(generateContent).toHaveBeenCalledWith({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'Reply with exactly ok' }] }],
+      __gatewayRouteFamily: 'openai-responses',
     });
   });
 
@@ -137,6 +138,7 @@ describe('openai responses routes', () => {
           },
         },
       },
+      __gatewayRouteFamily: 'openai-responses',
     });
   });
 
@@ -276,7 +278,44 @@ describe('openai responses routes', () => {
     expect(generateContentStream).toHaveBeenCalledWith({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+      __gatewayRouteFamily: 'openai-responses',
+      __gatewayStreamGuard: {
+        idleTimeoutMs: 250,
+        maxDurationMs: 10000,
+      },
     });
+  });
+
+  it('does not emit scaffold SSE frames before the first upstream chunk succeeds', async () => {
+    const generateContent = vi.fn();
+    const generateContentStream = vi.fn(async () => ({
+      [Symbol.asyncIterator]() {
+        return {
+          next: async () => {
+            throw new Error('upstream unavailable');
+          },
+        };
+      },
+    }));
+
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent, generateContentStream } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/responses`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        stream: true,
+        input: 'hello',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(body.error.code).toBe('UPSTREAM_UNAVAILABLE');
+    expect(body.error.message).toMatch(/unavailable/i);
   });
 
   it('is consumable by the OpenAI SDK against the local responses route for non-streaming and streaming', async () => {
@@ -304,7 +343,7 @@ describe('openai responses routes', () => {
     const generateContentStream = vi.fn(async () => streamChunks());
     server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent, generateContentStream } }) });
     const baseUrl = await listen(server);
-    const client = new OpenAI({ apiKey: 'test-key', baseURL: `${baseUrl}/openai/v1` });
+    const client = createOpenAiTestClient(`${baseUrl}/openai/v1`);
 
     const response = await client.responses.create({
       model: 'gemini-3.5-flash',

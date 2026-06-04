@@ -103,7 +103,71 @@ describe('root route', () => {
       selection: 'round-robin',
       configuredTargets: 2,
       enabledTargets: 1,
+      healthyTargets: 1,
+      cooldownTargets: 0,
     });
     expect(generateContent).not.toHaveBeenCalled();
+  });
+
+  it('returns detailed pool health only through the admin bearer route', async () => {
+    const generateContent = vi.fn();
+    server = createApp({
+      config: testConfig({
+        enableAdminRoutes: true,
+        adminToken: 'admin-secret',
+        runtimeMode: 'pool',
+        vertexPools: [
+          {
+            id: 'project-a',
+            project: 'project-a',
+            location: 'global',
+            credentialsFile: null,
+            enabled: true,
+            weight: 1,
+            label: 'Project A',
+            modelAllowlist: [],
+            modelExclusions: [],
+          },
+        ],
+        resolvedVertexTargets: [
+          {
+            id: 'project-a',
+            project: 'project-a',
+            location: 'global',
+            credentialsFile: null,
+            enabled: true,
+            weight: 1,
+            label: 'Project A',
+            modelAllowlist: [],
+            modelExclusions: [],
+            source: 'pool',
+          },
+        ],
+      }),
+      genAiFactory: () => ({ models: { generateContent } }),
+    });
+    const baseUrl = await listen(server);
+
+    const unauthorized = await fetch(`${baseUrl}/admin/api/health/pool`);
+    expect(unauthorized.status).toBe(401);
+
+    const authorized = await fetch(`${baseUrl}/admin/api/health/pool`, {
+      headers: { authorization: 'Bearer admin-secret' },
+    });
+    const body = await authorized.json();
+
+    expect(authorized.status).toBe(200);
+    expect(body.runtime.active.targets).toEqual([
+      expect.objectContaining({
+        id: 'project-a',
+        project: 'project-a',
+        location: 'global',
+        health: expect.objectContaining({
+          status: 'healthy',
+          success: 0,
+          failure: 0,
+        }),
+      }),
+    ]);
   });
 });

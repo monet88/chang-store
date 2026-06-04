@@ -1,5 +1,6 @@
 import type { GatewayConfig } from '../config/env.js';
 import { getGoogleAuthStatus } from '../auth/google-auth.js';
+import type { GenAiRuntimeSnapshotView } from '../lib/genai-runtime.js';
 
 export const rootResponse = () => ({
   endpoints: [
@@ -23,7 +24,7 @@ export const healthResponse = () => ({
   uptimeSeconds: Math.round(process.uptime()),
 });
 
-export const readyResponse = (config: GatewayConfig) => ({
+export const readyResponse = (config: GatewayConfig, runtimeSnapshot?: GenAiRuntimeSnapshotView) => ({
   ok: true,
   service: 'chang-store-vertex-gateway',
   google: getGoogleAuthStatus(config),
@@ -32,6 +33,8 @@ export const readyResponse = (config: GatewayConfig) => ({
     selection: config.vertexPoolSelection,
     configuredTargets: config.vertexPools.length,
     enabledTargets: config.resolvedVertexTargets.length,
+    healthyTargets: runtimeSnapshot?.active.healthyTargets ?? config.resolvedVertexTargets.length,
+    cooldownTargets: runtimeSnapshot?.active.cooldownTargets ?? 0,
   },
   limits: {
     maxJsonBytes: config.maxJsonBytes,

@@ -233,7 +233,7 @@ Docker/VPS storage policy:
 |-------|------|--------|
 | 1 | [Contract and Config Schema](./phase-01-contract-and-config-schema.md) | Completed |
 | 2 | [Credential Pool Runtime](./phase-02-credential-pool-runtime.md) | Completed |
-| 3 | [Health Metrics and Failover](./phase-03-health-metrics-and-failover.md) | Pending |
+| 3 | [Health Metrics and Failover](./phase-03-health-metrics-and-failover.md) | Completed |
 | 4 | [Admin API and Persistence](./phase-04-admin-api-and-persistence.md) | Pending |
 | 5 | [Admin Dashboard UI](./phase-05-admin-dashboard-ui.md) | Pending |
 | 6 | [OpenAI-Compatible Images Surface](./phase-06-openai-compatible-images.md) | Pending |

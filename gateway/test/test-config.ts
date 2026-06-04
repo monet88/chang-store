@@ -18,6 +18,7 @@ export const testConfig = (overrides: Partial<GatewayConfig> = {}): GatewayConfi
   streamIdleTimeoutMs: 250,
   streamPerKeyLimit: 2,
   streamQueueLimit: 2,
+  vertexPoolFailoverCooldownMs: 60_000,
   enableGeminiRoutes: true,
   enableOpenAiRoutes: true,
   enableVertexRoutes: true,

@@ -4,6 +4,7 @@ import type { ClassifiedRoute } from '../http/request-classifier.js';
 import { GatewayError } from '../http/error-response.js';
 import { writeSseDone, writeSseError, writeSseJson } from '../http/sse-response.js';
 import type { GenAiClient } from '../lib/google-genai-client.js';
+import { withGenAiRequestMetadata } from '../lib/genai-request-metadata.js';
 import { nextStreamStep } from '../lib/stream-guards.js';
 
 interface ResponsesFunctionTool {
@@ -326,7 +327,10 @@ export const runOpenAiResponsesRoute = async (
     throw new GatewayError(404, 'NOT_FOUND', 'OpenAI Responses route is not implemented.');
   }
 
-  const request = buildGeminiRequest(body as OpenAIResponsesRequest);
+  const request = withGenAiRequestMetadata(
+    buildGeminiRequest(body as OpenAIResponsesRequest),
+    { routeFamily: 'openai-responses' },
+  );
   const response = await ai.models.generateContent(request);
   const responseId = `resp_${randomUUID().replace(/-/g, '')}`;
   const messageId = `msg_${randomUUID().replace(/-/g, '')}`;
@@ -356,7 +360,16 @@ export const runOpenAiResponsesStreamRoute = async (
     throw new GatewayError(501, 'NOT_IMPLEMENTED', 'Streaming is not implemented by the configured GenAI client.');
   }
 
-  const request = buildGeminiRequest(body as OpenAIResponsesRequest, 'stream');
+  const request = withGenAiRequestMetadata(
+    buildGeminiRequest(body as OpenAIResponsesRequest, 'stream'),
+    {
+      routeFamily: 'openai-responses',
+      streamGuard: {
+        idleTimeoutMs: streamConfig.idleTimeoutMs,
+        maxDurationMs: streamConfig.maxDurationMs,
+      },
+    },
+  );
   const stream = await ai.models.generateContentStream(request);
   const iterator = stream[Symbol.asyncIterator]();
   const responseId = `resp_${randomUUID().replace(/-/g, '')}`;
@@ -403,6 +416,18 @@ export const runOpenAiResponsesStreamRoute = async (
   };
 
   try {
+    let firstStep: IteratorResult<Record<string, unknown>>;
+    try {
+      firstStep = await nextStreamStep(iterator, { ...streamConfig, startedAt });
+    } catch (error) {
+      if (!closed && !wroteFrame && !res.headersSent) throw error;
+      if (!closed) await writeSseError(res, error);
+      return;
+    }
+    if (firstStep.done || closed) {
+      return;
+    }
+
     if (await writeEvent({
       type: 'response.created',
       response: {
@@ -438,6 +463,34 @@ export const runOpenAiResponsesStreamRoute = async (
       },
     }) === 'closed') return;
 
+    const processStep = async (stepValue: Record<string, unknown>): Promise<'continue' | 'stop'> => {
+      const parsed = collectResponseParts(stepValue);
+      latestModel = parsed.model ?? latestModel;
+      latestUsageMetadata = parsed.usageMetadata;
+      if (parsed.functionCalls.length > 0) {
+        if (!closed) {
+          await writeSseError(res, new GatewayError(
+            400,
+            'VALIDATION_FAILED',
+            'OpenAI Responses streaming tool calls are not implemented yet.',
+          ));
+        }
+        return 'stop';
+      }
+      if (!parsed.text) return 'continue';
+      fullText += parsed.text;
+      if (await writeEvent({
+        type: 'response.output_text.delta',
+        item_id: messageId,
+        output_index: 0,
+        content_index: 0,
+        delta: parsed.text,
+      }) === 'closed') return 'stop';
+      return 'continue';
+    };
+
+    if (await processStep(firstStep.value) === 'stop') return;
+
     while (!closed) {
       let step: IteratorResult<Record<string, unknown>>;
       try {
@@ -449,30 +502,7 @@ export const runOpenAiResponsesStreamRoute = async (
       }
 
       if (step.done || closed) break;
-
-      const parsed = collectResponseParts(step.value);
-      latestModel = parsed.model ?? latestModel;
-      latestUsageMetadata = parsed.usageMetadata;
-      if (parsed.functionCalls.length > 0) {
-        if (!closed) {
-          await writeSseError(res, new GatewayError(
-            400,
-            'VALIDATION_FAILED',
-            'OpenAI Responses streaming tool calls are not implemented yet.',
-          ));
-        }
-        return;
-      }
-
-      if (!parsed.text) continue;
-      fullText += parsed.text;
-      if (await writeEvent({
-        type: 'response.output_text.delta',
-        item_id: messageId,
-        output_index: 0,
-        content_index: 0,
-        delta: parsed.text,
-      }) === 'closed') return;
+      if (await processStep(step.value) === 'stop') return;
     }
 
     const assistantMessage = buildAssistantMessage(messageId, fullText);

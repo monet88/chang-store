@@ -57,6 +57,7 @@ describe('streaming compatibility routes', () => {
       expect(generateContentStream).toHaveBeenCalledWith({
         model: 'gemini-2.5-flash',
         contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
+        __gatewayRouteFamily: 'gemini',
       });
       expect(generateContent).not.toHaveBeenCalled();
     } finally {
@@ -87,6 +88,7 @@ describe('streaming compatibility routes', () => {
       expect(generateContentStream).toHaveBeenCalledWith({
         model: 'gemini-2.5-flash',
         contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
+        __gatewayRouteFamily: 'vertex',
       });
       expect(generateContent).not.toHaveBeenCalled();
     } finally {

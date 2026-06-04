@@ -46,6 +46,7 @@ export interface GatewayConfig {
   streamIdleTimeoutMs: number;
   streamPerKeyLimit: number;
   streamQueueLimit: number;
+  vertexPoolFailoverCooldownMs: number;
   enableGeminiRoutes: boolean;
   enableOpenAiRoutes: boolean;
   enableVertexRoutes: boolean;
@@ -76,6 +77,7 @@ const DEFAULTS = {
   streamIdleTimeoutMs: 30_000,
   streamPerKeyLimit: 2,
   streamQueueLimit: 4,
+  vertexPoolFailoverCooldownMs: 60_000,
   vertexPoolSelection: 'weighted-round-robin' as VertexPoolSelection,
   adminStoreMode: 'static-config' as AdminStoreMode,
 };
@@ -101,6 +103,7 @@ type GatewayFileConfig = Partial<{
   streamIdleTimeoutMs: number;
   streamPerKeyLimit: number;
   streamQueueLimit: number;
+  vertexPoolFailoverCooldownMs: number;
   enableGeminiRoutes: boolean;
   enableOpenAiRoutes: boolean;
   enableVertexRoutes: boolean;
@@ -110,6 +113,7 @@ type GatewayFileConfig = Partial<{
 
 type GatewayPoolOverlayConfig = Partial<{
   vertexPoolSelection: VertexPoolSelection;
+  vertexPoolFailoverCooldownMs: number;
   vertexPools: VertexPoolConfig[];
   modelCatalog: Record<string, ProviderModelCatalog>;
   enableAdminRoutes: boolean;
@@ -322,6 +326,16 @@ const validatePoolOverlayConfig = (config: Record<string, unknown>, filePath: st
     }
     normalized.vertexPoolSelection = config.vertexPoolSelection;
   }
+  if (config.vertexPoolFailoverCooldownMs !== undefined) {
+    if (
+      typeof config.vertexPoolFailoverCooldownMs !== 'number'
+      || !Number.isFinite(config.vertexPoolFailoverCooldownMs)
+      || config.vertexPoolFailoverCooldownMs <= 0
+    ) {
+      throw new Error(`Invalid ${filePath}: vertexPoolFailoverCooldownMs must be a positive number.`);
+    }
+    normalized.vertexPoolFailoverCooldownMs = config.vertexPoolFailoverCooldownMs;
+  }
   if (config.vertexPools !== undefined) {
     if (!Array.isArray(config.vertexPools)) {
       throw new Error(`Invalid ${filePath}: vertexPools must be an array.`);
@@ -495,6 +509,10 @@ export const loadConfig = (): GatewayConfig => {
     streamIdleTimeoutMs: numberEnv('GATEWAY_STREAM_IDLE_TIMEOUT_MS', fileConfig.streamIdleTimeoutMs ?? DEFAULTS.streamIdleTimeoutMs),
     streamPerKeyLimit: numberEnv('GATEWAY_STREAM_PER_KEY_LIMIT', fileConfig.streamPerKeyLimit ?? DEFAULTS.streamPerKeyLimit),
     streamQueueLimit: numberEnv('GATEWAY_STREAM_QUEUE_LIMIT', fileConfig.streamQueueLimit ?? DEFAULTS.streamQueueLimit),
+    vertexPoolFailoverCooldownMs: numberEnv(
+      'GATEWAY_VERTEX_POOL_FAILOVER_COOLDOWN_MS',
+      poolOverlay.vertexPoolFailoverCooldownMs ?? DEFAULTS.vertexPoolFailoverCooldownMs,
+    ),
     enableGeminiRoutes: boolEnv(process.env.GATEWAY_ENABLE_GEMINI_ROUTES, fileConfig.enableGeminiRoutes ?? true),
     enableOpenAiRoutes: boolEnv(process.env.GATEWAY_ENABLE_OPENAI_ROUTES, fileConfig.enableOpenAiRoutes ?? true),
     enableVertexRoutes: boolEnv(process.env.GATEWAY_ENABLE_VERTEX_ROUTES, fileConfig.enableVertexRoutes ?? true),

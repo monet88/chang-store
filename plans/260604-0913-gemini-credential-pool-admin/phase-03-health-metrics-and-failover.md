@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Health Metrics and Failover"
-status: pending
+status: completed
 priority: P1
 effort: "1d"
 dependencies: [2]

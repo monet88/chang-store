@@ -12,6 +12,7 @@ import { StreamAdmission } from './lib/stream-admission.js';
 import type { GenAiFactory } from './lib/google-genai-client.js';
 import { createGoogleGenAiClient } from './lib/google-genai-client.js';
 import { createGenAiRuntime } from './lib/genai-runtime.js';
+import { maybeHandleAdminRoute } from './routes/admin-routes.js';
 import { healthResponse, readyResponse, rootResponse } from './routes/health-routes.js';
 import { runCustomImageRoute } from './routes/custom-image-routes.js';
 import { runGeminiCompatibleRoute } from './routes/gemini-compatible-routes.js';
@@ -27,9 +28,10 @@ export interface AppOptions {
 }
 
 export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: AppOptions) => {
-  const ai = genAiFactory === createGoogleGenAiClient
-    ? createGenAiRuntime(config).client
-    : genAiFactory(config);
+  const runtime = genAiFactory === createGoogleGenAiClient
+    ? createGenAiRuntime(config)
+    : null;
+  const ai = runtime?.client ?? genAiFactory(config);
   const workloads = new ImageWorkloads(ai, config);
   const streamAdmission = new StreamAdmission(config.streamPerKeyLimit, config.streamQueueLimit);
   const streamConfig = {
@@ -40,14 +42,17 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: Ap
   return createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const ctx = createRequestContext(req, res);
     try {
+      const url = new URL(req.url ?? '/', 'http://gateway.local');
+      if (maybeHandleAdminRoute(req, res, url, config, runtime?.getSnapshot())) {
+        return;
+      }
+
       applyCors(req, res, config);
       if (req.method === 'OPTIONS') {
         res.statusCode = 204;
         res.end();
         return;
       }
-
-      const url = new URL(req.url ?? '/', 'http://gateway.local');
 
       if (req.method === 'GET' && url.pathname === '/') {
         sendJson(res, 200, rootResponse());
@@ -58,7 +63,7 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: Ap
         return;
       }
       if (url.pathname === '/readyz') {
-        sendJson(res, 200, readyResponse(config));
+        sendJson(res, 200, readyResponse(config, runtime?.getSnapshot()));
         return;
       }
 

@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import OpenAI from 'openai';
 import { describe, expect, it, vi } from 'vitest';
 import { sendSseStream } from '../src/http/sse-response.js';
+import { createOpenAiTestClient } from './openai-test-client.js';
 
 const require = createRequire(import.meta.url);
 
@@ -190,7 +190,7 @@ describe('stream contract proof', () => {
   it('is consumable by the OpenAI SDK streaming parsers for Chat and Responses fixtures', async () => {
     const server = createOpenAiFixtureServer();
     const baseURL = await listen(server);
-    const client = new OpenAI({ apiKey: 'test-key', baseURL });
+    const client = createOpenAiTestClient(baseURL);
 
     try {
       const chatStream = await client.chat.completions.create({
