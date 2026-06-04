@@ -187,6 +187,31 @@ vào `GATEWAY_CORS_ORIGINS` rồi redeploy Cloud Run. Hiện template đã inclu
 
 ## 7. Smoke test
 
+### Local Docker proof gate first
+
+Trước khi đem lên Linux VM/VPS, proof gate bắt buộc là local Docker với mounted
+volume cho `file-store`.
+
+Ví dụ mục tiêu mount:
+
+```text
+./gateway-data/auths:/data/auths
+```
+
+Checklist local Docker tối thiểu:
+
+- `/readyz` pass và chỉ trả summary-safe pool info
+- `/gemini/v1beta/...` JSON + stream pass
+- `/openai/v1/chat/completions` JSON + stream pass
+- `/openai/v1/responses` JSON + stream pass
+- `/openai/v1/images/generations` pass
+- `/openai/v1/images/edits` pass
+- `/api/images/generate` pass
+- admin login/list/import/test/delete pass khi bật admin
+- restart container xong dữ liệu `file-store` vẫn còn
+
+Chỉ sau khi local Docker gate xanh mới rollout Linux VM/VPS Docker cùng layout volume đó.
+
 Readiness:
 
 ```bash
@@ -235,6 +260,33 @@ https://YOUR_CLOUD_RUN_URL/openai/v1
 
 Hiện gateway support `GET /models`, `POST /chat/completions`, và
 `POST /responses` trên prefix OpenAI-compatible.
+
+OpenAI-compatible image routes:
+
+```bash
+curl -X POST "https://YOUR_CLOUD_RUN_URL/openai/v1/images/generations" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_GATEWAY_API_KEY" \
+  -d '{
+    "model": "gemini-2.5-flash-image",
+    "prompt": "Generate a simple fashion product icon",
+    "n": 1,
+    "size": "1024x1024"
+  }'
+```
+
+```bash
+curl -X POST "https://YOUR_CLOUD_RUN_URL/openai/v1/images/edits" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_GATEWAY_API_KEY" \
+  -d '{
+    "model": "gemini-2.5-flash-image",
+    "prompt": "Edit this input into a clean fashion icon",
+    "n": 1,
+    "size": "1024x1024",
+    "image": "data:image/png;base64,<BASE64>"
+  }'
+```
 
 OpenAI Responses hiện là subset text-first:
 

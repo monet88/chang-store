@@ -15,6 +15,7 @@ import { createGenAiRuntime, type GenAiRuntimeLike } from './lib/genai-runtime.j
 import { maybeHandleAdminRoute } from './admin/admin-routes.js';
 import { healthResponse, readyResponse, rootResponse } from './routes/health-routes.js';
 import { runCustomImageRoute } from './routes/custom-image-routes.js';
+import { runOpenAiImageEditRoute, runOpenAiImageGenerationRoute } from './routes/openai-images-routes.js';
 import { runGeminiCompatibleRoute } from './routes/gemini-compatible-routes.js';
 import { runOpenAiCompatibleRoute, runOpenAiCompatibleStreamRoute } from './routes/openai-compatible-routes.js';
 import { runOpenAiResponsesRoute, runOpenAiResponsesStreamRoute } from './routes/openai-responses-routes.js';
@@ -71,7 +72,11 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
       const route = classifyRoute(req.method ?? 'GET', url.pathname);
       requireGatewayAuth(req, config);
       const gatewayKey = extractGatewayKey(req);
-      const body = req.method === 'GET'
+      const expectsMultipartOpenAiEdit = route.family === 'openai'
+        && route.operation === 'openaiImageEdits'
+        && typeof req.headers['content-type'] === 'string'
+        && req.headers['content-type'].includes('multipart/form-data');
+      const body = req.method === 'GET' || expectsMultipartOpenAiEdit
         ? {}
         : await readJsonBody<Record<string, unknown>>(req, config.maxJsonBytes);
       const isStreamingRequest = (
@@ -96,6 +101,19 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
         }
         if (route.family === 'openai') {
           if (!config.enableOpenAiRoutes) throw new GatewayError(404, 'NOT_FOUND', 'OpenAI-compatible routes are disabled.');
+          if (route.operation === 'openaiImageGenerations') {
+            sendJson(res, 200, await runOpenAiImageGenerationRoute(body, workloads));
+            return;
+          }
+          if (route.operation === 'openaiImageEdits') {
+            sendJson(res, 200, await runOpenAiImageEditRoute(
+              req,
+              expectsMultipartOpenAiEdit ? null : body,
+              workloads,
+              config.maxJsonBytes,
+            ));
+            return;
+          }
           if (route.operation === 'chatCompletions' && body.stream === true) {
             await runOpenAiCompatibleStreamRoute(req, res, route, body, ai, streamConfig);
             return;

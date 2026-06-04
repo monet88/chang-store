@@ -12,6 +12,8 @@ export const rootResponse = () => ({
     'GET /openai/v1/models',
     'POST /openai/v1/chat/completions',
     'POST /openai/v1/responses',
+    'POST /openai/v1/images/generations',
+    'POST /openai/v1/images/edits',
     'POST /vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:generateContent',
     'POST /vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:streamGenerateContent',
   ],

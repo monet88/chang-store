@@ -160,7 +160,8 @@ Admin note:
 
 OpenAI SDK note: set `baseURL` to the `/openai/v1` prefix, for example
 `https://gemini.monet.uno/openai/v1`. This gateway currently implements
-`GET /models`, `POST /chat/completions`, and `POST /responses` on that prefix.
+`GET /models`, `POST /chat/completions`, `POST /responses`,
+`POST /images/generations`, and `POST /images/edits` on that prefix.
 
 For `POST /openai/v1/chat/completions`:
 
@@ -194,6 +195,40 @@ For `POST /openai/v1/responses`:
   - persistence/state fields such as `background`, `conversation`, `store`,
     and `previous_response_id` are rejected
   - built-in/hosted tools are rejected
+
+For `POST /openai/v1/images/generations`:
+
+- Supported models:
+  - `gemini-2.5-flash-image`
+  - `gemini-3.1-flash-image`
+  - `gemini-3-pro-image`
+- Supported request subset:
+  - `model`
+  - `prompt`
+  - `n`
+  - `size`
+- Supported response contract:
+  - `data[].b64_json`
+- Unsupported fields such as `response_format: "url"` are rejected explicitly.
+
+For `POST /openai/v1/images/edits`:
+
+- Supported models:
+  - `gemini-2.5-flash-image`
+  - `gemini-3.1-flash-image`
+  - `gemini-3-pro-image`
+- Supported input forms:
+  - JSON `image` as one or many data URLs
+  - multipart `image` / `image[]` file uploads
+- Supported request subset:
+  - `model`
+  - `prompt`
+  - `n`
+  - `size`
+  - `image`
+- Supported response contract:
+  - `data[].b64_json`
+- Unsupported fields such as remote image URLs, hosted file IDs, or `mask` are rejected explicitly in MVP.
 
 For native Gemini/Vertex streaming routes:
 

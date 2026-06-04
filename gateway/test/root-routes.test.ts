@@ -80,6 +80,8 @@ describe('root route', () => {
       'POST /gemini/v1beta/models/{model}:generateContent',
       'POST /openai/v1/chat/completions',
       'POST /openai/v1/responses',
+      'POST /openai/v1/images/generations',
+      'POST /openai/v1/images/edits',
     ]));
     expect(generateContent).not.toHaveBeenCalled();
   });

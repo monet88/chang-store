@@ -213,6 +213,54 @@ describe('admin routes', () => {
     expect(removeBody.remaining).toBe(0);
   });
 
+  it('rolls back admin store changes when runtime reload fails', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-admin-'));
+    const runtime = createFakeRuntime();
+    runtime.reload = vi.fn(() => {
+      throw new Error('reload failed');
+    });
+    server = createApp({
+      config: testConfig({
+        enableAdminRoutes: true,
+        adminToken: 'admin-secret',
+        adminAllowMutations: true,
+        adminStoreMode: 'file-store',
+        adminFileStoreDir: dir,
+        runtimeMode: 'pool',
+        vertexPools: [],
+        resolvedVertexTargets: [],
+      }),
+      runtimeFactory: () => runtime,
+    });
+    const baseUrl = await listen(server);
+    const headers = {
+      authorization: 'Bearer admin-secret',
+      'content-type': 'application/json',
+    };
+
+    const failedImport = await fetch(`${baseUrl}/admin/api/vertex-credentials/import`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        project: 'project-a',
+        location: 'global',
+        credential: {
+          type: 'service_account',
+          project_id: 'project-a',
+          client_email: 'svc@example.test',
+          private_key: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n',
+        },
+      }),
+    });
+    expect(failedImport.status).toBe(500);
+
+    const list = await fetch(`${baseUrl}/admin/api/vertex-credentials`, {
+      headers: { authorization: 'Bearer admin-secret' },
+    });
+    const listBody = await list.json();
+    expect(listBody.vertexPools).toHaveLength(0);
+  });
+
   it('serves the admin dashboard shell from the gateway', async () => {
     server = createApp({
       config: testConfig({

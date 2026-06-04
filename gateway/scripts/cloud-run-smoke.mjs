@@ -42,6 +42,7 @@ const assert = (condition, message) => {
 const main = async () => {
   const config = loadConfig();
   assert(config.apiKey, 'Missing gateway API key.');
+  const tinyPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9pP4sFQAAAAASUVORK5CYII=';
 
   const results = [];
 
@@ -97,6 +98,60 @@ const main = async () => {
   }
   assert(responseText.toLowerCase().includes('ok'), 'OpenAI responses stream did not contain ok.');
   results.push('openai-responses-stream');
+
+  const openaiImageGenerate = await fetch(`${config.baseUrl}/openai/v1/images/generations`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${config.apiKey}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gemini-2.5-flash-image',
+      prompt: 'Generate a simple fashion sketch on white background',
+      n: 1,
+      size: '1024x1024',
+    }),
+  });
+  assert(openaiImageGenerate.ok, `OpenAI image generations failed with ${openaiImageGenerate.status}`);
+  const openaiImageGenerateBody = await openaiImageGenerate.json();
+  assert(Array.isArray(openaiImageGenerateBody.data) && typeof openaiImageGenerateBody.data[0]?.b64_json === 'string', 'OpenAI image generations did not return b64_json.');
+  results.push('openai-images-generate');
+
+  const openaiImageEdit = await fetch(`${config.baseUrl}/openai/v1/images/edits`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${config.apiKey}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gemini-2.5-flash-image',
+      prompt: 'Edit the tiny input into a clean monochrome fashion icon',
+      n: 1,
+      size: '1024x1024',
+      image: `data:image/png;base64,${tinyPng}`,
+    }),
+  });
+  assert(openaiImageEdit.ok, `OpenAI image edits failed with ${openaiImageEdit.status}`);
+  const openaiImageEditBody = await openaiImageEdit.json();
+  assert(Array.isArray(openaiImageEditBody.data) && typeof openaiImageEditBody.data[0]?.b64_json === 'string', 'OpenAI image edits did not return b64_json.');
+  results.push('openai-images-edit');
+
+  const customImageGenerate = await fetch(`${config.baseUrl}/api/images/generate`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${config.apiKey}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gemini-2.5-flash-image',
+      prompt: 'Generate a minimal fashion product icon',
+      numberOfImages: 1,
+    }),
+  });
+  assert(customImageGenerate.ok, `Custom image generate failed with ${customImageGenerate.status}`);
+  const customImageGenerateBody = await customImageGenerate.json();
+  assert(Array.isArray(customImageGenerateBody.images) && typeof customImageGenerateBody.images[0]?.dataUrl === 'string', 'Custom image generate did not return dataUrl output.');
+  results.push('custom-image-generate');
 
   const gemini = new GoogleGenAI({
     apiKey: config.apiKey,

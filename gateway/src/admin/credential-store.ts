@@ -188,6 +188,11 @@ export const createCredentialStore = (
         } catch (error) {
           if (backupStore) {
             writeJsonAtomic(path.join(config.adminFileStoreDir!, STORE_FILE), backupStore);
+          } else if (config.adminFileStoreDir) {
+            const storeFile = path.join(config.adminFileStoreDir, STORE_FILE);
+            if (fs.existsSync(storeFile)) {
+              fs.rmSync(storeFile);
+            }
           }
           throw error;
         }

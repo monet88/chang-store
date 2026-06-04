@@ -236,8 +236,8 @@ Docker/VPS storage policy:
 | 3 | [Health Metrics and Failover](./phase-03-health-metrics-and-failover.md) | Completed |
 | 4 | [Admin API and Persistence](./phase-04-admin-api-and-persistence.md) | Completed |
 | 5 | [Admin Dashboard UI](./phase-05-admin-dashboard-ui.md) | Completed |
-| 6 | [OpenAI-Compatible Images Surface](./phase-06-openai-compatible-images.md) | Pending |
-| 7 | [Validation and Rollout](./phase-07-validation-and-rollout.md) | Pending |
+| 6 | [OpenAI-Compatible Images Surface](./phase-06-openai-compatible-images.md) | Completed |
+| 7 | [Validation and Rollout](./phase-07-validation-and-rollout.md) | Completed |
 
 ## Dependencies
 
