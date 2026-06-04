@@ -134,19 +134,17 @@ const buildEditRequestFromMultipart = async (
   if (images.length === 0) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'At least one multipart image file is required.');
   }
+  for (const [field] of fields) {
+    if (!['prompt', 'model', 'n', 'size'].includes(field)) {
+      throw new GatewayError(400, 'VALIDATION_FAILED', `${field} is not supported by the gateway OpenAI image surface.`);
+    }
+  }
   const prompt = fields.get('prompt')?.[0]?.trim();
   if (!prompt) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'prompt is required.');
   }
   const rawSize = fields.get('size')?.[0];
   const aspectRatio = parseSizeToAspectRatio(rawSize);
-  const body: Record<string, unknown> = {
-    prompt,
-    model: fields.get('model')?.[0],
-    n: fields.get('n')?.[0] ? Number(fields.get('n')?.[0]) : undefined,
-    size: rawSize,
-  };
-  rejectUnsupportedFields(body, ['mask', 'response_format', 'background', 'quality', 'size_hint', 'user']);
   return {
     prompt,
     model: assertModel(fields.get('model')?.[0]),

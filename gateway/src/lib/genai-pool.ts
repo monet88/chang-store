@@ -8,6 +8,7 @@ import {
   extractGenAiRequestMetadata,
   type GenAiRouteFamily,
 } from './genai-request-metadata.js';
+import { GatewayError } from '../http/error-response.js';
 import { nextStreamStep } from './stream-guards.js';
 import { classifyUpstreamError, withClassifiedGatewayError } from './upstream-error-classifier.js';
 
@@ -227,6 +228,7 @@ const selectWeightedRoundRobinTarget = (
   candidates: readonly GenAiTarget[],
 ): GenAiTarget => {
   const candidateIds = new Set(candidates.map((target) => target.id));
+  const totalCandidateWeight = candidates.reduce((sum, target) => sum + target.weight, 0);
   let winner: { target: GenAiTarget; currentWeight: number } | null = null;
   for (const state of snapshot.weightedStates) {
     const target = snapshot.targets.find((entry) => entry.id === state.targetId);
@@ -241,9 +243,20 @@ const selectWeightedRoundRobinTarget = (
   if (!winner) return candidates[0];
   const winningState = snapshot.weightedStates.find((state) => state.targetId === winner.target.id);
   if (winningState) {
-    winningState.currentWeight -= snapshot.totalWeight;
+    winningState.currentWeight -= totalCandidateWeight;
   }
   return winner.target;
+};
+
+const allowsModel = (target: GenAiTarget, requestedModel: string | null): boolean => {
+  if (!requestedModel) return true;
+  if (target.modelAllowlist.length > 0 && !target.modelAllowlist.includes(requestedModel)) {
+    return false;
+  }
+  if (target.modelExclusions.includes(requestedModel)) {
+    return false;
+  }
+  return true;
 };
 
 const selectTargetFromCandidates = (
@@ -322,7 +335,6 @@ const wrapPinnedStream = (
           }
           return { done: true, value };
         } finally {
-          safeSuccess();
           safeRelease();
         }
       },
@@ -349,7 +361,7 @@ export class GenAiPoolClient implements GenAiClient {
       const snapshot = this.pinSnapshot();
       try {
         const { metadata, request: cleanRequest } = extractGenAiRequestMetadata(request);
-        return await this.withFailover(snapshot, metadata.routeFamily, (target) =>
+        return await this.withFailover(snapshot, metadata.routeFamily, this.extractRequestedModel(cleanRequest), (target) =>
           target.client.models.generateContent(cleanRequest));
       } finally {
         snapshot.refCount -= 1;
@@ -361,9 +373,10 @@ export class GenAiPoolClient implements GenAiClient {
       try {
         const attempted = new Set<string>();
         let lastError: unknown;
+        const requestedModel = this.extractRequestedModel(cleanRequest);
 
         while (attempted.size < snapshot.targets.length) {
-          const target = this.selectAvailableTarget(snapshot, attempted);
+          const target = this.selectAvailableTarget(snapshot, attempted, requestedModel);
           attempted.add(target.id);
           console.info(JSON.stringify({
             event: 'genai_pool.target_selected',
@@ -447,15 +460,36 @@ export class GenAiPoolClient implements GenAiClient {
     return snapshot;
   }
 
-  private selectAvailableTarget(snapshot: GenAiPoolSnapshot, attempted: Set<string>): GenAiTarget {
+  private extractRequestedModel(request: Record<string, unknown>): string | null {
+    return typeof request.model === 'string' && request.model.trim() ? request.model.trim() : null;
+  }
+
+  private selectAvailableTarget(
+    snapshot: GenAiPoolSnapshot,
+    attempted: Set<string>,
+    requestedModel: string | null,
+  ): GenAiTarget {
     const healthyTargets = snapshot.targets.filter(
-      (target) => !attempted.has(target.id) && resolveTargetStatus(target.health) === 'healthy',
+      (target) =>
+        !attempted.has(target.id)
+        && resolveTargetStatus(target.health) === 'healthy'
+        && allowsModel(target, requestedModel),
     );
     if (healthyTargets.length > 0) {
       return selectTargetFromCandidates(snapshot, healthyTargets);
     }
-    const candidates = snapshot.targets.filter((target) => !attempted.has(target.id));
+    const candidates = snapshot.targets.filter(
+      (target) => !attempted.has(target.id) && allowsModel(target, requestedModel),
+    );
     if (candidates.length === 0) {
+      if (requestedModel) {
+        throw new GatewayError(
+          503,
+          'UPSTREAM_UNAVAILABLE',
+          `No configured GenAI target allows model ${requestedModel}.`,
+          true,
+        );
+      }
       return selectGenAiTarget(snapshot);
     }
     const fallbackTarget = [...candidates].sort((left, right) => {
@@ -474,13 +508,14 @@ export class GenAiPoolClient implements GenAiClient {
   private async withFailover(
     snapshot: GenAiPoolSnapshot,
     routeFamily: GenAiRouteFamily,
+    requestedModel: string | null,
     execute: (target: GenAiTarget) => Promise<Record<string, unknown>>,
   ): Promise<Record<string, unknown>> {
     const attempted = new Set<string>();
     let lastError: unknown;
 
     while (attempted.size < snapshot.targets.length) {
-      const target = this.selectAvailableTarget(snapshot, attempted);
+      const target = this.selectAvailableTarget(snapshot, attempted, requestedModel);
       attempted.add(target.id);
       console.info(JSON.stringify({
         event: 'genai_pool.target_selected',

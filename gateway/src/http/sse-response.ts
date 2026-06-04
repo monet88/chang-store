@@ -145,6 +145,9 @@ export const sendSseStream = async (
         writeSseDone(res);
       } else if (!res.destroyed && !res.writableEnded) {
         try {
+          if (!wroteFrame) {
+            initializeSse(res);
+          }
           res.end();
         } catch {
           // Socket closed after the state check.

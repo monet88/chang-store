@@ -134,6 +134,8 @@ Lưu ý:
 | `GET` | `/openai/v1/models` | OpenAI-compatible | Minimal OpenAI model list |
 | `POST` | `/openai/v1/chat/completions` | OpenAI-compatible | OpenAI Chat Completions compatibility route, supports both JSON and SSE |
 | `POST` | `/openai/v1/responses` | OpenAI-compatible | Text-first Responses subset, supports JSON and semantic SSE |
+| `POST` | `/openai/v1/images/generations` | OpenAI-compatible | OpenAI-style image generation route returning `b64_json` |
+| `POST` | `/openai/v1/images/edits` | OpenAI-compatible | OpenAI-style image edit route supporting JSON and multipart uploads |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:generateContent` | Vertex-compatible | Canonical Vertex-style route |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:streamGenerateContent` | Vertex-compatible | Canonical Vertex-style streaming |
 | `POST` | `/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:predict` | Vertex-compatible | Vertex predict route |

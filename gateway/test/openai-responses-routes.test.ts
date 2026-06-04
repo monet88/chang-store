@@ -200,6 +200,27 @@ describe('openai responses routes', () => {
     expect(generateContent).not.toHaveBeenCalled();
   });
 
+  it('rejects tool_choice when no tools are supplied', async () => {
+    const generateContent = vi.fn();
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/responses`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        input: 'hello',
+        tool_choice: 'auto',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error.message).toMatch(/tool_choice requires custom function tools/i);
+    expect(generateContent).not.toHaveBeenCalled();
+  });
+
   it('streams semantic Responses events with exact delta fields and monotonic sequence numbers', async () => {
     async function* streamChunks() {
       yield {
@@ -316,6 +337,32 @@ describe('openai responses routes', () => {
     expect(response.headers.get('content-type')).toContain('application/json');
     expect(body.error.code).toBe('UPSTREAM_UNAVAILABLE');
     expect(body.error.message).toMatch(/unavailable/i);
+  });
+
+  it('closes an empty Responses stream with a terminal DONE frame', async () => {
+    const generateContent = vi.fn();
+    const generateContentStream = vi.fn(async () => ({
+      [Symbol.asyncIterator]: () => ({
+        next: async () => ({ done: true, value: undefined }),
+      }),
+    }));
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent, generateContentStream } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/responses`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        stream: true,
+        input: 'hello',
+      }),
+    });
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/event-stream');
+    expect(body.trim()).toBe('data: [DONE]');
   });
 
   it('is consumable by the OpenAI SDK against the local responses route for non-streaming and streaming', async () => {

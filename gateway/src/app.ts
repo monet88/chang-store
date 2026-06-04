@@ -85,8 +85,18 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
         || (route.family === 'openai' && route.operation === 'chatCompletions' && body.stream === true)
         || (route.family === 'openai' && route.operation === 'responses' && body.stream === true)
       );
+      const streamAbortController = new AbortController();
+      const abortQueuedStream = () => {
+        if (!streamAbortController.signal.aborted) {
+          streamAbortController.abort();
+        }
+      };
+      req.once('close', abortQueuedStream);
+      req.once('error', abortQueuedStream);
+      res.once('close', abortQueuedStream);
+      res.once('error', abortQueuedStream);
       const releaseStream = isStreamingRequest && gatewayKey
-        ? await streamAdmission.acquire(gatewayKey)
+        ? await streamAdmission.acquire(gatewayKey, streamAbortController.signal)
         : null;
 
       try {
@@ -146,6 +156,10 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
           return;
         }
       } finally {
+        req.off('close', abortQueuedStream);
+        req.off('error', abortQueuedStream);
+        res.off('close', abortQueuedStream);
+        res.off('error', abortQueuedStream);
         releaseStream?.();
       }
 

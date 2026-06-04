@@ -535,27 +535,33 @@ export const renderAdminUi = (): string => {
           credentialList.innerHTML = snapshot.vertexPools.map((entry) => {
             const health = entry.health || { status: entry.enabled ? 'healthy' : 'disabled', success: 0, failure: 0, recent: [] };
             const badgeClass = health.status === 'cooldown' ? 'badge warn' : (entry.enabled ? 'badge' : 'badge danger');
+            const label = escapeHtml(entry.label || entry.id || '');
+            const id = escapeHtml(entry.id || '');
+            const project = escapeHtml(entry.project || '-');
+            const email = escapeHtml(entry.email || '-');
+            const location = escapeHtml(entry.location || '-');
+            const statusLabel = escapeHtml(health.status || 'unknown');
             return '<div class="card">' +
               '<div class="row" style="justify-content:space-between;align-items:flex-start">' +
                 '<div>' +
-                  '<h3>' + (entry.label || entry.id) + '</h3>' +
-                  '<p class="hint mono" style="margin:6px 0 0">' + entry.id + '</p>' +
+                  '<h3>' + label + '</h3>' +
+                  '<p class="hint mono" style="margin:6px 0 0">' + id + '</p>' +
                 '</div>' +
-                '<span class="' + badgeClass + '">' + (health.status || 'unknown') + '</span>' +
+                '<span class="' + badgeClass + '">' + statusLabel + '</span>' +
               '</div>' +
               '<div class="meta">' +
-                '<div><strong>Project</strong><span>' + (entry.project || '-') + '</span></div>' +
-                '<div><strong>Email</strong><span class="mono">' + (entry.email || '-') + '</span></div>' +
-                '<div><strong>Location</strong><span>' + (entry.location || '-') + '</span></div>' +
+                '<div><strong>Project</strong><span>' + project + '</span></div>' +
+                '<div><strong>Email</strong><span class="mono">' + email + '</span></div>' +
+                '<div><strong>Location</strong><span>' + location + '</span></div>' +
                 '<div><strong>Weight</strong><span>' + (entry.weight || 1) + '</span></div>' +
                 '<div><strong>Success</strong><span>' + (health.success || 0) + '</span></div>' +
                 '<div><strong>Failure</strong><span>' + (health.failure || 0) + '</span></div>' +
               '</div>' +
               renderSpark(health.recent || []) +
               '<div class="row" style="margin-top:12px">' +
-                '<button type="button" data-action="select" data-id="' + entry.id + '">Inspect</button>' +
-                '<button type="button" class="secondary" data-action="test" data-id="' + entry.id + '">Test</button>' +
-                '<button type="button" class="danger" data-action="delete" data-id="' + entry.id + '"' + (state.writable ? '' : ' disabled') + '>Delete</button>' +
+                '<button type="button" data-action="select" data-id="' + id + '">Inspect</button>' +
+                '<button type="button" class="secondary" data-action="test" data-id="' + id + '">Test</button>' +
+                '<button type="button" class="danger" data-action="delete" data-id="' + id + '"' + (state.writable ? '' : ' disabled') + '>Delete</button>' +
               '</div>' +
             '</div>';
           }).join('');

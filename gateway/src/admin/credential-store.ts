@@ -218,8 +218,17 @@ export const importServiceAccountCredential = (
     throw new GatewayError(400, 'VALIDATION_FAILED', 'project and location are required.');
   }
   const serviceAccount = credentialBody as unknown as ServiceAccountCredential;
+  if (serviceAccount.type !== 'service_account') {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'credential type must be service_account.');
+  }
   if (serviceAccount.project_id !== project) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'credential project_id must match the target project.');
+  }
+  if (typeof serviceAccount.client_email !== 'string' || !serviceAccount.client_email.trim()) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'credential client_email is required.');
+  }
+  if (typeof serviceAccount.private_key !== 'string' || !serviceAccount.private_key.trim()) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'credential private_key is required.');
   }
   const id = sanitizeCredentialId(`${project}-${serviceAccount.client_email}`);
   const credentialsFile = credentialsFileForId(config.adminFileStoreDir!, id);

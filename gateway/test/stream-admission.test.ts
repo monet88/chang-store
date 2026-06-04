@@ -14,4 +14,19 @@ describe('stream admission', () => {
     const releaseSecond = await second;
     releaseSecond();
   });
+
+  it('removes queued requests when the caller aborts before a slot is released', async () => {
+    const admission = new StreamAdmission(1, 1);
+    const releaseFirst = await admission.acquire('test-key');
+    const controller = new AbortController();
+    const queued = admission.acquire('test-key', controller.signal);
+
+    controller.abort();
+
+    await expect(queued).rejects.toThrow(/aborted while queued/i);
+    releaseFirst();
+
+    const releaseThird = await admission.acquire('test-key');
+    releaseThird();
+  });
 });

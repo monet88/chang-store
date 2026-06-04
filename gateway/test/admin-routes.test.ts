@@ -213,6 +213,83 @@ describe('admin routes', () => {
     expect(removeBody.remaining).toBe(0);
   });
 
+  it('rejects invalid JSON bodies and oversized admin payloads with client errors', async () => {
+    const runtime = createFakeRuntime();
+    server = createApp({
+      config: testConfig({
+        enableAdminRoutes: true,
+        adminToken: 'admin-secret',
+        maxJsonBytes: 32,
+      }),
+      runtimeFactory: () => runtime,
+    });
+    const baseUrl = await listen(server);
+
+    const invalidJson = await fetch(`${baseUrl}/admin/api/models/gemini`, {
+      method: 'PUT',
+      headers: {
+        authorization: 'Bearer admin-secret',
+        'content-type': 'application/json',
+      },
+      body: '{',
+    });
+    const invalidJsonBody = await invalidJson.json();
+    expect(invalidJson.status).toBe(400);
+    expect(invalidJsonBody.error.code).toBe('VALIDATION_FAILED');
+
+    const tooLarge = await fetch(`${baseUrl}/admin/api/models/gemini`, {
+      method: 'PUT',
+      headers: {
+        authorization: 'Bearer admin-secret',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ aliases: { huge: 'x'.repeat(128) } }),
+    });
+    const tooLargeBody = await tooLarge.json();
+    expect(tooLarge.status).toBe(413);
+    expect(tooLargeBody.error.code).toBe('PAYLOAD_TOO_LARGE');
+  });
+
+  it('rejects malformed imported credentials before persisting them', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-admin-'));
+    const runtime = createFakeRuntime();
+    server = createApp({
+      config: testConfig({
+        enableAdminRoutes: true,
+        adminToken: 'admin-secret',
+        adminAllowMutations: true,
+        adminStoreMode: 'file-store',
+        adminFileStoreDir: dir,
+        runtimeMode: 'pool',
+        vertexPools: [],
+        resolvedVertexTargets: [],
+      }),
+      runtimeFactory: () => runtime,
+    });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/admin/api/vertex-credentials/import`, {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer admin-secret',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        project: 'project-a',
+        location: 'global',
+        credential: {
+          type: 'service_account',
+          project_id: 'project-a',
+          private_key: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n',
+        },
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error.message).toMatch(/client_email is required/i);
+  });
+
   it('rolls back admin store changes when runtime reload fails', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-admin-'));
     const runtime = createFakeRuntime();

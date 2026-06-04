@@ -47,4 +47,15 @@ describe('cors', () => {
 
     expect(res.getHeader('access-control-allow-origin')).toBe('http://localhost:3001');
   });
+
+  it('allows an explicitly listed origin even when wildcard is also configured but restricted', () => {
+    const res = createResponse();
+    applyCors(
+      requestWithOrigin('https://app.example'),
+      res,
+      testConfig({ corsOrigins: ['https://app.example', '*'], allowWildcardCors: false }),
+    );
+
+    expect(res.getHeader('access-control-allow-origin')).toBe('https://app.example');
+  });
 });

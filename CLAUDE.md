@@ -113,6 +113,7 @@ Usage: `const { t } = useLanguage(); t('key.path')`
 <important if="you are writing styles or modifying UI appearance">
 
 Tailwind only — no inline styles, no `@apply`. Follow the existing Runway-inspired patterns in the app as the canonical UI source of truth.
+Exception: self-contained gateway-served admin HTML/CSS with no frontend build step may use local `<style>` blocks and minimal inline layout styles when intentionally isolated from the SPA.
 </important>
 
 <important if="you are refactoring or touching service boundaries">
@@ -272,6 +273,11 @@ If you write to `MEMORY.md`, include a pointer: `## Session Memory` — `Session
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
+
+GitNexus is secondary in this repo. Use it only when the user explicitly asks
+for GitNexus, when CodeGraph is unavailable or stale for the needed symbol, or
+when you specifically need a GitNexus-only resource/workflow. If instructions
+conflict, the CodeGraph-first guidance elsewhere in this repo wins by default.
 
 This project is indexed by GitNexus as **chang-store** (5301 symbols, 8830 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 

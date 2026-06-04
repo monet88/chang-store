@@ -564,6 +564,9 @@ export const validateConfig = (config: GatewayConfig): void => {
   if (config.vertexPoolSelection !== 'round-robin' && config.vertexPoolSelection !== 'weighted-round-robin') {
     throw new Error('GATEWAY_VERTEX_POOL_SELECTION must be "round-robin" or "weighted-round-robin".');
   }
+  if (config.adminStoreMode !== 'static-config' && config.adminStoreMode !== 'file-store') {
+    throw new Error('GATEWAY_ADMIN_STORE_MODE must be "static-config" or "file-store".');
+  }
   if (config.enableAdminRoutes && !config.adminToken) {
     throw new Error('GATEWAY_ADMIN_TOKEN is required when admin routes are enabled.');
   }
@@ -580,6 +583,15 @@ export const validateConfig = (config: GatewayConfig): void => {
   if (config.vertexPools.length > 0) {
     const seenIds = new Set<string>();
     for (const entry of config.vertexPools) {
+      if (!entry.id.trim()) {
+        throw new Error('Vertex pool id is required.');
+      }
+      if (!entry.project.trim() || !entry.location.trim()) {
+        throw new Error(`Vertex pool ${entry.id} must include non-empty project and location.`);
+      }
+      if (entry.weight <= 0) {
+        throw new Error(`Vertex pool ${entry.id} must include a positive weight.`);
+      }
       if (seenIds.has(entry.id)) {
         throw new Error(`Duplicate vertex pool id: ${entry.id}`);
       }

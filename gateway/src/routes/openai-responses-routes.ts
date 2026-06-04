@@ -232,10 +232,12 @@ const buildGeminiRequest = (
       ...(tool.parameters ? { parameters: tool.parameters } : {}),
     }],
   }));
+  const toolConfig = buildToolConfig(body);
   if (tools.length > 0) {
     config.tools = tools;
-    const toolConfig = buildToolConfig(body);
     if (toolConfig) config.toolConfig = toolConfig;
+  } else if (toolConfig) {
+    config.toolConfig = toolConfig;
   }
 
   return {
@@ -425,6 +427,9 @@ export const runOpenAiResponsesStreamRoute = async (
       return;
     }
     if (firstStep.done || closed) {
+      if (!closed) {
+        writeSseDone(res);
+      }
       return;
     }
 

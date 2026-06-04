@@ -14,11 +14,21 @@ const isLocalOrigin = (origin: string): boolean => {
 export const applyCors = (req: IncomingMessage, res: ServerResponse, config: GatewayConfig): void => {
   const origin = req.headers.origin;
   if (!origin) return;
+  if (config.corsOrigins.includes(origin)) {
+    res.setHeader('access-control-allow-origin', origin);
+    res.setHeader('vary', 'origin');
+    res.setHeader(
+      'access-control-allow-headers',
+      'authorization, content-type, x-api-key, x-goog-api-key, x-goog-api-client, x-request-id',
+    );
+    res.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
+    return;
+  }
   const wildcardAllowed = config.corsOrigins.includes('*');
   if (wildcardAllowed && !config.allowWildcardCors && !isLocalOrigin(origin)) {
     throw new GatewayError(403, 'CORS_DENIED', 'Wildcard CORS is disabled for non-local origins.');
   }
-  if (!config.corsOrigins.includes(origin) && !wildcardAllowed) {
+  if (!wildcardAllowed) {
     throw new GatewayError(403, 'CORS_DENIED', 'Origin is not allowed.');
   }
   res.setHeader('access-control-allow-origin', origin);

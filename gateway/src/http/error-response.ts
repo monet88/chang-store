@@ -66,11 +66,11 @@ export const toGatewayError = (error: unknown): GatewayError => {
   if (/429|resource_exhausted|quota/i.test(message)) {
     return new GatewayError(429, 'UPSTREAM_QUOTA', 'Upstream quota exhausted.', true);
   }
-  if (/5\d\d|unavailable|internal server error|bad gateway|service unavailable|upstream/i.test(message)) {
-    return new GatewayError(503, 'UPSTREAM_UNAVAILABLE', 'Upstream service is unavailable.', true);
-  }
   if (/timeout|aborted/i.test(message)) {
     return new GatewayError(504, 'TIMEOUT', 'Upstream request timed out.', true);
+  }
+  if (/5\d\d|unavailable|internal server error|bad gateway|service unavailable|upstream/i.test(message)) {
+    return new GatewayError(503, 'UPSTREAM_UNAVAILABLE', 'Upstream service is unavailable.', true);
   }
   return new GatewayError(500, 'INTERNAL', 'Internal gateway error.');
 };

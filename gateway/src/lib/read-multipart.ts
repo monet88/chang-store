@@ -8,10 +8,14 @@ export interface MultipartPart {
   data: Buffer;
 }
 
-const parseContentDisposition = (value: string): { name?: string; filename?: string } => ({
-  ...(value.match(/name="([^"]+)"/i)?.[1] ? { name: value.match(/name="([^"]+)"/i)?.[1] } : {}),
-  ...(value.match(/filename="([^"]*)"/i)?.[1] ? { filename: value.match(/filename="([^"]*)"/i)?.[1] } : {}),
-});
+const parseContentDisposition = (value: string): { name?: string; filename?: string } => {
+  const name = value.match(/(?:^|;\s*)name="([^"]+)"/i)?.[1];
+  const filename = value.match(/(?:^|;\s*)filename="([^"]*)"/i)?.[1];
+  return {
+    ...(name ? { name } : {}),
+    ...(filename ? { filename } : {}),
+  };
+};
 
 export const readMultipartBody = async (
   req: IncomingMessage,
@@ -38,7 +42,7 @@ export const readMultipartBody = async (
   }
 
   const raw = Buffer.concat(chunks).toString('latin1');
-  const boundary = `--${boundaryMatch[1]}`;
+  const boundary = `--${boundaryMatch[1].trim().replace(/^"|"$/g, '')}`;
   const segments = raw.split(boundary)
     .slice(1, -1)
     .map((segment) => segment.replace(/^\r\n/, '').replace(/\r\n$/, ''));

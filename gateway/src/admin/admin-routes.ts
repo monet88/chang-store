@@ -5,6 +5,7 @@ import type { GatewayConfig, VertexPoolConfig } from '../config/env.js';
 import { createDerivedConfig } from '../config/env.js';
 import { GatewayError, sendJson } from '../http/error-response.js';
 import type { GenAiRuntimeLike } from '../lib/genai-runtime.js';
+import { readJsonBody } from '../lib/read-json.js';
 import { requireAdminAuth } from './admin-auth.js';
 import { renderAdminUi } from './admin-ui.js';
 import {
@@ -14,14 +15,10 @@ import {
 } from './credential-store.js';
 import { getProviderModelCatalog } from './model-store.js';
 
-const parseJsonBody = async (req: IncomingMessage): Promise<Record<string, unknown>> => {
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
-  }
-  if (chunks.length === 0) return {};
-  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>;
-};
+const parseJsonBody = async (
+  req: IncomingMessage,
+  maxBytes: number,
+): Promise<Record<string, unknown>> => readJsonBody<Record<string, unknown>>(req, maxBytes);
 
 const findCredentialOrThrow = (snapshot: AdminCredentialStoreSnapshot, id: string) => {
   const entry = snapshot.vertexPools.find((item) => item.id === id);
@@ -124,12 +121,12 @@ export const maybeHandleAdminRoute = async (
     return true;
   }
   if (req.method === 'POST' && url.pathname === '/admin/api/vertex-credentials/import') {
-    const body = await parseJsonBody(req);
+    const body = await parseJsonBody(req, config.maxJsonBytes);
     const imported = importServiceAccountCredential(config, body);
-      const snapshot = store.updateVertexPools((state) => ({
-        ...state,
-        vertexPools: [...state.vertexPools.filter((entry) => entry.id !== imported.id), imported],
-      }));
+    const snapshot = store.updateVertexPools((state) => ({
+      ...state,
+      vertexPools: [...state.vertexPools.filter((entry) => entry.id !== imported.id), imported],
+    }));
     sendJson(res, 200, { ok: true, credential: findCredentialOrThrow(withRuntimeHealth(snapshot, runtime), imported.id) });
     return true;
   }
@@ -143,7 +140,7 @@ export const maybeHandleAdminRoute = async (
       return true;
     }
     if (req.method === 'PATCH') {
-      const body = await parseJsonBody(req);
+      const body = await parseJsonBody(req, config.maxJsonBytes);
       const snapshot = store.updateVertexPools((state) => ({
         ...state,
         vertexPools: state.vertexPools.map((entry) => entry.id === id ? {
@@ -187,7 +184,7 @@ export const maybeHandleAdminRoute = async (
   const modelMatch = url.pathname.match(/^\/admin\/api\/models\/([^/]+)$/);
   if (modelMatch && req.method === 'PUT') {
     const provider = decodeURIComponent(modelMatch[1]);
-    const body = await parseJsonBody(req);
+    const body = await parseJsonBody(req, config.maxJsonBytes);
     const snapshot = store.updateVertexPools((state) => ({
       ...state,
       modelCatalog: {

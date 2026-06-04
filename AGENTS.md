@@ -89,6 +89,7 @@ After any substantive code changes, run `npx tsc --noEmit` and `npm run lint`. D
 ### Key Constraints
 
 - Tailwind only — no inline styles, no CSS modules, no `@apply`.
+- Exception: self-contained gateway-served admin HTML/CSS with no frontend build step may use local `<style>` blocks and minimal inline layout styles when keeping that surface isolated from the SPA is intentional.
 - Never bypass `imageEditingService.ts` for Gemini API calls.
 - Provider studios must use `src/services/providers/*`, never the Gemini facade.
 - API keys and provider base URLs from `ApiProviderContext`, never hook state.
@@ -297,6 +298,11 @@ This repo works better with CodeGraph than GitNexus right now, especially under
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
+
+GitNexus is secondary in this repo. Use it only when the user explicitly asks
+for GitNexus, when CodeGraph is unavailable or stale for the needed symbol, or
+when you specifically need a GitNexus-only resource/workflow. If instructions
+conflict, the CodeGraph-first section above takes priority.
 
 This project is indexed by GitNexus as **chang-store** (5301 symbols, 8830 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
