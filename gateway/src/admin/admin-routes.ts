@@ -6,14 +6,13 @@ import { createDerivedConfig } from '../config/env.js';
 import { GatewayError, sendJson } from '../http/error-response.js';
 import type { GenAiRuntimeLike } from '../lib/genai-runtime.js';
 import { requireAdminAuth } from './admin-auth.js';
+import { renderAdminUi } from './admin-ui.js';
 import {
   createCredentialStore,
   importServiceAccountCredential,
   type AdminCredentialStoreSnapshot,
 } from './credential-store.js';
 import { getProviderModelCatalog } from './model-store.js';
-
-const htmlShell = `<!doctype html><html><head><meta charset="utf-8"><title>Gateway Admin</title></head><body><div id="app">Gateway admin login shell</div></body></html>`;
 
 const parseJsonBody = async (req: IncomingMessage): Promise<Record<string, unknown>> => {
   const chunks: Buffer[] = [];
@@ -96,7 +95,7 @@ export const maybeHandleAdminRoute = async (
   if (req.method === 'GET' && url.pathname === '/admin') {
     res.statusCode = 200;
     res.setHeader('content-type', 'text/html; charset=utf-8');
-    res.end(htmlShell);
+    res.end(renderAdminUi());
     return true;
   }
 

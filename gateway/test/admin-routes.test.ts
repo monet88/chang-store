@@ -212,4 +212,24 @@ describe('admin routes', () => {
     const removeBody = await remove.json();
     expect(removeBody.remaining).toBe(0);
   });
+
+  it('serves the admin dashboard shell from the gateway', async () => {
+    server = createApp({
+      config: testConfig({
+        enableAdminRoutes: true,
+        adminToken: 'admin-secret',
+      }),
+      runtimeFactory: () => createFakeRuntime(),
+    });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/admin`);
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/html');
+    expect(html).toContain('Credential Pool Operations Console');
+    expect(html).toContain('id="token-input"');
+    expect(html).toContain('id="credential-list"');
+  });
 });

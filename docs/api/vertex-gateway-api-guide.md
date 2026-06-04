@@ -127,6 +127,7 @@ Lưu ý:
 | `GET` | `/admin/api/models?provider=gemini|openai` | Admin | Read provider model catalog |
 | `PUT` | `/admin/api/models/{provider}` | Admin | Persist provider model catalog |
 | `POST` | `/admin/api/runtime/reload` | Admin | Force runtime snapshot reload from current store |
+| `GET` | `/admin` | Admin UI | Gateway-served operational dashboard shell |
 | `GET` | `/gemini/v1beta/models` | Gemini-compatible | Model list |
 | `POST` | `/gemini/v1beta/models/{model}:generateContent` | Gemini-compatible | Main Gemini-style route |
 | `POST` | `/gemini/v1beta/models/{model}:streamGenerateContent` | Gemini-compatible | Streaming route |
@@ -155,6 +156,7 @@ Admin note:
 - Mọi `/admin/api/*` chỉ chấp nhận `Authorization: Bearer <GATEWAY_ADMIN_TOKEN>`.
 - Admin không nhận query token, cookie, `x-api-key`, `x-goog-api-key`, hay gateway key thường.
 - `file-store` dành cho Docker/VPS có persistent mounted volume; ví dụ mount `./gateway-data/auths:/data/auths`.
+- Dashboard token ở memory theo mặc định; chỉ có tùy chọn nhớ trong `sessionStorage` cho tab hiện tại.
 
 OpenAI SDK note: set `baseURL` to the `/openai/v1` prefix, for example
 `https://gemini.monet.uno/openai/v1`. This gateway currently implements
