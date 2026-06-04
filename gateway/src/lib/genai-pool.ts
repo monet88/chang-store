@@ -173,6 +173,7 @@ const pushRecentEvent = (health: GenAiTargetHealth, event: GenAiTargetHealthEven
 
 const markSuccess = (target: GenAiTarget, routeFamily: GenAiRouteFamily): void => {
   target.health.status = 'healthy';
+  delete target.health.cooldownUntil;
   target.health.success += 1;
   target.health.routeFamilyBuckets[routeFamily].success += 1;
   pushRecentEvent(target.health, {
@@ -180,9 +181,6 @@ const markSuccess = (target: GenAiTarget, routeFamily: GenAiRouteFamily): void =
     ok: true,
     routeFamily,
   });
-  if (target.health.cooldownUntil && target.health.cooldownUntil <= Date.now()) {
-    delete target.health.cooldownUntil;
-  }
 };
 
 const markFailure = (

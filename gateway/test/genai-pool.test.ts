@@ -640,6 +640,58 @@ describe('GenAI runtime pool', () => {
     ]));
   });
 
+  it('clears a target cooldown immediately after a successful fallback request', async () => {
+    const calls: string[] = [];
+    const runtime = createGenAiRuntime(testConfig({
+      runtimeMode: 'pool',
+      vertexPoolSelection: 'round-robin',
+      vertexPoolFailoverCooldownMs: 60000,
+      vertexPools: [
+        {
+          id: 'project-a',
+          project: 'project-a',
+          location: 'global',
+          credentialsFile: null,
+          enabled: true,
+          weight: 1,
+          label: 'Project A',
+          modelAllowlist: [],
+          modelExclusions: [],
+        },
+      ],
+      resolvedVertexTargets: [
+        {
+          id: 'project-a',
+          project: 'project-a',
+          location: 'global',
+          credentialsFile: null,
+          enabled: true,
+          weight: 1,
+          label: 'Project A',
+          modelAllowlist: [],
+          modelExclusions: [],
+          source: 'pool',
+        },
+      ],
+    }), createFactory(calls));
+
+    const activeSnapshot = (runtime as unknown as {
+      activeSnapshot: { targets: Array<{ health: { status: string; cooldownUntil?: number } }> };
+    }).activeSnapshot;
+    const target = activeSnapshot.targets[0];
+    target.health.status = 'cooldown';
+    target.health.cooldownUntil = Date.now() + 60_000;
+
+    await runtime.client.models.generateContent({
+      model: 'gemini-2.5-flash',
+      __gatewayRouteFamily: 'openai-chat',
+    });
+
+    expect(calls).toEqual(['project-a']);
+    expect(target.health.status).toBe('healthy');
+    expect(target.health.cooldownUntil).toBeUndefined();
+  });
+
   it('honors per-target model allowlists and exclusions during selection', async () => {
     const calls: string[] = [];
     const runtime = createGenAiRuntime(testConfig({

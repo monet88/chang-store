@@ -43,32 +43,32 @@ export const WATERMARK_PROMPTS: WatermarkPrompt[] = [
   {
     id: 'text-logo',
     labelKey: 'watermarkRemover.prompts.textLogo',
-    prompt: 'Remove all watermarks, logos, and text overlays from this image. Keep the original image content intact and fill the removed areas naturally.',
+    prompt: 'Restore this image by removing only the added overlay artifact placed on top of it, then reconstruct the covered pixels naturally. Preserve the original subject, clothing, background, composition, colors, and lighting.',
   },
   {
     id: 'clean',
     labelKey: 'watermarkRemover.prompts.clean',
-    prompt: 'Clean this image by removing any watermarks or stamps. Preserve the original quality and details of the underlying image.',
+    prompt: 'Clean this image by erasing only the non-scene overlay artifact and repairing the exposed area so it matches the surrounding pixels. Keep every real object and detail unchanged.',
   },
   {
     id: 'safe',
     labelKey: 'watermarkRemover.prompts.safe',
-    prompt: 'Carefully remove watermarks from this image while being conservative. Only remove clearly visible watermarks and avoid modifying other parts of the image.',
+    prompt: 'Conservatively restore this image. Only fix obvious added overlay marks that sit on top of the photo, and leave everything else exactly as it is.',
   },
   {
     id: 'artistic',
     labelKey: 'watermarkRemover.prompts.artistic',
-    prompt: 'Remove watermarks from this image and enhance the result artistically. Fill removed areas with contextually appropriate content that blends seamlessly.',
+    prompt: 'Restore this image by removing the added overlay artifact and rebuilding the hidden area with seamless, natural-looking detail that matches the surrounding image. Do not alter the real scene outside the covered area.',
   },
   {
     id: 'quick',
     labelKey: 'watermarkRemover.prompts.quick',
-    prompt: 'Remove watermarks from this image.',
+    prompt: 'Restore this image by removing only the added overlay artifact and matching the surrounding pixels.',
   },
 ];
 
 /** Default prompt ID */
-export const DEFAULT_PROMPT_ID = 'text-logo';
+export const DEFAULT_PROMPT_ID = 'clean';
 
 // ============================================
 // HELPER FUNCTIONS
@@ -96,7 +96,7 @@ export function getPromptText(promptId: string, customPrompt?: string): string {
   
   // Fallback to default prompt
   const defaultPrompt = WATERMARK_PROMPTS.find(p => p.id === DEFAULT_PROMPT_ID);
-  return defaultPrompt?.prompt ?? 'Remove watermarks from this image.';
+  return defaultPrompt?.prompt ?? 'Restore this image by removing only the added overlay artifact and matching the surrounding pixels.';
 }
 
 /**

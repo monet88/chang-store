@@ -58,6 +58,17 @@ const parseJsonString = (value: string): Record<string, unknown> => {
   }
 };
 
+const parseImageDataUrl = (value: string): { mimeType: string; data: string } => {
+  const match = value.match(/^data:(.+?);base64,([A-Za-z0-9+/=\s]+)$/i);
+  if (!match) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible image_url currently requires a data URL.');
+  }
+  return {
+    mimeType: match[1],
+    data: match[2].replace(/\s+/g, ''),
+  };
+};
+
 const toGeminiPartList = (content: unknown, allowImages: boolean): Array<Record<string, unknown>> => {
   if (typeof content === 'string') {
     return content ? [{ text: content }] : [];
@@ -83,14 +94,11 @@ const toGeminiPartList = (content: unknown, allowImages: boolean): Array<Record<
       typeof (typedItem.image_url as { url?: unknown }).url === 'string'
     ) {
       const url = ((typedItem.image_url as { url: string }).url || '').trim();
-      const dataUrl = url.match(/^data:(.+?);base64,(.+)$/);
-      if (!dataUrl) {
-        throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible image_url currently requires a data URL.');
-      }
+      const dataUrl = parseImageDataUrl(url);
       parts.push({
         inlineData: {
-          mimeType: dataUrl[1],
-          data: dataUrl[2],
+          mimeType: dataUrl.mimeType,
+          data: dataUrl.data,
         },
       });
     }

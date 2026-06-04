@@ -65,6 +65,17 @@ const toImageUrl = (value: string | { url?: string }): string => {
   return typeof value?.url === 'string' ? value.url : '';
 };
 
+const parseImageDataUrl = (value: string): { mimeType: string; data: string } => {
+  const match = value.match(/^data:(.+?);base64,([A-Za-z0-9+/=\s]+)$/i);
+  if (!match) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI Responses input images currently require data URLs.');
+  }
+  return {
+    mimeType: match[1],
+    data: match[2].replace(/\s+/g, ''),
+  };
+};
+
 const toGeminiPartList = (content: unknown, allowImages: boolean): Array<Record<string, unknown>> => {
   if (typeof content === 'string') {
     return content ? [{ text: content }] : [];
@@ -83,14 +94,11 @@ const toGeminiPartList = (content: unknown, allowImages: boolean): Array<Record<
     }
     if (allowImages && (typedItem.type === 'input_image' || typedItem.type === 'image_url')) {
       const url = toImageUrl(typedItem.image_url ?? '').trim();
-      const dataUrl = url.match(/^data:(.+?);base64,(.+)$/);
-      if (!dataUrl) {
-        throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI Responses input images currently require data URLs.');
-      }
+      const dataUrl = parseImageDataUrl(url);
       parts.push({
         inlineData: {
-          mimeType: dataUrl[1],
-          data: dataUrl[2],
+          mimeType: dataUrl.mimeType,
+          data: dataUrl.data,
         },
       });
       continue;

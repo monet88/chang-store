@@ -19,11 +19,14 @@ const assertModel = (value: unknown): string => {
 };
 
 const parseDataUrl = (value: string): { mimeType: string; data: string } => {
-  const match = value.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=]+)$/);
+  const match = value.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i);
   if (!match) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
   }
-  return { mimeType: match[1], data: match[2] };
+  return {
+    mimeType: match[1].toLowerCase(),
+    data: match[2].replace(/\s+/g, ''),
+  };
 };
 
 const parseSizeToAspectRatio = (size: unknown): string | undefined => {
@@ -115,14 +118,15 @@ const buildEditRequestFromMultipart = async (
 
   for (const part of parts) {
     if (part.filename) {
+      const normalizedContentType = part.contentType?.split(';', 1)[0]?.trim().toLowerCase();
       if (part.name !== 'image' && part.name !== 'image[]') {
         throw new GatewayError(400, 'VALIDATION_FAILED', `Unsupported multipart file field: ${part.name}.`);
       }
-      if (!part.contentType || !/^image\/(png|jpeg|jpg|webp)$/.test(part.contentType)) {
+      if (!normalizedContentType || !/^image\/(png|jpeg|jpg|webp)$/i.test(normalizedContentType)) {
         throw new GatewayError(400, 'VALIDATION_FAILED', 'Unsupported multipart image content type.');
       }
       images.push({
-        mimeType: part.contentType,
+        mimeType: normalizedContentType,
         data: part.data.toString('base64'),
       });
       continue;

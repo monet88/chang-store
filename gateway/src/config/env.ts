@@ -304,7 +304,7 @@ const validateFileConfig = (config: Record<string, unknown>, filePath: string): 
     assertString(config, key, filePath);
   }
   assertNullableString(config, 'googleCredentialsFile', filePath);
-  for (const key of ['port', 'maxJsonBytes', 'maxImages', 'maxDecodedImageBytes', 'upstreamTimeoutMs', 'upstreamConcurrency', 'streamMaxDurationMs', 'streamIdleTimeoutMs', 'streamPerKeyLimit', 'streamQueueLimit']) {
+  for (const key of ['port', 'maxJsonBytes', 'maxImages', 'maxDecodedImageBytes', 'upstreamTimeoutMs', 'upstreamConcurrency', 'streamMaxDurationMs', 'streamIdleTimeoutMs', 'streamPerKeyLimit', 'streamQueueLimit', 'vertexPoolFailoverCooldownMs']) {
     assertPositiveNumber(config, key, filePath);
   }
   for (const key of ['allowWildcardCors', 'enableGeminiRoutes', 'enableOpenAiRoutes', 'enableVertexRoutes', 'enableVtxRoutes', 'enableImageRoutes']) {
@@ -511,7 +511,9 @@ export const loadConfig = (): GatewayConfig => {
     streamQueueLimit: numberEnv('GATEWAY_STREAM_QUEUE_LIMIT', fileConfig.streamQueueLimit ?? DEFAULTS.streamQueueLimit),
     vertexPoolFailoverCooldownMs: numberEnv(
       'GATEWAY_VERTEX_POOL_FAILOVER_COOLDOWN_MS',
-      poolOverlay.vertexPoolFailoverCooldownMs ?? DEFAULTS.vertexPoolFailoverCooldownMs,
+      poolOverlay.vertexPoolFailoverCooldownMs
+      ?? fileConfig.vertexPoolFailoverCooldownMs
+      ?? DEFAULTS.vertexPoolFailoverCooldownMs,
     ),
     enableGeminiRoutes: boolEnv(process.env.GATEWAY_ENABLE_GEMINI_ROUTES, fileConfig.enableGeminiRoutes ?? true),
     enableOpenAiRoutes: boolEnv(process.env.GATEWAY_ENABLE_OPENAI_ROUTES, fileConfig.enableOpenAiRoutes ?? true),

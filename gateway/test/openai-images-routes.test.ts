@@ -137,6 +137,53 @@ describe('openai image routes', () => {
     expect(generateContent).toHaveBeenCalledOnce();
   });
 
+  it('accepts multipart image content types case-insensitively and with parameters', async () => {
+    const generateContent = vi.fn(async () => ({
+      candidates: [{ content: { parts: [{ inlineData: { data: 'edited', mimeType: 'image/png' } }] } }],
+    }));
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+    const boundary = '----chang-store-case-content-type';
+    const multipartBody = [
+      `--${boundary}\r\nContent-Disposition: form-data; name="prompt"\r\n\r\nEdit this garment\r\n`,
+      `--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="look.png"\r\nContent-Type: IMAGE/PNG; charset=binary\r\n\r\nabc\r\n`,
+      `--${boundary}--\r\n`,
+    ].join('');
+
+    const response = await fetch(`${baseUrl}/openai/v1/images/edits`, {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer test-key',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+      body: multipartBody,
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledOnce();
+  });
+
+  it('accepts base64 data URLs with embedded whitespace in JSON edits', async () => {
+    const generateContent = vi.fn(async () => ({
+      candidates: [{ content: { parts: [{ inlineData: { data: 'edited', mimeType: 'image/png' } }] } }],
+    }));
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/images/edits`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.1-flash-image',
+        prompt: 'Edit the outfit',
+        image: 'data:image/png;base64,YW Jj\nZA==',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledOnce();
+  });
+
   it('rejects unsupported multipart edit fields explicitly', async () => {
     const generateContent = vi.fn();
     server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });

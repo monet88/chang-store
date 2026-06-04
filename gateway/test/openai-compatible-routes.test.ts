@@ -201,6 +201,36 @@ describe('openai-compatible routes', () => {
     });
   });
 
+  it('accepts image_url data URLs with embedded base64 whitespace', async () => {
+    const generateContent = vi.fn(async () => ({
+      modelVersion: 'gemini-3.5-flash',
+      candidates: [{
+        content: {
+          parts: [{ text: 'ok' }],
+        },
+        finishReason: 'STOP',
+      }],
+    }));
+
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        messages: [{
+          role: 'user',
+          content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,YW Jj\nZA==' } }],
+        }],
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledOnce();
+  });
+
   it('lists OpenAI-compatible models behind the /openai prefix', async () => {
     const generateContent = vi.fn();
     server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });

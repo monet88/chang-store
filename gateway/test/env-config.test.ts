@@ -88,6 +88,33 @@ describe('gateway config file', () => {
     expect(config.googleProject).toBe('from-env-project');
   });
 
+  it('applies vertexPoolFailoverCooldownMs from GATEWAY_CONFIG_FILE when env and pool overlay are absent', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-config-'));
+    const configPath = path.join(dir, 'config.yaml');
+    fs.writeFileSync(configPath, [
+      'gatewayKeys:',
+      '  - from-file',
+      'googleProject: from-file-project',
+      'googleCredentialsFile: null',
+      'googleLocation: global',
+      'vertexPoolFailoverCooldownMs: 15000',
+    ].join('\n'));
+
+    process.env.GATEWAY_CONFIG_FILE = configPath;
+    delete process.env.GATEWAY_POOL_CONFIG_FILE;
+    delete process.env.GATEWAY_VERTEX_POOL_FAILOVER_COOLDOWN_MS;
+    delete process.env.GATEWAY_API_KEYS;
+    delete process.env.GOOGLE_VERTEX_PROJECT;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.GOOGLE_VERTEX_LOCATION;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    delete process.env.GCLOUD_PROJECT;
+
+    const config = loadConfig();
+
+    expect(config.vertexPoolFailoverCooldownMs).toBe(15000);
+  });
+
   it('keeps hash characters inside quoted YAML scalar values', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-config-'));
     const configPath = path.join(dir, 'config.yaml');

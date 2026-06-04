@@ -221,6 +221,34 @@ describe('openai responses routes', () => {
     expect(generateContent).not.toHaveBeenCalled();
   });
 
+  it('accepts Responses image inputs with embedded base64 whitespace', async () => {
+    const generateContent = vi.fn(async () => ({
+      modelVersion: 'gemini-3.5-flash',
+      candidates: [{
+        content: { parts: [{ text: 'ok' }] },
+      }],
+    }));
+
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/openai/v1/responses`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.5-flash',
+        input: [{
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_image', image_url: 'data:image/png;base64,YW Jj\nZA==' }],
+        }],
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledOnce();
+  });
+
   it('streams semantic Responses events with exact delta fields and monotonic sequence numbers', async () => {
     async function* streamChunks() {
       yield {
