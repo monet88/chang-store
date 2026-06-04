@@ -6,6 +6,8 @@ priority: P2
 effort: 12d
 branch: feat/vertex-cli-proxy-toggle
 tags: [backend, gateway, vertex, gemini, cloud-run, migration]
+blockedBy: [260604-0913-gemini-credential-pool-admin]
+blocks: []
 created: 2026-06-02
 ---
 
