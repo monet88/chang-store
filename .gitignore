@@ -46,6 +46,8 @@ src-tauri/target/
 # Local test artifacts
 __tests__/AGENTS.md
 __tests__/images-test/
+docs/image-test/*
+!docs/image-test/.gitkeep
 
 # Local plans and smoke outputs
 nul
