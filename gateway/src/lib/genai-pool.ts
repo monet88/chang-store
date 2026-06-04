@@ -291,7 +291,7 @@ const wrapPinnedStream = (
   release: () => void,
 ): AsyncIterable<Record<string, unknown>> => ({
   [Symbol.asyncIterator]() {
-    let firstPending = firstStep;
+    let firstPending: IteratorResult<Record<string, unknown>> | undefined = firstStep;
     let released = false;
     let succeeded = false;
     const safeRelease = () => {
@@ -311,7 +311,7 @@ const wrapPinnedStream = (
         try {
           if (firstPending) {
             const result = firstPending;
-            firstPending = undefined as never;
+            firstPending = undefined;
             return result;
           }
           const result = await iterator.next();

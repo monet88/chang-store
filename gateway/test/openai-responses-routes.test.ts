@@ -21,6 +21,11 @@ const parseSseDataFrames = (body: string): Array<Record<string, unknown> | '[DON
     return data === '[DONE]' ? '[DONE]' : JSON.parse(data) as Record<string, unknown>;
   });
 
+const parseSseEventNames = (body: string): string[] => body
+  .split('\n\n')
+  .filter(Boolean)
+  .flatMap((frame) => frame.split('\n').filter((line) => line.startsWith('event: ')).map((line) => line.slice('event: '.length)));
+
 describe('openai responses routes', () => {
   let server: Server | undefined;
 
@@ -282,12 +287,24 @@ describe('openai responses routes', () => {
     });
     const body = await response.text();
     const frames = parseSseDataFrames(body);
+    const eventNames = parseSseEventNames(body);
     const events = frames.slice(0, -1) as Array<Record<string, unknown>>;
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('text/event-stream');
     expect(frames.at(-1)).toBe('[DONE]');
     expect(events.map((event) => event.type)).toEqual([
+      'response.created',
+      'response.output_item.added',
+      'response.content_part.added',
+      'response.output_text.delta',
+      'response.output_text.delta',
+      'response.output_text.done',
+      'response.content_part.done',
+      'response.output_item.done',
+      'response.completed',
+    ]);
+    expect(eventNames).toEqual([
       'response.created',
       'response.output_item.added',
       'response.content_part.added',

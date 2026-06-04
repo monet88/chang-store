@@ -4,6 +4,7 @@ import type { ClassifiedRoute } from '../http/request-classifier.js';
 import { GatewayError } from '../http/error-response.js';
 import { writeSseDone, writeSseError, writeSseJson } from '../http/sse-response.js';
 import type { GenAiClient } from '../lib/google-genai-client.js';
+import { parseImageDataUrl } from '../lib/image-data-url.js';
 import { withGenAiRequestMetadata } from '../lib/genai-request-metadata.js';
 import { nextStreamStep } from '../lib/stream-guards.js';
 
@@ -49,31 +50,9 @@ interface OpenAIResponsesRequest {
   audio?: unknown;
 }
 
-const parseJsonString = (value: string): Record<string, unknown> => {
-  try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : { value: parsed };
-  } catch {
-    return { value };
-  }
-};
-
 const toImageUrl = (value: string | { url?: string }): string => {
   if (typeof value === 'string') return value;
   return typeof value?.url === 'string' ? value.url : '';
-};
-
-const parseImageDataUrl = (value: string): { mimeType: string; data: string } => {
-  const match = value.match(/^data:(.+?);base64,([A-Za-z0-9+/=\s]+)$/i);
-  if (!match) {
-    throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI Responses input images currently require data URLs.');
-  }
-  return {
-    mimeType: match[1],
-    data: match[2].replace(/\s+/g, ''),
-  };
 };
 
 const toGeminiPartList = (content: unknown, allowImages: boolean): Array<Record<string, unknown>> => {
@@ -94,7 +73,7 @@ const toGeminiPartList = (content: unknown, allowImages: boolean): Array<Record<
     }
     if (allowImages && (typedItem.type === 'input_image' || typedItem.type === 'image_url')) {
       const url = toImageUrl(typedItem.image_url ?? '').trim();
-      const dataUrl = parseImageDataUrl(url);
+      const dataUrl = parseImageDataUrl(url, 'OpenAI Responses input images currently require data URLs.');
       parts.push({
         inlineData: {
           mimeType: dataUrl.mimeType,
@@ -418,10 +397,11 @@ export const runOpenAiResponsesStreamRoute = async (
 
   const writeEvent = async (payload: Record<string, unknown>) => {
     wroteFrame = true;
+    const eventName = typeof payload.type === 'string' ? payload.type : undefined;
     const status = await writeSseJson(res, {
       ...payload,
       sequence_number: sequenceNumber++,
-    });
+    }, eventName);
     return status;
   };
 

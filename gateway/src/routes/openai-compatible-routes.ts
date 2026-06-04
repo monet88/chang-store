@@ -4,6 +4,7 @@ import type { ClassifiedRoute } from '../http/request-classifier.js';
 import { GatewayError } from '../http/error-response.js';
 import { writeSseDone, writeSseError, writeSseJson } from '../http/sse-response.js';
 import type { GenAiClient } from '../lib/google-genai-client.js';
+import { parseImageDataUrl } from '../lib/image-data-url.js';
 import { withGenAiRequestMetadata } from '../lib/genai-request-metadata.js';
 import { nextStreamStep } from '../lib/stream-guards.js';
 
@@ -58,17 +59,6 @@ const parseJsonString = (value: string): Record<string, unknown> => {
   }
 };
 
-const parseImageDataUrl = (value: string): { mimeType: string; data: string } => {
-  const match = value.match(/^data:(.+?);base64,([A-Za-z0-9+/=\s]+)$/i);
-  if (!match) {
-    throw new GatewayError(400, 'VALIDATION_FAILED', 'OpenAI-compatible image_url currently requires a data URL.');
-  }
-  return {
-    mimeType: match[1],
-    data: match[2].replace(/\s+/g, ''),
-  };
-};
-
 const toGeminiPartList = (content: unknown, allowImages: boolean): Array<Record<string, unknown>> => {
   if (typeof content === 'string') {
     return content ? [{ text: content }] : [];
@@ -94,7 +84,7 @@ const toGeminiPartList = (content: unknown, allowImages: boolean): Array<Record<
       typeof (typedItem.image_url as { url?: unknown }).url === 'string'
     ) {
       const url = ((typedItem.image_url as { url: string }).url || '').trim();
-      const dataUrl = parseImageDataUrl(url);
+      const dataUrl = parseImageDataUrl(url, 'OpenAI-compatible image_url currently requires a data URL.');
       parts.push({
         inlineData: {
           mimeType: dataUrl.mimeType,

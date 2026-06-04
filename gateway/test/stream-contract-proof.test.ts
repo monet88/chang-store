@@ -40,6 +40,11 @@ const parseSseDataFrames = (body: string): Array<Record<string, unknown> | '[DON
     return data === '[DONE]' ? '[DONE]' : JSON.parse(data) as Record<string, unknown>;
   });
 
+const parseSseEventNames = (body: string): string[] => body
+  .split('\n\n')
+  .filter(Boolean)
+  .flatMap((frame) => frame.split('\n').filter((line) => line.startsWith('event: ')).map((line) => line.slice('event: '.length)));
+
 const listen = async (server: Server): Promise<string> => new Promise((resolve) => {
   server.listen(0, '127.0.0.1', () => {
     const address = server.address();
@@ -144,21 +149,33 @@ describe('stream contract proof', () => {
     expect(chatEvents.every((frame) => frame.object === 'chat.completion.chunk')).toBe(true);
     expect(((chatFrames[1] as { choices: Array<{ delta: { content: string } }> }).choices[0].delta.content)).toBe('ok');
 
-    const responseFrames = parseSseDataFrames([
-      'data: {"type":"response.created","sequence_number":0,"response":{"id":"resp_test","object":"response","status":"in_progress","model":"gemini-2.5-flash","output":[]}}',
-      'data: {"type":"response.output_item.added","sequence_number":1,"output_index":0,"item":{"id":"msg_test","type":"message","role":"assistant","content":[]}}',
-      'data: {"type":"response.content_part.added","sequence_number":2,"item_id":"msg_test","output_index":0,"content_index":0,"part":{"type":"output_text","text":""}}',
-      'data: {"type":"response.output_text.delta","sequence_number":3,"item_id":"msg_test","output_index":0,"content_index":0,"delta":"ok"}',
-      'data: {"type":"response.output_text.done","sequence_number":4,"item_id":"msg_test","output_index":0,"content_index":0,"text":"ok"}',
-      'data: {"type":"response.content_part.done","sequence_number":5,"item_id":"msg_test","output_index":0,"content_index":0,"part":{"type":"output_text","text":"ok","annotations":[]}}',
-      'data: {"type":"response.output_item.done","sequence_number":6,"output_index":0,"item":{"id":"msg_test","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"ok","annotations":[]}]}}',
-      'data: {"type":"response.completed","sequence_number":7,"response":{"id":"resp_test","object":"response","status":"completed","model":"gemini-2.5-flash","output":[{"id":"msg_test","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"ok","annotations":[]}]}],"output_text":"ok"}}',
+    const responseFixture = [
+      'event: response.created\ndata: {"type":"response.created","sequence_number":0,"response":{"id":"resp_test","object":"response","status":"in_progress","model":"gemini-2.5-flash","output":[]}}',
+      'event: response.output_item.added\ndata: {"type":"response.output_item.added","sequence_number":1,"output_index":0,"item":{"id":"msg_test","type":"message","role":"assistant","content":[]}}',
+      'event: response.content_part.added\ndata: {"type":"response.content_part.added","sequence_number":2,"item_id":"msg_test","output_index":0,"content_index":0,"part":{"type":"output_text","text":""}}',
+      'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","sequence_number":3,"item_id":"msg_test","output_index":0,"content_index":0,"delta":"ok"}',
+      'event: response.output_text.done\ndata: {"type":"response.output_text.done","sequence_number":4,"item_id":"msg_test","output_index":0,"content_index":0,"text":"ok"}',
+      'event: response.content_part.done\ndata: {"type":"response.content_part.done","sequence_number":5,"item_id":"msg_test","output_index":0,"content_index":0,"part":{"type":"output_text","text":"ok","annotations":[]}}',
+      'event: response.output_item.done\ndata: {"type":"response.output_item.done","sequence_number":6,"output_index":0,"item":{"id":"msg_test","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"ok","annotations":[]}]}}',
+      'event: response.completed\ndata: {"type":"response.completed","sequence_number":7,"response":{"id":"resp_test","object":"response","status":"completed","model":"gemini-2.5-flash","output":[{"id":"msg_test","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"ok","annotations":[]}]}],"output_text":"ok"}}',
       'data: [DONE]',
       '',
-    ].join('\n\n'));
+    ].join('\n\n');
+    const responseFrames = parseSseDataFrames(responseFixture);
+    const responseEventNames = parseSseEventNames(responseFixture);
 
     const semanticEvents = responseFrames.slice(0, -1) as Array<{ type: string; sequence_number: number }>;
     expect(semanticEvents.map((event) => event.type)).toEqual([
+      'response.created',
+      'response.output_item.added',
+      'response.content_part.added',
+      'response.output_text.delta',
+      'response.output_text.done',
+      'response.content_part.done',
+      'response.output_item.done',
+      'response.completed',
+    ]);
+    expect(responseEventNames).toEqual([
       'response.created',
       'response.output_item.added',
       'response.content_part.added',
