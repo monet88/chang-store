@@ -336,6 +336,7 @@ describe('admin routes', () => {
     });
     const listBody = await list.json();
     expect(listBody.vertexPools).toHaveLength(0);
+    expect(fs.readdirSync(path.join(dir, 'credentials'))).toEqual([]);
   });
 
   it('serves the admin dashboard shell from the gateway', async () => {

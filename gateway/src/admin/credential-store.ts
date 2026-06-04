@@ -32,6 +32,11 @@ export interface AdminCredentialStore {
   ): AdminCredentialStoreSnapshot;
 }
 
+export interface ImportedCredentialRecord {
+  credential: AdminVertexCredentialRecord;
+  rollback(): void;
+}
+
 const STORE_FILE = 'store.json';
 const CREDENTIALS_DIR = 'credentials';
 
@@ -205,7 +210,7 @@ export const createCredentialStore = (
 export const importServiceAccountCredential = (
   config: GatewayConfig,
   body: Record<string, unknown>,
-): AdminVertexCredentialRecord => {
+): ImportedCredentialRecord => {
   assertWritableMode(config);
   ensureStoreDir(config.adminFileStoreDir!);
   const credentialBody = ensureJsonObject(body.credential, 'credential');
@@ -233,24 +238,38 @@ export const importServiceAccountCredential = (
   const id = sanitizeCredentialId(`${project}-${serviceAccount.client_email}`);
   const credentialsFile = credentialsFileForId(config.adminFileStoreDir!, id);
   const replace = body.replace === true;
+  const previousCredential = fs.existsSync(credentialsFile)
+    ? fs.readFileSync(credentialsFile)
+    : null;
   if (!replace && fs.existsSync(credentialsFile)) {
     throw new GatewayError(400, 'VALIDATION_FAILED', `Credential ${id} already exists. Use replace=true to overwrite.`);
   }
   writeJsonAtomic(credentialsFile, credentialBody);
   return {
-    id,
-    label: typeof body.label === 'string' ? body.label.trim() || undefined : undefined,
-    project,
-    location,
-    credentialsFile,
-    enabled: body.enabled !== false,
-    weight: typeof body.weight === 'number' && body.weight > 0 ? body.weight : 1,
-    modelAllowlist: Array.isArray(body.modelAllowlist)
-      ? body.modelAllowlist.filter((value): value is string => typeof value === 'string')
-      : [],
-    modelExclusions: Array.isArray(body.modelExclusions)
-      ? body.modelExclusions.filter((value): value is string => typeof value === 'string')
-      : [],
-    email: serviceAccount.client_email,
+    credential: {
+      id,
+      label: typeof body.label === 'string' ? body.label.trim() || undefined : undefined,
+      project,
+      location,
+      credentialsFile,
+      enabled: body.enabled !== false,
+      weight: typeof body.weight === 'number' && body.weight > 0 ? body.weight : 1,
+      modelAllowlist: Array.isArray(body.modelAllowlist)
+        ? body.modelAllowlist.filter((value): value is string => typeof value === 'string')
+        : [],
+      modelExclusions: Array.isArray(body.modelExclusions)
+        ? body.modelExclusions.filter((value): value is string => typeof value === 'string')
+        : [],
+      email: serviceAccount.client_email,
+    },
+    rollback: () => {
+      if (previousCredential) {
+        fs.writeFileSync(credentialsFile, previousCredential, { mode: 0o600 });
+        return;
+      }
+      if (fs.existsSync(credentialsFile)) {
+        fs.rmSync(credentialsFile);
+      }
+    },
   };
 };

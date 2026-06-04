@@ -117,8 +117,12 @@ const buildEditRequestFromMultipart = async (
   const images: Array<{ mimeType: string; data: string }> = [];
 
   for (const part of parts) {
-    if (part.filename) {
-      const normalizedContentType = part.contentType?.split(';', 1)[0]?.trim().toLowerCase();
+    const normalizedContentType = part.contentType?.split(';', 1)[0]?.trim().toLowerCase();
+    const isImagePart = (part.name === 'image' || part.name === 'image[]')
+      && typeof normalizedContentType === 'string'
+      && /^image\/(png|jpeg|jpg|webp)$/i.test(normalizedContentType);
+
+    if (part.filename || isImagePart) {
       if (part.name !== 'image' && part.name !== 'image[]') {
         throw new GatewayError(400, 'VALIDATION_FAILED', `Unsupported multipart file field: ${part.name}.`);
       }

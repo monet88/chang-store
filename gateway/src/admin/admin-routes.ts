@@ -123,11 +123,19 @@ export const maybeHandleAdminRoute = async (
   if (req.method === 'POST' && url.pathname === '/admin/api/vertex-credentials/import') {
     const body = await parseJsonBody(req, config.maxJsonBytes);
     const imported = importServiceAccountCredential(config, body);
-    const snapshot = store.updateVertexPools((state) => ({
-      ...state,
-      vertexPools: [...state.vertexPools.filter((entry) => entry.id !== imported.id), imported],
-    }));
-    sendJson(res, 200, { ok: true, credential: findCredentialOrThrow(withRuntimeHealth(snapshot, runtime), imported.id) });
+    try {
+      const snapshot = store.updateVertexPools((state) => ({
+        ...state,
+        vertexPools: [...state.vertexPools.filter((entry) => entry.id !== imported.credential.id), imported.credential],
+      }));
+      sendJson(res, 200, {
+        ok: true,
+        credential: findCredentialOrThrow(withRuntimeHealth(snapshot, runtime), imported.credential.id),
+      });
+    } catch (error) {
+      imported.rollback();
+      throw error;
+    }
     return true;
   }
 
