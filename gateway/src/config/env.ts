@@ -1,6 +1,33 @@
 import fs from 'node:fs';
 import { loadServiceAccountCredential } from '../auth/google-auth.js';
 
+export type VertexPoolSelection = 'round-robin' | 'weighted-round-robin';
+export type AdminStoreMode = 'static-config' | 'file-store';
+export type GatewayRuntimeMode = 'single' | 'pool';
+
+export interface VertexPoolConfig {
+  id: string;
+  label?: string;
+  project: string;
+  location: string;
+  credentialsFile: string | null;
+  enabled: boolean;
+  weight: number;
+  modelAllowlist: string[];
+  modelExclusions: string[];
+}
+
+export interface ProviderModelCatalog {
+  defaultModel?: string;
+  aliases: Record<string, string>;
+  allowlist: string[];
+  disabled: string[];
+}
+
+export interface ResolvedVertexTargetConfig extends VertexPoolConfig {
+  source: 'legacy' | 'pool';
+}
+
 export interface GatewayConfig {
   port: number;
   gatewayKeys: string[];
@@ -24,6 +51,16 @@ export interface GatewayConfig {
   enableVertexRoutes: boolean;
   enableVtxRoutes: boolean;
   enableImageRoutes: boolean;
+  runtimeMode: GatewayRuntimeMode;
+  vertexPoolSelection: VertexPoolSelection;
+  vertexPools: VertexPoolConfig[];
+  resolvedVertexTargets: ResolvedVertexTargetConfig[];
+  modelCatalog: Record<string, ProviderModelCatalog>;
+  enableAdminRoutes: boolean;
+  adminToken: string | null;
+  adminAllowMutations: boolean;
+  adminStoreMode: AdminStoreMode;
+  adminFileStoreDir: string | null;
 }
 
 const DEFAULTS = {
@@ -39,6 +76,8 @@ const DEFAULTS = {
   streamIdleTimeoutMs: 30_000,
   streamPerKeyLimit: 2,
   streamQueueLimit: 4,
+  vertexPoolSelection: 'weighted-round-robin' as VertexPoolSelection,
+  adminStoreMode: 'static-config' as AdminStoreMode,
 };
 
 const splitList = (value: string | undefined): string[] =>
@@ -67,6 +106,17 @@ type GatewayFileConfig = Partial<{
   enableVertexRoutes: boolean;
   enableVtxRoutes: boolean;
   enableImageRoutes: boolean;
+}>;
+
+type GatewayPoolOverlayConfig = Partial<{
+  vertexPoolSelection: VertexPoolSelection;
+  vertexPools: VertexPoolConfig[];
+  modelCatalog: Record<string, ProviderModelCatalog>;
+  enableAdminRoutes: boolean;
+  adminToken: string | null;
+  adminAllowMutations: boolean;
+  adminStoreMode: AdminStoreMode;
+  adminFileStoreDir: string | null;
 }>;
 
 const parseQuotedScalar = (trimmed: string): string => {
@@ -130,6 +180,18 @@ const assertStringArray = (config: Record<string, unknown>, key: string, filePat
   }
 };
 
+const validateStringRecord = (value: unknown, key: string, filePath: string): Record<string, string> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Invalid ${filePath}: ${key} must be an object of string values.`);
+  }
+  for (const [entryKey, entryValue] of Object.entries(value)) {
+    if (typeof entryValue !== 'string') {
+      throw new Error(`Invalid ${filePath}: ${key}.${entryKey} must be a string.`);
+    }
+  }
+  return value as Record<string, string>;
+};
+
 const assertString = (config: Record<string, unknown>, key: string, filePath: string): void => {
   const value = config[key];
   if (value !== undefined && typeof value !== 'string') {
@@ -159,6 +221,78 @@ const assertBoolean = (config: Record<string, unknown>, key: string, filePath: s
   }
 };
 
+const asObject = (value: unknown, filePath: string): Record<string, unknown> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Invalid ${filePath}: expected a JSON object.`);
+  }
+  return value as Record<string, unknown>;
+};
+
+const validateProviderModelCatalog = (
+  provider: string,
+  value: unknown,
+  filePath: string,
+): ProviderModelCatalog => {
+  const config = asObject(value, filePath);
+  const defaultModel = config.defaultModel;
+  if (defaultModel !== undefined && typeof defaultModel !== 'string') {
+    throw new Error(`Invalid ${filePath}: modelCatalog.${provider}.defaultModel must be a string.`);
+  }
+  const aliases = config.aliases !== undefined
+    ? validateStringRecord(config.aliases, `modelCatalog.${provider}.aliases`, filePath)
+    : undefined;
+  if (config.allowlist !== undefined) {
+    assertStringArray(config, 'allowlist', `${filePath}:modelCatalog.${provider}`);
+  }
+  if (config.disabled !== undefined) {
+    assertStringArray(config, 'disabled', `${filePath}:modelCatalog.${provider}`);
+  }
+  return {
+    ...(typeof defaultModel === 'string' ? { defaultModel } : {}),
+    aliases: aliases ?? {},
+    allowlist: (config.allowlist as string[] | undefined) ?? [],
+    disabled: (config.disabled as string[] | undefined) ?? [],
+  };
+};
+
+const validateVertexPoolEntry = (
+  entry: unknown,
+  index: number,
+  filePath: string,
+): VertexPoolConfig => {
+  const config = asObject(entry, filePath);
+  const prefix = `vertexPools[${index}]`;
+  for (const key of ['id', 'project', 'location']) {
+    assertString(config, key, `${filePath}:${prefix}`);
+  }
+  assertNullableString(config, 'credentialsFile', `${filePath}:${prefix}`);
+  assertBoolean(config, 'enabled', `${filePath}:${prefix}`);
+  assertPositiveNumber(config, 'weight', `${filePath}:${prefix}`);
+  if (config.modelAllowlist !== undefined) {
+    assertStringArray(config, 'modelAllowlist', `${filePath}:${prefix}`);
+  }
+  if (config.modelExclusions !== undefined) {
+    assertStringArray(config, 'modelExclusions', `${filePath}:${prefix}`);
+  }
+  const id = (config.id as string | undefined)?.trim();
+  const project = (config.project as string | undefined)?.trim();
+  const location = (config.location as string | undefined)?.trim();
+  if (!id) throw new Error(`Invalid ${filePath}:${prefix}: id is required.`);
+  if (!project) throw new Error(`Invalid ${filePath}:${prefix}: project is required.`);
+  if (!location) throw new Error(`Invalid ${filePath}:${prefix}: location is required.`);
+  return {
+    id,
+    ...(typeof config.label === 'string' && config.label.trim() ? { label: config.label.trim() } : {}),
+    project,
+    location,
+    credentialsFile: typeof config.credentialsFile === 'string' ? config.credentialsFile.trim() : null,
+    enabled: config.enabled !== undefined ? Boolean(config.enabled) : true,
+    weight: Number(config.weight ?? 1),
+    modelAllowlist: (config.modelAllowlist as string[] | undefined) ?? [],
+    modelExclusions: (config.modelExclusions as string[] | undefined) ?? [],
+  };
+};
+
 const validateFileConfig = (config: Record<string, unknown>, filePath: string): GatewayFileConfig => {
   assertStringArray(config, 'gatewayKeys', filePath);
   assertStringArray(config, 'corsOrigins', filePath);
@@ -172,21 +306,67 @@ const validateFileConfig = (config: Record<string, unknown>, filePath: string): 
   for (const key of ['allowWildcardCors', 'enableGeminiRoutes', 'enableOpenAiRoutes', 'enableVertexRoutes', 'enableVtxRoutes', 'enableImageRoutes']) {
     assertBoolean(config, key, filePath);
   }
+  for (const nestedKey of ['vertexPools', 'modelCatalog', 'enableAdminRoutes', 'adminToken', 'adminAllowMutations', 'adminStoreMode', 'adminFileStoreDir', 'vertexPoolSelection']) {
+    if (nestedKey in config) {
+      throw new Error(`Invalid ${filePath}: ${nestedKey} must be configured via GATEWAY_POOL_CONFIG_FILE.`);
+    }
+  }
   return config as GatewayFileConfig;
+};
+
+const validatePoolOverlayConfig = (config: Record<string, unknown>, filePath: string): GatewayPoolOverlayConfig => {
+  const normalized: GatewayPoolOverlayConfig = {};
+  if (config.vertexPoolSelection !== undefined) {
+    if (config.vertexPoolSelection !== 'round-robin' && config.vertexPoolSelection !== 'weighted-round-robin') {
+      throw new Error(`Invalid ${filePath}: vertexPoolSelection must be "round-robin" or "weighted-round-robin".`);
+    }
+    normalized.vertexPoolSelection = config.vertexPoolSelection;
+  }
+  if (config.vertexPools !== undefined) {
+    if (!Array.isArray(config.vertexPools)) {
+      throw new Error(`Invalid ${filePath}: vertexPools must be an array.`);
+    }
+    normalized.vertexPools = config.vertexPools.map((entry, index) => validateVertexPoolEntry(entry, index, filePath));
+  }
+  if (config.modelCatalog !== undefined) {
+    const modelCatalog = asObject(config.modelCatalog, filePath);
+    normalized.modelCatalog = Object.fromEntries(
+      Object.entries(modelCatalog).map(([provider, value]) => [
+        provider,
+        validateProviderModelCatalog(provider, value, filePath),
+      ]),
+    );
+  }
+  for (const key of ['enableAdminRoutes', 'adminAllowMutations']) {
+    assertBoolean(config, key, filePath);
+  }
+  assertNullableString(config, 'adminToken', filePath);
+  if (config.adminStoreMode !== undefined && config.adminStoreMode !== 'static-config' && config.adminStoreMode !== 'file-store') {
+    throw new Error(`Invalid ${filePath}: adminStoreMode must be "static-config" or "file-store".`);
+  }
+  assertNullableString(config, 'adminFileStoreDir', filePath);
+  normalized.enableAdminRoutes = config.enableAdminRoutes as boolean | undefined;
+  normalized.adminToken = config.adminToken as string | null | undefined;
+  normalized.adminAllowMutations = config.adminAllowMutations as boolean | undefined;
+  normalized.adminStoreMode = config.adminStoreMode as AdminStoreMode | undefined;
+  normalized.adminFileStoreDir = config.adminFileStoreDir as string | null | undefined;
+  return normalized;
+};
+
+const loadJsonObjectFile = (filePath: string): Record<string, unknown> => {
+  const source = fs.readFileSync(filePath, 'utf8');
+  const parsed = JSON.parse(source);
+  return asObject(parsed, filePath);
 };
 
 const loadFileConfig = (): GatewayFileConfig => {
   const filePath = process.env.GATEWAY_CONFIG_FILE?.trim();
   if (!filePath) return {};
-  const source = fs.readFileSync(filePath, 'utf8');
   if (filePath.endsWith('.json')) {
-    const parsed = JSON.parse(source);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error(`Invalid ${filePath}: expected a JSON object.`);
-    }
-    return validateFileConfig(parsed as Record<string, unknown>, filePath);
+    return validateFileConfig(loadJsonObjectFile(filePath), filePath);
   }
 
+  const source = fs.readFileSync(filePath, 'utf8');
   const config: Record<string, unknown> = {};
   let currentListKey: string | null = null;
 
@@ -222,6 +402,15 @@ const loadFileConfig = (): GatewayFileConfig => {
   return validateFileConfig(config, filePath);
 };
 
+const loadPoolOverlayConfig = (): GatewayPoolOverlayConfig => {
+  const filePath = process.env.GATEWAY_POOL_CONFIG_FILE?.trim();
+  if (!filePath) return {};
+  if (!filePath.endsWith('.json')) {
+    throw new Error(`Invalid ${filePath}: GATEWAY_POOL_CONFIG_FILE must point to a JSON file.`);
+  }
+  return validatePoolOverlayConfig(loadJsonObjectFile(filePath), filePath);
+};
+
 const boolEnv = (value: string | undefined, fallback: boolean): boolean => {
   if (value === undefined) return fallback;
   return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
@@ -237,8 +426,45 @@ const numberEnv = (name: string, fallback: number): number => {
   return value;
 };
 
+const normalizeModelCatalog = (
+  modelCatalog: Record<string, ProviderModelCatalog> | undefined,
+): Record<string, ProviderModelCatalog> =>
+  Object.fromEntries(
+    Object.entries(modelCatalog ?? {}).map(([provider, config]) => [
+      provider,
+      {
+        ...(config.defaultModel ? { defaultModel: config.defaultModel } : {}),
+        aliases: { ...config.aliases },
+        allowlist: [...config.allowlist],
+        disabled: [...config.disabled],
+      },
+    ]),
+  );
+
+const resolveVertexTargets = (config: GatewayConfig): ResolvedVertexTargetConfig[] => {
+  if (config.vertexPools.length > 0) {
+    return config.vertexPools
+      .filter((entry) => entry.enabled)
+      .map((entry) => ({ ...entry, source: 'pool' as const }));
+  }
+
+  return [{
+    id: 'legacy-default',
+    label: 'Legacy default',
+    project: config.googleProject,
+    location: config.googleLocation,
+    credentialsFile: config.googleCredentialsFile,
+    enabled: true,
+    weight: 1,
+    modelAllowlist: [],
+    modelExclusions: [],
+    source: 'legacy',
+  }];
+};
+
 export const loadConfig = (): GatewayConfig => {
   const fileConfig = loadFileConfig();
+  const poolOverlay = loadPoolOverlayConfig();
   const googleProject = (
     process.env.GOOGLE_VERTEX_PROJECT ??
     process.env.GOOGLE_CLOUD_PROJECT ??
@@ -274,14 +500,62 @@ export const loadConfig = (): GatewayConfig => {
     enableVertexRoutes: boolEnv(process.env.GATEWAY_ENABLE_VERTEX_ROUTES, fileConfig.enableVertexRoutes ?? true),
     enableVtxRoutes: boolEnv(process.env.GATEWAY_ENABLE_VTX_ROUTES, fileConfig.enableVtxRoutes ?? true),
     enableImageRoutes: boolEnv(process.env.GATEWAY_ENABLE_IMAGE_ROUTES, fileConfig.enableImageRoutes ?? true),
+    runtimeMode: (poolOverlay.vertexPools?.length ?? 0) > 0 ? 'pool' : 'single',
+    vertexPoolSelection: (
+      process.env.GATEWAY_VERTEX_POOL_SELECTION?.trim() as VertexPoolSelection | undefined
+    ) || poolOverlay.vertexPoolSelection || DEFAULTS.vertexPoolSelection,
+    vertexPools: poolOverlay.vertexPools ?? [],
+    resolvedVertexTargets: [],
+    modelCatalog: normalizeModelCatalog(poolOverlay.modelCatalog),
+    enableAdminRoutes: boolEnv(process.env.GATEWAY_ENABLE_ADMIN_ROUTES, poolOverlay.enableAdminRoutes ?? false),
+    adminToken: process.env.GATEWAY_ADMIN_TOKEN?.trim() || poolOverlay.adminToken || null,
+    adminAllowMutations: boolEnv(process.env.GATEWAY_ADMIN_ALLOW_MUTATIONS, poolOverlay.adminAllowMutations ?? false),
+    adminStoreMode: (
+      process.env.GATEWAY_ADMIN_STORE_MODE?.trim() as AdminStoreMode | undefined
+    ) || poolOverlay.adminStoreMode || DEFAULTS.adminStoreMode,
+    adminFileStoreDir: process.env.GATEWAY_ADMIN_FILE_STORE_DIR?.trim() || poolOverlay.adminFileStoreDir || null,
   };
 
+  config.resolvedVertexTargets = resolveVertexTargets(config);
   validateConfig(config);
   return config;
 };
 
 export const validateConfig = (config: GatewayConfig): void => {
   if (config.gatewayKeys.length === 0) throw new Error('GATEWAY_API_KEYS is required.');
+  if (config.vertexPoolSelection !== 'round-robin' && config.vertexPoolSelection !== 'weighted-round-robin') {
+    throw new Error('GATEWAY_VERTEX_POOL_SELECTION must be "round-robin" or "weighted-round-robin".');
+  }
+  if (config.enableAdminRoutes && !config.adminToken) {
+    throw new Error('GATEWAY_ADMIN_TOKEN is required when admin routes are enabled.');
+  }
+  if (config.adminToken && config.gatewayKeys.includes(config.adminToken)) {
+    throw new Error('GATEWAY_ADMIN_TOKEN must not overlap with GATEWAY_API_KEYS.');
+  }
+  if (config.adminStoreMode === 'file-store' && config.adminAllowMutations && !config.adminFileStoreDir) {
+    throw new Error('GATEWAY_ADMIN_FILE_STORE_DIR is required when file-store mutations are enabled.');
+  }
+  if (process.env.K_SERVICE && config.adminStoreMode === 'file-store' && config.adminAllowMutations) {
+    throw new Error('Cloud Run does not support admin file-store mutations in this MVP.');
+  }
+
+  if (config.vertexPools.length > 0) {
+    const seenIds = new Set<string>();
+    for (const entry of config.vertexPools) {
+      if (seenIds.has(entry.id)) {
+        throw new Error(`Duplicate vertex pool id: ${entry.id}`);
+      }
+      seenIds.add(entry.id);
+      if (entry.credentialsFile) {
+        loadServiceAccountCredential(entry.credentialsFile);
+      }
+    }
+    if (config.resolvedVertexTargets.length === 0) {
+      throw new Error('At least one enabled vertex pool target is required.');
+    }
+    return;
+  }
+
   const serviceAccount = loadServiceAccountCredential(config.googleCredentialsFile);
   if (!config.googleProject && !serviceAccount?.project_id) {
     throw new Error('GOOGLE_VERTEX_PROJECT, GOOGLE_CLOUD_PROJECT, or service account project_id is required.');

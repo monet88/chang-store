@@ -35,6 +35,58 @@ describe('google auth status', () => {
     });
   });
 
+  it('returns pool auth summary without leaking per-target credentials', () => {
+    expect(getGoogleAuthStatus(testConfig({
+      runtimeMode: 'pool',
+      vertexPoolSelection: 'round-robin',
+      vertexPools: [
+        {
+          id: 'project-a',
+          project: 'project-a',
+          location: 'global',
+          credentialsFile: '/run/secrets/project-a.json',
+          enabled: true,
+          weight: 1,
+          label: 'Project A',
+          modelAllowlist: [],
+          modelExclusions: [],
+        },
+        {
+          id: 'project-b',
+          project: 'project-b',
+          location: 'us-central1',
+          credentialsFile: null,
+          enabled: false,
+          weight: 1,
+          label: 'Project B',
+          modelAllowlist: [],
+          modelExclusions: [],
+        },
+      ],
+      resolvedVertexTargets: [
+        {
+          id: 'project-a',
+          project: 'project-a',
+          location: 'global',
+          credentialsFile: '/run/secrets/project-a.json',
+          enabled: true,
+          weight: 1,
+          label: 'Project A',
+          modelAllowlist: [],
+          modelExclusions: [],
+          source: 'pool',
+        },
+      ],
+    }))).toEqual({
+      mode: 'pool',
+      apiVersion: 'v1',
+      selection: 'round-robin',
+      configuredTargets: 2,
+      enabledTargets: 1,
+      credentialFileTargets: 1,
+    });
+  });
+
   it('reloads service account credentials when the file is rotated', () => {
     const credentialFile = writeCredential({
       type: 'service_account',

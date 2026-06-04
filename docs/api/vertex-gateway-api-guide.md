@@ -46,6 +46,66 @@ File credentials phải là service account key JSON có các field top-level nh
 
 OAuth client JSON với top-level `installed` hoặc `web` sẽ bị reject.
 
+### Pool Overlay Config
+
+Gateway hiện hỗ trợ 2 lớp config:
+
+1. `GATEWAY_CONFIG_FILE`
+   Dùng cho scalar/list phẳng hiện có như gateway keys, CORS, timeout, single-credential fallback.
+2. `GATEWAY_POOL_CONFIG_FILE`
+   Phải là file JSON riêng cho nested config mới:
+   - `vertexPools`
+   - `modelCatalog`
+   - `vertexPoolSelection`
+   - `enableAdminRoutes`
+   - `adminAllowMutations`
+   - `adminStoreMode`
+   - `adminFileStoreDir`
+
+Nếu không có `vertexPools`, gateway vẫn chạy đúng như trước bằng:
+
+- `GOOGLE_APPLICATION_CREDENTIALS`
+- `GOOGLE_VERTEX_PROJECT`
+- `GOOGLE_VERTEX_LOCATION`
+
+Nếu có `vertexPools`, pool sẽ thắng đường single-target cũ và `/readyz` sẽ báo `mode: "pool"`.
+
+Ví dụ overlay JSON tối thiểu:
+
+```json
+{
+  "vertexPoolSelection": "weighted-round-robin",
+  "vertexPools": [
+    {
+      "id": "project-a",
+      "label": "Project A",
+      "project": "project-a",
+      "location": "global",
+      "credentialsFile": "/run/secrets/project-a.json",
+      "enabled": true,
+      "weight": 1,
+      "modelAllowlist": ["gemini-2.5-flash", "gemini-3.1-flash-image"]
+    }
+  ],
+  "modelCatalog": {
+    "gemini": {
+      "defaultModel": "gemini-2.5-flash",
+      "aliases": {
+        "fast": "gemini-2.5-flash"
+      },
+      "allowlist": ["gemini-2.5-flash", "gemini-3.1-flash-image"],
+      "disabled": []
+    }
+  }
+}
+```
+
+Lưu ý:
+
+- Nested pool config là JSON-first. Không nhét `vertexPools` hoặc `modelCatalog` vào YAML phẳng cũ.
+- `GATEWAY_ADMIN_TOKEN` không được trùng với bất kỳ key nào trong `GATEWAY_API_KEYS`.
+- `adminStoreMode: "file-store"` + `adminAllowMutations: true` hiện chỉ dành cho Docker/VPS có mounted persistent volume. Cloud Run sẽ fail fast ở startup.
+
 ---
 
 ## Available Endpoints
@@ -72,6 +132,9 @@ Cloud Run note: for the current public and custom-domain deployment, use
 `/readyz` as the primary smoke/readiness endpoint. `GET /healthz` remains
 available in the gateway app for local/container-level checks, but it is not
 the public verification path to rely on after Cloud Run cutover.
+
+`/readyz` ở pool mode chỉ trả summary count/selection. Nó không trả raw service
+account JSON, private key, hay chi tiết từng target.
 
 OpenAI SDK note: set `baseURL` to the `/openai/v1` prefix, for example
 `https://gemini.monet.uno/openai/v1`. This gateway currently implements

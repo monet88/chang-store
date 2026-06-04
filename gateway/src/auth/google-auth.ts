@@ -1,5 +1,5 @@
 import { readFileSync, statSync } from 'node:fs';
-import type { GatewayConfig } from '../config/env.js';
+import type { GatewayConfig, VertexPoolSelection } from '../config/env.js';
 
 export interface ServiceAccountCredential {
   type: 'service_account';
@@ -15,6 +15,15 @@ export interface GoogleAuthStatus {
   apiVersion: string;
   hasGoogleCredentialsFile: boolean;
   email?: string;
+}
+
+export interface GooglePoolAuthStatus {
+  mode: 'pool';
+  apiVersion: string;
+  selection: VertexPoolSelection;
+  configuredTargets: number;
+  enabledTargets: number;
+  credentialFileTargets: number;
 }
 
 const readCredentialJson = (credentialsFile: string): Record<string, unknown> => {
@@ -94,7 +103,17 @@ export const loadServiceAccountCredential = (
   return serviceAccount;
 };
 
-export const getGoogleAuthStatus = (config: GatewayConfig): GoogleAuthStatus => {
+export const getGoogleAuthStatus = (config: GatewayConfig): GoogleAuthStatus | GooglePoolAuthStatus => {
+  if (config.runtimeMode === 'pool') {
+    return {
+      mode: 'pool',
+      apiVersion: config.googleApiVersion,
+      selection: config.vertexPoolSelection,
+      configuredTargets: config.vertexPools.length,
+      enabledTargets: config.resolvedVertexTargets.length,
+      credentialFileTargets: config.vertexPools.filter((entry) => Boolean(entry.credentialsFile)).length,
+    };
+  }
   const serviceAccount = loadServiceAccountCredential(config.googleCredentialsFile);
   return {
     mode: serviceAccount ? 'serviceAccountJson' : 'adc',

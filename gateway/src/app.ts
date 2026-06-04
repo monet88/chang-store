@@ -11,6 +11,7 @@ import { readJsonBody } from './lib/read-json.js';
 import { StreamAdmission } from './lib/stream-admission.js';
 import type { GenAiFactory } from './lib/google-genai-client.js';
 import { createGoogleGenAiClient } from './lib/google-genai-client.js';
+import { createGenAiRuntime } from './lib/genai-runtime.js';
 import { healthResponse, readyResponse, rootResponse } from './routes/health-routes.js';
 import { runCustomImageRoute } from './routes/custom-image-routes.js';
 import { runGeminiCompatibleRoute } from './routes/gemini-compatible-routes.js';
@@ -26,7 +27,9 @@ export interface AppOptions {
 }
 
 export const createApp = ({ config, genAiFactory = createGoogleGenAiClient }: AppOptions) => {
-  const ai = genAiFactory(config);
+  const ai = genAiFactory === createGoogleGenAiClient
+    ? createGenAiRuntime(config).client
+    : genAiFactory(config);
   const workloads = new ImageWorkloads(ai, config);
   const streamAdmission = new StreamAdmission(config.streamPerKeyLimit, config.streamQueueLimit);
   const streamConfig = {

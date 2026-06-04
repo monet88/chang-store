@@ -36,4 +36,74 @@ describe('root route', () => {
     ]));
     expect(generateContent).not.toHaveBeenCalled();
   });
+
+  it('returns readiness summary for pool mode without touching the model client', async () => {
+    const generateContent = vi.fn();
+    server = createApp({
+      config: testConfig({
+        runtimeMode: 'pool',
+        vertexPoolSelection: 'round-robin',
+        vertexPools: [
+          {
+            id: 'project-a',
+            project: 'project-a',
+            location: 'global',
+            credentialsFile: null,
+            enabled: true,
+            weight: 1,
+            label: 'Project A',
+            modelAllowlist: [],
+            modelExclusions: [],
+          },
+          {
+            id: 'project-b',
+            project: 'project-b',
+            location: 'us-central1',
+            credentialsFile: null,
+            enabled: false,
+            weight: 1,
+            label: 'Project B',
+            modelAllowlist: [],
+            modelExclusions: [],
+          },
+        ],
+        resolvedVertexTargets: [
+          {
+            id: 'project-a',
+            project: 'project-a',
+            location: 'global',
+            credentialsFile: null,
+            enabled: true,
+            weight: 1,
+            label: 'Project A',
+            modelAllowlist: [],
+            modelExclusions: [],
+            source: 'pool',
+          },
+        ],
+      }),
+      genAiFactory: () => ({ models: { generateContent } }),
+    });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/readyz`);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.google).toEqual({
+      mode: 'pool',
+      apiVersion: 'v1',
+      selection: 'round-robin',
+      configuredTargets: 2,
+      enabledTargets: 1,
+      credentialFileTargets: 0,
+    });
+    expect(body.runtime).toEqual({
+      mode: 'pool',
+      selection: 'round-robin',
+      configuredTargets: 2,
+      enabledTargets: 1,
+    });
+    expect(generateContent).not.toHaveBeenCalled();
+  });
 });

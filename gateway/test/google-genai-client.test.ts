@@ -21,4 +21,31 @@ describe('Google GenAI client', () => {
       httpOptions: { timeout: 12345 },
     }));
   });
+
+  it('builds a target-scoped SDK client from the resolved pool target', async () => {
+    const { createGoogleGenAiClientForTarget } = await import('../src/lib/google-genai-client.js');
+
+    createGoogleGenAiClientForTarget(
+      testConfig({ googleApiVersion: 'v1beta', upstreamTimeoutMs: 45678 }),
+      {
+        id: 'project-a',
+        project: 'pool-project-a',
+        location: 'global',
+        credentialsFile: null,
+        enabled: true,
+        weight: 2,
+        label: 'Project A',
+        modelAllowlist: [],
+        modelExclusions: [],
+        source: 'pool',
+      },
+    );
+
+    expect(googleGenAiMock).toHaveBeenLastCalledWith(expect.objectContaining({
+      project: 'pool-project-a',
+      location: 'global',
+      apiVersion: 'v1beta',
+      httpOptions: { timeout: 45678 },
+    }));
+  });
 });

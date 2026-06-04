@@ -27,6 +27,12 @@ export const readyResponse = (config: GatewayConfig) => ({
   ok: true,
   service: 'chang-store-vertex-gateway',
   google: getGoogleAuthStatus(config),
+  runtime: {
+    mode: config.runtimeMode,
+    selection: config.vertexPoolSelection,
+    configuredTargets: config.vertexPools.length,
+    enabledTargets: config.resolvedVertexTargets.length,
+  },
   limits: {
     maxJsonBytes: config.maxJsonBytes,
     maxImages: config.maxImages,
