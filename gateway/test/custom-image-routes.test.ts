@@ -89,6 +89,13 @@ describe('custom image routes', () => {
     ]);
     expect(generateContent).toHaveBeenCalledTimes(2);
     expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: 'edit' },
+          { inlineData: { mimeType: 'image/png', data: 'YWJj' } },
+        ],
+      }],
       config: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '1:1', imageSize: '2K' } },
     }));
   });

@@ -97,9 +97,10 @@ export class ImageWorkloads {
     const numberOfImages = parseNumberOfImages(body.numberOfImages, this.config.maxImages);
     const imageConfig = buildImageConfig(body);
     const results = await Promise.all(Array.from({ length: numberOfImages }, async (_, index) => {
+      // Gemini image editing expects the instruction text before the reference images.
       const response = await this.safeGenerate(() => this.ai.models.generateContent(withGenAiRequestMetadata({
         model,
-        contents: [{ role: 'user', parts: [...buildImageParts(images), { text: prompt }] }],
+        contents: [{ role: 'user', parts: [{ text: prompt }, ...buildImageParts(images)] }],
         config: {
           responseModalities: ['IMAGE'],
           ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
