@@ -22,25 +22,30 @@ export const renderAdminUi = (): string => {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Gateway Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%23ffe66e'/%3E%3Cstop offset='1' stop-color='%238df4ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Cpath d='M19 32 32 19l13 13-13 13Z' fill='none' stroke='%23372b1d' stroke-width='3.5'/%3E%3Ccircle cx='32' cy='32' r='6' fill='none' stroke='%23372b1d' stroke-width='3'/%3E%3C/svg%3E" />
     <style>
       :root {
         color-scheme: light;
-        --bg: #f7f4ee;
-        --panel: rgba(255, 255, 255, 0.86);
+        --bg: #f4f0e8;
+        --bg-deep: #ece5d9;
+        --panel: rgba(255, 255, 255, 0.88);
         --panel-strong: #ffffff;
-        --ink: #201b16;
-        --muted: #80766a;
-        --line: #ded6c9;
-        --accent: #8d857c;
-        --accent-strong: #6d655d;
-        --accent-soft: #f0ebe4;
+        --ink: #1e1b16;
+        --muted: #7b746b;
+        --line: #ddd3c4;
+        --line-strong: #cfc1af;
+        --accent: #7d7366;
+        --accent-strong: #61584d;
+        --accent-soft: #efe8de;
+        --accent-tint: #f7f2ea;
         --success: #1d9b6c;
         --success-soft: #dcf5ea;
         --danger: #d55b4a;
         --danger-soft: #fde3df;
         --warn: #a96c2c;
         --warn-soft: #f8e8d3;
-        --shadow: 0 30px 70px rgba(30, 22, 12, 0.10);
+        --shadow: 0 18px 46px rgba(35, 24, 9, 0.08);
+        --shadow-soft: 0 10px 24px rgba(35, 24, 9, 0.05);
         --radius-lg: 24px;
         --radius-md: 18px;
         --radius-sm: 12px;
@@ -52,9 +57,9 @@ export const renderAdminUi = (): string => {
         font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
         color: var(--ink);
         background:
-          radial-gradient(circle at top center, rgba(255, 221, 143, 0.55), transparent 18%),
-          radial-gradient(circle at bottom left, rgba(120, 190, 255, 0.14), transparent 22%),
-          linear-gradient(180deg, #fcfbf8 0%, var(--bg) 48%, #f1ece3 100%);
+          radial-gradient(circle at top center, rgba(255, 229, 168, 0.42), transparent 20%),
+          radial-gradient(circle at bottom left, rgba(142, 194, 255, 0.12), transparent 24%),
+          linear-gradient(180deg, #fcfaf6 0%, var(--bg) 45%, var(--bg-deep) 100%);
       }
       button, input, textarea, select { font: inherit; }
       .hidden { display: none !important; }
@@ -233,14 +238,14 @@ export const renderAdminUi = (): string => {
       .global-status.error { background: var(--danger-soft); color: var(--danger); }
       .admin-shell {
         display: grid;
-        grid-template-columns: 280px minmax(0, 1fr);
+        grid-template-columns: 248px minmax(0, 1fr);
         min-height: 100vh;
       }
       .sidebar {
         border-right: 1px solid var(--line);
-        background: rgba(255,255,255,0.84);
+        background: rgba(255,255,255,0.82);
         backdrop-filter: blur(18px);
-        padding: 24px 18px;
+        padding: 22px 16px;
       }
       .sidebar-brand {
         display: flex;
@@ -251,7 +256,7 @@ export const renderAdminUi = (): string => {
         margin-bottom: 18px;
       }
       .sidebar-brand strong {
-        font-size: 34px;
+        font-size: 32px;
         letter-spacing: -0.05em;
       }
       .sidebar-section {
@@ -273,35 +278,44 @@ export const renderAdminUi = (): string => {
         display: grid;
         grid-template-columns: 1fr;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         width: 100%;
-        padding: 12px;
+        padding: 11px 12px;
         border: 1px solid transparent;
-        border-radius: 18px;
+        border-radius: 16px;
         background: transparent;
         color: var(--ink);
         text-align: left;
+        transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+      }
+      .nav-btn:hover {
+        background: rgba(255,255,255,0.62);
+        border-color: rgba(18,18,18,0.08);
+        transform: translateY(-1px);
       }
       .nav-btn.active {
-        background: rgba(18, 18, 18, 0.08);
-        border-color: rgba(18,18,18,0.12);
+        background: rgba(27, 23, 18, 0.08);
+        border-color: rgba(27,23,18,0.1);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
       }
       .nav-btn strong {
         display: block;
-        font-size: 16px;
+        font-size: 15px;
       }
       .nav-btn span {
         display: block;
         color: var(--muted);
-        font-size: 13px;
+        font-size: 12px;
         margin-top: 2px;
       }
       .content {
-        padding: 22px;
+        padding: 18px 22px 28px;
       }
       .content-scroll {
         display: grid;
-        gap: 18px;
+        gap: 16px;
+        max-width: 1380px;
+        margin: 0 auto;
       }
       .topbar {
         display: flex;
@@ -310,9 +324,9 @@ export const renderAdminUi = (): string => {
         gap: 16px;
         border: 1px solid var(--line);
         border-radius: 24px;
-        padding: 18px 20px;
+        padding: 16px 18px;
         background: var(--panel);
-        box-shadow: var(--shadow);
+        box-shadow: var(--shadow-soft);
       }
       .topbar h1 {
         margin: 0;
@@ -320,8 +334,9 @@ export const renderAdminUi = (): string => {
         letter-spacing: -0.04em;
       }
       .topbar p {
-        margin: 6px 0 0;
+        margin: 4px 0 0;
         color: var(--muted);
+        font-size: 14px;
       }
       .topbar-actions {
         display: flex;
@@ -332,17 +347,18 @@ export const renderAdminUi = (): string => {
         border: 1px solid var(--line);
         border-radius: var(--radius-lg);
         background: var(--panel);
-        box-shadow: var(--shadow);
-        padding: 22px;
+        box-shadow: var(--shadow-soft);
+        padding: 18px;
       }
       .panel h2 {
         margin: 0 0 8px;
-        font-size: 18px;
+        font-size: 17px;
       }
       .panel-subtitle {
-        margin: 0 0 18px;
+        margin: 0 0 14px;
         color: var(--muted);
-        font-size: 14px;
+        font-size: 13px;
+        line-height: 1.55;
       }
       .kpi-grid {
         display: grid;
@@ -350,9 +366,9 @@ export const renderAdminUi = (): string => {
         gap: 14px;
       }
       .kpi-card {
-        padding: 18px;
+        padding: 16px;
         border: 1px solid var(--line);
-        border-radius: 20px;
+        border-radius: 18px;
         background: rgba(255,255,255,0.95);
       }
       .kpi-card .label {
@@ -364,8 +380,8 @@ export const renderAdminUi = (): string => {
       }
       .kpi-card .value {
         display: block;
-        margin-top: 12px;
-        font-size: 34px;
+        margin-top: 10px;
+        font-size: 30px;
         font-weight: 700;
         letter-spacing: -0.05em;
       }
@@ -378,6 +394,7 @@ export const renderAdminUi = (): string => {
       }
       .dashboard-grid {
         grid-template-columns: 1.1fr 0.9fr;
+        gap: 22px;
       }
       .summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -387,11 +404,12 @@ export const renderAdminUi = (): string => {
       }
       .model-editor-grid {
         grid-template-columns: 1fr 1fr;
+        align-items: start;
       }
       .card-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 16px;
+        gap: 20px;
       }
       .credential-grid {
         display: grid;
@@ -404,9 +422,9 @@ export const renderAdminUi = (): string => {
         gap: 12px;
       }
       .metric-item {
-        padding: 14px 16px;
+        padding: 12px 14px;
         border: 1px solid var(--line);
-        border-radius: 16px;
+        border-radius: 14px;
         background: rgba(255,255,255,0.95);
       }
       .metric-item strong {
@@ -440,8 +458,11 @@ export const renderAdminUi = (): string => {
       }
       .toolbar-grid {
         display: grid;
-        grid-template-columns: 1.4fr 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
+      }
+      .toolbar-grid .field:first-child {
+        grid-column: 1 / -1;
       }
       .auth-view-stack {
         display: grid;
@@ -454,7 +475,7 @@ export const renderAdminUi = (): string => {
         align-items: start;
       }
       .compact-panel {
-        padding: 18px;
+        padding: 16px;
       }
       .compact-panel h2 {
         font-size: 17px;
@@ -501,11 +522,11 @@ export const renderAdminUi = (): string => {
       }
       .auth-card {
         border: 1px solid var(--line);
-        border-radius: 22px;
+        border-radius: 20px;
         background: rgba(255,255,255,0.95);
-        padding: 14px;
+        padding: 13px;
         display: grid;
-        gap: 12px;
+        gap: 10px;
       }
       .auth-card-head {
         display: flex;
@@ -525,13 +546,15 @@ export const renderAdminUi = (): string => {
         place-items: center;
         background: #dcebff;
         color: #3b65c5;
-        font-size: 17px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
         flex-shrink: 0;
       }
       .auth-card h3 {
         margin: 0;
-        font-size: 17px;
-        line-height: 1.1;
+        font-size: 16px;
+        line-height: 1.15;
       }
       .auth-note {
         margin-top: 4px;
@@ -543,13 +566,27 @@ export const renderAdminUi = (): string => {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
       }
+      .auth-meta-grid .metric-item {
+        min-width: 0;
+      }
+      .auth-meta-grid .metric-item span {
+        font-size: 12px;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .auth-meta-grid .metric-item span.mono,
+      .auth-meta-grid .mono {
+        font-size: 11px;
+        letter-spacing: -0.01em;
+      }
       .auth-foot {
         display: flex;
         justify-content: space-between;
         gap: 10px;
         align-items: center;
         border-top: 1px solid var(--line);
-        padding-top: 12px;
+        padding-top: 10px;
       }
       .auth-actions {
         display: flex;
@@ -565,13 +602,19 @@ export const renderAdminUi = (): string => {
       }
       .mini-btn {
         border: 1px solid var(--line);
-        border-radius: 10px;
+        border-radius: 12px;
         background: #fff;
         color: var(--ink);
         padding: 8px 10px;
         cursor: pointer;
         min-width: 38px;
         min-height: 36px;
+        transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+      }
+      .mini-btn:hover:not(:disabled) {
+        background: var(--accent-tint);
+        border-color: var(--line-strong);
+        transform: translateY(-1px);
       }
       .mini-btn.danger {
         border-color: rgba(213, 91, 74, 0.22);
@@ -582,6 +625,9 @@ export const renderAdminUi = (): string => {
       }
       .mini-btn.labelled {
         min-width: 86px;
+      }
+      .auth-card .pill {
+        white-space: nowrap;
       }
       .health-track {
         display: grid;
@@ -610,14 +656,61 @@ export const renderAdminUi = (): string => {
         font-size: 13px;
         font-weight: 600;
       }
+      .surface-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .surface-metrics.compact {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .surface-metric {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(255,255,255,0.95);
+        padding: 14px 16px;
+      }
+      .surface-metric strong {
+        display: block;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .surface-metric span {
+        display: block;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+      }
+      .surface-metric small {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
       .stack-grid {
         display: grid;
-        gap: 14px;
+        gap: 12px;
+        align-content: start;
+        align-items: start;
+      }
+      .model-summary-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .model-summary-strip .list-card {
+        padding: 14px 16px;
       }
       .editor-card {
         border: 1px solid var(--line);
         border-radius: 20px;
-        padding: 18px;
+        padding: 16px;
         background: rgba(255,255,255,0.96);
       }
       .editor-card h3 {
@@ -629,67 +722,111 @@ export const renderAdminUi = (): string => {
         color: var(--muted);
       }
       .alias-panel {
-        margin-top: 16px;
+        margin-top: 12px;
         border: 1px solid var(--line);
-        border-radius: 18px;
-        background: rgba(255,255,255,0.94);
+        border-radius: 20px;
+        background: rgba(255,255,255,0.98);
         overflow: hidden;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
       }
       .alias-panel-head {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 12px;
-        padding: 16px 18px;
+        padding: 14px 16px;
         border-bottom: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,245,239,0.92) 100%);
       }
       .alias-panel-head h4 {
         margin: 0;
-        font-size: 18px;
+        font-size: 17px;
       }
       .alias-panel-head p {
         margin: 6px 0 0;
         color: var(--muted);
         font-size: 13px;
+        line-height: 1.55;
       }
       .alias-list {
         display: grid;
       }
       .alias-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
-        gap: 12px;
-        align-items: center;
-        padding: 14px 18px;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: start;
+        padding: 14px 16px;
         border-bottom: 1px solid var(--line);
+        background: rgba(255,255,255,0.96);
       }
       .alias-row:last-child {
         border-bottom: 0;
       }
-      .alias-arrow {
+      .alias-row:nth-child(odd) {
+        background: rgba(252,251,248,0.98);
+      }
+      .alias-field {
+        display: grid;
+        gap: 8px;
+      }
+      .alias-field label {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: #6f6458;
+      }
+      .alias-source-input,
+      .alias-target-input,
+      .alias-source-custom {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #d9cebf;
+        border-radius: 14px;
+        background: #fff;
+        padding: 10px 13px;
+        font-size: 14px;
+        color: var(--ink);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+      }
+      .alias-source-input:focus,
+      .alias-target-input:focus,
+      .alias-source-custom:focus {
+        outline: 2px solid rgba(99, 139, 255, 0.14);
+        border-color: rgba(99, 139, 255, 0.4);
+      }
+      .alias-source-hint {
+        font-size: 12px;
         color: var(--muted);
-        font-weight: 700;
       }
       .alias-remove {
-        border: 0;
+        border: 1px solid transparent;
         background: transparent;
         color: var(--muted);
         font-size: 24px;
         line-height: 1;
         cursor: pointer;
-        padding: 0 6px;
+        padding: 6px 10px;
+        border-radius: 12px;
+        align-self: start;
+        margin-top: 22px;
+      }
+      .alias-remove:hover {
+        color: var(--danger);
+        background: rgba(253,227,223,0.7);
+        border-color: rgba(213,91,74,0.18);
       }
       .alias-empty {
-        padding: 18px;
+        padding: 20px;
         color: var(--muted);
         font-size: 14px;
       }
       .provider-card,
       .list-card {
         border: 1px solid var(--line);
-        border-radius: 20px;
+        border-radius: 18px;
         background: rgba(255,255,255,0.96);
-        padding: 18px;
+        padding: 16px;
       }
       .provider-card h3,
       .list-card h3 {
@@ -704,16 +841,45 @@ export const renderAdminUi = (): string => {
       .chip-cloud {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 16px;
+        gap: 8px;
+        margin-top: 12px;
       }
       .model-chip {
         border: 1px solid var(--line);
         border-radius: 999px;
-        padding: 9px 14px;
+        padding: 8px 12px;
         background: #fff;
         font-family: "IBM Plex Mono", ui-monospace, monospace;
         font-size: 12px;
+      }
+      .model-group-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+      }
+      .catalog-card-head {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .catalog-card-meta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .catalog-meta-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+        font-size: 12px;
+        font-weight: 600;
       }
       .detail-panel-stack {
         display: grid;
@@ -803,7 +969,7 @@ export const renderAdminUi = (): string => {
       }
       .log-toolbar {
         display: grid;
-        grid-template-columns: minmax(280px, 1.2fr) auto auto;
+        grid-template-columns: minmax(280px, 1.15fr) auto auto;
         gap: 12px;
         align-items: center;
       }
@@ -837,7 +1003,7 @@ export const renderAdminUi = (): string => {
       .log-row,
       .log-head {
         display: grid;
-        grid-template-columns: 160px 170px 130px 110px 1fr;
+        grid-template-columns: 180px 110px 140px 140px minmax(180px, 1fr) 140px;
         gap: 12px;
         align-items: center;
         padding: 12px 16px;
@@ -856,11 +1022,32 @@ export const renderAdminUi = (): string => {
       .log-row strong {
         font-size: 13px;
       }
+      .log-route-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--accent-strong);
+        font-size: 12px;
+        font-weight: 600;
+      }
       .log-row-code {
         display: inline-flex;
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
+      }
+      .log-detail-stack {
+        display: grid;
+        gap: 4px;
+      }
+      .log-detail-stack small {
+        color: var(--muted);
+        font-size: 11px;
       }
       .log-empty {
         padding: 28px;
@@ -913,6 +1100,7 @@ export const renderAdminUi = (): string => {
         .detail-grid,
         .model-editor-grid,
         .dashboard-grid,
+        .surface-metrics,
         .toolbar-grid,
         .compact-auth-layout,
         .compact-import-grid,
@@ -924,6 +1112,16 @@ export const renderAdminUi = (): string => {
         .log-row,
         .log-head {
           grid-template-columns: 1fr;
+        }
+        .model-summary-strip {
+          grid-template-columns: 1fr;
+        }
+        .alias-row {
+          grid-template-columns: 1fr;
+        }
+        .alias-remove {
+          margin-top: 0;
+          padding-top: 0;
         }
       }
       @media (max-width: 980px) {
@@ -964,7 +1162,7 @@ export const renderAdminUi = (): string => {
           </div>
           <p>Please enter connection information to access the management interface.</p>
 
-          <div class="login-shell">
+          <form id="login-form" class="login-shell">
             <div class="login-panel">
               <div class="field">
                 <label>Current URL</label>
@@ -984,12 +1182,12 @@ export const renderAdminUi = (): string => {
             </label>
 
             <div class="login-actions">
-              <button id="login-btn" type="button" class="btn">Login</button>
+              <button id="login-btn" type="submit" class="btn">Login</button>
               <button id="login-clear-btn" type="button" class="btn secondary">Clear</button>
             </div>
 
             <div id="login-status" class="login-status">Enter an admin token to unlock runtime diagnostics and management controls.</div>
-          </div>
+          </form>
         </div>
       </section>
 
@@ -1035,15 +1233,6 @@ export const renderAdminUi = (): string => {
               </button>
               <button type="button" class="nav-btn" data-view="model-management">
                 <span><strong>Model Management</strong><span>Aliases, allowlists, disabled</span></span>
-              </button>
-            </div>
-          </div>
-
-          <div class="sidebar-section">
-            <h2>Control</h2>
-            <div class="nav-list">
-              <button type="button" class="nav-btn" data-view="dashboard">
-                <span><strong>Runtime Status</strong><span>Runtime & diagnostics</span></span>
               </button>
             </div>
           </div>
@@ -1187,9 +1376,13 @@ export const renderAdminUi = (): string => {
                     <h2>Available Models</h2>
                     <p class="panel-subtitle">Shows the saved provider catalogs and common model families the gateway currently knows about.</p>
                   </div>
-                  <button id="refresh-models-btn" type="button" class="btn secondary">Refresh</button>
+                  <div class="section-actions">
+                    <button id="available-models-add-alias-btn" type="button" class="btn secondary">Add Alias</button>
+                    <button id="refresh-models-btn" type="button" class="btn secondary">Refresh</button>
+                  </div>
                 </div>
                 <div id="available-model-total" class="headline-stat">0 available models</div>
+                <div id="available-model-metrics" class="surface-metrics"></div>
                 <div id="available-model-groups" class="list-shell" style="margin-top:18px"></div>
               </section>
             </section>
@@ -1198,6 +1391,7 @@ export const renderAdminUi = (): string => {
               <section class="panel">
                 <h2>Logs Viewer</h2>
                 <p class="panel-subtitle">Structured runtime events from the active pool targets. Search and filter the latest health, cooldown, and failure signals.</p>
+                <div id="logs-metrics" class="surface-metrics compact" style="margin-bottom:14px"></div>
                 <div class="log-toolbar" style="margin-bottom:14px">
                   <div class="field">
                     <label for="log-search">Search logs</label>
@@ -1223,26 +1417,26 @@ export const renderAdminUi = (): string => {
                   </div>
                   <span class="pill neutral">Vertex / Gemini</span>
                 </div>
-                <div class="model-editor-grid" style="margin-top:18px">
-                  <section class="stack-grid">
-                    <article class="list-card">
-                      <h3>Disabled Models</h3>
-                      <p id="disabled-summary">0 models disabled</p>
-                    </article>
-                    <article class="list-card">
-                      <h3>Model Aliases</h3>
-                      <p id="alias-summary">0 aliases configured</p>
-                    </article>
-                    <article class="list-card">
-                      <h3>Default Route</h3>
-                      <p id="default-model-summary">No default model selected</p>
-                    </article>
-                  </section>
+                <section class="model-summary-strip">
+                  <article class="list-card">
+                    <h3>Disabled Models</h3>
+                    <p id="disabled-summary">0 models disabled</p>
+                  </article>
+                  <article class="list-card">
+                    <h3>Model Aliases</h3>
+                    <p id="alias-summary">0 aliases configured</p>
+                  </article>
+                  <article class="list-card">
+                    <h3>Default Route</h3>
+                    <p id="default-model-summary">No default model selected</p>
+                  </article>
+                </section>
+                <div class="stack-grid">
                   <section class="editor-card">
                     <div class="panel-actions">
                       <div>
                         <h3 id="model-editor-title">Vertex Model Catalog</h3>
-                        <p id="model-editor-subtitle">Tune the default model and the alias surface the vertex gateway exposes to clients.</p>
+                        <p id="model-editor-subtitle">Tune the default route and saved Gemini aliases, allowlists, and disabled entries for the vertex gateway.</p>
                       </div>
                       <span id="model-editor-provider-pill" class="pill neutral">vertex</span>
                     </div>
@@ -1264,13 +1458,15 @@ export const renderAdminUi = (): string => {
                         <div id="alias-list" class="alias-list"></div>
                       </div>
                     </div>
-                    <div class="field" style="margin-top:14px">
-                      <label for="model-allowlist">Allowlist (one per line)</label>
-                      <textarea id="model-allowlist" placeholder="gemini-2.5-flash"></textarea>
-                    </div>
-                    <div class="field" style="margin-top:14px">
-                      <label for="model-disabled">Disabled (one per line)</label>
-                      <textarea id="model-disabled" placeholder="model-id"></textarea>
+                    <div class="model-editor-grid" style="margin-top:14px">
+                      <div class="field">
+                        <label for="model-allowlist">Allowlist (one per line)</label>
+                        <textarea id="model-allowlist" placeholder="gemini-2.5-flash"></textarea>
+                      </div>
+                      <div class="field">
+                        <label for="model-disabled">Disabled (one per line)</label>
+                        <textarea id="model-disabled" placeholder="model-id"></textarea>
+                      </div>
                     </div>
                     <div class="section-actions" style="margin-top:16px">
                       <button id="save-model-btn" type="button" class="btn">Save Model Catalog</button>
@@ -1444,6 +1640,7 @@ export const renderAdminUi = (): string => {
         const $ = (id) => document.getElementById(id);
         const loginScreen = $('login-screen');
         const adminShell = $('admin-shell');
+        const loginForm = $('login-form');
         const loginStatus = $('login-status');
         const globalStatus = $('global-status');
         const tokenInput = $('token-input');
@@ -1453,8 +1650,10 @@ export const renderAdminUi = (): string => {
         const authChipRow = $('auth-chip-row');
         const providerGrid = $('provider-grid');
         const availableModelGroups = $('available-model-groups');
+        const availableModelMetrics = $('available-model-metrics');
         const runtimeJson = $('runtime-json');
         const logsSummaryGrid = $('logs-summary-grid');
+        const logsMetrics = $('logs-metrics');
         const aliasList = $('alias-list');
         const credentialModal = $('credential-modal');
         const modelModal = $('model-modal');
@@ -1655,23 +1854,32 @@ export const renderAdminUi = (): string => {
             aliasList.innerHTML = '<div class="alias-empty">No aliases configured yet.</div>';
             return;
           }
-          const options = availableModelsForProvider(state.provider)
-            .map((model) => '<option value="' + escapeHtml(model) + '">' + escapeHtml(model) + '</option>')
+          const knownModels = availableModelsForProvider(state.provider);
+          const options = knownModels
+            .map((model) => '<option value="' + escapeHtml(model) + '"></option>')
             .join('');
           aliasList.innerHTML = entries.map(([source, target], index) => (
             '<div class="alias-row" data-alias-index="' + index + '">' +
-              '<div class="field">' +
+              '<div class="alias-field">' +
                 '<label>Source model name</label>' +
-                '<input list="alias-source-options" class="alias-source-input" value="' + escapeHtml(source) + '" placeholder="gemini-3.1-flash-image-preview" />' +
+                '<input class="alias-source-input" list="known-model-options" value="' + escapeHtml(source) + '" placeholder="Source model name" />' +
+                '<span class="alias-source-hint">Pick a known model or type a custom alias source.</span>' +
               '</div>' +
-              '<span class="alias-arrow">→</span>' +
-              '<div class="field">' +
+              '<div class="alias-field">' +
                 '<label>Routes to</label>' +
-                '<input class="alias-target-input" value="' + escapeHtml(String(target)) + '" placeholder="gemini-3.1-flash-image" />' +
+                '<input class="alias-target-input" list="known-model-options" value="' + escapeHtml(String(target)) + '" placeholder="gemini-3.1-flash-image-preview" />' +
               '</div>' +
               '<button type="button" class="alias-remove" data-action="remove-alias" data-index="' + index + '" aria-label="Remove alias">×</button>' +
             '</div>'
-          )).join('') + '<datalist id="alias-source-options">' + options + '</datalist>';
+          )).join('');
+          const existingList = $('known-model-options');
+          if (existingList) {
+            existingList.remove();
+          }
+          const dataList = document.createElement('datalist');
+          dataList.id = 'known-model-options';
+          dataList.innerHTML = options;
+          aliasList.appendChild(dataList);
         };
 
         const collectAliasRows = () => {
@@ -1781,10 +1989,15 @@ export const renderAdminUi = (): string => {
             if (!bucketEntries.length) {
               rows.push({
                 targetId: target.id,
+                targetProject: target.project,
+                targetLocation: target.location,
                 routeFamily: 'runtime',
                 status: health.status || 'unknown',
                 code: (health.status || 'unknown').toUpperCase(),
                 detail: 'success ' + (health.success || 0) + ' · failure ' + (health.failure || 0),
+                success: health.success || 0,
+                failure: health.failure || 0,
+                recent: health.recent || [],
               });
               return;
             }
@@ -1794,12 +2007,18 @@ export const renderAdminUi = (): string => {
               }
               const success = typeof bucket?.success === 'number' ? bucket.success : 0;
               const failure = typeof bucket?.failure === 'number' ? bucket.failure : 0;
+              const recent = Array.isArray(bucket?.recent) ? bucket.recent : (health.recent || []);
               rows.push({
                 targetId: target.id,
+                targetProject: target.project,
+                targetLocation: target.location,
                 routeFamily,
                 status: failure > 0 ? 'failure' : (success > 0 ? 'healthy' : (health.status || 'idle')),
-                code: failure > 0 ? 'FAIL' : (success > 0 ? 'OK' : 'IDLE'),
+                code: failure > 0 ? (failure + ' fail') : (success > 0 ? (success + ' ok') : 'idle'),
                 detail: 'success ' + success + ' · failure ' + failure,
+                success,
+                failure,
+                recent,
               });
             });
           });
@@ -1825,8 +2044,28 @@ export const renderAdminUi = (): string => {
           )).join('');
         };
 
+        const renderLogMetrics = (rows) => {
+          const uniqueTargets = new Set(rows.map((row) => row.targetId)).size;
+          const failureCount = rows.filter((row) => row.status === 'failure').length;
+          const activeRoutes = new Set(rows.map((row) => row.routeFamily)).size;
+          const routeSignals = rows.reduce((sum, row) => sum + row.success + row.failure, 0);
+          logsMetrics.innerHTML = [
+            ['Targets', String(uniqueTargets), 'Pool targets contributing telemetry'],
+            ['Failures', String(failureCount), 'Current failure-state route buckets'],
+            ['Routes', String(activeRoutes), 'Distinct route families in view'],
+            ['Signals', String(routeSignals), 'Success + failure counters across buckets'],
+          ].map(([label, value, hint]) => (
+            '<article class="surface-metric">' +
+              '<strong>' + escapeHtml(label) + '</strong>' +
+              '<span>' + escapeHtml(value) + '</span>' +
+              '<small>' + escapeHtml(hint) + '</small>' +
+            '</article>'
+          )).join('');
+        };
+
         const renderLogsSummary = () => {
           const rows = buildLogRows();
+          renderLogMetrics(rows);
           renderLogFilters(rows);
           const filtered = rows.filter((row) => {
             if (state.logFilter !== 'all' && row.status !== state.logFilter) return false;
@@ -1840,14 +2079,15 @@ export const renderAdminUi = (): string => {
             return;
           }
           logsSummaryGrid.innerHTML =
-            '<div class="log-head"><span>Target</span><span>Route</span><span>Status</span><span>Code</span><span>Detail</span></div>' +
+            '<div class="log-head"><span>Target</span><span>Route</span><span>Status</span><span>Signal</span><span>Detail</span><span>Recent</span></div>' +
             filtered.map((row) => (
               '<div class="log-row">' +
                 '<strong class="mono">' + escapeHtml(row.targetId) + '</strong>' +
-                '<span class="mono">' + escapeHtml(row.routeFamily) + '</span>' +
+                '<span class="log-route-chip mono">' + escapeHtml(row.routeFamily) + '</span>' +
                 '<span><span class="pill ' + (row.status === 'failure' ? 'danger' : row.status === 'cooldown' ? 'warn' : 'success') + '">' + escapeHtml(row.status) + '</span></span>' +
                 '<span class="log-row-code mono">' + escapeHtml(row.code) + '</span>' +
-                '<span>' + escapeHtml(row.detail) + '</span>' +
+                '<span class="log-detail-stack"><strong>' + escapeHtml(row.detail) + '</strong><small>' + escapeHtml(row.targetProject || '-') + ' · ' + escapeHtml(row.targetLocation || '-') + '</small></span>' +
+                renderRecentTrack(row.recent || []) +
               '</div>'
             )).join('');
         };
@@ -1899,7 +2139,7 @@ export const renderAdminUi = (): string => {
             return '<article class="auth-card">' +
               '<div class="auth-card-head">' +
                 '<div class="auth-card-title">' +
-                  '<span class="auth-card-icon">⌘</span>' +
+                  '<span class="auth-card-icon">Vx</span>' +
                   '<div>' +
                     '<div class="auth-chip-row" style="margin-bottom:6px"><span class="pill neutral">Vertex</span><span class="pill ' + statusClass + '">' + escapeHtml(health.status || 'unknown') + '</span></div>' +
                     '<h3>' + escapeHtml(entry.label || entry.id) + '</h3>' +
@@ -1921,9 +2161,9 @@ export const renderAdminUi = (): string => {
               '<div class="auth-foot">' +
                 '<div class="auth-actions">' +
                   '<button type="button" class="mini-btn labelled ghost" title="Models" data-action="inspect-models" data-id="' + escapeHtml(entry.id) + '">Models</button>' +
-                  '<button type="button" class="mini-btn ghost" title="Download" data-action="download" data-id="' + escapeHtml(entry.id) + '">↓</button>' +
+                  '<button type="button" class="mini-btn ghost" title="Download" data-action="download" data-id="' + escapeHtml(entry.id) + '">Export</button>' +
                   '<button type="button" class="mini-btn ghost" title="Auth File Details / Edit" data-action="edit" data-id="' + escapeHtml(entry.id) + '">Edit</button>' +
-                  '<button type="button" class="mini-btn danger" title="Delete" data-action="delete" data-id="' + escapeHtml(entry.id) + '"' + (state.writable ? '' : ' disabled') + '>🗑</button>' +
+                  '<button type="button" class="mini-btn danger" title="Delete" data-action="delete" data-id="' + escapeHtml(entry.id) + '"' + (state.writable ? '' : ' disabled') + '>Del</button>' +
                 '</div>' +
                 '<label class="auth-card-toggle"><span>Enabled</span><input type="checkbox" data-action="toggle-enabled" data-id="' + escapeHtml(entry.id) + '"' + (entry.enabled === false ? '' : ' checked') + (state.writable ? '' : ' disabled') + ' /></label>' +
               '</div>' +
@@ -1980,18 +2220,39 @@ export const renderAdminUi = (): string => {
         };
 
         const renderAvailableModels = () => {
+          const catalog = state.snapshot?.modelCatalog?.gemini || { aliases: {}, allowlist: [], disabled: [], defaultModel: '' };
           const groups = [
             ['gemini', 'Gemini', availableModelsForProvider('gemini')],
           ].filter(([, , models]) => models.length > 0);
           const total = groups.reduce((sum, [, , models]) => sum + models.length, 0);
           $('available-model-total').textContent = total + ' available models';
-          availableModelGroups.innerHTML = groups.length ? groups.map(([, title, models]) => (
+          availableModelMetrics.innerHTML = [
+            ['Catalog Groups', String(groups.length), 'Visible provider families currently indexed'],
+            ['Saved Aliases', String(Object.keys(catalog.aliases || {}).length), 'Client-facing remaps in the active model catalog'],
+            ['Default Route', catalog.defaultModel || 'none', 'Current default Gemini route exposed by the gateway'],
+          ].map(([label, value, hint]) => (
+            '<article class="surface-metric">' +
+              '<strong>' + escapeHtml(label) + '</strong>' +
+              '<span class="' + (label === 'Default Route' ? 'mono' : '') + '">' + escapeHtml(value) + '</span>' +
+              '<small>' + escapeHtml(hint) + '</small>' +
+            '</article>'
+          )).join('');
+          availableModelGroups.innerHTML = groups.length
+            ? '<div class="model-group-grid">' + groups.map(([, title, models]) => (
             '<article class="list-card">' +
-              '<h3>' + title + '</h3>' +
-              '<p>' + models.length + ' available models</p>' +
+              '<div class="catalog-card-head">' +
+                '<div><h3>' + title + '</h3><p>' + models.length + ' available models</p></div>' +
+                '<span class="pill neutral">catalog</span>' +
+              '</div>' +
+              '<div class="catalog-card-meta">' +
+                '<span class="catalog-meta-chip">aliases ' + Object.keys(catalog.aliases || {}).length + '</span>' +
+                '<span class="catalog-meta-chip">disabled ' + (catalog.disabled || []).length + '</span>' +
+                '<span class="catalog-meta-chip">allowlist ' + (catalog.allowlist || []).length + '</span>' +
+              '</div>' +
               '<div class="chip-cloud">' + models.map((model) => '<span class="model-chip">' + escapeHtml(model) + '</span>').join('') + '</div>' +
             '</article>'
-          )).join('') : '<div class="empty-state">No model catalog entries are available yet.</div>';
+          )).join('') + '</div>'
+            : '<div class="empty-state">No model catalog entries are available yet.</div>';
         };
 
         const patchCredential = async (id, patch) => {
@@ -2002,9 +2263,14 @@ export const renderAdminUi = (): string => {
           });
         };
 
-        $('login-btn').addEventListener('click', async () => {
+        const submitLogin = async () => {
           rememberToken();
           await refreshAll();
+        };
+
+        loginForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          await submitLogin();
         });
 
         $('login-clear-btn').addEventListener('click', () => {
@@ -2047,6 +2313,13 @@ export const renderAdminUi = (): string => {
           }
         });
         $('refresh-models-btn').addEventListener('click', renderAvailableModels);
+        $('available-models-add-alias-btn').addEventListener('click', () => {
+          $('add-alias-btn').click();
+          setView('model-management');
+          requestAnimationFrame(() => {
+            aliasList.querySelector('.alias-source-input:last-of-type')?.focus();
+          });
+        });
 
         $('auth-search').addEventListener('input', (event) => {
           state.authSearch = event.target.value;

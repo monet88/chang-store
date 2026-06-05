@@ -11,6 +11,7 @@ describe('admin ui', () => {
     expect(html).toContain('Auth File Details / Edit');
     expect(html).toContain('Vertex Model Rules');
     expect(html).toContain('id="log-search"');
+    expect(html).toContain('id="available-models-add-alias-btn"');
     expect(html).toContain('id="token-input"');
     expect(html).toContain('id="credential-list"');
     expect(html).toContain('id="import-file"');

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { testConfig } from './test-config.js';
@@ -41,6 +41,13 @@ class FakeResponse extends EventEmitter {
   }
 }
 
+const listen = async (server: Server): Promise<string> => new Promise((resolve) => {
+  server.listen(0, '127.0.0.1', () => {
+    const address = server.address();
+    if (typeof address === 'object' && address) resolve(`http://127.0.0.1:${address.port}`);
+  });
+});
+
 describe('app error fallback', () => {
   it('does not append a JSON error payload after headers were already sent', async () => {
     const server = createApp({
@@ -64,5 +71,67 @@ describe('app error fallback', () => {
     expect(
       res.headerCalls.filter(([name]) => name.toLowerCase() === 'content-type'),
     ).toHaveLength(1);
+  });
+});
+
+describe('app model aliasing', () => {
+  it('rewrites direct Gemini route models through the configured alias map', async () => {
+    const generateContent = vi.fn(async () => ({ candidates: [{ content: { parts: [{ text: 'OK' }] } }] }));
+    const server = createApp({
+      config: testConfig({
+        modelCatalog: {
+          gemini: {
+            aliases: { 'gemini-3.1-pro': 'gemini-3.1-pro-preview' },
+            allowlist: [],
+            disabled: [],
+          },
+        },
+      }),
+      genAiFactory: () => ({ models: { generateContent } }),
+    });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/gemini/v1beta/models/gemini-3.1-pro:generateContent`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Reply with OK only.' }] }] }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.1-pro-preview' }));
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('rewrites custom image route body models through the configured alias map', async () => {
+    const generateContent = vi.fn(async () => ({
+      candidates: [{ content: { parts: [{ inlineData: { data: 'abc', mimeType: 'image/png' } }] } }],
+    }));
+    const server = createApp({
+      config: testConfig({
+        modelCatalog: {
+          gemini: {
+            aliases: { 'gemini-3.1-flash-image': 'gemini-3.1-flash-image-preview' },
+            allowlist: [],
+            disabled: [],
+          },
+        },
+      }),
+      genAiFactory: () => ({ models: { generateContent } }),
+    });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/api/images/edit`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.1-flash-image',
+        prompt: 'edit',
+        images: [{ mimeType: 'image/png', data: 'YWJj' }],
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.1-flash-image-preview' }));
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 });
