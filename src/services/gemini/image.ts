@@ -104,10 +104,11 @@ const buildProxyImageRequest = (prompt: string, aspectRatio: ImageAspectRatio) =
 });
 
 const splitIntoBatches = (count: number, batchSize: number): number[] => {
+  const safeBatchSize = Math.max(1, batchSize);
   const batches: number[] = [];
   let remaining = count;
   while (remaining > 0) {
-    const current = Math.min(batchSize, remaining);
+    const current = Math.min(safeBatchSize, remaining);
     batches.push(current);
     remaining -= current;
   }

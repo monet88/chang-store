@@ -109,6 +109,25 @@ describe('admin routes', () => {
     expect(response.headers.get('access-control-allow-origin')).toBeNull();
   });
 
+  it('accepts trailing slashes on admin API routes', async () => {
+    server = createApp({
+      config: testConfig({
+        enableAdminRoutes: true,
+        adminToken: 'admin-secret',
+      }),
+      runtimeFactory: () => createFakeRuntime(),
+    });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/admin/api/health/`, {
+      headers: { authorization: 'Bearer admin-secret' },
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+  });
+
   it('serves the admin shell on /admin/ with a trailing slash', async () => {
     server = createApp({
       config: testConfig({
@@ -180,6 +199,11 @@ describe('admin routes', () => {
       headers: { authorization: 'Bearer admin-secret' },
     });
     expect(detail.status).toBe(200);
+
+    const download = await fetch(`${baseUrl}/admin/api/vertex-credentials/${id}/download`, {
+      headers: { authorization: 'Bearer admin-secret' },
+    });
+    expect(download.status).toBe(404);
 
     const patch = await fetch(`${baseUrl}/admin/api/vertex-credentials/${id}`, {
       method: 'PATCH',

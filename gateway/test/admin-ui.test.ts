@@ -18,8 +18,11 @@ describe('admin ui', () => {
     expect(html).toContain('id="model-default"');
     expect(html).toContain('/admin/api/vertex-credentials/import');
     expect(html).toContain('/admin/api/models/');
+    expect(html).toContain('openai-chat');
+    expect(html).toContain('openai-responses');
     expect(html).toContain('sessionStorage');
     expect(html).toContain('localStorage');
+    expect(html).not.toContain('/download');
     expect(html).not.toContain('gpt-5.5');
     expect(html).not.toContain('OpenAI');
     expect(html).toContain('Vertex / Gemini');

@@ -13,6 +13,7 @@ services:
     environment:
       GATEWAY_CONFIG_FILE: /app/config.yaml
       GATEWAY_POOL_CONFIG_FILE: /app/pool-config.local.json
+      GATEWAY_ADMIN_TOKEN: ${GATEWAY_ADMIN_TOKEN}
     volumes:
       - ./gateway/config.yaml:/app/config.yaml:ro
       - ./gateway/pool-config.local.json:/app/pool-config.local.json:ro

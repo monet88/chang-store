@@ -1,7 +1,6 @@
 {
   "vertexPoolSelection": "weighted-round-robin",
   "enableAdminRoutes": true,
-  "adminToken": "Tonight123@",
   "adminAllowMutations": true,
   "adminStoreMode": "file-store",
   "adminFileStoreDir": "/data/auths",

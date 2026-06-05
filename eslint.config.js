@@ -25,6 +25,7 @@ export default [
       '.github/**',
       '.ref/**',
       'gateway/compiled/**',
+      'gateway-data/**',
     ],
   },
   js.configs.recommended,

@@ -1537,7 +1537,6 @@ export const renderAdminUi = (): string => {
 
           <div class="modal-actions">
             <button id="modal-test-btn" type="button" class="btn secondary">Test</button>
-            <button id="modal-download-btn" type="button" class="btn secondary">Download</button>
             <button id="save-detail-btn" type="button" class="btn">Save</button>
             <button id="delete-detail-btn" type="button" class="btn danger">Delete</button>
           </div>
@@ -1775,35 +1774,6 @@ export const renderAdminUi = (): string => {
           return body;
         };
 
-        const downloadCredentialFile = async (id) => {
-          if (!state.token) throw new Error('Connect with an admin token first.');
-          const response = await fetch('/admin/api/vertex-credentials/' + encodeURIComponent(id) + '/download', {
-            headers: authHeaders(false),
-            credentials: 'same-origin',
-          });
-          if (!response.ok) {
-            let message = 'Download failed with ' + response.status;
-            try {
-              const body = await response.json();
-              message = body?.error?.message || message;
-            } catch {
-              // ignore json parse failure
-            }
-            throw new Error(message);
-          }
-          const blob = await response.blob();
-          const href = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          const contentDisposition = response.headers.get('content-disposition') || '';
-          const match = contentDisposition.match(/filename="([^"]+)"/);
-          anchor.href = href;
-          anchor.download = match ? decodeURIComponent(match[1]) : (id + '.json');
-          document.body.appendChild(anchor);
-          anchor.click();
-          anchor.remove();
-          URL.revokeObjectURL(href);
-        };
-
         const rememberToken = () => {
           state.token = tokenInput.value.trim();
           state.remember = rememberSession.checked;
@@ -1981,7 +1951,7 @@ export const renderAdminUi = (): string => {
         const buildLogRows = () => {
           const targets = state.snapshot?.runtime?.active?.targets || [];
           const rows = [];
-          const allowedRouteFamilies = new Set(['gemini', 'vertex', 'images', 'unknown']);
+          const allowedRouteFamilies = new Set(['gemini', 'vertex', 'images', 'openai-chat', 'openai-responses', 'unknown']);
           targets.forEach((target) => {
             const health = target.health || {};
             const routeBuckets = health.routeFamilyBuckets || {};
@@ -2161,7 +2131,6 @@ export const renderAdminUi = (): string => {
               '<div class="auth-foot">' +
                 '<div class="auth-actions">' +
                   '<button type="button" class="mini-btn labelled ghost" title="Models" data-action="inspect-models" data-id="' + escapeHtml(entry.id) + '">Models</button>' +
-                  '<button type="button" class="mini-btn ghost" title="Download" data-action="download" data-id="' + escapeHtml(entry.id) + '">Export</button>' +
                   '<button type="button" class="mini-btn ghost" title="Auth File Details / Edit" data-action="edit" data-id="' + escapeHtml(entry.id) + '">Edit</button>' +
                   '<button type="button" class="mini-btn danger" title="Delete" data-action="delete" data-id="' + escapeHtml(entry.id) + '"' + (state.writable ? '' : ' disabled') + '>Del</button>' +
                 '</div>' +
@@ -2406,10 +2375,6 @@ export const renderAdminUi = (): string => {
               openCredentialModal();
               return;
             }
-            if (action === 'download') {
-              await downloadCredentialFile(id);
-              return;
-            }
             if (action === 'delete') {
               if (!state.writable) throw new Error('Gateway is read-only. Delete is disabled.');
               await fetchJson('/admin/api/vertex-credentials/' + encodeURIComponent(id), { method: 'DELETE' });
@@ -2482,16 +2447,6 @@ export const renderAdminUi = (): string => {
           } catch (error) {
             setGlobalStatus(error.message || String(error), 'error');
           }
-        });
-
-        $('modal-download-btn').addEventListener('click', () => {
-          if (!state.selectedCredentialId) {
-            setGlobalStatus('Select a credential and ensure the session is unlocked.', 'error');
-            return;
-          }
-          downloadCredentialFile(state.selectedCredentialId).catch((error) => {
-            setGlobalStatus(error.message || String(error), 'error');
-          });
         });
 
         $('delete-detail-btn').addEventListener('click', async () => {

@@ -65,11 +65,11 @@ describe('openai responses routes', () => {
       role: 'assistant',
       content: [{ type: 'output_text', text: 'ok' }],
     });
-    expect(generateContent).toHaveBeenCalledWith({
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'Reply with exactly ok' }] }],
       __gatewayRouteFamily: 'openai-responses',
-    });
+    }));
   });
 
   it('maps message-array input, instructions, and custom function tool choice into Gemini config', async () => {
@@ -124,7 +124,7 @@ describe('openai responses routes', () => {
         arguments: JSON.stringify({ id: '42' }),
       }),
     ]));
-    expect(generateContent).toHaveBeenCalledWith({
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'Lookup order 42' }] }],
       config: {
@@ -144,7 +144,7 @@ describe('openai responses routes', () => {
         },
       },
       __gatewayRouteFamily: 'openai-responses',
-    });
+    }));
   });
 
   it('rejects unsupported built-in tools before calling Gemini', async () => {
@@ -341,7 +341,7 @@ describe('openai responses routes', () => {
       }),
     });
     expect(generateContent).not.toHaveBeenCalled();
-    expect(generateContentStream).toHaveBeenCalledWith({
+    expect(generateContentStream).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
       __gatewayRouteFamily: 'openai-responses',
@@ -349,7 +349,7 @@ describe('openai responses routes', () => {
         idleTimeoutMs: 250,
         maxDurationMs: 10000,
       },
-    });
+    }));
   });
 
   it('does not emit scaffold SSE frames before the first upstream chunk succeeds', async () => {

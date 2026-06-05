@@ -116,7 +116,7 @@ export class ImageWorkloads {
     const image = validateImages([body.image], this.config);
     const quality = typeof body.quality === 'string' ? body.quality : '2K';
     const model = typeof body.model === 'string' ? body.model : defaultImageModel;
-    const response = await this.unsafeGenerate(() => this.ai.models.generateContent(withGenAiRequestMetadata({
+    const response = await this.safeGenerate(() => this.ai.models.generateContent(withGenAiRequestMetadata({
       model,
       contents: [{ role: 'user', parts: [...buildImageParts(image), { text: `Upscale this image to ${quality}. Preserve the original subject and composition.` }] }],
       config: { responseModalities: ['IMAGE'], imageConfig: { imageSize: quality } },
