@@ -7,11 +7,13 @@ import type { ImageDto } from '../workloads/image-normalizer.js';
 const SUPPORTED_MODELS = new Set([
   'gemini-2.5-flash-image',
   'gemini-3.1-flash-image',
+  'gemini-3.1-flash-image-preview',
   'gemini-3-pro-image',
+  'gemini-3-pro-image-preview',
 ]);
 
 const assertModel = (value: unknown): string => {
-  const model = typeof value === 'string' && value.trim() ? value.trim() : 'gemini-3.1-flash-image';
+  const model = typeof value === 'string' && value.trim() ? value.trim() : 'gemini-3.1-flash-image-preview';
   if (!SUPPORTED_MODELS.has(model)) {
     throw new GatewayError(400, 'VALIDATION_FAILED', `Unsupported image model: ${model}.`);
   }

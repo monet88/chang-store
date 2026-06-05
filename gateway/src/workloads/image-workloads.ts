@@ -12,8 +12,8 @@ interface ImageInput {
   data: string;
 }
 
-const defaultGenerateModel = 'gemini-3.1-flash-image';
-const defaultImageModel = 'gemini-3.1-flash-image';
+const defaultGenerateModel = 'gemini-3.1-flash-image-preview';
+const defaultImageModel = 'gemini-3.1-flash-image-preview';
 
 const assertString = (body: Record<string, unknown>, key: string): string => {
   const value = body[key];
