@@ -108,7 +108,7 @@ export const blobToBase64 = (blob: Blob): Promise<string> => {
         const reader = new FileReader();
         reader.onloadend = () => {
             if (typeof reader.result === 'string') {
-                const base64String = reader.result.split(',')[1];
+                const base64String = reader.result.substring(reader.result.indexOf(',') + 1);
                 resolve(base64String);
             } else {
                 reject(new Error("Failed to read blob as Base64 string."));
@@ -170,7 +170,7 @@ export const compressImage = (file: File, quality: number = 0.8): Promise<ImageF
       
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', quality);
-      const compressedBase64 = dataUrl.split(',')[1];
+      const compressedBase64 = dataUrl.substring(dataUrl.indexOf(',') + 1);
       
       resolve({
         base64: compressedBase64,
@@ -223,7 +223,7 @@ export const cropAndCompressImage = (file: File, targetAspectRatio: number, qual
       
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', quality);
-      const compressedBase64 = dataUrl.split(',')[1];
+      const compressedBase64 = dataUrl.substring(dataUrl.indexOf(',') + 1);
       
       resolve({
         base64: compressedBase64,
@@ -276,7 +276,7 @@ export const compositeMarkerOnImage = (image: ImageFile, marker: MarkerPosition)
       // Ensure mimeType fallback since some test cases might lack it
       const mimeType = image.mimeType || 'image/jpeg';
       const dataUrl = canvas.toDataURL(mimeType, 0.95);
-      const base64 = dataUrl.split(',')[1];
+      const base64 = dataUrl.substring(dataUrl.indexOf(',') + 1);
       resolve({ base64, mimeType });
     };
     img.onerror = () => reject(new Error('Failed to composite marker image'));

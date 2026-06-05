@@ -59,7 +59,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
-          const base64String = reader.result.split(',')[1];
+          const base64String = reader.result.substring(reader.result.indexOf(',') + 1);
           onImageUpload({ base64: base64String, mimeType: file.type });
         }
       };
