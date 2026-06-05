@@ -13,7 +13,7 @@ import type { GenAiFactory } from './lib/google-genai-client.js';
 import { createGoogleGenAiClient } from './lib/google-genai-client.js';
 import { createGenAiRuntime, type GenAiRuntimeLike } from './lib/genai-runtime.js';
 import { maybeHandleAdminRoute } from './admin/admin-routes.js';
-import { resolveProviderModel } from './admin/model-store.js';
+import { getProviderModelCatalog, resolveProviderModel } from './admin/model-store.js';
 import { healthResponse, readyResponse, rootResponse } from './routes/health-routes.js';
 import { runCustomImageRoute } from './routes/custom-image-routes.js';
 import { runOpenAiImageEditRoute, runOpenAiImageGenerationRoute } from './routes/openai-images-routes.js';
@@ -83,14 +83,23 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
       const resolvedRoute = { ...route };
       const resolvedBody = { ...body };
       const geminiModel = (value: unknown) => resolveProviderModel(config.modelCatalog, 'gemini', value);
-      const openAiModel = (value: unknown) => resolveProviderModel(config.modelCatalog, 'openai', value);
+      const openAiModel = (value: unknown) => {
+        const catalog = getProviderModelCatalog(config.modelCatalog, 'openai');
+        const hasOpenAiRules = Boolean(
+          catalog.defaultModel
+          || Object.keys(catalog.aliases).length > 0
+          || catalog.allowlist.length > 0
+          || catalog.disabled.length > 0,
+        );
+        return hasOpenAiRules ? resolveProviderModel(config.modelCatalog, 'openai', value) : undefined;
+      };
       if (resolvedRoute.family === 'gemini' || resolvedRoute.family === 'vertex' || resolvedRoute.family === 'vtx') {
         const nextModel = geminiModel(resolvedRoute.model);
         if (nextModel) {
           resolvedRoute.model = nextModel;
         }
       }
-      if (resolvedRoute.family === 'custom') {
+      if (resolvedRoute.family === 'custom' && typeof resolvedBody.model !== 'undefined') {
         const nextModel = geminiModel(resolvedBody.model);
         if (nextModel) {
           resolvedBody.model = nextModel;
@@ -145,6 +154,7 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
               workloads,
               config.maxJsonBytes,
               ctx.id,
+              (value) => openAiModel(value) || geminiModel(value),
             ));
             return;
           }

@@ -113,6 +113,7 @@ const buildEditRequestFromJson = (body: Record<string, unknown>): Record<string,
 const buildEditRequestFromMultipart = async (
   req: IncomingMessage,
   maxBytes: number,
+  resolveModel?: (value: unknown) => string | undefined,
 ): Promise<Record<string, unknown>> => {
   const parts = await readMultipartBody(req, maxBytes);
   const fields = new Map<string, string[]>();
@@ -155,9 +156,10 @@ const buildEditRequestFromMultipart = async (
   }
   const rawSize = fields.get('size')?.[0];
   const aspectRatio = parseSizeToAspectRatio(rawSize);
+  const resolvedModel = resolveModel?.(fields.get('model')?.[0]) ?? fields.get('model')?.[0];
   return {
     prompt,
-    model: assertModel(fields.get('model')?.[0]),
+    model: assertModel(resolvedModel),
     numberOfImages: fields.get('n')?.[0] ? Number(fields.get('n')?.[0]) : undefined,
     images,
     ...(aspectRatio ? { aspectRatio } : {}),
@@ -178,10 +180,11 @@ export const runOpenAiImageEditRoute = async (
   workloads: ImageWorkloads,
   maxBytes: number,
   requestId?: string,
+  resolveModel?: (value: unknown) => string | undefined,
 ): Promise<Record<string, unknown>> => {
   const contentType = req.headers['content-type'];
   if (typeof contentType === 'string' && contentType.includes('multipart/form-data')) {
-    return normalizeImagesResponse((await workloads.edit(await buildEditRequestFromMultipart(req, maxBytes), requestId)).images);
+    return normalizeImagesResponse((await workloads.edit(await buildEditRequestFromMultipart(req, maxBytes, resolveModel), requestId)).images);
   }
   if (!body) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'JSON request body is required for non-multipart image edits.');

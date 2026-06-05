@@ -237,7 +237,7 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
         finalPrompt += ` Negative prompt: strictly avoid including ${negativePrompt.trim()}.`;
       }
 
-      contentParts = [...imageParts, { text: finalPrompt }];
+      contentParts = [{ text: finalPrompt }, ...imageParts];
     }
 
     const gatewayRoot = getGatewayRootUrl();

@@ -134,4 +134,66 @@ describe('app model aliasing', () => {
     expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.1-flash-image-preview' }));
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
+
+  it('does not inject default model into custom image routes when the client omitted model', async () => {
+    const generateContent = vi.fn(async () => ({
+      candidates: [{ content: { parts: [{ inlineData: { data: 'abc', mimeType: 'image/png' } }] } }],
+    }));
+    const server = createApp({
+      config: testConfig({
+        modelCatalog: {
+          gemini: {
+            defaultModel: 'gemini-2.5-flash',
+            aliases: {},
+            allowlist: [],
+            disabled: [],
+          },
+        },
+      }),
+      genAiFactory: () => ({ models: { generateContent } }),
+    });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/api/images/edit`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        prompt: 'edit',
+        images: [{ mimeType: 'image/png', data: 'YWJj' }],
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.1-flash-image-preview' }));
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('rejects disabled and non-allowlisted provider models before calling upstream', async () => {
+    const generateContent = vi.fn(async () => ({ candidates: [{ content: { parts: [{ text: 'OK' }] } }] }));
+    const server = createApp({
+      config: testConfig({
+        modelCatalog: {
+          gemini: {
+            aliases: { 'gemini-3.1-pro': 'gemini-3.1-pro-preview' },
+            allowlist: ['gemini-2.5-flash'],
+            disabled: ['gemini-3.1-pro-preview'],
+          },
+        },
+      }),
+      genAiFactory: () => ({ models: { generateContent } }),
+    });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/gemini/v1beta/models/gemini-3.1-pro:generateContent`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer test-key', 'content-type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Reply with OK only.' }] }] }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error.code).toBe('VALIDATION_FAILED');
+    expect(generateContent).not.toHaveBeenCalled();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
 });

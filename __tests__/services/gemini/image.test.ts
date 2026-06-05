@@ -196,6 +196,8 @@ describe('services/gemini/image.ts', () => {
           }),
         })
       );
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.contents[0].parts[0]).toEqual({ text: 'Make it look vintage' });
     });
 
     it('should handle multiple input images', async () => {
@@ -213,6 +215,7 @@ describe('services/gemini/image.ts', () => {
       expect(result).toHaveLength(1);
       // Verify both images were passed to the API
       const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.contents[0].parts[0]).toEqual({ text: 'Merge these images' });
       expect(callArgs.contents[0].parts).toHaveLength(3); // 2 images + 1 text
     });
 
