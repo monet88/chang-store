@@ -165,8 +165,9 @@ const buildEditRequestFromMultipart = async (
 export const runOpenAiImageGenerationRoute = async (
   body: Record<string, unknown>,
   workloads: ImageWorkloads,
+  requestId?: string,
 ): Promise<Record<string, unknown>> => normalizeImagesResponse(
-  (await workloads.generate(buildGenerateRequest(body))).images,
+  (await workloads.generate(buildGenerateRequest(body), requestId)).images,
 );
 
 export const runOpenAiImageEditRoute = async (
@@ -174,13 +175,14 @@ export const runOpenAiImageEditRoute = async (
   body: Record<string, unknown> | null,
   workloads: ImageWorkloads,
   maxBytes: number,
+  requestId?: string,
 ): Promise<Record<string, unknown>> => {
   const contentType = req.headers['content-type'];
   if (typeof contentType === 'string' && contentType.includes('multipart/form-data')) {
-    return normalizeImagesResponse((await workloads.edit(await buildEditRequestFromMultipart(req, maxBytes))).images);
+    return normalizeImagesResponse((await workloads.edit(await buildEditRequestFromMultipart(req, maxBytes), requestId)).images);
   }
   if (!body) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'JSON request body is required for non-multipart image edits.');
   }
-  return normalizeImagesResponse((await workloads.edit(buildEditRequestFromJson(body))).images);
+  return normalizeImagesResponse((await workloads.edit(buildEditRequestFromJson(body), requestId)).images);
 };

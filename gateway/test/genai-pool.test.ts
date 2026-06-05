@@ -1075,4 +1075,51 @@ describe('GenAI runtime pool', () => {
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });
+
+  it('retries transient image edit failures before surfacing an error', async () => {
+    let attempts = 0;
+    const workloads = new ImageWorkloads({
+      models: {
+        generateContent: vi.fn(async () => {
+          attempts += 1;
+          if (attempts === 1) {
+            throw new Error('429 resource_exhausted');
+          }
+          return {
+            candidates: [
+              {
+                finishReason: 'STOP',
+                content: {
+                  parts: [
+                    {
+                      inlineData: {
+                        mimeType: 'image/png',
+                        data: 'ZmFrZQ==',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          };
+        }),
+      },
+    }, testConfig());
+
+    const response = await workloads.edit({
+      prompt: 'Retry this edit',
+      model: 'gemini-3.1-flash-image',
+      numberOfImages: 1,
+      images: [
+        {
+          mimeType: 'image/jpeg',
+          data: 'ZmFrZQ==',
+        },
+      ],
+    });
+
+    expect(attempts).toBe(2);
+    expect(response.images).toHaveLength(1);
+    expect(response.images[0]?.mimeType).toBe('image/png');
+  });
 });

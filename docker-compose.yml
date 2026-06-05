@@ -12,9 +12,12 @@ services:
       - "${GATEWAY_HOST_PORT:-19089}:8080"
     environment:
       GATEWAY_CONFIG_FILE: /app/config.yaml
+      GATEWAY_POOL_CONFIG_FILE: /app/pool-config.local.json
     volumes:
       - ./gateway/config.yaml:/app/config.yaml:ro
+      - ./gateway/pool-config.local.json:/app/pool-config.local.json:ro
       - "${VERTEX_ACCOUNTS_DIR:-./gateway/accounts}:/run/vertex-accounts:ro"
+      - ./gateway-data/auths:/data/auths
     healthcheck:
       test:
         [

@@ -311,6 +311,7 @@ export const runOpenAiResponsesRoute = async (
   route: ClassifiedRoute,
   body: Record<string, unknown>,
   ai: GenAiClient,
+  requestId?: string,
 ): Promise<Record<string, unknown>> => {
   if (route.operation !== 'responses') {
     throw new GatewayError(404, 'NOT_FOUND', 'OpenAI Responses route is not implemented.');
@@ -318,7 +319,7 @@ export const runOpenAiResponsesRoute = async (
 
   const request = withGenAiRequestMetadata(
     buildGeminiRequest(body as OpenAIResponsesRequest),
-    { routeFamily: 'openai-responses' },
+    { routeFamily: 'openai-responses', requestId },
   );
   const response = await ai.models.generateContent(request);
   const responseId = `resp_${randomUUID().replace(/-/g, '')}`;
@@ -341,6 +342,7 @@ export const runOpenAiResponsesStreamRoute = async (
   body: Record<string, unknown>,
   ai: GenAiClient,
   streamConfig: { idleTimeoutMs: number; maxDurationMs: number },
+  requestId?: string,
 ): Promise<void> => {
   if (route.operation !== 'responses') {
     throw new GatewayError(404, 'NOT_FOUND', 'OpenAI Responses route is not implemented.');
@@ -353,6 +355,7 @@ export const runOpenAiResponsesStreamRoute = async (
     buildGeminiRequest(body as OpenAIResponsesRequest, 'stream'),
     {
       routeFamily: 'openai-responses',
+      requestId,
       streamGuard: {
         idleTimeoutMs: streamConfig.idleTimeoutMs,
         maxDurationMs: streamConfig.maxDurationMs,

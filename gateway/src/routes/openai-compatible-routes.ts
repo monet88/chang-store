@@ -318,6 +318,7 @@ export const runOpenAiCompatibleRoute = async (
   route: ClassifiedRoute,
   body: Record<string, unknown>,
   ai: GenAiClient,
+  requestId?: string,
 ): Promise<Record<string, unknown>> => {
   if (route.operation === 'models') {
     return listModels();
@@ -328,7 +329,7 @@ export const runOpenAiCompatibleRoute = async (
 
   const request = withGenAiRequestMetadata(
     buildGeminiRequest(body as OpenAIChatCompletionRequest),
-    { routeFamily: 'openai-chat' },
+    { routeFamily: 'openai-chat', requestId },
   );
   const response = await ai.models.generateContent(request);
   return convertGeminiResponseToOpenAI(response, String(request.model));
@@ -341,6 +342,7 @@ export const runOpenAiCompatibleStreamRoute = async (
   body: Record<string, unknown>,
   ai: GenAiClient,
   streamConfig: { idleTimeoutMs: number; maxDurationMs: number },
+  requestId?: string,
 ): Promise<void> => {
   if (route.operation !== 'chatCompletions') {
     throw new GatewayError(404, 'NOT_FOUND', 'OpenAI-compatible route is not implemented.');
@@ -355,6 +357,7 @@ export const runOpenAiCompatibleStreamRoute = async (
     buildGeminiRequest(requestBody, 'stream'),
     {
       routeFamily: 'openai-chat',
+      requestId,
       streamGuard: {
         idleTimeoutMs: streamConfig.idleTimeoutMs,
         maxDurationMs: streamConfig.maxDurationMs,

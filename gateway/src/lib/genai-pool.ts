@@ -359,8 +359,13 @@ export class GenAiPoolClient implements GenAiClient {
       const snapshot = this.pinSnapshot();
       try {
         const { metadata, request: cleanRequest } = extractGenAiRequestMetadata(request);
-        return await this.withFailover(snapshot, metadata.routeFamily, this.extractRequestedModel(cleanRequest), (target) =>
-          target.client.models.generateContent(cleanRequest));
+        return await this.withFailover(
+          snapshot,
+          metadata.routeFamily,
+          metadata.requestId,
+          this.extractRequestedModel(cleanRequest),
+          (target) => target.client.models.generateContent(cleanRequest),
+        );
       } finally {
         snapshot.refCount -= 1;
       }
@@ -374,10 +379,11 @@ export class GenAiPoolClient implements GenAiClient {
         const requestedModel = this.extractRequestedModel(cleanRequest);
 
         while (attempted.size < snapshot.targets.length) {
-          const target = this.selectAvailableTarget(snapshot, attempted, requestedModel);
+          const target = this.selectAvailableTarget(snapshot, attempted, requestedModel, metadata.requestId);
           attempted.add(target.id);
           console.info(JSON.stringify({
             event: 'genai_pool.target_selected',
+            ...(metadata.requestId ? { requestId: metadata.requestId } : {}),
             targetId: target.id,
             routeFamily: metadata.routeFamily,
             streaming: true,
@@ -466,6 +472,7 @@ export class GenAiPoolClient implements GenAiClient {
     snapshot: GenAiPoolSnapshot,
     attempted: Set<string>,
     requestedModel: string | null,
+    requestId?: string,
   ): GenAiTarget {
     const healthyTargets = snapshot.targets.filter(
       (target) =>
@@ -497,6 +504,7 @@ export class GenAiPoolClient implements GenAiClient {
     })[0];
     console.warn(JSON.stringify({
       event: 'genai_pool.all_targets_cooldown',
+      ...(requestId ? { requestId } : {}),
       targetId: fallbackTarget.id,
       cooldownUntil: fallbackTarget.health.cooldownUntil,
     }));
@@ -506,6 +514,7 @@ export class GenAiPoolClient implements GenAiClient {
   private async withFailover(
     snapshot: GenAiPoolSnapshot,
     routeFamily: GenAiRouteFamily,
+    requestId: string | undefined,
     requestedModel: string | null,
     execute: (target: GenAiTarget) => Promise<Record<string, unknown>>,
   ): Promise<Record<string, unknown>> {
@@ -513,10 +522,11 @@ export class GenAiPoolClient implements GenAiClient {
     let lastError: unknown;
 
     while (attempted.size < snapshot.targets.length) {
-      const target = this.selectAvailableTarget(snapshot, attempted, requestedModel);
+      const target = this.selectAvailableTarget(snapshot, attempted, requestedModel, requestId);
       attempted.add(target.id);
       console.info(JSON.stringify({
         event: 'genai_pool.target_selected',
+        ...(requestId ? { requestId } : {}),
         targetId: target.id,
         routeFamily,
         streaming: false,

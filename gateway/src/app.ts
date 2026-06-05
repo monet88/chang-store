@@ -103,16 +103,16 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
         if (route.family === 'gemini') {
           if (!config.enableGeminiRoutes) throw new GatewayError(404, 'NOT_FOUND', 'Gemini-compatible routes are disabled.');
           if (route.stream) {
-            await sendSseStream(res, await runCompatibilityStreamRoute(route, body, ai), { includeDone: false, ...streamConfig });
+            await sendSseStream(res, await runCompatibilityStreamRoute(route, body, ai, ctx.id), { includeDone: false, ...streamConfig });
             return;
           }
-          sendJson(res, 200, await runGeminiCompatibleRoute(route, body, ai));
+          sendJson(res, 200, await runGeminiCompatibleRoute(route, body, ai, ctx.id));
           return;
         }
         if (route.family === 'openai') {
           if (!config.enableOpenAiRoutes) throw new GatewayError(404, 'NOT_FOUND', 'OpenAI-compatible routes are disabled.');
           if (route.operation === 'openaiImageGenerations') {
-            sendJson(res, 200, await runOpenAiImageGenerationRoute(body, workloads));
+            sendJson(res, 200, await runOpenAiImageGenerationRoute(body, workloads, ctx.id));
             return;
           }
           if (route.operation === 'openaiImageEdits') {
@@ -121,22 +121,23 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
               expectsMultipartOpenAiEdit ? null : body,
               workloads,
               config.maxJsonBytes,
+              ctx.id,
             ));
             return;
           }
           if (route.operation === 'chatCompletions' && body.stream === true) {
-            await runOpenAiCompatibleStreamRoute(req, res, route, body, ai, streamConfig);
+            await runOpenAiCompatibleStreamRoute(req, res, route, body, ai, streamConfig, ctx.id);
             return;
           }
           if (route.operation === 'responses' && body.stream === true) {
-            await runOpenAiResponsesStreamRoute(req, res, route, body, ai, streamConfig);
+            await runOpenAiResponsesStreamRoute(req, res, route, body, ai, streamConfig, ctx.id);
             return;
           }
           if (route.operation === 'responses') {
-            sendJson(res, 200, await runOpenAiResponsesRoute(route, body, ai));
+            sendJson(res, 200, await runOpenAiResponsesRoute(route, body, ai, ctx.id));
             return;
           }
-          sendJson(res, 200, await runOpenAiCompatibleRoute(route, body, ai));
+          sendJson(res, 200, await runOpenAiCompatibleRoute(route, body, ai, ctx.id));
           return;
         }
         if (route.family === 'vertex' || route.family === 'vtx') {
@@ -144,15 +145,15 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
             throw new GatewayError(404, 'NOT_FOUND', 'Vertex-compatible routes are disabled.');
           }
           if (route.stream) {
-            await sendSseStream(res, await runCompatibilityStreamRoute(route, body, ai), { includeDone: false, ...streamConfig });
+            await sendSseStream(res, await runCompatibilityStreamRoute(route, body, ai, ctx.id), { includeDone: false, ...streamConfig });
             return;
           }
-          sendJson(res, 200, await runVertexCompatibleRoute(route, body, ai));
+          sendJson(res, 200, await runVertexCompatibleRoute(route, body, ai, ctx.id));
           return;
         }
         if (route.family === 'custom') {
           if (!config.enableImageRoutes) throw new GatewayError(404, 'NOT_FOUND', 'Custom image routes are disabled.');
-          sendJson(res, 200, await runCustomImageRoute(route.operation, body, workloads));
+          sendJson(res, 200, await runCustomImageRoute(route.operation, body, workloads, ctx.id));
           return;
         }
       } finally {

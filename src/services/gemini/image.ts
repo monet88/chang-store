@@ -3,8 +3,13 @@ import { Part, Modality } from "@google/genai";
 import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel, UpscaleQuality } from '../../types';
 import { getActiveApiKey, getGeminiBaseUrl, getGeminiClient, isProxyEnabled } from '../apiClient';
 import { getModelCapabilities } from '../../config/modelRegistry';
+import { runBoundedWorkers } from '../../utils/run-bounded-workers';
 
 const PROXY_IMAGE_TIMEOUT_MS = 30_000;
+const MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS = 3;
+
+let activeGeminiImageRequests = 0;
+const geminiImageRequestQueue: Array<() => void> = [];
 
 export interface GeneratedImageFile extends ImageFile {
   metadata?: {
@@ -98,6 +103,45 @@ const buildProxyImageRequest = (prompt: string, aspectRatio: ImageAspectRatio) =
   },
 });
 
+const splitIntoBatches = (count: number, batchSize: number): number[] => {
+  const batches: number[] = [];
+  let remaining = count;
+  while (remaining > 0) {
+    const current = Math.min(batchSize, remaining);
+    batches.push(current);
+    remaining -= current;
+  }
+  return batches;
+};
+
+const acquireGeminiImageRequestSlot = async (): Promise<void> => {
+  if (activeGeminiImageRequests < MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS) {
+    activeGeminiImageRequests += 1;
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    geminiImageRequestQueue.push(() => {
+      activeGeminiImageRequests += 1;
+      resolve();
+    });
+  });
+};
+
+const releaseGeminiImageRequestSlot = (): void => {
+  activeGeminiImageRequests -= 1;
+  geminiImageRequestQueue.shift()?.();
+};
+
+const withGeminiImageRequestSlot = async <T>(task: () => Promise<T>): Promise<T> => {
+  await acquireGeminiImageRequestSlot();
+  try {
+    return await task();
+  } finally {
+    releaseGeminiImageRequestSlot();
+  }
+};
+
 const getGatewayRootUrl = (): string | null => {
   const baseUrl = getGeminiBaseUrl();
   if (!baseUrl) return null;
@@ -165,10 +209,10 @@ const generateProxyImage = async (
   const ai = getGeminiClient();
   const request = buildProxyImageRequest(prompt, aspectRatio);
 
-  const response = await ai.models.generateContent({
+  const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
     model,
     ...request,
-  });
+  }));
 
   return extractInlineImagePart(response, { requestedModel: model });
 };
@@ -201,15 +245,19 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
         data: image.base64,
         mimeType: image.mimeType,
       }));
-
-      return callGatewayImageRoute('/api/images/edit', {
-        model,
-        images: gatewayImages,
-        prompt: finalPrompt,
-        aspectRatio,
-        resolution,
-        numberOfImages,
-      });
+      const batchedResults: ImageFile[] = [];
+      for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+        const batchImages = await withGeminiImageRequestSlot(() => callGatewayImageRoute('/api/images/edit', {
+          model,
+          images: gatewayImages,
+          prompt: finalPrompt,
+          aspectRatio,
+          resolution,
+          numberOfImages: batchSize,
+        }));
+        batchedResults.push(...batchImages);
+      }
+      return batchedResults;
     }
 
     const generateSingleImage = async (): Promise<ImageFile> => {
@@ -223,19 +271,32 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
         imageConfig.imageSize = resolution;
       }
 
-      const response = await ai.models.generateContent({
+      const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
         model,
         contents: [{ role: 'user', parts: contentParts }],
         config: {
           responseModalities: [Modality.IMAGE],
           ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
         },
-      });
+      }));
 
       return extractInlineImagePart(response, { requestedModel: model });
     };
 
-    return await Promise.all(Array.from({ length: numberOfImages }, () => generateSingleImage()));
+    const results: ImageFile[] = [];
+    for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+      const batchResults: ImageFile[] = new Array(batchSize);
+      const batchSlots = Array.from({ length: batchSize }, (_, index) => index);
+      await runBoundedWorkers(
+        batchSlots,
+        batchSize,
+        async (index) => {
+          batchResults[index] = await generateSingleImage();
+        },
+      );
+      results.push(...batchResults);
+    }
+    return results;
   } catch (error) {
     console.error("Error editing image with Gemini API:", error);
     throw createGeminiFailedError(error);
@@ -255,32 +316,56 @@ export const generateImageFromText = async (
     const gatewayRoot = getGatewayRootUrl();
 
     if (gatewayRoot) {
-      const gatewayResults = await callGatewayImageRoute('/api/images/generate', {
-        model,
-        prompt,
-        aspectRatio: normalizedAspectRatio,
-        numberOfImages,
-      });
-      return gatewayResults.map((image) => ({ ...image, metadata: { requestedModel: model } }));
+      const gatewayResults: GeneratedImageFile[] = [];
+      for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+        const batchImages = await withGeminiImageRequestSlot(() => callGatewayImageRoute('/api/images/generate', {
+          model,
+          prompt,
+          aspectRatio: normalizedAspectRatio,
+          numberOfImages: batchSize,
+        }));
+        gatewayResults.push(...batchImages.map((image) => ({ ...image, metadata: { requestedModel: model } })));
+      }
+      return gatewayResults;
     }
 
     if (!isProxyEnabled()) {
-      return await Promise.all(Array.from({ length: numberOfImages }, async () => {
-        const response = await ai.models.generateContent({
-          model,
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          config: {
-            responseModalities: [Modality.IMAGE],
-            imageConfig: { aspectRatio: normalizedAspectRatio },
+      const results: GeneratedImageFile[] = [];
+      for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+        const batchResults: GeneratedImageFile[] = new Array(batchSize);
+        await runBoundedWorkers(
+          Array.from({ length: batchSize }, (_, index) => index),
+          batchSize,
+          async (index) => {
+            const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
+              model,
+              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              config: {
+                responseModalities: [Modality.IMAGE],
+                imageConfig: { aspectRatio: normalizedAspectRatio },
+              },
+            }));
+            batchResults[index] = extractInlineImagePart(response, { requestedModel: model });
           },
-        });
-        return extractInlineImagePart(response, { requestedModel: model });
-      }));
+        );
+        results.push(...batchResults);
+      }
+      return results;
     }
 
-    return await Promise.all(Array.from({ length: numberOfImages }, () =>
-      generateProxyImage(prompt, normalizedAspectRatio, model),
-    ));
+    const proxyResults: GeneratedImageFile[] = [];
+    for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+      const batchResults: GeneratedImageFile[] = new Array(batchSize);
+      await runBoundedWorkers(
+        Array.from({ length: batchSize }, (_, index) => index),
+        batchSize,
+        async (index) => {
+          batchResults[index] = await generateProxyImage(prompt, normalizedAspectRatio, model);
+        },
+      );
+      proxyResults.push(...batchResults);
+    }
+    return proxyResults;
   } catch (error) {
     console.error("Error generating image from text with Gemini API:", error);
     throw createGeminiFailedError(error);
@@ -312,14 +397,14 @@ export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
     const textPart: Part = { text: prompt ?? `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
 
-    const response = await ai.models.generateContent({
+    const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
       model,
       contents: [{ role: 'user', parts: [imagePart, textPart] }],
       config: {
         responseModalities: [Modality.IMAGE],
         imageConfig: { imageSize: quality },
       },
-    });
+    }));
 
     return extractInlineImagePart(response, { requestedModel: model });
   } catch (error) {

@@ -76,6 +76,7 @@ export const maybeHandleAdminRoute = async (
   config: GatewayConfig,
   runtime?: GenAiRuntimeLike,
 ): Promise<boolean> => {
+  const normalizedPathname = url.pathname === '/' ? '/' : (url.pathname.replace(/\/+$/, '') || '/');
   if (!url.pathname.startsWith('/admin')) {
     return false;
   }
@@ -89,7 +90,7 @@ export const maybeHandleAdminRoute = async (
     return true;
   }
 
-  if (req.method === 'GET' && url.pathname === '/admin') {
+  if (req.method === 'GET' && normalizedPathname === '/admin') {
     res.statusCode = 200;
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.end(renderAdminUi());
@@ -141,6 +142,7 @@ export const maybeHandleAdminRoute = async (
 
   const credentialMatch = url.pathname.match(/^\/admin\/api\/vertex-credentials\/([^/]+)$/);
   const credentialTestMatch = url.pathname.match(/^\/admin\/api\/vertex-credentials\/([^/]+)\/test$/);
+  const credentialDownloadMatch = url.pathname.match(/^\/admin\/api\/vertex-credentials\/([^/]+)\/download$/);
   if (credentialMatch) {
     const id = decodeURIComponent(credentialMatch[1]);
     if (req.method === 'GET') {
@@ -177,6 +179,18 @@ export const maybeHandleAdminRoute = async (
     const entry = findCredentialOrThrow(store.getSnapshot(), id);
     const response = await runtime.probeTarget({ ...entry, source: 'pool' });
     sendJson(res, 200, { ok: true, id, response });
+    return true;
+  }
+  if (credentialDownloadMatch && req.method === 'GET') {
+    const id = decodeURIComponent(credentialDownloadMatch[1]);
+    const entry = findCredentialOrThrow(store.getSnapshot(), id);
+    if (!entry.credentialsFile || !fs.existsSync(entry.credentialsFile)) {
+      throw new GatewayError(404, 'NOT_FOUND', 'Credential file is not available for download.');
+    }
+    res.statusCode = 200;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.setHeader('content-disposition', `attachment; filename="${encodeURIComponent(entry.fileName || `${id}.json`)}"`);
+    res.end(fs.readFileSync(entry.credentialsFile));
     return true;
   }
 

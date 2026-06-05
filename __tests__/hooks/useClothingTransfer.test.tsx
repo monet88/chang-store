@@ -162,7 +162,7 @@ describe('useClothingTransfer', () => {
     expect(result.current.conceptItems[1].error).toBe('concept failed');
   });
 
-  it('starts all concept image requests in the same run before any resolve', async () => {
+  it('caps concept image request concurrency during batch generation', async () => {
     const conceptImages = Array.from({ length: 10 }, (_, index) => ({
       base64: `concept-${index}`,
       mimeType: 'image/png',
@@ -170,6 +170,8 @@ describe('useClothingTransfer', () => {
     const deferredResults = conceptImages.map(() =>
       createDeferred<Array<typeof RESULT_A>>(),
     );
+    let activeRequests = 0;
+    let maxActiveRequests = 0;
 
     vi.mocked(editImage).mockImplementation((input, _model, _config) => {
       const conceptBase64 = input.images[0]?.base64;
@@ -179,7 +181,12 @@ describe('useClothingTransfer', () => {
         throw new Error(`Unexpected concept image: ${conceptBase64}`);
       }
 
-      return deferredResults[deferredIndex].promise;
+      activeRequests += 1;
+      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+
+      return deferredResults[deferredIndex].promise.finally(() => {
+        activeRequests -= 1;
+      });
     });
 
     const { result } = renderHook(() => useClothingTransfer());
@@ -194,11 +201,7 @@ describe('useClothingTransfer', () => {
     });
 
     await vi.waitFor(() => {
-      expect(editImage).toHaveBeenCalledTimes(10);
-    });
-
-    conceptImages.forEach((image, index) => {
-      expect(vi.mocked(editImage).mock.calls[index][0].images[0]).toEqual(image);
+      expect(editImage).toHaveBeenCalledTimes(3);
     });
 
     deferredResults.forEach(({ resolve }, index) => {
@@ -206,6 +209,8 @@ describe('useClothingTransfer', () => {
     });
 
     await generationPromise;
+    expect(maxActiveRequests).toBe(3);
+    expect(vi.mocked(editImage)).toHaveBeenCalledTimes(10);
     expect(result.current.completedCount).toBe(10);
     expect(result.current.failedCount).toBe(0);
   });

@@ -11,6 +11,9 @@ import { GatewayError } from '../http/error-response.js';
 
 export interface AdminVertexCredentialRecord extends VertexPoolConfig {
   email?: string;
+  fileName?: string;
+  sizeBytes?: number;
+  modifiedAt?: string;
 }
 
 interface FileStoreState {
@@ -63,9 +66,14 @@ const cloneVertexPools = (vertexPools: VertexPoolConfig[]): VertexPoolConfig[] =
 
 const toRecord = (entry: VertexPoolConfig): AdminVertexCredentialRecord => {
   const credential = loadServiceAccountCredential(entry.credentialsFile);
+  const fileStats = entry.credentialsFile && fs.existsSync(entry.credentialsFile)
+    ? fs.statSync(entry.credentialsFile)
+    : null;
   return {
     ...entry,
     ...(credential ? { email: credential.client_email } : {}),
+    ...(entry.credentialsFile ? { fileName: path.basename(entry.credentialsFile) } : {}),
+    ...(fileStats ? { sizeBytes: fileStats.size, modifiedAt: fileStats.mtime.toISOString() } : {}),
   };
 };
 

@@ -18,7 +18,7 @@ import { Feature } from '../types';
 
 const MAX_WARDROBE_SETS = 4;
 const MAX_ITEMS_PER_SET = 4;
-const WARDROBE_CONCURRENCY = 4;
+const WARDROBE_CONCURRENCY = 3;
 
 interface UseWardrobeModeParams {
   imageEditModel: ImageEditModel;

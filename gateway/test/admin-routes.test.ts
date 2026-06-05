@@ -109,6 +109,23 @@ describe('admin routes', () => {
     expect(response.headers.get('access-control-allow-origin')).toBeNull();
   });
 
+  it('serves the admin shell on /admin/ with a trailing slash', async () => {
+    server = createApp({
+      config: testConfig({
+        enableAdminRoutes: true,
+        adminToken: 'admin-secret',
+      }),
+      runtimeFactory: () => createFakeRuntime(),
+    });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/admin/`);
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain('Gateway Admin');
+  });
+
   it('supports file-store import, list, detail, patch, test, model update, reload, and delete', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-admin-'));
     const runtime = createFakeRuntime();
@@ -354,7 +371,7 @@ describe('admin routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('text/html');
-    expect(html).toContain('Credential Pool Operations Console');
+    expect(html).toContain('Gateway Admin');
     expect(html).toContain('id="token-input"');
     expect(html).toContain('id="credential-list"');
   });

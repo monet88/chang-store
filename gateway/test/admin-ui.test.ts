@@ -6,7 +6,11 @@ describe('admin ui', () => {
     const html = renderAdminUi();
 
     expect(html).toContain('Gateway Admin');
-    expect(html).toContain('Credential Pool Operations Console');
+    expect(html).toContain('Auth Files');
+    expect(html).toContain('Vertex JSON Login');
+    expect(html).toContain('Auth File Details / Edit');
+    expect(html).toContain('Vertex Model Rules');
+    expect(html).toContain('id="log-search"');
     expect(html).toContain('id="token-input"');
     expect(html).toContain('id="credential-list"');
     expect(html).toContain('id="import-file"');
@@ -14,6 +18,10 @@ describe('admin ui', () => {
     expect(html).toContain('/admin/api/vertex-credentials/import');
     expect(html).toContain('/admin/api/models/');
     expect(html).toContain('sessionStorage');
-    expect(html).not.toContain('localStorage');
+    expect(html).toContain('localStorage');
+    expect(html).not.toContain('gpt-5.5');
+    expect(html).not.toContain('OpenAI');
+    expect(html).toContain('Vertex / Gemini');
+    expect(html).not.toContain('Management Center');
   });
 });
