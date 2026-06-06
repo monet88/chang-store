@@ -108,6 +108,23 @@ describe('root route', () => {
     expect(generateContent).not.toHaveBeenCalled();
   });
 
+  it('renders llms.txt without requiring auth', async () => {
+    const generateContent = vi.fn();
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/llms.txt`);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/plain');
+    expect(body).toContain('# Vertex Gateway');
+    expect(body).toContain('/docs');
+    expect(body).toContain('/openai/v1/chat/completions');
+    expect(body).toContain('Authorization: Bearer YOUR_GATEWAY_KEY');
+    expect(generateContent).not.toHaveBeenCalled();
+  });
+
   it('returns readiness summary for pool mode without touching the model client', async () => {
     const generateContent = vi.fn();
     server = createApp({

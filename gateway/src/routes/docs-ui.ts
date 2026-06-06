@@ -682,3 +682,31 @@ console.log(data);`;
   </body>
 </html>`;
 };
+
+export const renderLlmsTxt = (origin: string): string => {
+  const baseUrl = origin.replace(/\/+$/, '');
+  return `# Vertex Gateway
+
+Public integration surface for the Chang Store Vertex Gateway.
+
+## Canonical Docs
+- ${baseUrl}/docs : Main developer integration guide
+- ${baseUrl}/healthz : Liveness check
+- ${baseUrl}/readyz : Readiness and runtime details
+
+## API Surfaces
+- ${baseUrl}/gemini/v1beta/models : Gemini-compatible model list
+- ${baseUrl}/openai/v1/models : OpenAI-compatible model list
+- ${baseUrl}/openai/v1/chat/completions : OpenAI-compatible chat
+- ${baseUrl}/openai/v1/responses : OpenAI-compatible responses
+- ${baseUrl}/openai/v1/images/generations : OpenAI-compatible image generation
+- ${baseUrl}/openai/v1/images/edits : OpenAI-compatible image edits
+- ${baseUrl}/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:generateContent : Vertex-compatible generateContent
+- ${baseUrl}/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:streamGenerateContent : Vertex-compatible streaming
+
+## Notes
+- Protected API routes require Authorization: Bearer YOUR_GATEWAY_KEY
+- Use ${baseUrl}/docs for cURL, JavaScript, image, and streaming examples
+- Use ${baseUrl}/readyz to inspect runtime mode, route toggles, limits, and Google auth status
+`;
+};
