@@ -14,6 +14,7 @@ import { createGoogleGenAiClient } from './lib/google-genai-client.js';
 import { createGenAiRuntime, type GenAiRuntimeLike } from './lib/genai-runtime.js';
 import { maybeHandleAdminRoute } from './admin/admin-routes.js';
 import { getProviderModelCatalog, resolveProviderModel } from './admin/model-store.js';
+import { renderDocsUi } from './routes/docs-ui.js';
 import { healthResponse, readyResponse, rootResponse } from './routes/health-routes.js';
 import { runCustomImageRoute } from './routes/custom-image-routes.js';
 import { runOpenAiImageEditRoute, runOpenAiImageGenerationRoute } from './routes/openai-images-routes.js';
@@ -59,6 +60,17 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
 
       if (req.method === 'GET' && url.pathname === '/') {
         sendJson(res, 200, rootResponse());
+        return;
+      }
+      if (req.method === 'GET' && (url.pathname === '/docs' || url.pathname === '/docs/')) {
+        const forwardedProto = req.headers['x-forwarded-proto'];
+        const protocol = typeof forwardedProto === 'string' && forwardedProto.trim().length > 0
+          ? forwardedProto.split(',')[0].trim()
+          : 'https';
+        const host = req.headers.host ?? 'vertex.monet.uno';
+        res.statusCode = 200;
+        res.setHeader('content-type', 'text/html; charset=utf-8');
+        res.end(renderDocsUi(`${protocol}://${host}`));
         return;
       }
       if (url.pathname === '/healthz') {
