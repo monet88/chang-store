@@ -130,9 +130,10 @@ This repo uses Harness. Before work, read:
 - `docs/CONTEXT_RULES.md`
 - `scripts/harness query matrix`
 
-Use the Rust Harness CLI as the main operational tool. Run it through the
-stable repo-local entrypoint `scripts/harness`, which uses the prebuilt Rust
-binary at `scripts/bin/harness-cli` in installed projects.
+Use the Rust Harness CLI as the main operational tool. Run the stable repo-local
+entrypoint `scripts/harness` from Git Bash / Linux-style shells. The entrypoint
+uses the prebuilt Rust binary at `scripts/bin/harness-cli` in installed
+projects.
 
 ### Mandatory Harness Operating Loop
 

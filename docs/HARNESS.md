@@ -84,12 +84,12 @@ Policy documents describe how to work. The durable layer stores what happened.
 
 Operational data — intake classifications, story status, decision outcomes,
 backlog items, and execution traces — lives in a SQLite database (`harness.db`)
-managed by the Rust Harness CLI through the stable repo-local entrypoint
+managed by the Rust Harness CLI through the repo-local entrypoint
 `scripts/harness`. The underlying prebuilt binary lives at
 `scripts/bin/harness-cli` and is gitignored. Agents and humans should use
-`scripts/harness` for Harness work. The database is local to each project
-instance and `.gitignore`d. The schema is version-controlled under
-`scripts/schema/`.
+Git Bash / Linux-style shells for Harness work in this repo. The database is
+local to each project instance and `.gitignore`d. The schema is
+version-controlled under `scripts/schema/`.
 
 This separation keeps policy docs stable and human-readable while giving agents
 a structured, queryable record of operational state. It also prepares the
