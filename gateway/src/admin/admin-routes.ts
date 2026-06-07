@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+import { promises as fs } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { URL } from 'node:url';
 import type { GatewayConfig, VertexPoolConfig } from '../config/env.js';
@@ -76,7 +76,8 @@ export const maybeHandleAdminRoute = async (
   config: GatewayConfig,
   runtime?: GenAiRuntimeLike,
 ): Promise<boolean> => {
-  if (!url.pathname.startsWith('/admin')) {
+  const normalizedPathname = url.pathname === '/' ? '/' : (url.pathname.replace(/\/+$/, '') || '/');
+  if (!normalizedPathname.startsWith('/admin')) {
     return false;
   }
   if (!config.enableAdminRoutes) {
@@ -89,14 +90,14 @@ export const maybeHandleAdminRoute = async (
     return true;
   }
 
-  if (req.method === 'GET' && url.pathname === '/admin') {
+  if (req.method === 'GET' && normalizedPathname === '/admin') {
     res.statusCode = 200;
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.end(renderAdminUi());
     return true;
   }
 
-  if (!url.pathname.startsWith('/admin/api/')) {
+  if (!normalizedPathname.startsWith('/admin/api/')) {
     throw new GatewayError(404, 'NOT_FOUND', 'Admin route is not implemented.');
   }
   requireAdminAuth(req.headers, config);
@@ -108,19 +109,19 @@ export const maybeHandleAdminRoute = async (
     runtime.reload(nextConfig);
   });
 
-  if (req.method === 'GET' && url.pathname === '/admin/api/health') {
+  if (req.method === 'GET' && normalizedPathname === '/admin/api/health') {
     sendJson(res, 200, buildHealthResponse(runtime, config));
     return true;
   }
-  if (req.method === 'GET' && url.pathname === '/admin/api/health/pool') {
+  if (req.method === 'GET' && normalizedPathname === '/admin/api/health/pool') {
     sendJson(res, 200, buildHealthResponse(runtime, config));
     return true;
   }
-  if (req.method === 'GET' && url.pathname === '/admin/api/vertex-credentials') {
+  if (req.method === 'GET' && normalizedPathname === '/admin/api/vertex-credentials') {
     sendJson(res, 200, withRuntimeHealth(store.getSnapshot(), runtime));
     return true;
   }
-  if (req.method === 'POST' && url.pathname === '/admin/api/vertex-credentials/import') {
+  if (req.method === 'POST' && normalizedPathname === '/admin/api/vertex-credentials/import') {
     const body = await parseJsonBody(req, config.maxJsonBytes);
     const imported = importServiceAccountCredential(config, body);
     try {
@@ -139,8 +140,8 @@ export const maybeHandleAdminRoute = async (
     return true;
   }
 
-  const credentialMatch = url.pathname.match(/^\/admin\/api\/vertex-credentials\/([^/]+)$/);
-  const credentialTestMatch = url.pathname.match(/^\/admin\/api\/vertex-credentials\/([^/]+)\/test$/);
+  const credentialMatch = normalizedPathname.match(/^\/admin\/api\/vertex-credentials\/([^/]+)$/);
+  const credentialTestMatch = normalizedPathname.match(/^\/admin\/api\/vertex-credentials\/([^/]+)\/test$/);
   if (credentialMatch) {
     const id = decodeURIComponent(credentialMatch[1]);
     if (req.method === 'GET') {
@@ -165,8 +166,14 @@ export const maybeHandleAdminRoute = async (
         ...state,
         vertexPools: state.vertexPools.filter((entry) => entry.id !== id),
       }));
-      if (config.adminStoreMode === 'file-store' && current.credentialsFile && fs.existsSync(current.credentialsFile)) {
-        fs.unlinkSync(current.credentialsFile);
+      if (config.adminStoreMode === 'file-store' && current.credentialsFile) {
+        try {
+          await fs.unlink(current.credentialsFile);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            throw error;
+          }
+        }
       }
       sendJson(res, 200, { ok: true, remaining: snapshot.vertexPools.length });
       return true;
@@ -179,8 +186,7 @@ export const maybeHandleAdminRoute = async (
     sendJson(res, 200, { ok: true, id, response });
     return true;
   }
-
-  if (req.method === 'GET' && url.pathname === '/admin/api/models') {
+  if (req.method === 'GET' && normalizedPathname === '/admin/api/models') {
     const provider = url.searchParams.get('provider');
     if (!provider) {
       throw new GatewayError(400, 'VALIDATION_FAILED', 'provider query param is required.');
@@ -189,7 +195,7 @@ export const maybeHandleAdminRoute = async (
     return true;
   }
 
-  const modelMatch = url.pathname.match(/^\/admin\/api\/models\/([^/]+)$/);
+  const modelMatch = normalizedPathname.match(/^\/admin\/api\/models\/([^/]+)$/);
   if (modelMatch && req.method === 'PUT') {
     const provider = decodeURIComponent(modelMatch[1]);
     const body = await parseJsonBody(req, config.maxJsonBytes);
@@ -215,7 +221,7 @@ export const maybeHandleAdminRoute = async (
     return true;
   }
 
-  if (req.method === 'POST' && url.pathname === '/admin/api/runtime/reload') {
+  if (req.method === 'POST' && normalizedPathname === '/admin/api/runtime/reload') {
     const snapshot = store.getSnapshot();
     runtime.reload(createDerivedConfig(config, {
       vertexPools: snapshot.vertexPools.map(({ email: _email, ...entry }) => entry),

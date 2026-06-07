@@ -21,4 +21,12 @@ describe('error response mapping', () => {
     expect(error.code).toBe('INTERNAL');
     expect(error.message).toBe('Internal gateway error.');
   });
+
+  it('maps upstream 404 model errors to a visible not-found gateway error', () => {
+    const error = toGatewayError('{"error":{"message":"","code":404,"status":"Not Found"}}');
+
+    expect(error.status).toBe(404);
+    expect(error.code).toBe('NOT_FOUND');
+    expect(error.message).toBe('Upstream model or route was not found.');
+  });
 });

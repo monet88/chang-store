@@ -23,6 +23,7 @@ Project documentation for chang-store — an AI-powered virtual fashion studio.
 - `project-overview-pdr.md`: product requirements and non-functional requirements.
 - `project-roadmap.md`: completed, current, and future roadmap phases.
 - `deployment-guide.md`: Vite/static hosting and environment variable setup.
+- `dev/windows-linux-node-modules.md`: dual-boot dependency pitfalls, checker, and reinstall steps.
 - `design-guidelines.md`: Runway-inspired visual and responsive guidelines.
 - `CHANGELOG.md`: current documentation changes and historical summary.
 - `api/README.md`: current API reference policy and source-of-truth links.

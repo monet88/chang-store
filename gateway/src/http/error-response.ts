@@ -57,6 +57,9 @@ const safeErrorMessage = (error: unknown): string => {
 export const toGatewayError = (error: unknown): GatewayError => {
   if (error instanceof GatewayError) return error;
   const message = safeErrorMessage(error);
+  if (/\b404\b|not found/i.test(message)) {
+    return new GatewayError(404, 'NOT_FOUND', 'Upstream model or route was not found.');
+  }
   if (/400|validation|invalid argument|bad request/i.test(message)) {
     return new GatewayError(400, 'VALIDATION_FAILED', 'Upstream request was rejected as invalid.');
   }

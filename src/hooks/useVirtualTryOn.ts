@@ -24,6 +24,7 @@ import { downloadImagesAsZip } from '../utils/zipDownload';
 
 const MAX_SHARED_OUTFIT_IMAGES = 4;
 const MAX_SOURCE_PROMPT_LENGTH = 180;
+const VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY = 3;
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 const normalizeSourcePrompt = (value: string) => value.replace(/\s+/g, ' ').slice(0, MAX_SOURCE_PROMPT_LENGTH);
 
@@ -205,7 +206,7 @@ export const useVirtualTryOn = () => {
       id: item.id,
       subjectImage: item.subjectImage,
     }));
-    const batchConcurrency = jobs.length;
+    const batchConcurrency = Math.min(VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY, jobs.length);
 
     setIsLoading(true);
     setLoadingMessage(t('virtualTryOn.generatingStatus'));

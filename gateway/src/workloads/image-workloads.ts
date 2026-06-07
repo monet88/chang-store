@@ -12,8 +12,8 @@ interface ImageInput {
   data: string;
 }
 
-const defaultGenerateModel = 'gemini-3.1-flash-image';
-const defaultImageModel = 'gemini-3.1-flash-image';
+const defaultGenerateModel = 'gemini-3.1-flash-image-preview';
+const defaultImageModel = 'gemini-3.1-flash-image-preview';
 
 const assertString = (body: Record<string, unknown>, key: string): string => {
   const value = body[key];
@@ -73,7 +73,7 @@ export class ImageWorkloads {
     this.semaphore = new Semaphore(config.upstreamConcurrency);
   }
 
-  async generate(body: Record<string, unknown>): Promise<{ images: ImageDto[] }> {
+  async generate(body: Record<string, unknown>, requestId?: string): Promise<{ images: ImageDto[] }> {
     const prompt = assertString(body, 'prompt');
     const model = typeof body.model === 'string' ? body.model : defaultGenerateModel;
     const aspectRatio = typeof body.aspectRatio === 'string' && body.aspectRatio !== 'Default' ? body.aspectRatio : '1:1';
@@ -83,64 +83,65 @@ export class ImageWorkloads {
         model,
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio } },
-      }, { routeFamily: 'images' })));
+      }, { routeFamily: 'images', requestId })));
       return normalizeInlineImages(response, { model, requestedIndex: index });
     }));
     const images = results.flat();
     return { images: images.map((image, index) => ({ ...image, index })) };
   }
 
-  async edit(body: Record<string, unknown>): Promise<{ images: ImageDto[] }> {
+  async edit(body: Record<string, unknown>, requestId?: string): Promise<{ images: ImageDto[] }> {
     const prompt = assertString(body, 'prompt');
     const images = validateImages(body.images, this.config);
     const model = typeof body.model === 'string' ? body.model : defaultImageModel;
     const numberOfImages = parseNumberOfImages(body.numberOfImages, this.config.maxImages);
     const imageConfig = buildImageConfig(body);
     const results = await Promise.all(Array.from({ length: numberOfImages }, async (_, index) => {
-      const response = await this.unsafeGenerate(() => this.ai.models.generateContent(withGenAiRequestMetadata({
+      // Gemini image editing expects the instruction text before the reference images.
+      const response = await this.safeGenerate(() => this.ai.models.generateContent(withGenAiRequestMetadata({
         model,
-        contents: [{ role: 'user', parts: [...buildImageParts(images), { text: prompt }] }],
+        contents: [{ role: 'user', parts: [{ text: prompt }, ...buildImageParts(images)] }],
         config: {
           responseModalities: ['IMAGE'],
           ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
         },
-      }, { routeFamily: 'images' })));
+      }, { routeFamily: 'images', requestId })));
       return normalizeInlineImages(response, { model, requestedIndex: index });
     }));
     const outputImages = results.flat();
     return { images: outputImages.map((image, index) => ({ ...image, index })) };
   }
 
-  async upscale(body: Record<string, unknown>): Promise<{ images: ImageDto[] }> {
+  async upscale(body: Record<string, unknown>, requestId?: string): Promise<{ images: ImageDto[] }> {
     const image = validateImages([body.image], this.config);
     const quality = typeof body.quality === 'string' ? body.quality : '2K';
     const model = typeof body.model === 'string' ? body.model : defaultImageModel;
-    const response = await this.unsafeGenerate(() => this.ai.models.generateContent(withGenAiRequestMetadata({
+    const response = await this.safeGenerate(() => this.ai.models.generateContent(withGenAiRequestMetadata({
       model,
       contents: [{ role: 'user', parts: [...buildImageParts(image), { text: `Upscale this image to ${quality}. Preserve the original subject and composition.` }] }],
       config: { responseModalities: ['IMAGE'], imageConfig: { imageSize: quality } },
-    }, { routeFamily: 'images' })));
+    }, { routeFamily: 'images', requestId })));
     return { images: normalizeInlineImages(response, { model, quality }) };
   }
 
-  async describe(body: Record<string, unknown>): Promise<{ text: string }> {
+  async describe(body: Record<string, unknown>, requestId?: string): Promise<{ text: string }> {
     const images = validateImages([body.image], this.config);
     const prompt = typeof body.prompt === 'string' ? body.prompt : 'Describe this image concisely.';
     const model = typeof body.model === 'string' ? body.model : 'gemini-2.5-flash';
     const response = await this.safeGenerate(() => this.ai.models.generateContent(withGenAiRequestMetadata({
       model,
       contents: [{ role: 'user', parts: [...buildImageParts(images), { text: prompt }] }],
-    }, { routeFamily: 'images' })));
+    }, { routeFamily: 'images', requestId })));
     return { text: extractText(response) };
   }
 
-  async validateSession(body: Record<string, unknown>): Promise<{ ok: true; model?: string; text?: string }> {
+  async validateSession(body: Record<string, unknown>, requestId?: string): Promise<{ ok: true; model?: string; text?: string }> {
     const model = typeof body.model === 'string' ? body.model : undefined;
     if (!model) return { ok: true };
     const response = await this.safeGenerate(() => this.ai.models.generateContent(withGenAiRequestMetadata({
       model,
       contents: [{ role: 'user', parts: [{ text: typeof body.prompt === 'string' ? body.prompt : 'Reply with ok.' }] }],
-    }, { routeFamily: 'images' })));
+    }, { routeFamily: 'images', requestId })));
     return { ok: true, model, text: extractText(response) };
   }
 

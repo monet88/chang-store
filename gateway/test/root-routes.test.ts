@@ -86,6 +86,45 @@ describe('root route', () => {
     expect(generateContent).not.toHaveBeenCalled();
   });
 
+  it('renders developer docs at /docs without requiring auth', async () => {
+    const generateContent = vi.fn();
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/docs`);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/html');
+    expect(body).toContain('Vertex Gateway Docs');
+    expect(body).toContain('/openai/v1/chat/completions');
+    expect(body).toContain('/gemini/v1beta/models/{model}:generateContent');
+    expect(body).toContain('YOUR_GATEWAY_KEY');
+    expect(body).toContain('gemini-2.5-flash-image');
+    expect(body).toContain('javascript streaming example');
+    expect(body).toContain('data-copy=');
+    expect(body).toContain('Copy');
+    expect(body).toContain('/vertex/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:generateContent');
+    expect(generateContent).not.toHaveBeenCalled();
+  });
+
+  it('renders llms.txt without requiring auth', async () => {
+    const generateContent = vi.fn();
+    server = createApp({ config: testConfig(), genAiFactory: () => ({ models: { generateContent } }) });
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/llms.txt`);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/plain');
+    expect(body).toContain('# Vertex Gateway');
+    expect(body).toContain('/docs');
+    expect(body).toContain('/openai/v1/chat/completions');
+    expect(body).toContain('Authorization: Bearer YOUR_GATEWAY_KEY');
+    expect(generateContent).not.toHaveBeenCalled();
+  });
+
   it('returns readiness summary for pool mode without touching the model client', async () => {
     const generateContent = vi.fn();
     server = createApp({

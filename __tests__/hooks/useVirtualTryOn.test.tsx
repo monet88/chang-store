@@ -230,7 +230,7 @@ describe('useVirtualTryOn', () => {
     expect(result.current.subjectItems[1].error).toBe('subject failed');
   });
 
-  it('starts all subject image requests in the same run before any resolve', async () => {
+  it('caps subject image request concurrency during batch generation', async () => {
     const subjectImages = Array.from({ length: 10 }, (_, index) => ({
       base64: `subject-${index}`,
       mimeType: 'image/png',
@@ -238,6 +238,8 @@ describe('useVirtualTryOn', () => {
     const deferredResults = subjectImages.map(() =>
       createDeferred<Array<typeof RESULT_A>>(),
     );
+    let activeRequests = 0;
+    let maxActiveRequests = 0;
 
     vi.mocked(editImage).mockImplementation((input, _model, _config) => {
       const subjectBase64 = input.interleavedParts?.[1]?.inlineData?.data;
@@ -247,7 +249,12 @@ describe('useVirtualTryOn', () => {
         throw new Error(`Unexpected subject image: ${subjectBase64}`);
       }
 
-      return deferredResults[deferredIndex].promise;
+      activeRequests += 1;
+      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+
+      return deferredResults[deferredIndex].promise.finally(() => {
+        activeRequests -= 1;
+      });
     });
 
     const { result } = renderHook(() => useVirtualTryOn());
@@ -262,11 +269,7 @@ describe('useVirtualTryOn', () => {
     });
 
     await vi.waitFor(() => {
-      expect(editImage).toHaveBeenCalledTimes(10);
-    });
-
-    subjectImages.forEach((image, index) => {
-      expect(vi.mocked(editImage).mock.calls[index][0].interleavedParts?.[1]?.inlineData?.data).toBe(image.base64);
+      expect(editImage).toHaveBeenCalledTimes(3);
     });
 
     deferredResults.forEach(({ resolve }, index) => {
@@ -274,6 +277,8 @@ describe('useVirtualTryOn', () => {
     });
 
     await generationPromise;
+    expect(maxActiveRequests).toBe(3);
+    expect(vi.mocked(editImage)).toHaveBeenCalledTimes(10);
     expect(result.current.completedCount).toBe(10);
     expect(result.current.failedCount).toBe(0);
   });

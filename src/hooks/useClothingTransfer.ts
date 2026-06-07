@@ -19,6 +19,7 @@ import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
+const CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY = 3;
 
 export function useClothingTransfer() {
   const idCounter = useRef(0);
@@ -180,7 +181,7 @@ export function useClothingTransfer() {
       id: item.id,
       conceptImage: item.conceptImage,
     }));
-    const batchConcurrency = jobs.length;
+    const batchConcurrency = Math.min(CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY, jobs.length);
 
     setIsLoading(true);
     setLoadingMessage(t('clothingTransfer.generatingStatus'));

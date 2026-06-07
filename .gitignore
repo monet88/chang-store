@@ -42,6 +42,8 @@ src-tauri/target/
 
 # TypeScript build cache
 *.tsbuildinfo
+.env
+.superpowers/
 
 # Local test artifacts
 __tests__/AGENTS.md
@@ -53,6 +55,8 @@ docs/image-test/*
 nul
 opencode.json
 .osgrep
+admin-*.png
+gateway-data/
 
 # AI orchestration local files
 .claude/

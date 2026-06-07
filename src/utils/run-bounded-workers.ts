@@ -18,7 +18,7 @@ export async function runBoundedWorkers<T>(
     while (queue.length > 0) {
       const item = queue.shift();
 
-      if (!item) {
+      if (item === undefined) {
         return;
       }
 

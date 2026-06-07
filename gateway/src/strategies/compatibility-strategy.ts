@@ -33,9 +33,10 @@ const instanceToContent = (instance: unknown): Record<string, unknown> => {
 const buildGenerateRequest = (
   route: ClassifiedRoute,
   body: Record<string, unknown>,
+  requestId?: string,
 ): Record<string, unknown> => withGenAiRequestMetadata(
   { ...body, model: route.model },
-  { routeFamily: route.family === 'gemini' ? 'gemini' : 'vertex' },
+  { routeFamily: route.family === 'gemini' ? 'gemini' : 'vertex', requestId },
 );
 
 const buildPredictRequest = (
@@ -58,24 +59,26 @@ export const runCompatibilityRoute = async (
   route: ClassifiedRoute,
   body: Record<string, unknown>,
   ai: GenAiClient,
+  requestId?: string,
 ): Promise<Record<string, unknown>> => {
   if (route.operation === 'models') return { models: [] };
   if (route.operation === 'predict') {
     return ai.models.generateContent(withGenAiRequestMetadata(
       buildPredictRequest(route, body),
-      { routeFamily: 'vertex' },
+      { routeFamily: 'vertex', requestId },
     ));
   }
-  return ai.models.generateContent(buildGenerateRequest(route, body));
+  return ai.models.generateContent(buildGenerateRequest(route, body, requestId));
 };
 
 export const runCompatibilityStreamRoute = async (
   route: ClassifiedRoute,
   body: Record<string, unknown>,
   ai: GenAiClient,
+  requestId?: string,
 ): Promise<AsyncIterable<Record<string, unknown>>> => {
   if (!ai.models.generateContentStream) {
     throw new GatewayError(501, 'NOT_IMPLEMENTED', 'Streaming is not implemented by the configured GenAI client.');
   }
-  return ai.models.generateContentStream(buildGenerateRequest(route, body));
+  return ai.models.generateContentStream(buildGenerateRequest(route, body, requestId));
 };

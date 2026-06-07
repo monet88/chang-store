@@ -56,14 +56,14 @@ describe('openai-compatible routes', () => {
     expect(body.object).toBe('chat.completion');
     expect(body.choices[0].message).toMatchObject({ role: 'assistant', content: 'ok' });
     expect(body.usage).toMatchObject({ prompt_tokens: 11, completion_tokens: 7, total_tokens: 18 });
-    expect(generateContent).toHaveBeenCalledWith({
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'Reply with exactly ok' }] }],
       config: {
         systemInstruction: { parts: [{ text: 'You are concise.' }] },
       },
       __gatewayRouteFamily: 'openai-chat',
-    });
+    }));
   });
 
   it('returns one OpenAI choice for each requested Gemini candidate', async () => {
@@ -112,12 +112,12 @@ describe('openai-compatible routes', () => {
       message: { role: 'assistant', content: 'second' },
       finish_reason: 'length',
     });
-    expect(generateContent).toHaveBeenCalledWith({
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'Give two options' }] }],
       config: { candidateCount: 2 },
       __gatewayRouteFamily: 'openai-chat',
-    });
+    }));
   });
 
   it('maps OpenAI generation options into Gemini config', async () => {
@@ -143,7 +143,7 @@ describe('openai-compatible routes', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(generateContent).toHaveBeenCalledWith({
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
       config: {
@@ -153,7 +153,7 @@ describe('openai-compatible routes', () => {
         stopSequences: ['END'],
       },
       __gatewayRouteFamily: 'openai-chat',
-    });
+    }));
   });
 
   it('maps OpenAI tools into Gemini config tools', async () => {
@@ -184,7 +184,7 @@ describe('openai-compatible routes', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(generateContent).toHaveBeenCalledWith({
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'call a tool' }] }],
       config: {
@@ -198,7 +198,7 @@ describe('openai-compatible routes', () => {
         }],
       },
       __gatewayRouteFamily: 'openai-chat',
-    });
+    }));
   });
 
   it('accepts image_url data URLs with embedded base64 whitespace', async () => {
@@ -277,7 +277,7 @@ describe('openai-compatible routes', () => {
     expect(body).toContain('"delta":{"role":"assistant","content":"hel"}');
     expect(body).toContain('"delta":{"content":"lo"},"finish_reason":"stop"');
     expect(body).toContain('data: [DONE]');
-    expect(generateContentStream).toHaveBeenCalledWith({
+    expect(generateContentStream).toHaveBeenCalledWith(expect.objectContaining({
       model: 'gemini-3.5-flash',
       contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
       __gatewayRouteFamily: 'openai-chat',
@@ -285,7 +285,7 @@ describe('openai-compatible routes', () => {
         idleTimeoutMs: 250,
         maxDurationMs: 10000,
       },
-    });
+    }));
     expect(generateContent).not.toHaveBeenCalled();
   });
 

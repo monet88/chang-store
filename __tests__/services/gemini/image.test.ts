@@ -196,6 +196,8 @@ describe('services/gemini/image.ts', () => {
           }),
         })
       );
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.contents[0].parts[0]).toEqual({ text: 'Make it look vintage' });
     });
 
     it('should handle multiple input images', async () => {
@@ -213,6 +215,7 @@ describe('services/gemini/image.ts', () => {
       expect(result).toHaveLength(1);
       // Verify both images were passed to the API
       const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.contents[0].parts[0]).toEqual({ text: 'Merge these images' });
       expect(callArgs.contents[0].parts).toHaveLength(3); // 2 images + 1 text
     });
 
@@ -258,6 +261,40 @@ describe('services/gemini/image.ts', () => {
       const result = await promise;
 
       expect(result.map((image) => image.base64)).toEqual(['Zmlyc3Q=', 'c2Vjb25k']);
+    });
+
+    it('caps edit variation concurrency to three requests at a time', async () => {
+      let resolveFirst: (response: unknown) => void = () => {};
+      let resolveSecond: (response: unknown) => void = () => {};
+      let resolveThird: (response: unknown) => void = () => {};
+      let resolveFourth: (response: unknown) => void = () => {};
+
+      mockGenerateContent
+        .mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; }))
+        .mockReturnValueOnce(new Promise((resolve) => { resolveSecond = resolve; }))
+        .mockReturnValueOnce(new Promise((resolve) => { resolveThird = resolve; }))
+        .mockReturnValueOnce(new Promise((resolve) => { resolveFourth = resolve; }));
+
+      const promise = editImage({
+        images: [sampleImage],
+        prompt: 'Generate capped variations',
+        numberOfImages: 4,
+      });
+      await Promise.resolve();
+
+      expect(mockGenerateContent).toHaveBeenCalledTimes(3);
+
+      resolveFirst(createSuccessImageResponse('Zmlyc3Q='));
+      resolveSecond(createSuccessImageResponse('c2Vjb25k'));
+      resolveThird(createSuccessImageResponse('dGhpcmQ='));
+      await vi.waitFor(() => {
+        expect(mockGenerateContent).toHaveBeenCalledTimes(4);
+      });
+
+      resolveFourth(createSuccessImageResponse('Zm91cnRo'));
+      const result = await promise;
+
+      expect(result.map((image) => image.base64)).toEqual(['Zmlyc3Q=', 'c2Vjb25k', 'dGhpcmQ=', 'Zm91cnRo']);
     });
 
     it('should use imageConfig for aspect ratio when provided', async () => {

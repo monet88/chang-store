@@ -4,6 +4,7 @@
   "version": "1.0.4",
   "type": "module",
   "scripts": {
+    "check:platform": "node scripts/check-node-platform.mjs --package-root .",
     "dev": "vite",
     "dev:turbo": "vite --force",
     "build": "vite build",
@@ -11,8 +12,8 @@
     "preview": "vite preview",
     "gateway:compile": "npm --prefix gateway run compile",
     "gateway:test": "npm --prefix gateway run test",
-    "lint": "eslint . --ext .ts,.tsx",
-    "test": "vitest --run --passWithNoTests",
+    "lint": "node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx",
+    "test": "node scripts/check-node-platform.mjs --package-root . && vitest --run --passWithNoTests",
     "test:ui": "vitest --ui"
   },
   "dependencies": {

@@ -33,7 +33,7 @@ describe('gateway config file', () => {
     fs.writeFileSync(configPath, [
       'port: 19087',
       'gatewayKeys:',
-      '  - monet-4292',
+      '  - test-gateway-key',
       'corsOrigins:',
       '  - http://localhost:3000',
       'googleProject: project-b82b6a5a-13c8-42e4-a56',
@@ -57,7 +57,7 @@ describe('gateway config file', () => {
 
     const config = loadConfig();
     expect(config.port).toBe(19087);
-    expect(config.gatewayKeys).toEqual(['monet-4292']);
+    expect(config.gatewayKeys).toEqual(['test-gateway-key']);
     expect(config.corsOrigins).toEqual(['http://localhost:3000']);
     expect(config.googleProject).toBe('project-b82b6a5a-13c8-42e4-a56');
     expect(config.googleCredentialsFile).toBeNull();

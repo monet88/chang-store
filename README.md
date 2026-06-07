@@ -56,6 +56,7 @@ Key docs:
 
 ```bash
 npm install
+node scripts/check-node-platform.mjs
 npm run dev
 ```
 
@@ -87,6 +88,10 @@ GPT_IMAGE_BASE_URL=https://api.openai.com/v1
 For production deployments, set the same variables in the hosting dashboard.
 See `docs/deployment-guide.md`.
 
+If you switch this checkout between Linux and Windows, rebuild dependencies for
+the active OS before running Vite/Vitest/tsx flows. See
+`docs/dev/windows-linux-node-modules.md`.
+
 ## Quality Gates
 
 Run before shipping changes:
@@ -108,9 +113,12 @@ This repo uses Harness for agent-ready project operations:
 - `docs/FEATURE_INTAKE.md` — classify work by lane.
 - `docs/CONTEXT_RULES.md` — context selection rules.
 - `docs/TRACE_SPEC.md` — trace and friction capture.
-- `scripts/harness` — local Harness CLI entrypoint.
+- `scripts/harness` — local Harness CLI entrypoint for Git Bash / Linux-style shells.
+- `docs/dev/windows-linux-node-modules.md` — dual-boot dependency workflow and
+  repair steps.
 
-Initialize local durable Harness state when needed:
+Initialize local durable Harness state from Git Bash / Linux-style shells when
+needed:
 
 ```bash
 scripts/harness init

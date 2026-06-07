@@ -34,7 +34,7 @@ describe('custom image routes', () => {
 
     expect(response.status).toBe(200);
     expect(body.images[0]).toMatchObject({ dataUrl: 'data:image/png;base64,abc', mimeType: 'image/png' });
-    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.1-flash-image' }));
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.1-flash-image-preview' }));
   });
 
   it('dispatches one generate request for each requested output image', async () => {
@@ -89,6 +89,13 @@ describe('custom image routes', () => {
     ]);
     expect(generateContent).toHaveBeenCalledTimes(2);
     expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: 'edit' },
+          { inlineData: { mimeType: 'image/png', data: 'YWJj' } },
+        ],
+      }],
       config: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '1:1', imageSize: '2K' } },
     }));
   });
@@ -147,6 +154,6 @@ describe('custom image routes', () => {
 
     expect(response.status).toBe(200);
     expect(body.images[0]).toMatchObject({ dataUrl: 'data:image/png;base64,abc', mimeType: 'image/png' });
-    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.1-flash-image' }));
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({ model: 'gemini-3.1-flash-image-preview' }));
   });
 });

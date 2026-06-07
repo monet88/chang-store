@@ -14,10 +14,12 @@ export interface GenAiStreamGuardMetadata {
 export interface GenAiRequestMetadata {
   routeFamily?: GenAiRouteFamily;
   streamGuard?: GenAiStreamGuardMetadata;
+  requestId?: string;
 }
 
 const ROUTE_FAMILY_KEY = '__gatewayRouteFamily';
 const STREAM_GUARD_KEY = '__gatewayStreamGuard';
+const REQUEST_ID_KEY = '__gatewayRequestId';
 
 export const withGenAiRequestMetadata = (
   request: Record<string, unknown>,
@@ -26,23 +28,26 @@ export const withGenAiRequestMetadata = (
   ...request,
   ...(metadata.routeFamily ? { [ROUTE_FAMILY_KEY]: metadata.routeFamily } : {}),
   ...(metadata.streamGuard ? { [STREAM_GUARD_KEY]: metadata.streamGuard } : {}),
+  ...(metadata.requestId ? { [REQUEST_ID_KEY]: metadata.requestId } : {}),
 });
 
 export const extractGenAiRequestMetadata = (
   request: Record<string, unknown>,
 ): {
-  metadata: { routeFamily: GenAiRouteFamily; streamGuard?: GenAiStreamGuardMetadata };
+  metadata: { routeFamily: GenAiRouteFamily; streamGuard?: GenAiStreamGuardMetadata; requestId?: string };
   request: Record<string, unknown>;
 } => {
   const {
     [ROUTE_FAMILY_KEY]: rawRouteFamily,
     [STREAM_GUARD_KEY]: rawStreamGuard,
+    [REQUEST_ID_KEY]: rawRequestId,
     ...cleanRequest
   } = request;
   return {
     metadata: {
       routeFamily: isRouteFamily(rawRouteFamily) ? rawRouteFamily : 'unknown',
       ...(isStreamGuard(rawStreamGuard) ? { streamGuard: rawStreamGuard } : {}),
+      ...(typeof rawRequestId === 'string' && rawRequestId.trim() ? { requestId: rawRequestId.trim() } : {}),
     },
     request: cleanRequest,
   };

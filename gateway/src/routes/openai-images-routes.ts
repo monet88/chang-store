@@ -7,11 +7,13 @@ import type { ImageDto } from '../workloads/image-normalizer.js';
 const SUPPORTED_MODELS = new Set([
   'gemini-2.5-flash-image',
   'gemini-3.1-flash-image',
+  'gemini-3.1-flash-image-preview',
   'gemini-3-pro-image',
+  'gemini-3-pro-image-preview',
 ]);
 
 const assertModel = (value: unknown): string => {
-  const model = typeof value === 'string' && value.trim() ? value.trim() : 'gemini-3.1-flash-image';
+  const model = typeof value === 'string' && value.trim() ? value.trim() : 'gemini-3.1-flash-image-preview';
   if (!SUPPORTED_MODELS.has(model)) {
     throw new GatewayError(400, 'VALIDATION_FAILED', `Unsupported image model: ${model}.`);
   }
@@ -111,6 +113,7 @@ const buildEditRequestFromJson = (body: Record<string, unknown>): Record<string,
 const buildEditRequestFromMultipart = async (
   req: IncomingMessage,
   maxBytes: number,
+  resolveModel?: (value: unknown) => string | undefined,
 ): Promise<Record<string, unknown>> => {
   const parts = await readMultipartBody(req, maxBytes);
   const fields = new Map<string, string[]>();
@@ -153,9 +156,10 @@ const buildEditRequestFromMultipart = async (
   }
   const rawSize = fields.get('size')?.[0];
   const aspectRatio = parseSizeToAspectRatio(rawSize);
+  const resolvedModel = resolveModel?.(fields.get('model')?.[0]) ?? fields.get('model')?.[0];
   return {
     prompt,
-    model: assertModel(fields.get('model')?.[0]),
+    model: assertModel(resolvedModel),
     numberOfImages: fields.get('n')?.[0] ? Number(fields.get('n')?.[0]) : undefined,
     images,
     ...(aspectRatio ? { aspectRatio } : {}),
@@ -165,8 +169,9 @@ const buildEditRequestFromMultipart = async (
 export const runOpenAiImageGenerationRoute = async (
   body: Record<string, unknown>,
   workloads: ImageWorkloads,
+  requestId?: string,
 ): Promise<Record<string, unknown>> => normalizeImagesResponse(
-  (await workloads.generate(buildGenerateRequest(body))).images,
+  (await workloads.generate(buildGenerateRequest(body), requestId)).images,
 );
 
 export const runOpenAiImageEditRoute = async (
@@ -174,13 +179,15 @@ export const runOpenAiImageEditRoute = async (
   body: Record<string, unknown> | null,
   workloads: ImageWorkloads,
   maxBytes: number,
+  requestId?: string,
+  resolveModel?: (value: unknown) => string | undefined,
 ): Promise<Record<string, unknown>> => {
   const contentType = req.headers['content-type'];
   if (typeof contentType === 'string' && contentType.includes('multipart/form-data')) {
-    return normalizeImagesResponse((await workloads.edit(await buildEditRequestFromMultipart(req, maxBytes))).images);
+    return normalizeImagesResponse((await workloads.edit(await buildEditRequestFromMultipart(req, maxBytes, resolveModel), requestId)).images);
   }
   if (!body) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'JSON request body is required for non-multipart image edits.');
   }
-  return normalizeImagesResponse((await workloads.edit(buildEditRequestFromJson(body))).images);
+  return normalizeImagesResponse((await workloads.edit(buildEditRequestFromJson(body), requestId)).images);
 };

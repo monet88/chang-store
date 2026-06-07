@@ -111,6 +111,46 @@ describe('openai image routes', () => {
     }));
   });
 
+  it('applies configured image-model aliases for multipart edits before calling upstream', async () => {
+    const generateContent = vi.fn(async () => ({
+      candidates: [{ content: { parts: [{ inlineData: { data: 'edited', mimeType: 'image/png' } }] } }],
+    }));
+    server = createApp({
+      config: testConfig({
+        modelCatalog: {
+          gemini: {
+            aliases: { 'gemini-3.1-flash-image': 'gemini-3.1-flash-image-preview' },
+            allowlist: [],
+            disabled: [],
+          },
+        },
+      }),
+      genAiFactory: () => ({ models: { generateContent } }),
+    });
+    const baseUrl = await listen(server);
+    const boundary = '----chang-store-alias-boundary';
+    const multipartBody = [
+      `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\ngemini-3.1-flash-image\r\n`,
+      `--${boundary}\r\nContent-Disposition: form-data; name="prompt"\r\n\r\nEdit this garment\r\n`,
+      `--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="look.png"\r\nContent-Type: image/png\r\n\r\nabc\r\n`,
+      `--${boundary}--\r\n`,
+    ].join('');
+
+    const response = await fetch(`${baseUrl}/openai/v1/images/edits`, {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer test-key',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+      body: multipartBody,
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateContent).toHaveBeenCalledWith(expect.objectContaining({
+      model: 'gemini-3.1-flash-image-preview',
+    }));
+  });
+
   it('supports quoted multipart boundaries and filename-first content disposition headers', async () => {
     const generateContent = vi.fn(async () => ({
       candidates: [{ content: { parts: [{ inlineData: { data: 'edited', mimeType: 'image/png' } }] } }],
