@@ -19,6 +19,10 @@ class FakeResponse extends EventEmitter {
   readonly endCalls: Array<string | undefined> = [];
   readonly headerCalls: Array<[string, string]> = [];
 
+  constructor(private readonly failAfterHeaders = true) {
+    super();
+  }
+
   setHeader(name: string, value: string): void {
     this.headerCalls.push([name, value]);
   }
@@ -35,7 +39,9 @@ class FakeResponse extends EventEmitter {
     this.endCalls.push(chunk);
     if (!this.headersSent) {
       this.headersSent = true;
-      throw new Error('socket write failed after headers');
+      if (this.failAfterHeaders) {
+        throw new Error('socket write failed after headers');
+      }
     }
     this.writableEnded = true;
   }
@@ -195,5 +201,56 @@ describe('app model aliasing', () => {
     expect(body.error.code).toBe('VALIDATION_FAILED');
     expect(generateContent).not.toHaveBeenCalled();
     await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+});
+
+describe('public docs origin rendering', () => {
+  it('falls back to the canonical docs origin when forwarded headers are unsafe', async () => {
+    const server = createApp({
+      config: testConfig(),
+      genAiFactory: () => ({ models: { generateContent: vi.fn() } }),
+    });
+    const handler = server.listeners('request')[0] as (
+      req: IncomingMessage,
+      res: ServerResponse,
+    ) => Promise<void>;
+
+    const req = new FakeRequest();
+    req.url = '/docs';
+    req.headers = {
+      host: 'vertex.monet.uno"><svg/onload=alert(1)>',
+      'x-forwarded-proto': 'javascript',
+    };
+    const res = new FakeResponse(false);
+
+    await handler(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+    expect(res.endCalls[0]).toContain('https://vertex.monet.uno/openai/v1/chat/completions');
+    expect(res.endCalls[0]).not.toContain('<svg/onload=alert(1)>');
+    expect(res.endCalls[0]).not.toContain('javascript://');
+  });
+
+  it('uses validated host and forwarded proto for docs surfaces', async () => {
+    const server = createApp({
+      config: testConfig(),
+      genAiFactory: () => ({ models: { generateContent: vi.fn() } }),
+    });
+    const handler = server.listeners('request')[0] as (
+      req: IncomingMessage,
+      res: ServerResponse,
+    ) => Promise<void>;
+
+    const req = new FakeRequest();
+    req.url = '/llms.txt';
+    req.headers = {
+      host: '127.0.0.1:4312',
+      'x-forwarded-proto': 'http',
+    };
+    const res = new FakeResponse(false);
+
+    await handler(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+    expect(res.endCalls[0]).toContain('http://127.0.0.1:4312/docs');
+    expect(res.endCalls[0]).toContain('Authorization: Bearer YOUR_GATEWAY_KEY');
   });
 });

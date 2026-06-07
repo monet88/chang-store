@@ -26,7 +26,7 @@ Operational notes for the `gateway/` service deployed on `vertex.monet.uno`.
 
 ## Current Runtime Values
 
-- Gateway API key: `monet-4292`
+- Gateway API key: retrieve from your secret store or the `GATEWAY_API_KEYS` runtime env; never commit or paste the live value into docs
 - Local upstream port: `19089`
 - Google credentials path in container: `/run/vertex-accounts/active.json`
 - Google project: `project-b82b6a5a-13c8-42e4-a56`
@@ -91,21 +91,21 @@ OpenAI-compatible models:
 
 ```bash
 curl -s https://vertex.monet.uno/openai/v1/models \
-  -H "Authorization: Bearer monet-4292"
+  -H "Authorization: Bearer <your-gateway-api-key>"
 ```
 
 Gemini-compatible models:
 
 ```bash
 curl -s https://vertex.monet.uno/gemini/v1beta/models \
-  -H "Authorization: Bearer monet-4292"
+  -H "Authorization: Bearer <your-gateway-api-key>"
 ```
 
 OpenAI-compatible chat:
 
 ```bash
 curl -s https://vertex.monet.uno/openai/v1/chat/completions \
-  -H "Authorization: Bearer monet-4292" \
+  -H "Authorization: Bearer <your-gateway-api-key>" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gemini-2.5-flash",
@@ -118,7 +118,7 @@ Gemini-compatible text:
 
 ```bash
 curl -s https://vertex.monet.uno/gemini/v1beta/models/gemini-2.5-flash:generateContent \
-  -H "Authorization: Bearer monet-4292" \
+  -H "Authorization: Bearer <your-gateway-api-key>" \
   -H "Content-Type: application/json" \
   -d '{
     "contents": [{"role": "user", "parts": [{"text": "Reply with exactly: GEMINI_OK"}]}]
@@ -129,7 +129,7 @@ OpenAI-compatible image generation:
 
 ```bash
 curl -s https://vertex.monet.uno/openai/v1/images/generations \
-  -H "Authorization: Bearer monet-4292" \
+  -H "Authorization: Bearer <your-gateway-api-key>" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gemini-2.5-flash-image",

@@ -31,6 +31,54 @@ export interface AppOptions {
   runtimeFactory?: (config: GatewayConfig) => GenAiRuntimeLike;
 }
 
+const DEFAULT_PUBLIC_DOCS_ORIGIN = 'https://vertex.monet.uno';
+
+const TRUSTED_PUBLIC_PROTOCOLS = new Set(['http', 'https']);
+
+const readSingleHeader = (value: string | string[] | undefined): string | undefined => {
+  if (typeof value === 'string') {
+    const candidate = value.split(',')[0]?.trim();
+    return candidate && candidate.length > 0 ? candidate : undefined;
+  }
+  if (Array.isArray(value)) {
+    const candidate = value[0]?.trim();
+    return candidate && candidate.length > 0 ? candidate : undefined;
+  }
+  return undefined;
+};
+
+const isSafePublicHost = (value: string): boolean => {
+  if (value.length === 0 || value.length > 255) {
+    return false;
+  }
+  if (/[\\/\s"'`<>]/.test(value)) {
+    return false;
+  }
+  try {
+    const parsed = new URL(`https://${value}`);
+    return parsed.host === value
+      && parsed.username === ''
+      && parsed.password === ''
+      && parsed.pathname === '/'
+      && parsed.search === ''
+      && parsed.hash === '';
+  } catch {
+    return false;
+  }
+};
+
+const resolvePublicDocsOrigin = (req: IncomingMessage): string => {
+  const forwardedProto = readSingleHeader(req.headers['x-forwarded-proto'])?.toLowerCase();
+  const protocol = forwardedProto && TRUSTED_PUBLIC_PROTOCOLS.has(forwardedProto)
+    ? forwardedProto
+    : 'https';
+  const host = readSingleHeader(req.headers.host);
+  if (!host || !isSafePublicHost(host)) {
+    return DEFAULT_PUBLIC_DOCS_ORIGIN;
+  }
+  return `${protocol}://${host}`;
+};
+
 export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runtimeFactory }: AppOptions) => {
   const runtime = runtimeFactory
     ? runtimeFactory(config)
@@ -63,25 +111,17 @@ export const createApp = ({ config, genAiFactory = createGoogleGenAiClient, runt
         return;
       }
       if (req.method === 'GET' && (url.pathname === '/docs' || url.pathname === '/docs/')) {
-        const forwardedProto = req.headers['x-forwarded-proto'];
-        const protocol = typeof forwardedProto === 'string' && forwardedProto.trim().length > 0
-          ? forwardedProto.split(',')[0].trim()
-          : 'https';
-        const host = req.headers.host ?? 'vertex.monet.uno';
+        const publicOrigin = resolvePublicDocsOrigin(req);
         res.statusCode = 200;
         res.setHeader('content-type', 'text/html; charset=utf-8');
-        res.end(renderDocsUi(`${protocol}://${host}`));
+        res.end(renderDocsUi(publicOrigin));
         return;
       }
       if (req.method === 'GET' && url.pathname === '/llms.txt') {
-        const forwardedProto = req.headers['x-forwarded-proto'];
-        const protocol = typeof forwardedProto === 'string' && forwardedProto.trim().length > 0
-          ? forwardedProto.split(',')[0].trim()
-          : 'https';
-        const host = req.headers.host ?? 'vertex.monet.uno';
+        const publicOrigin = resolvePublicDocsOrigin(req);
         res.statusCode = 200;
         res.setHeader('content-type', 'text/plain; charset=utf-8');
-        res.end(renderLlmsTxt(`${protocol}://${host}`));
+        res.end(renderLlmsTxt(publicOrigin));
         return;
       }
       if (url.pathname === '/healthz') {
