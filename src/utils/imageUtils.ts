@@ -169,14 +169,19 @@ export const compressImage = (file: File, quality: number = 0.8): Promise<ImageF
       canvas.height = Math.round(height);
       
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', quality);
-      const compressedBase64 = dataUrl.split(',')[1];
-      
-      resolve({
-        base64: compressedBase64,
-        mimeType: 'image/jpeg'
-      });
-      URL.revokeObjectURL(objectUrl);
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          URL.revokeObjectURL(objectUrl);
+          return reject(new Error("Canvas toBlob failed"));
+        }
+        blobToBase64(blob).then(base64 => {
+          resolve({ base64, mimeType: 'image/jpeg' });
+          URL.revokeObjectURL(objectUrl);
+        }).catch(err => {
+          URL.revokeObjectURL(objectUrl);
+          reject(err);
+        });
+      }, 'image/jpeg', quality);
     };
     
     img.onerror = (err) => {
@@ -222,14 +227,19 @@ export const cropAndCompressImage = (file: File, targetAspectRatio: number, qual
       canvas.height = targetHeight;
       
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', quality);
-      const compressedBase64 = dataUrl.split(',')[1];
-      
-      resolve({
-        base64: compressedBase64,
-        mimeType: 'image/jpeg'
-      });
-      URL.revokeObjectURL(objectUrl);
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          URL.revokeObjectURL(objectUrl);
+          return reject(new Error("Canvas toBlob failed"));
+        }
+        blobToBase64(blob).then(base64 => {
+          resolve({ base64, mimeType: 'image/jpeg' });
+          URL.revokeObjectURL(objectUrl);
+        }).catch(err => {
+          URL.revokeObjectURL(objectUrl);
+          reject(err);
+        });
+      }, 'image/jpeg', quality);
     };
     
     img.onerror = (err) => {
@@ -275,9 +285,10 @@ export const compositeMarkerOnImage = (image: ImageFile, marker: MarkerPosition)
 
       // Ensure mimeType fallback since some test cases might lack it
       const mimeType = image.mimeType || 'image/jpeg';
-      const dataUrl = canvas.toDataURL(mimeType, 0.95);
-      const base64 = dataUrl.split(',')[1];
-      resolve({ base64, mimeType });
+      canvas.toBlob((blob) => {
+        if (!blob) return reject(new Error('Canvas toBlob failed'));
+        blobToBase64(blob).then(base64 => resolve({ base64, mimeType })).catch(reject);
+      }, mimeType, 0.95);
     };
     img.onerror = () => reject(new Error('Failed to composite marker image'));
     img.src = `data:${image.mimeType || 'image/jpeg'};base64,${image.base64}`;
