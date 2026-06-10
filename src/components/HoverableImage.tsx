@@ -102,14 +102,14 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                     </div>
                 )}
 
-                <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-4 z-20 pointer-events-none">
+                <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2 sm:p-4 z-20 pointer-events-none">
                     {/* Top right icons */}
                     <div className="flex justify-end gap-2 pointer-events-auto">
                         {/* Save to Gallery button */}
                         <button
                             onClick={handleSaveToGallery}
                             disabled={isSavedToGallery}
-                            className={`p-2 rounded-full transition-colors ${isSavedToGallery
+                            className={`p-2 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${isSavedToGallery
                                     ? 'bg-white text-black cursor-default'
                                     : 'bg-zinc-900/50 text-white hover:bg-white/90 hover:text-black'
                                 }`}
@@ -121,8 +121,8 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                         {onDelete && (
                             <button
                                 onClick={handleDeleteClick}
-                                className="p-2 bg-red-600/70 rounded-full text-white hover:bg-red-500/90 transition-colors"
-                                aria-label="Delete image"
+                                className="p-2 bg-red-600/70 rounded-full text-white hover:bg-red-500/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                aria-label={t('imageActions.delete') || "Delete image"}
                             >
                                 <DeleteIcon className="w-5 h-5" />
                             </button>
@@ -130,7 +130,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                         {onSendToFeature && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); onSendToFeature(); }}
-                                className="p-2 bg-zinc-900/50 rounded-full text-white hover:bg-white/90 hover:text-black transition-colors"
+                                className="p-2 bg-zinc-900/50 rounded-full text-white hover:bg-white/90 hover:text-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                                 aria-label={t('imageActions.sendToAlbum')}
                                 title={t('imageActions.sendToAlbum')}
                             >
@@ -139,8 +139,8 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                         )}
                         <button
                             onClick={handleExpandClick}
-                            className="p-2 bg-zinc-900/50 rounded-full text-white hover:bg-zinc-800/80 transition-colors"
-                            aria-label="View full image"
+                            className="p-2 bg-zinc-900/50 rounded-full text-white hover:bg-zinc-800/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                            aria-label={t('imageActions.viewFull') || "View full image"}
                         >
                             <FullscreenIcon className="w-5 h-5" />
                         </button>
@@ -152,7 +152,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                             <button
                                 onClick={onRegenerate}
                                 disabled={isGenerating || isUpscaling}
-                                className="p-2.5 bg-zinc-700/80 rounded-full text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="p-2.5 bg-zinc-700/80 rounded-full text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                                 aria-label={t('imageActions.regenerate')}
                             >
                                 {isGenerating ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-100"></div> : <RegenerateIcon className="w-5 h-5" />}
@@ -162,7 +162,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                             <button
                                 onClick={onUpscale}
                                 disabled={isGenerating || isUpscaling}
-                                className="p-2.5 bg-zinc-700/80 rounded-full text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="p-2.5 bg-zinc-700/80 rounded-full text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                                 aria-label={t('imageActions.upscale')}
                             >
                                 {isUpscaling ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-100"></div> : <CloudUploadIcon className="w-5 h-5" />}
@@ -171,7 +171,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                         <button
                             type="button"
                             onClick={handleDownloadClick}
-                            className="rounded-full bg-white p-2.5 text-black transition-colors hover:bg-zinc-200"
+                            className="rounded-full bg-white p-2.5 text-black transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
                             aria-label={t('imageActions.download')}
                         >
                             <DownloadIcon className="w-5 h-5" />
