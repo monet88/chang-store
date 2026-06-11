@@ -308,7 +308,7 @@ export async function downloadImage(
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
         // reader.result includes the data URL prefix (e.g., 'data:image/png;base64,...')
-        resolve(reader.result.split(',')[1]);
+        resolve(reader.result.substring(reader.result.indexOf(',') + 1));
       } else {
         reject(new Error("Failed to read image blob"));
       }

@@ -93,7 +93,7 @@ const VirtualTryOn: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
-          handleSubjectImagesUpload([{ base64: reader.result.split(',')[1], mimeType: file.type }]);
+          handleSubjectImagesUpload([{ base64: reader.result.substring(reader.result.indexOf(',') + 1), mimeType: file.type }]);
         }
       };
       reader.readAsDataURL(file);
