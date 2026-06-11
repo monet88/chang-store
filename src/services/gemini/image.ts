@@ -154,14 +154,27 @@ const getGatewayRootUrl = (): string | null => {
 };
 
 const toGatewayImage = (dataUrl: string): ImageFile => {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!match) {
+  // Avoid O(N) regex match on potentially large multi-megabyte strings
+  // Format is "data:[mimeType];base64,[base64]"
+  if (!dataUrl.startsWith('data:')) {
+    throw new Error('error.api.invalidGatewayImage');
+  }
+
+  const base64Idx = dataUrl.indexOf(';base64,');
+  if (base64Idx === -1) {
+    throw new Error('error.api.invalidGatewayImage');
+  }
+
+  const mimeType = dataUrl.substring(5, base64Idx);
+  const base64 = dataUrl.substring(base64Idx + 8); // length of ';base64,'
+
+  if (!mimeType || !base64) {
     throw new Error('error.api.invalidGatewayImage');
   }
 
   return {
-    mimeType: match[1],
-    base64: match[2],
+    mimeType,
+    base64,
   };
 };
 
