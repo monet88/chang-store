@@ -108,7 +108,7 @@ export const blobToBase64 = (blob: Blob): Promise<string> => {
         const reader = new FileReader();
         reader.onloadend = () => {
             if (typeof reader.result === 'string') {
-                const base64String = reader.result.split(',')[1];
+                const base64String = reader.result.substring(reader.result.indexOf(',') + 1);
                 resolve(base64String);
             } else {
                 reject(new Error("Failed to read blob as Base64 string."));
