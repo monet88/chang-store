@@ -15,6 +15,7 @@ const LanguageSwitcher: React.FC = () => {
           : 'text-zinc-500 hover:bg-white/6 hover:text-zinc-100'
           }`}
         aria-pressed={language === 'en'}
+        aria-label="English"
       >
         EN
       </button>
@@ -26,6 +27,7 @@ const LanguageSwitcher: React.FC = () => {
           : 'text-zinc-500 hover:bg-white/6 hover:text-zinc-100'
           }`}
         aria-pressed={language === 'vi'}
+        aria-label="Tiếng Việt"
       >
         VI
       </button>

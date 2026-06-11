@@ -169,14 +169,26 @@ export const compressImage = (file: File, quality: number = 0.8): Promise<ImageF
       canvas.height = Math.round(height);
       
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', quality);
-      const compressedBase64 = dataUrl.split(',')[1];
       
-      resolve({
-        base64: compressedBase64,
-        mimeType: 'image/jpeg'
-      });
-      URL.revokeObjectURL(objectUrl);
+      // ⚡ Bolt: Optimize by replacing synchronous canvas.toDataURL with asynchronous canvas.toBlob
+      // toDataURL blocks the main thread during image encoding. toBlob delegates it to a background thread.
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+            URL.revokeObjectURL(objectUrl);
+            return reject(new Error("Could not compress image to blob"));
+        }
+        try {
+            const compressedBase64 = await blobToBase64(blob);
+            resolve({
+                base64: compressedBase64,
+                mimeType: 'image/jpeg'
+            });
+        } catch (error) {
+            reject(error);
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
+      }, 'image/jpeg', quality);
     };
     
     img.onerror = (err) => {
@@ -222,14 +234,26 @@ export const cropAndCompressImage = (file: File, targetAspectRatio: number, qual
       canvas.height = targetHeight;
       
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', quality);
-      const compressedBase64 = dataUrl.split(',')[1];
       
-      resolve({
-        base64: compressedBase64,
-        mimeType: 'image/jpeg'
-      });
-      URL.revokeObjectURL(objectUrl);
+      // ⚡ Bolt: Optimize by replacing synchronous canvas.toDataURL with asynchronous canvas.toBlob
+      // toDataURL blocks the main thread during image encoding. toBlob delegates it to a background thread.
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+            URL.revokeObjectURL(objectUrl);
+            return reject(new Error("Could not compress and crop image to blob"));
+        }
+        try {
+            const compressedBase64 = await blobToBase64(blob);
+            resolve({
+                base64: compressedBase64,
+                mimeType: 'image/jpeg'
+            });
+        } catch (error) {
+            reject(error);
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
+      }, 'image/jpeg', quality);
     };
     
     img.onerror = (err) => {
@@ -275,9 +299,20 @@ export const compositeMarkerOnImage = (image: ImageFile, marker: MarkerPosition)
 
       // Ensure mimeType fallback since some test cases might lack it
       const mimeType = image.mimeType || 'image/jpeg';
-      const dataUrl = canvas.toDataURL(mimeType, 0.95);
-      const base64 = dataUrl.split(',')[1];
-      resolve({ base64, mimeType });
+
+      // ⚡ Bolt: Optimize by replacing synchronous canvas.toDataURL with asynchronous canvas.toBlob
+      // toDataURL blocks the main thread during image encoding. toBlob delegates it to a background thread.
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+            return reject(new Error("Could not composite marker to blob"));
+        }
+        try {
+            const base64 = await blobToBase64(blob);
+            resolve({ base64, mimeType });
+        } catch (error) {
+            reject(error);
+        }
+      }, mimeType, 0.95);
     };
     img.onerror = () => reject(new Error('Failed to composite marker image'));
     img.src = `data:${image.mimeType || 'image/jpeg'};base64,${image.base64}`;
