@@ -1,13 +1,13 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import type { GatewayConfig } from '../config/env.js';
 import { GatewayError } from '../http/error-response.js';
 
 const constantTimeEqual = (left: string, right: string): boolean => {
-  const leftBuffer = Buffer.from(left);
-  const rightBuffer = Buffer.from(right);
-  if (leftBuffer.length !== rightBuffer.length) return false;
-  return timingSafeEqual(leftBuffer, rightBuffer);
+  // Prevent timing attacks by ensuring consistent lengths via hashing
+  const leftHash = createHash('sha256').update(left).digest();
+  const rightHash = createHash('sha256').update(right).digest();
+  return timingSafeEqual(leftHash, rightHash);
 };
 
 export const extractGatewayKey = (req: IncomingMessage): string | null => {
