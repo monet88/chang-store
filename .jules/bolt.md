@@ -7,3 +7,6 @@
 ## 2025-02-14 - Optimize Base64 Encoding using Native FileReader
 **Learning:** Converting large `ArrayBuffer` payloads (like 5MB images from API/fetch) into base64 strings using a JS-side chunking loop (`String.fromCharCode` + `btoa`) is extremely slow (~260ms in benchmark) and blocks the main UI thread. Even processing in 32KB chunks fails to avoid substantial overhead because the strings are repeatedly allocated and concatenated in JavaScript.
 **Action:** Always prefer the browser's native C++ methods for binary to base64 conversions. Specifically, use `FileReader.readAsDataURL(blob)` instead of manually parsing the `ArrayBuffer`. It's non-blocking, heavily optimized by the browser engine, and up to ~85% faster (completes in ~33ms).
+## 2025-02-14 - Optimize Context Provider value memoization
+**Learning:** Context Providers like `ToastProvider`, `ImageViewerProvider`, and `LanguageProvider` passed raw objects directly to their `value` props (e.g., `value={{ showToast }}`). Because a new object is created on every render, ANY state update inside the provider (even unrelated ones) would cause ALL consumers of the context to needlessly re-render.
+**Action:** Always wrap the `value` object passed to React Context Providers with `useMemo` to preserve object identity and prevent massive cascading re-renders across all consumers in the tree.
