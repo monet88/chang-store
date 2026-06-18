@@ -1,0 +1,6 @@
+interface:
+  display_name: "Chang Store"
+  short_description: "Repo-specific patterns and workflows for chang-store"
+  default_prompt: "Use the chang-store repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
