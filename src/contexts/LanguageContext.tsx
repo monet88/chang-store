@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect, useMemo } from 'react';
 import { en, Translation } from '../locales/en';
 import { vi } from '../locales/vi';
 
@@ -55,8 +55,15 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     return translation;
   }, [language]);
 
+  const value = useMemo(() => ({
+    language,
+    setLanguage,
+    t,
+    translations: translations[language]
+  }), [language, t]);
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, translations: translations[language] }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );
