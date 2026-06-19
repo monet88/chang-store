@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useRef, useMemo } from 'react';
 import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
 import { getDefaultModelForSelectionType, isKnownModelForSelectionType, ModelSelectionType } from '../config/modelRegistry';
 import { ProviderId, PROVIDER_IDS, getProviderDefaultBaseUrl, getProviderEnvApiKey } from '../config/providerRegistry';
@@ -258,22 +258,31 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     safeStorage.setItem(TEXT_GENERATE_MODEL_KEY, model);
   };
 
+  const contextValue = useMemo(() => ({
+    googleApiKey,
+    setGoogleApiKey,
+    imageEditModel,
+    setImageEditModel,
+    imageGenerateModel,
+    setImageGenerateModel,
+    textGenerateModel,
+    setTextGenerateModel,
+    vertexProxySettings,
+    setVertexProxySettings,
+    providerSettings,
+    setProviderSettings,
+    resetProviderSettings,
+  }), [
+    googleApiKey,
+    imageEditModel,
+    imageGenerateModel,
+    textGenerateModel,
+    vertexProxySettings,
+    providerSettings
+  ]);
+
   return (
-    <ApiContext.Provider value={{
-      googleApiKey,
-      setGoogleApiKey,
-      imageEditModel,
-      setImageEditModel,
-      imageGenerateModel,
-      setImageGenerateModel,
-      textGenerateModel,
-      setTextGenerateModel,
-      vertexProxySettings,
-      setVertexProxySettings,
-      providerSettings,
-      setProviderSettings,
-      resetProviderSettings,
-    }}>
+    <ApiContext.Provider value={contextValue}>
       {children}
     </ApiContext.Provider>
   );
