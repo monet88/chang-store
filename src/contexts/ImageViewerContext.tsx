@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo } from 'react';
 import { ImageFile } from '../types';
 import { useImageGallery } from './ImageGalleryContext';
 import ImageModal from '../components/ImageModal';
@@ -40,8 +40,10 @@ export const ImageViewerProvider: React.FC<{ children: ReactNode }> = ({ childre
   const viewingIndexInGallery = viewingImage ? images.findIndex(img => img.base64 === viewingImage.base64) : -1;
   const canNavigate = viewingIndexInGallery !== -1 && images.length > 1;
 
+  const contextValue = useMemo(() => ({ openImageViewer }), [openImageViewer]);
+
   return (
-    <ImageViewerContext.Provider value={{ openImageViewer }}>
+    <ImageViewerContext.Provider value={contextValue}>
       {children}
       {viewingImage && (
         <ImageModal
