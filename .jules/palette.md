@@ -4,3 +4,6 @@
 ## 2024-05-24 - [Language Switcher Accessibility]
 **Learning:** The language switcher buttons use abbreviations ("EN", "VI") which might not be pronounced clearly by screen readers. Providing full descriptive names via `aria-label` is a great way to improve accessibility for components relying on abbreviated or icon-based content.
 **Action:** Always verify if text abbreviations or icons have proper, descriptive `aria-label`s for screen reader support.
+## 2026-06-21 - [Missing ARIA labels on Icon-only Buttons]
+**Learning:** Icon-only buttons (like delete buttons) without aria-labels are completely opaque to screen readers.
+**Action:** Add descriptive aria-labels to all icon-only buttons to ensure proper accessibility.

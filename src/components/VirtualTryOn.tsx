@@ -304,6 +304,7 @@ const VirtualTryOn: React.FC = () => {
                             onClick={() => removeClothingUploader(item.id)}
                             disabled={isLoading}
                             className="absolute right-3 top-9 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            aria-label={t('common.remove')}
                           >
                             <DeleteIcon className="h-4 w-4" />
                           </button>

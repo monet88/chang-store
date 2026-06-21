@@ -203,6 +203,7 @@ const BatchItemCard: React.FC<{
             disabled={isProcessing && item.status === 'processing'}
             className="p-1.5 bg-red-600/70 hover:bg-red-500 rounded text-white transition-colors disabled:opacity-50"
             title={t('watermarkRemover.remove')}
+            aria-label={t('watermarkRemover.remove')}
           >
             <DeleteIcon className="w-4 h-4" />
           </button>
