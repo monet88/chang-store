@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useRef, useMemo, useCallback } from 'react';
 import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
 import { getDefaultModelForSelectionType, isKnownModelForSelectionType, ModelSelectionType } from '../config/modelRegistry';
 import { ProviderId, PROVIDER_IDS, getProviderDefaultBaseUrl, getProviderEnvApiKey } from '../config/providerRegistry';
@@ -130,7 +130,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return initial;
   });
 
-  const setProviderSettings = (provider: ProviderId, settings: Partial<ProviderSettings>) => {
+  const setProviderSettings = useCallback((provider: ProviderId, settings: Partial<ProviderSettings>) => {
     setProviderSettingsState((current) => {
       const next: ProviderSettings = { ...current[provider], ...settings };
       if (settings.apiKey !== undefined) {
@@ -141,9 +141,9 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
       return { ...current, [provider]: next };
     });
-  };
+  }, []);
 
-  const resetProviderSettings = (provider: ProviderId) => {
+  const resetProviderSettings = useCallback((provider: ProviderId) => {
     safeStorage.removeItem(providerApiKeyStorageKey(provider));
     safeStorage.removeItem(providerBaseUrlStorageKey(provider));
     setProviderSettingsState((current) => ({
@@ -153,7 +153,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         baseUrl: getProviderDefaultBaseUrl(provider),
       },
     }));
-  };
+  }, []);
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
     const saved = safeStorage.getItem(IMAGE_EDIT_MODEL_KEY);
@@ -225,7 +225,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, [googleApiKey, vertexProxySettings]);
 
-  const setGoogleApiKey = (key: string | null) => {
+  const setGoogleApiKey = useCallback((key: string | null) => {
     const trimmedKey = key?.trim() || null;
     setGoogleApiKeyState(trimmedKey);
     if (trimmedKey) {
@@ -234,32 +234,33 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       safeStorage.removeItem(LEGACY_GOOGLE_API_KEY);
     }
     setGeminiApiKey(trimmedKey);
-  };
+  }, []);
 
-  const setVertexProxySettings = (settings: VertexProxySettings) => {
+  const setVertexProxySettings = useCallback((settings: VertexProxySettings) => {
     setVertexProxySettingsState(settings);
     safeStorage.setItem(VERTEX_PROXY_ENABLED_KEY, String(settings.enabled));
     safeStorage.setItem(VERTEX_PROXY_URL_KEY, settings.url);
     safeStorage.setItem(VERTEX_PROXY_API_KEY_KEY, settings.apiKey);
-  };
+  }, []);
 
-  const setImageEditModel = (model: ImageEditModel) => {
+  const setImageEditModel = useCallback((model: ImageEditModel) => {
     setImageEditModelState(model);
     safeStorage.setItem(IMAGE_EDIT_MODEL_KEY, model);
-  };
+  }, []);
 
-  const setImageGenerateModel = (model: ImageGenerateModel) => {
+  const setImageGenerateModel = useCallback((model: ImageGenerateModel) => {
     setImageGenerateModelState(model);
     safeStorage.setItem(IMAGE_GENERATE_MODEL_KEY, model);
-  };
+  }, []);
 
-  const setTextGenerateModel = (model: TextGenerateModel) => {
+  const setTextGenerateModel = useCallback((model: TextGenerateModel) => {
     setTextGenerateModelState(model);
     safeStorage.setItem(TEXT_GENERATE_MODEL_KEY, model);
-  };
+  }, []);
 
-  return (
-    <ApiContext.Provider value={{
+  // ⚡ Bolt: Wrap Context Provider value in useMemo to preserve object identity
+  // and prevent massive cascading re-renders across all consumer components.
+  const contextValue = useMemo(() => ({
       googleApiKey,
       setGoogleApiKey,
       imageEditModel,
@@ -273,7 +274,10 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       providerSettings,
       setProviderSettings,
       resetProviderSettings,
-    }}>
+  }), [googleApiKey, setGoogleApiKey, imageEditModel, setImageEditModel, imageGenerateModel, setImageGenerateModel, textGenerateModel, setTextGenerateModel, vertexProxySettings, setVertexProxySettings, providerSettings, setProviderSettings, resetProviderSettings]);
+
+  return (
+    <ApiContext.Provider value={contextValue}>
       {children}
     </ApiContext.Provider>
   );
