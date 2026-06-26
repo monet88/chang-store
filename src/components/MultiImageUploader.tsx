@@ -243,7 +243,7 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
                     e.stopPropagation();
                     handleRemoveImage(index);
                   }}
-                  className="absolute right-2 top-2 rounded-full border border-white/10 bg-black/60 p-1.5 text-white opacity-0 transition-all duration-200 hover:bg-red-500/80 group-hover:opacity-100"
+                  className="absolute right-2 top-2 rounded-full border border-white/10 bg-black/60 p-1.5 text-white opacity-0 transition-all duration-200 hover:bg-red-500/80 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                   aria-label={`${t('imageUploader.removeAria')} ${index + 1}`}
                 >
                   <DeleteIcon className="w-4 h-4" />
