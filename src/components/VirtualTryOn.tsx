@@ -303,7 +303,7 @@ const VirtualTryOn: React.FC = () => {
                             type="button"
                             onClick={() => removeClothingUploader(item.id)}
                             disabled={isLoading}
-                            className="absolute right-3 top-9 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="absolute right-3 top-9 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             <DeleteIcon className="h-4 w-4" />
                           </button>

@@ -61,11 +61,11 @@ const ProviderResultTile: React.FC<ProviderResultTileProps> = ({
                         <Spinner />
                     </div>
                 )}
-                <div className="pointer-events-none absolute inset-0 flex items-start justify-end gap-2 bg-black/40 p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                <div className="pointer-events-none absolute inset-0 flex items-start justify-end gap-2 bg-black/40 p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
                     <button
                         type="button"
                         onClick={() => onView(image)}
-                        className="pointer-events-auto rounded-full bg-zinc-900/70 p-2 text-white transition-colors hover:bg-zinc-800"
+                        className="pointer-events-auto rounded-full bg-zinc-900/70 p-2 text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                         aria-label={t('studio.provider.results.view')}
                     >
                         <FullscreenIcon className="h-5 w-5" />
@@ -73,7 +73,7 @@ const ProviderResultTile: React.FC<ProviderResultTileProps> = ({
                     <button
                         type="button"
                         onClick={() => onDownload(image, index)}
-                        className="pointer-events-auto rounded-full bg-white p-2 text-black transition-colors hover:bg-zinc-200"
+                        className="pointer-events-auto rounded-full bg-white p-2 text-black transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                         aria-label={t('studio.provider.results.download')}
                     >
                         <DownloadIcon className="h-5 w-5" />

@@ -164,7 +164,7 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
                     <button
                       type="button"
                       onClick={() => removeClothingUploader(item.id)}
-                      className="absolute right-3 top-12 rounded-full border border-white/10 bg-black/60 p-1.5 text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100"
+                      className="absolute right-3 top-12 rounded-full border border-white/10 bg-black/60 p-1.5 text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                       aria-label="Remove view"
                     >
                       <DeleteIcon className="h-4 w-4" />
