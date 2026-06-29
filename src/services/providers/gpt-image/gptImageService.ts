@@ -58,13 +58,14 @@ const extensionForMime = (mimeType: string): string => {
 };
 
 /** Convert an ImageFile (base64) into a Blob preserving its MIME type. */
-export function imageFileToBlob(image: ImageFile): Blob {
-  const binary = atob(image.base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new Blob([bytes], { type: image.mimeType || 'image/png' });
+export async function imageFileToBlob(image: ImageFile): Promise<Blob> {
+  // ⚡ Bolt: Optimize by replacing synchronous atob loop with native async fetch API
+  // atob + charCodeAt loop is O(N) in JS and blocks the main thread for large base64 strings.
+  // Using fetch() delegates the base64 decoding to the browser's native C++ implementation
+  // which is significantly faster and non-blocking.
+  const mimeType = image.mimeType || 'image/png';
+  const response = await fetch(`data:${mimeType};base64,${image.base64}`);
+  return response.blob();
 }
 
 async function handleResponse(response: Response): Promise<ImageFile[]> {
@@ -151,9 +152,9 @@ export async function editGptImage(
       form.append('size', params.size);
       form.append('quality', params.quality);
 
+      const blobs = await Promise.all(params.images.map(imageFileToBlob));
       params.images.forEach((image, index) => {
-        const blob = imageFileToBlob(image);
-        form.append('image[]', blob, `image-${index}.${extensionForMime(image.mimeType)}`);
+        form.append('image[]', blobs[index], `image-${index}.${extensionForMime(image.mimeType)}`);
       });
 
       const response = await safeFetch(joinUrl(config.baseUrl, '/images/edits'), {

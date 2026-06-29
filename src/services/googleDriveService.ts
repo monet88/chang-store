@@ -177,13 +177,12 @@ export async function uploadImage(
   const ext = mimeType.split('/')[1] || 'png';
   const fileName = `${timestamp}_${feature}.${ext}`;
 
-  // Convert base64 to blob
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  const blob = new Blob([bytes], { type: mimeType });
+  // ⚡ Bolt: Optimize by replacing synchronous atob loop with native async fetch API
+  // atob + charCodeAt loop is O(N) in JS and blocks the main thread for large base64 strings.
+  // Using fetch() delegates the base64 decoding to the browser's native C++ implementation
+  // which is significantly faster and non-blocking.
+  const fetchResponse = await fetch(`data:${mimeType};base64,${base64}`);
+  const arrayBuffer = await fetchResponse.arrayBuffer();
 
   // Generate content hash for deduplication
   const contentHash = generateContentHash(base64);
@@ -202,8 +201,7 @@ export async function uploadImage(
   // Create multipart body
   const metadataPart = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}`;
 
-  // Read blob as array buffer for binary part
-  const arrayBuffer = await blob.arrayBuffer();
+  // Use the array buffer directly for binary part
   const binaryPart = new Uint8Array(arrayBuffer);
 
   // Combine parts - use raw binary, NOT base64 string
