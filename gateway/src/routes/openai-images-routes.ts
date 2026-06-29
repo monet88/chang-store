@@ -21,13 +21,39 @@ const assertModel = (value: unknown): string => {
 };
 
 const parseDataUrl = (value: string): { mimeType: string; data: string } => {
-  const match = value.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i);
-  if (!match) {
+  if (value.substring(0, 5).toLowerCase() !== 'data:') {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
   }
+
+  const suffixIdx = value.toLowerCase().indexOf(';base64,', 5);
+  if (suffixIdx === -1) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
+  }
+
+  const mimeType = value.substring(5, suffixIdx).toLowerCase();
+  const data = value.substring(suffixIdx + 8).replace(/\s+/g, '');
+
+  if (!/^image\/(?:png|jpeg|jpg|webp)$/.test(mimeType)) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
+  }
+
+  for (let i = 0; i < data.length; i++) {
+    const code = data.charCodeAt(i);
+    if (
+      !(code >= 65 && code <= 90) &&
+      !(code >= 97 && code <= 122) &&
+      !(code >= 48 && code <= 57) &&
+      code !== 43 &&
+      code !== 47 &&
+      code !== 61
+    ) {
+      throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
+    }
+  }
+
   return {
-    mimeType: match[1].toLowerCase(),
-    data: match[2].replace(/\s+/g, ''),
+    mimeType,
+    data,
   };
 };
 
