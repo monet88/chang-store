@@ -89,7 +89,7 @@ const WardrobeSetCard: React.FC<WardrobeSetCardProps> = ({
                 onClick={() => onRemoveItem(item.id)}
                 disabled={disabled}
                 aria-label={`Remove item ${idx + 1}`}
-                className="absolute right-2 top-7 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                className="absolute right-2 top-7 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <DeleteIcon className="h-3.5 w-3.5" />
               </button>
