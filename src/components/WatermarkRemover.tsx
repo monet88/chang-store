@@ -165,7 +165,7 @@ const BatchItemCard: React.FC<{
             <button
               onClick={handleRetry}
               disabled={isProcessing}
-              className="p-1.5 bg-amber-600/80 hover:bg-amber-500 rounded text-white transition-colors disabled:opacity-50"
+              className="p-1.5 bg-amber-600/80 hover:bg-amber-500 rounded text-white transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               title={t('watermarkRemover.retry')}
             >
               <RegenerateIcon className="w-4 h-4" />
@@ -179,7 +179,7 @@ const BatchItemCard: React.FC<{
           {item.status === 'completed' && item.result && (
             <button
               onClick={onSave}
-              className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors"
+              className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               title={t('imageActions.saveToGallery')}
             >
               <GalleryIcon className="w-4 h-4" />
@@ -190,7 +190,7 @@ const BatchItemCard: React.FC<{
           {item.status === 'completed' && item.result && (
             <button
               onClick={onDownload}
-              className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors"
+              className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               title={t('imageActions.download')}
             >
               <DownloadIcon className="w-4 h-4" />
@@ -201,7 +201,7 @@ const BatchItemCard: React.FC<{
           <button
             onClick={onRemove}
             disabled={isProcessing && item.status === 'processing'}
-            className="p-1.5 bg-red-600/70 hover:bg-red-500 rounded text-white transition-colors disabled:opacity-50"
+            className="p-1.5 bg-red-600/70 hover:bg-red-500 rounded text-white transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             title={t('watermarkRemover.remove')}
           >
             <DeleteIcon className="w-4 h-4" />
@@ -296,7 +296,7 @@ const WatermarkRemover: React.FC = () => {
             <button
               onClick={clearAll}
               disabled={isProcessing}
-              className="mt-3 text-sm text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+              className="mt-3 text-sm text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded px-1"
             >
               {t('watermarkRemover.clearAll')}
             </button>
@@ -391,7 +391,7 @@ const WatermarkRemover: React.FC = () => {
           <button
             onClick={startProcessing}
             disabled={isProcessing || items.length === 0 || pendingCount === 0}
-            className="w-full bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
           >
             {isProcessing ? (
               <>
@@ -416,7 +416,7 @@ const WatermarkRemover: React.FC = () => {
               <button
                 onClick={saveAllToGallery}
                 disabled={isProcessing}
-                className="flex-1 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <GalleryIcon className="w-4 h-4" />
                 <span>{t('watermarkRemover.saveAll')}</span>
@@ -424,7 +424,7 @@ const WatermarkRemover: React.FC = () => {
               <button
                 onClick={downloadAllZip}
                 disabled={isProcessing}
-                className="flex-1 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <DownloadIcon className="w-4 h-4" />
                 <span>{t('watermarkRemover.downloadZip')}</span>
