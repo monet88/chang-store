@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect, useMemo } from 'react';
 import { en, Translation } from '../locales/en';
 import { vi } from '../locales/vi';
 
@@ -55,8 +55,19 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     return translation;
   }, [language]);
 
+  // ⚡ Bolt: Wrap Context Provider value in useMemo to preserve object identity
+  // and prevent massive cascading re-renders across all consumer components.
+  const contextValue = useMemo(() => ({
+    language,
+    setLanguage,
+    t,
+    translations: translations[language]
+  }), [language, t]);
+  // setLanguage is from useState and has stable identity, so we don't need to add it to dependency array
+  // translations is defined outside the component, so we only need to depend on `language`
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, translations: translations[language] }}>
+    <LanguageContext.Provider value={contextValue}>
       {children}
     </LanguageContext.Provider>
   );

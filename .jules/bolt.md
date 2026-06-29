@@ -7,10 +7,10 @@
 ## 2025-02-14 - Optimize Base64 Encoding using Native FileReader
 **Learning:** Converting large `ArrayBuffer` payloads (like 5MB images from API/fetch) into base64 strings using a JS-side chunking loop (`String.fromCharCode` + `btoa`) is extremely slow (~260ms in benchmark) and blocks the main UI thread. Even processing in 32KB chunks fails to avoid substantial overhead because the strings are repeatedly allocated and concatenated in JavaScript.
 **Action:** Always prefer the browser's native C++ methods for binary to base64 conversions. Specifically, use `FileReader.readAsDataURL(blob)` instead of manually parsing the `ArrayBuffer`. It's non-blocking, heavily optimized by the browser engine, and up to ~85% faster (completes in ~33ms).
-## 2025-02-14 - Optimize Base64 Encoding using Native FileReader
-**Learning:** Converting large `ArrayBuffer` payloads (like 5MB images from API/fetch) into base64 strings using a JS-side chunking loop (`String.fromCharCode` + `btoa`) is extremely slow (~260ms in benchmark) and blocks the main UI thread. Even processing in 32KB chunks fails to avoid substantial overhead because the strings are repeatedly allocated and concatenated in JavaScript.
-**Action:** Always prefer the browser's native C++ methods for binary to base64 conversions. Specifically, use `FileReader.readAsDataURL(blob)` instead of manually parsing the `ArrayBuffer`. It's non-blocking, heavily optimized by the browser engine, and up to ~85% faster (completes in ~33ms).
-
 ## 2025-02-14 - Optimize Base64 Decoding using Native fetch()
 **Learning:** Converting multi-megabyte base64 strings back to `ArrayBuffer` or `Blob` using synchronous JavaScript loops (e.g., `atob()` combined with `charCodeAt()` to map characters into a `Uint8Array`) is a slow O(N) operation that completely blocks the main thread, leading to noticeable UI freezes during image uploads and edits.
 **Action:** Always leverage the native `fetch()` API with data URLs (e.g., `await fetch('data:image/jpeg;base64,...').then(res => res.blob())`) when decoding large base64 payloads. It delegates the decoding to the browser's highly-optimized, asynchronous native C++ layer, drastically reducing main-thread blocking time.
+
+## 2025-02-14 - Use useMemo for React Context Provider values
+**Learning:** Passing a new object literal directly to a React Context Provider's `value` prop (e.g., `value={{ someMethod }}`) creates a new object reference on every render. This forces all components consuming that context to re-render, leading to massive cascading re-renders, especially for root-level providers like `ApiProvider` or `LanguageProvider`.
+**Action:** Always wrap the `value` object passed to React Context Providers with `useMemo` (e.g., `const value = useMemo(() => ({ someMethod }), [someMethod])`) to preserve object identity and prevent unnecessary re-renders.

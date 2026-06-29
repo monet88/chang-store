@@ -4,7 +4,7 @@
  * Provides context-based toast notifications with auto-dismiss.
  * Used for feedback messages like "Image saved to Gallery".
  */
-import React, { useEffect, useState, createContext, useContext, useCallback, ReactNode } from 'react';
+import React, { useEffect, useState, createContext, useContext, useCallback, ReactNode, useMemo } from 'react';
 import { CheckCircleIcon } from './Icons';
 
 /** Single toast message */
@@ -48,8 +48,14 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  // ⚡ Bolt: Wrap Context Provider value in useMemo to preserve object identity
+  // and prevent massive cascading re-renders across all consumer components.
+  const contextValue = useMemo(() => ({
+    showToast
+  }), [showToast]);
+
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       {/* Toast container - fixed bottom right */}
       <div className="fixed bottom-4 right-4 z-toast flex flex-col gap-2">
