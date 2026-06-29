@@ -28,8 +28,9 @@ describe('gptImageService', () => {
     });
 
     describe('imageFileToBlob', () => {
-        it('preserves the MIME type', () => {
-            const blob = imageFileToBlob(makeImage('image/webp'));
+        it('preserves the MIME type', async () => {
+            fetchMock.mockResolvedValue({ blob: async () => new Blob(['test'], { type: 'image/webp' }) });
+            const blob = await imageFileToBlob(makeImage('image/webp'));
             expect(blob.type).toBe('image/webp');
         });
     });
@@ -70,7 +71,12 @@ describe('gptImageService', () => {
 
     describe('editGptImage', () => {
         it('sends multipart form data with repeated image[] fields and no manual Content-Type', async () => {
-            fetchMock.mockResolvedValue(okResponse({ data: [{ b64_json: 'EDIT' }] }));
+            fetchMock.mockImplementation((url) => {
+                if (url.startsWith('data:')) {
+                   return Promise.resolve({ blob: async () => new Blob(['test'], { type: 'image/jpeg' }) });
+                }
+                return Promise.resolve(okResponse({ data: [{ b64_json: 'EDIT' }] }));
+            });
 
             await editGptImage(
                 {
@@ -83,7 +89,9 @@ describe('gptImageService', () => {
                 CONFIG,
             );
 
-            const [url, init] = fetchMock.mock.calls[0];
+            // Skip the fetch calls for the images (data URLs) and find the API call
+            const apiCall = fetchMock.mock.calls.find(c => !c[0].startsWith('data:'));
+            const [url, init] = apiCall;
             expect(url).toBe('https://api.openai.com/v1/images/edits');
             expect(init.method).toBe('POST');
             // No manual Content-Type — only Authorization header set.
@@ -112,16 +120,25 @@ describe('gptImageService', () => {
         });
 
         it('retries on auth_unavailable then succeeds', async () => {
-            fetchMock
-                .mockResolvedValueOnce(errorResponse(503, { error: { message: 'auth_unavailable', code: 'auth_unavailable' } }))
-                .mockResolvedValueOnce(okResponse({ data: [{ b64_json: 'EDIT' }] }));
+            fetchMock.mockImplementation((url) => {
+                if (url.startsWith('data:')) {
+                   return Promise.resolve({ blob: async () => new Blob(['test'], { type: 'image/jpeg' }) });
+                }
+
+                // Return 503 first, then 200 for the edit endpoint
+                if (fetchMock.mock.calls.filter(c => !c[0].startsWith('data:')).length === 1) {
+                    return Promise.resolve(errorResponse(503, { error: { message: 'auth_unavailable', code: 'auth_unavailable' } }));
+                }
+                return Promise.resolve(okResponse({ data: [{ b64_json: 'EDIT' }] }));
+            });
 
             const result = await editGptImage(
                 { model: 'gpt-image-2', prompt: 'edit', images: [makeImage()], size: 'auto', quality: 'auto' },
                 CONFIG,
             );
 
-            expect(fetchMock).toHaveBeenCalledTimes(2);
+            // 1 fetch for the image blob, 2 for the api (1 failure + 1 retry)
+            expect(fetchMock.mock.calls.filter(c => !c[0].startsWith('data:')).length).toBe(2);
             expect(result).toEqual([{ base64: 'EDIT', mimeType: 'image/png' }]);
         });
 
