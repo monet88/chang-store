@@ -8,13 +8,18 @@ export const parseImageDataUrl = (
     throw new GatewayError(400, 'VALIDATION_FAILED', invalidMessage);
   }
 
-  const suffixIdx = value.toLowerCase().indexOf(';base64,', 5);
-  if (suffixIdx === -1) {
+  const commaIdx = value.indexOf(',', 5);
+  if (commaIdx === -1) {
     throw new GatewayError(400, 'VALIDATION_FAILED', invalidMessage);
   }
 
-  const mimeType = value.substring(5, suffixIdx);
-  const data = value.substring(suffixIdx + 8).replace(/\s+/g, '');
+  const meta = value.substring(5, commaIdx).toLowerCase();
+  if (!meta.endsWith(';base64')) {
+    throw new GatewayError(400, 'VALIDATION_FAILED', invalidMessage);
+  }
+
+  const mimeType = meta.substring(0, meta.length - 7);
+  const data = value.substring(commaIdx + 1).replace(/\s+/g, '');
 
   if (!mimeType) {
     throw new GatewayError(400, 'VALIDATION_FAILED', invalidMessage);
