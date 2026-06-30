@@ -30,8 +30,8 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
   if (is25FlashModel) {
     return (
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <span className="font-medium text-zinc-300">Quality:</span>
-        <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5">
+        <span id="resolution-label" className="font-medium text-zinc-300">Quality:</span>
+        <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5" role="group" aria-labelledby="resolution-label">
           <span className="rounded-xl bg-white px-3 py-1.5 text-sm font-semibold text-zinc-950">
             1K
           </span>
@@ -45,14 +45,21 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-2">
-      <span className="font-medium text-zinc-300">Quality:</span>
-      <div className="flex flex-wrap justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5">
+      <span id="resolution-label" className="font-medium text-zinc-300">Quality:</span>
+      <div
+        role="group"
+        aria-labelledby="resolution-label"
+        className="flex flex-wrap justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5"
+      >
         {IMAGE_RESOLUTIONS.map(res => (
           <button
             key={res}
+            type="button"
             onClick={() => setResolution(res)}
-            className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200 ${resolution === res ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
-              }`}
+            aria-pressed={resolution === res}
+            className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+              resolution === res ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
+            }`}
           >
             {res}
           </button>
