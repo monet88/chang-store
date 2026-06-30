@@ -14,6 +14,7 @@ import React, {
   useCallback,
   useEffect,
   useRef,
+  useMemo,
   ReactNode,
 } from 'react';
 import { ImageFile, GalleryImageFile } from '../types';
@@ -231,9 +232,12 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
 
   // --- Context Value ---
-  // Note: Intentionally not using useMemo - callbacks are already memoized
-  // and object identity change on state updates is expected behavior
-  const contextValue: ImageGalleryContextType = {
+  // ⚡ Bolt: Wrap Context Provider value in useMemo to preserve object identity
+  // and prevent massive cascading re-renders across all consumer components.
+  // Overrides previous decision: While callbacks are memoized, not memoizing the
+  // value object itself causes unnecessary re-renders in consumers every time the
+  // provider renders, even if the actual state hasn't changed.
+  const contextValue = useMemo<ImageGalleryContextType>(() => ({
     images,
     addImage,
     deleteImage,
@@ -245,7 +249,7 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
     forceSync,
     clearSyncError,
     getCacheMetrics,
-  };
+  }), [images, addImage, deleteImage, clearImages, syncStatus, lastSynced, syncError, isLoadingFromDrive, forceSync, clearSyncError, getCacheMetrics]);
 
   return (
     <ImageGalleryContext.Provider value={contextValue}>
