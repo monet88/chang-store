@@ -56,7 +56,6 @@ nul
 opencode.json
 .osgrep
 admin-*.png
-gateway-data/
 
 # AI orchestration local files
 .claude/
@@ -93,10 +92,6 @@ cloudflare-tunnel
 .workflow/
 skills-lock.json
 .ref/
-gateway/compiled/
-gateway/.env
-gateway/accounts/*
-!gateway/accounts/.gitkeep
 gcp/cloud-run.env.yaml
 .codegraph/
 test-results/
@@ -112,3 +107,7 @@ scripts/bin/harness-cli.exe
 
 # Local deploy guide (infrastructure details, not for public repo)
 docs/deploy/
+
+# Gateway is now a separate repo: https://github.com/monet88/vertex-gateway
+gateway/
+gateway-data/
