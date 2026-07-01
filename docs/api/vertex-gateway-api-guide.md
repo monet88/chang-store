@@ -1,7 +1,8 @@
 # Vertex Gateway API Guide
 
 > Tested: 2026-06-03
-> Base URL: `<gateway-origin>`  
+> Tested: 2026-07-01
+> Base URL: `<gateway-origin>`
 > Gateway API Key: set by `GATEWAY_API_KEYS` on the gateway server
 
 ---
@@ -243,7 +244,8 @@ For native Gemini/Vertex streaming routes:
 
 ## Available Models
 
-Kết quả dưới đây là smoke đã pass qua gateway với `GOOGLE_VERTEX_LOCATION=global`.
+Kết quả dưới đây là smoke đã pass qua gateway với `GOOGLE_VERTEX_LOCATION=global`,
+test ngày 2026-07-01 qua cả production single mode và local pool (3 project).
 
 ### Text / Multimodal
 
@@ -254,23 +256,44 @@ Kết quả dưới đây là smoke đã pass qua gateway với `GOOGLE_VERTEX_L
 | `gemini-3-flash-preview` | ✅ OK | Pass qua gateway |
 | `gemini-3.1-flash-lite` | ✅ OK | Pass qua gateway |
 | `gemini-2.5-flash` | ✅ OK | Pass qua gateway |
-| `gemini-2.5-pro` | ✅ OK | Pass qua gateway |
+| `gemini-2.5-flash-lite` | ✅ OK | Pass qua gateway |
+| `gemini-2.5-pro` | ⚠️ Quota | OK nhưng thỉnh thoảng 429 quota (transient) |
 
 ### Image
 
 | Model ID | Status | Notes |
 |----------|--------|-------|
-| `gemini-3.1-flash-image` | ✅ OK | Mặc định nên dùng cho image edit/generate |
+| `gemini-3.1-flash-image-preview` | ✅ OK | Mặc định nên dùng cho image edit/generate |
+| `gemini-3.1-flash-image` | ✅ OK | Alias, resolves to `-preview` khi có modelCatalog |
 | `gemini-3-pro-image` | ✅ OK | Pass qua gateway |
 | `gemini-2.5-flash-image` | ✅ OK | Pass qua gateway |
 
-### Failed In Smoke
+### Aliases (yêu cầu pool mode / modelCatalog)
 
-| Model ID | Result | Notes |
-|----------|--------|-------|
-| `gemini-3-flash` | ❌ Fail | `404 NOT_FOUND` |
-| `gemini-3.1-pro` | ❌ Fail | `404 NOT_FOUND` |
-| `imagen-4.0-fast-generate-001` | ❌ Fail | Không còn hỗ trợ/không truy cập được |
+| Alias | Resolves To | Single mode | Pool mode |
+|-------|-------------|:-----------:|:---------:|
+| `gemini-3.1-pro` | `gemini-3.1-pro-preview` | ❌ 404 | ✅ OK |
+| `gemini-3-flash` | `gemini-3-flash-preview` | ❌ 404 | ✅ OK |
+| `gemini-3.1-flash-image` | `gemini-3.1-flash-image-preview` | ✅ OK | ✅ OK |
+
+Lưu ý: `gemini-3.1-flash-image` hoạt động ở cả hai mode vì Vertex chấp nhận cả
+hai tên. Hai alias còn lại chỉ hoạt động khi gateway có modelCatalog (pool
+mode). Trong single mode, dùng trực tiếp tên `-preview`.
+
+### Failed In Smoke (404 NOT_FOUND)
+
+| Model ID | Notes |
+|----------|-------|
+| `gemini-3-pro` | Không tồn tại trên Vertex |
+| `gemini-3-pro-preview` | Không tồn tại trên Vertex |
+| `gemini-3-flash-image` | Không tồn tại (khác `gemini-3.1-flash-image`) |
+| `gemini-2.5-flash-image-preview` | Không tồn tại |
+| `gemini-2.5-flash-lite-preview` | Không tồn tại |
+| `gemini-2.0-flash` | Không còn hỗ trợ |
+| `gemini-2.0-flash-001` | Không còn hỗ trợ |
+| `gemini-2.0-flash-lite` | Không còn hỗ trợ |
+| `gemini-1.5-flash` | Không còn hỗ trợ |
+| `imagen-4.0-fast-generate-001` | Không còn hỗ trợ/không truy cập được |
 
 ---
 

@@ -28,7 +28,7 @@
     {
       "id": "monet-ai-2-project",
       "label": "Monet AI 2 Project",
-      "project": "project-b82b6a5a-13c8-42e4-a56",
+      "project": "monet-ai-2",
       "location": "global",
       "credentialsFile": "/run/vertex-accounts/monet-ai-2-project.json",
       "enabled": true,
@@ -37,7 +37,7 @@
     {
       "id": "monet-ai-3-project",
       "label": "Monet AI 3 Project",
-      "project": "project-b82b6a5a-13c8-42e4-a56",
+      "project": "monet-ai-3",
       "location": "global",
       "credentialsFile": "/run/vertex-accounts/monet-ai-3-project.json",
       "enabled": true,
