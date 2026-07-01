@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
 import { getErrorMessage } from '../utils/imageUtils';
+import { buildPhotoAlbumPrompt } from '../utils/photo-album-prompt-builder';
 import { PHOTO_ALBUM_POSES, PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 
 export type GenerationMode = 'fullModel' | 'faceAndOutfit';
@@ -99,34 +100,23 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
       ? t(`framingInstructions.${cameraView}`)
       : 'Use default framing provided by the model.';
 
-    const prompt = `
-# INSTRUCTION: CREATE PHOTO ALBUM IMAGE
-
-## 1. IMAGE ROLES
-${imageRolesPrompt}
-
-## 2. CRITICAL RULES (MUST FOLLOW)
-- **Identity Preservation**: Flawlessly preserve the person’s facial features, hairstyle, and skin tone from the reference image. The resemblance must be perfect.
-- **Outfit Application**:
-    - If using 'Face Reference' and 'Outfit Image', dress the model in the complete outfit and footwear from the 'Outfit Image'. Preserve the outfit and footwear design, color, texture, and fit with 100% accuracy.
-    - If using a single 'Source Image', use the outfit and footwear the model is already wearing. Ensure the footwear matches the original image exactly.
-- **New Pose**: The model's new pose MUST be: "${PHOTO_ALBUM_POSES.find((photoAlbumPose) => photoAlbumPose.id === pose)?.prompt || pose}".
-- **Model Details**:
-    - **Hair Style**: ${HAIR_STYLES[hairStyle]}
-    - **Skin Tone**: ${SKIN_TONES[skinTone]}
-    - **Footwear**: ${t('photoAlbum.footwearInstructions')}
-
-## 3. SCENE COMPOSITION
-- **Background**: ${background !== 'none' ? `Place the model in the following environment: "${BACKGROUND_PROMPTS[background]}"` : 'Keep the original background from the source image if possible, or create a simple, neutral studio background if one is not present.'}
-- **Camera & Framing**: The shot must adhere to this framing: "${framingInstruction}".
-- **Frame/Border**: ${frame !== 'none' ? `Apply a '${FRAMES[frame]}' style frame or border around the final image.` : 'Do not add any frame or border.'}
-
-## 4. ADDITIONAL NOTES
-${additionalNotes ? `- Also incorporate this instruction: "${additionalNotes}"` : '- No additional notes.'}
-
-## 5. FINAL OUTPUT
-Generate a single, hyper-realistic, 2K resolution, professional-grade fashion photograph that perfectly combines all the above elements.
-    `.trim();
+    const prompt = buildPhotoAlbumPrompt({
+      imageRolesPrompt,
+      framingInstruction,
+      poseInstruction: PHOTO_ALBUM_POSES.find((photoAlbumPose) => photoAlbumPose.id === pose)?.prompt || pose,
+      hairStyle: HAIR_STYLES[hairStyle],
+      skinTone: SKIN_TONES[skinTone],
+      footwearInstruction: t('photoAlbum.footwearInstructions'),
+      backgroundInstruction: background !== 'none'
+        ? `Place the model in the following environment: "${BACKGROUND_PROMPTS[background]}"`
+        : 'Keep the original background from the source image if possible, or create a simple, neutral studio background if one is not present.',
+      frameInstruction: frame !== 'none'
+        ? `Apply a '${FRAMES[frame]}' style frame or border around the final image.`
+        : 'Do not add any frame or border.',
+      additionalNotesInstruction: additionalNotes
+        ? `- Also incorporate this instruction: "${additionalNotes}"`
+        : '- No additional notes.',
+    });
 
     const [result] = await editImage(
       { images: imagesForApi, prompt, numberOfImages: 1, aspectRatio, resolution },

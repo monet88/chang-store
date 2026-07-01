@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { editImage } from '../services/imageEditingService';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
+import { buildSingleImageEditPrompt, buildMultiImageEditPrompt } from '../utils/ai-editor-prompt-builder';
 
 const MENTION_REGEX = /@img(\d+)/g;
 
@@ -65,13 +66,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
   const buildApiPrompt = useCallback(
     (userPrompt: string, mentionedImages: ImageFile[]): string => {
       if (mentionedImages.length === 0) {
-        return `# INSTRUCTION: IMAGE EDITING
-
-## USER REQUEST:
-${userPrompt}
-
-## OUTPUT:
-Return the edited image as the final result.`;
+        return buildSingleImageEditPrompt(userPrompt);
       }
 
       const imageRoles = mentionedImages
@@ -82,21 +77,7 @@ Return the edited image as the final result.`;
         })
         .join('\n');
 
-      return `# INSTRUCTION: MULTI-IMAGE EDITING
-
-## IMAGE ROLES:
-${imageRoles}
-
-## USER REQUEST:
-${userPrompt}
-
-## CRITICAL RULES:
-1. Analyze all provided images based on the user's request
-2. Apply edits as described, using referenced images appropriately
-3. Maintain image quality and natural appearance
-
-## OUTPUT:
-Return the final edited image.`;
+      return buildMultiImageEditPrompt(userPrompt, imageRoles);
     },
     [images],
   );

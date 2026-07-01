@@ -8,6 +8,7 @@ import { useApi } from '../contexts/ApiProviderContext';
 import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { generateImageDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
+import { buildBackgroundReplacementPrompt } from '../utils/background-replacer-prompt-builder';
 import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 
 export const useBackgroundReplacer = () => {
@@ -94,28 +95,11 @@ export const useBackgroundReplacer = () => {
       const instructionText = t(instructionKey);
       if (instructionText) framingInstruction = instructionText;
     }
-
-    const coreInstruction = `
-      **Task**: Perform a photorealistic background replacement for a fashion photograph.
-      **Subject Image**: Contains the model to be isolated.
-      **Background Source**: The new environment into which the subject will be placed.
-      **Instructions for Integration**:
-      1. **Subject Isolation**: From the Subject Image, isolate only the main person. Remove all other people or objects.
-      2. **Preserve Subject Integrity**: CRITICAL RULE. Do not alter the subject in any way. Preserve body proportions, facial features, pose, and clothing details.
-      3. **Seamless Masking**: Perform a perfect, high-quality cutout. No halos, rough edges, or leftover background artifacts.
-      4. **Lighting and Shadow Harmony**: Match lighting, add shadows, and apply consistent color grading.
-      5. **Perspective and Proportion**: Scale the subject naturally to match the environment.
-      6. **Framing**: ${framingInstruction}
-      **Goal**: A high-resolution (2K), photorealistic image where the subject is seamlessly integrated into the new background.
-    `;
-
-    if (backgroundImage) {
-      if (promptText) {
-        return `${coreInstruction}\n**Background Source**: Replace with the provided Background Source image.\n**Modification**: Also apply: "${promptText}".`;
-      }
-      return `${coreInstruction}\n**Background Source**: Replace with the provided Background Source image.`;
-    }
-    return `${coreInstruction}\n**Background Source**: Generate a new photorealistic background: "${promptText}".`;
+    return buildBackgroundReplacementPrompt({
+      framingInstruction,
+      hasBackgroundImage: backgroundImage !== null,
+      promptText,
+    });
   }, [backgroundImage, promptText, t]);
 
   const handleGenerate = useCallback(async () => {
