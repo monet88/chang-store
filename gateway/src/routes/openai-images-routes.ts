@@ -21,24 +21,28 @@ const assertModel = (value: unknown): string => {
 };
 
 const parseDataUrl = (value: string): { mimeType: string; data: string } => {
-  if (value.substring(0, 5).toLowerCase() !== 'data:') {
+  const header = value.substring(0, 128).toLowerCase();
+  if (header.substring(0, 5) !== 'data:') {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
   }
 
-  const suffixIdx = value.toLowerCase().indexOf(';base64,', 5);
+  const suffixIdx = header.indexOf(';base64,', 5);
   if (suffixIdx === -1) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
   }
 
   const mimeType = value.substring(5, suffixIdx).toLowerCase();
-  const data = value.substring(suffixIdx + 8).replace(/\s+/g, '');
-
   if (!/^image\/(?:png|jpeg|jpg|webp)$/.test(mimeType)) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
   }
 
-  for (let i = 0; i < data.length; i++) {
-    const code = data.charCodeAt(i);
+  const rawData = value.substring(suffixIdx + 8);
+  let data = '';
+  for (let i = 0; i < rawData.length; i++) {
+    const code = rawData.charCodeAt(i);
+    if (code === 32 || code === 9 || code === 10 || code === 13) {
+      continue;
+    }
     if (
       !(code >= 65 && code <= 90) &&
       !(code >= 97 && code <= 122) &&
@@ -49,6 +53,7 @@ const parseDataUrl = (value: string): { mimeType: string; data: string } => {
     ) {
       throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
     }
+    data += rawData[i];
   }
 
   return {
