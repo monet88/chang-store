@@ -58,6 +58,7 @@ const GeneratedImage: React.FC<GeneratedImageProps> = React.memo(({
                         value={refinePrompt}
                         onChange={(e) => setRefinePrompt(e.target.value)}
                         placeholder={t('generatedImage.refinePlaceholder')}
+                        aria-label={t('generatedImage.refinePlaceholder')}
                         className="flex-grow bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-amber-500 transition-colors"
                     />
                     <button onClick={handleRefineClick} disabled={isRefining || !refinePrompt.trim()} className="bg-amber-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-amber-500 disabled:bg-zinc-600 disabled:cursor-not-allowed transition-colors">

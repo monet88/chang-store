@@ -770,6 +770,7 @@ export const vi: Translation = {
     },
     generateMore: 'Tạo Thêm',
     chooseHair: 'Chọn Kiểu tóc',
+    chooseSkinTone: 'Chọn Màu da',
     hairStyles: {
       long_straight_black: 'Dài, thẳng, đen',
       medium_wavy_brown: 'Vừa, gợn sóng, nâu',

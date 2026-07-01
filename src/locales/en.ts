@@ -769,6 +769,7 @@ export const en = {
     },
     generateMore: 'Generate More',
     chooseHair: 'Choose Hair Style',
+    chooseSkinTone: 'Choose Skin Tone',
     hairStyles: {
       long_straight_black: 'Long, straight, black',
       medium_wavy_brown: 'Medium, wavy, brown',

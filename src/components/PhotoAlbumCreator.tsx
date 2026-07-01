@@ -97,26 +97,26 @@ export const PhotoAlbumCreator: React.FC<PhotoAlbumCreatorProps> = ({ transferre
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.chooseHair')}</label>
-              <select value={hairStyle} onChange={e => setHairStyle(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm">
+              <label htmlFor="hairStyle-select" className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.chooseHair')}</label>
+              <select id="hairStyle-select" value={hairStyle} onChange={e => setHairStyle(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm">
                 {Object.entries(HAIR_STYLES).map(([key, value]) => <option key={key} value={key}>{String(value)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">Skin Tone</label>
-              <select value={skinTone} onChange={e => setSkinTone(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm">
+              <label htmlFor="skinTone-select" className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.chooseSkinTone')}</label>
+              <select id="skinTone-select" value={skinTone} onChange={e => setSkinTone(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm">
                 {Object.entries(SKIN_TONES).map(([key, value]) => <option key={key} value={key}>{String(value)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.chooseFrame')}</label>
-              <select value={frame} onChange={e => setFrame(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm">
+              <label htmlFor="frame-select" className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.chooseFrame')}</label>
+              <select id="frame-select" value={frame} onChange={e => setFrame(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm">
                 {Object.entries(FRAMES).map(([key, value]) => <option key={key} value={key}>{String(value)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.chooseBackground')}</label>
-              <select value={background} onChange={e => setBackground(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm">
+              <label htmlFor="background-select" className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.chooseBackground')}</label>
+              <select id="background-select" value={background} onChange={e => setBackground(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm">
                 {Object.entries(BACKGROUND_LABELS).map(([key, value]) => <option key={key} value={key}>{String(value)}</option>)}
               </select>
             </div>
