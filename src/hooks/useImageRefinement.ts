@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useCallback, useRef, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { ImageFile } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { createImageChatSession, ImageChatSession } from '../services/imageEditingService';
@@ -57,6 +57,14 @@ export const useImageRefinement = ({
   const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
   const [refinePrompts, setRefinePrompts] = useState<Record<string, string>>({});
   const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
+
+  // A chat session bakes in the model it was created with, so cached sessions
+  // must be dropped when the model changes; otherwise later refinements keep
+  // running through the previous model. Draft prompts / busy flags are left
+  // intact — they are per-slot UI state, not tied to the model.
+  useEffect(() => {
+    chatSessionsRef.current = {};
+  }, [imageEditModel]);
 
   const resetSessions = useCallback(() => {
     chatSessionsRef.current = {};

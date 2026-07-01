@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Feature, StudioMode } from '../types';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -65,30 +65,34 @@ export const useGptImageStudio = (
   const [size, setSize] = useState<GptImageSize>(DEFAULT_GPT_IMAGE_SIZE);
 
   // GPT image primitives for the shared engine. The `count` argument is ignored
-  // (GPT endpoints always emit `GPT_IMAGE_OUTPUT_COUNT`). Config comes from
-  // context so a key/url change is picked up on the next call.
-  const driver: ProviderImageDriver = {
-    edit: (prompt, images, _count, signal) =>
-      editGptImage(
-        { model: DEFAULT_GPT_IMAGE_MODEL, prompt, images, size, quality },
-        { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
-        signal,
-      ),
-    generate: (prompt, _count, signal) =>
-      generateGptImage(
-        { model: DEFAULT_GPT_IMAGE_MODEL, prompt, size, quality },
-        { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
-        signal,
-      ),
-    // GPT has no native resolution flag; upscale uses a preservation prompt at
-    // the largest quality.
-    upscale: (source, qualityLevel, signal) =>
-      editGptImage(
-        { model: DEFAULT_GPT_IMAGE_MODEL, prompt: PROVIDER_UPSCALE_PROMPTS[qualityLevel], images: [source], size, quality: 'high' },
-        { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
-        signal,
-      ),
-  };
+  // (GPT endpoints always emit `GPT_IMAGE_OUTPUT_COUNT`). Memoized so the engine
+  // gets a stable reference; it only changes when size / quality / key / url
+  // change, avoiding needless downstream callback recomputation.
+  const driver = useMemo<ProviderImageDriver>(
+    () => ({
+      edit: (prompt, images, _count, signal) =>
+        editGptImage(
+          { model: DEFAULT_GPT_IMAGE_MODEL, prompt, images, size, quality },
+          { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
+          signal,
+        ),
+      generate: (prompt, _count, signal) =>
+        generateGptImage(
+          { model: DEFAULT_GPT_IMAGE_MODEL, prompt, size, quality },
+          { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
+          signal,
+        ),
+      // GPT has no native resolution flag; upscale uses a preservation prompt at
+      // the largest quality.
+      upscale: (source, qualityLevel, signal) =>
+        editGptImage(
+          { model: DEFAULT_GPT_IMAGE_MODEL, prompt: PROVIDER_UPSCALE_PROMPTS[qualityLevel], images: [source], size, quality: 'high' },
+          { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
+          signal,
+        ),
+    }),
+    [size, quality, settings.apiKey, settings.baseUrl],
+  );
 
   const engine = useProviderStudioEngine(
     {

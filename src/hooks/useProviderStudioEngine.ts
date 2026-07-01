@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Feature, ImageFile, UpscaleQuality, VirtualTryOnClothingItem, VirtualTryOnMode } from '../types';
 import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
 import { buildProviderStudioPrompt } from '../utils/provider-studio-prompt-adapter';
@@ -100,6 +100,10 @@ export const useProviderStudioEngine = (
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Stable accessor for the active controller's signal. The ref identity never
+  // changes, so memoizing here lets the sub-hook configs below stay stable too.
+  const getSignal = useCallback(() => abortControllerRef.current?.signal, []);
+
   // Build the request images for one Try-On run: optionally swap the subject
   // (image[0]) for a batch subject and composite the multi-person marker.
   // Non-Try-On features pass their images through unchanged.
@@ -165,22 +169,29 @@ export const useProviderStudioEngine = (
 
   // Lookbook rich output: variations / close-ups / refine built on the shared
   // prompt builders + the injected driver (no service import here).
-  const lookbookOutput = useProviderLookbookOutput(
-    {
-      generateVariations: async (base, count, signal) => {
+  //
+  // Handlers + config are memoized so the sub-hook receives stable references;
+  // the async handlers read the latest `lookbook.lookbookState.*` at call time,
+  // so `lookbookStyle` / `negativePrompt` appear in the dep list only to refresh
+  // the closures when the underlying wording changes.
+  const lookbookStyle = lookbook.lookbookState.lookbookStyle;
+  const lookbookNegativePrompt = lookbook.lookbookState.negativePrompt;
+  const lookbookHandlers = useMemo(
+    () => ({
+      generateVariations: async (base: ImageFile, count: number, signal?: AbortSignal) => {
         if (serialVariations) {
           // Serial — slow multipart edits; each call asks for a single variation.
           const out: ImageFile[] = [];
           for (let i = 0; i < count; i++) {
-            const [img] = await driver.edit(buildVariationPrompt(lookbook.lookbookState.lookbookStyle, 1), [base], 1, signal);
+            const [img] = await driver.edit(buildVariationPrompt(lookbookStyle, 1), [base], 1, signal);
             if (img) out.push(img);
           }
           return out;
         }
-        return driver.edit(buildVariationPrompt(lookbook.lookbookState.lookbookStyle, count), [base], count, signal);
+        return driver.edit(buildVariationPrompt(lookbookStyle, count), [base], count, signal);
       },
-      generateCloseUps: async (base, signal) => {
-        const negative = buildCloseUpNegativePrompt(lookbook.lookbookState.negativePrompt);
+      generateCloseUps: async (base: ImageFile, signal?: AbortSignal) => {
+        const negative = buildCloseUpNegativePrompt(lookbookNegativePrompt);
         const out: ImageFile[] = [];
         for (const closeUpPrompt of buildCloseUpPrompts()) {
           const [img] = await driver.edit(`${closeUpPrompt}\n\nAvoid: ${negative}`, [base], 1, signal);
@@ -188,14 +199,15 @@ export const useProviderStudioEngine = (
         }
         return out;
       },
-      refine: async (base, instruction, signal) => {
+      refine: async (base: ImageFile, instruction: string, signal?: AbortSignal) => {
         const [edited] = await driver.edit(buildProviderRefinePrompt(instruction), [base], 1, signal);
         return edited;
       },
-    },
-    { maxVariations, getSignal: () => abortControllerRef.current?.signal },
-    t,
+    }),
+    [driver, serialVariations, lookbookStyle, lookbookNegativePrompt],
   );
+  const lookbookConfig = useMemo(() => ({ maxVariations, getSignal }), [maxVariations, getSignal]);
+  const lookbookOutput = useProviderLookbookOutput(lookbookHandlers, lookbookConfig, t);
 
   // Sync the lookbook rich-output main image from the latest generate result.
   useEffect(() => {
@@ -231,25 +243,29 @@ export const useProviderStudioEngine = (
   // as the edit source (provider endpoints are stateless, like Gemini chat-
   // refine). Declared before handleGenerate so the generate flow can block on
   // `actions.busyIndex` (mutual exclusion — no concurrent requests).
-  const actions = useProviderResultActions({
-    results,
-    setResults,
-    getSignal: () => abortControllerRef.current?.signal,
-    isBusy: isLoading || batch.isBatchRunning,
-    t,
-    editOne: async (source, instruction, signal) => {
-      const [edited] = await driver.edit(buildProviderRefinePrompt(instruction), [source], 1, signal);
-      return edited;
-    },
-    upscaleOne: async (source, quality, signal) => {
-      const [upscaled] = await driver.upscale(source, quality, signal);
-      return upscaled;
-    },
-    regenerateOne: async (signal) => {
-      const [regenerated] = await runGeneration(1, signal);
-      return regenerated;
-    },
-  });
+  const resultActionsConfig = useMemo(
+    () => ({
+      results,
+      setResults,
+      getSignal,
+      isBusy: isLoading || batch.isBatchRunning,
+      t,
+      editOne: async (source: ImageFile, instruction: string, signal?: AbortSignal) => {
+        const [edited] = await driver.edit(buildProviderRefinePrompt(instruction), [source], 1, signal);
+        return edited;
+      },
+      upscaleOne: async (source: ImageFile, quality: UpscaleQuality, signal?: AbortSignal) => {
+        const [upscaled] = await driver.upscale(source, quality, signal);
+        return upscaled;
+      },
+      regenerateOne: async (signal?: AbortSignal) => {
+        const [regenerated] = await runGeneration(1, signal);
+        return regenerated;
+      },
+    }),
+    [results, setResults, getSignal, isLoading, batch.isBatchRunning, t, driver, runGeneration],
+  );
+  const actions = useProviderResultActions(resultActionsConfig);
 
   const handleGenerate = useCallback(async (): Promise<void> => {
     // Block while a full/batch generate OR a per-tile action is running.

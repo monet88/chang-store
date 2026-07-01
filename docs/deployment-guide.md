@@ -67,11 +67,12 @@ provider that supports SPA fallback routing.
 ## Optional Backend Gateway
 
 If you do not want browser clients to hold Google Vertex credentials or direct
-Gemini API access, this repo also includes an optional backend gateway under
-`gateway/`.
+Gemini API access, an optional backend gateway is available in a separate repo:
+https://github.com/monet88/vertex-gateway
 
-- Local Docker flow: `gateway/README.md`
-- Cloud Run deployment artifacts without changing gateway runtime code: `gcp/`
+- Clone that repo for the local Docker flow and Cloud Run deployment artifacts.
+- App API usage and feature behavior are unchanged whether or not the gateway
+  is used.
 
 ## Post-Deployment Validation
 

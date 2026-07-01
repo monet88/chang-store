@@ -48,6 +48,16 @@ describe('background-replacer prompt builder', () => {
     expect(out).toContain('**Modification**: Also apply: "warmer light".');
   });
 
+  it('treats a whitespace-only note as absent (background image branch)', () => {
+    const out = buildBackgroundReplacementPrompt({
+      framingInstruction: 'Eye level.',
+      hasBackgroundImage: true,
+      promptText: '   ',
+    });
+    expect(out).toContain('Replace with the provided Background Source image.');
+    expect(out).not.toContain('Also apply:');
+  });
+
   it('generates a background from text when no image is present', () => {
     const out = buildBackgroundReplacementPrompt({
       framingInstruction: 'Eye level.',

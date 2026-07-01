@@ -98,4 +98,33 @@ describe('useImageRefinement', () => {
     });
     expect(createImageChatSession).toHaveBeenCalledTimes(3);
   });
+
+  it('drops cached sessions when the model changes', async () => {
+    const setError = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ model }) => useImageRefinement({ imageEditModel: model, setError, t }),
+      { initialProps: { model: 'gemini-3.1-flash-image' } },
+    );
+    const apply = vi.fn();
+
+    await act(async () => {
+      await result.current.runRefine('a:0', 'brighter', IMG, apply);
+    });
+    expect(createImageChatSession).toHaveBeenCalledTimes(1);
+
+    // Same model → session reused, no new session.
+    rerender({ model: 'gemini-3.1-flash-image' });
+    await act(async () => {
+      await result.current.runRefine('a:0', 'again', IMG, apply);
+    });
+    expect(createImageChatSession).toHaveBeenCalledTimes(1);
+
+    // Model change → cached session dropped, next refine recreates it.
+    rerender({ model: 'gemini-3-pro-image' });
+    await act(async () => {
+      await result.current.runRefine('a:0', 'again', IMG, apply);
+    });
+    expect(createImageChatSession).toHaveBeenCalledTimes(2);
+    expect(createImageChatSession).toHaveBeenLastCalledWith('gemini-3-pro-image');
+  });
 });

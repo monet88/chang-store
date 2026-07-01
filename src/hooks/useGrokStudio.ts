@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Feature, ImageFile, StudioMode } from '../types';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -81,30 +81,34 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
   const [aspectRatio, setAspectRatio] = useState<GrokAspectRatio>(DEFAULT_GROK_ASPECT_RATIO);
   const [resolution, setResolution] = useState<GrokResolution>(DEFAULT_GROK_RESOLUTION);
 
-  // Grok image primitives for the shared engine. Config comes from context so a
-  // key/url change is picked up on the next call (the driver closes over the
-  // latest `settings`, `model`, `aspectRatio`, `resolution`).
-  const driver: ProviderImageDriver = {
-    edit: (prompt, images, count, signal) =>
-      editGrokImage(
-        { model, prompt, images, n: count, aspectRatio, resolution },
-        { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
-        signal,
-      ),
-    generate: (prompt, count, signal) =>
-      generateGrokImage(
-        { model, prompt, n: count, aspectRatio, resolution },
-        { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
-        signal,
-      ),
-    // Grok upscale uses the native 2k resolution plus a preservation prompt.
-    upscale: (source, quality, signal) =>
-      editGrokImage(
-        { model, prompt: PROVIDER_UPSCALE_PROMPTS[quality], images: [source], n: 1, aspectRatio, resolution: '2k' },
-        { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
-        signal,
-      ),
-  };
+  // Grok image primitives for the shared engine. Memoized so the engine gets a
+  // stable reference; the driver only changes when the values it closes over
+  // (model / aspect / resolution / key / url) actually change, which keeps the
+  // engine's downstream callbacks from being rebuilt every render.
+  const driver = useMemo<ProviderImageDriver>(
+    () => ({
+      edit: (prompt, images, count, signal) =>
+        editGrokImage(
+          { model, prompt, images, n: count, aspectRatio, resolution },
+          { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
+          signal,
+        ),
+      generate: (prompt, count, signal) =>
+        generateGrokImage(
+          { model, prompt, n: count, aspectRatio, resolution },
+          { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
+          signal,
+        ),
+      // Grok upscale uses the native 2k resolution plus a preservation prompt.
+      upscale: (source, quality, signal) =>
+        editGrokImage(
+          { model, prompt: PROVIDER_UPSCALE_PROMPTS[quality], images: [source], n: 1, aspectRatio, resolution: '2k' },
+          { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
+          signal,
+        ),
+    }),
+    [model, aspectRatio, resolution, settings.apiKey, settings.baseUrl],
+  );
 
   const engine = useProviderStudioEngine(
     {

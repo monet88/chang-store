@@ -41,13 +41,16 @@ export const buildBackgroundReplacementPrompt = ({
   promptText,
 }: BackgroundReplacerPromptInput): string => {
   const coreInstruction = buildCoreInstruction(framingInstruction);
+  // Trim so whitespace-only input is treated as "no note" (matches the other
+  // prompt builders) instead of interpolating blank text into the prompt.
+  const trimmedPrompt = promptText.trim();
 
   if (hasBackgroundImage) {
-    if (promptText) {
-      return `${coreInstruction}\n**Background Source**: Replace with the provided Background Source image.\n**Modification**: Also apply: "${promptText}".`;
+    if (trimmedPrompt) {
+      return `${coreInstruction}\n**Background Source**: Replace with the provided Background Source image.\n**Modification**: Also apply: "${trimmedPrompt}".`;
     }
     return `${coreInstruction}\n**Background Source**: Replace with the provided Background Source image.`;
   }
 
-  return `${coreInstruction}\n**Background Source**: Generate a new photorealistic background: "${promptText}".`;
+  return `${coreInstruction}\n**Background Source**: Generate a new photorealistic background: "${trimmedPrompt}".`;
 };

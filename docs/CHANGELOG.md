@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] — 2026-07-01
+
+### Removed
+
+- Vertex gateway moved to a separate repo (https://github.com/monet88/vertex-gateway). Removed the local `gateway/` source, root `docker-compose.yml`, and the `gcp/` Cloud Run deployment artifacts (bootstrap/deploy scripts, Cloud Build config, env example, rollout plan). Run the gateway and its Cloud Run deploy from the new repo; app API usage and feature behavior are unchanged.
+
 ## [Unreleased] — 2026-06-02
 
 ### Added
