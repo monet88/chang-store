@@ -12,11 +12,12 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildClothingTransferParts } from '../utils/clothing-transfer-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { downloadImagesAsZip } from '../utils/zipDownload';
+import { useImageRefinement } from './useImageRefinement';
 
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 const CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY = 3;
@@ -38,14 +39,14 @@ export function useClothingTransfer() {
   const [error, setError] = useState<string | null>(null);
   const [upscalingStates, setUpscalingStates] = useState<Record<string, boolean>>({});
 
-  // Refine state — per image slot: key = `itemId:index`
-  const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
-  const [refinePrompts, setRefinePrompts] = useState<Record<string, string>>({});
-  const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
-
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
   const { imageEditModel } = useApi();
+
+  // Refine state — per image slot: key = `itemId:index`. Shared lifecycle lives
+  // in useImageRefinement; this hook only derives the key and commits results.
+  const refinement = useImageRefinement({ imageEditModel, setError, t });
+  const { refinePrompts, setRefinePrompts, isRefining } = refinement;
 
   const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
     onStatusUpdate,
@@ -188,9 +189,7 @@ export function useClothingTransfer() {
     setError(null);
     setUpscalingStates({});
     // Reset refine sessions so new results get fresh conversation context
-    chatSessionsRef.current = {};
-    setRefinePrompts({});
-    setIsRefining({});
+    refinement.resetSessions();
     setConceptItems((prev) =>
       prev.map((item) => ({
         ...item,
@@ -279,9 +278,7 @@ export function useClothingTransfer() {
     updateConceptItem(itemId, { status: 'processing', results: [], error: undefined });
     setError(null);
 
-    Object.keys(chatSessionsRef.current).forEach((key) => {
-      if (key.startsWith(`${itemId}:`)) delete chatSessionsRef.current[key];
-    });
+    refinement.clearSessionsForPrefix(itemId);
 
     try {
       const interleavedParts = buildClothingTransferParts(
@@ -354,31 +351,14 @@ export function useClothingTransfer() {
 
   const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, itemId: string, prompt: string) => {
     const key = `${itemId}:${index}`;
-    if (!prompt.trim()) return;
-
-    if (!chatSessionsRef.current[key]) {
-      chatSessionsRef.current[key] = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
-    }
-    const session = chatSessionsRef.current[key];
-
-    setIsRefining((prev) => ({ ...prev, [key]: true }));
-    setError(null);
-
-    try {
-      const refined = await session.sendRefinement(prompt, imageToRefine);
-
+    await refinement.runRefine(key, prompt, imageToRefine, (refined) => {
       updateConceptItem(itemId, (item) => ({
         ...item,
         results: item.results.map((img, i) => (i === index ? refined : img)),
       }));
       addImage(refined);
-      setRefinePrompts((prev) => ({ ...prev, [key]: '' }));
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setIsRefining((prev) => ({ ...prev, [key]: false }));
-    }
-  }, [addImage, buildImageServiceConfig, imageEditModel, t, updateConceptItem]);
+    });
+  }, [addImage, refinement, updateConceptItem]);
 
   const handleDownloadAll = useCallback(async () => {
     const successItems = conceptItems.filter((item) => item.status === 'completed' && item.results && item.results.length > 0);
@@ -434,8 +414,8 @@ export function useClothingTransfer() {
     failedCount,
     canGenerate,
     imageEditModel,
-    refinePrompts,
-    setRefinePrompts,
-    isRefining,
+    refinePrompts: refinement.refinePrompts,
+    setRefinePrompts: refinement.setRefinePrompts,
+    isRefining: refinement.isRefining,
   };
 }

@@ -1,13 +1,14 @@
 
 // hooks/useBackgroundReplacer.ts
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { AspectRatio, ImageFile, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useApi } from '../contexts/ApiProviderContext';
-import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generateImageDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
+import { useImageRefinement } from './useImageRefinement';
 import { buildBackgroundReplacementPrompt } from '../utils/background-replacer-prompt-builder';
 import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 
@@ -35,10 +36,9 @@ export const useBackgroundReplacer = () => {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
-  // Refine state — per image slot key = index (string)
-  const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
-  const [refinePrompts, setRefinePrompts] = useState<Record<string, string>>({});
-  const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
+  // Refine lifecycle (chat sessions + per-slot state) lives in the shared hook.
+  const refinement = useImageRefinement({ imageEditModel, setError, t });
+  const { refinePrompts, setRefinePrompts, isRefining } = refinement;
 
   const PREDEFINED_BG_KEYS = useMemo(() => ['studioMirrorChair', 'sofaMirrorCurtain', 'curvedSofaCurtain'], []);
 
@@ -117,9 +117,7 @@ export const useBackgroundReplacer = () => {
     setError(null);
     setGeneratedImages([]);
     // Reset chat sessions for fresh generation
-    chatSessionsRef.current = {};
-    setRefinePrompts({});
-    setIsRefining({});
+    refinement.resetSessions();
 
     const images: ImageFile[] = [subjectImage];
     if (backgroundImage) images.push(backgroundImage);
@@ -159,27 +157,11 @@ export const useBackgroundReplacer = () => {
 
   const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, prompt: string) => {
     const key = String(index);
-    if (!prompt.trim()) return;
-
-    if (!chatSessionsRef.current[key]) {
-      chatSessionsRef.current[key] = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
-    }
-    const session = chatSessionsRef.current[key];
-
-    setIsRefining((prev) => ({ ...prev, [key]: true }));
-    setError(null);
-
-    try {
-      const refined = await session.sendRefinement(prompt, imageToRefine);
+    await refinement.runRefine(key, prompt, imageToRefine, (refined) => {
       setGeneratedImages((prev) => prev.map((img, i) => (i === index ? refined : img)));
       addImage(refined);
-      setRefinePrompts((prev) => ({ ...prev, [key]: '' }));
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setIsRefining((prev) => ({ ...prev, [key]: false }));
-    }
-  }, [addImage, buildImageServiceConfig, imageEditModel, t]);
+    });
+  }, [addImage, refinement]);
 
   return {
     subjectImage,

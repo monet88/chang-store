@@ -16,7 +16,8 @@ import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
-import { editImage, upscaleImage, createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import { editImage, upscaleImage } from '../services/imageEditingService';
+import { useImageRefinement } from './useImageRefinement';
 import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
@@ -51,13 +52,13 @@ export const useVirtualTryOn = () => {
   const [isMultiPersonMode, setIsMultiPersonModeState] = useState<boolean>(false);
   const [markerPosition, setMarkerPosition] = useState<MarkerPosition | null>(null);
 
-  // Refine state — per image slot: key = `itemId:index`
-  const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
-  const [refinePrompts, setRefinePrompts] = useState<Record<string, string>>({});
-  const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
-
   const { t } = useLanguage();
   const { imageEditModel } = useApi();
+
+  // Refine lifecycle (chat sessions + per-slot state) lives in a shared deep
+  // module; slot key = `itemId:index`.
+  const refinement = useImageRefinement({ imageEditModel, setError, t });
+  const { isRefining, refinePrompts, setRefinePrompts } = refinement;
 
   const wardrobe = useWardrobeMode({
     imageEditModel,
@@ -182,9 +183,7 @@ export const useVirtualTryOn = () => {
     setSelectedSubjectItemId(null);
     setError(null);
     setUpscalingStates({});
-    chatSessionsRef.current = {};
-    setRefinePrompts({});
-    setIsRefining({});
+    refinement.resetSessions();
     setAspectRatio('3:4');
     setResolution(DEFAULT_IMAGE_RESOLUTION);
   }, []);
@@ -213,9 +212,7 @@ export const useVirtualTryOn = () => {
     setError(null);
     setUpscalingStates({});
     // Reset refine sessions so new results get fresh conversation context
-    chatSessionsRef.current = {};
-    setRefinePrompts({});
-    setIsRefining({});
+    refinement.resetSessions();
     setSubjectItems((prev) =>
       prev.map((item) => ({
         ...item,
@@ -315,9 +312,7 @@ export const useVirtualTryOn = () => {
     setError(null);
 
     // Clear refine sessions for this item
-    Object.keys(chatSessionsRef.current).forEach((key) => {
-      if (key.startsWith(`${itemId}:`)) delete chatSessionsRef.current[key];
-    });
+    refinement.clearSessionsForPrefix(itemId);
 
     try {
       let finalSubjectImage = targetItem.subjectImage;
@@ -397,41 +392,13 @@ export const useVirtualTryOn = () => {
 
   const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, itemId: string, prompt: string) => {
     const key = `${itemId}:${index}`;
-    if (!prompt.trim()) return;
-
-    // Get or create a chat session for this specific image slot
-    if (!chatSessionsRef.current[key]) {
-      try {
-        chatSessionsRef.current[key] = createImageChatSession(
-          imageEditModel,
-          buildImageServiceConfig(() => { }),
-        );
-      } catch (sessionErr) {
-        setError(getErrorMessage(sessionErr, t));
-        return;
-      }
-    }
-    const session = chatSessionsRef.current[key];
-
-    setIsRefining((prev) => ({ ...prev, [key]: true }));
-    setError(null);
-
-    try {
-      const refined = await session.sendRefinement(prompt, imageToRefine);
-
+    await refinement.runRefine(key, prompt, imageToRefine, (refined) => {
       updateSubjectItem(itemId, (item) => ({
         ...item,
         results: item.results.map((img, i) => (i === index ? refined : img)),
       }));
-
-      // Clear the prompt after successful refinement
-      setRefinePrompts((prev) => ({ ...prev, [key]: '' }));
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setIsRefining((prev) => ({ ...prev, [key]: false }));
-    }
-  }, [buildImageServiceConfig, imageEditModel, t, updateSubjectItem]);
+    });
+  }, [refinement, updateSubjectItem]);
 
   const handleClothingUpload = useCallback((file: ImageFile | null, id: number) => {
     setClothingItems((items) =>
