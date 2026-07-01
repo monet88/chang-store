@@ -170,6 +170,15 @@ describe('buildVirtualTryOnParts', () => {
       expect(text).toContain('No tucking tops into pants or skirts');
     });
 
+    it('explicitly treats one clothing source image as a full-look reference when it shows both top and bottom', () => {
+      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      expect(text).toContain('treat it as one full-look reference and transfer every visible garment from that image together');
+      expect(text).toContain('remove the subject\'s original top and original bottom together and replace both with the source look in the same result');
+      expect(text).toContain('Do not preserve the subject\'s original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment');
+      expect(text).toContain('Do not keep the subject\'s original lower-body garment when a clothing source image includes its own lower-body garment');
+      expect(text).toContain('including both top and bottom when both are present');
+    });
+
     it('makes non-clothing preservation subordinate to clothing replacements in mixed requests', () => {
       const text = getTaskText(buildVirtualTryOnParts(mixedSourceInput));
       expect(text).toContain('Preserve clothing areas not targeted by any clothing source item');

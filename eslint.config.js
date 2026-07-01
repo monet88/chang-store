@@ -19,6 +19,7 @@ export default [
       '*.tsbuildinfo',
       'scripts/**',
       '.opencode/**',
+      '.agents/**',
       '.claude/**',
       '.kiro/**',
       '.impeccable/**',
