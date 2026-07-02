@@ -1,43 +1,22 @@
-
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useVirtualTryOnClothing } from './useVirtualTryOnClothing';
 import {
   AspectRatio,
   DEFAULT_IMAGE_RESOLUTION,
-  Feature,
-  ImageFile,
   ImageResolution,
-  MarkerPosition,
-  VirtualTryOnBatchItem,
-  VirtualTryOnClothingItem,
   VirtualTryOnMode,
-  VirtualTryOnSourceItemType,
 } from '../types';
 import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
-import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { useImageRefinement } from './useImageRefinement';
-import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
-import { remapImageBatchItems } from '../utils/batch-image-session';
-import { runBoundedWorkers } from '../utils/run-bounded-workers';
-import { downloadImagesAsZip } from '../utils/zipDownload';
-
-const MAX_SHARED_OUTFIT_IMAGES = 4;
-const MAX_SOURCE_PROMPT_LENGTH = 180;
-const VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY = 3;
-const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
-const normalizeSourcePrompt = (value: string) => value.replace(/\s+/g, ' ').slice(0, MAX_SOURCE_PROMPT_LENGTH);
+import { useVirtualTryOnSubjects } from './useVirtualTryOnSubjects';
+import { useVirtualTryOnEngine, GeminiImageDriver } from './useVirtualTryOnEngine';
+import { useVirtualTryOnResultActions } from './useVirtualTryOnResultActions';
 
 export const useVirtualTryOn = () => {
-  const clothingIdCounter = useRef(0);
-  const batchIdCounter = useRef(0);
   const [mode, setMode] = useState<VirtualTryOnMode>('multi-model');
-  const [subjectItems, setSubjectItems] = useState<VirtualTryOnBatchItem[]>([]);
-  const [selectedSubjectItemId, setSelectedSubjectItemId] = useState<string | null>(null);
-  const [clothingItems, setClothingItems] = useState<VirtualTryOnClothingItem[]>([
-    { id: ++clothingIdCounter.current, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
-  ]);
   const [backgroundPrompt, setBackgroundPrompt] = useState('');
   const [extraPrompt, setExtraPrompt] = useState('');
   const [numImages, setNumImages] = useState(1);
@@ -50,7 +29,6 @@ export const useVirtualTryOn = () => {
 
   // Estado de modo multi-persona para selección de objetivo en imágenes con múltiples personas
   const [isMultiPersonMode, setIsMultiPersonModeState] = useState<boolean>(false);
-  const [markerPosition, setMarkerPosition] = useState<MarkerPosition | null>(null);
 
   const { t } = useLanguage();
   const { imageEditModel } = useApi();
@@ -70,404 +48,95 @@ export const useVirtualTryOn = () => {
 
   const isAnyGenerating = isLoading || wardrobe.isGenerating;
 
-  const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
-    onStatusUpdate,
-  }), []);
+  // Clothing/reference list management extracted for size + future engine test seam
+  const clothing = useVirtualTryOnClothing();
 
-  const createSubjectItem = useCallback((image: ImageFile): VirtualTryOnBatchItem => ({
-    id: `vto-${++batchIdCounter.current}`,
-    subjectImage: image,
-    status: 'pending',
-    results: [],
-  }), []);
+  // Subject batch management extracted to its own focused hook.
+  const subjects = useVirtualTryOnSubjects(setError, setUpscalingStates);
 
-  const updateSubjectItem = useCallback(
-    (id: string, updater: Partial<VirtualTryOnBatchItem> | ((item: VirtualTryOnBatchItem) => VirtualTryOnBatchItem)) => {
-      setSubjectItems((prev) =>
-        prev.map((item) => {
-          if (item.id !== id) {
-            return item;
-          }
+  // Default driver wraps the real Gemini service; tests can inject a mock.
+  const driver = useMemo<GeminiImageDriver>(() => ({ editImage, upscaleImage }), []);
 
-          return typeof updater === 'function' ? updater(item) : { ...item, ...updater };
-        }),
-      );
-    },
+  const buildImageServiceConfig = useCallback(
+    (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),
     [],
   );
 
-  const subjectImages = useMemo(
-    () => subjectItems.map((item) => item.subjectImage),
-    [subjectItems],
-  );
+  const canGenerate = subjects.subjectItems.length > 0 && clothing.validClothingItems.length > 0;
 
-  const subjectImage = useMemo(
-    () => subjectItems[0]?.subjectImage ?? null,
-    [subjectItems],
-  );
+  // Cuando se desactiva el modo multi-persona, limpiar el marcador automáticamente
+  const setIsMultiPersonMode = useCallback((value: boolean) => {
+    setIsMultiPersonModeState(value);
+    if (!value) {
+      subjects.setMarkerPosition(null);
+    }
+  }, [subjects.setMarkerPosition]);
 
-  const activeSubjectItem = useMemo(
-    () => subjectItems.find((item) => item.id === selectedSubjectItemId) ?? subjectItems[0] ?? null,
-    [selectedSubjectItemId, subjectItems],
-  );
+  // Limpia el marcador sin cambiar el modo
+  const clearMarker = useCallback(() => {
+    subjects.setMarkerPosition(null);
+  }, [subjects.setMarkerPosition]);
 
-  const generatedImages = activeSubjectItem?.results ?? [];
+  const clearSubjectImages = useCallback(() => {
+    subjects.clearSubjectImages(() => {
+      refinement.resetSessions();
+      setAspectRatio('3:4');
+      setResolution(DEFAULT_IMAGE_RESOLUTION);
+    });
+  }, [subjects, refinement]);
 
-  const validClothingItems = useMemo(
-    () => clothingItems.filter((item) => item.image !== null),
-    [clothingItems],
-  );
+  const engine = useVirtualTryOnEngine({
+    driver,
+    subjects,
+    validClothingItems: clothing.validClothingItems,
+    isMultiPersonMode,
+    backgroundPrompt,
+    extraPrompt,
+    numImages,
+    aspectRatio,
+    resolution,
+    imageEditModel,
+    canGenerate,
+    isWardrobeGenerating: wardrobe.isGenerating,
+    refinement,
+    buildImageServiceConfig,
+    setIsLoading,
+    setLoadingMessage,
+    setError,
+    setUpscalingStates,
+    t,
+  });
+
+  const resultActions = useVirtualTryOnResultActions({
+    driver,
+    subjects,
+    imageEditModel,
+    refinement,
+    buildImageServiceConfig,
+    setError,
+    setUpscalingStates,
+    t,
+  });
 
   const anyUpscaling = useMemo(
     () => Object.values(upscalingStates).some(Boolean),
     [upscalingStates],
   );
 
-  const completedCount = useMemo(
-    () => subjectItems.filter((item) => item.status === 'completed').length,
-    [subjectItems],
-  );
-
-  const failedCount = useMemo(
-    () => subjectItems.filter((item) => item.status === 'error').length,
-    [subjectItems],
-  );
-
-  const canGenerate = subjectItems.length > 0 && validClothingItems.length > 0;
-
-  // Cuando se desactiva el modo multi-persona, limpiar el marcador automáticamente
-  const setIsMultiPersonMode = useCallback((value: boolean) => {
-    setIsMultiPersonModeState(value);
-    if (!value) {
-      setMarkerPosition(null);
-    }
-  }, []);
-
-  // Limpia el marcador sin cambiar el modo
-  const clearMarker = useCallback(() => {
-    setMarkerPosition(null);
-  }, []);
-
-  const handleSubjectImagesUpload = useCallback((images: ImageFile[]) => {
-    // Nueva imagen = nuevo contexto, limpiar marcador obsoleto
-    setMarkerPosition(null);
-    let nextItems: VirtualTryOnBatchItem[] = [];
-
-    setSubjectItems((prev) => {
-      nextItems = remapImageBatchItems(
-        images,
-        prev,
-        (item) => item.subjectImage,
-        createSubjectItem,
-      );
-      return nextItems;
-    });
-
-    setSelectedSubjectItemId((prev) => {
-      if (nextItems.length === 0) {
-        return null;
-      }
-
-      return prev && nextItems.some((item) => item.id === prev) ? prev : nextItems[0].id;
-    });
-
-    setError(null);
-  }, [createSubjectItem]);
-
-  const setSubjectImage = useCallback((image: ImageFile | null) => {
-    handleSubjectImagesUpload(image ? [image] : []);
-  }, [handleSubjectImagesUpload]);
-
-  const clearSubjectImages = useCallback(() => {
-    setSubjectItems([]);
-    setSelectedSubjectItemId(null);
-    setError(null);
-    setUpscalingStates({});
-    refinement.resetSessions();
-    setAspectRatio('3:4');
-    setResolution(DEFAULT_IMAGE_RESOLUTION);
-  }, []);
-
-  const handleGenerateImage = useCallback(async () => {
-    if (wardrobe.isGenerating) return;
-    if (!canGenerate) {
-      setError(t('virtualTryOn.inputError'));
-      return;
-    }
-
-
-    const sourceItems = validClothingItems.map((item) => ({
-      image: item.image as ImageFile,
-      sourceItemType: item.sourceItemType,
-      sourcePrompt: item.sourcePrompt,
-    }));
-    const jobs: { id: string; subjectImage: ImageFile }[] = subjectItems.map((item) => ({
-      id: item.id,
-      subjectImage: item.subjectImage,
-    }));
-    const batchConcurrency = Math.min(VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY, jobs.length);
-
-    setIsLoading(true);
-    setLoadingMessage(t('virtualTryOn.generatingStatus'));
-    setError(null);
-    setUpscalingStates({});
-    // Reset refine sessions so new results get fresh conversation context
-    refinement.resetSessions();
-    setSubjectItems((prev) =>
-      prev.map((item) => ({
-        ...item,
-        status: 'pending',
-        results: [],
-        error: undefined,
-      })),
-    );
-
-    try {
-      await runBoundedWorkers(
-        jobs,
-        batchConcurrency,
-        async (job) => {
-          updateSubjectItem(job.id, {
-            status: 'processing',
-            error: undefined,
-            results: [],
-          });
-
-          try {
-            let finalSubjectImage = job.subjectImage;
-            if (isMultiPersonMode && markerPosition) {
-              finalSubjectImage = await compositeMarkerOnImage(job.subjectImage, markerPosition);
-            }
-
-            const interleavedParts = buildVirtualTryOnParts({
-              subjectImage: finalSubjectImage,
-              sourceItems,
-              extraPrompt,
-              backgroundPrompt,
-              isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
-            });
-            const results = await editImage(
-              {
-                images: [],
-                prompt: '',
-                numberOfImages: numImages,
-                aspectRatio,
-                resolution,
-                interleavedParts,
-              },
-              imageEditModel,
-              buildImageServiceConfig(setLoadingMessage),
-            );
-
-            updateSubjectItem(job.id, {
-              status: 'completed',
-              results,
-              error: undefined,
-            });
-          } catch (itemError) {
-            updateSubjectItem(job.id, {
-              status: 'error',
-              results: [],
-              error: getErrorMessage(itemError, t),
-            });
-          }
-        },
-      );
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
-    }
-  }, [
-    aspectRatio,
-    backgroundPrompt,
-    buildImageServiceConfig,
-    canGenerate,
-    extraPrompt,
-    imageEditModel,
-    numImages,
-    resolution,
-    subjectItems,
-    t,
-    updateSubjectItem,
-    validClothingItems,
-    isMultiPersonMode,
-    markerPosition,
-    wardrobe.isGenerating,
-  ]);
-
-  const handleRegenerateSingle = useCallback(async (itemId: string) => {
-    const targetItem = subjectItems.find((item) => item.id === itemId);
-    if (!targetItem || validClothingItems.length === 0) return;
-
-    const sourceItems = validClothingItems.map((item) => ({
-      image: item.image as ImageFile,
-      sourceItemType: item.sourceItemType,
-      sourcePrompt: item.sourcePrompt,
-    }));
-
-    // Reset only this item
-    updateSubjectItem(itemId, { status: 'processing', results: [], error: undefined });
-    setError(null);
-
-    // Clear refine sessions for this item
-    refinement.clearSessionsForPrefix(itemId);
-
-    try {
-      let finalSubjectImage = targetItem.subjectImage;
-      if (isMultiPersonMode && markerPosition) {
-        finalSubjectImage = await compositeMarkerOnImage(targetItem.subjectImage, markerPosition);
-      }
-
-      const interleavedParts = buildVirtualTryOnParts({
-        subjectImage: finalSubjectImage,
-        sourceItems,
-        extraPrompt,
-        backgroundPrompt,
-        isMultiPersonMode: isMultiPersonMode && markerPosition !== null,
-      });
-      const results = await editImage(
-        {
-          images: [],
-          prompt: '',
-          numberOfImages: numImages,
-          aspectRatio,
-          resolution,
-          interleavedParts,
-        },
-        imageEditModel,
-        buildImageServiceConfig(setLoadingMessage),
-      );
-
-      updateSubjectItem(itemId, { status: 'completed', results, error: undefined });
-    } catch (err) {
-      updateSubjectItem(itemId, { status: 'error', results: [], error: getErrorMessage(err, t) });
-    }
-  }, [
-    aspectRatio,
-    backgroundPrompt,
-    buildImageServiceConfig,
-    extraPrompt,
-    imageEditModel,
-    numImages,
-    resolution,
-    subjectItems,
-    t,
-    updateSubjectItem,
-    validClothingItems,
-    isMultiPersonMode,
-    markerPosition,
-  ]);
-
-  const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number, itemId?: string) => {
-    const targetItemId = itemId ?? activeSubjectItem?.id;
-    if (!imageToUpscale || !targetItemId) {
-      return;
-    }
-
-    const stateKey = getUpscaleStateKey(targetItemId, index);
-    setUpscalingStates((prev) => ({ ...prev, [stateKey]: true }));
-    setError(null);
-
-    try {
-      const result = await upscaleImage(
-        imageToUpscale,
-        imageEditModel,
-        buildImageServiceConfig(() => { }),
-      );
-
-      updateSubjectItem(targetItemId, (item) => ({
-        ...item,
-        results: item.results.map((image, resultIndex) => (
-          resultIndex === index ? result : image
-        )),
-      }));
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setUpscalingStates((prev) => ({ ...prev, [stateKey]: false }));
-    }
-  }, [activeSubjectItem?.id, buildImageServiceConfig, imageEditModel, t, updateSubjectItem]);
-
-  const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, itemId: string, prompt: string) => {
-    const key = `${itemId}:${index}`;
-    await refinement.runRefine(key, prompt, imageToRefine, (refined) => {
-      updateSubjectItem(itemId, (item) => ({
-        ...item,
-        results: item.results.map((img, i) => (i === index ? refined : img)),
-      }));
-    });
-  }, [refinement, updateSubjectItem]);
-
-  const handleClothingUpload = useCallback((file: ImageFile | null, id: number) => {
-    setClothingItems((items) =>
-      items.map((item) => (item.id === id ? { ...item, image: file } : item)),
-    );
-  }, []);
-
-  const handleSourceItemTypeChange = useCallback((id: number, sourceItemType: VirtualTryOnSourceItemType) => {
-    setClothingItems((items) =>
-      items.map((item) => (item.id === id ? { ...item, sourceItemType } : item)),
-    );
-  }, []);
-
-  const handleSourcePromptChange = useCallback((id: number, sourcePrompt: string) => {
-    const normalizedPrompt = normalizeSourcePrompt(sourcePrompt);
-    setClothingItems((items) =>
-      items.map((item) => (item.id === id ? { ...item, sourcePrompt: normalizedPrompt } : item)),
-    );
-  }, []);
-
-  const addClothingUploader = useCallback(() => {
-    setClothingItems((prev) => {
-      if (prev.length >= MAX_SHARED_OUTFIT_IMAGES) {
-        return prev;
-      }
-
-      return [...prev, { id: ++clothingIdCounter.current, image: null, sourceItemType: 'clothing', sourcePrompt: '' }];
-    });
-  }, []);
-
-  const removeClothingUploader = useCallback((id: number) => {
-    setClothingItems((prev) => {
-      if (prev.length <= 1) {
-        return prev;
-      }
-
-      return prev.filter((item) => item.id !== id);
-    });
-  }, []);
-
-  const handleDownloadAll = useCallback(async () => {
-    const successItems = subjectItems.filter((item) => item.status === 'completed' && item.results && item.results.length > 0);
-    if (successItems.length === 0) return;
-    
-    // We need all the generated images
-    const allResults = successItems.flatMap(item => item.results);
-    if (allResults.length === 0) return;
-
-    try {
-      await downloadImagesAsZip(allResults, `${Feature.TryOn}-batch`);
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    }
-  }, [subjectItems, t]);
-
   return {
     mode,
     setMode,
     isAnyGenerating,
     wardrobe,
-    subjectItems,
-    subjectImages,
-    selectedSubjectItemId,
-    setSelectedSubjectItemId,
-    activeSubjectItem,
-    subjectImage,
-    setSubjectImage,
-    handleSubjectImagesUpload,
-    clothingItems,
+    subjectItems: subjects.subjectItems,
+    subjectImages: subjects.subjectImages,
+    selectedSubjectItemId: subjects.selectedSubjectItemId,
+    setSelectedSubjectItemId: subjects.setSelectedSubjectItemId,
+    activeSubjectItem: subjects.activeSubjectItem,
+    subjectImage: subjects.subjectImage,
+    setSubjectImage: subjects.setSubjectImage,
+    handleSubjectImagesUpload: subjects.handleSubjectImagesUpload,
+    clothingItems: clothing.clothingItems,
     backgroundPrompt,
     setBackgroundPrompt,
     extraPrompt,
@@ -483,22 +152,22 @@ export const useVirtualTryOn = () => {
     loadingMessage,
     error,
     setError,
-    generatedImages,
-    validClothingItems,
-    completedCount,
-    failedCount,
+    generatedImages: subjects.generatedImages,
+    validClothingItems: clothing.validClothingItems,
+    completedCount: subjects.completedCount,
+    failedCount: subjects.failedCount,
     canGenerate,
     clearSubjectImages,
-    handleGenerateImage,
-    handleRegenerateSingle,
-    handleUpscale,
-    handleRefine,
-    handleClothingUpload,
-    handleSourceItemTypeChange,
-    handleSourcePromptChange,
-    addClothingUploader,
-    removeClothingUploader,
-    handleDownloadAll,
+    handleGenerateImage: engine.handleGenerateImage,
+    handleRegenerateSingle: engine.handleRegenerateSingle,
+    handleUpscale: resultActions.handleUpscale,
+    handleRefine: resultActions.handleRefine,
+    handleClothingUpload: clothing.handleClothingUpload,
+    handleSourceItemTypeChange: clothing.handleSourceItemTypeChange,
+    handleSourcePromptChange: clothing.handleSourcePromptChange,
+    addClothingUploader: clothing.addClothingUploader,
+    removeClothingUploader: clothing.removeClothingUploader,
+    handleDownloadAll: resultActions.handleDownloadAll,
     anyUpscaling,
     imageEditModel,
     refinePrompts,
@@ -506,8 +175,8 @@ export const useVirtualTryOn = () => {
     isRefining,
     isMultiPersonMode,
     setIsMultiPersonMode,
-    markerPosition,
-    setMarkerPosition,
+    markerPosition: subjects.markerPosition,
+    setMarkerPosition: subjects.setMarkerPosition,
     clearMarker,
   };
 };

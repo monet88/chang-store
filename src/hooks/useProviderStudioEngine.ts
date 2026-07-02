@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Feature, ImageFile, UpscaleQuality, VirtualTryOnClothingItem, VirtualTryOnMode } from '../types';
-import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
-import { buildProviderStudioPrompt } from '../utils/provider-studio-prompt-adapter';
+import { useEffect, useMemo } from 'react';
+import { Feature, ImageFile, VirtualTryOnMode } from '../types';
 import { buildProviderRefinePrompt } from '../utils/provider-refine-prompt';
 import { buildVariationPrompt, buildCloseUpPrompts, buildCloseUpNegativePrompt } from '../utils/lookbookPromptBuilder';
 import { useProviderStudioFields, UseProviderStudioFieldsReturn } from './useProviderStudioFields';
@@ -10,26 +8,17 @@ import { useProviderTryOnBatch, UseProviderTryOnBatchReturn } from './useProvide
 import { useProviderLookbookFields, UseProviderLookbookFieldsReturn } from './useProviderLookbookFields';
 import { useProviderWardrobe, UseProviderWardrobeReturn, ProviderWardrobeConfig } from './useProviderWardrobe';
 import { useProviderLookbookOutput, UseProviderLookbookOutputReturn } from './useProviderLookbookOutput';
+import type { ProviderImageDriver } from './useProviderStudioGeneration';
+import { useProviderStudioGeneration } from './useProviderStudioGeneration';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
 /**
- * Provider image primitives the engine orchestrates. Each provider studio hook
- * builds a driver from its own service + option state (model/aspect/resolution
- * for Grok; size/quality for GPT). The engine never imports a provider service
- * itself, so `src/hooks/useProvider*.ts` stays boundary-clean (Red Team #2).
- *
- * `count` is the requested output count. Grok honours it (maps to `n`); GPT
- * ignores it (its edit/generate endpoints always emit `GPT_IMAGE_OUTPUT_COUNT`).
+ * Provider image primitives the engine orchestrates.
+ * The generation hook owns the driver contract; re-export the type here so
+ * callers (useGrokStudio, useGptImageStudio) keep a stable import path.
  */
-export interface ProviderImageDriver {
-  /** Edit `images` with `prompt`, requesting `count` outputs. */
-  edit: (prompt: string, images: ImageFile[], count: number, signal?: AbortSignal) => Promise<ImageFile[]>;
-  /** Text-to-image generate from `prompt`, requesting `count` outputs. */
-  generate: (prompt: string, count: number, signal?: AbortSignal) => Promise<ImageFile[]>;
-  /** Preservation-first upscale of a single result (provider param overrides live here). */
-  upscale: (source: ImageFile, quality: UpscaleQuality, signal?: AbortSignal) => Promise<ImageFile[]>;
-}
+export type { ProviderImageDriver } from './useProviderStudioGeneration';
 
 export interface ProviderStudioEngineConfig {
   activeFeature: Feature;
@@ -48,8 +37,7 @@ export interface ProviderStudioEngineConfig {
 
 /**
  * Shared control surface both provider studios expose (minus provider-specific
- * option fields, which the provider hooks add). Kept as the intersection of the
- * composed sub-hook returns plus the engine-owned workflow state.
+ * option fields, which the provider hooks add).
  */
 export interface UseProviderStudioEngineReturn
   extends UseProviderStudioFieldsReturn,
@@ -72,13 +60,11 @@ export interface UseProviderStudioEngineReturn
 }
 
 /**
- * Shared orchestration + state for the Grok and GPT Image provider studios.
+ * Shared orchestration for Grok and GPT Image provider studios.
  *
- * Owns the common workflow: prompt/images/results state, per-source-item fields,
- * Try-On batch, wardrobe, lookbook fields + rich output, per-tile result actions,
- * the active-feature reset/abort effect, and the generate flow (single / batch).
- * The only provider-specific piece is the injected `driver`; everything routed
- * through it stays identical across providers.
+ * Delegates prompt/images/results + generation + per-tile actions to
+ * `useProviderStudioGeneration`. Owns wardrobe wiring, lookbook handlers/output,
+ * feature-switch reset coordination, and the public return surface.
  */
 export const useProviderStudioEngine = (
   config: ProviderStudioEngineConfig,
@@ -86,238 +72,93 @@ export const useProviderStudioEngine = (
 ): UseProviderStudioEngineReturn => {
   const { activeFeature, driver, wardrobeConfig, maxVariations, mainCount, serialVariations } = config;
 
-  const [prompt, setPrompt] = useState('');
-  const [images, setImages] = useState<ImageFile[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [results, setResults] = useState<ImageFile[]>([]);
-
   const fields = useProviderStudioFields();
   const batch = useProviderTryOnBatch(t);
   const lookbook = useProviderLookbookFields();
 
-  const [tryOnMode, setTryOnMode] = useState<VirtualTryOnMode>('multi-model');
+  const gen = useProviderStudioGeneration({
+    activeFeature,
+    driver,
+    fields,
+    batch,
+    lookbook,
+    mainCount,
+    t,
+  });
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Stable accessor for the active controller's signal. The ref identity never
-  // changes, so memoizing here lets the sub-hook configs below stay stable too.
-  const getSignal = useCallback(() => abortControllerRef.current?.signal, []);
-
-  // Build the request images for one Try-On run: optionally swap the subject
-  // (image[0]) for a batch subject and composite the multi-person marker.
-  // Non-Try-On features pass their images through unchanged.
-  const prepareImages = useCallback(
-    async (subjectOverride?: ImageFile): Promise<ImageFile[]> => {
-      if (activeFeature !== Feature.TryOn || images.length === 0) {
-        return images;
-      }
-      const [defaultSubject, ...sourceItems] = images;
-      let subject = subjectOverride ?? defaultSubject;
-      if (batch.isMultiPersonMode && batch.markerPosition) {
-        subject = await compositeMarkerOnImage(subject, batch.markerPosition);
-      }
-      return [subject, ...sourceItems];
-    },
-    [activeFeature, images, batch.isMultiPersonMode, batch.markerPosition],
-  );
-
-  // Single provider call for the current inputs. `count` lets regenerate request
-  // exactly one image while the main generate uses the provider's main count.
-  // `subjectOverride` swaps image[0] for a batch subject.
-  const runGeneration = useCallback(
-    async (count: number, signal?: AbortSignal, subjectOverride?: ImageFile): Promise<ImageFile[]> => {
-      const requestImages = await prepareImages(subjectOverride);
-      const multiPerson = activeFeature === Feature.TryOn && batch.isMultiPersonMode && batch.markerPosition !== null;
-      const composedPrompt = buildProviderStudioPrompt(activeFeature, prompt, requestImages, {
-        ...fields.buildPromptOptions(),
-        isMultiPersonMode: multiPerson,
-        lookbookState: lookbook.lookbookState,
-        fabricTextureImage: lookbook.lookbookFabricImage,
-      });
-      return requestImages.length > 0
-        ? driver.edit(composedPrompt, requestImages, count, signal)
-        : driver.generate(composedPrompt, count, signal);
-    },
-    [activeFeature, prompt, fields, batch.isMultiPersonMode, batch.markerPosition, lookbook.lookbookState, lookbook.lookbookFabricImage, prepareImages, driver],
-  );
-
-  // Wardrobe: generate one set as a Try-On edit (subject + the set's items as
-  // source images). Service call goes through the injected driver so
-  // `useProviderWardrobe` stays service-agnostic (Red Team #2).
-  const generateSet = useCallback(
-    async (
-      subject: ImageFile,
-      items: VirtualTryOnClothingItem[],
-      prompts: { backgroundPrompt: string; extraPrompt: string },
-      signal?: AbortSignal,
-    ): Promise<ImageFile[]> => {
-      const withImage = items.filter((i) => i.image !== null);
-      const requestImages = [subject, ...withImage.map((i) => i.image as ImageFile)];
-      const composedPrompt = buildProviderStudioPrompt(Feature.TryOn, '', requestImages, {
-        sourceItemTypes: withImage.map((i) => i.sourceItemType),
-        sourceItemNotes: withImage.map((i) => i.sourcePrompt),
-        backgroundPrompt: prompts.backgroundPrompt,
-        extraPrompt: prompts.extraPrompt,
-      });
-      return driver.edit(composedPrompt, requestImages, mainCount, signal);
-    },
-    [driver, mainCount],
-  );
-
-  const wardrobe = useProviderWardrobe(generateSet, wardrobeConfig, t);
+  // Wardrobe receives the generation surface's generateSet (injected driver call
+  // lives inside the generation hook; wardrobe stays service-agnostic).
+  const wardrobe = useProviderWardrobe(gen.generateSet, wardrobeConfig, t);
 
   // Lookbook rich output: variations / close-ups / refine built on the shared
-  // prompt builders + the injected driver (no service import here).
-  //
-  // Handlers + config are memoized so the sub-hook receives stable references;
-  // the async handlers read the latest `lookbook.lookbookState.*` at call time,
-  // so `lookbookStyle` / `negativePrompt` appear in the dep list only to refresh
-  // the closures when the underlying wording changes.
+  // prompt builders + the injected driver.
   const lookbookStyle = lookbook.lookbookState.lookbookStyle;
   const lookbookNegativePrompt = lookbook.lookbookState.negativePrompt;
-  const lookbookHandlers = useMemo(
-    () => ({
-      generateVariations: async (base: ImageFile, count: number, signal?: AbortSignal) => {
-        if (serialVariations) {
-          // Serial — slow multipart edits; each call asks for a single variation.
-          const out: ImageFile[] = [];
-          for (let i = 0; i < count; i++) {
-            const [img] = await driver.edit(buildVariationPrompt(lookbookStyle, 1), [base], 1, signal);
-            if (img) out.push(img);
-          }
-          return out;
-        }
-        return driver.edit(buildVariationPrompt(lookbookStyle, count), [base], count, signal);
-      },
-      generateCloseUps: async (base: ImageFile, signal?: AbortSignal) => {
-        const negative = buildCloseUpNegativePrompt(lookbookNegativePrompt);
+
+  const lookbookHandlers = useMemo(() => ({
+    generateVariations: async (base: ImageFile, count: number, signal?: AbortSignal) => {
+      if (serialVariations) {
         const out: ImageFile[] = [];
-        for (const closeUpPrompt of buildCloseUpPrompts()) {
-          const [img] = await driver.edit(`${closeUpPrompt}\n\nAvoid: ${negative}`, [base], 1, signal);
+        for (let i = 0; i < count; i++) {
+          const [img] = await driver.edit(buildVariationPrompt(lookbookStyle, 1), [base], 1, signal);
           if (img) out.push(img);
         }
         return out;
-      },
-      refine: async (base: ImageFile, instruction: string, signal?: AbortSignal) => {
-        const [edited] = await driver.edit(buildProviderRefinePrompt(instruction), [base], 1, signal);
-        return edited;
-      },
-    }),
-    [driver, serialVariations, lookbookStyle, lookbookNegativePrompt],
-  );
-  const lookbookConfig = useMemo(() => ({ maxVariations, getSignal }), [maxVariations, getSignal]);
+      }
+      return driver.edit(buildVariationPrompt(lookbookStyle, count), [base], count, signal);
+    },
+    generateCloseUps: async (base: ImageFile, signal?: AbortSignal) => {
+      const negative = buildCloseUpNegativePrompt(lookbookNegativePrompt);
+      const out: ImageFile[] = [];
+      for (const closeUpPrompt of buildCloseUpPrompts()) {
+        const [img] = await driver.edit(`${closeUpPrompt}\n\nAvoid: ${negative}`, [base], 1, signal);
+        if (img) out.push(img);
+      }
+      return out;
+    },
+    refine: async (base: ImageFile, instruction: string, signal?: AbortSignal) => {
+      const [edited] = await driver.edit(buildProviderRefinePrompt(instruction), [base], 1, signal);
+      return edited;
+    },
+  }), [driver, serialVariations, lookbookStyle, lookbookNegativePrompt]);
+
+  const lookbookConfig = useMemo(() => ({ maxVariations, getSignal: gen.getSignal }), [maxVariations, gen.getSignal]);
   const lookbookOutput = useProviderLookbookOutput(lookbookHandlers, lookbookConfig, t);
 
-  // Sync the lookbook rich-output main image from the latest generate result.
+  // Sync the lookbook main image when the active feature produces new results.
   useEffect(() => {
     if (activeFeature === Feature.Lookbook) {
-      lookbookOutput.setMain(results[0] ?? null);
+      lookbookOutput.setMain(gen.results[0] ?? null);
     }
-  }, [results, activeFeature]);
+  }, [gen.results, activeFeature]);
 
-  // Reset transient workflow state when the active feature changes, and abort
-  // any request that was started for the previous feature so a late-arriving
-  // response cannot overwrite the new feature's state. Covers tryOnMode +
-  // wardrobe sets/results + lookbook output (Red Team #5, #6).
+  // Full reset when switching features inside the provider studio.
+  // Delegates generation state + controller to the generation hook; coordinates
+  // the other sub-hooks (fields, batch extras, lookbook, wardrobe, output).
   useEffect(() => {
-    abortControllerRef.current?.abort();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    setPrompt('');
-    setImages([]);
-    setResults([]);
-    setError(null);
-    setTryOnMode('multi-model');
+    gen.abortCurrent();
+    gen.reset();
     fields.resetFields();
     batch.resetExtras();
     lookbook.resetLookbookFields();
     wardrobe.reset();
     lookbookOutput.reset();
-    return () => {
-      controller.abort();
-    };
   }, [activeFeature]);
 
-  // Per-tile result actions (refine / upscale / regenerate). Results feed back
-  // as the edit source (provider endpoints are stateless, like Gemini chat-
-  // refine). Declared before handleGenerate so the generate flow can block on
-  // `actions.busyIndex` (mutual exclusion — no concurrent requests).
-  const resultActionsConfig = useMemo(
-    () => ({
-      results,
-      setResults,
-      getSignal,
-      isBusy: isLoading || batch.isBatchRunning,
-      t,
-      editOne: async (source: ImageFile, instruction: string, signal?: AbortSignal) => {
-        const [edited] = await driver.edit(buildProviderRefinePrompt(instruction), [source], 1, signal);
-        return edited;
-      },
-      upscaleOne: async (source: ImageFile, quality: UpscaleQuality, signal?: AbortSignal) => {
-        const [upscaled] = await driver.upscale(source, quality, signal);
-        return upscaled;
-      },
-      regenerateOne: async (signal?: AbortSignal) => {
-        const [regenerated] = await runGeneration(1, signal);
-        return regenerated;
-      },
-    }),
-    [results, setResults, getSignal, isLoading, batch.isBatchRunning, t, driver, runGeneration],
-  );
-  const actions = useProviderResultActions(resultActionsConfig);
-
-  const handleGenerate = useCallback(async (): Promise<void> => {
-    // Block while a full/batch generate OR a per-tile action is running.
-    if (isLoading || batch.isBatchRunning || actions.busyIndex !== null) return;
-
-    setError(null);
-
-    // Batch path: image[0] is subject #1, extra subjects run with the same
-    // shared source set (image[1..]). Results are tracked per subject.
-    if (batch.batchActive && activeFeature === Feature.TryOn && images.length > 0) {
-      setResults([]);
-      const subjects = [images[0], ...batch.batchSubjects];
-      await batch.runBatch(
-        subjects,
-        (subject, signal) => runGeneration(mainCount, signal, subject),
-        abortControllerRef.current?.signal,
-      );
-      return;
-    }
-
-    setIsLoading(true);
-    setResults([]);
-
-    try {
-      const generated = await runGeneration(mainCount, abortControllerRef.current?.signal);
-      setResults(generated);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        return; // Silent on studio switch / unmount.
-      }
-      setError(getErrorMessage(err, t));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoading, batch, actions.busyIndex, activeFeature, images, runGeneration, mainCount, t]);
+  // Strip generation-hook internals from the public surface before returning.
+  const {
+    generateSet: _generateSet,
+    getSignal: _getSignal,
+    reset: _genReset,
+    abortCurrent: _abortCurrent,
+    ...genSurface
+  } = gen;
 
   return {
     ...fields,
-    prompt,
-    setPrompt,
-    images,
-    setImages,
-    isLoading,
-    error,
-    results,
-    clearError: () => setError(null),
-    handleGenerate,
-    ...actions,
+    ...genSurface,
     ...batch,
     ...lookbook,
-    tryOnMode,
-    setTryOnMode,
     wardrobe,
     lookbookOutput,
   };

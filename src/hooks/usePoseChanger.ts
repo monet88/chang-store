@@ -1,20 +1,34 @@
-import { useMemo, useState } from 'react';
-import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
+/**
+ * Pose Changer Hook (orchestrator)
+ *
+ * Composes references state and generation engine.
+ * Builds the default Gemini image driver; future tests can inject mocks.
+ * Public return surface is preserved exactly so PoseChanger.tsx needs zero changes.
+ */
+
+import { useState, useMemo, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generatePoseDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
-import { buildTextPosePrompt, buildReferencePosePrompt } from '../utils/pose-changer-prompt-builder';
+import {
+  usePoseChangerReferences,
+} from './usePoseChangerReferences';
+import {
+  usePoseChangerEngine,
+  type PoseImageDriver,
+} from './usePoseChangerEngine';
+import {
+  usePoseChangerResultActions,
+} from './usePoseChangerResultActions';
+
+// Re-export for backward compat if any external imports the type from here
+export type { PoseImageDriver } from './usePoseChangerEngine';
+
+import type { ImageFile, AspectRatio, ImageResolution } from '../types';
 
 type CameraView = 'default' | 'fullBody' | 'halfBody' | 'kneesUp';
-
-interface GenerationStatus {
-  active: boolean;
-  progress: number;
-  total: number;
-  message: string;
-}
 
 interface CameraViewOption {
   key: CameraView;
@@ -32,7 +46,7 @@ export interface UsePoseChangerReturn {
   regeneratingStates: Record<number, boolean>;
   isLoading: boolean;
   isGeneratingPoseDescription: boolean;
-  generationStatus: GenerationStatus;
+  generationStatus: { active: boolean; progress: number; total: number; message: string };
   error: string | null;
   negativePrompt: string;
   setNegativePrompt: (prompt: string) => void;
@@ -56,74 +70,57 @@ export interface UsePoseChangerReturn {
   clearError: () => void;
 }
 
-const IDLE_GENERATION_STATUS: GenerationStatus = { active: false, progress: 0, total: 0, message: '' };
-
-const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
-  onStatusUpdate,
-});
+const IDLE_GENERATION_STATUS = { active: false, progress: 0, total: 0, message: '' };
 
 export const usePoseChanger = (): UsePoseChangerReturn => {
-  const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);
-  const [poseReferenceImage, setPoseReferenceImage] = useState<ImageFile | null>(null);
-  const [customPosePrompt, setCustomPosePrompt] = useState('');
-  const [selectedLibraryPoses, setSelectedLibraryPoses] = useState<string[]>([]);
+  const { t } = useLanguage();
+  const { imageEditModel, textGenerateModel } = useApi();
+
+  // UI/loading state owned by orchestrator
   const [generatedImages, setGeneratedImages] = useState<ImageFile[]>([]);
   const [upscalingStates, setUpscalingStates] = useState<Record<number, boolean>>({});
   const [regeneratingStates, setRegeneratingStates] = useState<Record<number, boolean>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingPoseDescription, setIsGeneratingPoseDescription] = useState(false);
-  const [generationStatus, setGenerationStatus] = useState<GenerationStatus>(IDLE_GENERATION_STATUS);
+  const [generationStatus, setGenerationStatus] = useState(IDLE_GENERATION_STATUS);
   const [error, setError] = useState<string | null>(null);
-  const [negativePrompt, setNegativePrompt] = useState('');
-  const [cameraView, setCameraView] = useState<CameraView>('fullBody');
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
-  const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
-  const { t } = useLanguage();
-  const { imageEditModel, textGenerateModel } = useApi();
+  const refs = usePoseChangerReferences();
 
-  const allPrompts = useMemo(
-    () => [...selectedLibraryPoses, ...(customPosePrompt.trim() ? [customPosePrompt.trim()] : [])],
-    [customPosePrompt, selectedLibraryPoses],
-  );
-  const totalPrompts = allPrompts.length;
+  // Default driver from real service; tests inject mock here
+  const driver = useMemo<PoseImageDriver>(() => ({ editImage, upscaleImage }), []);
 
-  const cameraViewOptions: CameraViewOption[] = [
-    { key: 'default', label: t('cameraView.options.default') },
-    { key: 'fullBody', label: t('cameraView.options.fullBody') },
-    { key: 'halfBody', label: t('cameraView.options.halfBody') },
-    { key: 'kneesUp', label: t('cameraView.options.kneesUp') },
-  ];
+  const engine = usePoseChangerEngine({
+    driver,
+    subjectImage: refs.subjectImage,
+    poseReferenceImage: refs.poseReferenceImage,
+    customPosePrompt: refs.customPosePrompt,
+    negativePrompt: refs.negativePrompt,
+    aspectRatio: refs.aspectRatio,
+    resolution: refs.resolution,
+    imageEditModel,
+    t,
+    allPrompts: refs.allPrompts,
+    getFramingInstruction: refs.getFramingInstruction,
+    setGeneratedImages,
+    setUpscalingStates,
+    setRegeneratingStates,
+    setIsLoading,
+    setGenerationStatus,
+    setError,
+  });
 
-  const getFramingInstruction = () => {
-    if (cameraView === 'default') {
-      return 'Use default framing provided by the model.';
-    }
+  const actions = usePoseChangerResultActions({
+    driver,
+    imageEditModel,
+    t,
+    setGeneratedImages,
+    setUpscalingStates,
+    setError,
+  });
 
-    const instructionKey = `framingInstructions.${cameraView}`;
-    return t(instructionKey) || 'Use default framing provided by the model.';
-  };
-
-  const generateImageForPrompt = async (sourceImage: ImageFile, promptText: string, framingInstruction: string) => {
-    const prompt = buildTextPosePrompt(promptText, framingInstruction);
-    const [result] = await editImage(
-      {
-        images: [sourceImage],
-        prompt,
-        negativePrompt,
-        numberOfImages: 1,
-        aspectRatio,
-        resolution,
-      },
-      imageEditModel,
-      buildImageServiceConfig(() => {}),
-    );
-
-    return result;
-  };
-
-  const handleGeneratePoseDescription = async () => {
-    if (!poseReferenceImage) {
+  const handleGeneratePoseDescription = useCallback(async () => {
+    if (!refs.poseReferenceImage) {
       setError(t('pose.poseReferenceMissingError'));
       return;
     }
@@ -132,172 +129,53 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     setError(null);
 
     try {
-      const description = await generatePoseDescription(poseReferenceImage, textGenerateModel);
-      setCustomPosePrompt(description);
-      setPoseReferenceImage(null);
+      const description = await generatePoseDescription(refs.poseReferenceImage, textGenerateModel);
+      refs.handleCustomPosePromptChange(description);
+      refs.handlePoseReferenceUpload(null);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
       setIsGeneratingPoseDescription(false);
     }
-  };
+  }, [refs, textGenerateModel, t]);
 
-  const handleGenerate = async () => {
-    if (!subjectImage) {
-      setError(t('pose.subjectError'));
-      return;
-    }
+  const anyLoading =
+    isLoading ||
+    generationStatus.active ||
+    isGeneratingPoseDescription ||
+    Object.values(upscalingStates).some(Boolean) ||
+    Object.values(regeneratingStates).some(Boolean);
 
-    const framingInstruction = getFramingInstruction();
+  const isGenerateDisabled =
+    anyLoading || !refs.subjectImage || (!refs.poseReferenceImage && refs.totalPrompts === 0);
 
-    if (poseReferenceImage) {
-      setError(null);
-      setGeneratedImages([]);
-      setRegeneratingStates({});
-      setIsLoading(true);
-      setGenerationStatus({ active: true, progress: 1, total: 1, message: t('pose.generatingStatusOne') });
-
-      try {
-        const [result] = await editImage(
-          {
-            images: [subjectImage, poseReferenceImage],
-            prompt: buildReferencePosePrompt(customPosePrompt, framingInstruction),
-            negativePrompt,
-            numberOfImages: 1,
-            aspectRatio,
-            resolution,
-          },
-          imageEditModel,
-          buildImageServiceConfig((message) => setGenerationStatus((prev) => ({ ...prev, message }))),
-        );
-        setGeneratedImages([result]);
-      } catch (err) {
-        setError(getErrorMessage(err, t));
-      } finally {
-        setIsLoading(false);
-        setGenerationStatus(IDLE_GENERATION_STATUS);
-      }
-
-      return;
-    }
-
-    if (allPrompts.length === 0) {
-      setError(t('pose.promptError'));
-      return;
-    }
-
-    setError(null);
-    setGeneratedImages([]);
-    setRegeneratingStates({});
-    setGenerationStatus({ active: true, progress: 0, total: allPrompts.length, message: '' });
-
-    let results: ImageFile[] = [];
-    for (const [index, promptText] of allPrompts.entries()) {
-      setGenerationStatus((prev) => ({
-        ...prev,
-        progress: index + 1,
-        message: t('pose.generatingStatusMultiple', { progress: index + 1, total: allPrompts.length }),
-      }));
-
-      try {
-        const result = await generateImageForPrompt(subjectImage, promptText, framingInstruction);
-        results = [...results, result];
-        setGeneratedImages(results);
-      } catch (err) {
-        setError(t('pose.batchError', {
-          index: index + 1,
-          total: allPrompts.length,
-          prompt: promptText.substring(0, 30),
-          error: getErrorMessage(err, t),
-        }));
-        setGenerationStatus(IDLE_GENERATION_STATUS);
-        return;
-      }
-    }
-
-    setGenerationStatus(IDLE_GENERATION_STATUS);
-  };
-
-  const handleRegenerateSingle = async (index: number) => {
-    const promptText = allPrompts[index];
-    if (!promptText || !subjectImage || poseReferenceImage) {
-      await handleGenerate();
-      return;
-    }
-
-    setRegeneratingStates((prev) => ({ ...prev, [index]: true }));
-    setError(null);
-
-    try {
-      const result = await generateImageForPrompt(subjectImage, promptText, getFramingInstruction());
-      setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setRegeneratingStates((prev) => ({ ...prev, [index]: false }));
-    }
-  };
-
-  const handleUpscale = async (imageToUpscale: ImageFile, index: number) => {
-    setUpscalingStates((prev) => ({ ...prev, [index]: true }));
-    setError(null);
-
-    try {
-      const result = await upscaleImage(
-        imageToUpscale,
-        imageEditModel,
-        buildImageServiceConfig(() => {}),
-      );
-      setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setUpscalingStates((prev) => ({ ...prev, [index]: false }));
-    }
-  };
-
-  const handlePoseReferenceUpload = (file: ImageFile | null) => {
-    setPoseReferenceImage(file);
-    if (file) {
-      setSelectedLibraryPoses([]);
-    }
-  };
-
-  const handleCustomPosePromptChange = (prompt: string) => {
-    setCustomPosePrompt(prompt);
-    if (poseReferenceImage) {
-      setPoseReferenceImage(null);
-    }
-  };
-
-  const handleConfirmSelection = (poses: string[]) => {
-    setSelectedLibraryPoses(poses);
-    if (poses.length > 0) {
-      setPoseReferenceImage(null);
-    }
-  };
-
-  const anyLoading = isLoading
-    || generationStatus.active
-    || isGeneratingPoseDescription
-    || Object.values(upscalingStates).some(Boolean)
-    || Object.values(regeneratingStates).some(Boolean);
-  const isGenerateDisabled = anyLoading || !subjectImage || (!poseReferenceImage && totalPrompts === 0);
   const buttonText = (() => {
     if (isLoading) return t('pose.generatingOne');
-    if (generationStatus.active) return t('pose.generatingMultiple', { progress: generationStatus.progress, total: generationStatus.total });
-    if (poseReferenceImage) return t('pose.generateButton');
-    if (totalPrompts > 1) return t('pose.generateMultipleButton', { count: totalPrompts });
-    if (totalPrompts === 1) return t('pose.generateOneButton');
+    if (generationStatus.active)
+      return t('pose.generatingMultiple', { progress: generationStatus.progress, total: generationStatus.total });
+    if (refs.poseReferenceImage) return t('pose.generateButton');
+    if (refs.totalPrompts > 1) return t('pose.generateMultipleButton', { count: refs.totalPrompts });
+    if (refs.totalPrompts === 1) return t('pose.generateOneButton');
     return t('pose.generateButton');
   })();
 
   return {
-    subjectImage,
-    setSubjectImage,
-    poseReferenceImage,
-    customPosePrompt,
-    selectedLibraryPoses,
+    // from references
+    subjectImage: refs.subjectImage,
+    setSubjectImage: refs.setSubjectImage,
+    poseReferenceImage: refs.poseReferenceImage,
+    customPosePrompt: refs.customPosePrompt,
+    negativePrompt: refs.negativePrompt,
+    setNegativePrompt: refs.setNegativePrompt,
+    selectedLibraryPoses: refs.selectedLibraryPoses,
+    setCameraView: refs.setCameraView,
+    cameraView: refs.cameraView,
+    cameraViewOptions: refs.cameraViewOptions,
+    aspectRatio: refs.aspectRatio,
+    setAspectRatio: refs.setAspectRatio,
+    resolution: refs.resolution,
+    setResolution: refs.setResolution,
+    // local + computed
     generatedImages,
     upscalingStates,
     regeneratingStates,
@@ -305,25 +183,17 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     isGeneratingPoseDescription,
     generationStatus,
     error,
-    negativePrompt,
-    setNegativePrompt,
-    cameraView,
-    setCameraView,
-    cameraViewOptions,
-    aspectRatio,
-    setAspectRatio,
-    resolution,
-    setResolution,
     imageEditModel,
     isGenerateDisabled,
     buttonText,
-    handleCustomPosePromptChange,
+    // handlers
+    handleCustomPosePromptChange: refs.handleCustomPosePromptChange,
     handleGeneratePoseDescription,
-    handleGenerate,
-    handleRegenerateSingle,
-    handleUpscale,
-    handlePoseReferenceUpload,
-    handleConfirmSelection,
+    handleGenerate: engine.handleGenerate,
+    handleRegenerateSingle: engine.handleRegenerateSingle,
+    handleUpscale: actions.handleUpscale,
+    handlePoseReferenceUpload: refs.handlePoseReferenceUpload,
+    handleConfirmSelection: refs.handleConfirmSelection,
     clearError: () => setError(null),
   };
 };

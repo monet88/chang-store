@@ -1,13 +1,12 @@
 /**
- * Google Drive Sync Hook
+ * Google Drive Sync Hook (orchestrator)
  *
- * Manages synchronization between local gallery and Google Drive.
- * Provides queue-based upload/delete with retry logic.
- *
- * @see services/googleDriveService.ts for Drive API operations
+ * Composes the sync engine and owns UI-visible state + lifecycle.
+ * Public return surface and SyncStatus export are preserved exactly
+ * so ImageGalleryContext and other consumers require zero changes.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { GalleryImageFile } from '../types';
 import { useGoogleDrive } from '../contexts/GoogleDriveContext';
 import {
@@ -17,326 +16,88 @@ import {
   downloadAllImages,
   deleteImage as driveDeleteImage,
 } from '../services/googleDriveService';
+import {
+  useGoogleDriveSyncEngine,
+  type GoogleDriveSyncDriver,
+  type SyncStatus,
+} from './useGoogleDriveSyncEngine';
 
-// ============================================================================
-// Types
-// ============================================================================
+// Re-export SyncStatus for consumers that import the type from this file
+export type { SyncStatus };
 
-/** Sync status states */
-export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
-
-/** Queue operation types */
-type QueueOperationType = 'upload' | 'delete';
-
-/** Queue operation item */
-interface QueueOperation {
-  type: QueueOperationType;
-  /** For upload: base64, For delete: fileId */
-  payload: string;
-  /** MIME type (for upload only) */
-  mimeType?: string;
-  /** Feature that generated image (for upload only) */
-  feature?: string;
-  /** Retry count */
-  retries: number;
-}
-
-
-/** Hook return type */
+/** Hook return type (exact surface preserved) */
 export interface UseGoogleDriveSyncReturn {
-  /** Current sync status */
   syncStatus: SyncStatus;
-  /** Last successful sync timestamp */
   lastSynced: Date | null;
-  /** Current sync error message */
   syncError: string | null;
-  /** App folder ID in Drive */
   folderId: string | null;
-  /** Whether initial load from Drive is complete */
   isInitialLoadComplete: boolean;
-  /** Load all images from Drive */
   loadFromDrive: () => Promise<GalleryImageFile[]>;
-  /** Queue an image for upload to Drive */
   queueUpload: (base64: string, mimeType: string, feature: string) => void;
-  /** Queue an image for deletion from Drive */
   queueDelete: (base64: string) => void;
-  /** Force sync all pending operations */
   forceSync: () => Promise<void>;
-  /** Clear sync error */
   clearError: () => void;
 }
 
-// ============================================================================
-// Constants
-// ============================================================================
-
-/** Maximum retry attempts for failed operations */
-const MAX_RETRIES = 3;
-
-/** Delay between retries in milliseconds */
-const RETRY_DELAY_MS = 2000;
-
-/** Delay before processing queue (debounce) */
-const QUEUE_PROCESS_DELAY_MS = 500;
-
-// ============================================================================
-// Hook Implementation
-// ============================================================================
-
 export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
-  // --- Context ---
   const { isConnected, accessToken } = useGoogleDrive();
 
-  // --- State ---
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [folderId, setFolderId] = useState<string | null>(null);
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
-  // --- Refs ---
-  /** Queue of pending operations */
-  const syncQueueRef = useRef<QueueOperation[]>([]);
+  // Default driver wraps real service; future tests can inject mock.
+  const driver = useMemo<GoogleDriveSyncDriver>(() => ({
+    getOrCreateAppFolder,
+    uploadImage,
+    listImageFiles,
+    downloadAllImages,
+    deleteImage: driveDeleteImage,
+  }), []);
 
-  /** Mapping from base64 to Drive file ID */
-  const imageToFileIdRef = useRef<Map<string, string>>(new Map());
+  const engine = useGoogleDriveSyncEngine({
+    driver,
+    accessToken,
+    folderId,
+    setSyncStatus,
+    setLastSynced,
+    setSyncError,
+  });
 
-  /** Queue processing timer */
-  const processTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  /** Whether queue is currently being processed */
-  const isProcessingRef = useRef(false);
-
-  // --- Initialize folder on connect ---
+  // Initialize folder on connect (lifecycle owned by orchestrator)
   useEffect(() => {
     if (isConnected && accessToken && !folderId) {
-      getOrCreateAppFolder(accessToken)
+      driver.getOrCreateAppFolder(accessToken)
         .then(id => setFolderId(id))
         .catch(err => {
           console.error('[Sync] Failed to get/create folder:', err);
           setSyncError('Failed to access Drive folder');
         });
     }
-  }, [isConnected, accessToken, folderId]);
+  }, [isConnected, accessToken, folderId, driver]);
 
-  // --- Helper: Sleep for retry delay ---
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-  // --- Process Queue ---
-  const processQueue = useCallback(async (targetFolderId?: string) => {
-    const currentFolderId = targetFolderId || folderId;
-
-    // Guard: not connected or no token or no folder
-    if (!accessToken || !currentFolderId) return;
-
-    // Guard: already processing (atomic check-and-set)
-    if (isProcessingRef.current) return;
-    isProcessingRef.current = true;
-
-    // Guard: empty queue
-    if (syncQueueRef.current.length === 0) {
-      isProcessingRef.current = false;
-      setSyncStatus('synced');
-      return;
+  // Auto-process when folderId becomes available (engine guards empty queue)
+  useEffect(() => {
+    if (folderId) {
+      engine.scheduleProcessQueue(folderId);
     }
+  }, [folderId, engine]);
 
-    setSyncStatus('syncing');
-    setSyncError(null);
-
-    const failedOps: QueueOperation[] = [];
-
-    try {
-      while (syncQueueRef.current.length > 0) {
-        // Re-check folderId before each operation to detect mid-processing changes
-        if (!folderId || folderId !== currentFolderId) {
-          // Folder changed or cleared - re-queue remaining ops and abort
-          console.warn('[Sync] Folder changed mid-processing, aborting current cycle');
-          break;
-        }
-
-        const op = syncQueueRef.current.shift()!;
-
-        try {
-          if (op.type === 'upload') {
-            // Upload new image (queueUpload already checks in-memory map)
-            const fileId = await uploadImage(
-              accessToken,
-              currentFolderId,
-              op.payload,
-              op.mimeType || 'image/png',
-              op.feature || 'unknown'
-            );
-            imageToFileIdRef.current.set(op.payload, fileId);
-          } else if (op.type === 'delete') {
-            // op.payload is base64, need to find fileId
-            const fileId = imageToFileIdRef.current.get(op.payload);
-            if (fileId) {
-              await driveDeleteImage(accessToken, fileId);
-              imageToFileIdRef.current.delete(op.payload);
-            }
-            // If no fileId, image wasn't synced yet - nothing to delete
-          }
-        } catch (err) {
-          console.error(`[Sync] ${op.type} failed:`, err);
-
-          if (op.retries < MAX_RETRIES) {
-            // Retry with delay
-            op.retries++;
-            failedOps.push(op);
-            await sleep(RETRY_DELAY_MS);
-          } else {
-            // Max retries reached, log and skip
-            console.error(`[Sync] ${op.type} failed after ${MAX_RETRIES} retries`);
-            setSyncError(`Failed to ${op.type} image after ${MAX_RETRIES} retries`);
-          }
-        }
-      }
-
-      // Re-add failed ops for next cycle
-      if (failedOps.length > 0) {
-        syncQueueRef.current.push(...failedOps);
-        setSyncStatus('error');
-      } else if (syncQueueRef.current.length === 0) {
-        setSyncStatus('synced');
-        setLastSynced(new Date());
-      }
-    } finally {
-      isProcessingRef.current = false;
-    }
-  }, [accessToken, folderId]);
-
-  // --- Schedule queue processing with debounce ---
-  const scheduleProcessQueue = useCallback((targetFolderId?: string) => {
-    if (processTimerRef.current) {
-      clearTimeout(processTimerRef.current);
-    }
-    processTimerRef.current = setTimeout(() => {
-      processQueue(targetFolderId);
-    }, QUEUE_PROCESS_DELAY_MS);
-  }, [processQueue]);
-
-  // --- Load from Drive ---
+  // Wrap loadFromDrive to also set the initial-load flag (preserves prior behavior)
   const loadFromDrive = useCallback(async (): Promise<GalleryImageFile[]> => {
-    if (!accessToken || !folderId) {
-      return [];
-    }
+    const images = await engine.loadFromDrive();
+    setIsInitialLoadComplete(true);
+    return images;
+  }, [engine]);
 
-    setSyncStatus('syncing');
-    setSyncError(null);
-
-    try {
-      // List all files
-      const files = await listImageFiles(accessToken, folderId);
-
-      const downloadedImages = await downloadAllImages(
-        accessToken,
-        files.map(file => file.id)
-      );
-
-      const galleryImages: GalleryImageFile[] = downloadedImages.map((driveImage) => {
-        // Map base64 to fileId
-        imageToFileIdRef.current.set(driveImage.base64, driveImage.id);
-
-        return {
-          base64: driveImage.base64,
-          mimeType: driveImage.mimeType,
-          driveFileId: driveImage.id,
-          feature: driveImage.feature,
-          createdAt: driveImage.createdAt,
-        };
-      });
-
-      setIsInitialLoadComplete(true);
-      setSyncStatus('synced');
-      setLastSynced(new Date());
-
-      return galleryImages;
-    } catch (err) {
-      console.error('[Sync] Load from Drive failed:', err);
-      setSyncStatus('error');
-      setSyncError('Failed to load images from Drive');
-      return [];
-    }
-  }, [accessToken, folderId]);
-
-  // --- Queue Upload ---
-  const queueUpload = useCallback((base64: string, mimeType: string, feature: string) => {
-    // Don't queue if already mapped (already on Drive)
-    if (imageToFileIdRef.current.has(base64)) {
-      return;
-    }
-
-    // Don't queue duplicate operations
-    const exists = syncQueueRef.current.some(
-      op => op.type === 'upload' && op.payload === base64
-    );
-    if (exists) return;
-
-    syncQueueRef.current.push({
-      type: 'upload',
-      payload: base64,
-      mimeType,
-      feature,
-      retries: 0,
-    });
-
-    scheduleProcessQueue();
-  }, [scheduleProcessQueue]);
-
-  // --- Queue Delete ---
-  const queueDelete = useCallback((base64: string) => {
-    // Remove any pending upload for this image
-    syncQueueRef.current = syncQueueRef.current.filter(
-      op => !(op.type === 'upload' && op.payload === base64)
-    );
-
-    // Only queue delete if image is on Drive
-    if (imageToFileIdRef.current.has(base64)) {
-      syncQueueRef.current.push({
-        type: 'delete',
-        payload: base64,
-        retries: 0,
-      });
-
-      scheduleProcessQueue();
-    }
-  }, [scheduleProcessQueue]);
-
-  // --- Force Sync ---
-  const forceSync = useCallback(async () => {
-    // Clear any pending timer
-    if (processTimerRef.current) {
-      clearTimeout(processTimerRef.current);
-      processTimerRef.current = null;
-    }
-
-    // Process immediately with current folderId
-    await processQueue(folderId || undefined);
-  }, [processQueue, folderId]);
-
-  // --- Clear Error ---
   const clearError = useCallback(() => {
     setSyncError(null);
     if (syncStatus === 'error') {
       setSyncStatus('idle');
     }
   }, [syncStatus]);
-
-  // --- Cleanup ---
-  useEffect(() => {
-    return () => {
-      if (processTimerRef.current) {
-        clearTimeout(processTimerRef.current);
-      }
-    };
-  }, []);
-
-  // --- Auto-process queue when folderId becomes available ---
-  useEffect(() => {
-    if (folderId && syncQueueRef.current.length > 0 && !isProcessingRef.current) {
-      scheduleProcessQueue(folderId);
-    }
-  }, [folderId, scheduleProcessQueue]);
 
   return {
     syncStatus,
@@ -345,9 +106,9 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
     folderId,
     isInitialLoadComplete,
     loadFromDrive,
-    queueUpload,
-    queueDelete,
-    forceSync,
+    queueUpload: engine.queueUpload,
+    queueDelete: engine.queueDelete,
+    forceSync: engine.forceSync,
     clearError,
   };
 }
