@@ -64,6 +64,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
     setSyncStatus,
     setLastSynced,
     setSyncError,
+    setIsInitialLoadComplete,
   });
 
   // Initialize folder on connect (lifecycle owned by orchestrator)
@@ -85,12 +86,6 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
     }
   }, [folderId, engine]);
 
-  // Wrap loadFromDrive to also set the initial-load flag (preserves prior behavior)
-  const loadFromDrive = useCallback(async (): Promise<GalleryImageFile[]> => {
-    const images = await engine.loadFromDrive();
-    setIsInitialLoadComplete(true);
-    return images;
-  }, [engine]);
 
   const clearError = useCallback(() => {
     setSyncError(null);
@@ -105,7 +100,7 @@ export function useGoogleDriveSync(): UseGoogleDriveSyncReturn {
     syncError,
     folderId,
     isInitialLoadComplete,
-    loadFromDrive,
+    loadFromDrive: engine.loadFromDrive,
     queueUpload: engine.queueUpload,
     queueDelete: engine.queueDelete,
     forceSync: engine.forceSync,

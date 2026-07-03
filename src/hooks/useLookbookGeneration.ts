@@ -5,7 +5,7 @@ import {
   ImageResolution,
 } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { editImage, upscaleImage, createImageChatSession } from '../services/imageEditingService';
 import {
   buildLookbookPrompt,
   buildVariationPrompt,
@@ -26,6 +26,7 @@ type TranslateFn = (key: string, options?: { [key: string]: string | number }) =
 export interface GeminiImageDriver {
   editImage: typeof editImage;
   upscaleImage: typeof upscaleImage;
+  createImageChatSession: typeof createImageChatSession;
 }
 
 export interface LookbookSet {

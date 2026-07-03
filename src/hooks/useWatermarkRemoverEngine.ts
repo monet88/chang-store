@@ -74,10 +74,13 @@ export const useWatermarkRemoverEngine = (
     setIsProcessing(true);
     const prompt = getPromptText(config.config.promptId, config.config.customPrompt);
 
-    await runBoundedWorkers(pendingItems, config.config.concurrency, async (item) => {
-      await processItem(item, prompt, config.config.model);
-    });
-    setIsProcessing(false);
+    try {
+      await runBoundedWorkers(pendingItems, config.config.concurrency, async (item) => {
+        await processItem(item, prompt, config.config.model);
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   }, [items, config, processItem, setIsProcessing]);
 
   const retryItem = useCallback(async (

@@ -73,7 +73,7 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
       ? `Apply a '${FRAMES[frame]}' style frame or border around the final image.`
       : 'Do not add any frame or border.',
     backgroundInstruction: background !== 'none'
-      ? `Place the model in the following environment: "${(PHOTO_ALBUM_BACKGROUNDS.find(b => b.id === background)?.prompt) || ''}"`
+      ? `Place the model in the following environment: "${PHOTO_ALBUM_BACKGROUNDS.find(b => b.id === background)?.prompt}"`
       : 'Keep the original background from the source image if possible, or create a simple, neutral studio background if one is not present.',
     footwearInstruction: t('photoAlbum.footwearInstructions'),
     additionalNotesInstruction: additionalNotes
@@ -113,33 +113,9 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
     setResolution(DEFAULT_IMAGE_RESOLUTION);
   };
 
-  const handleGenerate = async () => {
-    if (mode === 'fullModel' && !originalPhoto) {
-      setError(t('photoAlbum.error.noPhoto'));
-      return;
-    }
-    if (mode === 'faceAndOutfit' && (!faceImage || !outfitImage)) {
-      setError(t('photoAlbum.error.noFaceOrOutfit'));
-      return;
-    }
-    if (selectedPoses.length === 0) {
-      setError(t('photoAlbum.error.noPose'));
-      return;
-    }
-    await engine.handleGenerate();
-  };
+  const handleGenerate = engine.handleGenerate;
 
-  const handleRegenerateSingle = async (pose: string) => {
-    if (mode === 'fullModel' && !originalPhoto) {
-      setError(t('photoAlbum.error.noPhoto'));
-      return;
-    }
-    if (mode === 'faceAndOutfit' && (!faceImage || !outfitImage)) {
-      setError(t('photoAlbum.error.noFaceOrOutfit'));
-      return;
-    }
-    await engine.handleRegenerateSingle(pose);
-  };
+  const handleRegenerateSingle = engine.handleRegenerateSingle;
 
 return {
     t,

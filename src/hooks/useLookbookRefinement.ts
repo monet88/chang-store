@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImageFile, RefinementHistoryItem } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
-import { createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import type { ImageChatSession } from '../services/imageEditingService';
 import type { GeminiImageDriver, LookbookSet } from './useLookbookGeneration';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
@@ -40,7 +40,7 @@ export interface UseLookbookRefinementReturn {
 export const useLookbookRefinement = (
   config: UseLookbookRefinementConfig,
 ): UseLookbookRefinementReturn => {
-  const { generatedLookbook, setGeneratedLookbook, imageEditModel,
+  const { driver, generatedLookbook, setGeneratedLookbook, imageEditModel,
     buildImageServiceConfig, setError, t } = config;
 
   const [chatSession, setChatSession] = useState<ImageChatSession | null>(null);
@@ -54,19 +54,19 @@ export const useLookbookRefinement = (
   // (e.g. after resetRefinement nulls the session).
   useEffect(() => {
     if (generatedLookbook && !chatSession) {
-      const session = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
+      const session = driver.createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
       setChatSession(session);
     }
-  }, [generatedLookbook, chatSession, imageEditModel, buildImageServiceConfig]);
+  }, [generatedLookbook, chatSession, imageEditModel, buildImageServiceConfig, driver]);
 
   const onMainImageGenerated = useCallback((image: ImageFile) => {
     originalImageRef.current = image;
     setRefinementVersions([]);
     setSelectedVersionIndex(-1);
-    const session = createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
+    const session = driver.createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
     setChatSession(session);
     setRefinementHistory([]);
-  }, [imageEditModel, buildImageServiceConfig]);
+  }, [imageEditModel, buildImageServiceConfig, driver]);
 
   const handleSelectVersion = useCallback((index: number) => {
     if (index === -1 && originalImageRef.current) {

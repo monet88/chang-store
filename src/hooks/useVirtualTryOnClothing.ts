@@ -88,5 +88,3 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
     removeClothingUploader,
   };
 };
-
-export const MAX_SHARED_OUTFIT_IMAGES_CONST = MAX_SHARED_OUTFIT_IMAGES;

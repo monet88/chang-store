@@ -182,9 +182,15 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
       setRegeneratingStates((prev) => ({ ...prev, [index]: false }));
     }
   }, [
-    customPosePrompt,
+    allPrompts,
     subjectImage,
     poseReferenceImage,
+    driver,
+    imageEditModel,
+    negativePrompt,
+    aspectRatio,
+    resolution,
+    getFramingInstruction,
     t,
     setRegeneratingStates,
     setError,

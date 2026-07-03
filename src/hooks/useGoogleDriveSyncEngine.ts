@@ -36,6 +36,7 @@ export interface UseGoogleDriveSyncEngineConfig {
   setSyncStatus: React.Dispatch<React.SetStateAction<import('./useGoogleDriveSyncQueue').SyncStatus>>;
   setLastSynced: React.Dispatch<React.SetStateAction<Date | null>>;
   setSyncError: React.Dispatch<React.SetStateAction<string | null>>;
+  setIsInitialLoadComplete: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export interface UseGoogleDriveSyncEngineReturn {
@@ -52,7 +53,7 @@ const RETRY_DELAY_MS = 2000;
 export const useGoogleDriveSyncEngine = (
   config: UseGoogleDriveSyncEngineConfig,
 ): UseGoogleDriveSyncEngineReturn => {
-  const { driver, accessToken, folderId, setSyncStatus, setLastSynced, setSyncError } = config;
+  const { driver, accessToken, folderId, setSyncStatus, setLastSynced, setSyncError, setIsInitialLoadComplete } = config;
 
   const queue = useGoogleDriveSyncQueue();
   const {
@@ -63,6 +64,7 @@ export const useGoogleDriveSyncEngine = (
     deleteMapping,
     registerProcessor,
     clearTimer,
+    hasPendingOps,
     beginProcessing,
     endProcessing,
   } = queue;
@@ -74,6 +76,14 @@ export const useGoogleDriveSyncEngine = (
 
     if (!accessToken || !currentFolderId) return;
     if (!beginProcessing()) return;
+
+    // Empty-queue cycles are no-ops: release the lock and mark synced without
+    // recording a new lastSynced timestamp (preserves pre-refactor semantics).
+    if (!hasPendingOps()) {
+      endProcessing();
+      setSyncStatus('synced');
+      return;
+    }
 
     setSyncStatus('syncing');
     setSyncError(null);
@@ -132,7 +142,7 @@ export const useGoogleDriveSyncEngine = (
     } finally {
       endProcessing();
     }
-  }, [driver, accessToken, folderId, setSyncStatus, setLastSynced, setSyncError, shiftNextOp, pushFailedOps, setMapping, getMapping, deleteMapping, beginProcessing, endProcessing]);
+  }, [driver, accessToken, folderId, setSyncStatus, setLastSynced, setSyncError, shiftNextOp, pushFailedOps, setMapping, getMapping, deleteMapping, hasPendingOps, beginProcessing, endProcessing]);
 
   useEffect(() => {
     registerProcessor(processQueue);
@@ -166,6 +176,7 @@ export const useGoogleDriveSyncEngine = (
         };
       });
 
+      setIsInitialLoadComplete(true);
       setSyncStatus('synced');
       setLastSynced(new Date());
 
@@ -176,7 +187,7 @@ export const useGoogleDriveSyncEngine = (
       setSyncError('Failed to load images from Drive');
       return [];
     }
-  }, [driver, accessToken, folderId, setSyncStatus, setLastSynced, setSyncError, setMapping]);
+  }, [driver, accessToken, folderId, setSyncStatus, setLastSynced, setSyncError, setMapping, setIsInitialLoadComplete]);
 
   const forceSync = useCallback(async () => {
     clearTimer();

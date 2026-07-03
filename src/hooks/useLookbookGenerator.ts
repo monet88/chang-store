@@ -3,7 +3,7 @@ import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } fro
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { editImage, upscaleImage, createImageChatSession } from '../services/imageEditingService';
 import { generateClothingDescription } from '../services/textService';
 import { useLookbookDraft } from './useLookbookDraft';
 import {
@@ -44,7 +44,7 @@ export const useLookbookGenerator = () => {
   const { imageEditModel, textGenerateModel } = useApi();
 
   // Default driver wraps the real Gemini service; tests can inject a mock.
-  const driver = useMemo<GeminiImageDriver>(() => ({ editImage, upscaleImage }), []);
+  const driver = useMemo<GeminiImageDriver>(() => ({ editImage, upscaleImage, createImageChatSession }), []);
 
   const buildImageServiceConfig = useCallback(
     (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),

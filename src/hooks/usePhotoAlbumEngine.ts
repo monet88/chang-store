@@ -129,7 +129,22 @@ export const usePhotoAlbumEngine = (config: UsePhotoAlbumEngineConfig): UsePhoto
     return { ...result, pose };
   };
 
+  const validateModeInputs = (): boolean => {
+    if (mode === 'fullModel' && !originalPhoto) {
+      setError(t('photoAlbum.error.noPhoto'));
+      return false;
+    }
+    if (mode === 'faceAndOutfit' && (!faceImage || !outfitImage)) {
+      setError(t('photoAlbum.error.noFaceOrOutfit'));
+      return false;
+    }
+    return true;
+  };
+
   const handleGenerate = async (): Promise<void> => {
+    if (!validateModeInputs()) {
+      return;
+    }
     if (selectedPoses.length === 0) {
       setError(t('photoAlbum.error.noPose'));
       return;
@@ -166,6 +181,9 @@ export const usePhotoAlbumEngine = (config: UsePhotoAlbumEngineConfig): UsePhoto
   };
 
   const handleRegenerateSingle = async (pose: string): Promise<void> => {
+    if (!validateModeInputs()) {
+      return;
+    }
     setRegeneratingStates((prev) => ({ ...prev, [pose]: true }));
     setError(null);
 

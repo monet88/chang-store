@@ -52,10 +52,16 @@ export const useLookbookResultActions = (
           newState.main = result;
         } else {
           const variationIndex = prev.variations.findIndex((v) => v.base64 === imageToUpscale.base64);
-          if (variationIndex > -1) newState.variations[variationIndex] = result;
+          if (variationIndex > -1) {
+            newState.variations = [...prev.variations];
+            newState.variations[variationIndex] = result;
+          }
 
           const closeupIndex = prev.closeups.findIndex((c) => c.base64 === imageToUpscale.base64);
-          if (closeupIndex > -1) newState.closeups[closeupIndex] = result;
+          if (closeupIndex > -1) {
+            newState.closeups = [...prev.closeups];
+            newState.closeups[closeupIndex] = result;
+          }
         }
         return newState;
       });
