@@ -57,7 +57,7 @@ export const generateImageDescription = async (image: ImageFile, model: string =
 
     const response = await ai.models.generateContent({
       model,
-      contents: { parts: [imagePart, textPart] },
+      contents: [{ role: 'user', parts: [imagePart, textPart] }],
     });
 
     if (response.promptFeedback?.blockReason) {
@@ -106,7 +106,7 @@ export const generateClothingDescription = async (image: ImageFile, model: strin
 
     const response = await ai.models.generateContent({
       model,
-      contents: { parts: [imagePart, textPart] },
+      contents: [{ role: 'user', parts: [imagePart, textPart] }],
     });
 
     if (response.promptFeedback?.blockReason) {
@@ -154,7 +154,7 @@ export const generatePoseDescription = async (image: ImageFile, model: string = 
 
     const response = await ai.models.generateContent({
       model,
-      contents: { parts: [imagePart, textPart] },
+      contents: [{ role: 'user', parts: [imagePart, textPart] }],
     });
 
     if (response.promptFeedback?.blockReason) {
@@ -209,7 +209,7 @@ Return a single, comprehensive paragraph that synthesizes all the above points i
 
     const response = await ai.models.generateContent({
       model,
-      contents: { parts: [imagePart, textPart] },
+      contents: [{ role: 'user', parts: [imagePart, textPart] }],
     });
   
       if (response.promptFeedback?.blockReason) {
@@ -263,7 +263,7 @@ Do not include stylistic opinions or hypothetical scenes.`;
 
   const response = await ai.models.generateContent({
     model,
-    contents: { parts: [imagePart, textPart] },
+    contents: [{ role: 'user', parts: [imagePart, textPart] }],
   });
 
     if (response.promptFeedback?.blockReason) {

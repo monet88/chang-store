@@ -39,6 +39,26 @@ in localStorage). Build-time keys only provide a default.
 > the browser. This is accepted for v1. A serverless proxy is planned for v2 so
 > secrets never reach the client.
 
+## Gemini Proxy / Gateway (optional)
+
+Instead of calling Google Gemini directly, the app can route Gemini requests
+through a Gemini-compatible proxy or gateway. This is configured at runtime, not
+at build time:
+
+- Open Settings → "Gemini Proxy / Gateway".
+- Enable the toggle, set the proxy URL, and enter the proxy API key, then save.
+- When the URL ends in `/gemini`, image edit/generate/upscale requests use the
+  gateway image routes (`/api/images/*`) with an `x-api-key` header; text and
+  vision requests use the `@google/genai` client with `httpOptions.baseUrl`.
+
+Settings persist in `localStorage` (`vertex_proxy_*` keys) with fail-closed
+restore validation. The proxy API key is stored as plaintext in the browser, so
+only enable this on a trusted device.
+
+This routing was verified live against `https://vertex.monet.uno/gemini` on the
+2026-07-03 E2E run; see the "Live E2E Verification" section in
+`docs/codebase-summary.md`.
+
 ## Build Process
 
 ```bash

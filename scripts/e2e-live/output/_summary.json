@@ -1,0 +1,89 @@
+[
+  {
+    "feature": "01-try-on",
+    "ok": true,
+    "detail": "1351KB image/png",
+    "ms": 18959,
+    "outFile": "01-try-on.png"
+  },
+  {
+    "feature": "02-lookbook",
+    "ok": true,
+    "detail": "8131KB image/png",
+    "ms": 25712,
+    "outFile": "02-lookbook.png"
+  },
+  {
+    "feature": "03-background",
+    "ok": true,
+    "detail": "5228KB image/png",
+    "ms": 23383,
+    "outFile": "03-background.png"
+  },
+  {
+    "feature": "04-pose",
+    "ok": true,
+    "detail": "4979KB image/png",
+    "ms": 25231,
+    "outFile": "04-pose.png"
+  },
+  {
+    "feature": "05-photo-album",
+    "ok": true,
+    "detail": "4662KB image/png",
+    "ms": 19041,
+    "outFile": "05-photo-album.png"
+  },
+  {
+    "feature": "06-ai-editor",
+    "ok": true,
+    "detail": "1540KB image/png",
+    "ms": 42030,
+    "outFile": "06-ai-editor.png"
+  },
+  {
+    "feature": "07-watermark-remover",
+    "ok": false,
+    "detail": "error.api.geminiFailed:Google response did not contain an inline image.",
+    "ms": 47990
+  },
+  {
+    "feature": "08-clothing-transfer",
+    "ok": false,
+    "detail": "error.api.geminiFailed:{\"success\":false,\"requestId\":\"be55dd60-ccbe-41f6-9b22-cf51fb045003\",\"error\":{\"code\":\"UPSTREAM_QUOTA\",\"message\":\"Upstream quota exhausted.\",\"retryable\":true}}",
+    "ms": 39184
+  },
+  {
+    "feature": "09-pattern-generator",
+    "ok": true,
+    "detail": "1799KB image/png",
+    "ms": 34349,
+    "outFile": "09-pattern-generator.png"
+  },
+  {
+    "feature": "10-image-generate",
+    "ok": true,
+    "detail": "1140KB image/png",
+    "ms": 57667,
+    "outFile": "10-image-generate.png"
+  },
+  {
+    "feature": "11-upscale",
+    "ok": true,
+    "detail": "5331KB image/png",
+    "ms": 71912,
+    "outFile": "11-upscale.png"
+  },
+  {
+    "feature": "12-text-generate",
+    "ok": true,
+    "detail": "\"chang-store-ok\"",
+    "ms": 918
+  },
+  {
+    "feature": "13-vision-describe",
+    "ok": true,
+    "detail": "\"```json\n{\n  \"category\": \"blazer\",\n  \"style\": \"double-breasted\",\n  \"material\": \"s...\"",
+    "ms": 3145
+  }
+]

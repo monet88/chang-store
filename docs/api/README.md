@@ -20,7 +20,7 @@ on.
 - Grok contract notes: `docs/api/grok-image-api-guide.md`
 - GPT Image 2 contract notes: `docs/api/gpt-image-2-api-guide.md`
 - CLI proxy contract notes (`https://cliproxy.monet.uno`): `docs/api/cliproxy-vertex-ai-api-guide.md`
-- Backend gateway contract notes (`gateway/`): `docs/api/vertex-gateway-api-guide.md`
+- Backend gateway contract notes (separate repo, deployed at `https://vertex.monet.uno`): `docs/api/vertex-gateway-api-guide.md`
 - Direct Vertex AI TTS + embedding notes (service account / SDK): `docs/api/vertex-tts-embedding-guide.md`
 
 ## Update Rule

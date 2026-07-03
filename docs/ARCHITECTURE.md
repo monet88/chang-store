@@ -32,7 +32,7 @@ src/
 │   └── modals/          # Modal dialogs (settings, pose library, prompt library)
 ├── hooks/               # Feature logic — one hook per feature
 ├── services/            # API facades (stateless)
-│   └── gemini/          # Gemini SDK wrappers (image, text, chat, video)
+│   └── gemini/          # Gemini SDK wrappers (image, text, chat)
 ├── contexts/            # Global state providers
 ├── config/              # Model capability registry
 ├── utils/               # Pure helpers, prompt builders
@@ -215,3 +215,30 @@ Components must never call services directly — always go through hooks.
 - `src/services/debugService.ts` logs API calls with provider, model, feature,
   prompt, duration, and success/failure.
 - No server-side logging — all observability is client-side console.
+
+
+## Gemini Proxy / Gateway Routing
+
+By default the Gemini SDK calls Google directly. The Settings modal exposes an
+optional "Gemini Proxy / Gateway" section that stores `vertexProxySettings`
+(`enabled`, `url`, `apiKey`) in localStorage and wires `@google/genai` through
+`httpOptions.baseUrl` + `apiVersion: 'v1beta'` via `configureGeminiClient()`
+in `src/services/apiClient.ts`.
+
+When the base URL ends in `/gemini` (a Vertex gateway), `services/gemini/image.ts`
+routes image edit / generate / upscale through the gateway image routes
+(`/api/images/edit|generate|upscale`, authenticated with an `x-api-key` header),
+while text and vision calls use the SDK `generateContent` path against the same
+base URL. Vision helpers must send `contents: [{ role: 'user', parts }]`; the
+role-less `{ parts }` shape is rejected by the gateway with `VALIDATION_FAILED`.
+
+## Testing
+
+- **Unit + boundary**: `npm run test` (Vitest) — 725 tests across 70 files, all
+  passing as of the 2026-07-03 resync. Coverage (V8): 74.85% lines, 73.96%
+  statements, 71.94% functions, 64.74% branches. Run `npm run test -- --coverage`
+  for the full report.
+- **Live E2E**: `scripts/e2e-live/run.mts` (run with `tsx`) drives the real
+  service layer against a live Vertex gateway with the `docs/image-test/`
+  samples, covering all nine features plus text/vision/generate/upscale. See the
+  "Live E2E Verification" section in `docs/codebase-summary.md`.
