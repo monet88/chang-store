@@ -123,4 +123,52 @@ describe('e2e live config', () => {
       }
     }
   });
+
+  it('rejects trusted gateways that omit the required /gemini path', () => {
+    const originalBaseUrl = process.env.E2E_LIVE_BASE_URL;
+    const originalApiKey = process.env.E2E_LIVE_API_KEY;
+
+    process.env.E2E_LIVE_BASE_URL = 'https://vertex.monet.uno';
+    process.env.E2E_LIVE_API_KEY = 'secret';
+
+    try {
+      expect(() => getLiveE2EConfig()).toThrow('E2E_LIVE_BASE_URL must target the /gemini path.');
+    } finally {
+      if (originalBaseUrl === undefined) {
+        delete process.env.E2E_LIVE_BASE_URL;
+      } else {
+        process.env.E2E_LIVE_BASE_URL = originalBaseUrl;
+      }
+
+      if (originalApiKey === undefined) {
+        delete process.env.E2E_LIVE_API_KEY;
+      } else {
+        process.env.E2E_LIVE_API_KEY = originalApiKey;
+      }
+    }
+  });
+
+  it('rejects trusted gateways that point at a different path', () => {
+    const originalBaseUrl = process.env.E2E_LIVE_BASE_URL;
+    const originalApiKey = process.env.E2E_LIVE_API_KEY;
+
+    process.env.E2E_LIVE_BASE_URL = 'https://vertex.monet.uno/other-path';
+    process.env.E2E_LIVE_API_KEY = 'secret';
+
+    try {
+      expect(() => getLiveE2EConfig()).toThrow('E2E_LIVE_BASE_URL must target the /gemini path.');
+    } finally {
+      if (originalBaseUrl === undefined) {
+        delete process.env.E2E_LIVE_BASE_URL;
+      } else {
+        process.env.E2E_LIVE_BASE_URL = originalBaseUrl;
+      }
+
+      if (originalApiKey === undefined) {
+        delete process.env.E2E_LIVE_API_KEY;
+      } else {
+        process.env.E2E_LIVE_API_KEY = originalApiKey;
+      }
+    }
+  });
 });

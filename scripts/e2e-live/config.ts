@@ -43,8 +43,14 @@ const getTrustedGateway = (): string => {
     throw new Error('E2E_LIVE_BASE_URL must use a trusted host.');
   }
 
+  const normalizedPath = parsed.pathname.replace(/\/+$/, '') || '/';
+  if (normalizedPath !== '/gemini') {
+    throw new Error('E2E_LIVE_BASE_URL must target the /gemini path.');
+  }
+
   return value;
 };
+
 
 export const getLiveE2EConfig = (): LiveE2EConfig => ({
   gateway: getTrustedGateway(),

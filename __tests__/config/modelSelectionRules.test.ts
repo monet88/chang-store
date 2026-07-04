@@ -30,7 +30,7 @@ describe('model selection rules', () => {
 
   it('exposes registry-backed options for all shared selection scopes', () => {
     expect(getModelOptionsBySelectionType('imageEdit')).toHaveLength(4);
-    expect(getModelOptionsBySelectionType('imageGenerate')).toHaveLength(3);
+    expect(getModelOptionsBySelectionType('imageGenerate')).toHaveLength(4);
     expect(getModelOptionsBySelectionType('textGenerate')).toHaveLength(3);
   });
 
@@ -44,6 +44,13 @@ describe('model selection rules', () => {
       name: 'Nano Banana 2',
     });
     expect(getModelOptionsBySelectionType('imageEdit')).toContainEqual({
+      id: 'gemini-3.1-flash-lite-image',
+      name: 'Nano Banana 2 Lite',
+    });
+  });
+
+  it('includes Nano Banana 2 Lite in image generation options', () => {
+    expect(getModelOptionsBySelectionType('imageGenerate')).toContainEqual({
       id: 'gemini-3.1-flash-lite-image',
       name: 'Nano Banana 2 Lite',
     });

@@ -77,6 +77,13 @@ const IMAGE_GENERATE_MODELS: RegisteredModel[] = [
   },
   {
     providerId: 'google',
+    modelId: 'gemini-3.1-flash-lite-image',
+    label: 'Nano Banana 2 Lite',
+    selectionType: 'imageGenerate',
+    capabilities: { supportsImageSize: true, supportsAspectRatio: true },
+  },
+  {
+    providerId: 'google',
     modelId: 'gemini-2.5-flash-image',
     label: 'Nano Banana',
     selectionType: 'imageGenerate',

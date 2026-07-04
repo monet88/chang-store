@@ -441,6 +441,31 @@ describe('ApiProviderContext', () => {
 
       expect(mockShowToast).toHaveBeenCalledTimes(1);
     });
+
+    it('keeps the proxy disabled after remounting an invalid restored config', () => {
+      localStorageMock.setItem('vertex_proxy_enabled', 'true');
+      localStorageMock.setItem('vertex_proxy_url', 'not-a-valid-url');
+      localStorageMock.setItem('vertex_proxy_api_key', 'persisted-proxy-key');
+
+      const firstMount = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(firstMount.result.current.vertexProxySettings.enabled).toBe(false);
+      firstMount.unmount();
+
+      localStorageMock.getItem.mockClear();
+      mockShowToast.mockClear();
+
+      const secondMount = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(secondMount.result.current.vertexProxySettings.enabled).toBe(false);
+      expect(secondMount.result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
+      expect(secondMount.result.current.vertexProxySettings.apiKey).toBe('persisted-proxy-key');
+      expect(mockShowToast).not.toHaveBeenCalled();
+    });
   });
 
   describe('provider settings', () => {

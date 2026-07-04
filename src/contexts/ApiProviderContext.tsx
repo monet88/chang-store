@@ -176,7 +176,7 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return;
     }
 
-    safeStorage.removeItem(VERTEX_PROXY_ENABLED_KEY);
+    safeStorage.setItem(VERTEX_PROXY_ENABLED_KEY, 'false');
     safeStorage.setItem(VERTEX_PROXY_URL_KEY, restoredVertexProxyRef.current.settings.url);
 
     if (restoredVertexProxyRef.current.settings.apiKey) {

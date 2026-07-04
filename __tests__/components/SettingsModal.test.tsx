@@ -119,6 +119,7 @@ describe('SettingsModal', () => {
     expect(within(imageEditSelect).getByRole('option', { name: 'Nano Banana 2 Lite' })).toBeInTheDocument();
     expect(within(imageEditSelect).getByRole('option', { name: 'Nano Banana' })).toBeInTheDocument();
     expect(within(imageGenerateSelect).getByRole('option', { name: 'Nano Banana Pro' })).toBeInTheDocument();
+    expect(within(imageGenerateSelect).getByRole('option', { name: 'Nano Banana 2 Lite' })).toBeInTheDocument();
     expect(within(textSelect).getByRole('option', { name: 'Gemini 3.5 Flash' })).toBeInTheDocument();
     expect(screen.getByLabelText('Proxy URL')).toHaveValue('https://vertex.monet.uno/gemini');
     expect(screen.getByRole('button', { name: 'Toggle Vertex Proxy' })).toHaveAttribute('aria-pressed', 'true');
