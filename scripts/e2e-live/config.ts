@@ -9,9 +9,10 @@ export interface LiveE2EConfig {
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const DEFAULT_LIVE_E2E_GATEWAY = 'https://vertex.monet.uno/gemini';
 const TRUSTED_LIVE_E2E_HOSTS = new Set(['vertex.monet.uno']);
 
-const getRequiredEnv = (key: 'E2E_LIVE_BASE_URL' | 'E2E_LIVE_API_KEY'): string => {
+const getRequiredEnv = (key: 'E2E_LIVE_API_KEY'): string => {
   const value = process.env[key]?.trim();
   if (!value) {
     throw new Error(`${key} is required.`);
@@ -19,8 +20,13 @@ const getRequiredEnv = (key: 'E2E_LIVE_BASE_URL' | 'E2E_LIVE_API_KEY'): string =
   return value;
 };
 
+const getGatewayValue = (): string => {
+  const value = process.env.E2E_LIVE_BASE_URL?.trim();
+  return value || DEFAULT_LIVE_E2E_GATEWAY;
+};
+
 const getTrustedGateway = (): string => {
-  const value = getRequiredEnv('E2E_LIVE_BASE_URL');
+  const value = getGatewayValue();
   let parsed: URL;
 
   try {

@@ -1,7 +1,8 @@
 /**
  * Live E2E harness - exercises all 9 Chang Store features through the real
  * app service code path, routed via the vertex.monet.uno/gemini gateway.
- * Not part of the app bundle. Run: E2E_LIVE_BASE_URL=https://vertex.monet.uno/gemini E2E_LIVE_API_KEY=... npx tsx scripts/e2e-live/run.mts
+ * Not part of the app bundle. Run: E2E_LIVE_API_KEY=... npx tsx scripts/e2e-live/run.mts
+ * Optional override: E2E_LIVE_BASE_URL=https://vertex.monet.uno/gemini
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, extname } from 'node:path';
