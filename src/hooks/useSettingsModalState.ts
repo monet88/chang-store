@@ -91,9 +91,19 @@ export const useSettingsModalState = ({ isOpen }: UseSettingsModalStateParams): 
     () => validateProviderBaseUrl(localVertexProxyUrl),
     [localVertexProxyUrl],
   );
+  const hasVertexProxyChanges = useMemo(
+    () => (
+      localVertexProxyEnabled !== vertexProxySettings.enabled
+      || localVertexProxyUrl.trim() !== vertexProxySettings.url
+      || localVertexProxyApiKey !== vertexProxySettings.apiKey
+    ),
+    [localVertexProxyApiKey, localVertexProxyEnabled, localVertexProxyUrl, vertexProxySettings],
+  );
   const isVertexProxyUrlInvalid = vertexProxyUrlValidation.status === 'invalid';
   const isVertexProxyUrlCustom = vertexProxyUrlValidation.status === 'custom';
-  const isVertexProxyApiKeyMissing = localVertexProxyEnabled && localVertexProxyApiKey.trim().length === 0;
+  const isVertexProxyApiKeyMissing = localVertexProxyEnabled
+    && localVertexProxyApiKey.trim().length === 0
+    && hasVertexProxyChanges;
   const customVertexProxyHost = isVertexProxyUrlCustom ? vertexProxyUrlValidation.host : null;
 
   const refreshStorageUsage = useCallback(async (): Promise<void> => {

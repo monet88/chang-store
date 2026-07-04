@@ -46,7 +46,8 @@ const LEGACY_GOOGLE_API_KEY = 'google_api_key';
 const VERTEX_PROXY_ENABLED_KEY = 'vertex_proxy_enabled';
 const VERTEX_PROXY_URL_KEY = 'vertex_proxy_url';
 const VERTEX_PROXY_API_KEY_KEY = 'vertex_proxy_api_key';
-const DEFAULT_VERTEX_PROXY_URL = 'https://cliproxy.monet.uno';
+const DEFAULT_VERTEX_PROXY_ENABLED = true;
+const DEFAULT_VERTEX_PROXY_URL = 'https://vertex.monet.uno/gemini';
 
 const providerApiKeyStorageKey = (provider: ProviderId): string => `provider:${provider}:apiKey`;
 const providerBaseUrlStorageKey = (provider: ProviderId): string => `provider:${provider}:baseUrl`;
@@ -87,11 +88,13 @@ const resolveStoredModel = (selectionType: ModelSelectionType, storedValue: stri
 };
 
 const resolveStoredVertexProxySettings = (): { invalidRestore: boolean; settings: VertexProxySettings } => {
-  const enabled = safeStorage.getItem(VERTEX_PROXY_ENABLED_KEY) === 'true';
+  const storedEnabled = safeStorage.getItem(VERTEX_PROXY_ENABLED_KEY);
+  const enabled = storedEnabled === null ? DEFAULT_VERTEX_PROXY_ENABLED : storedEnabled === 'true';
   const rawUrl = safeStorage.getItem(VERTEX_PROXY_URL_KEY)?.trim() || DEFAULT_VERTEX_PROXY_URL;
   const apiKey = safeStorage.getItem(VERTEX_PROXY_API_KEY_KEY)?.trim() || '';
   const validation = validateProviderBaseUrl(rawUrl);
-  const hasInvalidRuntimeConfig = enabled && (validation.status === 'invalid' || apiKey.length === 0);
+  const hasStoredRuntimeConfig = storedEnabled !== null;
+  const hasInvalidRuntimeConfig = hasStoredRuntimeConfig && enabled && (validation.status === 'invalid' || apiKey.length === 0);
 
   return {
     invalidRestore: hasInvalidRuntimeConfig,
