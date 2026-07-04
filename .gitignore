@@ -57,6 +57,8 @@ opencode.json
 .osgrep
 admin-*.png
 
+scripts/e2e-live/output/
+
 # AI orchestration local files
 .claude/
 .claude/memory/

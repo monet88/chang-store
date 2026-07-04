@@ -1,10 +1,12 @@
 /**
  * Live E2E harness - exercises all 9 Chang Store features through the real
  * app service code path, routed via the vertex.monet.uno/gemini gateway.
- * Not part of the app bundle. Run: npx tsx scripts/e2e-live/run.mts
+ * Not part of the app bundle. Run: E2E_LIVE_BASE_URL=https://vertex.monet.uno/gemini E2E_LIVE_API_KEY=... npx tsx scripts/e2e-live/run.mts
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, extname } from 'node:path';
+
+import { getLiveE2EConfig } from './config';
 
 import { configureGeminiClient } from '../../src/services/apiClient';
 import {
@@ -25,10 +27,7 @@ import { buildSingleImageEditPrompt } from '../../src/utils/ai-editor-prompt-bui
 import { buildLookbookPrompt, type LookbookFormState } from '../../src/utils/lookbookPromptBuilder';
 import { getPromptText, DEFAULT_PROMPT_ID } from '../../src/utils/watermark-prompts';
 
-const GATEWAY = 'https://vertex.monet.uno/gemini';
-const API_KEY = 'monet-4292';
-const IMG_DIR = 'F:/CodeBase/chang-store/docs/image-test';
-const OUT_DIR = 'F:/CodeBase/chang-store/scripts/e2e-live/output';
+const { gateway: GATEWAY, apiKey: API_KEY, imgDir: IMG_DIR, outDir: OUT_DIR } = getLiveE2EConfig();
 const EDIT_MODEL = 'gemini-3.1-flash-image';
 const TEXT_MODEL = 'gemini-3.5-flash';
 
@@ -85,7 +84,7 @@ const px = (img: ImageFile) => Math.round((img.base64.length * 0.75) / 1024) + '
 
 async function main() {
   configureGeminiClient({ apiKey: API_KEY, baseUrl: GATEWAY, requireExplicitApiKey: true });
-  console.log('Gateway: ' + GATEWAY + '  key: ' + API_KEY + '  model: ' + EDIT_MODEL);
+  console.log('Gateway: ' + GATEWAY + '  model: ' + EDIT_MODEL);
 
   await run('01-try-on', async () => {
     const parts = buildVirtualTryOnParts({
