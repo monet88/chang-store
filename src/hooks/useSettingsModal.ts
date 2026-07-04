@@ -81,6 +81,7 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     localVertexProxyUrl: state.localVertexProxyUrl,
     localVertexProxyApiKey: state.localVertexProxyApiKey,
     isVertexProxyUrlInvalid: state.isVertexProxyUrlInvalid,
+    isVertexProxyApiKeyMissing: state.isVertexProxyApiKeyMissing,
     onClose,
     setGoogleApiKey: api.setGoogleApiKey,
     setImageEditModel: api.setImageEditModel,

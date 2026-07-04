@@ -23,6 +23,7 @@ export interface UseSettingsModalActionsConfig {
   localVertexProxyUrl: string;
   localVertexProxyApiKey: string;
   isVertexProxyUrlInvalid: boolean;
+  isVertexProxyApiKeyMissing: boolean;
   onClose: () => void;
   setGoogleApiKey: (k: string | null) => void;
   setImageEditModel: (m: string) => void;
@@ -50,6 +51,7 @@ export const useSettingsModalActions = (config: UseSettingsModalActionsConfig): 
     localVertexProxyUrl,
     localVertexProxyApiKey,
     isVertexProxyUrlInvalid,
+    isVertexProxyApiKeyMissing,
     onClose,
     setGoogleApiKey,
     setImageEditModel,
@@ -66,7 +68,7 @@ export const useSettingsModalActions = (config: UseSettingsModalActionsConfig): 
         showToast(t('settingsModal.notifications.vertexProxyInvalidUrl'));
         return;
       }
-      if (localVertexProxyApiKey.trim().length === 0) {
+      if (isVertexProxyApiKeyMissing) {
         showToast(t('settingsModal.notifications.vertexProxyMissingApiKey'));
         return;
       }
@@ -84,6 +86,7 @@ export const useSettingsModalActions = (config: UseSettingsModalActionsConfig): 
   }, [
     localVertexProxyEnabled,
     isVertexProxyUrlInvalid,
+    isVertexProxyApiKeyMissing,
     localDirectGeminiApiKey,
     localImageEditModel,
     localImageGenerateModel,

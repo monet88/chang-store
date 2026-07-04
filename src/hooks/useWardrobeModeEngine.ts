@@ -27,6 +27,7 @@ export interface UseWardrobeModeEngineConfig {
   resolution: ImageResolution;
   imageEditModel: ImageEditModel;
   isParentGenerating: boolean;
+  isGenerating: boolean;
   t: (key: string, options?: any) => string;
   setResults: React.Dispatch<React.SetStateAction<WardrobeResultSet[]>>;
   setIsGenerating: (v: boolean) => void;
@@ -52,6 +53,7 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
     resolution,
     imageEditModel,
     isParentGenerating,
+    isGenerating,
     t,
     setResults,
     setIsGenerating,
@@ -60,7 +62,7 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
   } = config;
 
   const generate = useCallback(async () => {
-    if (isParentGenerating || /* isGenerating check is in orchestrator */ false) return;
+    if (isParentGenerating || isGenerating) return;
     if (!subject) {
       setError(t('virtualTryOn.inputError'));
       return;
@@ -156,6 +158,7 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
     t,
     driver,
     isParentGenerating,
+    isGenerating,
     setResults,
     setIsGenerating,
     setError,

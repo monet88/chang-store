@@ -46,6 +46,7 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
     resolution: params.resolution,
     imageEditModel: params.imageEditModel,
     isParentGenerating: params.isParentGenerating,
+    isGenerating,
     t,
     setResults,
     setIsGenerating,

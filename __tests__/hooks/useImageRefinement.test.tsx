@@ -1,12 +1,16 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const sendRefinement = vi.fn();
-const createImageChatSession = vi.fn((_model: string) => ({
-  sendRefinement,
-  getHistory: () => [],
-  reset: () => {},
-}));
+const { sendRefinement, createImageChatSession } = vi.hoisted(() => {
+  const sendRefinement = vi.fn();
+  const createImageChatSession = vi.fn((_model: string) => ({
+    sendRefinement,
+    getHistory: () => [],
+    reset: () => {},
+  }));
+
+  return { sendRefinement, createImageChatSession };
+});
 
 vi.mock('@/services/imageEditingService', () => ({
   createImageChatSession: (model: string) => createImageChatSession(model),
