@@ -14,3 +14,6 @@
 ## 2025-02-14 - Use useMemo for React Context Provider values
 **Learning:** Passing a new object literal directly to a React Context Provider's `value` prop (e.g., `value={{ someMethod }}`) creates a new object reference on every render. This forces all components consuming that context to re-render, leading to massive cascading re-renders, especially for root-level providers like `ApiProvider` or `LanguageProvider`.
 **Action:** Always wrap the `value` object passed to React Context Providers with `useMemo` (e.g., `const value = useMemo(() => ({ someMethod }), [someMethod])`) to preserve object identity and prevent unnecessary re-renders.
+## 2025-02-14 - Overriding specific codebase comments to apply standard useMemo to Provider values
+**Learning:** Sometimes codebase comments might state "// Note: Intentionally not using useMemo..." for Context values due to a misconception that it's only useful if the properties inside the object change identity rarely. However, even if the values inside are memoized callbacks or state strings, re-creating the *object literal* on every render of the Provider's parent causes all Context consumers to re-render.
+**Action:** When applying the standard `useMemo` optimization to Context values, safely override such codebase comments while explaining the true performance implication (cascading re-renders) in code comments.
