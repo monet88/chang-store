@@ -8,20 +8,36 @@ export const parseImageDataUrl = (
     throw new GatewayError(400, 'VALIDATION_FAILED', invalidMessage);
   }
 
-  const suffixIdx = value.toLowerCase().indexOf(';base64,', 5);
-  if (suffixIdx === -1) {
+  const commaIdx = value.indexOf(',', 5);
+  if (commaIdx === -1 || value.substring(commaIdx - 7, commaIdx).toLowerCase() !== ';base64') {
     throw new GatewayError(400, 'VALIDATION_FAILED', invalidMessage);
   }
 
+  const suffixIdx = commaIdx - 7;
   const mimeType = value.substring(5, suffixIdx);
-  const data = value.substring(suffixIdx + 8).replace(/\s+/g, '');
+  const rawData = value.substring(commaIdx + 1);
 
   if (!mimeType) {
     throw new GatewayError(400, 'VALIDATION_FAILED', invalidMessage);
   }
 
-  for (let i = 0; i < data.length; i++) {
-    const code = data.charCodeAt(i);
+  let data = '';
+  let hasWhitespace = false;
+  let chunkStart = 0;
+
+  for (let i = 0; i < rawData.length; i++) {
+    const code = rawData.charCodeAt(i);
+    const isWhitespace = code === 32 || code === 9 || code === 10 || code === 13;
+
+    if (isWhitespace) {
+      if (!hasWhitespace) hasWhitespace = true;
+      if (i > chunkStart) {
+        data += rawData.substring(chunkStart, i);
+      }
+      chunkStart = i + 1;
+      continue;
+    }
+
     // [A-Za-z0-9+/=]
     if (
       !(code >= 65 && code <= 90) && // A-Z
@@ -33,6 +49,14 @@ export const parseImageDataUrl = (
     ) {
       throw new GatewayError(400, 'VALIDATION_FAILED', invalidMessage);
     }
+  }
+
+  if (hasWhitespace) {
+    if (chunkStart < rawData.length) {
+      data += rawData.substring(chunkStart);
+    }
+  } else {
+    data = rawData;
   }
 
   return {

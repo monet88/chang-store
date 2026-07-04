@@ -25,20 +25,36 @@ const parseDataUrl = (value: string): { mimeType: string; data: string } => {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
   }
 
-  const suffixIdx = value.toLowerCase().indexOf(';base64,', 5);
-  if (suffixIdx === -1) {
+  const commaIdx = value.indexOf(',', 5);
+  if (commaIdx === -1 || value.substring(commaIdx - 7, commaIdx).toLowerCase() !== ';base64') {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
   }
 
+  const suffixIdx = commaIdx - 7;
   const mimeType = value.substring(5, suffixIdx).toLowerCase();
-  const data = value.substring(suffixIdx + 8).replace(/\s+/g, '');
+  const rawData = value.substring(commaIdx + 1);
 
   if (!/^image\/(?:png|jpeg|jpg|webp)$/.test(mimeType)) {
     throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
   }
 
-  for (let i = 0; i < data.length; i++) {
-    const code = data.charCodeAt(i);
+  let data = '';
+  let hasWhitespace = false;
+  let chunkStart = 0;
+
+  for (let i = 0; i < rawData.length; i++) {
+    const code = rawData.charCodeAt(i);
+    const isWhitespace = code === 32 || code === 9 || code === 10 || code === 13;
+
+    if (isWhitespace) {
+      if (!hasWhitespace) hasWhitespace = true;
+      if (i > chunkStart) {
+        data += rawData.substring(chunkStart, i);
+      }
+      chunkStart = i + 1;
+      continue;
+    }
+
     if (
       !(code >= 65 && code <= 90) &&
       !(code >= 97 && code <= 122) &&
@@ -49,6 +65,14 @@ const parseDataUrl = (value: string): { mimeType: string; data: string } => {
     ) {
       throw new GatewayError(400, 'VALIDATION_FAILED', 'Image inputs must be data URLs with base64-encoded image bytes.');
     }
+  }
+
+  if (hasWhitespace) {
+    if (chunkStart < rawData.length) {
+      data += rawData.substring(chunkStart);
+    }
+  } else {
+    data = rawData;
   }
 
   return {
