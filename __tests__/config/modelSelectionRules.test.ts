@@ -29,9 +29,24 @@ describe('model selection rules', () => {
   });
 
   it('exposes registry-backed options for all shared selection scopes', () => {
-    expect(getModelOptionsBySelectionType('imageEdit')).toHaveLength(3);
+    expect(getModelOptionsBySelectionType('imageEdit')).toHaveLength(4);
     expect(getModelOptionsBySelectionType('imageGenerate')).toHaveLength(3);
     expect(getModelOptionsBySelectionType('textGenerate')).toHaveLength(3);
+  });
+
+  it('includes Nano Banana image-edit variants in registry-backed options', () => {
+    expect(getModelOptionsBySelectionType('imageEdit')).toContainEqual({
+      id: 'gemini-2.5-flash-image',
+      name: 'Nano Banana',
+    });
+    expect(getModelOptionsBySelectionType('imageEdit')).toContainEqual({
+      id: 'gemini-3.1-flash-image',
+      name: 'Nano Banana 2',
+    });
+    expect(getModelOptionsBySelectionType('imageEdit')).toContainEqual({
+      id: 'gemini-3.1-flash-lite-image',
+      name: 'Nano Banana 2 Lite',
+    });
   });
 
   it('preserves existing capability checks for Gemini image models', () => {

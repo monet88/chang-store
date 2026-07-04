@@ -115,8 +115,10 @@ describe('SettingsModal', () => {
     expect(within(imageEditSelect).getAllByRole('option')).toHaveLength(getModelOptionsBySelectionType('imageEdit').length);
     expect(within(imageGenerateSelect).getAllByRole('option')).toHaveLength(getModelOptionsBySelectionType('imageGenerate').length);
 
-    expect(within(imageEditSelect).getByRole('option', { name: 'Gemini 3.1 Flash Image' })).toBeInTheDocument();
-    expect(within(imageGenerateSelect).getByRole('option', { name: 'Gemini 3 Pro Image' })).toBeInTheDocument();
+    expect(within(imageEditSelect).getByRole('option', { name: 'Nano Banana 2' })).toBeInTheDocument();
+    expect(within(imageEditSelect).getByRole('option', { name: 'Nano Banana 2 Lite' })).toBeInTheDocument();
+    expect(within(imageEditSelect).getByRole('option', { name: 'Nano Banana' })).toBeInTheDocument();
+    expect(within(imageGenerateSelect).getByRole('option', { name: 'Nano Banana Pro' })).toBeInTheDocument();
     expect(within(textSelect).getByRole('option', { name: 'Gemini 3.5 Flash' })).toBeInTheDocument();
     expect(screen.getByLabelText('Proxy URL')).toHaveValue('https://vertex.monet.uno/gemini');
     expect(screen.getByRole('button', { name: 'Toggle Vertex Proxy' })).toHaveAttribute('aria-pressed', 'true');
