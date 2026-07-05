@@ -31,6 +31,11 @@ apiOverrides.setGoogleApiKey = setGoogleApiKeyMock;
 apiOverrides.setImageEditModel = setImageEditModelMock;
 apiOverrides.setImageGenerateModel = setImageGenerateModelMock;
 apiOverrides.setTextGenerateModel = setTextGenerateModelMock;
+apiOverrides.vertexProxySettings = {
+  enabled: true,
+  url: 'https://vertex.monet.uno/gemini',
+  apiKey: 'proxy-key',
+};
 
 vi.mock('../../src/contexts/LanguageContext', () =>
   mockUseLanguage({
@@ -66,6 +71,15 @@ describe('useSettingsModal', () => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
     getLocalStorageUsageMock.mockResolvedValue({ usage: 0, quota: 1024 });
+    apiOverrides.googleApiKey = null;
+    apiOverrides.imageEditModel = 'gemini-3.1-flash-image';
+    apiOverrides.imageGenerateModel = 'gemini-3.1-flash-image';
+    apiOverrides.textGenerateModel = 'gemini-3.5-flash';
+    apiOverrides.vertexProxySettings = {
+      enabled: true,
+      url: 'https://vertex.monet.uno/gemini',
+      apiKey: 'proxy-key',
+    };
   });
 
   // ── handleRestore: validation ──────────────────────────────────────
@@ -205,6 +219,26 @@ describe('useSettingsModal', () => {
     expect(showToastMock).not.toHaveBeenCalled();
   });
 
+  // ── derived proxy validation ───────────────────────────────────────
+
+  it('does not mark the default proxy state as missing a key until the proxy config changes', () => {
+    apiOverrides.vertexProxySettings = {
+      enabled: true,
+      url: 'https://vertex.monet.uno/gemini',
+      apiKey: '',
+    };
+
+    const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
+
+    expect(result.current.isVertexProxyApiKeyMissing).toBe(false);
+
+    act(() => {
+      result.current.setLocalVertexProxyUrl('https://vertex.monet.uno/gemini/v2');
+    });
+
+    expect(result.current.isVertexProxyApiKeyMissing).toBe(true);
+  });
+
   // ── handleSave ──────────────────────────────────────────────────────
 
   it('saves model selections and closes modal', () => {
@@ -218,6 +252,28 @@ describe('useSettingsModal', () => {
     expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-3.1-flash-image');
     expect(setImageGenerateModelMock).toHaveBeenCalledWith('gemini-3.1-flash-image');
     expect(setTextGenerateModelMock).toHaveBeenCalledWith('gemini-3.5-flash');
+    expect(onCloseMock).toHaveBeenCalled();
+  });
+
+  it('saves non-proxy changes when the default proxy is enabled without an API key', () => {
+    apiOverrides.vertexProxySettings = {
+      enabled: true,
+      url: 'https://vertex.monet.uno/gemini',
+      apiKey: '',
+    };
+
+    const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
+
+    act(() => {
+      result.current.setLocalImageEditModel('gemini-2.5-flash-image');
+    });
+
+    act(() => {
+      result.current.handleSave();
+    });
+
+    expect(showToastMock).not.toHaveBeenCalledWith('settingsModal.notifications.vertexProxyMissingApiKey');
+    expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-2.5-flash-image');
     expect(onCloseMock).toHaveBeenCalled();
   });
 

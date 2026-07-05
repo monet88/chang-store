@@ -156,6 +156,16 @@ describe('ApiProviderContext', () => {
       expect(result.current.googleApiKey).toBe('stored-api-key');
     });
 
+    it('defaults vertex proxy to enabled with the Gemini gateway URL', () => {
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.vertexProxySettings.enabled).toBe(true);
+      expect(result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
+      expect(result.current.vertexProxySettings.apiKey).toBe('');
+    });
+
     it('loads model selections from localStorage on mount when valid', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {
         if (key === 'image_edit_model') return 'gemini-2.5-flash-image';
@@ -424,12 +434,37 @@ describe('ApiProviderContext', () => {
       });
 
       expect(result.current.vertexProxySettings.enabled).toBe(false);
-      expect(result.current.vertexProxySettings.url).toBe('https://cliproxy.monet.uno');
+      expect(result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
       expect(mockShowToast).toHaveBeenCalledTimes(1);
 
       rerender();
 
       expect(mockShowToast).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the proxy disabled after remounting an invalid restored config', () => {
+      localStorageMock.setItem('vertex_proxy_enabled', 'true');
+      localStorageMock.setItem('vertex_proxy_url', 'not-a-valid-url');
+      localStorageMock.setItem('vertex_proxy_api_key', 'persisted-proxy-key');
+
+      const firstMount = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(firstMount.result.current.vertexProxySettings.enabled).toBe(false);
+      firstMount.unmount();
+
+      localStorageMock.getItem.mockClear();
+      mockShowToast.mockClear();
+
+      const secondMount = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(secondMount.result.current.vertexProxySettings.enabled).toBe(false);
+      expect(secondMount.result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
+      expect(secondMount.result.current.vertexProxySettings.apiKey).toBe('persisted-proxy-key');
+      expect(mockShowToast).not.toHaveBeenCalled();
     });
   });
 

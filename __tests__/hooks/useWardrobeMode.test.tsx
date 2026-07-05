@@ -377,6 +377,56 @@ describe('useWardrobeMode', () => {
 
       expect(editImage).not.toHaveBeenCalled();
     });
+
+    it('does not start a second generate while a request is still pending', async () => {
+      let resolveEditImage: ((value: typeof RESULT_A[]) => void) | null = null;
+      vi.mocked(editImage).mockImplementation(() => new Promise((resolve) => {
+        resolveEditImage = resolve;
+      }));
+
+      const { result } = renderHook(() => useWardrobeMode(defaultParams));
+      const setId = result.current.sets[0].id;
+
+      act(() => {
+        result.current.setSubject(SUBJECT);
+        result.current.addItem(setId);
+      });
+
+      const itemId = result.current.sets[0].items[0].id;
+
+      act(() => {
+        result.current.updateItem(setId, itemId, { image: OUTFIT_A });
+      });
+
+      let firstGenerate: Promise<void> | undefined;
+      act(() => {
+        firstGenerate = result.current.generate();
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(result.current.isGenerating).toBe(true);
+      expect(editImage).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        void result.current.generate();
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(editImage).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolveEditImage?.([RESULT_A]);
+        await firstGenerate;
+      });
+
+      expect(result.current.isGenerating).toBe(false);
+    });
   });
 
   describe('Download', () => {

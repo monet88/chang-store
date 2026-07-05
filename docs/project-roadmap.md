@@ -56,6 +56,14 @@ on 2026-05-30.
 
 ## Current Documentation Milestone
 
+Docs + test/E2E resync to current codebase (2026-07-03):
+
+- Added measured test-suite metrics and coverage (70 files / 725 tests; 74.85% lines) to `docs/codebase-summary.md` and `docs/TEST_MATRIX.md`.
+- Documented the live E2E harness (`scripts/e2e-live/run.mts`) that drives all features against the Vertex gateway `https://vertex.monet.uno/gemini`.
+- Fixed and documented the Gemini vision `contents` shape bug in `src/services/gemini/text.ts` (gateway `VALIDATION_FAILED`).
+- Added a Gemini Proxy / Gateway routing section to `docs/ARCHITECTURE.md` and `docs/deployment-guide.md`.
+- Removed stale `gemini/video` module references from architecture docs.
+
 Docs resync to current codebase (story US-002, 2026-05-31):
 
 - Added `docs/product/provider-studios.md` for the three-provider split.

@@ -10,8 +10,6 @@
     "build": "vite build",
     "build:analyze": "vite build --mode analyze",
     "preview": "vite preview",
-    "gateway:compile": "npm --prefix gateway run compile",
-    "gateway:test": "npm --prefix gateway run test",
     "lint": "node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx",
     "test": "node scripts/check-node-platform.mjs --package-root . && vitest --run --passWithNoTests",
     "test:ui": "vitest --ui"
