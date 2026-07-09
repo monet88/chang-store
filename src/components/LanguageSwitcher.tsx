@@ -3,14 +3,18 @@ import React from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const LanguageSwitcher: React.FC = () => {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
 
   return (
-    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/30 p-1">
+    <div
+      className="flex items-center gap-1 rounded-full border border-white/10 bg-black/30 p-1"
+      role="group"
+      aria-label={t('navigation.language')}
+    >
       <button
         type="button"
         onClick={() => setLanguage('en')}
-        className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition-all duration-200 ${language === 'en'
+        className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${language === 'en'
           ? 'bg-white text-black'
           : 'text-zinc-500 hover:bg-white/6 hover:text-zinc-100'
           }`}
@@ -22,7 +26,7 @@ const LanguageSwitcher: React.FC = () => {
       <button
         type="button"
         onClick={() => setLanguage('vi')}
-        className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition-all duration-200 ${language === 'vi'
+        className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${language === 'vi'
           ? 'bg-white text-black'
           : 'text-zinc-500 hover:bg-white/6 hover:text-zinc-100'
           }`}
