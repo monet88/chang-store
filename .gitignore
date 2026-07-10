@@ -35,7 +35,6 @@ test-chat-service.ts
 test-chat-service.mjs
 test-*.ts
 test-*.mjs
-!gateway/test/test-config.ts
 
 # Tauri build artifacts
 src-tauri/target/

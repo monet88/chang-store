@@ -48,6 +48,7 @@ const VERTEX_PROXY_URL_KEY = 'vertex_proxy_url';
 const VERTEX_PROXY_API_KEY_KEY = 'vertex_proxy_api_key';
 const DEFAULT_VERTEX_PROXY_ENABLED = true;
 const DEFAULT_VERTEX_PROXY_URL = 'https://vertex.monet.uno/gemini';
+const LEGACY_CLIPROXY_HOST = 'cliproxy.monet.uno';
 
 const providerApiKeyStorageKey = (provider: ProviderId): string => `provider:${provider}:apiKey`;
 const providerBaseUrlStorageKey = (provider: ProviderId): string => `provider:${provider}:baseUrl`;
@@ -87,10 +88,23 @@ const resolveStoredModel = (selectionType: ModelSelectionType, storedValue: stri
   return getDefaultModelForSelectionType(selectionType);
 };
 
+const isLegacyCliproxyUrl = (url: string): boolean => {
+  try {
+    return new URL(url).hostname === LEGACY_CLIPROXY_HOST;
+  } catch {
+    return false;
+  }
+};
+
 const resolveStoredVertexProxySettings = (): { invalidRestore: boolean; settings: VertexProxySettings } => {
   const storedEnabled = safeStorage.getItem(VERTEX_PROXY_ENABLED_KEY);
   const enabled = storedEnabled === null ? DEFAULT_VERTEX_PROXY_ENABLED : storedEnabled === 'true';
-  const rawUrl = safeStorage.getItem(VERTEX_PROXY_URL_KEY)?.trim() || DEFAULT_VERTEX_PROXY_URL;
+  const storedUrl = safeStorage.getItem(VERTEX_PROXY_URL_KEY)?.trim() || '';
+  // Retired cliproxy host → auto-upgrade so existing installs stop hitting a dead endpoint.
+  const rawUrl = !storedUrl || isLegacyCliproxyUrl(storedUrl) ? DEFAULT_VERTEX_PROXY_URL : storedUrl;
+  if (storedUrl && isLegacyCliproxyUrl(storedUrl)) {
+    safeStorage.setItem(VERTEX_PROXY_URL_KEY, DEFAULT_VERTEX_PROXY_URL);
+  }
   const apiKey = safeStorage.getItem(VERTEX_PROXY_API_KEY_KEY)?.trim() || '';
   const validation = validateProviderBaseUrl(rawUrl);
   const hasStoredRuntimeConfig = storedEnabled !== null;
