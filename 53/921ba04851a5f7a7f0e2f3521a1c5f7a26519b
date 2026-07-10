@@ -1,0 +1,183 @@
+src/hooks/usePoseChanger.ts
+  s_2a095d70a7ae08::t_cc8eb4cbd6cb30 78-79
+  s_2a095d70a7ae08::t_9843c6062c0e3d 76-77
+  s_2a095d70a7ae08::t_e850db454383cf 1-9,15-29,49,73,85,88,90-91,93-123,132-134,140,142-147,149-150,154-158,163-178,189-190,192-196
+.gitignore
+  s_2a095d70a7ae08::t_0eb38ad22068c4 59-60,111
+__tests__/__mocks__/contexts.tsx
+  s_2a095d70a7ae08::t_594e945f5f2308 157
+__tests__/components/SettingsModal.test.tsx
+  s_2a095d70a7ae08::t_52025fbbe7daae 63,118-122,125-126
+__tests__/contexts/ApiProviderContext.test.tsx
+  s_2a095d70a7ae08::t_4f431baadb3078 159-168,423-455,477-501
+docs/api/vertex-gateway-api-guide.md
+  s_2a095d70a7ae08::t_19999875296f48 3,11,265-266
+src/components/LookbookGenerator.tsx
+  s_2a095d70a7ae08::t_b227ed2346fe4d 114
+src/components/modals/SettingsModal.tsx
+  s_2a095d70a7ae08::t_0878ac81b46d06 180
+src/contexts/ApiProviderContext.tsx
+  s_2a095d70a7ae08::t_134a27dadc61db 49,51,91-98,100-107,110-111,193
+__tests__/config/modelSelectionRules.test.ts
+  s_2a095d70a7ae08::t_9590fa1a917f13 32-33,37-58
+__tests__/hooks/useImageRefinement.test.tsx
+  s_2a095d70a7ae08::t_4e39785b87954e 1-134
+__tests__/hooks/useSettingsModal.test.tsx
+  s_2a095d70a7ae08::t_5f1dfaf92c549f 34-38,74-82,222-241,258-279
+__tests__/hooks/useWardrobeMode.test.tsx
+  s_2a095d70a7ae08::t_d402a96ccd0b88 380-429
+__tests__/scripts/e2e-live-config.test.ts
+  s_2a095d70a7ae08::t_8471f921dbb281 1-174
+__tests__/services/gemini/image.test.ts
+  s_2a095d70a7ae08::t_fe2daf9cb3b72a 438-457
+__tests__/services/gemini/text.test.ts
+  s_2a095d70a7ae08::t_d231b15c89f3c0 316-317,728
+__tests__/utils/prompt-builders.test.ts
+  s_2a095d70a7ae08::t_5e7a1bbdd1c433 1-105
+__tests__/utils/upscale-prompt-builder.test.ts
+  s_2a095d70a7ae08::t_1704f88cc78689 1-37
+docs/ARCHITECTURE.md
+  s_2a095d70a7ae08::t_22d555db41ca5a 35,218-244
+docs/CHANGELOG.md
+  s_2a095d70a7ae08::t_5478d6856226b5 3-22,215
+docs/README.md
+  s_2a095d70a7ae08::t_3ad2dfa5e23d0a 3,19,58-60
+docs/TEST_MATRIX.md
+  s_2a095d70a7ae08::t_2c99150c6446fa 5-16,34
+docs/api/README.md
+  s_2a095d70a7ae08::t_31bdba4e4a1c21 23
+docs/codebase-summary.md
+  s_2a095d70a7ae08::t_9b1caa841420f7 14,72-76,82-130,139
+docs/deployment-guide.md
+  s_2a095d70a7ae08::t_0bd49834e9e84a 42-61,90-91,93-95
+docs/project-roadmap.md
+  s_2a095d70a7ae08::t_1f0e060ca6832a 59-66
+plans/reports/01-07-2026-pr-75-deepen-architecture-review.md
+  s_2a095d70a7ae08::t_7fda7e3eb4d3a8 1-85
+scripts/e2e-live/_docedit.mjs
+  s_2a095d70a7ae08::t_93943bea16d46f 1-88
+scripts/e2e-live/config.ts
+  s_2a095d70a7ae08::t_7fd0bb07cdfc01 1-60
+scripts/e2e-live/run.mts
+  s_2a095d70a7ae08::t_d5d6e51e6dc89d 1-196
+src/config/modelRegistry.ts
+  s_2a095d70a7ae08::t_d4ae9bef902948 36,43-50,57,67,74-81,88
+src/hooks/providerStudioGenerationTypes.ts
+  s_2a095d70a7ae08::t_4ddfd3c8d4a565 1-69
+src/hooks/useAIEditor.ts
+  s_2a095d70a7ae08::t_e9ca3cc511c148 7,69,80
+src/hooks/useBackgroundReplacer.ts
+  s_2a095d70a7ae08::t_c0f20b4eb2cc5e 3,8,11-12,39-41,98-102,120,160,163-164
+src/hooks/useClothingTransfer.ts
+  s_2a095d70a7ae08::t_d73fc9680053f6 1,10-23,35,37-38,40-41,43-44,46-47,51,57-60,63,65-73,75,77-79,81-85,87,90-96,104,111-122,124-125,132
+src/hooks/useClothingTransferConcepts.ts
+  s_2a095d70a7ae08::t_75ebd7dda516aa 1-149
+src/hooks/useClothingTransferEngine.ts
+  s_2a095d70a7ae08::t_f8342cb3600d58 1-166
+src/hooks/useClothingTransferReferences.ts
+  s_2a095d70a7ae08::t_eb532328b55852 1-63
+src/hooks/useClothingTransferResultActions.ts
+  s_2a095d70a7ae08::t_d7855d1ab58e5e 1-104
+src/hooks/useGoogleDriveSync.ts
+  s_2a095d70a7ae08::t_b49e091921607c 1-109
+src/hooks/useGoogleDriveSyncEngine.ts
+  s_2a095d70a7ae08::t_4095ade6f2fbaf 1-206
+src/hooks/useGoogleDriveSyncQueue.ts
+  s_2a095d70a7ae08::t_2cc232e363e2ba 1-172
+src/hooks/useGptImageStudio.ts
+  s_2a095d70a7ae08::t_793e4f242b5857 1-2,17-22,30,49-54,67-94,97,99-104,110
+src/hooks/useGrokStudio.ts
+  s_2a095d70a7ae08::t_0152c379e66bfd 1-2,21-27,39,46,68-72,84-110,113,115-120,125-127,129,132,139,154-155
+src/hooks/useImageRefinement.ts
+  s_2a095d70a7ae08::t_b9beac7e30ffb2 1-128
+src/hooks/useLookbookDraft.ts
+  s_2a095d70a7ae08::t_b13687d37fbdd9 1-200
+src/hooks/useLookbookGeneration.ts
+  s_2a095d70a7ae08::t_2c20af61889b53 1-206
+src/hooks/useLookbookGenerator.ts
+  s_2a095d70a7ae08::t_41898c54400a97 1-2,6,8-103,105-110,112-153
+src/hooks/useLookbookRefinement.ts
+  s_2a095d70a7ae08::t_c359a3b88f9cab 1-149
+src/hooks/useLookbookResultActions.ts
+  s_2a095d70a7ae08::t_2e57f86454d14a 1-94
+src/hooks/usePhotoAlbum.ts
+  s_2a095d70a7ae08::t_789292e37cf914 1,8-12,57-91,116,118,120,158,170-172
+src/hooks/usePhotoAlbumEngine.ts
+  s_2a095d70a7ae08::t_76df83ae08912c 1-204
+src/hooks/usePoseChangerEngine.ts
+  s_2a095d70a7ae08::t_84ead4bcb99b0f 1-205
+src/hooks/usePoseChangerReferences.ts
+  s_2a095d70a7ae08::t_df63a420c9ef06 1-119
+src/hooks/usePoseChangerResultActions.ts
+  s_2a095d70a7ae08::t_ed1306fb01c62f 1-52
+src/hooks/useProviderStudioEngine.ts
+  s_2a095d70a7ae08::t_0749177e40a425 1-165
+src/hooks/useProviderStudioGeneration.ts
+  s_2a095d70a7ae08::t_a48848400bceb8 1-201
+src/hooks/useSettingsModal.ts
+  s_2a095d70a7ae08::t_899ec3e039287a 1-9,15-17,69,73-84,86-90,93,104-115,118-146
+src/hooks/useSettingsModalActions.ts
+  s_2a095d70a7ae08::t_5b5dc73b4f47db 1-154
+src/hooks/useSettingsModalState.ts
+  s_2a095d70a7ae08::t_052db96e95f183 1-171
+src/hooks/useVirtualTryOn.ts
+  s_2a095d70a7ae08::t_c7c9d9fdc260fb 1-2,12-16,36-40,51-52,54-55,57-58,60-61,65,71,73,77-78,81-86,88-92,96,98-106,108,110-112,114-117,119,121-124,131-139,155-158,161-170,178-179
+src/hooks/useVirtualTryOnClothing.ts
+  s_2a095d70a7ae08::t_7107fb98121a83 1-90
+src/hooks/useVirtualTryOnEngine.ts
+  s_2a095d70a7ae08::t_f2509e0e0d2944 1-176
+src/hooks/useVirtualTryOnResultActions.ts
+  s_2a095d70a7ae08::t_702e2104ea4d0a 1-99
+src/hooks/useVirtualTryOnSubjects.ts
+  s_2a095d70a7ae08::t_1a8f0c8fd520ad 1-145
+src/hooks/useWardrobeMode.ts
+  s_2a095d70a7ae08::t_91cad7e4465cb7 1-9,13,15-16,26-29,31,36-48,51-55,58,67-78,80-85,90-95,97,99-100
+src/hooks/useWardrobeModeEngine.ts
+  s_2a095d70a7ae08::t_b6105734050fcf 1-169
+src/hooks/useWardrobeModeList.ts
+  s_2a095d70a7ae08::t_f3ba3bb5a4a212 1-119
+src/hooks/useWatermarkRemover.ts
+  s_2a095d70a7ae08::t_e9268239cd39df 1,3-7,35-39,42,44,46-47,49-55,57-60,63-83
+src/hooks/useWatermarkRemoverActions.ts
+  s_2a095d70a7ae08::t_a2b852a05835d8 1-60
+src/hooks/useWatermarkRemoverEngine.ts
+  s_2a095d70a7ae08::t_c50a34a3c80aa5 1-103
+src/hooks/useWatermarkRemoverQueue.ts
+  s_2a095d70a7ae08::t_62a1903668fb43 1-3,5-7,9-11,13-31,33-46,48-50,52-54,56-58,60-62,64-72,74-76,78-112
+src/services/gemini/image.ts
+  s_2a095d70a7ae08::t_d04d11cb7fc555 4
+src/services/gemini/text.ts
+  s_2a095d70a7ae08::t_35cdb765844563 60,109,157,212,266
+src/services/imageEditingService.ts
+  s_2a095d70a7ae08::t_4d339c765d3bdf 6,100
+src/utils/ai-editor-prompt-builder.ts
+  s_2a095d70a7ae08::t_0b42d41d799297 1-39
+src/utils/background-replacer-prompt-builder.ts
+  s_2a095d70a7ae08::t_9cbcc2ce513edf 1-56
+src/utils/photo-album-prompt-builder.ts
+  s_2a095d70a7ae08::t_1f99173b206dbf 1-70
+src/utils/pose-changer-prompt-builder.ts
+  s_2a095d70a7ae08::t_cf89ae31ea84b0 1-46
+src/utils/provider-refine-prompt.ts
+  s_2a095d70a7ae08::t_5d2e3374431ab1 2,31-32,34
+src/utils/upscale-prompt-builder.ts
+  s_2a095d70a7ae08::t_2e6bfc7d6de8ee 1-29
+src/utils/watermark-prompts.ts
+  s_2a095d70a7ae08::t_79f830752c969d 14-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "53921ba04851a5f7a7f0e2f3521a1c5f7a26519b",
+  "prompts": {},
+  "sessions": {
+    "s_2a095d70a7ae08": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7190934e-71d8-440b-bdab-02f0b6bf5e16",
+        "model": "grok-4.5"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
