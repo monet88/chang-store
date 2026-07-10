@@ -1,0 +1,31 @@
+__tests__/__mocks__/contexts.tsx
+  s_ff01a98a953a15::t_fffdbbe032b96c 158
+__tests__/components/SettingsModal.test.tsx
+  s_ff01a98a953a15::t_4fdd70ea2c04aa 64,121
+__tests__/contexts/ApiProviderContext.test.tsx
+  s_ff01a98a953a15::t_8a1bc296c6879a 427
+src/components/LookbookGenerator.tsx
+  s_ff01a98a953a15::t_c351e9cd9c7d42 114-115
+src/components/LookbookOutput.tsx
+  s_ff01a98a953a15::t_f9527d67b7b911 44-45,81-82,168-169
+src/components/modals/SettingsModal.tsx
+  s_ff01a98a953a15::t_3b94add445e1b3 180
+src/contexts/ApiProviderContext.tsx
+  s_ff01a98a953a15::t_2a5e0e60dd9258 49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "a784d610fad0ec7597c5d34928b5146ac50d9c68",
+  "prompts": {},
+  "sessions": {
+    "s_ff01a98a953a15": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "84a14aa8-5dae-4b32-b3a3-f17be1e28306",
+        "model": "zai/glm-5.2"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
