@@ -1,0 +1,29 @@
+__tests__/services/gemini/image.test.ts
+  s_0824b81fa5b42d::t_5c56e95cad6906 438-457
+src/services/gemini/image.ts
+  s_ff01a98a953a15::t_bae0777446b0a6 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f6aa905c64a8308e4a19d3aaa0179e338285143f",
+  "prompts": {},
+  "sessions": {
+    "s_0824b81fa5b42d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0fc12d74-ffe8-4915-a37e-de143bea40eb",
+        "model": "zai/glm-5.2"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    },
+    "s_ff01a98a953a15": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "84a14aa8-5dae-4b32-b3a3-f17be1e28306",
+        "model": "unknown"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
