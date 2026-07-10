@@ -1,0 +1,19 @@
+src/components/LookbookOutput.tsx
+  s_2a095d70a7ae08::t_75277b2e22d14c 168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "883aa39733eee12972b5729ef558bc657044451a",
+  "prompts": {},
+  "sessions": {
+    "s_2a095d70a7ae08": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7190934e-71d8-440b-bdab-02f0b6bf5e16",
+        "model": "grok-4.5"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
