@@ -1,4 +1,5 @@
 import { UpscaleQuality } from '../types';
+import { buildUpscalePromptTable } from './upscale-prompt-builder';
 
 /**
  * Preservation-first prompt helpers for provider-studio post-generation tools.
@@ -27,9 +28,7 @@ export const buildProviderRefinePrompt = (instruction: string): string => {
 /**
  * Preservation-first upscale prompts, mirroring the Gemini studio's text. Kept
  * here as shared constants (text only) so provider hooks never import the
- * Gemini image service.
+ * Gemini image service. Composed from the shared upscale builder with the
+ * `subject` noun (provider results are not always people).
  */
-export const PROVIDER_UPSCALE_PROMPTS: Record<UpscaleQuality, string> = {
-    '2K': 'Upscale this image to 2K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the subject\'s face and the overall composition exactly the same. Photorealistic, fashion photography quality, 2K quality.',
-    '4K': 'Upscale this image to 4K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the subject\'s face and the overall composition exactly the same. Photorealistic, fashion photography quality, 4K quality.',
-};
+export const PROVIDER_UPSCALE_PROMPTS: Record<UpscaleQuality, string> = buildUpscalePromptTable('subject');

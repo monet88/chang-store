@@ -57,6 +57,8 @@ opencode.json
 .osgrep
 admin-*.png
 
+scripts/e2e-live/output/
+
 # AI orchestration local files
 .claude/
 .claude/memory/
@@ -107,6 +109,7 @@ scripts/bin/harness-cli.exe
 
 # Local deploy guide (infrastructure details, not for public repo)
 docs/deploy/
+docs/superpowers/
 
 # Gateway is now a separate repo: https://github.com/monet88/vertex-gateway
 gateway/

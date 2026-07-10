@@ -441,9 +441,9 @@ describe('services/gemini/image.ts', () => {
     // custom routes, so this now must go through the SDK's generateContent path
     // without issuing any direct fetch to a custom route.
     it('uses the SDK generateContent path without direct fetch', async () => {
-      const fetchSpy = vi.fn(() => {
-        throw new Error('editImage must not call fetch directly; it goes through the SDK');
-      });
+      // Silent spy: if editImage calls fetch, the assertion below fails with a
+      // clear Vitest diff (including the arguments) instead of an unhandled throw.
+      const fetchSpy = vi.fn();
       vi.stubGlobal('fetch', fetchSpy);
 
       try {

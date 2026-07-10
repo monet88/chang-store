@@ -1,7 +1,6 @@
 # Vertex Gateway API Guide
 
-> Tested: 2026-06-03
-> Tested: 2026-07-01
+> Tested: 2026-07-03 (live E2E via `https://vertex.monet.uno/gemini`, all app service paths)
 > Base URL: `<gateway-origin>`
 > Gateway API Key: set by `GATEWAY_API_KEYS` on the gateway server
 
@@ -9,7 +8,7 @@
 
 ## Purpose
 
-Guide này áp dụng cho backend gateway trong thư mục `gateway/`, không áp dụng cho `https://cliproxy.monet.uno`.
+Guide này áp dụng cho backend Vertex gateway (mã nguồn nay ở repo riêng https://github.com/monet88/vertex-gateway, deploy tại `https://vertex.monet.uno`), không áp dụng cho `https://cliproxy.monet.uno`.
 
 Gateway nhận request từ browser/app bằng gateway key, sau đó tự xác thực lên Google Vertex AI ở phía server bằng service account JSON hoặc ADC. Client không được gửi Google Cloud credentials.
 
@@ -263,8 +262,8 @@ test ngày 2026-07-01 qua cả production single mode và local pool (3 project)
 
 | Model ID | Status | Notes |
 |----------|--------|-------|
-| `gemini-3.1-flash-image-preview` | ✅ OK | Mặc định nên dùng cho image edit/generate |
-| `gemini-3.1-flash-image` | ✅ OK | Alias, resolves to `-preview` khi có modelCatalog |
+| `gemini-3.1-flash-image` | ✅ OK | Mặc định nên dùng cho image edit/generate (khớp allowlist, config, và app default); resolves to `-preview` khi có modelCatalog |
+| `gemini-3.1-flash-image-preview` | ✅ OK | Tên `-preview` trực tiếp; dùng khi cần ép bản preview trong single mode |
 | `gemini-3-pro-image` | ✅ OK | Pass qua gateway |
 | `gemini-2.5-flash-image` | ✅ OK | Pass qua gateway |
 

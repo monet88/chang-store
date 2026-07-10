@@ -154,8 +154,8 @@ export const mockUseApi = (
     textGenerateModel: 'gemini-3.5-flash',
     setTextGenerateModel: vi.fn(),
     vertexProxySettings: {
-      enabled: false,
-      url: 'https://cliproxy.monet.uno',
+      enabled: true,
+      url: 'https://vertex.monet.uno/gemini',
       apiKey: '',
     },
     setVertexProxySettings: vi.fn(),
