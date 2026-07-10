@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-07-10-migrate-image-ops-to-raw-gemini-sdk-design.md
+  s_ff01a98a953a15::t_f003e3f345e49d 1-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f6a38718bf16ba62dfe78a3b715a1081d7841de8",
+  "prompts": {},
+  "sessions": {
+    "s_ff01a98a953a15": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "84a14aa8-5dae-4b32-b3a3-f17be1e28306",
+        "model": "zai/glm-5.2"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
