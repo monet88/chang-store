@@ -34,8 +34,6 @@ const { mockIsProxyEnabled } = vi.hoisted(() => ({
 vi.mock('@/services/apiClient', () => ({
   getGeminiClient: vi.fn(() => mockGeminiClient),
   isProxyEnabled: mockIsProxyEnabled,
-  getGeminiBaseUrl: vi.fn(() => null),
-  getActiveApiKey: vi.fn(() => 'test-key'),
 }));
 
 // Import after mocking
@@ -436,6 +434,26 @@ describe('services/gemini/image.ts', () => {
       await expect(editImage(params)).rejects.toThrow(
         'error.api.geminiFailed:Network timeout'
       );
+    });
+
+    // Regression: previously editImage sent a custom /api/images/edit POST to the
+    // gateway root when the base URL ended in /gemini. The gateway dropped those
+    // custom routes, so this now must go through the SDK's generateContent path
+    // without issuing any direct fetch to a custom route.
+    it('uses the SDK generateContent path without direct fetch', async () => {
+      // Silent spy: if editImage calls fetch, the assertion below fails with a
+      // clear Vitest diff (including the arguments) instead of an unhandled throw.
+      const fetchSpy = vi.fn();
+      vi.stubGlobal('fetch', fetchSpy);
+
+      try {
+        mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+        await editImage({ images: [sampleImage], prompt: 'Edit via gateway' });
+        expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+        expect(fetchSpy).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
     });
   });
 
