@@ -35,7 +35,6 @@ test-chat-service.ts
 test-chat-service.mjs
 test-*.ts
 test-*.mjs
-!gateway/test/test-config.ts
 
 # Tauri build artifacts
 src-tauri/target/
@@ -56,6 +55,8 @@ nul
 opencode.json
 .osgrep
 admin-*.png
+
+scripts/e2e-live/output/
 
 # AI orchestration local files
 .claude/
@@ -107,6 +108,7 @@ scripts/bin/harness-cli.exe
 
 # Local deploy guide (infrastructure details, not for public repo)
 docs/deploy/
+docs/superpowers/
 
 # Gateway is now a separate repo: https://github.com/monet88/vertex-gateway
 gateway/

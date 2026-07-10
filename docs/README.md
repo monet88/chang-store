@@ -1,6 +1,6 @@
 # Documentation Map
 
-Project documentation for chang-store — an AI-powered virtual fashion studio.
+Project documentation for chang-store â€” an AI-powered virtual fashion studio.
 
 ## Harness (Operating Rules)
 
@@ -16,7 +16,7 @@ Project documentation for chang-store — an AI-powered virtual fashion studio.
 
 ## Project-Specific
 
-- `ARCHITECTURE.md`: actual app architecture — layers, routing, providers.
+- `ARCHITECTURE.md`: actual app architecture â€” layers, routing, providers.
 - `system-architecture.md`: legacy/living architecture entrypoint linked to `ARCHITECTURE.md`.
 - `code-standards.md`: naming, patterns, quality gates, prohibited patterns.
 - `codebase-summary.md`: source layout, feature enum, persistence, validation.
@@ -55,5 +55,7 @@ Feature behavior contracts derived from the codebase:
 
 Harness v0 is installed. Application code exists and is deployed. Product docs
 reflect the current Feature enum and codebase behavior, including the
-three-provider studio split, as of the 2026-05-31 docs resync (story US-002).
+three-provider studio split. Docs were last resynced to code on 2026-07-03
+(test suite: 725 tests across 70 files passing, ~75% line coverage; plus a
+live E2E gateway run - see `docs/codebase-summary.md`).
 Known dead code (`useSwapFace`, `useInpainting`) was removed under Harness backlog item #2.

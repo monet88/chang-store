@@ -313,8 +313,8 @@ describe('services/gemini/text.ts', () => {
       );
       // Verify image part was included
       const callArgs = mockGenerateContent.mock.calls[0][0];
-      expect(callArgs.contents.parts).toHaveLength(2); // image + text
-      expect(callArgs.contents.parts[0].inlineData).toEqual({
+      expect(callArgs.contents[0].parts).toHaveLength(2); // image + text
+      expect(callArgs.contents[0].parts[0].inlineData).toEqual({
         data: sampleImage.base64,
         mimeType: sampleImage.mimeType,
       });
@@ -725,7 +725,7 @@ describe('services/gemini/text.ts', () => {
 
       // Assert
       const callArgs = mockGenerateContent.mock.calls[0][0];
-      expect(callArgs.contents.parts[0].inlineData).toEqual({
+      expect(callArgs.contents[0].parts[0].inlineData).toEqual({
         data: sampleImage.base64,
         mimeType: sampleImage.mimeType,
       });

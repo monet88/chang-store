@@ -2,7 +2,18 @@
 
 This file maps product behavior to proof. Durable story proof lives in
 `harness.db` and is queried with `scripts/harness query matrix`; this markdown is
-a human-readable mirror from the 2026-05-31 docs resync.
+a human-readable mirror, last resynced on 2026-07-03.
+
+## Automated Suite Snapshot (2026-07-03)
+
+`npm run test` runs 725 tests across 70 files (all passing). V8 coverage:
+74.85% lines, 73.96% statements, 71.94% functions, 64.74% branches. A live
+end-to-end harness (`scripts/e2e-live/run.mts`) additionally drives the real
+service layer against the Vertex gateway (`https://vertex.monet.uno/gemini`)
+with the `docs/image-test/` samples: 11/13 flows returned valid output, the two
+non-passing flows being external-runtime conditions (model refusal on a specific
+watermark sample, transient upstream quota), not app defects. See the "Live E2E
+Verification" section in `docs/codebase-summary.md`.
 
 ## Status Values
 
@@ -20,6 +31,7 @@ a human-readable mirror from the 2026-05-31 docs resync.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | US-001-three-provider-studios | Three provider studios | no | no | no | no | planned | Plan remediation only; implementation and runtime verification pending. |
 | US-003-vertex-cli-proxy-toggle | Vertex CLI proxy toggle for Gemini | yes | yes | no | no | implemented | Proxy toggle/settings, direct vs proxy routing, proxy image generateContent path, Gemini 3.5/3.1 model cleanup, and quota fallback warning path implemented. Proof: `__tests__/services/apiClient.test.ts`, `__tests__/contexts/ApiProviderContext.test.tsx`, `__tests__/hooks/useSettingsModal.test.tsx`, `__tests__/components/SettingsModal.test.tsx`, `__tests__/services/gemini/image.test.ts`, `__tests__/services/gemini/text.test.ts`, `__tests__/services/imageEditingService.test.ts`, `__tests__/services/textService.test.ts`; quality gates passed: `npx tsc --noEmit`, `npm run lint`, `npm run test`, `npm run build`. |
+| OPS-GEMINI-VISION-CONTENTS | Gemini vision helpers send SDK-valid `contents` through the gateway | yes | no | yes | no | implemented | `contents` shape fixed to `[{ role, parts }]` in `src/services/gemini/text.ts`; the old `{ parts }` shape was rejected by the gateway with `VALIDATION_FAILED`. Proof: `__tests__/services/gemini/text.test.ts` (updated assertions) and live E2E vision-describe flow (`scripts/e2e-live/run.mts`). Gates: `npx tsc --noEmit`, `npm run lint`, `npm run test` (725 pass). |
 
 ## Evidence Rules
 

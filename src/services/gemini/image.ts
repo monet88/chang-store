@@ -1,7 +1,7 @@
 
 import { Part, Modality } from "@google/genai";
 import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel, UpscaleQuality } from '../../types';
-import { getActiveApiKey, getGeminiBaseUrl, getGeminiClient, isProxyEnabled } from '../apiClient';
+import { getGeminiClient, isProxyEnabled } from '../apiClient';
 import { getModelCapabilities } from '../../config/modelRegistry';
 import { runBoundedWorkers } from '../../utils/run-bounded-workers';
 
@@ -143,78 +143,6 @@ const withGeminiImageRequestSlot = async <T>(task: () => Promise<T>): Promise<T>
   }
 };
 
-const getGatewayRootUrl = (): string | null => {
-  const baseUrl = getGeminiBaseUrl();
-  if (!baseUrl) return null;
-
-  const trimmedBaseUrl = baseUrl.trim().replace(/\/+$/, '');
-  if (!trimmedBaseUrl.endsWith('/gemini')) return null;
-
-  return trimmedBaseUrl.slice(0, -'/gemini'.length);
-};
-
-const toGatewayImage = (dataUrl: string): ImageFile => {
-  // Avoid O(N) regex match on potentially large multi-megabyte strings
-  // Format is "data:[mimeType];base64,[base64]"
-  if (!dataUrl.startsWith('data:')) {
-    throw new Error('error.api.invalidGatewayImage');
-  }
-
-  const base64Idx = dataUrl.indexOf(';base64,');
-  if (base64Idx === -1) {
-    throw new Error('error.api.invalidGatewayImage');
-  }
-
-  const mimeType = dataUrl.substring(5, base64Idx);
-  const base64 = dataUrl.substring(base64Idx + 8); // length of ';base64,'
-
-  if (!mimeType || !base64) {
-    throw new Error('error.api.invalidGatewayImage');
-  }
-
-  return {
-    mimeType,
-    base64,
-  };
-};
-
-const callGatewayImageRoute = async (
-  path: '/api/images/edit' | '/api/images/generate' | '/api/images/upscale',
-  body: Record<string, unknown>,
-): Promise<ImageFile[]> => {
-  const gatewayRoot = getGatewayRootUrl();
-  if (!gatewayRoot) {
-    throw new Error('error.api.invalidGatewayBaseUrl');
-  }
-
-  const response = await fetch(`${gatewayRoot}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': getActiveApiKey(),
-    },
-    body: JSON.stringify(body),
-  });
-
-  const payload = await response.json().catch(() => null) as
-    | { success?: boolean; images?: Array<{ dataUrl?: string }>; error?: { message?: string } }
-    | null;
-
-  if (!response.ok || !payload?.success) {
-    const errorMessage = payload?.error?.message || `Gateway image route failed with status ${response.status}`;
-    throw new Error(errorMessage);
-  }
-
-  if (!Array.isArray(payload.images) || payload.images.length === 0) {
-    throw new Error('error.api.noImageGenerated');
-  }
-
-  return payload.images
-    .map((image) => image.dataUrl)
-    .filter((dataUrl): dataUrl is string => typeof dataUrl === 'string' && dataUrl.length > 0)
-    .map(toGatewayImage);
-};
-
 const generateProxyImage = async (
   prompt: string,
   aspectRatio: ImageAspectRatio,
@@ -251,27 +179,6 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
       }
 
       contentParts = [{ text: finalPrompt }, ...imageParts];
-    }
-
-    const gatewayRoot = getGatewayRootUrl();
-    if (gatewayRoot && !interleavedParts) {
-      const gatewayImages = images.map((image) => ({
-        data: image.base64,
-        mimeType: image.mimeType,
-      }));
-      const batchedResults: ImageFile[] = [];
-      for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
-        const batchImages = await withGeminiImageRequestSlot(() => callGatewayImageRoute('/api/images/edit', {
-          model,
-          images: gatewayImages,
-          prompt: finalPrompt,
-          aspectRatio,
-          resolution,
-          numberOfImages: batchSize,
-        }));
-        batchedResults.push(...batchImages);
-      }
-      return batchedResults;
     }
 
     const generateSingleImage = async (): Promise<ImageFile> => {
@@ -327,21 +234,6 @@ export const generateImageFromText = async (
 
   try {
     const normalizedAspectRatio = aspectRatio === 'Default' ? '1:1' : aspectRatio;
-    const gatewayRoot = getGatewayRootUrl();
-
-    if (gatewayRoot) {
-      const gatewayResults: GeneratedImageFile[] = [];
-      for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
-        const batchImages = await withGeminiImageRequestSlot(() => callGatewayImageRoute('/api/images/generate', {
-          model,
-          prompt,
-          aspectRatio: normalizedAspectRatio,
-          numberOfImages: batchSize,
-        }));
-        gatewayResults.push(...batchImages.map((image) => ({ ...image, metadata: { requestedModel: model } })));
-      }
-      return gatewayResults;
-    }
 
     if (!isProxyEnabled()) {
       const results: GeneratedImageFile[] = [];
@@ -389,25 +281,6 @@ export const generateImageFromText = async (
 export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '2K', prompt?: string, model: string = 'gemini-3.1-flash-image'): Promise<ImageFile> => {
   const ai = getGeminiClient();
   try {
-    const gatewayRoot = getGatewayRootUrl();
-    if (gatewayRoot) {
-      const [gatewayImage] = await callGatewayImageRoute('/api/images/upscale', {
-        model,
-        image: {
-          data: image.base64,
-          mimeType: image.mimeType,
-        },
-        quality,
-        prompt,
-      });
-
-      if (!gatewayImage) {
-        throw new Error('error.api.noImageGenerated');
-      }
-
-      return gatewayImage;
-    }
-
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
     const textPart: Part = { text: prompt ?? `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
 

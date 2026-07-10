@@ -3,6 +3,7 @@ import type { ImageResolution } from '../types';
 import * as geminiImageService from './gemini/image';
 import type { GeneratedImageFile } from './gemini/image';
 import { getImageDimensions } from '../utils/imageUtils';
+import { buildUpscalePromptTable } from '../utils/upscale-prompt-builder';
 import { logApiCall } from './debugService';
 
 interface ApiConfig {
@@ -96,10 +97,7 @@ export const generateImage = async (
 };
 
 /** Locked preservation-first upscale prompts — single source of truth */
-const UPSCALE_PROMPTS: Record<UpscaleQuality, string> = {
-    '2K': 'Upscale this image to 2K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the model\'s face and the overall composition exactly the same. Photorealistic, fashion photography quality, 2K quality.',
-    '4K': 'Upscale this image to 4K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the model\'s face and the overall composition exactly the same. Photorealistic, fashion photography quality, 4K quality.',
-};
+const UPSCALE_PROMPTS: Record<UpscaleQuality, string> = buildUpscalePromptTable('model');
 
 export const upscaleImage = async (
     image: ImageFile,

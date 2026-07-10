@@ -111,8 +111,7 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
           onResetRefinement={handleResetRefinement}
           onSendToFeature={onSendToFeature ? handleSendToAlbum : undefined}
           onDownloadAll={handleDownloadAll}
-          onRegenerate={handleGenerate}
-          isRegenerating={isLoading}
+          onRegenerate={isRefining ? undefined : handleGenerate}
         />
       </div>
     </div>
