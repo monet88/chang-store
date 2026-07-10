@@ -155,7 +155,7 @@ export const mockUseApi = (
     setTextGenerateModel: vi.fn(),
     vertexProxySettings: {
       enabled: false,
-      url: 'https://cliproxy.monet.uno',
+      url: 'https://vertex.monet.uno/gemini',
       apiKey: '',
     },
     setVertexProxySettings: vi.fn(),

@@ -61,7 +61,7 @@ vi.mock('@/contexts/ApiProviderContext', () => ({
     setTextGenerateModel: vi.fn(),
     vertexProxySettings: {
       enabled: false,
-      url: 'https://cliproxy.monet.uno',
+      url: 'https://vertex.monet.uno/gemini',
       apiKey: '',
     },
     setVertexProxySettings: vi.fn(),
@@ -118,7 +118,7 @@ describe('SettingsModal', () => {
     expect(within(imageEditSelect).getByRole('option', { name: 'Gemini 3.1 Flash Image' })).toBeInTheDocument();
     expect(within(imageGenerateSelect).getByRole('option', { name: 'Gemini 3 Pro Image' })).toBeInTheDocument();
     expect(within(textSelect).getByRole('option', { name: 'Gemini 3.5 Flash' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Proxy URL')).toHaveValue('https://cliproxy.monet.uno');
+    expect(screen.getByLabelText('Proxy URL')).toHaveValue('https://vertex.monet.uno/gemini');
     expect(screen.getByLabelText('Proxy API key')).toHaveValue('');
   });
 

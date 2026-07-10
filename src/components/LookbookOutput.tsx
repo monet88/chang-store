@@ -41,6 +41,8 @@ interface LookbookOutputProps {
   onResetRefinement: () => void;
   onSendToFeature?: (image: ImageFile) => void;
   onDownloadAll: () => void;
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
 }
 
 const panelClass = 'sticky top-8 rounded-[28px] border border-white/10 bg-white/[0.03] p-5 sm:p-6';
@@ -76,6 +78,8 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
   onResetRefinement,
   onSendToFeature,
   onDownloadAll,
+  onRegenerate,
+  isRegenerating,
 }) => {
   const { t } = useLanguage();
 
@@ -161,6 +165,8 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                     downloadPrefix={Feature.Lookbook}
                     onUpscale={() => onUpscale(lookbook.main, 'main')}
                     isUpscaling={upscalingStates.main}
+                    onRegenerate={onRegenerate}
+                    isGenerating={isRegenerating}
                     onSendToFeature={onSendToFeature ? () => onSendToFeature(lookbook.main) : undefined}
                     containerClassName="h-full w-full overflow-hidden rounded-[24px]"
                   />

@@ -46,7 +46,7 @@ const LEGACY_GOOGLE_API_KEY = 'google_api_key';
 const VERTEX_PROXY_ENABLED_KEY = 'vertex_proxy_enabled';
 const VERTEX_PROXY_URL_KEY = 'vertex_proxy_url';
 const VERTEX_PROXY_API_KEY_KEY = 'vertex_proxy_api_key';
-const DEFAULT_VERTEX_PROXY_URL = 'https://cliproxy.monet.uno';
+const DEFAULT_VERTEX_PROXY_URL = 'https://vertex.monet.uno/gemini';
 
 const providerApiKeyStorageKey = (provider: ProviderId): string => `provider:${provider}:apiKey`;
 const providerBaseUrlStorageKey = (provider: ProviderId): string => `provider:${provider}:baseUrl`;

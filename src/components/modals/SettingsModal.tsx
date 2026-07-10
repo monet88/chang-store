@@ -177,7 +177,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                       type="url"
                       value={localVertexProxyUrl}
                       onChange={(e) => setLocalVertexProxyUrl(e.target.value)}
-                      placeholder="https://chang-store-vertex-gateway-eeqmzij23a-as.a.run.app/gemini or https://cliproxy.monet.uno"
+                      placeholder="https://chang-store-vertex-gateway-eeqmzij23a-as.a.run.app/gemini or https://vertex.monet.uno/gemini"
                       className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
                     />
                     {isVertexProxyUrlInvalid && (

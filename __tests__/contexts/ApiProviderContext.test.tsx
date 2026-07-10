@@ -424,7 +424,7 @@ describe('ApiProviderContext', () => {
       });
 
       expect(result.current.vertexProxySettings.enabled).toBe(false);
-      expect(result.current.vertexProxySettings.url).toBe('https://cliproxy.monet.uno');
+      expect(result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
       expect(mockShowToast).toHaveBeenCalledTimes(1);
 
       rerender();
