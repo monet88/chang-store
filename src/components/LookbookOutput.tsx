@@ -165,7 +165,7 @@ export const LookbookOutput = React.memo<LookbookOutputProps>(({
                     isUpscaling={upscalingStates.main}
                     onRegenerate={onRegenerate}
                     onSendToFeature={onSendToFeature ? () => onSendToFeature(lookbook.main) : undefined}
-                    containerClassName="h-full w-full overflow-hidden rounded-[24px]"
+                    containerClassName="relative group h-full w-full overflow-hidden rounded-[24px]"
                   />
                 </div>
               </div>
