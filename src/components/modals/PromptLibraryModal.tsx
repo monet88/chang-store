@@ -103,7 +103,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
             <button
               onClick={onClose}
               className="p-1.5 sm:p-2 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-              aria-label="Close"
+              aria-label={t('promptLibrary.closePromptModal') || "Close prompt library"}
             >
               <CloseIcon className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
@@ -214,22 +214,22 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                         <div className="flex gap-1 flex-shrink-0">
                           <button
                             onClick={(e) => handleEdit(e, prompt)}
-                            className={`p-1.5 rounded-md transition-all sm:opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0
+                            className={`p-1.5 rounded-md transition-all sm:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#818CF8] flex-shrink-0
                           ${prompt.isCurated
                                 ? 'text-zinc-600 cursor-not-allowed hidden'
                                 : 'text-zinc-500 hover:text-[#818CF8] hover:bg-[#818CF8]/20 active:scale-95'}`}
-                            aria-label="Edit"
+                            aria-label={t('promptLibrary.editPrompt') || "Edit"}
                             disabled={prompt.isCurated}
                           >
                             {!prompt.isCurated && <EditIcon className="w-4 h-4" />}
                           </button>
                           <button
                             onClick={(e) => handleDelete(e, prompt.id)}
-                            className={`p-1.5 rounded-md transition-all sm:opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0
+                            className={`p-1.5 rounded-md transition-all sm:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 flex-shrink-0
                           ${prompt.isCurated
                                 ? 'text-zinc-600 cursor-not-allowed hidden'
                                 : 'text-zinc-500 hover:text-red-400 hover:bg-red-900/20 active:scale-95'}`}
-                            aria-label="Delete"
+                            aria-label={t('promptLibrary.deletePrompt') || "Delete"}
                             disabled={prompt.isCurated}
                           >
                             {!prompt.isCurated && <DeleteIcon className="w-4 h-4" />}
@@ -251,8 +251,9 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                                 showToast(t('promptLibrary.copyPrompt') || "Copied to clipboard");
                                 setTimeout(() => setCopiedId(null), 2000);
                               }}
-                              className="absolute top-2 right-2 p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-md transition-all opacity-0 group-hover/text:opacity-100 active:scale-95"
-                              title="Copy prompt"
+                              className="absolute top-2 right-2 p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-md transition-all opacity-0 group-hover/text:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#818CF8] active:scale-95"
+                              aria-label={t('promptLibrary.copyPrompt') || "Copy prompt"}
+                              title={t('promptLibrary.copyPrompt') || "Copy prompt"}
                             >
                               {copiedId === prompt.id ? <CheckIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
                             </button>
