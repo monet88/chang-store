@@ -27,7 +27,7 @@ interface LookbookDraftState {
 }
 
 export interface ClothingItem {
-  id: number;
+  id: string;
   image: ImageFile | null;
 }
 
@@ -65,7 +65,7 @@ export const initialFormState: LookbookFormState = {
 export const createEmptyClothingSlots = (count: number): ClothingItem[] => {
   const normalizedCount = Math.max(1, Math.min(MAX_CLOTHING_SLOTS, Math.floor(count)));
   return Array.from({ length: normalizedCount }, (_, index) => ({
-    id: Date.now() + index,
+    id: crypto.randomUUID(),
     image: null,
   }));
 };
