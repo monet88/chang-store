@@ -10,3 +10,6 @@
 ## 2025-06-29 - [Added `focus-visible` to interactive elements in `WatermarkRemover`]
 **Learning:** Adding keyboard focus indicators ensures that keyboard users have visual feedback to see what they are navigating over in a complex component like `WatermarkRemover`. It's essential to match the focus ring color to the theme context of the element to make it visible and not jarring.
 **Action:** When creating interactive UI components like buttons, input fields, and tabs, ensure `focus-visible:outline-none focus-visible:ring-2` (and optionally a ring color like `focus-visible:ring-amber-500` or `focus-visible:ring-white`) are applied to make the component keyboard accessible.
+## 2024-05-18 - Lookbook Form Option Selector A11y
+**Learning:** The custom button selectors for picking styles (using `choiceWrapClass`) lack semantic grouping and state representation, causing screen readers to misinterpret them as disjoint buttons rather than a cohesive group of exclusive/selectable options.
+**Action:** Always wrap these button-based selectors in a container with `role="radiogroup"` and an appropriate `aria-label`, and add `role="radio"` and `aria-checked={isActive}` to the individual child buttons to explicitly declare their state.
