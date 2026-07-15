@@ -48,7 +48,7 @@ export interface LookbookFormState {
 }
 
 export const initialFormState: LookbookFormState = {
-  clothingImages: [{ id: Date.now(), image: null }],
+  clothingImages: [{ id: crypto.randomUUID(), image: null }],
   fabricTextureImage: null,
   fabricTexturePrompt: '',
   clothingDescription: '',
