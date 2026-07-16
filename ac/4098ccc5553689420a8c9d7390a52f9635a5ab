@@ -1,0 +1,77 @@
+docs/README.md
+  s_2a095d70a7ae08::t_eb6b46c5aa945a 17-20
+docs/TEST_MATRIX.md
+  s_2a095d70a7ae08::t_159bc0d82f561c 4-7,9,11
+AGENTS.md
+  s_449a2f9efd82c7::t_466aab4e41c459 131,133-138,149-155,167-172,179-186,193-199,211-222,228-234,244-246,257,298
+CLAUDE.md
+  s_449a2f9efd82c7::t_6e87c4f0243acc 73-86,187,228
+README.md
+  s_766fdcf22f4368::t_44871b47249446 116-117,121-131,139-141
+__tests__/components/ResolutionSelector.test.tsx
+  s_1182807029ebfe::t_81b1ceb76218d4 5,20,24,26,41,44,53
+docs/CONTEXT_RULES.md
+  s_449a2f9efd82c7::t_c6549c66075a9d 9-16
+docs/FEATURE_INTAKE.md
+  s_449a2f9efd82c7::t_9dbff9495d0e9b 9-12
+docs/GLOSSARY.md
+  s_449a2f9efd82c7::t_bf6da472a824a3 61-62
+docs/HARNESS.md
+  s_449a2f9efd82c7::t_1de17ae33095a2 87-100
+docs/HARNESS_MATURITY.md
+  s_449a2f9efd82c7::t_a82ae4022ade56 92-94
+docs/TRACE_SPEC.md
+  s_449a2f9efd82c7::t_183f4712a8f762 10-13
+docs/dev/windows-linux-node-modules.md
+  s_449a2f9efd82c7::t_51d16fd8073ab8 37-42
+docs/stories/bugs/BUG-VTO-MULTI-GATEWAY/implementation-note.md
+  s_1182807029ebfe::t_1e605b11e1afa3 16-29,41
+docs/stories/bugs/BUG-VTO-MULTI-GATEWAY/validation.md
+  s_449a2f9efd82c7::t_240a250873b653 45-47,49-52,64
+docs/stories/epics/E01-provider-studios/US-001-three-provider-studios/execplan.md
+  s_449a2f9efd82c7::t_4614596e941fad 33
+src/locales/en.ts
+  s_766fdcf22f4368::t_afe6dc3476d3a4 492-493
+src/locales/vi.ts
+  s_766fdcf22f4368::t_80aab4d29cbea2 493-494
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ac4098ccc5553689420a8c9d7390a52f9635a5ab",
+  "prompts": {},
+  "sessions": {
+    "s_1182807029ebfe": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "1fde0be4-65d8-4594-ad2d-59c58fc25ffc",
+        "model": "unknown"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    },
+    "s_2a095d70a7ae08": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7190934e-71d8-440b-bdab-02f0b6bf5e16",
+        "model": "grok-4.5"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    },
+    "s_449a2f9efd82c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f696e-4dd5-7c13-879e-e27e1c06c05d",
+        "model": "unknown"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    },
+    "s_766fdcf22f4368": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eb767-d859-7731-9047-a19688b9edbb",
+        "model": "unknown"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
