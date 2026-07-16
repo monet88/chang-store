@@ -75,3 +75,10 @@ npm run build
   `__tests__/scripts/e2e-live-config.test.ts` (deleted `scripts/e2e-live/config`);
   no type errors in files touched by this review fix.
 - This follow-up edits only app/test/story docs; harness tooling is left untouched.
+
+## CI repair
+
+- Removed orphan `__tests__/scripts/e2e-live-config.test.ts` that imported the
+  retired `scripts/e2e-live/config` module (blocked `npx tsc --noEmit` on PR CI).
+- Dropped `package.json` references to retired `scripts/check-node-platform.mjs`
+  so `npm run test` can run Vitest directly.

@@ -4,14 +4,13 @@
   "version": "1.0.4",
   "type": "module",
   "scripts": {
-    "check:platform": "node scripts/check-node-platform.mjs --package-root .",
     "dev": "vite",
     "dev:turbo": "vite --force",
     "build": "vite build",
     "build:analyze": "vite build --mode analyze",
     "preview": "vite preview",
     "lint": "node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx",
-    "test": "node scripts/check-node-platform.mjs --package-root . && vitest --run --passWithNoTests",
+    "test": "vitest --run --passWithNoTests",
     "test:ui": "vitest --ui"
   },
   "dependencies": {
