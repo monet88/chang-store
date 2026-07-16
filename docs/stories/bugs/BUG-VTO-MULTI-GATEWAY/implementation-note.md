@@ -13,6 +13,20 @@
   so Flash-Lite no longer receives a 1K config paired with a 2K text instruction.
 - Review fix: selectable resolutions use native radio semantics and keyboard
   behavior; fixed-resolution models expose a labeled read-only model limit.
+- Scope addition: the Virtual Try-On prompt now explicitly preserves face
+  identity, facial features, age, body type, and subject-image lighting; the
+  builder tests were updated to assert the new wording.
+- Scope addition: fixed-resolution model-limit copy now comes from the English
+  and Vietnamese locale dictionaries instead of a hardcoded UI string.
+- Tooling decision: Windows Harness operations use the repo-local executable
+  `scripts/bin/harness-cli.exe` directly; `scripts/harness` remains the
+  POSIX/Git Bash launcher only.
+- Tooling decision: the Windows executable is tracked in the repository so a
+  fresh clone has the required native entrypoint; the command registry now
+  documents only subcommands exposed by this binary, with CodeGraph as the
+  sole semantic code-intelligence source.
+- Cleanup decision: generated Repomix output and retired GitNexus-specific
+  artifacts/rules were removed; historical audit records remain unchanged.
 - Security: the API key pasted in chat was not written to files, environment
   variables, commands, or logs.
 - Follow-up: Harness backlog #8 tracks repo-wide hook dependency linting;

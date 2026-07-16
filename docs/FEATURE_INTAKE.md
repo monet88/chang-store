@@ -6,6 +6,10 @@ stories, or implementation work.
 
 The human does not need to classify risk. The harness does.
 
+Platform rule: on Windows, record intake and story evidence with the native
+Harness executable `& '.\scripts\bin\harness-cli.exe' <command>` (the repo's
+`harness.exe` entrypoint). Use `scripts/harness` only from Git Bash/Linux.
+
 ## Intake Flow
 
 ```text

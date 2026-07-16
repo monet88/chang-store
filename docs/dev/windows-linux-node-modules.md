@@ -34,8 +34,12 @@ Treat `node_modules` as OS-local state.
 
 For this repo, the preferred path is:
 
-- run Node, Vite, Vitest, tsx, and Harness from Git Bash / Linux-style shells
-- avoid PowerShell for normal npm/test/build flows
+- run Node, Vite, Vitest, and tsx from the shell appropriate to the active OS
+- on Windows, run Harness through `& '.\scripts\bin\harness-cli.exe' <command>`
+  directly; do not use `scripts/harness` or Git Bash for Harness operations
+- on Git Bash/Linux, run Harness through `scripts/harness`
+- avoid PowerShell for normal npm/test/build flows, but use it for the required
+  Windows Harness executable
 
 ## Quick Check
 

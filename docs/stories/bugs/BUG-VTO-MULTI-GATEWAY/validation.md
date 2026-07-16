@@ -42,16 +42,14 @@ npm run build
   preservation of supported resolutions for both edit and upscale paths.
 - Platform proof: `npx tsc --noEmit`, `npm run lint`, `npm run build`, and
   `git diff --check` passed.
-- Full-suite note: `npm run test` currently reports 749 passed and two failed
-  assertions in `__tests__/utils/virtual-try-on-prompt-builder.test.ts`. The
-  failure is caused by an unrelated uncommitted prompt wording change in
-  `src/utils/virtual-try-on-prompt-builder.ts`; this bugfix did not modify or
-  revert that parallel work.
+- Full-suite proof: `npm run test` reports 751 passed across 72 test files.
+  The prompt-builder expectations now cover the strengthened face-preservation
+  and subject-image lighting wording included in this branch.
 - Documentation check: `scripts/check-harness-docs-sync` remains red because
-  the repository's `docs/TEST_MATRIX.md` and `docs/HARNESS_BACKLOG.md` snapshots
-  already diverge broadly from `harness.db`, and `scripts/harness` lacks the
-  executable bit in the Git index. This bugfix did not rewrite unrelated
-  Harness history or file modes.
+   the repository's `docs/TEST_MATRIX.md` and `docs/HARNESS_BACKLOG.md` snapshots
+   already diverge broadly from `harness.db`. On Windows, the repo-local
+   `scripts/bin/harness-cli.exe` was used directly for Harness evidence; the
+   POSIX wrapper's executable-bit issue remains outside this application fix.
 - Live gateway proof passed with the ignored local `.env` gateway configuration:
   authenticated model discovery returned `200` with 13 models, text
   `generateContent` returned `200` with `ok`, and three Flash-Lite Virtual

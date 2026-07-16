@@ -1,6 +1,7 @@
 import React, { useEffect, useId } from 'react';
 import { ImageResolution } from '../types';
 import { useModelImageResolutions } from '../hooks/useModelImageResolutions';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ResolutionSelectorProps {
   resolution: ImageResolution;
@@ -18,6 +19,7 @@ interface ResolutionSelectorProps {
  * - Other models: all options available
  */
 const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ resolution, setResolution, model }) => {
+  const { t } = useLanguage();
   const supportedResolutions = useModelImageResolutions(model);
   const fallbackResolution = supportedResolutions[0];
   const isFixedResolution = supportedResolutions.length === 1;
@@ -34,7 +36,7 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
   if (isFixedResolution) {
     return (
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <span id={labelId} className="font-medium text-zinc-300">Quality:</span>
+        <span id={labelId} className="font-medium text-zinc-300">{t('virtualTryOn.quality')}:</span>
         <div
           aria-labelledby={labelId}
           className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5"
@@ -42,7 +44,7 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
           <span className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-zinc-950">
             {effectiveResolution}
           </span>
-          <span className="pr-2 text-xs text-zinc-400">Model limit</span>
+          <span className="pr-2 text-xs text-zinc-400">{t('virtualTryOn.modelLimit')}</span>
         </div>
       </div>
     );
@@ -50,7 +52,7 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-2">
-      <span id={labelId} className="font-medium text-zinc-300">Quality:</span>
+      <span id={labelId} className="font-medium text-zinc-300">{t('virtualTryOn.quality')}:</span>
       <div
         role="radiogroup"
         aria-labelledby={labelId}

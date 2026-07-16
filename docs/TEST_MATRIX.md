@@ -1,13 +1,14 @@
 # Test Matrix
 
 This file maps product behavior to proof. Durable story proof lives in
-`harness.db` and is queried with `scripts/harness query matrix`; this markdown is
-a human-readable mirror, last resynced on 2026-07-03.
+`harness.db` and is queried with the platform-native Harness CLI
+(`scripts/bin/harness-cli.exe query matrix` on Windows;
+`scripts/harness query matrix` on POSIX); this markdown is
+a human-readable mirror, last resynced on 2026-07-16.
 
-## Automated Suite Snapshot (2026-07-03)
+## Automated Suite Snapshot (2026-07-16)
 
-`npm run test` runs 725 tests across 70 files (all passing). V8 coverage:
-74.85% lines, 73.96% statements, 71.94% functions, 64.74% branches. A live
+`npm run test` runs 751 tests across 72 files (all passing). A live
 end-to-end harness (`scripts/e2e-live/run.mts`) additionally drives the real
 service layer against the Vertex gateway (`https://vertex.monet.uno/gemini`)
 with the `docs/image-test/` samples: 11/13 flows returned valid output, the two

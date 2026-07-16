@@ -6,6 +6,14 @@ stop reading. They are additive to the stable `AGENTS.md` reading list.
 The goal is not to maximize context. The goal is to put the right information
 in the model for the current task phase and risk lane.
 
+## Harness Command Platform Rule
+
+On Windows, always run Harness through the native executable
+`& '.\scripts\bin\harness-cli.exe' <command>` (the repo's `harness.exe`
+entrypoint). Do not use `scripts/harness` or Git Bash for Harness operations on
+Windows. The `scripts/harness` form in the tables below is the POSIX/Linux
+equivalent.
+
 ## Context Phases
 
 ### Intake Phase

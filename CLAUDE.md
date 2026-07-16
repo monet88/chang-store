@@ -70,6 +70,20 @@ Feature enum (`src/types.ts`): `TryOn | Lookbook | Background | Pose | PhotoAlbu
 After any substantive code changes, run `npx tsc --noEmit` and `npm run lint` to verify no errors. Do not suppress type errors with `@ts-ignore` or `any` unless absolutely necessary.
 </important>
 
+<important if="you need to record or query Harness evidence on Windows">
+
+Use the Windows Harness executable directly: `& '.\\scripts\\bin\\harness-cli.exe' <command>`.
+Do not use the `scripts/harness` wrapper or Git Bash for Harness operations on
+Windows. For example:
+
+```powershell
+& '.\\scripts\\bin\\harness-cli.exe' query matrix
+& '.\\scripts\\bin\\harness-cli.exe' trace --summary "..." --outcome completed
+```
+
+This repo-local `harness-cli.exe` is the Windows `harness.exe` entrypoint.
+</important>
+
 <important if="you are adding a new feature to the application">
 
 5-step checklist:
@@ -170,7 +184,7 @@ Search online for latest documentation via Context7 MCP or web search. Do not ha
 <!-- codegraph:start -->
 # CodeGraph — Code Intelligence
 
-This repo works better with CodeGraph than GitNexus right now, especially under
+This repo works better with CodeGraph, especially under
 `gateway/`. Use CodeGraph MCP tools as the default semantic navigation layer.
 
 ## Always Do
@@ -190,8 +204,6 @@ This repo works better with CodeGraph than GitNexus right now, especially under
 
 ## Never Do
 
-- NEVER rely on GitNexus as the primary analysis tool for this repo unless the
-  user explicitly asks for it.
 - NEVER rename symbols with blind find-and-replace when CodeGraph can first show
   callers, callees, and impact.
 - NEVER skip blast-radius review for shared gateway or service-layer code. If
@@ -213,7 +225,7 @@ This repo works better with CodeGraph than GitNexus right now, especially under
   repo it can be noisier than `search + node + callers/callees` on narrow
   gateway tasks.
 - If CodeGraph misses a known symbol, fall back to targeted `rg` and direct file
-  reads rather than switching the whole workflow to GitNexus.
+  reads directly.
 
 <!-- codegraph:end -->
 
@@ -270,52 +282,3 @@ When 5+ session directories accumulate, a hook injects archival instructions. De
 - **`index.md`** accumulates the past — session history, durable observations. Entries persist.
 
 If you write to `MEMORY.md`, include a pointer: `## Session Memory` — `Session-specific work logs at .claude/memory/ — see index.md for history.`
-
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
-
-GitNexus is secondary in this repo. Use it only when the user explicitly asks
-for GitNexus, when CodeGraph is unavailable or stale for the needed symbol, or
-when you specifically need a GitNexus-only resource/workflow. If instructions
-conflict, the CodeGraph-first guidance elsewhere in this repo wins by default.
-
-This project is indexed by GitNexus as **chang-store** (5301 symbols, 8830 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
-
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
-
-## Always Do
-
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
-
-## Never Do
-
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
-
-## Resources
-
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/chang-store/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/chang-store/clusters` | All functional areas |
-| `gitnexus://repo/chang-store/processes` | All execution flows |
-| `gitnexus://repo/chang-store/process/{name}` | Step-by-step execution trace |
-
-## CLI
-
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-
-<!-- gitnexus:end -->

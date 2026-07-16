@@ -490,6 +490,8 @@ export const vi: Translation = {
     extraPromptPlaceholder: 'ví dụ: "áo không sơ vin", "thêm thắt lưng màu đen"...',
     extraPromptDescription: 'ví dụ: áo phải mặc ngoài quần/váy, không được sơ vin, vạt áo phải phủ lên cạp quần/váy, rủ tự nhiên, thấy rõ vạt áo',
     numberOfImages: 'Số lượng ảnh',
+    quality: 'Chất lượng',
+    modelLimit: 'Giới hạn model',
     step3: 'Bước 3: Tạo ảnh',
     generateButton: 'Tạo batch',
     batchResultsTitle: 'Kết quả Batch',

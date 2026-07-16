@@ -51,6 +51,14 @@ stage = subprocess.run(
 if not stage.startswith("100755 "):
     fail("scripts/harness is not executable in git index; run: git update-index --chmod=+x scripts/harness")
 
+# Windows agents use the native executable directly. Keep it in the published
+# checkout so a fresh clone does not silently fall back to the POSIX wrapper.
+windows_harness = root / "scripts/bin/harness-cli.exe"
+if not windows_harness.is_file():
+    fail("scripts/bin/harness-cli.exe is missing; publish the tracked Windows Harness executable")
+if "scripts/bin/harness-cli.exe" not in tracked:
+    fail("scripts/bin/harness-cli.exe is not tracked; add the Windows Harness executable")
+
 # 2. HARNESS_COMPONENTS.md inventory rows must point to tracked files/globs or
 # explicitly local generated artifacts.
 components = (root / "docs/HARNESS_COMPONENTS.md").read_text()

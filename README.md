@@ -113,12 +113,22 @@ This repo uses Harness for agent-ready project operations:
 - `docs/FEATURE_INTAKE.md` — classify work by lane.
 - `docs/CONTEXT_RULES.md` — context selection rules.
 - `docs/TRACE_SPEC.md` — trace and friction capture.
-- `scripts/harness` — local Harness CLI entrypoint for Git Bash / Linux-style shells.
+- On Windows, use the repo-local Harness executable `scripts/bin/harness-cli.exe` directly.
+- On Git Bash/Linux, use the POSIX launcher `scripts/harness`.
 - `docs/dev/windows-linux-node-modules.md` — dual-boot dependency workflow and
   repair steps.
 
-Initialize local durable Harness state from Git Bash / Linux-style shells when
-needed:
+Initialize local durable Harness state with the platform-native command. On
+Windows, always use `harness.exe` directly (the checked-in executable is
+`scripts/bin/harness-cli.exe`):
+
+```powershell
+& '.\scripts\bin\harness-cli.exe' init
+& '.\scripts\bin\harness-cli.exe' import brownfield
+& '.\scripts\bin\harness-cli.exe' query matrix
+```
+
+On Git Bash/Linux, use:
 
 ```bash
 scripts/harness init
@@ -126,8 +136,9 @@ scripts/harness import brownfield
 scripts/harness query matrix
 ```
 
-`harness.db` and the prebuilt binary under `scripts/bin/` are local generated
-artifacts and are ignored by git.
+`harness.db` and the POSIX prebuilt binary under `scripts/bin/` are local
+artifacts and are ignored by git. The Windows `scripts/bin/harness-cli.exe`
+entrypoint is tracked so a fresh clone can run the required native command.
 
 ## Documentation
 

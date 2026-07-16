@@ -7,6 +7,10 @@ review, benchmark scoring, failure attribution, and future harness evolution.
 The current schema lives in `scripts/schema/001-init.sql` under the `trace`
 table. The schema is not changed by Phase 2.
 
+On Windows, run trace commands with the native executable
+`& '.\scripts\bin\harness-cli.exe' trace ...` (`harness.exe`); use the
+`scripts/harness` examples below only from Git Bash/Linux.
+
 ## Field Reference
 
 | Field | Type | Required | Format | Example |

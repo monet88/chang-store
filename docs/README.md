@@ -14,6 +14,10 @@ Project documentation for chang-store â€” an AI-powered virtual fashion stu
 - `TEST_MATRIX.md`: legacy proof map (use `scripts/harness query matrix`).
 - `GLOSSARY.md`: shared terms.
 
+On Windows, run Harness with the native executable
+`& '.\scripts\bin\harness-cli.exe' <command>` (`harness.exe`); use
+`scripts/harness` only from Git Bash/Linux.
+
 ## Project-Specific
 
 - `ARCHITECTURE.md`: actual app architecture â€” layers, routing, providers.

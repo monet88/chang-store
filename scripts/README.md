@@ -4,9 +4,17 @@ This directory contains harness automation tools.
 
 ## Harness CLI
 
-The Rust Harness CLI is the primary interface for the durable layer. Installed
-projects keep `scripts/harness` as the stable entrypoint; it uses the prebuilt
-Rust binary at `scripts/bin/harness-cli` for normal Harness work.
+The Rust Harness CLI is the primary interface for the durable layer. On
+Windows, invoke the prebuilt executable directly — it is the repo's
+`harness.exe` entrypoint:
+
+```powershell
+& '.\scripts\bin\harness-cli.exe' query matrix
+```
+
+Do not use `scripts/harness` or Git Bash for Harness operations on Windows. On
+Git Bash/Linux, `scripts/harness` remains the POSIX launcher for the prebuilt
+Rust binary at `scripts/bin/harness-cli`.
 
 ```bash
 scripts/harness init          # Create the database
@@ -19,12 +27,15 @@ scripts/harness query ...     # Query harness data
 scripts/harness migrate       # Apply pending schema migrations
 ```
 
-Run `scripts/harness help` or `scripts/harness query help` for full usage.
+Run `& '.\scripts\bin\harness-cli.exe' --help` on Windows, or
+`scripts/harness help` from Git Bash/Linux, for full usage.
 
 The schema lives in `scripts/schema/` and is version-controlled. The database
-file (`harness.db`) is `.gitignore`d.
+file (`harness.db`) and POSIX binary are local; the Windows executable is
+tracked so a fresh clone has the required native entrypoint.
 
-Requires: the prebuilt Rust CLI at `scripts/bin/harness-cli`.
+Requires: the tracked Windows executable at `scripts/bin/harness-cli.exe` or
+the local POSIX binary at `scripts/bin/harness-cli`.
 
 Direct database inspection may still use SQLite tools, but normal Harness use
 should go through the Rust CLI.

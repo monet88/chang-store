@@ -58,7 +58,8 @@ future agent work safer or easier.
 
 ## Durable Layer
 
-The SQLite database and CLI (`scripts/harness`) that stores operational records
+The SQLite database and platform-native CLI (`scripts/bin/harness-cli.exe` on
+Windows; `scripts/harness` on POSIX) that stores operational records
 (intakes, stories, decisions, backlog items, traces) as structured, queryable
 data. Policy docs describe how to work; the durable layer stores what happened.
 

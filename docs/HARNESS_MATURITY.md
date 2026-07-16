@@ -89,8 +89,9 @@ traces with predictable depth.
 
 Criteria:
 
-- `scripts/harness` can record intake, story, decision, backlog, and trace
-  data in `harness.db`.
+- The platform-native Harness executable can record intake, story, decision,
+  backlog, and trace data in `harness.db` (`harness-cli.exe` on Windows;
+  `scripts/harness` on POSIX).
 - `scripts/schema/001-init.sql` defines durable tables for intake, story,
   decision, backlog, and trace records.
 - `docs/HARNESS_COMPONENTS.md` maps files and responsibilities.
