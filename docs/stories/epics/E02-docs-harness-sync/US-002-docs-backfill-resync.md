@@ -10,16 +10,16 @@ normal
 
 ## Intake
 
-- Intake type: Harness improvement.
-- Intake id: `2` (recorded via `scripts/harness intake`).
-- Risk flags: Existing behavior, Weak proof, Multi-domain.
+- Intake type: Maintenance request.
+- Intake id: `141` (recorded via `scripts/bin/harness-cli.exe intake`).
+- Risk flags: Weak proof.
 - Reason for normal lane: docs-only change, no app behavior or contract change,
   but it touches the source-of-truth doc set across multiple domains.
 
 ## Product Contract
 
 `docs/` must reflect the **current** chang-store codebase on branch
-`feat/three-provider-studios`, with the code as the source of truth. After this
+`fix/vto-multi-person-gateway-validation`, with the code as the source of truth. After this
 story:
 
 - Product docs describe all live user-visible surfaces, including the
@@ -60,7 +60,7 @@ application source code.
 | B | Backfill product docs for provider studios: new `docs/product/provider-studios.md`, fix `overview.md` "Gemini-only" claim, update `product/README.md` index. | normal |
 | C | Flag `useSwapFace` / `useInpainting` (+ `swapFace`/`inpainting` locale strings) as dead code in docs and record a backlog item for cleanup. | tiny |
 | D | Verify and refresh `codebase-summary.md`, `system-architecture.md`, `project-roadmap.md`, `README.md`, `docs/README.md` against the real feature/hook surface. | tiny |
-| E | Record durable trace + keep story/test-matrix current via `scripts/harness`. | tiny |
+| E | Record durable trace + keep story/test-matrix current via `scripts/bin/harness-cli.exe`. | tiny |
 
 ## Acceptance Criteria
 
@@ -73,20 +73,19 @@ application source code.
 - `docs/product/overview.md` no longer states the AI backend is "Gemini-only";
   it describes the three-provider model and links to `provider-studios.md`.
 - `docs/product/README.md` index includes the provider-studios doc.
-- `useSwapFace` and `useInpainting` are documented as dead/unwired code in
-  `codebase-summary.md`, and a backlog item exists via `scripts/harness backlog
-  add`.
+- `useSwapFace` and `useInpainting` are documented as absent/unwired code in
+  `codebase-summary.md`; no source references remain in the current tree.
 - `codebase-summary.md`, `system-architecture.md`, `project-roadmap.md`, and
   `README.md` match `src/types.ts` (9 `Feature` values + `StudioMode`) and the
   current hook/service inventory.
 - `docs/CHANGELOG.md` has an entry for this docs resync.
-- A trace is recorded with `scripts/harness trace`, and the story row reflects
+- A trace is recorded with `scripts/bin/harness-cli.exe trace`, and the story row reflects
   final status.
 
 ## Design Notes
 
-- Commands: `git ls-files`, `scripts/harness intake|story|backlog|trace|query`.
-- Queries: `scripts/harness query matrix`.
+- Commands: `git ls-files`, `scripts/bin/harness-cli.exe intake|story|trace|query`.
+- Queries: `scripts/bin/harness-cli.exe query matrix`.
 - API: none (docs-only).
 - Tables: `intake`, `story`, `backlog`, `trace`.
 - Domain rules: code is source of truth; product docs are the operational
@@ -115,13 +114,19 @@ Doc-consistency checks (the proof for this lane):
 
 ## Harness Delta
 
-- New epic `E02-docs-harness-sync` and this story packet.
-- `HARNESS_COMPONENTS.md` File Inventory corrected to remove template drift
-  (this was the core friction that triggered the story).
-- Backlog item proposed for dead-code cleanup of `useSwapFace` / `useInpainting`.
+- Existing epic `E02-docs-harness-sync` continued under intake #141.
+- Public application docs were recovered from the dated backup while current
+  Harness policy files were preserved.
+- Retired runner/tool references were removed or marked historical instead of
+  recreating the deleted tooling.
 
 ## Evidence
 
-- Intake #2 recorded.
-- Story `US-002-docs-backfill-resync` added to the durable matrix.
+- Intake #141 recorded.
+- Story `US-002-docs-backfill-resync` updated in the durable matrix.
+- Fresh docs-only proof passed: inventory path check, product-index path check,
+  lint, build, scoped Vitest (71 files / 745 tests), and git diff --check.
+- Full typecheck and the unfiltered Vitest run remain red because the tracked
+  e2e-live-config test imports retired scripts/e2e-live/config; this is an
+  existing tooling/test drift outside this docs-only story.
 - Remaining command output and changed-file list added at trace time (Task E).

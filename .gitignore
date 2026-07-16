@@ -80,6 +80,10 @@ harness.db
 harness.db-wal
 harness.db-shm
 scripts/bin/harness-cli
+
+# Local Harness recovery and transition state
+.harness/
+.harness-backup/
 .kiro
 .planning
 .github/skills/
@@ -111,3 +115,5 @@ docs/superpowers/
 # Gateway is now a separate repo: https://github.com/monet88/vertex-gateway
 gateway/
 gateway-data/
+
+scripts/bin/harness-cli.exe

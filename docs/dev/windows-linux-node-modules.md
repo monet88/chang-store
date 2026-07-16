@@ -2,6 +2,10 @@
 
 Use this note when the same repo is opened from both Linux and Windows.
 
+Current checkout note: scripts/check-node-platform.mjs is retired or absent,
+and the package test wrapper still references it. The repair commands below are
+historical guidance until that tooling drift is handled separately.
+
 This repo is standardized for a Git Bash / Linux-style Node workflow.
 
 ## Why This Breaks
@@ -37,20 +41,15 @@ For this repo, the preferred path is:
 - run Node, Vite, Vitest, and tsx from the shell appropriate to the active OS
 - on Windows, run Harness through `& '.\scripts\bin\harness-cli.exe' <command>`
   directly; do not use `scripts/harness` or Git Bash for Harness operations
-- on Git Bash/Linux, run Harness through `scripts/harness`
+- on Git Bash/Linux, this checkout has no local Harness launcher; use a
+  separately installed upstream POSIX binary if that workflow is required
 - avoid PowerShell for normal npm/test/build flows, but use it for the required
   Windows Harness executable
 
 ## Quick Check
 
-From the repo root:
-
-```bash
-node scripts/check-node-platform.mjs
-```
-
-The script fails fast when Rollup/esbuild native packages or Windows `.cmd`
-shims do not match the active OS.
+The historical platform-check script is absent in the current checkout. Use
+the direct Vite/Vitest commands in docs/TEST_MATRIX.md for current proof.
 
 ## Repair For Git Bash / Linux-Style Workflow
 
@@ -58,29 +57,22 @@ Use this when the checkout was last installed on Windows and now needs to run
 from Git Bash / Linux-style shells:
 
 ```bash
-rm -rf node_modules gateway/node_modules
+rm -rf node_modules
 npm install
-npm --prefix gateway install
-node scripts/check-node-platform.mjs
 ```
 
 ## Repair On Windows
 
 ```powershell
 Remove-Item -Recurse -Force node_modules
-Remove-Item -Recurse -Force gateway\node_modules -ErrorAction SilentlyContinue
 npm install
-npm --prefix gateway install
-node scripts/check-node-platform.mjs
 ```
 
 ## Repair On Linux
 
 ```bash
-rm -rf node_modules gateway/node_modules
+rm -rf node_modules
 npm install
-npm --prefix gateway install
-node scripts/check-node-platform.mjs
 ```
 
 ## Recommended Workflow

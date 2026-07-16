@@ -56,7 +56,6 @@ Key docs:
 
 ```bash
 npm install
-node scripts/check-node-platform.mjs
 npm run dev
 ```
 
@@ -103,7 +102,10 @@ npm run test
 npm run build
 ```
 
-For docs-only changes, run the relevant docs/Harness checks instead.
+For docs-only changes, run the relevant docs/Harness checks instead. In this
+checkout, npm run test still invokes the retired
+scripts/check-node-platform.mjs; use npx vitest run --passWithNoTests for the
+direct suite while that tooling drift remains open.
 
 ## Harness
 
@@ -114,7 +116,8 @@ This repo uses Harness for agent-ready project operations:
 - `docs/CONTEXT_RULES.md` — context selection rules.
 - `docs/TRACE_SPEC.md` — trace and friction capture.
 - On Windows, use the repo-local Harness executable `scripts/bin/harness-cli.exe` directly.
-- On Git Bash/Linux, use the POSIX launcher `scripts/harness`.
+- This checkout does not include a POSIX Harness launcher; use the Windows
+  executable from PowerShell.
 - `docs/dev/windows-linux-node-modules.md` — dual-boot dependency workflow and
   repair steps.
 
@@ -128,17 +131,12 @@ Windows, always use `harness.exe` directly (the checked-in executable is
 & '.\scripts\bin\harness-cli.exe' query matrix
 ```
 
-On Git Bash/Linux, use:
+The POSIX launcher and binary are not present in this checkout, so the
+PowerShell executable above is the only repo-local Harness entrypoint.
 
-```bash
-scripts/harness init
-scripts/harness import brownfield
-scripts/harness query matrix
-```
-
-`harness.db` and the POSIX prebuilt binary under `scripts/bin/` are local
-artifacts and are ignored by git. The Windows `scripts/bin/harness-cli.exe`
-entrypoint is tracked so a fresh clone can run the required native command.
+`harness.db` is local state and is ignored by git. The Windows
+`scripts/bin/harness-cli.exe` entrypoint is tracked so a fresh clone can run
+the required native command.
 
 ## Documentation
 

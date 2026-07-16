@@ -31,7 +31,7 @@ npx tsc --noEmit
 npm run lint
 npm run test
 npm run build
-scripts/harness query matrix
+scripts/bin/harness-cli.exe query matrix
 ```
 
 ## Acceptance Evidence

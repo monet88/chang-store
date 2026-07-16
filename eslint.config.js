@@ -18,6 +18,8 @@ export default [
       '*.log',
       '*.tsbuildinfo',
       'scripts/**',
+      '.harness/**',
+      '.harness-backup/**',
       '.opencode/**',
       '.agents/**',
       '.claude/**',

@@ -120,6 +120,11 @@ npm run test        # Vitest
 
 All three must pass. Do not suppress errors to pass the build.
 
+Current checkout caveat: the package test wrapper and one tracked E2E-config
+test still reference retired files. Until that separate tooling drift is fixed,
+use the scoped proof and status recorded in docs/TEST_MATRIX.md; do not claim
+the full quality gate is green.
+
 ## Adding a New Feature
 
 1. Add enum value to `src/types.ts` → `Feature.XxxYyy`
