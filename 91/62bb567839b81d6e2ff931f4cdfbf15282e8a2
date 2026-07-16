@@ -1,0 +1,21 @@
+__tests__/components/ResolutionSelector.test.tsx
+  s_7575489ab4a45f::t_7400f0099c8db3 25-27
+src/components/ResolutionSelector.tsx
+  s_7575489ab4a45f::t_683536d7506f82 47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "9162bb567839b81d6e2ff931f4cdfbf15282e8a2",
+  "prompts": {},
+  "sessions": {
+    "s_7575489ab4a45f": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "fda57999-d34b-4cd9-b9f2-0074779861dd",
+        "model": "gpt-4.1"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
