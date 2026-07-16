@@ -1,0 +1,48 @@
+docs/stories/bugs/BUG-VTO-MULTI-GATEWAY/design.md
+  s_7575489ab4a45f::t_6364ad46d13564 30
+docs/stories/bugs/BUG-VTO-MULTI-GATEWAY/validation.md
+  s_7575489ab4a45f::t_11d9ee93e6c921 65-77
+src/components/ResolutionSelector.tsx
+  s_7575489ab4a45f::t_a0ac40a7cf01a7 1,23-27,36,40-48,50
+docs/stories/bugs/BUG-VTO-MULTI-GATEWAY/implementation-note.md
+  s_7575489ab4a45f::t_6364ad46d13564 42-48
+__tests__/components/ResolutionSelector.test.tsx
+  s_7575489ab4a45f::t_273d48d2261c18 24-25
+__tests__/services/gemini/image.test.ts
+  s_7575489ab4a45f::t_273d48d2261c18 330-342
+src/hooks/useModelImageResolutions.ts
+  s_7575489ab4a45f::t_a0ac40a7cf01a7 1-6,8-42
+src/config/modelRegistry.ts
+  s_7575489ab4a45f::t_e8889e15620a8e 1
+  s_2a095d70a7ae08::t_4f4f655f5decb0 228-278
+__tests__/config/modelSelectionRules.test.ts
+  s_7575489ab4a45f::t_b928b4dcdda6f4 6-7,84-94
+src/services/gemini/image.ts
+  s_2a095d70a7ae08::t_1b985359243694 5,191,287
+src/services/imageEditingService.ts
+  s_2a095d70a7ae08::t_19ee4befafec87 3,110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "0aaf2e226612b113bcdfcaaf194d5ab97faedcdc",
+  "prompts": {},
+  "sessions": {
+    "s_2a095d70a7ae08": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7190934e-71d8-440b-bdab-02f0b6bf5e16",
+        "model": "grok-4.5"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    },
+    "s_7575489ab4a45f": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "fda57999-d34b-4cd9-b9f2-0074779861dd",
+        "model": "gpt-4.1"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
