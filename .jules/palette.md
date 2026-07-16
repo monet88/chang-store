@@ -10,3 +10,6 @@
 ## 2025-06-29 - [Added `focus-visible` to interactive elements in `WatermarkRemover`]
 **Learning:** Adding keyboard focus indicators ensures that keyboard users have visual feedback to see what they are navigating over in a complex component like `WatermarkRemover`. It's essential to match the focus ring color to the theme context of the element to make it visible and not jarring.
 **Action:** When creating interactive UI components like buttons, input fields, and tabs, ensure `focus-visible:outline-none focus-visible:ring-2` (and optionally a ring color like `focus-visible:ring-amber-500` or `focus-visible:ring-white`) are applied to make the component keyboard accessible.
+## 2024-07-16 - Custom Radiogroups and Focus Rings
+**Learning:** Custom selection components using groups of generic `<button>` elements (like those styled with `choiceWrapClass` in `LookbookForm.tsx`) lack implicit accessible semantics for screen readers and miss visual focus indicators for keyboard users.
+**Action:** Always wrap custom button option groups in a container with `role="radiogroup"` and a descriptive `aria-label`. Ensure the individual `<button>` tags have `role="radio"`, update `aria-checked` dynamically, and explicitly define `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20` (or similar) in their styling.

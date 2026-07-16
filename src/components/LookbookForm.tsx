@@ -40,7 +40,7 @@ const sectionTitleClass = 'text-xl font-medium tracking-[-0.03em] text-zinc-50';
 const helperClass = 'text-sm leading-6 text-zinc-400';
 const textareaClass = 'w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm leading-6 text-zinc-100 placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20';
 const choiceWrapClass = 'flex flex-wrap gap-2 rounded-[20px] border border-white/10 bg-black/30 p-2';
-const choiceButton = (active: boolean) => `rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+const choiceButton = (active: boolean) => `rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
   active ? 'bg-white text-black' : 'text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
 }`;
 const secondaryButtonClass = 'inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
@@ -278,11 +278,13 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
           <div className="space-y-5">
             <div className="space-y-2">
               <p className="text-sm font-medium text-zinc-200">{t('lookbook.styleLabel')}</p>
-              <div className={choiceWrapClass}>
+              <div className={choiceWrapClass} role="radiogroup" aria-label={t('lookbook.styleLabel')}>
                 {lookbookStyles.map((style) => (
                   <button
                     key={style.key}
                     type="button"
+                    role="radio"
+                    aria-checked={lookbookStyle === style.key}
                     onClick={() => {
                       const updates: Partial<LookbookFormState> = { lookbookStyle: style.key };
                       if (style.key === 'product shot') {
@@ -301,11 +303,11 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
             {lookbookStyle === 'folded' && (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-zinc-200">{t('lookbook.presentationTypeLabel')}</p>
-                <div className={choiceWrapClass}>
-                  <button type="button" onClick={() => onFormChange({ foldedPresentationType: 'boxed' })} className={choiceButton(foldedPresentationType === 'boxed')}>
+                <div className={choiceWrapClass} role="radiogroup" aria-label={t('lookbook.presentationTypeLabel')}>
+                  <button type="button" role="radio" aria-checked={foldedPresentationType === 'boxed'} onClick={() => onFormChange({ foldedPresentationType: 'boxed' })} className={choiceButton(foldedPresentationType === 'boxed')}>
                     {t('lookbook.presentationTypeBoxed')}
                   </button>
-                  <button type="button" onClick={() => onFormChange({ foldedPresentationType: 'folded' })} className={choiceButton(foldedPresentationType === 'folded')}>
+                  <button type="button" role="radio" aria-checked={foldedPresentationType === 'folded'} onClick={() => onFormChange({ foldedPresentationType: 'folded' })} className={choiceButton(foldedPresentationType === 'folded')}>
                     {t('lookbook.presentationTypeFolded')}
                   </button>
                 </div>
@@ -315,9 +317,9 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
             {['hanger', 'flat lay', 'minimalist showroom', 'folded', 'product shot'].includes(lookbookStyle) && (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-zinc-200">{t('lookbook.garmentTypeLabel')}</p>
-                <div className={choiceWrapClass}>
+                <div className={choiceWrapClass} role="radiogroup" aria-label={t('lookbook.garmentTypeLabel')}>
                   {(['one-piece', 'two-piece', 'three-piece'] as GarmentType[]).map((type) => (
-                    <button key={type} type="button" onClick={() => onFormChange({ garmentType: type })} className={choiceButton(garmentType === type)}>
+                    <button key={type} type="button" role="radio" aria-checked={garmentType === type} onClick={() => onFormChange({ garmentType: type })} className={choiceButton(garmentType === type)}>
                       {t(`lookbook.garmentType${type === 'one-piece' ? 'OnePiece' : type === 'two-piece' ? 'TwoPiece' : 'ThreePiece'}`)}
                     </button>
                   ))}
@@ -328,11 +330,13 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
             {lookbookStyle === 'mannequin' && (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-zinc-200">{t('lookbook.mannequinBackgroundStyleLabel')}</p>
-                <div className={choiceWrapClass}>
+                <div className={choiceWrapClass} role="radiogroup" aria-label={t('lookbook.mannequinBackgroundStyleLabel')}>
                   {mannequinBackgroundStyles.map((style) => (
                     <button
                       key={style.key}
                       type="button"
+                      role="radio"
+                      aria-checked={mannequinBackgroundStyle === style.key}
                       onClick={() => onFormChange({ mannequinBackgroundStyle: style.key })}
                       className={choiceButton(mannequinBackgroundStyle === style.key)}
                     >
@@ -347,11 +351,11 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-zinc-200">{t('lookbook.productShotSubTypeLabel')}</p>
-                  <div className={choiceWrapClass}>
-                    <button type="button" onClick={() => onFormChange({ productShotSubType: 'ghost-mannequin' })} className={choiceButton(productShotSubType === 'ghost-mannequin')}>
+                  <div className={choiceWrapClass} role="radiogroup" aria-label={t('lookbook.productShotSubTypeLabel')}>
+                    <button type="button" role="radio" aria-checked={productShotSubType === 'ghost-mannequin'} onClick={() => onFormChange({ productShotSubType: 'ghost-mannequin' })} className={choiceButton(productShotSubType === 'ghost-mannequin')}>
                       {t('lookbook.productShotGhostMannequin')}
                     </button>
-                    <button type="button" onClick={() => onFormChange({ productShotSubType: 'clean-flat-lay' })} className={choiceButton(productShotSubType === 'clean-flat-lay')}>
+                    <button type="button" role="radio" aria-checked={productShotSubType === 'clean-flat-lay'} onClick={() => onFormChange({ productShotSubType: 'clean-flat-lay' })} className={choiceButton(productShotSubType === 'clean-flat-lay')}>
                       {t('lookbook.productShotCleanFlatLay')}
                     </button>
                   </div>
