@@ -1,0 +1,19 @@
+__tests__/utils/virtual-try-on-prompt-builder.test.ts
+  s_449a2f9efd82c7::t_155bec834f227f 203,222-223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "6c272ead2bdbd7108fd9033aee4e494d4caad114",
+  "prompts": {},
+  "sessions": {
+    "s_449a2f9efd82c7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f696e-4dd5-7c13-879e-e27e1c06c05d",
+        "model": "unknown"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
