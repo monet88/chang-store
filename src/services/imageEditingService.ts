@@ -1,6 +1,6 @@
 import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, UpscaleQuality } from '../types';
 import type { ImageResolution } from '../types';
-import { getModelCapabilities } from '../config/modelRegistry';
+import { resolveEffectiveImageResolution } from '../config/modelRegistry';
 import * as geminiImageService from './gemini/image';
 import type { GeneratedImageFile } from './gemini/image';
 import { getImageDimensions } from '../utils/imageUtils';
@@ -107,10 +107,7 @@ export const upscaleImage = async (
 ): Promise<ImageFile> => {
     const resolvedModel = quickModel ?? model;
     const startTime = Date.now();
-    const supportedImageSizes = getModelCapabilities(resolvedModel).supportedImageSizes;
-    const effectiveQuality = supportedImageSizes?.includes(quality)
-        ? quality
-        : supportedImageSizes?.[0] ?? quality;
+    const effectiveQuality = resolveEffectiveImageResolution(resolvedModel, quality);
     const prompt = promptOverride ?? buildUpscalePrompt(effectiveQuality, 'model');
 
     try {

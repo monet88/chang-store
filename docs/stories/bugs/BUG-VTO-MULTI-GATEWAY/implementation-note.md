@@ -39,3 +39,10 @@
   images. Two concurrent connections timed out locally and passed when retried
   sequentially, so gateway/model validation is proven while local burst
   transport remains a low-level environmental risk.
+
+- Review fix (items 1-4): shared `resolveImageSizeConfig` /
+  `resolveEffectiveImageResolution` live in `modelRegistry.ts`;
+  `useModelImageResolutions` owns stale-state normalization and fixed/effective
+  flags so `ResolutionSelector` only renders; Flash-Lite edit omits no longer
+  drop `imageSize` (always `1K`); this follow-up stays in app/test files only
+  and does not touch harness tooling.

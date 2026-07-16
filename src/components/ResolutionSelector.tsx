@@ -1,4 +1,4 @@
-import React, { useEffect, useId } from 'react';
+import React, { useId } from 'react';
 import { ImageResolution } from '../types';
 import { useModelImageResolutions } from '../hooks/useModelImageResolutions';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -20,30 +20,34 @@ interface ResolutionSelectorProps {
  */
 const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ resolution, setResolution, model }) => {
   const { t } = useLanguage();
-  const supportedResolutions = useModelImageResolutions(model);
-  const fallbackResolution = supportedResolutions[0];
-  const isFixedResolution = supportedResolutions.length === 1;
-  const effectiveResolution = supportedResolutions.includes(resolution) ? resolution : fallbackResolution;
+  const { supportedResolutions, effectiveResolution, isFixedResolution } = useModelImageResolutions(
+    model,
+    resolution,
+    setResolution,
+  );
   const labelId = useId();
   const groupName = useId();
-
-  useEffect(() => {
-    if (!supportedResolutions.includes(resolution) && fallbackResolution) {
-      setResolution(fallbackResolution);
-    }
-  }, [fallbackResolution, resolution, setResolution, supportedResolutions]);
 
   if (isFixedResolution) {
     return (
       <div className="flex flex-wrap items-center justify-center gap-2">
         <span id={labelId} className="font-medium text-zinc-300">{t('virtualTryOn.quality')}:</span>
         <div
+          role="radiogroup"
           aria-labelledby={labelId}
           className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5"
         >
-          <span className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-zinc-950">
+          <label className="flex min-h-[44px] min-w-[44px] cursor-not-allowed items-center justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-zinc-950">
+            <input
+              type="radio"
+              name={groupName}
+              value={effectiveResolution}
+              checked
+              disabled
+              className="sr-only"
+            />
             {effectiveResolution}
-          </span>
+          </label>
           <span className="pr-2 text-xs text-zinc-400">{t('virtualTryOn.modelLimit')}</span>
         </div>
       </div>

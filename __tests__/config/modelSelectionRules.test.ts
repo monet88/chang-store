@@ -3,6 +3,8 @@ import { Feature } from '@/types';
 import {
   getModelCapabilities,
   getModelOptionsBySelectionType,
+  resolveEffectiveImageResolution,
+  resolveImageSizeConfig,
 } from '@/config/modelRegistry';
 import { resolveModelSelectionScope } from '@/config/modelSelectionRules';
 
@@ -78,5 +80,16 @@ describe('model selection rules', () => {
       supportsAspectRatio: true,
       supportedImageSizes: ['1K'],
     });
+  });
+
+  it('resolves model-aware image sizes for UI and request config', () => {
+    expect(resolveEffectiveImageResolution('gemini-3.1-flash-lite-image', '2K')).toBe('1K');
+    expect(resolveEffectiveImageResolution('gemini-3.1-flash-image', '4K')).toBe('4K');
+
+    expect(resolveImageSizeConfig('gemini-3.1-flash-lite-image', '2K')).toBe('1K');
+    expect(resolveImageSizeConfig('gemini-3.1-flash-lite-image')).toBe('1K');
+    expect(resolveImageSizeConfig('gemini-3.1-flash-image', '4K')).toBe('4K');
+    expect(resolveImageSizeConfig('gemini-3.1-flash-image')).toBeUndefined();
+    expect(resolveImageSizeConfig('gemini-2.5-flash-image', '2K')).toBeUndefined();
   });
 });

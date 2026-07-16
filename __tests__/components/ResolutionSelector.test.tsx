@@ -21,8 +21,8 @@ describe('ResolutionSelector', () => {
     );
 
     await waitFor(() => expect(setResolution).toHaveBeenCalledWith('1K'));
-    expect(screen.queryByRole('radiogroup', { name: 'Chất lượng:' })).not.toBeInTheDocument();
-    expect(screen.getByText('1K')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Chất lượng:' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: '1K', checked: true })).toBeDisabled();
     expect(screen.getByText('Giới hạn model')).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: '2K' })).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: '4K' })).not.toBeInTheDocument();

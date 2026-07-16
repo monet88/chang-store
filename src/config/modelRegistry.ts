@@ -1,4 +1,4 @@
-import type { ImageResolution } from '../types';
+import { IMAGE_RESOLUTIONS, type ImageResolution } from '../types';
 
 export interface ModelCapability {
   /** Whether the API accepts imageConfig.imageSize for this model. */
@@ -223,6 +223,57 @@ export function getModelCapabilities(modelId: string): ModelCapability {
     }
   }
   return DEFAULT_CAPABILITIES;
+}
+
+/** UI options for a model; falls back to the full selector list when unset/empty. */
+export function getSupportedImageResolutions(modelId: string): readonly ImageResolution[] {
+  const supportedImageSizes = getModelCapabilities(modelId).supportedImageSizes;
+  return supportedImageSizes && supportedImageSizes.length > 0
+    ? supportedImageSizes
+    : IMAGE_RESOLUTIONS;
+}
+
+/**
+ * Clamp a requested size to what the model can produce.
+ * Always returns a concrete size for UI state and prompt wording.
+ */
+export function resolveEffectiveImageResolution(
+  modelId: string,
+  requested?: ImageResolution,
+): ImageResolution {
+  const supported = getSupportedImageResolutions(modelId);
+  if (requested && supported.includes(requested)) {
+    return requested;
+  }
+  return supported[0] ?? IMAGE_RESOLUTIONS[0];
+}
+
+/**
+ * Resolve `imageConfig.imageSize` for Gemini requests.
+ * - Omit when the model does not accept imageSize.
+ * - When the model has an explicit supported list, always return an allowed size
+ *   (so Flash-Lite always sends 1K even if the caller omits resolution).
+ * - When imageSize is accepted without an explicit list, pass through the request.
+ */
+export function resolveImageSizeConfig(
+  modelId: string,
+  requested?: ImageResolution,
+): ImageResolution | undefined {
+  const capabilities = getModelCapabilities(modelId);
+  if (!capabilities.supportsImageSize) {
+    return undefined;
+  }
+
+  const supportedImageSizes = capabilities.supportedImageSizes;
+  if (!supportedImageSizes || supportedImageSizes.length === 0) {
+    return requested;
+  }
+
+  if (requested && supportedImageSizes.includes(requested)) {
+    return requested;
+  }
+
+  return supportedImageSizes[0];
 }
 
 export function getModelOptionsBySelectionType(selectionType: ModelSelectionType): Array<{ id: string; name: string }> {

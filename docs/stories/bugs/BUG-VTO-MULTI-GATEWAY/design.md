@@ -27,7 +27,7 @@ No persistence, schema, or migration changes.
 
 ## UI / Platform Impact
 
-The shared resolution selector displays a single disabled 1K control for
+The shared resolution selector displays a single disabled 1K radio control for
 fixed-resolution models. Other model controls retain their existing layout.
 
 ## Observability

@@ -327,6 +327,19 @@ describe('services/gemini/image.ts', () => {
       expect(callArgs.config.imageConfig.imageSize).toBe('1K');
     });
 
+    it('always sends Flash-Lite imageSize 1K when resolution is omitted', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await editImage({
+        images: [sampleImage],
+        prompt: 'Edit image',
+        model: 'gemini-3.1-flash-lite-image',
+      });
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig.imageSize).toBe('1K');
+    });
+
     it('preserves requested resolution for image models that support it', async () => {
       mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
 

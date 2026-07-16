@@ -62,3 +62,16 @@ npm run build
   terminal value, while the valid `.env` gateway key is 36 characters. The
   earlier `AUTH_INVALID` result therefore tested a different credential, not
   the configured gateway key.
+
+## Review-fix proof (items 1-4)
+
+- Shared helpers `resolveImageSizeConfig` / `resolveEffectiveImageResolution` live in
+  `modelRegistry.ts`; UI/facade/provider all consume them.
+- `useModelImageResolutions` owns stale-state normalization; fixed models expose a
+  disabled 1K radio control.
+- Focused Vitest: 58 passed across gemini image, registry, ResolutionSelector, and
+  imageEditingService suites (includes omit-resolution Flash-Lite always-1K).
+- `npx tsc --noEmit` still fails on pre-existing retired
+  `__tests__/scripts/e2e-live-config.test.ts` (deleted `scripts/e2e-live/config`);
+  no type errors in files touched by this review fix.
+- This follow-up edits only app/test/story docs; harness tooling is left untouched.
