@@ -44,6 +44,7 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
               value={effectiveResolution}
               checked
               disabled
+              readOnly
               className="sr-only"
             />
             {effectiveResolution}
