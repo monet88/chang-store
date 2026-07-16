@@ -14,3 +14,6 @@
 ## 2025-02-14 - Use useMemo for React Context Provider values
 **Learning:** Passing a new object literal directly to a React Context Provider's `value` prop (e.g., `value={{ someMethod }}`) creates a new object reference on every render. This forces all components consuming that context to re-render, leading to massive cascading re-renders, especially for root-level providers like `ApiProvider` or `LanguageProvider`.
 **Action:** Always wrap the `value` object passed to React Context Providers with `useMemo` (e.g., `const value = useMemo(() => ({ someMethod }), [someMethod])`) to preserve object identity and prevent unnecessary re-renders.
+## 2025-02-14 - Clean up temporary scripts and modified package files
+**Learning:** Adding dependencies or temporarily fixing lockfiles for linting checks can inadvertently leak massive changes to `package.json` and `pnpm-lock.yaml` into the staged Git diff, violating project rules. Additionally, temporary bash scripts used for creating patches might also be staged.
+**Action:** Always verify `git status` explicitly and unstage/delete any auto-modified package/lock files or temporary scripts before calling `submit` or marking code review steps as complete.
