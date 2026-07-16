@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased] — 2026-07-16
+
+### Docs
+
+- Recovered the public application documentation and story packets from the
+  dated Harness backup.
+- Reconciled the documentation map, product index, application architecture
+  notes, test matrix, Harness component inventory references, and docs-sync
+  story with the current Windows Harness CLI and source tree while preserving
+  the current Harness policy files.
+- Marked the retired live-E2E and provider smoke helpers as historical or
+  unavailable instead of documenting them as runnable commands.
+
 ## [Unreleased] — 2026-07-03
 
 ### Fixed

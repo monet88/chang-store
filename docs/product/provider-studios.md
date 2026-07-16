@@ -143,7 +143,10 @@ is prompt-based rather than a native resolution flag.
   request.
 - Try-On on Grok / GPT Image with default composed prompt → outfit applied,
   result rendered locally (not written to Gallery).
-- Reference: `scripts/provider-tryon-smoke.ts` smoke path.
+- Current automated proof: provider service and isolation tests under
+  `__tests__/services/providers/`, `__tests__/hooks/useGrokStudio.test.tsx`,
+  and `__tests__/hooks/useGptImageStudio.test.tsx`. The former
+  `scripts/provider-tryon-smoke.ts` helper is not present in this checkout.
 
 ## Related Story
 

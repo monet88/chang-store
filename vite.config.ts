@@ -21,7 +21,6 @@ export default defineConfig(({ mode }) => {
           // .kiro bundles a Python venv with thousands of files that exhaust
           // the OS inotify watcher limit (ENOSPC) on Linux.
           '**/.kiro/**',
-          '**/.gitnexus/**',
           // Playwright MCP writes snapshots/console logs here during browser
           // testing; watching it triggers HMR full-reloads that wipe app state.
           '**/.playwright-mcp/**',

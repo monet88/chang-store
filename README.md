@@ -56,7 +56,6 @@ Key docs:
 
 ```bash
 npm install
-node scripts/check-node-platform.mjs
 npm run dev
 ```
 
@@ -103,7 +102,10 @@ npm run test
 npm run build
 ```
 
-For docs-only changes, run the relevant docs/Harness checks instead.
+For docs-only changes, run the relevant docs/Harness checks instead. In this
+checkout, npm run test still invokes the retired
+scripts/check-node-platform.mjs; use npx vitest run --passWithNoTests for the
+direct suite while that tooling drift remains open.
 
 ## Harness
 
@@ -113,21 +115,28 @@ This repo uses Harness for agent-ready project operations:
 - `docs/FEATURE_INTAKE.md` — classify work by lane.
 - `docs/CONTEXT_RULES.md` — context selection rules.
 - `docs/TRACE_SPEC.md` — trace and friction capture.
-- `scripts/harness` — local Harness CLI entrypoint for Git Bash / Linux-style shells.
+- On Windows, use the repo-local Harness executable `scripts/bin/harness-cli.exe` directly.
+- This checkout does not include a POSIX Harness launcher; use the Windows
+  executable from PowerShell.
 - `docs/dev/windows-linux-node-modules.md` — dual-boot dependency workflow and
   repair steps.
 
-Initialize local durable Harness state from Git Bash / Linux-style shells when
-needed:
+Initialize local durable Harness state with the platform-native command. On
+Windows, always use `harness.exe` directly (the checked-in executable is
+`scripts/bin/harness-cli.exe`):
 
-```bash
-scripts/harness init
-scripts/harness import brownfield
-scripts/harness query matrix
+```powershell
+& '.\scripts\bin\harness-cli.exe' init
+& '.\scripts\bin\harness-cli.exe' import brownfield
+& '.\scripts\bin\harness-cli.exe' query matrix
 ```
 
-`harness.db` and the prebuilt binary under `scripts/bin/` are local generated
-artifacts and are ignored by git.
+The POSIX launcher and binary are not present in this checkout, so the
+PowerShell executable above is the only repo-local Harness entrypoint.
+
+`harness.db` is local state and is ignored by git. The Windows
+`scripts/bin/harness-cli.exe` entrypoint is tracked so a fresh clone can run
+the required native command.
 
 ## Documentation
 

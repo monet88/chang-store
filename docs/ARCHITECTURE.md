@@ -1,244 +1,198 @@
 # Architecture
 
-Chang Store is a React 19 + TypeScript + Vite single-page application.
-Core Gemini workflows run client-side via the Google Gemini SDK, while the
-isolated Grok and GPT Image studios call their provider REST endpoints
-client-side as well. There is no custom backend server.
+This repository is the Chang Store React/Vite application with an installed
+Harness operating layer. The current application source is under src/ and the
+current Harness runtime is the prebuilt Windows executable at
+scripts/bin/harness-cli.exe. The upstream Harness Rust workspace and its
+crates/harness-cli source are not part of this checkout.
 
-## Product Surface
+The architecture below separates reusable Harness guidance from the actual
+Chang Store application. Product behavior is always derived from the current
+source tree, not from the generic candidate structure.
 
-- **Browser SPA** — the only runtime surface.
-- No server, no API routes, no database server.
-- AI calls go directly from the browser to Gemini, Grok, or GPT Image endpoints depending on the active studio.
+The generic discovery and layering guidance below is planning guidance for
+future application boundaries; it is not a claim that this SPA already has
+server-side domain/application/infrastructure/interface layers.
 
-## Core Pattern
+## Discovery Before Shape
 
-```text
-Component (thin UI)
-  → Hook (state + logic)
-    → Service Facade (imageEditingService.ts)
-      → Gemini SDK (@google/genai)
-```
+Before proposing implementation shape, identify:
 
-Components are thin UI wrappers with zero business logic. All state management,
-API orchestration, error handling, and gallery integration live in the paired
-hook. Services are stateless facades that format requests and parse responses.
+- Product surfaces: browser, mobile, desktop, CLI, API, worker, or service.
+- Runtime stack: language, framework, database, queues, providers, and hosting.
+- Core domains: the product concepts that deserve stable names and contracts.
+- Boundary inputs: user input, API requests, webhooks, jobs, files, credentials,
+  provider payloads, and environment configuration.
+- Validation ladder: the smallest checks that can prove the selected stack.
 
-## Directory Structure
+Record stack choices in `docs/decisions/` when they meaningfully constrain
+future work.
 
-```text
-src/
-├── components/          # UI layer — feature screens + shared UI
-│   └── modals/          # Modal dialogs (settings, pose library, prompt library)
-├── hooks/               # Feature logic — one hook per feature
-├── services/            # API facades (stateless)
-│   └── gemini/          # Gemini SDK wrappers (image, text, chat)
-├── contexts/            # Global state providers
-├── config/              # Model capability registry
-├── utils/               # Pure helpers, prompt builders
-├── data/                # Static data files
-├── locales/             # i18n strings (en.ts source, vi.ts mirror)
-└── types.ts             # Shared type definitions + Feature enum
-```
-
-## Studio Modes (three-provider split)
-
-`AppContent` holds a `StudioMode` state (`'gemini' | 'grok' | 'gptImage'`),
-toggled by `StudioModeSwitch` in the header. Gemini is the default and opens
-directly — there is no launcher gate.
+## Default Layering
 
 ```text
-studioMode === 'gemini'  → Gemini workspace header + renderActiveFeature()
-studioMode === 'grok'    → GrokStudio (own content area)
-studioMode === 'gptImage'→ GptImageStudio (own content area)
+domain
+  <- application
+      <- infrastructure
+          <- interface
+              <- app surfaces
 ```
 
-Switching studios unmounts the previous one (no state preserved) and clamps
-`activeFeature` to `PROVIDER_SUPPORTED_FEATURES[0]` if the current feature is
-Gemini-only. Provider studios support five workflows (Try-On, Lookbook,
-Clothing Transfer, Pattern Generator, AI Editor) and render their own UI — they
-do NOT share the Gemini workspace header, model selector, or gallery.
-
-Provider studios are isolated from the Gemini **pipeline** (no Gemini hooks,
-services, contexts, or `imageEditingService.ts` calls). They DO reuse the
-Gemini prompt **builders** read-only — `buildVirtualTryOnParts`,
-`buildClothingTransferParts`, `buildPatternGeneratorParts`, `buildLookbookPrompt`
-— through `src/utils/provider-studio-prompt-adapter.ts`, which extracts the
-builder's text segments and passes images to the provider service separately.
-Separate model registries (`grokModelRegistry.ts`, `gptImageModelRegistry.ts`)
-and services (`src/services/providers/`) remain provider-specific. Shared
-pieces: `ProviderSettingsPanel`, `ProviderResultsGrid`, `ProviderResultTile`,
-`ProviderSourceFields`, `ProviderTryOnExtras`, `ProviderLookbookControls`, the
-provider hooks (`useProviderStudioFields`, `useProviderResultActions`,
-`useProviderTryOnBatch`, `useProviderLookbookFields`), and the utilities in
-`src/services/providers/shared/`.
-
-## Provider Studio Parity Matrix (vs Gemini)
-
-Capability coverage for the Grok and GPT Image studios. All provider logic is
-client-side orchestration over the provider edit/generate endpoints; the Gemini
-pipeline is byte-unchanged.
-
-| # | Capability | Gemini | Grok | GPT Image | Notes |
-|---|---|--------|------|-----------|-------|
-| 1 | Prompt builders (garment/preservation rules) | ✅ | ✅ | ✅ | Adapter extracts builder text; images sent separately. |
-| 2 | Per-source-item type (clothing/shoes/bag/accessory) | ✅ | ✅ | ✅ | Try-On only (builder consumes types). |
-| 3 | Per-source-item note | ✅ | ✅ | ✅ | Try-On note + Clothing Transfer reference label. |
-| 4 | Background prompt field | ✅ | ✅ | ✅ | Try-On; feeds builder background section. |
-| 5 | Extra-instructions field | ✅ | ✅ | ✅ | Distinct from main prompt box (Q4=B). |
-| 6 | Refine (iterative edit) | ✅ | ✅ | ✅ | Client-side re-send of result image; stateless endpoint. |
-| 7 | Upscale (2K/4K) | ✅ | ✅ | ⚠️ | Grok uses native `resolution: '2k'`; GPT uses preservation prompt at `quality: 'high'` (no native resolution flag). |
-| 8 | Regenerate single result | ✅ | ✅ | ✅ | Re-runs the slot's request. |
-| 9 | Multi-person targeting (red-dot marker) | ✅ | ✅ | ✅ | Reuses `compositeMarkerOnImage`; Try-On only. |
-| 10 | Batch subjects (bounded concurrency) | ✅ | ✅ | ✅ | `runBoundedWorkers`, cap 3 to respect provider rate limits. |
-| 11 | Lookbook style/garment/fabric/negative controls | ✅ | ✅ | ✅ | Full user-driven `LookbookFormState` drives the builder, including folded presentation type and product-shot subtypes plus accessory/footwear toggles. |
-| 12 | Lookbook variations | ✅ | ✅ | ⚠️ | `useProviderLookbookOutput`; Grok up to 4, GPT capped at 1 (serial) for cost/latency. |
-| 13 | Lookbook close-ups | ✅ | ✅ | ✅ | Three serial close-up edits via the shared close-up prompt builder. |
-| 14 | Lookbook refinement version history | ✅ | ✅ | ✅ | Client-side re-send feeds result back as source; step back/forward through versions. |
-| 15 | Stepped panel UI (Upload/Customize/Generate) | ✅ | ✅ | ✅ | Shared `ProviderStudioShell` + `StepPanel`; mirrors Gemini class vocabulary. |
-| 16 | Per-item source cards (uploader + type + note + Add) | ✅ | ✅ | ✅ | `ProviderSourceItemGrid`; index alignment owned by `useProviderStudioFields`. |
-| 17 | Multi-Model / Wardrobe toggle + sets engine | ✅ | ✅ | ⚠️ | `useProviderWardrobe` (service-agnostic); GPT capped at 2 sets, concurrency 1. |
-| 18 | Auto-describe clothing (text model) | ✅ | ❌ | ❌ | Provider services have no text endpoint wired; documented off. |
-
-Legend: ✅ supported · ⚠️ supported with a documented provider constraint ·
-❌ deferred/constrained (see Notes).
-
-Empirical check (Phase 7, live local proxy): Try-On with the DEFAULT composed
-prompt (no manual hints) was run end-to-end through the real adapter + real
-provider edit service on BOTH providers:
-
-| Provider | Latency | Outfit applied | Top untucked | Distortion |
-|---|---|---|---|---|
-| Grok (`grok-imagine-image-quality`) | ~9s | ✅ | ✅ | none |
-| GPT Image (`gpt-image-2`) | ~122s | ✅ | ✅ | none |
-
-Both confirm the reused builder rules ("never tucked in") take effect through
-the provider edit endpoints. No fallback to a curated rule excerpt was needed
-(red-team F1/F3 cleared). GPT Image is materially slower (matches the studio's
-60-90s slow-response warning).
-
-## Feature Routing
-
-No React Router. `App.tsx` switches on the `Feature` enum with lazy-loading:
+## Consumer Candidate Structure
 
 ```text
-Feature.TryOn → VirtualTryOn.tsx
-Feature.Lookbook → LookbookGenerator.tsx
-Feature.Background → BackgroundReplacer.tsx
-Feature.Pose → PoseChanger.tsx
-Feature.PhotoAlbum → PhotoAlbumCreator.tsx
-Feature.AIEditor → AIEditor.tsx
-Feature.WatermarkRemover → WatermarkRemover.tsx
-Feature.ClothingTransfer → ClothingTransfer.tsx
-Feature.PatternGenerator → PatternGenerator.tsx
+app/
+  domain/
+    entities/
+    value-objects/
+    repositories/
+    services/
+
+  application/
+    commands/
+    queries/
+    handlers/
+
+  infrastructure/
+    database/
+    logging/
+    notifications/
+
+  interface/
+    controllers/
+    dto/
+    presenters/
+    routes/
+    middlewares/
+
+surfaces/
+  browser/
+  mobile/
+  desktop/
+  cli/
 ```
 
-## Service Routing
-
-All Gemini image operations route through `src/services/imageEditingService.ts`.
-This facade delegates to `src/services/gemini/image.ts` for the actual SDK
-calls. Never bypass the facade from Gemini hooks or components.
-
-```text
-Hook → imageEditingService.editImage(params, model, config)
-     → imageEditingService.upscaleImage(...)
-     → imageEditingService.createImageChatSession(...)
-         ↓
-     gemini/image.ts → @google/genai SDK
-```
-
-Text generation routes through `src/services/textService.ts` which uses
-`src/services/gemini/text.ts`.
-
-Grok and GPT Image studios route through their own provider services
-(`src/services/providers/grok/`, `src/services/providers/gpt-image/`), which
-call the provider REST endpoints directly and normalize responses to local
-`ImageFile[]` via the shared OpenAI-compatible parser. xAI edits use a JSON
-`image`/`images` object contract; GPT Image edits use multipart `image[]`
-uploads.
-
-## Model Selection
-
-Three model categories managed by `ApiProviderContext`:
-
-| Category | Purpose | Storage Key |
-| --- | --- | --- |
-| imageEdit | Edit existing images | `image_edit_model` |
-| imageGenerate | Generate new images | `image_generate_model` |
-| textGenerate | Text/prompt generation | `text_generate_model` |
-
-Model registry at `src/config/modelRegistry.ts` defines per-model capabilities
-(aspect ratio support, image size support) and defaults.
-
-## State Management
-
-| Concern | Mechanism |
-| --- | --- |
-| Feature state | Hook-local `useState` |
-| Global model/key | `ApiProviderContext` |
-| Gallery images | `ImageGalleryContext` + IndexedDB |
-| Language | `LanguageContext` |
-| Toast notifications | `ToastProvider` |
-| Session persistence | localStorage via `utils/storage.ts` |
-| Image cache | IndexedDB via `utils/imageCache.ts` |
-
-## Persistence Layer
-
-No server database. All persistence is browser-local:
-
-- **IndexedDB** (idb-keyval): gallery images, image cache
-- **localStorage**: session state, model preferences, draft forms
-- **Google Drive** (optional): cloud sync via `googleDriveService.ts`
+This is a thinking template, not a scaffold. Create real folders only when a
+story enters implementation and the selected stack needs them.
 
 ## Dependency Rule
 
-| Layer | May import from | Must not import from |
+Inner layers must not depend on outer layers.
+
+| Layer | May depend on | Must not depend on |
 | --- | --- | --- |
-| Components | hooks, contexts, types, components/ui | services directly |
-| Hooks | services, contexts, utils, types | components |
-| Services | utils, types, @google/genai | hooks, components, contexts |
-| Utils | types only | anything else |
-| Contexts | types, services (for init only) | hooks, components |
+| domain | nothing project-external except tiny pure utilities | framework, database, UI, provider, process/env |
+| application | domain | framework, UI, provider, database concrete clients |
+| infrastructure | domain, application | interface controllers or UI |
+| interface | all backend layers | UI state or platform shell assumptions |
+| app surfaces | API contracts and app-facing clients | domain internals directly |
 
-Components must never call services directly — always go through hooks.
+## Parse-First Boundary Rule
 
-## Build and Deploy
+Unknown data must be parsed at boundaries before it enters inner code.
 
-- **Dev**: `npm run dev` (Vite, port 3000)
-- **Build**: `npm run build` (Vite production build)
-- **Deploy**: Vercel (static SPA)
-- **Env vars**: Gemini API key injected via `vite.config.ts` `define` block
-  for all modes (not just development)
+Boundaries include:
 
-## Observability
+- HTTP request bodies, params, and query strings.
+- Session payloads and identity claims.
+- Environment variables.
+- Database rows returned from external clients.
+- Platform shell payloads.
+- Deep links, tokens, and signed URLs.
+- Provider webhooks, events, and async payloads.
 
-- `src/services/debugService.ts` logs API calls with provider, model, feature,
-  prompt, duration, and success/failure.
-- No server-side logging — all observability is client-side console.
+Target flow:
 
+```text
+unknown input
+  -> parser
+  -> typed DTO or command
+  -> application use case
+  -> domain object/value object
+```
 
-## Gemini Proxy / Gateway Routing
+Inner layers should work with meaningful product types such as `UserId`,
+`AccountId`, `WorkspaceId`, `Role`, `DateRange`, or domain-specific IDs,
+rather than repeatedly validating raw strings.
 
-By default the Gemini SDK calls Google directly. The Settings modal exposes an
-optional "Gemini Proxy / Gateway" section that stores `vertexProxySettings`
-(`enabled`, `url`, `apiKey`) in localStorage and wires `@google/genai` through
-`httpOptions.baseUrl` + `apiVersion: 'v1beta'` via `configureGeminiClient()`
-in `src/services/apiClient.ts`.
+## Command/Query Boundary
 
-When the base URL ends in `/gemini` (a Vertex gateway), `services/gemini/image.ts`
-routes image edit / generate / upscale through the gateway image routes
-(`/api/images/edit|generate|upscale`, authenticated with an `x-api-key` header),
-while text and vision calls use the SDK `generateContent` path against the same
-base URL. Vision helpers must send `contents: [{ role: 'user', parts }]`; the
-role-less `{ parts }` shape is rejected by the gateway with `VALIDATION_FAILED`.
+If the product has both reads and writes, keep command/query separation clear at
+the code level even when the storage layer is simple:
 
-## Testing
+- Commands mutate state and own audit side effects.
+- Queries read state and format for consumers.
+- Shared domain rules live in domain/application, not controllers.
 
-- **Unit + boundary**: `npm run test` (Vitest) — 725 tests across 70 files, all
-  passing as of the 2026-07-03 resync. Coverage (V8): 74.85% lines, 73.96%
-  statements, 71.94% functions, 64.74% branches. Run `npm run test -- --coverage`
-  for the full report.
-- **Live E2E**: `scripts/e2e-live/run.mts` (run with `tsx`) drives the real
-  service layer against a live Vertex gateway with the `docs/image-test/`
-  samples, covering all nine features plus text/vision/generate/upscale. See the
-  "Live E2E Verification" section in `docs/codebase-summary.md`.
+## Observability Contract
+
+The future server should emit one canonical JSON log line per request with:
+
+- timestamp
+- level
+- request_id
+- user_id when known
+- action
+- duration_ms
+- status_code
+- message
+
+Audit logs are product records. Application logs are operational records. Do not
+use one as a substitute for the other.
+
+## Chang Store application architecture
+
+Chang Store is a client-only React/Vite SPA. The application source, not the
+generic Harness candidate structure above, is authoritative for product
+behavior:
+
+~~~text
+React component
+  -> feature hook
+    -> service facade
+      -> provider SDK or REST endpoint
+~~~
+
+The app has no custom backend server. Browser-local persistence uses IndexedDB
+for gallery/cache data, localStorage for session and preferences, and optional
+Google Drive sync. App-wide providers are ordered as:
+
+~~~text
+LanguageProvider
+  -> ToastProvider
+    -> ApiProvider
+      -> GoogleDriveProvider
+        -> ImageGalleryProvider
+          -> ImageViewerProvider
+            -> AppContent
+~~~
+
+### Studio Modes
+
+AppContent owns the Feature routing and StudioMode switch. Feature values and
+provider support are defined in src/types.ts; route/component wiring is in
+src/App.tsx. Gemini is the default full-featured studio. Grok and GPT Image
+are isolated provider studios using src/services/providers/ and the shared
+provider-studio hooks. Provider results remain local-only and do not write to
+the Gemini gallery pipeline.
+
+#### Provider Studio Parity Matrix
+
+| Workflow | Gemini | Grok | GPT Image | Current notes |
+| --- | --- | --- | --- | --- |
+| Virtual Try-On | Yes | Yes | Yes | Provider studios support source-item types/notes and multi-person targeting. |
+| Lookbook | Yes | Yes | Yes | Provider studios support core controls; variations and close-ups remain deferred. |
+| Clothing Transfer | Yes | Yes | Yes | Uses the provider prompt adapter and provider REST service. |
+| Pattern Generator | Yes | Yes | Yes | Provider studios support prompt-driven generation. |
+| AI Editor | Yes | Yes | Yes | Requires a source image in provider studios. |
+| Background Replacer | Yes | No | No | Gemini-only workflow. |
+| Pose Changer | Yes | No | No | Gemini-only workflow. |
+| Photo Album | Yes | No | No | Gemini-only workflow. |
+| Watermark Remover | Yes | No | No | Gemini-only workflow. |
+
+Provider studios defer Lookbook variations, Lookbook close-ups, and automatic
+clothing description because no provider text endpoint is wired for those paths.
+
+The current source tree has no server-side request, session, or audit-log
+layer. The generic server layering and observability sections above are
+planning constraints for future backend work, not claims about the current SPA.
