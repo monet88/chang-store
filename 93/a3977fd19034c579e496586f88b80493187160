@@ -1,0 +1,86 @@
+docs/TEST_MATRIX.md
+  s_ff01a98a953a15::t_de66499178f902 59,61
+  s_ff01a98a953a15::t_7c4a807dfb6a8b 58
+  s_ff01a98a953a15::t_5b3958ed7154bf 60
+  s_b8bef1b51fa04c::t_31e1301d58b8de 3-4,6-8,10,12-29,43-51,53,56
+.gitignore
+  s_2a095d70a7ae08::t_3c82662b58c327 83-86,118-119
+.scratch/implement-notes/docs-backfill-resync.md
+  s_b8bef1b51fa04c::t_eda923130f0eac 1-12
+CLAUDE.md
+  s_7575489ab4a45f::t_3bd141ebb019a2 1
+README.md
+  s_b8bef1b51fa04c::t_9da51d4ed63332 105-108,119-120,134-135,137-139
+docs/ARCHITECTURE.md
+  s_b8bef1b51fa04c::t_a8fe961cf716d1 3-7,9-11,13-15,17,19,21-26,28-29,31,34-38,41,44-72,75-76,78,80,82,84-88,90,92,94,96-102,104,106-112,114-198
+docs/CHANGELOG.md
+  s_b8bef1b51fa04c::t_0c34d25079bd43 3-15
+docs/HARNESS_COMPONENTS.md
+  s_b8bef1b51fa04c::t_69986e7293051d 12-14,33,35-36,38,49
+docs/README.md
+  s_b8bef1b51fa04c::t_ed616c6057169a 3,5,7-16,18,20-22,24,26-36,38,40,42-52,54,56-59,61-68
+docs/code-standards.md
+  s_b8bef1b51fa04c::t_f3f381dee884c9 123-127
+docs/codebase-summary.md
+  s_b8bef1b51fa04c::t_479207609b6ff9 82,84-86,103-104,107,109-110,112-115,117-118,139-142,146-148
+docs/deployment-guide.md
+  s_b8bef1b51fa04c::t_ca6447391141d7 67,73-77
+docs/dev/windows-linux-node-modules.md
+  s_b8bef1b51fa04c::t_3519b06cb0da6c 5-8,44-45,51-52,60,74
+docs/product/README.md
+  s_b8bef1b51fa04c::t_d073e590be34e4 11-21,27-30,38-43,49-53
+docs/product/provider-studios.md
+  s_b8bef1b51fa04c::t_d501eaf594972d 146-149
+docs/project-overview-pdr.md
+  s_b8bef1b51fa04c::t_0b0cdb5d5f1289 6-9,21-22
+docs/stories/README.md
+  s_b8bef1b51fa04c::t_0b5e7ca76adbd9 3-4,6,8,10-12,14,16,20,22,24,26,30,36,38,40,48-51
+docs/stories/backlog.md
+  s_b8bef1b51fa04c::t_93729455971ca7 3-4,6,10-11,13,17-18
+docs/stories/epics/E01-provider-studios/US-001-three-provider-studios/validation.md
+  s_b8bef1b51fa04c::t_d6a0bfdbd407bf 34
+docs/stories/epics/E02-docs-harness-sync/US-002-docs-backfill-resync.md
+  s_b8bef1b51fa04c::t_b90cf05eccf7f9 13-15,22,63,76-77,82,87-88,117-121,125-131
+eslint.config.js
+  s_b8bef1b51fa04c::t_6d8781f9df7b3f 21-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "93a3977fd19034c579e496586f88b80493187160",
+  "prompts": {},
+  "sessions": {
+    "s_2a095d70a7ae08": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7190934e-71d8-440b-bdab-02f0b6bf5e16",
+        "model": "grok-4.5"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    },
+    "s_7575489ab4a45f": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "fda57999-d34b-4cd9-b9f2-0074779861dd",
+        "model": "unknown"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    },
+    "s_b8bef1b51fa04c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6a44-1574-7402-be0d-64bca15b43cd",
+        "model": "unknown"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    },
+    "s_ff01a98a953a15": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "84a14aa8-5dae-4b32-b3a3-f17be1e28306",
+        "model": "zai/glm-5.2"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
