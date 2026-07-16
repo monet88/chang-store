@@ -1,0 +1,84 @@
+docs/stories/bugs/BUG-VTO-MULTI-GATEWAY/implementation-note.md
+  s_1182807029ebfe::t_62d37ea21821d5 18-19
+  s_1182807029ebfe::t_9e67a8573938fc 23-27
+  s_1182807029ebfe::t_ea70817b77d758 20-22
+  s_1182807029ebfe::t_93a5c263264605 1-6,10-11,16-17
+  s_1182807029ebfe::t_e37c8701afbeac 7-9
+  s_1182807029ebfe::t_788473e2e7e4eb 12-13
+  s_1182807029ebfe::t_743851154c3e5a 14-15
+docs/stories/bugs/BUG-VTO-MULTI-GATEWAY/validation.md
+  s_1182807029ebfe::t_93a5c263264605 1-21,24-38
+  s_1182807029ebfe::t_ea70817b77d758 50-54
+  s_1182807029ebfe::t_9e67a8573938fc 55-66
+  s_1182807029ebfe::t_6a65a51fc2c6a4 45-46
+  s_1182807029ebfe::t_95bedf69d3b1fc 22-23
+  s_1182807029ebfe::t_553be680018d1d 39-44,47-49
+src/hooks/useModelImageResolutions.ts
+  s_1182807029ebfe::t_e37c8701afbeac 1-5
+src/components/ResolutionSelector.tsx
+  s_1182807029ebfe::t_ee6ac9a8bb1941 15,22-23,29-30,32,34
+  s_1182807029ebfe::t_a0058f377033f5 24,26,42-43,45,59-64,66-79
+  s_1182807029ebfe::t_788473e2e7e4eb 1,25,37-41,53-58
+  s_1182807029ebfe::t_b3392fa3df45af 65
+  s_1182807029ebfe::t_e37c8701afbeac 2-3,21
+  s_1182807029ebfe::t_93a5c263264605 16-17
+src/services/imageEditingService.ts
+  s_1182807029ebfe::t_788473e2e7e4eb 3,7
+  s_1182807029ebfe::t_6604663ebd0c22 110-114
+__tests__/components/ResolutionSelector.test.tsx
+  s_1182807029ebfe::t_788473e2e7e4eb 27,32-35,37-43
+  s_1182807029ebfe::t_a0058f377033f5 2-3,7-10,17,21-24,28-31,36,44,48
+  s_1182807029ebfe::t_c1164e65321e54 1,4-6,11-16,18-20,49-50
+  s_1182807029ebfe::t_6241522703a0e6 25-26
+  s_1182807029ebfe::t_b3392fa3df45af 45-47
+docs/product/try-on.md
+  s_1182807029ebfe::t_93a5c263264605 32
+src/config/modelRegistry.ts
+  s_1182807029ebfe::t_fea9d66449e688 1-2,7-8,21,28-31,61,63-64,72-75,100,102-103,111-114
+  s_1182807029ebfe::t_788473e2e7e4eb 4
+  s_2a095d70a7ae08::t_f90de99c500918 32,62,65,76,101,104,115
+docs/stories/bugs/BUG-VTO-MULTI-GATEWAY/overview.md
+  s_1182807029ebfe::t_93a5c263264605 1-40
+docs/stories/bugs/BUG-VTO-MULTI-GATEWAY/design.md
+  s_1182807029ebfe::t_93a5c263264605 1-45
+src/utils/upscale-prompt-builder.ts
+  s_1182807029ebfe::t_788473e2e7e4eb 1
+  s_2a095d70a7ae08::t_56be1da77ad167 18
+__tests__/services/imageEditingService.test.ts
+  s_1182807029ebfe::t_6241522703a0e6 192
+  s_1182807029ebfe::t_788473e2e7e4eb 152-165
+docs/stories/bugs/BUG-VTO-MULTI-GATEWAY/execplan.md
+  s_1182807029ebfe::t_93a5c263264605 1-49
+__tests__/config/modelSelectionRules.test.ts
+  s_2a095d70a7ae08::t_5c232d34c5dd0f 68,75-80
+__tests__/services/gemini/image.test.ts
+  s_2a095d70a7ae08::t_198766b1ad45f3 316-357,705-731
+docs/ARCHITECTURE.md
+  s_2a095d70a7ae08::t_50882e9ebd029f 228-235,239-240
+src/services/gemini/image.ts
+  s_2a095d70a7ae08::t_ecb54b11cbddc1 118-134,208-210,304,311
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "9fd3e2ff4fe344eb6cc31bd90fad6c487d2d1d49",
+  "prompts": {},
+  "sessions": {
+    "s_1182807029ebfe": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "1fde0be4-65d8-4594-ad2d-59c58fc25ffc",
+        "model": "gpt-4.1"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    },
+    "s_2a095d70a7ae08": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7190934e-71d8-440b-bdab-02f0b6bf5e16",
+        "model": "grok-4.5"
+      },
+      "human_author": "monet88 <minhthang421992@gmail.com>"
+    }
+  }
+}
