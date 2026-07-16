@@ -313,6 +313,48 @@ describe('services/gemini/image.ts', () => {
       expect(callArgs.config.imageConfig.aspectRatio).toBe('16:9');
     });
 
+    it('clamps Flash-Lite image edits to its supported 1K resolution', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await editImage({
+        images: [sampleImage],
+        prompt: 'Edit image',
+        model: 'gemini-3.1-flash-lite-image',
+        resolution: '2K',
+      });
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig.imageSize).toBe('1K');
+    });
+
+    it('preserves requested resolution for image models that support it', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await editImage({
+        images: [sampleImage],
+        prompt: 'Edit image',
+        model: 'gemini-3.1-flash-image',
+        resolution: '4K',
+      });
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig.imageSize).toBe('4K');
+    });
+
+    it('omits imageSize for image models that do not support the field', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await editImage({
+        images: [sampleImage],
+        prompt: 'Edit image',
+        model: 'gemini-2.5-flash-image',
+        resolution: '2K',
+      });
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig).toBeUndefined();
+    });
+
     it('should append negative prompt when provided', async () => {
       // Arrange
       mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
@@ -658,6 +700,33 @@ describe('services/gemini/image.ts', () => {
 
       // Assert
       expect(result.mimeType).toBe('image/jpeg');
+    });
+
+    it('clamps Flash-Lite upscale requests to its supported 1K resolution', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await upscaleImage(sampleImage, '2K', undefined, 'gemini-3.1-flash-lite-image');
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig.imageSize).toBe('1K');
+    });
+
+    it('preserves requested upscale resolution for image models that support it', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await upscaleImage(sampleImage, '4K', undefined, 'gemini-3.1-flash-image');
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig.imageSize).toBe('4K');
+    });
+
+    it('omits imageSize for upscale models that do not support the field', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await upscaleImage(sampleImage, '2K', undefined, 'gemini-2.5-flash-image');
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig).toBeUndefined();
     });
 
     it('should throw error.api.safetyBlock on promptFeedback block', async () => {

@@ -1,6 +1,11 @@
+import type { ImageResolution } from '../types';
+
 export interface ModelCapability {
+  /** Whether the API accepts imageConfig.imageSize for this model. */
   supportsImageSize: boolean;
   supportsAspectRatio: boolean;
+  /** Output sizes the model can produce, including fixed sizes not settable through imageConfig. */
+  supportedImageSizes?: readonly ImageResolution[];
 }
 
 export type ModelSelectionType = 'imageEdit' | 'imageGenerate' | 'textGenerate';
@@ -13,14 +18,18 @@ export interface RegisteredModel {
   capabilities?: ModelCapability;
 }
 
-const CAPABILITY_RULES = [
+const CAPABILITY_RULES: Array<{ pattern: RegExp; capabilities: ModelCapability }> = [
   {
     pattern: /gemini-3/,
     capabilities: { supportsImageSize: true, supportsAspectRatio: true },
   },
   {
     pattern: /gemini-2\.5/,
-    capabilities: { supportsImageSize: false, supportsAspectRatio: true },
+    capabilities: {
+      supportsImageSize: false,
+      supportsAspectRatio: true,
+      supportedImageSizes: ['1K'],
+    },
   },
 ];
 
@@ -49,14 +58,22 @@ const IMAGE_EDIT_MODELS: RegisteredModel[] = [
     modelId: 'gemini-3.1-flash-lite-image',
     label: 'Nano Banana 2 Lite',
     selectionType: 'imageEdit',
-    capabilities: { supportsImageSize: true, supportsAspectRatio: true },
+    capabilities: {
+      supportsImageSize: true,
+      supportsAspectRatio: true,
+      supportedImageSizes: ['1K'],
+    },
   },
   {
     providerId: 'google',
     modelId: 'gemini-2.5-flash-image',
     label: 'Nano Banana',
     selectionType: 'imageEdit',
-    capabilities: { supportsImageSize: false, supportsAspectRatio: true },
+    capabilities: {
+      supportsImageSize: false,
+      supportsAspectRatio: true,
+      supportedImageSizes: ['1K'],
+    },
   },
 ];
 
@@ -80,14 +97,22 @@ const IMAGE_GENERATE_MODELS: RegisteredModel[] = [
     modelId: 'gemini-3.1-flash-lite-image',
     label: 'Nano Banana 2 Lite',
     selectionType: 'imageGenerate',
-    capabilities: { supportsImageSize: true, supportsAspectRatio: true },
+    capabilities: {
+      supportsImageSize: true,
+      supportsAspectRatio: true,
+      supportedImageSizes: ['1K'],
+    },
   },
   {
     providerId: 'google',
     modelId: 'gemini-2.5-flash-image',
     label: 'Nano Banana',
     selectionType: 'imageGenerate',
-    capabilities: { supportsImageSize: false, supportsAspectRatio: true },
+    capabilities: {
+      supportsImageSize: false,
+      supportsAspectRatio: true,
+      supportedImageSizes: ['1K'],
+    },
   },
 ];
 

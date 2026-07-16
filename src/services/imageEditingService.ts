@@ -1,9 +1,10 @@
 import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, UpscaleQuality } from '../types';
 import type { ImageResolution } from '../types';
+import { getModelCapabilities } from '../config/modelRegistry';
 import * as geminiImageService from './gemini/image';
 import type { GeneratedImageFile } from './gemini/image';
 import { getImageDimensions } from '../utils/imageUtils';
-import { buildUpscalePromptTable } from '../utils/upscale-prompt-builder';
+import { buildUpscalePrompt } from '../utils/upscale-prompt-builder';
 import { logApiCall } from './debugService';
 
 interface ApiConfig {
@@ -96,9 +97,6 @@ export const generateImage = async (
     }
 };
 
-/** Locked preservation-first upscale prompts — single source of truth */
-const UPSCALE_PROMPTS: Record<UpscaleQuality, string> = buildUpscalePromptTable('model');
-
 export const upscaleImage = async (
     image: ImageFile,
     model: ImageEditModel,
@@ -109,7 +107,11 @@ export const upscaleImage = async (
 ): Promise<ImageFile> => {
     const resolvedModel = quickModel ?? model;
     const startTime = Date.now();
-    const prompt = promptOverride ?? UPSCALE_PROMPTS[quality];
+    const supportedImageSizes = getModelCapabilities(resolvedModel).supportedImageSizes;
+    const effectiveQuality = supportedImageSizes?.includes(quality)
+        ? quality
+        : supportedImageSizes?.[0] ?? quality;
+    const prompt = promptOverride ?? buildUpscalePrompt(effectiveQuality, 'model');
 
     try {
         const result = await geminiImageService.upscaleImage(image, quality, prompt, resolvedModel);

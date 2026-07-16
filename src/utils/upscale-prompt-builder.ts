@@ -1,4 +1,4 @@
-import { UpscaleQuality } from '../types';
+import { ImageResolution, UpscaleQuality } from '../types';
 
 /**
  * Upscale prompt builder — single source of truth for the preservation-first
@@ -15,7 +15,7 @@ export type UpscaleSubjectNoun = 'model' | 'subject';
 
 /** Build the preservation-first upscale prompt for a quality + subject noun. */
 export const buildUpscalePrompt = (
-  quality: UpscaleQuality,
+  quality: ImageResolution,
   subjectNoun: UpscaleSubjectNoun,
 ): string =>
   `Upscale this image to ${quality} resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the ${subjectNoun}'s face and the overall composition exactly the same. Photorealistic, fashion photography quality, ${quality} quality.`;

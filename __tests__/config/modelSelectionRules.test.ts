@@ -65,11 +65,18 @@ describe('model selection rules', () => {
     expect(getModelCapabilities('gemini-2.5-flash-image')).toEqual({
       supportsImageSize: false,
       supportsAspectRatio: true,
+      supportedImageSizes: ['1K'],
     });
 
     expect(getModelCapabilities('gemini-3.1-flash-image')).toEqual({
       supportsImageSize: true,
       supportsAspectRatio: true,
+    });
+
+    expect(getModelCapabilities('gemini-3.1-flash-lite-image')).toEqual({
+      supportsImageSize: true,
+      supportsAspectRatio: true,
+      supportedImageSizes: ['1K'],
     });
   });
 });

@@ -225,19 +225,19 @@ optional "Gemini Proxy / Gateway" section that stores `vertexProxySettings`
 `httpOptions.baseUrl` + `apiVersion: 'v1beta'` via `configureGeminiClient()`
 in `src/services/apiClient.ts`.
 
-When the base URL ends in `/gemini` (a Vertex gateway), `services/gemini/image.ts`
-routes image edit / generate / upscale through the gateway image routes
-(`/api/images/edit|generate|upscale`, authenticated with an `x-api-key` header),
-while text and vision calls use the SDK `generateContent` path against the same
-base URL. Vision helpers must send `contents: [{ role: 'user', parts }]`; the
-role-less `{ parts }` shape is rejected by the gateway with `VALIDATION_FAILED`.
+When the base URL ends in `/gemini` (a Vertex gateway), all Gemini image edit,
+generate, and upscale operations use the SDK `generateContent` path against
+that base URL. Image requests send `contents: [{ role: 'user', parts }]` with an
+image response modality. When edit or upscale operations supply
+`imageConfig.imageSize`, unsupported output sizes are clamped or the field is
+omitted before the request reaches the gateway. Vision helpers follow the same
+explicit user-role content shape because the role-less `{ parts }` shape is
+rejected by the gateway with `VALIDATION_FAILED`.
 
 ## Testing
 
-- **Unit + boundary**: `npm run test` (Vitest) — 725 tests across 70 files, all
-  passing as of the 2026-07-03 resync. Coverage (V8): 74.85% lines, 73.96%
-  statements, 71.94% functions, 64.74% branches. Run `npm run test -- --coverage`
-  for the full report.
+- **Unit + boundary**: `npm run test` (Vitest). Run
+  `npm run test -- --coverage` for the full V8 coverage report.
 - **Live E2E**: `scripts/e2e-live/run.mts` (run with `tsx`) drives the real
   service layer against a live Vertex gateway with the `docs/image-test/`
   samples, covering all nine features plus text/vision/generate/upscale. See the

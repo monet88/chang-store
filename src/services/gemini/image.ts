@@ -115,6 +115,23 @@ const splitIntoBatches = (count: number, batchSize: number): number[] => {
   return batches;
 };
 
+const resolveSupportedImageSize = (
+  requestedSize: ImageResolution,
+  model: string,
+): ImageResolution | undefined => {
+  const capabilities = getModelCapabilities(model);
+  if (!capabilities.supportsImageSize) {
+    return undefined;
+  }
+
+  const supportedImageSizes = capabilities.supportedImageSizes;
+  if (!supportedImageSizes || supportedImageSizes.includes(requestedSize)) {
+    return requestedSize;
+  }
+
+  return supportedImageSizes[0];
+};
+
 const acquireGeminiImageRequestSlot = async (): Promise<void> => {
   if (activeGeminiImageRequests < MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS) {
     activeGeminiImageRequests += 1;
@@ -188,8 +205,9 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
       if (aspectRatio && aspectRatio !== 'Default' && capabilities.supportsAspectRatio) {
         imageConfig.aspectRatio = aspectRatio;
       }
-      if (resolution && capabilities.supportsImageSize) {
-        imageConfig.imageSize = resolution;
+      const imageSize = resolution ? resolveSupportedImageSize(resolution, model) : undefined;
+      if (imageSize) {
+        imageConfig.imageSize = imageSize;
       }
 
       const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
@@ -283,13 +301,14 @@ export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '
   try {
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
     const textPart: Part = { text: prompt ?? `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
+    const imageSize = resolveSupportedImageSize(quality, model);
 
     const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
       model,
       contents: [{ role: 'user', parts: [imagePart, textPart] }],
       config: {
         responseModalities: [Modality.IMAGE],
-        imageConfig: { imageSize: quality },
+        ...(imageSize && { imageConfig: { imageSize } }),
       },
     }));
 
