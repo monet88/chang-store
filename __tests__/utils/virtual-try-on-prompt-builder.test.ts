@@ -200,7 +200,7 @@ describe('buildVirtualTryOnParts', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
       expect(text).toContain('fit naturally');
       expect(text).toContain('Preserve occlusions');
-      expect(text).toContain('Match lighting, shadows, and color grading');
+      expect(text).toContain('Match the lighting, shadows, and color grading of the ORIGINAL SUBJECT IMAGE exactly');
     });
 
     it('preserves original pose and does not invent hands in pockets', () => {
@@ -219,7 +219,8 @@ describe('buildVirtualTryOnParts', () => {
       expect(text.substring(recapIndex + '## CRITICAL RECAP'.length)).not.toMatch(/^## /m);
       expect(text).toContain('Each source item is 100% preserved');
       expect(text).toContain('shoes, bags, and accessories do not rewrite unrelated areas');
-      expect(text).toContain('Face/hair/skin preserved; overall pose kept with only minor outfit-fit adjustments allowed');
+      expect(text).toContain('Face (100% identical, absolutely no changes to face features/expression)');
+      expect(text).toContain('hair/skin preserved; overall pose kept with only minor outfit-fit adjustments allowed');
     });
   });
 
