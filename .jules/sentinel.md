@@ -7,3 +7,7 @@
 **Vulnerability:** Gateway image endpoints parsed massive base64 image data URLs using `.match(/^data:(.+?);base64,([A-Za-z0-9+/=\s]+)$/i)`. This regex is vulnerable to ReDoS due to backtracking on invalid base64 payloads, blocking the event loop.
 **Learning:** Using regex on multi-megabyte strings is dangerous. Furthermore, attempting to replace it with `value.toLowerCase().startsWith(...)` introduces a memory DoS by duplicating the entire multi-megabyte string just to check the prefix.
 **Prevention:** For large payloads, always use bounded string operations (`value.substring(0, 5).toLowerCase()`) and avoid regex validation of the entire string body. Instead, validate character constraints using an explicit iteration over the string segment.
+## 2026-06-12 - Weak Random ID Generation
+**Vulnerability:** Application components used `Math.random()` and `Date.now()` to generate IDs for internal models like `LookbookSet` and download files. This can lead to ID collisions and predictable token generation.
+**Learning:** `Math.random()` is not cryptographically secure and predictable. Using it to generate tokens, IDs, or file names exposes the system to potential collision issues or ID guessing.
+**Prevention:** Use the modern, native `crypto.randomUUID()` Web API to generate robust, collision-resistant, cryptographically secure IDs in browser environments.
