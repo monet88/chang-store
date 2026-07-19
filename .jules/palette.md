@@ -10,3 +10,6 @@
 ## 2025-06-29 - [Added `focus-visible` to interactive elements in `WatermarkRemover`]
 **Learning:** Adding keyboard focus indicators ensures that keyboard users have visual feedback to see what they are navigating over in a complex component like `WatermarkRemover`. It's essential to match the focus ring color to the theme context of the element to make it visible and not jarring.
 **Action:** When creating interactive UI components like buttons, input fields, and tabs, ensure `focus-visible:outline-none focus-visible:ring-2` (and optionally a ring color like `focus-visible:ring-amber-500` or `focus-visible:ring-white`) are applied to make the component keyboard accessible.
+## 2024-07-19 - Do not pollute lockfiles
+**Learning:** Adding dev dependencies (like `@eslint/js`) locally to fix failing lint commands in an isolated task will cause `pnpm-lock.yaml` to regenerate with massive unneeded changes, failing code review for exceeding the 50-line limit and side-effects.
+**Action:** Always ensure `git status` only includes the specific target UI files before completing tasks, and strictly use `git restore` on `package.json` and lockfiles if package managers modify them. Pre-existing lint errors should be ignored if not directly related to the task.
