@@ -490,6 +490,8 @@ export const vi: Translation = {
     extraPromptPlaceholder: 'ví dụ: "áo không sơ vin", "thêm thắt lưng màu đen"...',
     extraPromptDescription: 'ví dụ: áo phải mặc ngoài quần/váy, không được sơ vin, vạt áo phải phủ lên cạp quần/váy, rủ tự nhiên, thấy rõ vạt áo',
     numberOfImages: 'Số lượng ảnh',
+    quality: 'Chất lượng',
+    modelLimit: 'Giới hạn model',
     step3: 'Bước 3: Tạo ảnh',
     generateButton: 'Tạo batch',
     batchResultsTitle: 'Kết quả Batch',
@@ -678,6 +680,7 @@ export const vi: Translation = {
     title: 'Tạo Album Ảnh',
     description: 'Tạo một album ảnh tuyệt đẹp với nhiều tư thế, khung và nền từ một hình ảnh duy nhất.',
     mode: {
+      label: 'Chế độ ảnh đầu vào',
       fullModel: 'Dùng ảnh mẫu đầy đủ',
       faceAndOutfit: 'Ghép mặt & trang phục'
     },
@@ -770,6 +773,7 @@ export const vi: Translation = {
     },
     generateMore: 'Tạo Thêm',
     chooseHair: 'Chọn Kiểu tóc',
+    chooseSkinTone: 'Chọn Màu da',
     hairStyles: {
       long_straight_black: 'Dài, thẳng, đen',
       medium_wavy_brown: 'Vừa, gợn sóng, nâu',

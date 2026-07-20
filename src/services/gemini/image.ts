@@ -2,7 +2,7 @@
 import { Part, Modality } from "@google/genai";
 import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel, UpscaleQuality } from '../../types';
 import { getGeminiClient, isProxyEnabled } from '../apiClient';
-import { getModelCapabilities } from '../../config/modelRegistry';
+import { getModelCapabilities, resolveImageSizeConfig } from '../../config/modelRegistry';
 import { runBoundedWorkers } from '../../utils/run-bounded-workers';
 
 const PROXY_IMAGE_TIMEOUT_MS = 30_000;
@@ -188,8 +188,9 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
       if (aspectRatio && aspectRatio !== 'Default' && capabilities.supportsAspectRatio) {
         imageConfig.aspectRatio = aspectRatio;
       }
-      if (resolution && capabilities.supportsImageSize) {
-        imageConfig.imageSize = resolution;
+      const imageSize = resolveImageSizeConfig(model, resolution);
+      if (imageSize) {
+        imageConfig.imageSize = imageSize;
       }
 
       const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
@@ -283,13 +284,14 @@ export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '
   try {
     const imagePart: Part = { inlineData: { data: image.base64, mimeType: image.mimeType } };
     const textPart: Part = { text: prompt ?? `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
+    const imageSize = resolveImageSizeConfig(model, quality);
 
     const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
       model,
       contents: [{ role: 'user', parts: [imagePart, textPart] }],
       config: {
         responseModalities: [Modality.IMAGE],
-        imageConfig: { imageSize: quality },
+        ...(imageSize && { imageConfig: { imageSize } }),
       },
     }));
 
