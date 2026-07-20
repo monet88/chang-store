@@ -40,7 +40,7 @@ const sectionTitleClass = 'text-xl font-medium tracking-[-0.03em] text-zinc-50';
 const helperClass = 'text-sm leading-6 text-zinc-400';
 const textareaClass = 'w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm leading-6 text-zinc-100 placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20';
 const choiceWrapClass = 'flex flex-wrap gap-2 rounded-[20px] border border-white/10 bg-black/30 p-2';
-const choiceButton = (active: boolean) => `rounded-full px-4 py-2 text-sm font-medium transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-amber-500 ${
+const choiceButton = (active: boolean) => `inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-amber-500 ${
   active ? 'bg-white text-black' : 'text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
 }`;
 const secondaryButtonClass = 'inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
