@@ -18,7 +18,7 @@ table. The schema is not changed by Phase 2.
 | `story_id` | TEXT | Standard+ when work maps to one story | Story id from the `story` table. Use the main story when one trace covers several; list the rest in `notes`. | `US-004` |
 | `agent` | TEXT | Optional for minimal; Standard+ expected | Short agent/tool name. | `codex` |
 | `actions_taken` | TEXT | Standard+ | JSON array text. With the current CLI, pass a comma-separated list and the CLI stores JSON text. | `["read PHASE2.md","drafted TRACE_SPEC.md","updated HARNESS.md"]` |
-| `files_read` | TEXT | Standard+ | JSON array text of paths or command names. With the current CLI, pass a comma-separated list. | `["PHASE2.md","docs/HARNESS.md","scripts/harness query matrix"]` |
+| `files_read` | TEXT | Standard+ | JSON array text of paths or command names. With the current CLI, pass a comma-separated list. | `["PHASE2.md","docs/HARNESS.md","scripts/bin/harness-cli query matrix"]` |
 | `files_changed` | TEXT | Standard+ | JSON array text of changed file paths. With the current CLI, pass a comma-separated list; omit only when no files changed. | `["docs/TRACE_SPEC.md","docs/HARNESS.md"]` |
 | `decisions_made` | TEXT | Detailed | JSON array text of decision strings. Include scope decisions, validation choices, and explicit non-goals. | `["Kept Phase 2 docs-only; installer propagation remains out of scope"]` |
 | `errors` | TEXT | Standard+ if errors occurred; Detailed always | JSON array text of error or blocker strings. Until the CLI supports empty arrays directly, use `none` when a detailed trace needs explicit no-error evidence. | `["git diff --check failed before whitespace fix"]` |
@@ -90,6 +90,12 @@ Required for:
   external provider behavior.
 - Benchmark or release work where later review needs precise proof.
 
+For high-risk work, `decisions_made` in the trace summarizes what was decided.
+It does not replace a durable decision record. If the work changes behavior,
+architecture, authorization, data ownership, API shape, or validation
+requirements, add a `docs/decisions/NNNN-*.md` file and record it with
+`scripts/bin/harness-cli decision add`.
+
 ## Lane Mapping
 
 | Lane | Expected Tier | Minimum Trace Behavior |
@@ -115,7 +121,7 @@ How to write friction:
 - Name the concrete pain, not a vague mood.
 - Include the missing capability or contradiction.
 - If the friction should become work, also add or update a backlog item with
-  `scripts/harness backlog add`.
+  `scripts/bin/harness-cli backlog add`.
 - If there was no friction, use `none` only for Detailed traces.
 
 Good friction:
@@ -136,7 +142,7 @@ docs confusing
 ### Good Trace (Detailed)
 
 ```bash
-scripts/harness trace \
+scripts/bin/harness-cli trace \
   --summary "Completed high-risk auth role migration with audit proof" \
   --intake 51 \
   --story US-014 \
@@ -156,7 +162,7 @@ scripts/harness trace \
 ### Adequate Trace (Standard)
 
 ```bash
-scripts/harness trace \
+scripts/bin/harness-cli trace \
   --summary "Added Phase 2 trace specification and Harness reference" \
   --intake 36 \
   --story US-004 \
@@ -171,7 +177,7 @@ scripts/harness trace \
 ### Insufficient Trace
 
 ```bash
-scripts/harness trace \
+scripts/bin/harness-cli trace \
   --summary "did phase 2" \
   --outcome completed
 ```
@@ -188,6 +194,9 @@ Why this is insufficient for normal-lane Phase 2 work:
 Before the final response, check:
 
 - The trace tier matches the lane.
+- Review the score printed automatically by `scripts/bin/harness-cli trace`.
+  Use `scripts/bin/harness-cli score-trace --id N` when re-checking a specific
+  historical trace.
 - `files_changed` matches the actual changed-file set at a useful level.
 - `errors` names real blockers or is `none` for Detailed traces when the
   current CLI is used.

@@ -8,7 +8,10 @@ This taxonomy maps the **chang-store** repository to two component frameworks:
   behavior.
 
 Scope note: chang-store consumes Harness as an installed payload. The Harness
-CLI ships here as a prebuilt binary at `scripts/bin/harness-cli` (gitignored);
+CLI ships here as a tracked prebuilt Windows binary at
+`scripts/bin/harness-cli.exe`; on Windows the `.exe` is the required direct
+`harness.exe` entrypoint. The POSIX launcher and binary are not present in this
+checkout.
 the Rust source (`crates/`, `Cargo.*`) and the installer/release scripts live in
 the upstream Harness repo, not here. This inventory lists only files tracked in
 **this** repository (`git ls-files`).
@@ -27,12 +30,12 @@ Status values:
 | --- | --- | --- | --- | --- | --- |
 | 1 | Task specification | Covered | `AGENTS.md`, `docs/FEATURE_INTAKE.md`, `docs/templates/story.md`, `docs/templates/spec-intake.md`, `docs/templates/high-risk-story/*`, `docs/stories/*`, `intake` table, `story` table | Requests are classified by type and lane before implementation; normal and high-risk work have templates and durable story rows. | Keep story packets synchronized with future product docs. |
 | 2 | Context selection | Covered | `AGENTS.md`, `docs/CONTEXT_RULES.md`, `docs/ARCHITECTURE.md`, `docs/decisions/*`, `docs/product/README.md` | Phase 2 adds phase-by-lane context rules and retrieval triggers while preserving the stable entry list in `AGENTS.md`. | Future automation could enforce context selection or measure over-reading. |
-| 3 | Tool access | Partial | `scripts/harness`, `scripts/bin/harness-cli` (prebuilt, gitignored), `scripts/README.md`, `scripts/schema/001-init.sql` | The Harness CLI exposes operational commands for intake, stories, decisions, backlog, traces, and queries. Rust source and installer scripts are upstream-only. | No machine-readable tool registry, permission profile, or capability manifest exists yet. |
+| 3 | Tool access | Partial | `scripts/bin/harness-cli.exe` (tracked Windows binary), `scripts/bootstrap-harness.ps1`, `scripts/bootstrap-harness.sh`, `scripts/README.md`, `scripts/schema/001-init.sql` | The Harness CLI exposes operational commands for intake, stories, decisions, backlog, traces, and queries; Windows uses the `.exe` directly. Rust source and installer scripts are upstream-only. | No machine-readable permission profile or capability manifest exists yet. |
 | 4 | Project memory | Covered | `docs/HARNESS.md`, `docs/decisions/*`, `docs/GLOSSARY.md`, `docs/HARNESS_BACKLOG.md`, `docs/stories/*`, `harness.db`, `decision`, `backlog`, and `trace` tables | Decisions, backlog, stories, and traces preserve durable knowledge across tasks. | Future work should add staleness checks and summarize old traces. |
-| 5 | Task state | Covered | `scripts/harness query matrix`, `docs/TEST_MATRIX.md`, `intake` table, `story` table, `trace` table | Durable records track intake, story status, proof columns, and task traces. | Add lifecycle checks so in-progress stories cannot be forgotten. |
-| 6 | Observability | Partial | `docs/TRACE_SPEC.md`, `trace` table, `scripts/harness query traces`, `scripts/harness query friction`, `docs/HARNESS_MATURITY.md` | Traces can be recorded and Phase 2 defines quality tiers and maturity targets. | No automated trace quality scoring, dashboard, or benchmark ingestion exists in this repo. |
+| 5 | Task state | Covered | `scripts/bin/harness-cli.exe query matrix`, `docs/TEST_MATRIX.md`, `intake` table, `story` table, `trace` table | Durable records track intake, story status, proof columns, and task traces. | Add lifecycle checks so in-progress stories cannot be forgotten. |
+| 6 | Observability | Partial | `docs/TRACE_SPEC.md`, `trace` table, `scripts/bin/harness-cli.exe query traces`, `scripts/bin/harness-cli.exe query friction`, `docs/HARNESS_MATURITY.md` | Traces can be recorded and Phase 2 defines quality tiers and maturity targets. | No automated trace quality scoring, dashboard, or benchmark ingestion exists in this repo. |
 | 7 | Failure attribution | Partial | `docs/HARNESS_COMPONENTS.md`, `docs/TRACE_SPEC.md`, `trace.errors`, `trace.harness_friction`, `docs/HARNESS_BACKLOG.md`, `backlog` table | Failures can be tied to files, components, friction, and backlog proposals. | No automated attribution from benchmark failures to harness components exists yet. |
-| 8 | Verification | Partial | `docs/TEST_MATRIX.md`, `scripts/harness query matrix`, `story` proof columns, `.github/workflows/ci.yml`, `docs/templates/validation-report.md` | Stories record unit, integration, E2E, and platform proof; CI runs the app quality gates. | No generic verification runner, benchmark protocol file, or required final proof automation exists in this repo. |
+| 8 | Verification | Partial | `docs/TEST_MATRIX.md`, `scripts/bin/harness-cli.exe query matrix`, `story` proof columns, `.github/workflows/ci.yml`, `docs/templates/validation-report.md` | Stories record unit, integration, E2E, and platform proof; CI runs the app quality gates. | No generic verification runner, benchmark protocol file, or required final proof automation exists in this repo. |
 | 9 | Permissions | Partial | `AGENTS.md`, `docs/HARNESS.md`, `docs/FEATURE_INTAKE.md`, `docs/ARCHITECTURE.md` | Policy describes when agents may update docs and when to ask before architecture or workflow changes. | Permissions are instruction-level only; no enforced policy layer or command allowlist exists. |
 | 10 | Entropy auditing | Partial | `docs/HARNESS_BACKLOG.md`, `backlog` table, `trace.harness_friction`, `docs/HARNESS_MATURITY.md` | Growth rule captures friction and Phase 2 defines maturity movement. | No drift detector, stale-doc audit, or entropy score exists. |
 | 11 | Intervention recording | Partial | `trace` table, `docs/decisions/*`, `docs/stories/*`, `docs/HARNESS.md` | Traces and decisions can record actions, decisions, and outcomes. | Human interventions are not separated from normal agent actions, and there is no review-event schema. |
@@ -42,9 +45,9 @@ Status values:
 | Component | Harness Equivalent | Status | Notes |
 | --- | --- | --- | --- |
 | System prompts | `AGENTS.md` plus Harness policy docs | Covered | `AGENTS.md` is the stable shim; `docs/HARNESS.md`, `docs/FEATURE_INTAKE.md`, and `docs/CONTEXT_RULES.md` carry evolving operating instructions. |
-| Tool descriptions | `scripts/README.md`, `docs/HARNESS.md`, CLI help from `scripts/harness help` | Partial | Commands are documented, but there is no standalone tool schema or generated command reference. |
-| Tool implementations | `scripts/harness`, `scripts/bin/harness-cli` (prebuilt), `scripts/schema/001-init.sql` | Covered | The prebuilt Rust CLI behind the stable repo-local entrypoint is the durable-layer implementation; its source is upstream. |
-| Middleware | `scripts/harness`, feature intake workflow | Partial | The launcher and intake process mediate work, but there is no runtime middleware enforcing policies. |
+| Tool descriptions | `scripts/README.md`, `docs/HARNESS.md`, CLI help from the platform-native Harness executable | Partial | Commands are documented, but there is no standalone tool schema or generated command reference. |
+| Tool implementations | `scripts/bin/harness-cli.exe`, `scripts/schema/001-init.sql` | Covered | The prebuilt Rust CLI is the durable-layer implementation; Windows invokes `harness-cli.exe` directly. Its source is upstream. |
+| Middleware | platform-native Harness executable, feature intake workflow | Partial | The launcher/executable and intake process mediate work, but there is no runtime middleware enforcing policies. |
 | Skills | `docs/templates/*`, `docs/FEATURE_INTAKE.md`, `docs/CONTEXT_RULES.md`, `docs/TRACE_SPEC.md` | Partial | Reusable procedures exist as markdown, not executable or installable agent skills. |
 | Sub-agents | None in this repository | Missing | No delegated specialist agents or sub-agent protocols exist. |
 | Long-term memory | `harness.db`, `docs/decisions/*`, `docs/stories/*`, `docs/HARNESS_BACKLOG.md`, `docs/GLOSSARY.md` | Covered | Durable records and markdown decisions preserve task history and project vocabulary. |
@@ -130,12 +133,9 @@ row below references a file that exists in the repo (`git ls-files`).
 
 | File | Primary Responsibility | Secondary Responsibilities |
 | --- | --- | --- |
-| `scripts/harness` | Tool access | Task state, observability |
-| `scripts/bin/harness-cli` (prebuilt, gitignored) | Tool access | Task state, observability |
+| `scripts/bin/harness-cli.exe` (Windows, tracked prebuilt binary) | Tool access | Task state, observability |
 | `scripts/schema/001-init.sql` | Task state | Observability, project memory |
 | `scripts/README.md` | Tool access | Context selection |
-| `scripts/provider-tryon-smoke.ts` | Verification | Tool access |
-| `harness.db` (gitignored) | Task state | Observability, project memory |
 | `.github/workflows/ci.yml` | Verification | Tool access |
 | `.github/copilot-instructions.md` | Context selection | Task specification |
 

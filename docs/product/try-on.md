@@ -29,7 +29,7 @@ The flagship feature of Chang Store.
 | Background prompt | No | Custom background description |
 | Extra prompt | No | Additional styling instructions |
 | Aspect ratio | No | Default 3:4 |
-| Resolution | No | Default from `DEFAULT_IMAGE_RESOLUTION` |
+| Resolution | No | Model-aware output size. Flash-Lite and 2.5 Flash are fixed to 1K; supported Gemini 3 models expose 1K, 2K, and 4K. |
 | Num images | No | How many variants to generate |
 
 ## Multi-Person Mode
