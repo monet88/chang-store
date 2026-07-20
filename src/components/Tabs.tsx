@@ -90,7 +90,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature, studioMode
                   type="button"
                   onClick={() => setActiveFeature(tab.id)}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`w-full rounded-2xl border px-5 py-3.5 text-left text-[15px] transition-colors duration-200 ${
+                  className={`w-full rounded-2xl border px-5 py-3.5 text-left text-[15px] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                     isActive
                       ? 'border-white/25 bg-white/[0.12] text-zinc-50'
                       : 'border-transparent bg-transparent text-zinc-300 hover:border-white/10 hover:bg-white/[0.06] hover:text-zinc-50'
