@@ -4,7 +4,7 @@ import { DEFAULT_PROMPT_ID, DEFAULT_WATERMARK_MODEL, type WatermarkModel } from 
 
 /** Generate unique ID for batch items */
 const generateId = (): string =>
-  `wm-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  `wm-${crypto.randomUUID()}`;
 
 /** Clamp concurrency value to valid range */
 const clampConcurrency = (n: number): number =>

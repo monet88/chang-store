@@ -11,7 +11,7 @@ const mockImage = (id: string): ImageFile => ({
 const createFormState = (
   overrides: Partial<LookbookFormState> = {},
 ): LookbookFormState => ({
-  clothingImages: [{ id: 1, image: mockImage('garment') }],
+  clothingImages: [{ id: '1', image: mockImage('garment') }],
   fabricTextureImage: null,
   fabricTexturePrompt: '',
   clothingDescription: '',

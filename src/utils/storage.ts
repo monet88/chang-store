@@ -31,7 +31,7 @@ export const saveLookbookSet = (images: ImageFile[]): LookbookSet => {
   }
 
   const newSet: LookbookSet = {
-    id: `lookbook-${Date.now()}`,
+    id: `lookbook-${crypto.randomUUID()}`,
     createdAt: Date.now(),
     images: images,
   };
