@@ -69,9 +69,9 @@ export const PhotoAlbumCreator: React.FC<PhotoAlbumCreatorProps> = ({ transferre
         </div>
 
         <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-          <div className="flex justify-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg mb-4">
-            <button onClick={() => setMode('fullModel')} className={`flex-1 px-4 py-1.5 text-sm font-semibold rounded-md border transition-colors duration-200 ${mode === 'fullModel' ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>{t('photoAlbum.mode.fullModel')}</button>
-            <button onClick={() => setMode('faceAndOutfit')} className={`flex-1 px-4 py-1.5 text-sm font-semibold rounded-md border transition-colors duration-200 ${mode === 'faceAndOutfit' ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>{t('photoAlbum.mode.faceAndOutfit')}</button>
+          <div className="flex justify-center gap-2 bg-zinc-800/50 p-1.5 rounded-lg mb-4" role="group" aria-label={t('photoAlbum.mode.label')}>
+            <button type="button" aria-pressed={mode === 'fullModel'} onClick={() => setMode('fullModel')} className={`flex-1 px-4 py-1.5 text-sm font-semibold rounded-md border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 ${mode === 'fullModel' ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>{t('photoAlbum.mode.fullModel')}</button>
+            <button type="button" aria-pressed={mode === 'faceAndOutfit'} onClick={() => setMode('faceAndOutfit')} className={`flex-1 px-4 py-1.5 text-sm font-semibold rounded-md border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 ${mode === 'faceAndOutfit' ? 'border-white/60 bg-zinc-100 text-zinc-950' : 'border-transparent text-zinc-300 hover:bg-white/5 hover:text-zinc-100'}`}>{t('photoAlbum.mode.faceAndOutfit')}</button>
           </div>
 
           {mode === 'fullModel' ? (
@@ -123,8 +123,8 @@ export const PhotoAlbumCreator: React.FC<PhotoAlbumCreatorProps> = ({ transferre
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.additionalNotes')}</label>
-            <input type="text" value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} placeholder={t('photoAlbum.additionalNotesPlaceholder')} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm" />
+            <label htmlFor="additionalNotes-input" className="block text-sm font-medium text-zinc-300 mb-2">{t('photoAlbum.additionalNotes')}</label>
+            <input id="additionalNotes-input" type="text" value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} placeholder={t('photoAlbum.additionalNotesPlaceholder')} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm" />
           </div>
         </div>
 

@@ -680,6 +680,7 @@ export const vi: Translation = {
     title: 'Tạo Album Ảnh',
     description: 'Tạo một album ảnh tuyệt đẹp với nhiều tư thế, khung và nền từ một hình ảnh duy nhất.',
     mode: {
+      label: 'Chế độ ảnh đầu vào',
       fullModel: 'Dùng ảnh mẫu đầy đủ',
       faceAndOutfit: 'Ghép mặt & trang phục'
     },

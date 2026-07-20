@@ -679,6 +679,7 @@ export const en = {
     title: 'Create Photo Album',
     description: 'Create a stunning photo album with multiple poses, frames, and backgrounds from a single image.',
     mode: {
+      label: 'Photo input mode',
       fullModel: 'Use Full Model Image',
       faceAndOutfit: 'Combine Face & Outfit'
     },
