@@ -152,13 +152,24 @@ without parsing the human table.
 | `import brownfield` | Project memory | Seed durable records from markdown state. | none |
 | `intake` | Task specification | Record a feature intake classification. | `--type`, `--summary`, `--lane` |
 | `story add` | Task state | Create a durable story record. | `--id`, `--title`, `--lane`, optional `--verify` |
-| `story update` | Task state | Update story status, proof flags, evidence, or verification command. | `--id`, optional proof/status fields |
+| `story update` | Task state | Update non-completion story status, proof flags, evidence, or verification command; `implemented` requires `story complete`. | `--id`, optional proof/status fields |
+| `story update --json` | Task state | Perform a machine-readable non-completion status update with transactional compare-and-set/runnable preconditions. | `--id`, `--status`, `--expected-status`, optional `--require-runnable` |
+| `story dependency add` | Task state | Add a cycle-safe durable dependency edge. | `--blocker`, `--blocked` |
+| `story dependency remove` | Task state | Remove a durable dependency edge; missing edges are unchanged. | `--blocker`, `--blocked` |
+| `story hierarchy add` | Task state | Add an idempotent, cycle-safe parent/child edge. | `--parent`, `--child`, optional `--json` |
+| `story hierarchy remove` | Task state | Remove an idempotent parent/child edge. | `--parent`, `--child`, optional `--json` |
+| `story backlog link` | Task state | Add a replayable `resolves` or `references` link to a stable backlog occurrence. | `--story`, `--backlog`, `--relationship` |
+| `story backlog unlink` | Task state | Remove a relationship; closed resolver provenance remains immutable. | `--story`, `--backlog` |
+| `story backlog list` | Task state | Show story-to-backlog relationships. | optional `--story`, `--backlog` |
 | `story verify` | Verification | Run one story `verify_command` and record pass/fail. | story id |
+| `story complete` | Task state | Run fresh proof and atomically implement an eligible story plus accepted resolver backlog work. | story id |
 | `story verify-all` | Verification | Run all configured story verification commands and skip stories without one. | none |
 | `decision add` | Project memory | Create a durable decision record. | `--id`, `--title`, optional `--doc`, `--verify` |
 | `decision verify` | Verification | Run one decision verification command. | decision id |
 | `backlog add` | Entropy auditing | Record a harness improvement proposal. | `--title`, optional pain/suggestion/risk/predicted fields |
 | `backlog close` | Entropy auditing | Close a backlog item with outcome evidence. | `--id`, optional `--status`, `--outcome` |
+| `backlog reconcile` | Entropy auditing | Preview or apply conservative legacy lifecycle identity backfill. | `--action backfill-lifecycle-identity`, exactly one of `--dry-run` or `--apply` |
+| `backlog outcome record` | Entropy auditing | Append a measured outcome to an implemented keyed occurrence. | `--id`, `--status`, `--outcome`, optional `--evidence` |
 | `tool register` | Tool access | Register an external project tool. | `--name`, `--command`, `--description`, `--responsibility`, optional `--kind`, `--capability`, `--scan`, `--args`, `--force` |
 | `tool check` | Tool access | Scan registered tools and persist present/missing/unknown status. | optional `--name`, `--json` |
 | `tool remove` | Tool access | Remove a registered external tool. | `--name` |
@@ -167,9 +178,14 @@ without parsing the human table.
 | `score-trace` | Observability | Score trace detail against lane requirements. | optional `--id` |
 | `score-context` | Context selection | Score trace reads against compiled context rules. | trace id |
 | `audit` | Entropy auditing | Run drift checks and compute entropy score. | none |
-| `propose` | Entropy auditing | Generate improvement proposals from friction, interventions, and audit findings. | optional `--commit` |
-| `query matrix` | Task state | Show durable story proof matrix. | optional `--numeric` |
-| `query backlog` | Entropy auditing | Show harness improvement backlog. | optional `--open`, `--closed` |
+| `propose` | Entropy auditing | Read deterministic improvement proposals, or explicitly accept/reject one stable key. | `--accept <key>` plus one outcome schedule, or `--reject <key> --reason <text>` |
+| `query matrix` | Task state | Show the durable story proof matrix, optionally focused to active, runnable, or one exact story and without long evidence text. | optional `--numeric`, `--active`, `--runnable`, `--story <id>`, `--summary` |
+| `query contract` | Tool access | Discover protocol, capabilities, supported schema range, and DB state without writes. | required `--json` |
+| `query stories` | Task state | Return stable orchestration story records. | required `--json` |
+| `query work-graph` | Task state | Return one transactionally consistent story/dependency/hierarchy graph and revision. | required `--json` |
+| `query dependencies` | Task state | Show story dependency edges. | optional `--story` |
+| `query hierarchy` | Task state | Show deterministic parent/child edges. | optional `--story`, optional `--json` |
+| `query backlog` | Entropy auditing | Show Harness improvement backlog and, with `--id`, its relationships. | optional `--open`, `--closed`, `--id` |
 | `query decisions` | Project memory | Show durable decision records. | none |
 | `query intakes` | Task specification | Show recent intake records. | none |
 | `query traces` | Observability | Show recent trace records. | none |
@@ -177,7 +193,16 @@ without parsing the human table.
 | `query tools` | Tool access | Show compiled and registered tool entries. | optional `--json`, `--summary`, `--responsibility`, `--capability`, `--status` |
 | `query interventions` | Intervention recording | Show intervention records. | optional `--trace`, `--story`, `--type` |
 | `query stats` | Task state | Show durable record counts. | none |
-| `query sql` | Tool access | Run arbitrary SQL against `harness.db`. | SQL text |
+| `query sql` | Tool access | Run one read-only SQL statement against `harness.db`. | SQL text |
+| `db changeset apply` | Task state | Apply one semantic changeset idempotently. | changeset path |
+| `db changeset status` | Task state | Parse and inspect one changeset ID/content SHA/applied state without writing. | changeset path, required `--json` |
+| `db snapshot` | Task state | Create an integrity-checked atomic SQLite online-backup snapshot. | `--output`, required `--json` |
+| `db rebuild` | Task state | Rebuild a fresh `harness.db` from semantic changesets. | `--from` changeset directory |
+
+The exact protocol-v1 envelopes, exit codes, runnable definition, timeout and
+cancellation rules, and JSON schemas are normative in
+`docs/contracts/harness-orchestration-v1.md`. The registry table is only a
+human command index.
 
 ## Validation Rules
 

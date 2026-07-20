@@ -8,26 +8,26 @@ depth so agents can plan or review work without reverse-engineering every hook.
 
 | File | Scope |
 | --- | --- |
-| `overview.md` | Product summary, tech stack, architecture summary, persistence |
-| `provider-studios.md` | Three-provider studio split (Gemini / Grok / GPT Image) |
-| `try-on.md` | Virtual Try-On and Wardrobe Mode |
-| `lookbook.md` | Lookbook Generator |
-| `background.md` | Background Replacer |
-| `pose.md` | Pose Changer |
-| `photo-album.md` | Photo Album Creator |
-| `ai-editor.md` | AI Editor and @mention image references |
-| `watermark-remover.md` | Batch Watermark Remover |
-| `clothing-transfer.md` | Clothing Transfer |
-| `pattern-generator.md` | Pattern Generator |
+| overview.md | Product summary, tech stack, architecture summary, persistence |
+| provider-studios.md | Three-provider studio split (Gemini / Grok / GPT Image) |
+| try-on.md | Virtual Try-On and Wardrobe Mode |
+| lookbook.md | Lookbook Generator |
+| background.md | Background Replacer |
+| pose.md | Pose Changer |
+| photo-album.md | Photo Album Creator |
+| ai-editor.md | AI Editor and @mention image references |
+| watermark-remover.md | Batch Watermark Remover |
+| clothing-transfer.md | Clothing Transfer |
+| pattern-generator.md | Pattern Generator |
 
 ## Source Hierarchy
 
 When product docs conflict with code, verify the current implementation first:
 
-1. `src/types.ts` — current `Feature` enum and shared types.
-2. `src/App.tsx` — feature routing and provider nesting.
-3. Paired feature hook in `src/hooks/` — behavior source of truth.
-4. Paired feature component in `src/components/` — UI surface.
+1. src/types.ts — current Feature enum and shared types.
+2. src/App.tsx — feature routing and provider nesting.
+3. Paired feature hook in src/hooks/ — behavior source of truth.
+4. Paired feature component in src/components/ — UI surface.
 5. Product doc in this directory — operational contract to update.
 
 ## Update Rule
@@ -35,21 +35,19 @@ When product docs conflict with code, verify the current implementation first:
 When user-visible behavior changes:
 
 1. Update the affected product doc.
-2. Update `docs/README.md` if a product doc is added/removed.
-3. Update or create a story packet under `docs/stories/` when the change is
-   normal/high-risk lane.
-4. Update durable proof status with `scripts/harness story add` or
-   `scripts/harness story update` when tracking work through Harness.
-5. Record a decision in `docs/decisions/` if the change affects architecture,
-   scope, risk, or a previously settled product rule.
+2. Update docs/README.md if a product doc is added or removed.
+3. Update or create a story packet under docs/stories/ for normal/high-risk work.
+4. Update durable proof status with
+   scripts/bin/harness-cli.exe story add or story update on Windows.
+5. Record a decision in docs/decisions/ if architecture, scope, risk, or a
+   previously settled product rule changes.
 
 ## Validation Checklist
 
 Before treating these docs as current:
 
-- Feature list matches `src/types.ts`.
-- Routing and component names match `src/App.tsx`.
-- Key files exist.
-- Service boundaries match `docs/ARCHITECTURE.md` or list known debt.
-- i18n keys are updated in both `src/locales/en.ts` and `src/locales/vi.ts` for
-  user-facing text changes.
+- The feature list matches src/types.ts.
+- Routing and component names match src/App.tsx.
+- Referenced key files exist in the current checkout.
+- Service boundaries match docs/ARCHITECTURE.md or list known debt.
+- i18n keys remain mirrored in src/locales/en.ts and src/locales/vi.ts.

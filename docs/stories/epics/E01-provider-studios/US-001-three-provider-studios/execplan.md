@@ -30,4 +30,4 @@ High-risk because the work changes app navigation, introduces browser-exposed ex
 - `ApiProviderContext` cannot safely own provider settings without broader architecture changes.
 - Provider response cannot produce local `ImageFile[]` without a proxy or URL conversion path.
 - Any quality gate fails because of a real behavioral issue.
-- GitNexus impact analysis reports HIGH or CRITICAL risk for a symbol that must be changed.
+- CodeGraph blast-radius analysis reports HIGH or CRITICAL risk for a symbol that must be changed.

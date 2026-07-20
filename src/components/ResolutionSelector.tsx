@@ -1,5 +1,7 @@
-import React, { useEffect } from 'react';
-import { IMAGE_RESOLUTIONS, ImageResolution } from '../types';
+import React, { useId } from 'react';
+import { ImageResolution } from '../types';
+import { useModelImageResolutions } from '../hooks/useModelImageResolutions';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ResolutionSelectorProps {
   resolution: ImageResolution;
@@ -11,33 +13,43 @@ interface ResolutionSelectorProps {
 /**
  * Resolution selector with model-aware options
  * - gemini-2.5-flash-image: only 1K (fixed output ~1024px)
- * - gemini-3-pro-image: 0.5K, 1K, 2K, 4K all available
- * - gemini-3.1-flash-image: 0.5K, 1K, 2K, 4K all available
+ * - gemini-3.1-flash-lite-image: only 1K
+ * - gemini-3-pro-image: 1K, 2K, 4K available in this UI
+ * - gemini-3.1-flash-image: 1K, 2K, 4K available in this UI
  * - Other models: all options available
  */
 const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ resolution, setResolution, model }) => {
-  // Check if model only supports 1K
-  const is25FlashModel = model?.includes('gemini-2.5-flash');
+  const { t } = useLanguage();
+  const { supportedResolutions, effectiveResolution, isFixedResolution } = useModelImageResolutions(
+    model,
+    resolution,
+    setResolution,
+  );
+  const labelId = useId();
+  const groupName = useId();
 
-  // Auto-reset to 1K when switching to 2.5-flash model
-  useEffect(() => {
-    if (is25FlashModel && resolution !== '1K') {
-      setResolution('1K');
-    }
-  }, [is25FlashModel, resolution, setResolution]);
-
-  // If 2.5-flash model, show locked 1K indicator
-  if (is25FlashModel) {
+  if (isFixedResolution) {
     return (
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <span className="font-medium text-zinc-300">Quality:</span>
-        <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5">
-          <span className="rounded-xl bg-white px-3 py-1.5 text-sm font-semibold text-zinc-950">
-            1K
-          </span>
-          <span className="px-3 py-1.5 text-xs italic text-zinc-500">
-            (2.5-flash: 1K only)
-          </span>
+        <span id={labelId} className="font-medium text-zinc-300">{t('virtualTryOn.quality')}:</span>
+        <div
+          role="radiogroup"
+          aria-labelledby={labelId}
+          className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5"
+        >
+          <label className="flex min-h-[44px] min-w-[44px] cursor-not-allowed items-center justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-zinc-950">
+            <input
+              type="radio"
+              name={groupName}
+              value={effectiveResolution}
+              checked
+              disabled
+              readOnly
+              className="sr-only"
+            />
+            {effectiveResolution}
+          </label>
+          <span className="pr-2 text-xs text-zinc-400">{t('virtualTryOn.modelLimit')}</span>
         </div>
       </div>
     );
@@ -45,18 +57,33 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-2">
-      <span className="font-medium text-zinc-300">Quality:</span>
-      <div className="flex flex-wrap justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5">
-        {IMAGE_RESOLUTIONS.map(res => (
-          <button
-            key={res}
-            onClick={() => setResolution(res)}
-            className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200 ${resolution === res ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
-              }`}
-          >
-            {res}
-          </button>
-        ))}
+      <span id={labelId} className="font-medium text-zinc-300">{t('virtualTryOn.quality')}:</span>
+      <div
+        role="radiogroup"
+        aria-labelledby={labelId}
+        className="flex flex-wrap justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5"
+      >
+        {supportedResolutions.map(res => {
+          const isSelected = effectiveResolution === res;
+
+          return (
+            <label
+              key={res}
+              className={`flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-amber-500 ${isSelected ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
+                }`}
+            >
+              <input
+                type="radio"
+                name={groupName}
+                value={res}
+                checked={isSelected}
+                onChange={() => setResolution(res)}
+                className="sr-only"
+              />
+              {res}
+            </label>
+          );
+        })}
       </div>
     </div>
   );

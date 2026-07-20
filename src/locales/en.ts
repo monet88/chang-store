@@ -492,6 +492,8 @@ export const en = {
     extraPromptPlaceholder: 'e.g., "shirt untucked", "add a black belt"...',
     extraPromptDescription: 'Specific instructions on how the clothing should be worn or integrated.',
     numberOfImages: 'Number of Images',
+    quality: 'Quality',
+    modelLimit: 'Model limit',
     step3: 'Step 3: Generate',
     generateButton: 'Generate Batch',
     batchResultsTitle: 'Batch Results',
@@ -541,6 +543,7 @@ export const en = {
     uploadTitle: 'Upload Clothing Image(s)',
     clothingItemTitle: 'Clothing View #{{index}}',
     addView: 'Add Another View',
+    removeViewAria: 'Remove clothing view {{index}}',
     fabricTextureTitle: 'Fabric Texture Override (Optional)',
     fabricTextureUploadTitle: 'Upload Texture',
     fabricTexturePromptLabel: 'Describe Texture',
@@ -680,6 +683,7 @@ export const en = {
     title: 'Create Photo Album',
     description: 'Create a stunning photo album with multiple poses, frames, and backgrounds from a single image.',
     mode: {
+      label: 'Photo input mode',
       fullModel: 'Use Full Model Image',
       faceAndOutfit: 'Combine Face & Outfit'
     },
@@ -772,6 +776,7 @@ export const en = {
     },
     generateMore: 'Generate More',
     chooseHair: 'Choose Hair Style',
+    chooseSkinTone: 'Choose Skin Tone',
     hairStyles: {
       long_straight_black: 'Long, straight, black',
       medium_wavy_brown: 'Medium, wavy, brown',

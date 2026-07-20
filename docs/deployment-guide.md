@@ -63,13 +63,17 @@ This routing was verified live against `https://vertex.monet.uno/gemini` on the
 
 ```bash
 npm install
-npx tsc --noEmit
 npm run lint
-npm run test
+npx vitest run --passWithNoTests --exclude '**/__tests__/scripts/e2e-live-config.test.ts'
 npm run build
 ```
 
 `npm run build` produces the static output in `dist/`.
+
+The current checkout still contains a package test wrapper reference to the
+retired scripts/check-node-platform.mjs and a tracked test import of the
+retired scripts/e2e-live/config module. Full typecheck and unfiltered test
+proof remain a separate tooling follow-up; see docs/TEST_MATRIX.md.
 
 ## Vercel Deployment
 
