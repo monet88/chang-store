@@ -540,6 +540,7 @@ export const en = {
     uploadTitle: 'Upload Clothing Image(s)',
     clothingItemTitle: 'Clothing View #{{index}}',
     addView: 'Add Another View',
+    removeViewAria: 'Remove clothing view {{index}}',
     fabricTextureTitle: 'Fabric Texture Override (Optional)',
     fabricTextureUploadTitle: 'Upload Texture',
     fabricTexturePromptLabel: 'Describe Texture',

@@ -541,6 +541,7 @@ export const vi: Translation = {
     uploadTitle: 'Tải lên ảnh Quần áo',
     clothingItemTitle: 'Góc nhìn #{{index}}',
     addView: 'Thêm góc nhìn khác',
+    removeViewAria: 'Xóa góc nhìn trang phục {{index}}',
     fabricTextureTitle: 'Ghi đè họa tiết vải (Tùy chọn)',
     fabricTextureUploadTitle: 'Tải lên Họa tiết',
     fabricTexturePromptLabel: 'Mô tả Họa tiết',
