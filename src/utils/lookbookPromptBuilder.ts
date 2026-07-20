@@ -23,7 +23,7 @@ import { ImageFile, AspectRatio } from '../types';
  * Form state interface for prompt building
  */
 export interface LookbookFormState {
-  clothingImages: Array<{ id: number; image: ImageFile | null }>;
+  clothingImages: Array<{ id: string | number; image: ImageFile | null }>;
   fabricTextureImage: ImageFile | null;
   fabricTexturePrompt: string;
   clothingDescription: string;
