@@ -420,6 +420,39 @@ describe('ApiProviderContext', () => {
     });
   });
 
+  describe('legacy cliproxy migration', () => {
+    it('auto-upgrades a stored cliproxy.monet.uno URL to the current default gateway', () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'vertex_proxy_enabled') return 'true';
+        if (key === 'vertex_proxy_url') return 'https://cliproxy.monet.uno';
+        if (key === 'vertex_proxy_api_key') return 'legacy-key';
+        return null;
+      });
+
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
+      expect(result.current.vertexProxySettings.enabled).toBe(true);
+      expect(result.current.vertexProxySettings.apiKey).toBe('legacy-key');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('vertex_proxy_url', 'https://vertex.monet.uno/gemini');
+    });
+
+    it('upgrades cliproxy hosts with trailing path variants', () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'vertex_proxy_url') return 'https://cliproxy.monet.uno/v1';
+        return null;
+      });
+
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
+    });
+  });
+
   describe('vertex proxy restore handling', () => {
     it('shows the invalid restore toast only once across rerenders', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {

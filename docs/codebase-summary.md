@@ -79,9 +79,11 @@ npm run build               # Production build
 Boundary coverage includes checks that UI components do not directly import
 services.
 
-### Test Suite Metrics
+### Historical Test Suite Metrics
 
-Measured on the 2026-07-03 resync (`npm run test` + `--coverage`, V8 provider):
+Measured on the 2026-07-03 resync (`npm run test` + `--coverage`, V8 provider).
+These numbers are retained as dated evidence and were not re-claimed as current
+by the 2026-07-16 documentation backfill:
 
 | Metric | Value |
 | --- | --- |
@@ -98,18 +100,22 @@ Gemini `text.ts`, and most Virtual Try-On / Lookbook / Photo Album hooks.
 
 Lower-covered areas (opportunities, not regressions): `utils/imageUtils.ts`
 (~23%), `services/googleDriveService.ts` (~18%), the Watermark Remover hook
-family (engine/queue/actions, 0% — logic proven via the live E2E run below), and
+family (engine/queue/actions, 0% — logic exercised by the historical live E2E
+run below), and
 `services/gemini/chat.ts` (0%, refine-session path).
 
-### Live E2E Verification
+### Historical Live E2E Verification
 
-A live end-to-end harness (`scripts/e2e-live/run.mts`, run with `tsx`) drives
-the real app service layer against the Vertex gateway
+A previous live end-to-end harness drove the real app service layer against the
+Vertex gateway
 (`https://vertex.monet.uno/gemini`) using the sample images in
-`docs/image-test/`. It exercises all nine features plus text generation,
-vision description, image generation, and upscale — 13 flows total.
+`docs/image-test/`. It exercised all nine features plus text generation, vision
+description, image generation, and upscale — 13 flows total. The
+`scripts/e2e-live/` runner and its fixtures are retired or absent in the
+current checkout, so this is historical evidence rather than a current command.
 
-Last run (2026-07-03): 11/13 flows returned valid output. The two non-passing
+Last recorded run (2026-07-03): 11/13 flows returned valid output. The two
+non-passing
 flows were external-runtime conditions, not app defects:
 
 - Watermark Remover — the model declined the specific sample image (returned a
@@ -130,10 +136,13 @@ device only).
 
 ## Known Documentation Notes
 
-- Harness v0 docs and scripts are present under `docs/` and `scripts/`.
-- `harness.db` and `scripts/bin/harness-cli` are local artifacts and remain
-  untracked (gitignored).
+- Harness operating docs and the Windows CLI are present under `docs/` and
+  `scripts/`.
+- `harness.db` is local state; `scripts/bin/harness-cli.exe` is the current
+  Windows entrypoint.
 - The three-provider studio split (Gemini/Grok/GPT Image) is live; see
   `docs/product/provider-studios.md`.
 - `useSwapFace` / `useInpainting` were removed as unwired dead code (backlog #2).
-- Last resync of these docs to code: 2026-07-03 (test metrics, live E2E, Gemini vision `contents` fix).
+- Last documentation resync: 2026-07-16. The 2026-07-03 test/E2E metrics above
+  remain historical; current source changes require a fresh runtime run before
+  those claims are promoted.

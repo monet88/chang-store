@@ -35,7 +35,6 @@ test-chat-service.ts
 test-chat-service.mjs
 test-*.ts
 test-*.mjs
-!gateway/test/test-config.ts
 
 # Tauri build artifacts
 src-tauri/target/
@@ -65,7 +64,6 @@ scripts/e2e-live/output/
 .sisyphus/
 .beads/
 .gstack/
-.gitnexus
 .vera
 .omx/
 .playwright-mcp/
@@ -82,6 +80,10 @@ harness.db
 harness.db-wal
 harness.db-shm
 scripts/bin/harness-cli
+
+# Local Harness recovery and transition state
+.harness/
+.harness-backup/
 .kiro
 .planning
 .github/skills/
@@ -105,7 +107,6 @@ harness.db
 harness.db-wal
 harness.db-shm
 scripts/bin/harness-cli
-scripts/bin/harness-cli.exe
 
 # Local deploy guide (infrastructure details, not for public repo)
 docs/deploy/
@@ -114,3 +115,5 @@ docs/superpowers/
 # Gateway is now a separate repo: https://github.com/monet88/vertex-gateway
 gateway/
 gateway-data/
+
+scripts/bin/harness-cli.exe
