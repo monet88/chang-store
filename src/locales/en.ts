@@ -489,6 +489,8 @@ export const en = {
     extraPromptPlaceholder: 'e.g., "shirt untucked", "add a black belt"...',
     extraPromptDescription: 'Specific instructions on how the clothing should be worn or integrated.',
     numberOfImages: 'Number of Images',
+    quality: 'Quality',
+    modelLimit: 'Model limit',
     step3: 'Step 3: Generate',
     generateButton: 'Generate Batch',
     batchResultsTitle: 'Batch Results',

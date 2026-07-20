@@ -14,7 +14,7 @@ import {
 import { LookbookFormState } from '../utils/lookbookPromptBuilder';
 
 export interface ClothingItem {
-  id: number;
+  id: string;
   image: ImageFile | null;
 }
 
@@ -79,7 +79,7 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
     includeFootwear,
   } = formState;
 
-  const handleClothingUpload = useCallback((file: ImageFile | null, id: number) => {
+  const handleClothingUpload = useCallback((file: ImageFile | null, id: string) => {
     const newClothingImages = clothingImages.map((item) =>
       item.id === id ? { ...item, image: file } : item,
     );
@@ -88,7 +88,7 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
 
   const handleMultiClothingUpload = useCallback((files: ImageFile[]) => {
     const newClothingImages = files.map((file) => ({
-      id: Date.now() + Math.random(),
+      id: crypto.randomUUID(),
       image: file,
     }));
     onFormChange({ clothingImages: newClothingImages });
@@ -96,11 +96,11 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
 
   const addClothingUploader = useCallback(() => {
     onFormChange({
-      clothingImages: [...clothingImages, { id: Date.now(), image: null }],
+      clothingImages: [...clothingImages, { id: crypto.randomUUID(), image: null }],
     });
   }, [clothingImages, onFormChange]);
 
-  const removeClothingUploader = useCallback((id: number) => {
+  const removeClothingUploader = useCallback((id: string) => {
     onFormChange({
       clothingImages: clothingImages.filter((item) => item.id !== id),
     });

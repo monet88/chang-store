@@ -35,7 +35,6 @@ test-chat-service.ts
 test-chat-service.mjs
 test-*.ts
 test-*.mjs
-!gateway/test/test-config.ts
 
 # Tauri build artifacts
 src-tauri/target/
@@ -56,7 +55,8 @@ nul
 opencode.json
 .osgrep
 admin-*.png
-gateway-data/
+
+scripts/e2e-live/output/
 
 # AI orchestration local files
 .claude/
@@ -64,7 +64,6 @@ gateway-data/
 .sisyphus/
 .beads/
 .gstack/
-.gitnexus
 .vera
 .omx/
 .playwright-mcp/
@@ -81,6 +80,10 @@ harness.db
 harness.db-wal
 harness.db-shm
 scripts/bin/harness-cli
+
+# Local Harness recovery and transition state
+.harness/
+.harness-backup/
 .kiro
 .planning
 .github/skills/
@@ -93,10 +96,6 @@ cloudflare-tunnel
 .workflow/
 skills-lock.json
 .ref/
-gateway/compiled/
-gateway/.env
-gateway/accounts/*
-!gateway/accounts/.gitkeep
 gcp/cloud-run.env.yaml
 .codegraph/
 test-results/
@@ -108,4 +107,13 @@ harness.db
 harness.db-wal
 harness.db-shm
 scripts/bin/harness-cli
+
+# Local deploy guide (infrastructure details, not for public repo)
+docs/deploy/
+docs/superpowers/
+
+# Gateway is now a separate repo: https://github.com/monet88/vertex-gateway
+gateway/
+gateway-data/
+
 scripts/bin/harness-cli.exe

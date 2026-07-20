@@ -1,8 +1,10 @@
 import { ImageFile, AspectRatio, ImageEditModel, ImageGenerateModel, UpscaleQuality } from '../types';
 import type { ImageResolution } from '../types';
+import { resolveEffectiveImageResolution } from '../config/modelRegistry';
 import * as geminiImageService from './gemini/image';
 import type { GeneratedImageFile } from './gemini/image';
 import { getImageDimensions } from '../utils/imageUtils';
+import { buildUpscalePrompt } from '../utils/upscale-prompt-builder';
 import { logApiCall } from './debugService';
 
 interface ApiConfig {
@@ -95,12 +97,6 @@ export const generateImage = async (
     }
 };
 
-/** Locked preservation-first upscale prompts — single source of truth */
-const UPSCALE_PROMPTS: Record<UpscaleQuality, string> = {
-    '2K': 'Upscale this image to 2K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the model\'s face and the overall composition exactly the same. Photorealistic, fashion photography quality, 2K quality.',
-    '4K': 'Upscale this image to 4K resolution. Enhance the details, make the fabric textures look sharp and realistic, and ensure the colors are vibrant and accurate. Keep the model\'s face and the overall composition exactly the same. Photorealistic, fashion photography quality, 4K quality.',
-};
-
 export const upscaleImage = async (
     image: ImageFile,
     model: ImageEditModel,
@@ -111,7 +107,8 @@ export const upscaleImage = async (
 ): Promise<ImageFile> => {
     const resolvedModel = quickModel ?? model;
     const startTime = Date.now();
-    const prompt = promptOverride ?? UPSCALE_PROMPTS[quality];
+    const effectiveQuality = resolveEffectiveImageResolution(resolvedModel, quality);
+    const prompt = promptOverride ?? buildUpscalePrompt(effectiveQuality, 'model');
 
     try {
         const result = await geminiImageService.upscaleImage(image, quality, prompt, resolvedModel);

@@ -189,7 +189,7 @@ describe('useLookbookGenerator', () => {
      */
     it('should load saved draft from localStorage', () => {
       const savedDraft = {
-        clothingImages: [{ id: 123, image: TEST_CLOTHING_IMAGE }],
+        clothingImages: [{ id: '123', image: TEST_CLOTHING_IMAGE }],
         fabricTextureImage: null,
         fabricTexturePrompt: '',
         clothingDescription: 'A blue dress',
@@ -265,7 +265,7 @@ describe('useLookbookGenerator', () => {
       act(() => {
         result.current.updateForm({
           clothingDescription: 'New desc',
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
           fabricTextureImage: TEST_FABRIC_IMAGE,
         });
       });
@@ -348,7 +348,7 @@ describe('useLookbookGenerator', () => {
       // Set up clothing image first
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -373,7 +373,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -397,7 +397,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -448,7 +448,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
           clothingDescription: 'A red dress',
         });
       });
@@ -472,7 +472,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -496,7 +496,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -524,7 +524,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
           fabricTextureImage: TEST_FABRIC_IMAGE,
           fabricTexturePrompt: 'Silk texture',
         });
@@ -575,7 +575,7 @@ describe('useLookbookGenerator', () => {
       // First generate main image
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -604,7 +604,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -652,7 +652,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -684,7 +684,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -718,7 +718,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -752,7 +752,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -784,7 +784,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -844,7 +844,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -880,7 +880,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -921,7 +921,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -965,7 +965,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -1000,7 +1000,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -1058,7 +1058,7 @@ describe('useLookbookGenerator', () => {
 
       act(() => {
         result.current.updateForm({
-          clothingImages: [{ id: 1, image: TEST_CLOTHING_IMAGE }],
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
         });
       });
 
@@ -1089,9 +1089,9 @@ describe('useLookbookGenerator', () => {
       act(() => {
         result.current.updateForm({
           clothingImages: [
-            { id: 1, image: image1 },
-            { id: 2, image: image2 },
-            { id: 3, image: image3 },
+            { id: '1', image: image1 },
+            { id: '2', image: image2 },
+            { id: '3', image: image3 },
           ],
         });
       });
@@ -1115,9 +1115,9 @@ describe('useLookbookGenerator', () => {
       act(() => {
         result.current.updateForm({
           clothingImages: [
-            { id: 1, image: TEST_CLOTHING_IMAGE },
-            { id: 2, image: null },
-            { id: 3, image: null },
+            { id: '1', image: TEST_CLOTHING_IMAGE },
+            { id: '2', image: null },
+            { id: '3', image: null },
           ],
         });
       });

@@ -34,8 +34,6 @@ const { mockIsProxyEnabled } = vi.hoisted(() => ({
 vi.mock('@/services/apiClient', () => ({
   getGeminiClient: vi.fn(() => mockGeminiClient),
   isProxyEnabled: mockIsProxyEnabled,
-  getGeminiBaseUrl: vi.fn(() => null),
-  getActiveApiKey: vi.fn(() => 'test-key'),
 }));
 
 // Import after mocking
@@ -315,6 +313,61 @@ describe('services/gemini/image.ts', () => {
       expect(callArgs.config.imageConfig.aspectRatio).toBe('16:9');
     });
 
+    it('clamps Flash-Lite image edits to its supported 1K resolution', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await editImage({
+        images: [sampleImage],
+        prompt: 'Edit image',
+        model: 'gemini-3.1-flash-lite-image',
+        resolution: '2K',
+      });
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig.imageSize).toBe('1K');
+    });
+
+    it('always sends Flash-Lite imageSize 1K when resolution is omitted', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await editImage({
+        images: [sampleImage],
+        prompt: 'Edit image',
+        model: 'gemini-3.1-flash-lite-image',
+      });
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig.imageSize).toBe('1K');
+    });
+
+    it('preserves requested resolution for image models that support it', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await editImage({
+        images: [sampleImage],
+        prompt: 'Edit image',
+        model: 'gemini-3.1-flash-image',
+        resolution: '4K',
+      });
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig.imageSize).toBe('4K');
+    });
+
+    it('omits imageSize for image models that do not support the field', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await editImage({
+        images: [sampleImage],
+        prompt: 'Edit image',
+        model: 'gemini-2.5-flash-image',
+        resolution: '2K',
+      });
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig).toBeUndefined();
+    });
+
     it('should append negative prompt when provided', async () => {
       // Arrange
       mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
@@ -436,6 +489,26 @@ describe('services/gemini/image.ts', () => {
       await expect(editImage(params)).rejects.toThrow(
         'error.api.geminiFailed:Network timeout'
       );
+    });
+
+    // Regression: previously editImage sent a custom /api/images/edit POST to the
+    // gateway root when the base URL ended in /gemini. The gateway dropped those
+    // custom routes, so this now must go through the SDK's generateContent path
+    // without issuing any direct fetch to a custom route.
+    it('uses the SDK generateContent path without direct fetch', async () => {
+      // Silent spy: if editImage calls fetch, the assertion below fails with a
+      // clear Vitest diff (including the arguments) instead of an unhandled throw.
+      const fetchSpy = vi.fn();
+      vi.stubGlobal('fetch', fetchSpy);
+
+      try {
+        mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+        await editImage({ images: [sampleImage], prompt: 'Edit via gateway' });
+        expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+        expect(fetchSpy).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
     });
   });
 
@@ -640,6 +713,33 @@ describe('services/gemini/image.ts', () => {
 
       // Assert
       expect(result.mimeType).toBe('image/jpeg');
+    });
+
+    it('clamps Flash-Lite upscale requests to its supported 1K resolution', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await upscaleImage(sampleImage, '2K', undefined, 'gemini-3.1-flash-lite-image');
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig.imageSize).toBe('1K');
+    });
+
+    it('preserves requested upscale resolution for image models that support it', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await upscaleImage(sampleImage, '4K', undefined, 'gemini-3.1-flash-image');
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig.imageSize).toBe('4K');
+    });
+
+    it('omits imageSize for upscale models that do not support the field', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+
+      await upscaleImage(sampleImage, '2K', undefined, 'gemini-2.5-flash-image');
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.config.imageConfig).toBeUndefined();
     });
 
     it('should throw error.api.safetyBlock on promptFeedback block', async () => {

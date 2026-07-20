@@ -39,17 +39,41 @@ in localStorage). Build-time keys only provide a default.
 > the browser. This is accepted for v1. A serverless proxy is planned for v2 so
 > secrets never reach the client.
 
+## Gemini Proxy / Gateway (optional)
+
+Instead of calling Google Gemini directly, the app can route Gemini requests
+through a Gemini-compatible proxy or gateway. This is configured at runtime, not
+at build time:
+
+- Open Settings → "Gemini Proxy / Gateway".
+- Enable the toggle, set the proxy URL, and enter the proxy API key, then save.
+- When the URL ends in `/gemini`, image edit/generate/upscale requests use the
+  gateway image routes (`/api/images/*`) with an `x-api-key` header; text and
+  vision requests use the `@google/genai` client with `httpOptions.baseUrl`.
+
+Settings persist in `localStorage` (`vertex_proxy_*` keys) with fail-closed
+restore validation. The proxy API key is stored as plaintext in the browser, so
+only enable this on a trusted device.
+
+This routing was verified live against `https://vertex.monet.uno/gemini` on the
+2026-07-03 E2E run; see the "Live E2E Verification" section in
+`docs/codebase-summary.md`.
+
 ## Build Process
 
 ```bash
 npm install
-npx tsc --noEmit
 npm run lint
-npm run test
+npx vitest run --passWithNoTests --exclude '**/__tests__/scripts/e2e-live-config.test.ts'
 npm run build
 ```
 
 `npm run build` produces the static output in `dist/`.
+
+The current checkout still contains a package test wrapper reference to the
+retired scripts/check-node-platform.mjs and a tracked test import of the
+retired scripts/e2e-live/config module. Full typecheck and unfiltered test
+proof remain a separate tooling follow-up; see docs/TEST_MATRIX.md.
 
 ## Vercel Deployment
 
@@ -67,11 +91,12 @@ provider that supports SPA fallback routing.
 ## Optional Backend Gateway
 
 If you do not want browser clients to hold Google Vertex credentials or direct
-Gemini API access, this repo also includes an optional backend gateway under
-`gateway/`.
+Gemini API access, an optional backend gateway is available in a separate repo:
+https://github.com/monet88/vertex-gateway
 
-- Local Docker flow: `gateway/README.md`
-- Cloud Run deployment artifacts without changing gateway runtime code: `gcp/`
+- Clone that repo for the local Docker flow and Cloud Run deployment artifacts.
+- App API usage and feature behavior are unchanged whether or not the gateway
+  is used.
 
 ## Post-Deployment Validation
 

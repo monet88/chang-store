@@ -27,7 +27,7 @@ function sanitizeSegment(value: string): string {
 }
 
 function createRandomToken(): string {
-  return Math.random().toString(36).slice(2, 10);
+  return crypto.randomUUID().slice(0, 8);
 }
 
 function resolveBaseName(options: DownloadImageOptions): string {

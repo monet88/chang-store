@@ -1,5 +1,38 @@
 # Changelog
 
+## [Unreleased] — 2026-07-16
+
+### Docs
+
+- Recovered the public application documentation and story packets from the
+  dated Harness backup.
+- Reconciled the documentation map, product index, application architecture
+  notes, test matrix, Harness component inventory references, and docs-sync
+  story with the current Windows Harness CLI and source tree while preserving
+  the current Harness policy files.
+- Marked the retired live-E2E and provider smoke helpers as historical or
+  unavailable instead of documenting them as runnable commands.
+
+## [Unreleased] — 2026-07-03
+
+### Fixed
+
+- Gemini vision helpers in `src/services/gemini/text.ts` (`generateImageDescription`, `generateClothingDescription`, `generatePoseDescription`, `generateStylePromptFromImage`, `analyzeScene`) sent `contents: { parts }` without a `role`, which a Vertex gateway rejects with `VALIDATION_FAILED`. Changed to `contents: [{ role: 'user', parts }]` and updated the affected `text.test.ts` assertions. Verified live against `https://vertex.monet.uno/gemini`.
+
+### Added
+
+- Live E2E harness `scripts/e2e-live/run.mts` (run with `tsx`) that drives the real app service layer against a Vertex gateway using the `docs/image-test/` samples, covering all nine features plus text generation, vision description, image generation, and upscale (13 flows). Last run: 11/13 valid; the two non-passing flows were external-runtime conditions (model refusal on a specific watermark sample, transient upstream quota), not app defects.
+
+### Docs
+
+- Resynced `docs/codebase-summary.md`, `docs/TEST_MATRIX.md`, `docs/ARCHITECTURE.md`, and `docs/deployment-guide.md` to the current codebase: recorded test-suite metrics (725 tests / 70 files) and V8 coverage (74.85% lines), documented the live E2E verification, added a Gemini proxy/gateway routing + deployment section, and removed the stale `gemini/video` module reference.
+
+## [Unreleased] — 2026-07-01
+
+### Removed
+
+- Vertex gateway moved to a separate repo (https://github.com/monet88/vertex-gateway). Removed the local `gateway/` source, root `docker-compose.yml`, and the `gcp/` Cloud Run deployment artifacts (bootstrap/deploy scripts, Cloud Build config, env example, rollout plan). Run the gateway and its Cloud Run deploy from the new repo; app API usage and feature behavior are unchanged.
+
 ## [Unreleased] — 2026-06-02
 
 ### Added
@@ -192,3 +225,4 @@ Prior docs recorded these major milestones:
   hardening.
 
 Use git history for exact pre-Harness entries if detailed archaeology is needed.
+

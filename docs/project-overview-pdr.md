@@ -3,8 +3,10 @@
 ## Project Overview
 
 Chang Store is an AI-powered virtual fashion studio. Users upload people,
-clothing, and reference images, then generate fashion imagery with Gemini AI.
-The product replaces parts of a photoshoot workflow with browser-based AI tools.
+clothing, and reference images, then generate fashion imagery through three
+isolated provider studios: Gemini (default and full-featured), Grok, and GPT
+Image. The product replaces parts of a photoshoot workflow with browser-based
+AI tools.
 
 ## Target Audience
 
@@ -16,7 +18,8 @@ The product replaces parts of a photoshoot workflow with browser-based AI tools.
 ## Core Requirements
 
 - Let users upload image inputs safely in the browser.
-- Generate fashion outputs through Gemini image models.
+- Generate fashion outputs through Gemini image models or the isolated Grok and
+  GPT Image provider studios.
 - Keep feature UIs fast and understandable.
 - Persist outputs locally and optionally sync to Google Drive.
 - Support English and Vietnamese UI strings.

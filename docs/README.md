@@ -1,59 +1,68 @@
 # Documentation Map
 
-Project documentation for chang-store — an AI-powered virtual fashion studio.
+Project documentation for chang-store, an AI-powered virtual fashion studio.
 
-## Harness (Operating Rules)
+## Harness and operating rules
 
-- `HARNESS.md`: how humans and agents collaborate.
-- `FEATURE_INTAKE.md`: how prompts become tiny, normal, or high-risk work.
-- `CONTEXT_RULES.md`: phase-by-lane context engineering rules.
-- `TRACE_SPEC.md`: execution trace fields, quality tiers, friction capture.
-- `HARNESS_COMPONENTS.md`: responsibility map and file inventory.
-- `HARNESS_MATURITY.md`: H0-H5 maturity ladder and current assessment.
-- `HARNESS_BACKLOG.md`: legacy improvement list (use `scripts/harness backlog`).
-- `TEST_MATRIX.md`: legacy proof map (use `scripts/harness query matrix`).
-- `GLOSSARY.md`: shared terms.
+- HARNESS.md: how humans and agents collaborate.
+- FEATURE_INTAKE.md: how prompts become tiny, normal, or high-risk work.
+- CONTEXT_RULES.md: phase-by-lane context engineering rules.
+- TRACE_SPEC.md: execution trace fields, quality tiers, and friction capture.
+- HARNESS_COMPONENTS.md: responsibility map and current repository inventory.
+- HARNESS_MATURITY.md: maturity ladder and current assessment.
+- HARNESS_BACKLOG.md: missing Harness capabilities and follow-up proposals.
+- TEST_MATRIX.md: human-readable proof map; durable status comes from SQLite.
+- GLOSSARY.md: shared terms.
+- contracts/: versioned machine-readable contracts for external orchestrators.
 
-## Project-Specific
+On Windows, run Harness with the native executable:
 
-- `ARCHITECTURE.md`: actual app architecture — layers, routing, providers.
-- `system-architecture.md`: legacy/living architecture entrypoint linked to `ARCHITECTURE.md`.
-- `code-standards.md`: naming, patterns, quality gates, prohibited patterns.
-- `codebase-summary.md`: source layout, feature enum, persistence, validation.
-- `project-overview-pdr.md`: product requirements and non-functional requirements.
-- `project-roadmap.md`: completed, current, and future roadmap phases.
-- `deployment-guide.md`: Vite/static hosting and environment variable setup.
-- `dev/windows-linux-node-modules.md`: dual-boot dependency pitfalls, checker, and reinstall steps.
-- `design-guidelines.md`: Runway-inspired visual and responsive guidelines.
-- `CHANGELOG.md`: current documentation changes and historical summary.
-- `api/README.md`: current API reference policy and source-of-truth links.
+~~~powershell
+& '.\\scripts\\bin\\harness-cli.exe' <command>
+~~~
 
-## Product Docs (`product/`)
+## Project documentation
 
-Feature behavior contracts derived from the codebase:
+- ARCHITECTURE.md: Harness boundaries plus the current Chang Store app architecture.
+- system-architecture.md: living application architecture entrypoint.
+- code-standards.md: naming, patterns, quality gates, and prohibited patterns.
+- codebase-summary.md: source layout, feature enum, persistence, and proof notes.
+- project-overview-pdr.md: product requirements and non-functional requirements.
+- project-roadmap.md: completed, current, and future roadmap phases.
+- deployment-guide.md: Vite/static hosting and environment setup.
+- dev/windows-linux-node-modules.md: dual-boot dependency guidance.
+- design-guidelines.md: Runway-inspired visual and responsive guidelines.
+- CHANGELOG.md: dated product and documentation history.
+- api/README.md: API reference policy and source-of-truth links.
 
-- `overview.md`: product summary, tech stack, feature list.
-- `provider-studios.md`: three-provider studio split (Gemini/Grok/GPT Image).
-- `try-on.md`: Virtual Try-On + Wardrobe Mode.
-- `lookbook.md`: Lookbook Generator.
-- `background.md`: Background Replacer.
-- `pose.md`: Pose Changer.
-- `photo-album.md`: Photo Album Creator.
-- `ai-editor.md`: AI Editor with @mention system.
-- `watermark-remover.md`: Batch Watermark Remover.
-- `clothing-transfer.md`: Clothing Transfer.
-- `pattern-generator.md`: Pattern Generator.
+## Product docs
 
-## Folders
+Feature behavior contracts derived from the current source:
 
-- `product/`: current product truth per feature.
-- `stories/`: feature packets and backlog.
-- `decisions/`: durable decisions and tradeoffs (ADRs).
-- `templates/`: reusable story, decision, validation, and spec-intake formats.
+- product/overview.md
+- product/provider-studios.md
+- product/try-on.md
+- product/lookbook.md
+- product/background.md
+- product/pose.md
+- product/photo-album.md
+- product/ai-editor.md
+- product/watermark-remover.md
+- product/clothing-transfer.md
+- product/pattern-generator.md
 
-## Current State
+## Stories and decisions
 
-Harness v0 is installed. Application code exists and is deployed. Product docs
-reflect the current Feature enum and codebase behavior, including the
-three-provider studio split, as of the 2026-05-31 docs resync (story US-002).
-Known dead code (`useSwapFace`, `useInpainting`) was removed under Harness backlog item #2.
+- stories/: feature packets, bug packets, and the selected documentation-sync story.
+- decisions/: durable architecture and Harness decisions.
+- templates/: reusable story, decision, validation, and spec-intake formats.
+- journals/: dated operational notes.
+
+## Current state
+
+The repository contains a React/Vite application and the installed Harness
+workflow. The application docs were recovered from
+.harness-backup/20260716162737 and are being reconciled against the current
+source tree. The backfill is complete; dated live-E2E results in codebase-summary.md remain
+historical evidence because the previous scripts/e2e-live/ runner is retired
+from this checkout.
