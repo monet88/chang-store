@@ -352,6 +352,7 @@ export const en = {
     deleteConfirm: 'Are you sure you want to delete this prompt?',
     usePrompt: 'Use',
     copyPrompt: 'Copy',
+    copiedPrompt: 'Copied to clipboard',
     toastSaved: 'Prompt saved',
     createNew: 'New Prompt',
     editPrompt: 'Edit',

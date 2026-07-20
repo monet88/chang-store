@@ -188,33 +188,35 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                       key={prompt.id}
                       className={`group flex flex-col p-4 bg-zinc-800/30 hover:bg-zinc-800/70 border border-transparent hover:border-zinc-700/50 rounded-xl transition-all ${expandedPromptId === prompt.id ? 'border-zinc-600/50 bg-zinc-800/50' : 'cursor-pointer active:scale-[0.99]'}`}
                     >
-                      <div
-                        className="flex justify-between items-start gap-4 cursor-pointer"
-                        onClick={() => setExpandedPromptId(expandedPromptId === prompt.id ? null : prompt.id)}
-                      >
-                        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                          <div className="flex gap-2 items-center min-h-6">
+                      <div className="flex justify-between items-start gap-4">
+                        <button
+                          type="button"
+                          className="flex min-w-0 flex-1 cursor-pointer flex-col gap-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#818CF8]"
+                          onClick={() => setExpandedPromptId(expandedPromptId === prompt.id ? null : prompt.id)}
+                          aria-expanded={expandedPromptId === prompt.id}
+                        >
+                          <span className="flex gap-2 items-center min-h-6">
                             {prompt.isCurated && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-[#818CF8]/10 text-[#818CF8] border border-[#818CF8]/20 flex-shrink-0">
                                 {t('promptLibrary.curatedBadge')}
                               </span>
                             )}
-                            <h3 className="text-base font-semibold text-zinc-200 truncate pr-2">
+                            <span className="text-base font-semibold text-zinc-200 truncate pr-2">
                               {prompt.title || "Untitled"}
-                            </h3>
-                          </div>
+                            </span>
+                          </span>
 
                           {expandedPromptId !== prompt.id && (
-                            <p className="text-sm text-zinc-400 leading-relaxed font-normal whitespace-pre-wrap line-clamp-1">
+                            <span className="text-sm text-zinc-400 leading-relaxed font-normal whitespace-pre-wrap line-clamp-1">
                               {prompt.text}
-                            </p>
+                            </span>
                           )}
-                        </div>
+                        </button>
 
                         <div className="flex gap-1 flex-shrink-0">
                           <button
                             onClick={(e) => handleEdit(e, prompt)}
-                            className={`p-1.5 rounded-md transition-all sm:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#818CF8] flex-shrink-0
+                            className={`p-1.5 rounded-md transition-all flex-shrink-0
                           ${prompt.isCurated
                                 ? 'text-zinc-600 cursor-not-allowed hidden'
                                 : 'text-zinc-500 hover:text-[#818CF8] hover:bg-[#818CF8]/20 active:scale-95'}`}
@@ -225,7 +227,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                           </button>
                           <button
                             onClick={(e) => handleDelete(e, prompt.id)}
-                            className={`p-1.5 rounded-md transition-all sm:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 flex-shrink-0
+                            className={`p-1.5 rounded-md transition-all flex-shrink-0
                           ${prompt.isCurated
                                 ? 'text-zinc-600 cursor-not-allowed hidden'
                                 : 'text-zinc-500 hover:text-red-400 hover:bg-red-900/20 active:scale-95'}`}
@@ -248,10 +250,10 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                                 e.stopPropagation();
                                 navigator.clipboard.writeText(prompt.text);
                                 setCopiedId(prompt.id);
-                                showToast(t('promptLibrary.copyPrompt') || "Copied to clipboard");
+                                showToast(t('promptLibrary.copiedPrompt') || "Copied to clipboard");
                                 setTimeout(() => setCopiedId(null), 2000);
                               }}
-                              className="absolute top-2 right-2 p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-md transition-all opacity-0 group-hover/text:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#818CF8] active:scale-95"
+                              className="absolute top-2 right-2 p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-md transition-all sm:opacity-0 group-hover/text:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#818CF8] active:scale-95"
                               aria-label={t('promptLibrary.copyPrompt') || "Copy prompt"}
                               title={t('promptLibrary.copyPrompt') || "Copy prompt"}
                             >
@@ -264,7 +266,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigator.clipboard.writeText(prompt.text);
-                                showToast(t('promptLibrary.copyPrompt') || 'Copied to clipboard');
+                                showToast(t('promptLibrary.copiedPrompt') || 'Copied to clipboard');
                                 onClose();
                               }}
                               className="px-4 py-2 bg-[#818CF8]/10 hover:bg-[#818CF8]/20 text-[#818CF8] hover:text-white font-medium text-sm rounded-lg transition-colors flex items-center gap-2"

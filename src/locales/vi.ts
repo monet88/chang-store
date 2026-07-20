@@ -353,6 +353,7 @@ export const vi: Translation = {
     deleteConfirm: 'Bạn có chắc chắn muốn xóa prompt này không?',
     usePrompt: 'Sử dụng',
     copyPrompt: 'Sao chép',
+    copiedPrompt: 'Đã sao chép vào bảng nhớ tạm',
     toastSaved: 'Đã lưu prompt',
     createNew: 'Tạo prompt mới',
     editPrompt: 'Sửa',
