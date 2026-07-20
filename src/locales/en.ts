@@ -679,6 +679,7 @@ export const en = {
     title: 'Create Photo Album',
     description: 'Create a stunning photo album with multiple poses, frames, and backgrounds from a single image.',
     mode: {
+      label: 'Photo input mode',
       fullModel: 'Use Full Model Image',
       faceAndOutfit: 'Combine Face & Outfit'
     },
@@ -771,6 +772,7 @@ export const en = {
     },
     generateMore: 'Generate More',
     chooseHair: 'Choose Hair Style',
+    chooseSkinTone: 'Choose Skin Tone',
     hairStyles: {
       long_straight_black: 'Long, straight, black',
       medium_wavy_brown: 'Medium, wavy, brown',
