@@ -150,6 +150,7 @@ const BatchItemCard: React.FC<{
         {(item.status === 'error' || item.status === 'completed') && (
           <div className="flex items-center gap-1">
             <select
+              aria-label={t('watermarkRemover.promptLabel')}
               value={retryPromptId}
               onChange={(e) => setRetryPromptId(e.target.value)}
               disabled={isProcessing}
@@ -311,10 +312,11 @@ const WatermarkRemover: React.FC = () => {
 
           {/* Model Selection */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
+            <label htmlFor="watermark-model" className="block text-sm font-medium text-zinc-300 mb-2">
               {t('watermarkRemover.modelLabel')}
             </label>
             <select
+              id="watermark-model"
               value={config.model}
               onChange={(e) => setModel(e.target.value as typeof WATERMARK_MODELS[number]['id'])}
               disabled={isProcessing}
@@ -330,10 +332,11 @@ const WatermarkRemover: React.FC = () => {
 
           {/* Prompt Preset Selection */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
+            <label htmlFor="watermark-prompt" className="block text-sm font-medium text-zinc-300 mb-2">
               {t('watermarkRemover.promptLabel')}
             </label>
             <select
+              id="watermark-prompt"
               value={config.promptId}
               onChange={(e) => setPromptId(e.target.value)}
               disabled={isProcessing}
@@ -351,10 +354,11 @@ const WatermarkRemover: React.FC = () => {
           {/* Custom Prompt (when 'custom' is selected) */}
           {config.promptId === 'custom' && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-zinc-300 mb-2">
+              <label htmlFor="watermark-custom-prompt" className="block text-sm font-medium text-zinc-300 mb-2">
                 {t('watermarkRemover.customPromptLabel')}
               </label>
               <textarea
+                id="watermark-custom-prompt"
                 value={config.customPrompt}
                 onChange={(e) => setCustomPrompt(e.target.value)}
                 disabled={isProcessing}
@@ -366,10 +370,11 @@ const WatermarkRemover: React.FC = () => {
 
           {/* Concurrency Slider */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
+            <label htmlFor="watermark-concurrency" className="block text-sm font-medium text-zinc-300 mb-2">
               {t('watermarkRemover.concurrencyLabel')}: {config.concurrency}
             </label>
             <input
+              id="watermark-concurrency"
               type="range"
               min="1"
               max="5"
