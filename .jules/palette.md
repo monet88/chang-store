@@ -22,3 +22,6 @@
 ## 2024-06-03 - Form Accessibility (Label linking & aria-labels)
 **Learning:** Found instances where `<select>` dropdowns lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, input fields lacking visible labels (like a refine prompt input) were missing `aria-label`s.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2024-08-01 - Form Accessibility in WatermarkRemover
+**Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
+**Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
