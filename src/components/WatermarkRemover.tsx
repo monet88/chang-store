@@ -150,7 +150,7 @@ const BatchItemCard: React.FC<{
         {(item.status === 'error' || item.status === 'completed') && (
           <div className="flex items-center gap-1">
             <select
-              aria-label={t('watermarkRemover.promptLabel')}
+              aria-label={t('watermarkRemover.promptLabel') + " - #" + (index + 1)}
               value={retryPromptId}
               onChange={(e) => setRetryPromptId(e.target.value)}
               disabled={isProcessing}
