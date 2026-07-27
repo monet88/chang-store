@@ -25,3 +25,6 @@
 ## 2024-08-01 - Form Accessibility in WatermarkRemover
 **Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2025-07-28 - [Invisible Focus on Refine Controls]
+**Learning:** Found instances where custom interactive elements like the undo/redo, refine buttons, and predefined prompt pills in `GeneratedImage` lacked explicit keyboard focus indicators. This severely degrades accessibility, as keyboard navigators cannot visually determine their current position on the page.
+**Action:** When building interactive control panels with multiple buttons and inputs, ensure that all interactive controls have clear, contrast-appropriate `focus-visible` styling (like `focus-visible:ring-amber-500`) and use `focus-visible:outline-none` to replace default browser outlines for consistency.
