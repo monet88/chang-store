@@ -25,3 +25,6 @@
 ## 2024-08-01 - Form Accessibility in WatermarkRemover
 **Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2024-07-29 - Explicit Focus Rings on Floating/Icon Buttons
+**Learning:** Mobile floating navigation buttons (like `MobileMenuButton`) and header icon buttons sometimes lack explicit `:focus-visible` styles in this app's components, causing screen-reader or keyboard users to lose track of focus. Hardcoded string literal accessibility text is also a pattern to watch out for.
+**Action:** When adding or auditing floating/icon-only interactive elements on mobile, always verify explicit `focus-visible` states (e.g. `focus-visible:ring-amber-500`) are applied and ensure `aria-label` values use the localized string store (`t()`).
