@@ -25,3 +25,6 @@
 ## 2024-08-01 - Form Accessibility in WatermarkRemover
 **Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2024-08-01 - Missing focus states on GeneratedImage buttons
+**Learning:** Found instances where buttons in `GeneratedImage` (undo, redo, refine, predefined prompts) lacked visual indicators when focused via keyboard navigation, making them inaccessible to keyboard users.
+**Action:** Always add explicit focus-visible classes like `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white` (or `ring-amber-500` depending on context) to interactive elements.
