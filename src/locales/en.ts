@@ -183,6 +183,12 @@ export const en = {
     originalVersion: 'Original image before refinements',
     originalShort: 'Original',
   },
+  imageViewer: {
+    close: 'Close image view',
+    next: 'Next image',
+    prev: 'Previous image',
+    fullScreen: 'Full screen view',
+  },
   imageActions: {
     regenerate: 'Regenerate',
     upscale: 'Upscale',

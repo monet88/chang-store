@@ -184,6 +184,12 @@ export const vi: Translation = {
     originalVersion: 'Ảnh gốc trước khi tinh chỉnh',
     originalShort: 'Gốc',
   },
+  imageViewer: {
+    close: 'Đóng chế độ xem',
+    next: 'Ảnh sau',
+    prev: 'Ảnh trước',
+    fullScreen: 'Xem toàn màn hình',
+  },
   imageActions: {
     regenerate: 'Tạo lại',
     upscale: 'Nâng cấp',
