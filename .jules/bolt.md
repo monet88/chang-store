@@ -14,3 +14,6 @@
 ## 2025-02-14 - Use useMemo for React Context Provider values
 **Learning:** Passing a new object literal directly to a React Context Provider's `value` prop (e.g., `value={{ someMethod }}`) creates a new object reference on every render. This forces all components consuming that context to re-render, leading to massive cascading re-renders, especially for root-level providers like `ApiProvider` or `LanguageProvider`.
 **Action:** Always wrap the `value` object passed to React Context Providers with `useMemo` (e.g., `const value = useMemo(() => ({ someMethod }), [someMethod])`) to preserve object identity and prevent unnecessary re-renders.
+## 2025-02-14 - Memoize Pure UI Components
+**Learning:** Pure UI components (like `GlobalModelSelector`) that are used inside high-frequency re-render parents (like `App.tsx` which updates state frequently due to sidebar toggles or modal state changes) will re-render unnecessarily on every parent update, impacting performance.
+**Action:** Always wrap such pure functional UI components with `React.memo()` to prevent them from re-rendering unless their props (like `selectedModel` or `options`) actually change.
