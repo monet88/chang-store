@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { ImageFile } from '../../../types';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LookbookFormState } from '../../../utils/lookbookPromptBuilder';
@@ -20,10 +20,10 @@ interface ProviderLookbookControlsProps {
 }
 
 const fieldClass =
-    'rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-100 focus:border-white/30 focus:outline-none';
+    'rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-100 focus:border-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50';
 const choiceWrap = 'flex flex-wrap gap-2 rounded-xl border border-white/10 bg-black/30 p-2';
 const choice = (active: boolean): string =>
-    `rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${active ? 'bg-white text-black' : 'text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
+    `rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${active ? 'bg-white text-black' : 'text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100'
     }`;
 
 const GARMENT_STYLES: LookbookStyle[] = ['hanger', 'flat lay', 'minimalist showroom', 'folded', 'product shot'];
@@ -41,6 +41,7 @@ const ProviderLookbookControls: React.FC<ProviderLookbookControlsProps> = ({
     idPrefix,
 }) => {
     const { t } = useLanguage();
+    const componentId = useId();
 
     const styles: { key: LookbookStyle; label: string }[] = [
         { key: 'flat lay', label: t('lookbook.styleFlatLay') },
@@ -66,8 +67,8 @@ const ProviderLookbookControls: React.FC<ProviderLookbookControlsProps> = ({
         <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-zinc-900/40 p-4">
             {/* Style picker */}
             <div className="flex flex-col gap-2">
-                <p className="text-sm font-medium text-zinc-300">{t('lookbook.styleLabel')}</p>
-                <div className={choiceWrap}>
+                <p id={`${componentId}-style`} className="text-sm font-medium text-zinc-300">{t('lookbook.styleLabel')}</p>
+                <div className={choiceWrap} role="group" aria-labelledby={`${componentId}-style`}>
                     {styles.map((style) => (
                         <button
                             key={style.key}
@@ -80,6 +81,7 @@ const ProviderLookbookControls: React.FC<ProviderLookbookControlsProps> = ({
                                 onChange(updates);
                             }}
                             className={choice(state.lookbookStyle === style.key)}
+                            aria-pressed={state.lookbookStyle === style.key}
                         >
                             {style.label}
                         </button>
@@ -90,14 +92,15 @@ const ProviderLookbookControls: React.FC<ProviderLookbookControlsProps> = ({
             {/* Garment type (style-dependent) */}
             {GARMENT_STYLES.includes(state.lookbookStyle) && (
                 <div className="flex flex-col gap-2">
-                    <p className="text-sm font-medium text-zinc-300">{t('lookbook.garmentTypeLabel')}</p>
-                    <div className={choiceWrap}>
+                    <p id={`${componentId}-garment-type`} className="text-sm font-medium text-zinc-300">{t('lookbook.garmentTypeLabel')}</p>
+                    <div className={choiceWrap} role="group" aria-labelledby={`${componentId}-garment-type`}>
                         {garmentTypes.map((type) => (
                             <button
                                 key={type.key}
                                 type="button"
                                 onClick={() => onChange({ garmentType: type.key })}
                                 className={choice(state.garmentType === type.key)}
+                                aria-pressed={state.garmentType === type.key}
                             >
                                 {type.label}
                             </button>
@@ -127,14 +130,15 @@ const ProviderLookbookControls: React.FC<ProviderLookbookControlsProps> = ({
             {/* Folded presentation (folded style only) */}
             {state.lookbookStyle === 'folded' && (
                 <div className="flex flex-col gap-2">
-                    <p className="text-sm font-medium text-zinc-300">{t('lookbook.presentationTypeLabel')}</p>
-                    <div className={choiceWrap}>
+                    <p id={`${componentId}-folded-presentation`} className="text-sm font-medium text-zinc-300">{t('lookbook.presentationTypeLabel')}</p>
+                    <div className={choiceWrap} role="group" aria-labelledby={`${componentId}-folded-presentation`}>
                         {(['boxed', 'folded'] as FoldedPresentationType[]).map((type) => (
                             <button
                                 key={type}
                                 type="button"
                                 onClick={() => onChange({ foldedPresentationType: type })}
                                 className={choice(state.foldedPresentationType === type)}
+                                aria-pressed={state.foldedPresentationType === type}
                             >
                                 {t(type === 'boxed' ? 'lookbook.presentationTypeBoxed' : 'lookbook.presentationTypeFolded')}
                             </button>
@@ -147,14 +151,15 @@ const ProviderLookbookControls: React.FC<ProviderLookbookControlsProps> = ({
             {state.lookbookStyle === 'product shot' && (
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-col gap-2">
-                        <p className="text-sm font-medium text-zinc-300">{t('lookbook.productShotSubTypeLabel')}</p>
-                        <div className={choiceWrap}>
+                        <p id={`${componentId}-product-shot`} className="text-sm font-medium text-zinc-300">{t('lookbook.productShotSubTypeLabel')}</p>
+                        <div className={choiceWrap} role="group" aria-labelledby={`${componentId}-product-shot`}>
                             {(['ghost-mannequin', 'clean-flat-lay'] as ProductShotSubType[]).map((subType) => (
                                 <button
                                     key={subType}
                                     type="button"
                                     onClick={() => onChange({ productShotSubType: subType })}
                                     className={choice(state.productShotSubType === subType)}
+                                    aria-pressed={state.productShotSubType === subType}
                                 >
                                     {t(subType === 'ghost-mannequin' ? 'lookbook.productShotGhostMannequin' : 'lookbook.productShotCleanFlatLay')}
                                 </button>

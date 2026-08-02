@@ -25,3 +25,6 @@
 ## 2024-08-01 - Form Accessibility in WatermarkRemover
 **Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2025-08-02 - [Accessible Option Selectors]
+**Learning:** Custom option selectors visually styled as connected buttons often lack grouped context for screen readers and miss visual focus indicators for keyboard users.
+**Action:** Always wrap custom option groups in a container with `role='group'` and an `aria-labelledby` linking to the group's label text. Make sure child buttons have `aria-pressed={active}` and include explicit focus indicators like `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50` for keyboard navigation support.
