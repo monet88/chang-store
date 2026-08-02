@@ -40,3 +40,5 @@ export const GlobalModelSelector: React.FC<GlobalModelSelectorProps> = React.mem
     </div>
   </div>
 ));
+
+GlobalModelSelector.displayName = 'GlobalModelSelector';
