@@ -9,14 +9,14 @@ interface GlobalModelSelectorProps {
   onChange: (modelId: string) => void;
 }
 
-// ⚡ Bolt Optimization: Wrapped in React.memo to prevent unnecessary re-renders when parent components (like App.tsx) update state frequently.
-export const GlobalModelSelector: React.FC<GlobalModelSelectorProps> = React.memo(({
+// ⚡ Bolt Optimization: Wrapped in React.memo to prevent unnecessary re-renders when parent component state updates.
+export const GlobalModelSelector = React.memo(({
   label,
   ariaLabel,
   selectedModel,
   options,
   onChange,
-}) => (
+}: GlobalModelSelectorProps) => (
   <div className="w-full max-w-md rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-3 backdrop-blur-xl">
     <div className="space-y-2">
       <label className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">{label}</label>
@@ -38,3 +38,5 @@ export const GlobalModelSelector: React.FC<GlobalModelSelectorProps> = React.mem
     </div>
   </div>
 ));
+
+GlobalModelSelector.displayName = 'GlobalModelSelector';

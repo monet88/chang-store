@@ -60,13 +60,13 @@ export const useModelSelection = ({
     [],
   );
 
-  const getSelectedModelBySelectionType = (
+  const getSelectedModelBySelectionType = useMemo(() => (
     selectionType: 'imageEdit' | 'imageGenerate' | 'textGenerate',
-  ): string => selectedModelBySelectionType[selectionType];
+  ): string => selectedModelBySelectionType[selectionType], [selectedModelBySelectionType]);
 
-  const getModelSetterBySelectionType = (
+  const getModelSetterBySelectionType = useMemo(() => (
     selectionType: 'imageEdit' | 'imageGenerate' | 'textGenerate',
-  ): (modelId: string) => void => modelSetterBySelectionType[selectionType];
+  ): ((modelId: string) => void) => modelSetterBySelectionType[selectionType], [modelSetterBySelectionType]);
 
   return {
     activeModelSelectionScope,
