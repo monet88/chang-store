@@ -25,3 +25,6 @@
 ## 2024-08-01 - Form Accessibility in WatermarkRemover
 **Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2025-10-24 - [Focus States on Dynamically Generated Buttons]
+**Learning:** Action buttons tied to dynamically generated content (like refine, undo, and redo on a generated image) often lack keyboard focus indicators. Keyboard users need to know exactly which action they are focusing on, especially when these actions modify the current core artifact of the screen.
+**Action:** Always add explicit keyboard focus indicators (`focus-visible:outline-none focus-visible:ring-2 ...`) to dynamically rendered actionable buttons.
