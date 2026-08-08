@@ -25,3 +25,6 @@
 ## 2024-08-01 - Form Accessibility in WatermarkRemover
 **Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2024-08-01 - Focus Indicators on Generated Content Controls
+**Learning:** Actions associated with generated content (like the Undo, Redo, Refine, and predefined prompt buttons in `GeneratedImage`) lack explicit keyboard focus indicators. Default focus behavior is either missing or obscured by dark backgrounds, rendering keyboard navigation extremely difficult for core image modification features.
+**Action:** When implementing custom interactive controls, static buttons, or dynamically generated action buttons on generated content, ensure they have explicit keyboard focus indicators by applying Tailwind `focus-visible` utility classes (e.g., `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500`) for accessibility.
