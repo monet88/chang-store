@@ -7,7 +7,19 @@ export type Language = 'en' | 'vi';
 
 const get = (obj: any, path: string): any => {
   try {
-    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+    // ⚡ Bolt: Fast path for flat keys (majority case) to avoid string allocation
+    if (path.indexOf('.') === -1) {
+      return obj[path];
+    }
+
+    // ⚡ Bolt: Fast path for nested keys without array reduce overhead
+    const parts = path.split('.');
+    let current = obj;
+    for (let i = 0; i < parts.length; i++) {
+      if (!current) break;
+      current = current[parts[i]];
+    }
+    return current;
   } catch (e) {
     return undefined;
   }
@@ -49,7 +61,8 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     if (options && !('returnObjects' in options)) {
       Object.keys(options).forEach(optKey => {
-        translation = translation.replace(new RegExp(`{{${optKey}}}`, 'g'), String((options as any)[optKey]));
+        // ⚡ Bolt: Use replaceAll instead of instantiating new RegExp in tight loops
+        translation = translation.replaceAll(`{{${optKey}}}`, String((options as any)[optKey]));
       });
     }
     return translation;
