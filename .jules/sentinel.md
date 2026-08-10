@@ -12,3 +12,7 @@
 **Vulnerability:** The codebase was using `Math.random()` and `Date.now()` combined (e.g., `Math.random().toString(36).slice(2, 9)`) to generate unique IDs for uploaded files, queue items, and downloaded files. This is cryptographically insecure and susceptible to collisions and predictability.
 **Learning:** `Math.random()` is not suitable for generating secure unique identifiers, even when combined with timestamps.
 **Prevention:** Always use the native, cryptographically secure `crypto.randomUUID()` when generating unique identifiers in the application.
+## 2024-05-24 - [Security Improvement] Prevent Auto-filling API Keys
+**Vulnerability:** Input fields containing API keys were configured with `autoComplete="off"`. Modern browsers and password managers often ignore this setting, which can result in sensitive API keys being unexpectedly cached, suggested, or auto-filled into other irrelevant forms.
+**Learning:** For sensitive configuration items like API keys where standard password manager behaviors are undesirable, standard configurations (`off`) are insufficient in React implementations to explicitly communicate intent to browser credential subsystems.
+**Prevention:** Always use `autoComplete="new-password"` for highly sensitive credential input fields (like API Keys and Proxy Keys) where you do not want the browser to prompt to save or auto-fill existing passwords.
