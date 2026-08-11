@@ -197,7 +197,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                       type="password"
                       value={localDirectGeminiApiKey}
                       onChange={(e) => setLocalDirectGeminiApiKey(e.target.value)}
-                      autoComplete="off"
+                      autoComplete="new-password"
                       placeholder={t('settingsModal.vertexProxy.directApiKeyPlaceholder')}
                       className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
                     />
@@ -211,7 +211,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                       type="password"
                       value={localVertexProxyApiKey}
                       onChange={(e) => setLocalVertexProxyApiKey(e.target.value)}
-                      autoComplete="off"
+                      autoComplete="new-password"
                       placeholder={t('settingsModal.vertexProxy.apiKeyPlaceholder')}
                       className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
                     />
