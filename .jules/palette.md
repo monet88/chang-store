@@ -25,3 +25,6 @@
 ## 2024-08-01 - Form Accessibility in WatermarkRemover
 **Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2025-08-01 - Focus Visible Styles on GeneratedImage Buttons
+**Learning:** Found instances where custom interactive controls (like Undo, Redo, Refine, and predefined prompt buttons) in `GeneratedImage.tsx` lacked explicit `focus-visible` styles. While they had hover states, they were not visibly indicating focus when navigated via keyboard.
+**Action:** When implementing interactive controls or modifying existing ones, ensure explicit keyboard focus indicators like `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white` (or a context-appropriate color like `ring-amber-500`) are applied to support keyboard navigation.
