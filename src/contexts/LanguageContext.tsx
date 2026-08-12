@@ -7,7 +7,20 @@ export type Language = 'en' | 'vi';
 
 const get = (obj: any, path: string): any => {
   try {
-    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+    // ⚡ Bolt Optimization: Fast path for flat keys, avoids array allocation overhead from split()
+    if (path.indexOf('.') === -1) {
+      return obj[path];
+    }
+
+    // ⚡ Bolt Optimization: Replace .split('.').reduce() with a standard for-loop
+    // to avoid allocating a new array and repeatedly iterating it.
+    const parts = path.split('.');
+    let acc = obj;
+    for (let i = 0; i < parts.length; i++) {
+      if (!acc) return undefined;
+      acc = acc[parts[i]];
+    }
+    return acc;
   } catch (e) {
     return undefined;
   }
@@ -49,7 +62,9 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     if (options && !('returnObjects' in options)) {
       Object.keys(options).forEach(optKey => {
-        translation = translation.replace(new RegExp(`{{${optKey}}}`, 'g'), String((options as any)[optKey]));
+        // ⚡ Bolt Optimization: Replaced dynamically instantiating new RegExp() inside the loop
+        // with native replaceAll() to eliminate memory overhead during string interpolation.
+        translation = translation.replaceAll(`{{${optKey}}}`, String((options as any)[optKey]));
       });
     }
     return translation;
