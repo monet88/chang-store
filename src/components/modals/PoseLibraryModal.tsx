@@ -86,7 +86,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+                    className="p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     aria-label={t('poseModal.closeAria')}
                 >
                     <CloseIcon className="w-7 h-7" />
@@ -116,8 +116,8 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                         <div className="relative w-full h-full max-h-[50vh] lg:max-h-[70vh] flex items-center justify-center">
                             {currentPose && <img src={currentPose.imageUrl} alt={currentPose.title} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />}
 
-                            <button onClick={handlePrev} className="absolute left-0 sm:left-4 top-1/2 -translate-y-1/2 p-3 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors" aria-label={t('poseModal.prevAria')}><ChevronLeftIcon className="w-6 h-6" /></button>
-                            <button onClick={handleNext} className="absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 p-3 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors" aria-label={t('poseModal.nextAria')}><ChevronRightIcon className="w-6 h-6" /></button>
+                            <button onClick={handlePrev} className="absolute left-0 sm:left-4 top-1/2 -translate-y-1/2 p-3 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label={t('poseModal.prevAria')}><ChevronLeftIcon className="w-6 h-6" /></button>
+                            <button onClick={handleNext} className="absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 p-3 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label={t('poseModal.nextAria')}><ChevronRightIcon className="w-6 h-6" /></button>
 
                             {currentPose && (
                                 <button
@@ -174,7 +174,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                     <span className="text-white font-medium">{t('poseModal.posesSelectedCount', { count: selectedPoses.length })}</span>
                     <button
                         onClick={() => onConfirm(selectedPoses)}
-                        className="bg-amber-600 text-white font-bold py-2.5 px-8 rounded-full hover:bg-amber-500 transition-opacity"
+                        className="bg-amber-600 text-white font-bold py-2.5 px-8 rounded-full hover:bg-amber-500 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     >
                         {t('poseModal.confirmButton')}
                     </button>

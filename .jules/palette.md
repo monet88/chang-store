@@ -25,3 +25,6 @@
 ## 2024-08-01 - Form Accessibility in WatermarkRemover
 **Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2024-08-12 - [Focus Indicators for Modal Controls and Icon Buttons]
+**Learning:** Icon-only buttons (like next, prev, close) within custom modals and image viewers often lack visual focus indicators (`focus-visible:ring`), making keyboard navigation difficult as users cannot see the currently active element.
+**Action:** When implementing modal controls, navigation arrows, or icon-only actions, ensure they always include explicit `focus-visible` styling (e.g., `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white`) to guarantee keyboard accessibility.

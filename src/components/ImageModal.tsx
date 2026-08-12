@@ -37,7 +37,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ imageUrl, onClose, onNext, onPr
     >
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-white hover:text-gray-300 z-modal p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors"
+        className="absolute top-4 right-4 text-white hover:text-gray-300 z-modal p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         aria-label="Close image view"
       >
         <CloseIcon className="w-8 h-8" />
@@ -47,7 +47,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ imageUrl, onClose, onNext, onPr
         <button
           onClick={(e) => { e.stopPropagation(); onPrev(); }}
           disabled={!canPrev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-modal p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-modal p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           aria-label="Previous image"
         >
           <BackIcon className="w-8 h-8" />
@@ -58,7 +58,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ imageUrl, onClose, onNext, onPr
         <button
           onClick={(e) => { e.stopPropagation(); onNext(); }}
           disabled={!canNext}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-modal p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-modal p-3 rounded-full bg-black/30 text-white hover:bg-black/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           aria-label="Next image"
         >
           <ForwardIcon className="w-8 h-8" />
