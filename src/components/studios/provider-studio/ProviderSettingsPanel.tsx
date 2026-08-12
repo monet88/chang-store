@@ -92,7 +92,7 @@ const ProviderSettingsPanel: React.FC<ProviderSettingsPanelProps> = ({
             type={showKey ? 'text' : 'password'}
             value={apiKey}
             onChange={(e) => onApiKeyChange(e.target.value)}
-            autoComplete="off"
+            autoComplete="new-password"
             placeholder={t('studio.settings.apiKeyPlaceholder')}
             className="flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-100 focus:border-white/30 focus:outline-none"
           />
