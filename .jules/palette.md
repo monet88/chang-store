@@ -25,3 +25,6 @@
 ## 2024-08-01 - Form Accessibility in WatermarkRemover
 **Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2025-08-01 - Interactive Buttons in Image Generators
+**Learning:** Buttons used for operations like undo/redo, generating, and refinement prompts in custom image panels often rely only on hover states for visual feedback, omitting critical keyboard focus indicators.
+**Action:** Always add explicit keyboard focus styles (e.g., `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900` or appropriately themed ring colors) to all interactive buttons in custom components like `GeneratedImage` to ensure they are accessible to keyboard navigators.
