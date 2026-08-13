@@ -6,11 +6,25 @@ import { vi } from '../locales/vi';
 export type Language = 'en' | 'vi';
 
 const get = (obj: any, path: string): any => {
-  try {
-    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
-  } catch (e) {
-    return undefined;
+  if (!obj || !path) return undefined;
+
+  // Fast path for flat keys (prevents array allocation)
+  if (path.indexOf('.') === -1) {
+    return obj[path];
   }
+
+  // Optimize nested lookups without split().reduce() overhead
+  let current = obj;
+  let start = 0;
+  let idx = 0;
+
+  while ((idx = path.indexOf('.', start)) !== -1) {
+    current = current[path.substring(start, idx)];
+    if (current === undefined || current === null) return undefined;
+    start = idx + 1;
+  }
+
+  return current[path.substring(start)];
 };
 
 const translations = { en, vi };
@@ -49,7 +63,8 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     if (options && !('returnObjects' in options)) {
       Object.keys(options).forEach(optKey => {
-        translation = translation.replace(new RegExp(`{{${optKey}}}`, 'g'), String((options as any)[optKey]));
+        // Optimize string interpolation: Use native replaceAll to avoid dynamic RegExp compilation overhead
+        translation = translation.replaceAll(`{{${optKey}}}`, String((options as any)[optKey]));
       });
     }
     return translation;
