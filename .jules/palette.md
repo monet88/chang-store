@@ -25,3 +25,6 @@
 ## 2024-08-01 - Form Accessibility in WatermarkRemover
 **Learning:** Found instances where `<select>`, `<textarea>`, and `<input>` elements in `WatermarkRemover` lacked `id` attributes and their corresponding `<label>`s lacked `htmlFor` attributes, reducing screen reader utility and click-target areas. Additionally, an inline retry `<select>` lacked a visible label and `aria-label`.
 **Action:** When working on forms, proactively check that every label is programmatically linked to its input via `htmlFor`/`id` or, if a visible label is undesirable, an `aria-label` is present.
+## 2024-08-15 - [Keyboard Focus in Dynamic Action Panels]
+**Learning:** Found interactive panels (like `GeneratedImage` refine tools) where dynamic buttons (undo/redo, refine, preset prompts) lacked keyboard focus states. Users navigating via keyboard could focus these elements but received no visual feedback on their current location, making it difficult to use the refinement tools.
+**Action:** When building or updating interactive action panels, ensure every `<button>` has explicit `focus-visible` styling (e.g., `focus-visible:outline-none focus-visible:ring-2`). Match the ring color to the button context (`ring-white` for dark buttons, `ring-amber-500` for primary actions) to provide clear, accessible keyboard navigation.
