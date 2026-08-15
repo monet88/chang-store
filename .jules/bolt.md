@@ -14,3 +14,7 @@
 ## 2025-02-14 - Use useMemo for React Context Provider values
 **Learning:** Passing a new object literal directly to a React Context Provider's `value` prop (e.g., `value={{ someMethod }}`) creates a new object reference on every render. This forces all components consuming that context to re-render, leading to massive cascading re-renders, especially for root-level providers like `ApiProvider` or `LanguageProvider`.
 **Action:** Always wrap the `value` object passed to React Context Providers with `useMemo` (e.g., `const value = useMemo(() => ({ someMethod }), [someMethod])`) to preserve object identity and prevent unnecessary re-renders.
+
+## 2025-02-14 - Optimize Translation Lookup and Interpolation
+**Learning:** Using `.split()` and `.reduce()` for flat object keys (like translation lookup paths without dots) allocates unnecessary arrays and incurs functional overhead. Additionally, dynamically instantiating `new RegExp()` inside a loop for string replacement causes high memory and execution overhead, slowing down frequent operations like string interpolation.
+**Action:** When optimizing frequent string operations like translation lookups, avoid allocating arrays with `.split()` or using `.reduce()` for flat keys by checking `indexOf('.') === -1` (and safely accessing the property to avoid runtime errors). Use a standard `for` loop for nested keys. Prefer native `String.prototype.replaceAll()` over dynamically instantiating `new RegExp()` inside loops to prevent memory overhead.
