@@ -12,3 +12,8 @@
 **Vulnerability:** The codebase was using `Math.random()` and `Date.now()` combined (e.g., `Math.random().toString(36).slice(2, 9)`) to generate unique IDs for uploaded files, queue items, and downloaded files. This is cryptographically insecure and susceptible to collisions and predictability.
 **Learning:** `Math.random()` is not suitable for generating secure unique identifiers, even when combined with timestamps.
 **Prevention:** Always use the native, cryptographically secure `crypto.randomUUID()` when generating unique identifiers in the application.
+
+## 2026-06-12 - Autofill Vulnerability in API Key Inputs
+**Vulnerability:** Sensitive API key inputs in the application (like `SettingsModal` and `ProviderSettingsPanel`) were using `autoComplete="off"`. Modern browsers and password managers frequently ignore `"off"` for password fields and may unexpectedly save or autofill these highly sensitive credentials.
+**Learning:** Using `autoComplete="off"` is insufficient for protecting sensitive, non-password credentials (like API keys) from overzealous password managers and browser autofill behaviors.
+**Prevention:** For sensitive configuration inputs like API keys, always use `autoComplete="new-password"` instead of `autoComplete="off"` to reliably prevent browsers and password managers from unexpectedly saving or autofilling credentials.
