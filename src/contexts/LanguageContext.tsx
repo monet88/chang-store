@@ -6,11 +6,22 @@ import { vi } from '../locales/vi';
 export type Language = 'en' | 'vi';
 
 const get = (obj: any, path: string): any => {
-  try {
-    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
-  } catch (e) {
-    return undefined;
+  if (!obj) return undefined;
+
+  // ⚡ Bolt: Fast path for flat keys (most common case) to avoid array allocation
+  if (path.indexOf('.') === -1) {
+    return obj[path];
   }
+
+  // ⚡ Bolt: Use standard for-loop for nested keys instead of split().reduce()
+  // to avoid creating intermediate arrays and function call overhead.
+  const parts = path.split('.');
+  let current = obj;
+  for (let i = 0; i < parts.length; i++) {
+    if (!current) return undefined;
+    current = current[parts[i]];
+  }
+  return current;
 };
 
 const translations = { en, vi };
@@ -49,7 +60,9 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     if (options && !('returnObjects' in options)) {
       Object.keys(options).forEach(optKey => {
-        translation = translation.replace(new RegExp(`{{${optKey}}}`, 'g'), String((options as any)[optKey]));
+        // ⚡ Bolt: Use native replaceAll instead of instantiating new RegExp dynamically
+        // to prevent unnecessary memory allocations and improve string interpolation speed.
+        translation = translation.replaceAll(`{{${optKey}}}`, String((options as any)[optKey]));
       });
     }
     return translation;
