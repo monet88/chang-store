@@ -131,10 +131,12 @@ describe('useClothingTransfer', () => {
       ?.filter((part: { text?: string }) => part.text)
       .map((part: { text?: string }) => part.text)
       .join('\n');
-
     expect(textParts).toContain('DESTINATION SCENE');
-    expect(textParts).toContain('SOURCE OUTFIT 1');
-    expect(textParts).toContain('keep jewelry visible');
+    expect(textParts).toContain('DESTINATION SCENE OWNS THE ENVIRONMENT AND COMPOSITION');
+    expect(textParts).toContain('SOURCE OUTFIT REFERENCES OWN GARMENT DESIGN ONLY');
+    expect(textParts).toContain('SOURCE OUTFIT 1 (extract this clothing — top)');
+    expect(textParts).toContain('SOURCE OUTFIT 2 (extract this clothing — pants)');
+    expect(textParts).toContain('USER INSTRUCTIONS:\nkeep jewelry visible');
     expect(result.current.completedCount).toBe(2);
     expect(addImageMock).toHaveBeenCalledTimes(2);
   });

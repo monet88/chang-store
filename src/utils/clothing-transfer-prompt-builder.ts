@@ -1,15 +1,15 @@
 import type { Part } from '@google/genai';
 import { ImageFile } from '../types';
 
-interface ClothingTransferReferenceInput {
+export interface ClothingTransferReferenceInput {
   image: ImageFile;
   label: string;
 }
-
 /**
  * Build interleaved parts for clothing transfer.
  * Structure: [label_concept, img_concept, label_ref1, img_ref1, ..., task_instructions]
- * This ensures Gemini knows exactly which image is the destination vs source.
+ * Establishes a clear ownership model: destination owns scene/composition/display/person,
+ * while source references own garment design and construction only.
  */
 export function buildClothingTransferParts(
   conceptImage: ImageFile,
@@ -18,39 +18,45 @@ export function buildClothingTransferParts(
 ): Part[] {
   const parts: Part[] = [];
 
-  parts.push({ text: 'DESTINATION SCENE (keep this background, arrangement and display style):' });
+  parts.push({ text: 'DESTINATION SCENE (owns background, scene composition, lighting, display method, and any subject person):' });
   parts.push({ inlineData: { data: conceptImage.base64, mimeType: conceptImage.mimeType } });
 
   references.forEach((ref, index) => {
-    const label = ref.label || 'auto-detect clothing type';
+    const label = ref.label?.trim() || 'auto-detect clothing type';
     parts.push({ text: `SOURCE OUTFIT ${index + 1} (extract this clothing — ${label}):` });
     parts.push({ inlineData: { data: ref.image.base64, mimeType: ref.image.mimeType } });
   });
 
   const taskPrompt = `TASK: Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.
 
-CRITICAL RULES — follow every rule exactly, in priority order:
+REFERENCE OWNERSHIP & ROLES:
 
-**A. DESTINATION SCENE IS THE BLUEPRINT**
-1. The DESTINATION image defines EVERYTHING about the scene: background, camera angle, perspective, lighting direction, shadows, color temperature, props (hangers, shelves, bags, shoes, toys, furniture), and the exact spatial arrangement / display method of clothing (flat lay, hanging in closet, on hanger, draped on chair, etc.).
-2. Replicate the DESTINATION scene pixel-perfectly — same camera distance, same lens distortion, same crop, same ambient lighting. The viewer should feel the output photo was taken in the exact same physical location with the same camera setup.
-3. ALL non-clothing elements from the DESTINATION (floor, walls, hangers, accessories, bags, stuffed animals, shoes, magazines, furniture) must remain in their exact original positions and appearance.
+1. DESTINATION SCENE OWNS THE ENVIRONMENT AND COMPOSITION
+- The DESTINATION image defines the entire environment: background, surfaces, walls, camera angle, perspective, framing, color temperature, and ambient lighting.
+- The DESTINATION image defines the display method and spatial arrangement of clothing (such as flat lay, hanging in a closet or on a hanger, or worn on a person).
+- If the DESTINATION contains a person: preserve that person's identity, face, hair, skin tone, body proportions, facial expression, and overall pose. The destination person wears the transferred clothing.
+- All non-clothing elements from the DESTINATION (furniture, hangers, shelves, floor, walls, accessories, bags, shoes, and props) must remain in their original positions and appearance.
 
-**B. SOURCE OUTFIT IS THE ONLY CLOTHING SOURCE**
-4. Extract ONLY the clothing garments (shirts, tops, pants, skirts, dresses, jackets, etc.) from the SOURCE OUTFIT images. IGNORE everything else visible in the source photo — do NOT transfer accessories, bags, shoes, hangers, stuffed animals, jewelry, props, furniture, or any non-garment objects from the SOURCE into the output.
-5. The extracted clothing MUST be 100% faithful to the SOURCE OUTFIT — exact colors, exact patterns (including pattern scale, repeat, and orientation), exact textures, exact fabric weight and drape characteristics. Copy them with absolute fidelity.
-6. ZERO blending: Do NOT blend, average, or mix any visual attribute (color, texture, pattern, silhouette) between the source and destination outfits. The destination outfit's appearance must have ZERO influence on the output clothing.
-7. Preserve the source garment's silhouette and construction details (collar style, sleeve length, button placement, pleat depth, waistband style).
+2. SOURCE OUTFIT REFERENCES OWN GARMENT DESIGN ONLY
+- Extract ONLY fashion garments from each SOURCE OUTFIT image.
+- Labeled sources: extract only the specified garment or category indicated by the label.
+- Unlabeled sources: extract only clearly visible clothing garments (such as tops, bottoms, dresses, or outerwear).
+- Do NOT transfer any source person's identity, face, body, or pose.
+- Do NOT transfer any source background, furniture, hangers, shoes, bags, jewelry, or non-garment props into the result.
+- Faithfully reproduce the source garment's silhouette, construction, collar style, sleeve length, waistband, seams, closures, buttons, zippers, hardware, colors, materials, textures, pattern scale, pattern orientation, graphics, and visible supported branding.
 
-**C. PLACEMENT & ARRANGEMENT**
-8. Place the source clothing items in the SAME positions, orientations, and arrangement as the clothing in the DESTINATION scene — NOT in the positions from the SOURCE image. The spatial layout follows the DESTINATION.
-9. If the source has multiple pieces (e.g., top + bottom), map each piece to the corresponding position in the DESTINATION layout (top garment position → source top, bottom garment position → source bottom).
-10. Adapt the fabric folds, creases, and drape of the source clothing to match the display method of the DESTINATION (e.g., if destination shows clothes hanging, show source clothes hanging with natural gravity folds; if flat lay, show source clothes laid flat).
-11. Only clothing garments are placed into the scene. All non-clothing props and accessories in the output must come from the DESTINATION scene, never from the SOURCE.
+PLACEMENT & PHYSICAL INTEGRATION:
+- Map each source garment to its corresponding location in the DESTINATION arrangement (e.g. source top to destination top position, source bottom to destination bottom position).
+- Adapt the garment drape to the DESTINATION display method: natural gravity drape for hanging clothes, natural spread and realistic folds for flat lays, and natural anatomical fit and body folds when worn by a person.
+- Zero blending: completely replace the destination clothing without retaining old colors, silhouettes, or pattern remnants. Replaced clothing areas must have zero visual influence from the old garment.
+- Lighting and contact: match the DESTINATION scene's light direction, intensity, color temperature, contact shadows, and occlusion so the transferred garment integrates believably as a single photograph.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
 
-**D. REALISM & CONSISTENCY**
-12. Lighting on the replaced clothing must match the DESTINATION scene's lighting — same direction, intensity, color temperature, and shadow behavior.
-13. The final image must look like a single real photograph — no compositing artifacts, no edge halos, no inconsistent shadows or perspective mismatches.${extraInstructions ? `\n\n**E. USER INSTRUCTIONS**\n${extraInstructions}` : ''}`;
+AVOID:
+- No leaking source background, furniture, hangers, accessories, or props into the scene.
+- No transferring source model identity, face, hair, skin, or pose.
+- No blending or residual visual attributes from the replaced destination clothing.
+- No altering the destination scene's background, camera perspective, lighting geometry, or destination person identity.
+- No compositing artifacts, edge halos, mismatched shadows, or perspective discrepancies.`;
 
   parts.push({ text: taskPrompt });
 

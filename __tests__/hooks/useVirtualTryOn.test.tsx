@@ -141,6 +141,44 @@ describe('useVirtualTryOn', () => {
     expect(partsText).toContain('- Source item #1: bag. User note: yellow shoulder bag');
   });
 
+  it('passes background, extra prompt, and multi-person targeting into interleaved request parts', async () => {
+    vi.mocked(compositeMarkerOnImage).mockResolvedValueOnce({
+      base64: 'subject-a-marked',
+      mimeType: 'image/png',
+    } as never);
+    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.handleSubjectImagesUpload([SUBJECT_A]);
+      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+      result.current.handleSourceItemTypeChange(result.current.clothingItems[0].id, 'clothing');
+      result.current.handleSourcePromptChange(result.current.clothingItems[0].id, '  casual linen shirt  ');
+      result.current.setBackgroundPrompt('Modern Parisian balcony');
+      result.current.setExtraPrompt('untucked relaxed styling');
+      result.current.setIsMultiPersonMode(true);
+      result.current.setMarkerPosition(MARKER);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerateImage();
+    });
+
+    const call = vi.mocked(editImage).mock.calls[0][0];
+    expect(compositeMarkerOnImage).toHaveBeenCalledWith(SUBJECT_A, MARKER);
+
+    const parts = call.interleavedParts ?? [];
+    expect(parts[0].text).toContain('SUBJECT');
+    expect(parts[1].inlineData?.data).toBe('subject-a-marked');
+    expect(parts[2].text).toContain('SOURCE ITEM #1 (clothing)');
+    expect(parts[3].inlineData?.data).toBe('outfit-a');
+
+    const taskText = parts[parts.length - 1].text ?? '';
+    expect(taskText).toContain('Modern Parisian balcony');
+    expect(taskText).toContain('untucked relaxed styling');
+    expect(taskText).toContain('- Source item #1: clothing. User note: casual linen shirt');
+    expect(taskText).toContain('Modify ONLY the person with the red dot');
+  });
   it('tracks multiple subject images as batch items', () => {
     const { result } = renderHook(() => useVirtualTryOn());
 

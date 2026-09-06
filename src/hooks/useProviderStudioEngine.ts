@@ -100,12 +100,12 @@ export const useProviderStudioEngine = (
       if (serialVariations) {
         const out: ImageFile[] = [];
         for (let i = 0; i < count; i++) {
-          const [img] = await driver.edit(buildVariationPrompt(lookbookStyle, 1), [base], 1, signal);
+          const [img] = await driver.edit(buildVariationPrompt(lookbookStyle), [base], 1, signal);
           if (img) out.push(img);
         }
         return out;
       }
-      return driver.edit(buildVariationPrompt(lookbookStyle, count), [base], count, signal);
+      return driver.edit(buildVariationPrompt(lookbookStyle), [base], count, signal);
     },
     generateCloseUps: async (base: ImageFile, signal?: AbortSignal) => {
       const negative = buildCloseUpNegativePrompt(lookbookNegativePrompt);

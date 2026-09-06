@@ -61,47 +61,44 @@ export const buildLookbookPrompt = (
     fabricTexturePrompt
   } = formState;
 
-  let prompt = '';
+  const sections: string[] = [];
 
-  // Multi-image synthesis instruction
-  if (images.length > (fabricTextureImage ? 2 : 1)) {
-    prompt += `
-      **Image Roles**: Multiple images of the same clothing item are provided, showing different angles (e.g., front, side, back).
-      **Core Synthesis Task**: Your primary goal is to mentally reconstruct a complete, 3D understanding of the single garment from these multiple 2D views. Synthesize all details—shape, seams, texture, pattern flow, and features—into one cohesive object. The final output should feature this synthesized garment.
-    `;
-  } else {
-    prompt += `
-      **Image Role**: A single image of a clothing item is provided.
-    `;
-  }
+  const effectiveFabricTextureImage = fabricTextureImage ?? formState.fabricTextureImage ?? null;
+
+  // Multi-view and multi-piece reference evidence instruction
+  const isMultiImage = images.length > (effectiveFabricTextureImage ? 2 : 1);
+  const garmentEvidenceSection = isMultiImage
+    ? `## REFERENCE EVIDENCE & RECONCILIATION
+- The uploaded clothing images provide visual evidence. They may contain multiple views of the same garment, distinct pieces of a multi-piece outfit, or both.
+- Multi-view reconciliation: when multiple views show the same piece from different angles, reconcile its complete 3D form from the clearest supported visual evidence across views. Never blend contradictory details from multiple views into a new hybrid design.
+- Multi-piece outfits: keep distinct garment pieces separate according to the outfit structure. Do not merge separate tops, bottoms, or layers into an invented single garment.
+- Conservative completion: if any garment region is hidden or unresolved across all source views, keep only the most likely continuous garment shape. Do NOT invent new trims, pockets, buttons, labels, logos, embroidery, closures, or construction details that lack visual support.`
+    : `## REFERENCE EVIDENCE & RECONCILIATION
+- The uploaded clothing image provides the visual evidence for the garment design, silhouette, construction, and materials.
+- Conservative completion: preserve visible construction, seams, colors, and textures. If any region is obscured, complete it conservatively without inventing new trims, pockets, buttons, labels, logos, embroidery, or closures.`;
+
+  sections.push(garmentEvidenceSection);
 
   // Fabric texture section
-  let fabricPromptSection = '';
-  if (fabricTextureImage) {
-    fabricPromptSection += `
-      **Critical Instruction: Fabric Replacement**
-      - An additional image ('Fabric Texture Image') is provided. Your most important task is to replace the original fabric of the main clothing item with the texture from this image.
-      - The new texture must wrap realistically around the garment's folds, seams, and contours.
-      - The lighting on the new texture must match the scene's overall lighting.
-    `;
-  }
-
-  if (fabricTexturePrompt.trim()) {
-    fabricPromptSection += `
-      **Fabric Texture Description**: Use this description to guide the texture application: "${fabricTexturePrompt.trim()}".
-    `;
-  }
-
-  if (fabricTextureImage || fabricTexturePrompt.trim()) {
-    fabricPromptSection += `
-      - Preserve the clothing's original silhouette, shape, and all non-fabric details (buttons, zippers).
-      - This texture application instruction overrides any conflicting details from the source clothing.
-    `;
-  }
-
-  // Prepend fabric section if present
-  if (fabricPromptSection) {
-    prompt = fabricPromptSection + '\n\n' + prompt;
+  if (effectiveFabricTextureImage) {
+    const fabricLines: string[] = [
+      '## FABRIC TEXTURE APPLICATION',
+      '- The fabric texture reference controls material surface and texture only.',
+      '- Wrap the texture realistically across the garment\'s folds, seams, drape, and contours under the scene lighting, maintaining physical depth rather than appearing flat or pasted on.',
+      '- Strictly preserve the garment\'s supported silhouette, cut, seams, and non-fabric construction details (such as buttons, zippers, fasteners, and hardware).',
+    ];
+    if (fabricTexturePrompt.trim()) {
+      fabricLines.push(`- Fabric texture note: "${fabricTexturePrompt.trim()}" provides secondary guidance to guide texture application.`);
+    }
+    sections.push(fabricLines.join('\n'));
+  } else if (fabricTexturePrompt.trim()) {
+    const fabricLines: string[] = [
+      '## FABRIC TEXTURE APPLICATION',
+      `- Fabric texture note: "${fabricTexturePrompt.trim()}" provides material and texture guidance only.`,
+      '- Wrap the texture realistically across the garment\'s folds, seams, drape, and contours under the scene lighting, maintaining physical depth rather than appearing flat or pasted on.',
+      '- Strictly preserve the garment\'s supported silhouette, cut, seams, and non-fabric construction details (such as buttons, zippers, fasteners, and hardware).',
+    ];
+    sections.push(fabricLines.join('\n'));
   }
 
   // Style-specific prompt generation
@@ -136,22 +133,19 @@ export const buildLookbookPrompt = (
       stylePrompt = buildFlatLayPrompt(garmentType);
   }
 
-  prompt += '\n\n' + stylePrompt;
+  sections.push(stylePrompt);
 
-  // Apply clothing description as a critical note if provided, for relevant styles
+  // Apply clothing description as secondary guidance if provided
   if (clothingDescription.trim() && lookbookStyle !== 'studio background') {
-    const descriptionInstruction = `
-
-**Critical Note on Garment Details (IMPORTANT)**:
+    const descriptionInstruction = `## GARMENT DESCRIPTION (SECONDARY GUIDANCE)
 - Use the following user-provided description ONLY to clarify garment details that are already visible in, or strongly supported by, the source image(s).
 - The source image(s) remain the primary source of truth. If this description conflicts with any visible evidence in the source image(s), follow the source image(s).
 - Do NOT invent new trims, pockets, buttons, labels, logos, embroidery, closures, or construction details that are not supported by the source image(s).
-- **Detailed Description**: "${clothingDescription.trim()}"
-    `.trim();
-    prompt += descriptionInstruction;
+- Detailed Description: "${clothingDescription.trim()}"`;
+    sections.push(descriptionInstruction);
   }
 
-  return prompt;
+  return sections.join('\n\n');
 };
 
 /**
@@ -160,40 +154,29 @@ export const buildLookbookPrompt = (
  * @returns Flat lay prompt string
  */
 const buildFlatLayPrompt = (garmentType: GarmentType): string => {
-  const basePrompt = `
-**Task**: Create a high-end e-commerce flat lay photo of the \${outfitType}, matching the reference image's style: top-down angle, soft natural light, and a clean lifestyle composition.
-
-**Subject**: \${outfitType} from the source image, laid out neatly on a bright background.
-
-- CRITICAL RULE: Maintain every outfit detail with 100% accuracy – fabric, seams, folds, patterns, buttons, zippers, elastic bands, hardware, and true colors.
-- Do not alter, simplify, or redraw any details.
-
-**Display Instructions**:
-1. The outfit is laid out naturally, shot from top-down.
-    - If **one-piece (dress/jumpsuit)** → lay out the full continuous form, showing its natural drape.
-    - If **two-piece (top + pants/skirt)** → place the top above, pants/skirt directly below, in a straight layout.
-    - If **multi-piece (inner top + pants/skirt + jacket)** → layer each piece in natural order or place them neatly in parallel.
-2. Background: light-colored rug + warm-toned wood floor/furniture, maintaining the reference image's minimal, lifestyle vibe.
-3. Decor accessories should match the vibe: magazines, a bright boucle chair, a wooden table, a decorative wool basket.
-4. Lighting: natural, soft, slightly angled, creating soft, not harsh, shadows.
-5. Composition: outfit is central, decor accessories are arranged around it to complement, not obstruct the main form.
-6. The output image must be hyper-realistic, 2K, sharp, and color-accurate.
-
-**Negative prompt**:
-no mannequin, no human body parts, no extra outfits not in source,
-no distorted proportions, no misplaced seams, no extra buttons,
-no fake logos, no text overlay, no watermarks, no clutter,
-no harsh shadows, no reflections, no oversaturation, no underexposure,
-no blurry details, no fabric distortion, no incorrect colors.
-  `;
-
   const outfitTypeMap: Record<GarmentType, string> = {
     'one-piece': 'a one-piece garment (dress or jumpsuit)',
     'two-piece': 'a two-piece set (top + pants, or top + skirt)',
     'three-piece': 'a three-piece set (inner top, pants/skirt, and outer jacket)'
   };
   const outfitTypeText = outfitTypeMap[garmentType];
-  return basePrompt.replace(/\$\{outfitType\}/g, outfitTypeText);
+
+  return `## PRESENTATION: LIFESTYLE FLAT LAY
+Create a high-end e-commerce flat lay photograph of ${outfitTypeText}, laid out naturally from a top-down camera angle in a clean lifestyle composition.
+
+Display & Composition:
+1. Layout: arrange the outfit neatly from directly above:
+    - If one-piece: continuous layout showing the garment's natural silhouette and drape.
+    - If two-piece: top placed above, pants/skirt directly below in a straight, aligned layout.
+    - If three-piece: top, bottom, and outer layer arranged in natural order or parallel alignment.
+2. Background & Setting: light-colored textured rug and warm-toned wood floor or furniture, maintaining a minimal lifestyle aesthetic.
+3. Supporting Props: tasteful, restrained decor accessories (such as magazines, a ceramic vessel, or a clean textile) placed around the perimeter to complement without obstructing the garment.
+4. Lighting: soft, natural directional lighting creating gentle contact shadows that reveal fabric weave and texture.
+
+Avoid:
+- No mannequins, human body parts, or extra outfits not in the references.
+- No clutter or props overlapping or covering the clothing.
+- No invented buttons, altered silhouettes, or incorrect colors.`;
 };
 
 /**
@@ -222,38 +205,28 @@ const buildFoldedPrompt = (
  * @returns Mannequin prompt string
  */
 const buildMannequinPrompt = (backgroundStyle: MannequinBackgroundStyleKey): string => {
-  const basePrompt = `
-**Task**: Generate a professional studio photograph of clothing on a high-end mannequin.
-**Subject**: Replace the mannequin's outfit with the clothing from the provided source image(s). Preserve every intricate detail with 100% accuracy — fabric texture, true colors, seams, pleats, stitching, embroidery, hardware, and proportions.
-
-**Mannequin Style (Strict Requirement)**:
-- Headless, armless, and legless female torso, solid ivory/cream color.
-- Topped with a short, plain cylindrical neck block (ivory/cream), capped by a flat round metallic gold disk.
-- Mounted on a slim metallic stand with a simple square base.
-
-**Clothing Integration**:
-- Transfer the outfit onto the mannequin, maintaining exact proportions, layers, and structure.
-- Render folds, shine, and depth photorealistically, with lighting and shadows matching the scene.
-- No simplification, no missing parts, no blending errors.
-
-**Background Instructions**:
-Use the following background style:
-**\${backgroundStyle}**
-
-**Lighting**: Soft, diffuse studio or daylight, subtle highlights and shadows to enhance form and fabric.
-
-**Goal**: Flawless 2K photorealistic image, where all elements are true to the description — only the outfit changes.
-
-**Negative prompt (Strict)**:
-NO mannequin heads (ball, oval, dome, fabric-wrapped, stylized), NO mannequin arms, NO mannequin legs, NO human body parts, NO skin.
-No extra mannequins, no background props, no shelving, no clutter,
-no reflections, no color casts, no harsh shadows, no over/underexposure,
-no text overlay, no fake logos, no watermarks, no background changes,
-no distortion, no missing garment details, no incorrect colors.
-  `;
-
   const backgroundStyleText = MANNEQUIN_BACKGROUND_PROMPTS[backgroundStyle];
-  return basePrompt.replace(/\$\{backgroundStyle\}/g, backgroundStyleText);
+
+  return `## PRESENTATION: TAILORED MANNEQUIN SHOT
+Generate a professional studio photograph of clothing displayed on a high-end fashion mannequin.
+
+Mannequin Specification:
+- Headless, armless, and legless torso form in solid ivory/cream tone.
+- Topped with a short cylindrical neck block capped with a flat metallic gold disk.
+- Mounted on a slender metallic floor stand with a simple square base.
+
+Garment Integration:
+- Fit the outfit naturally onto the mannequin torso, respecting the garment's cut, layers, and proportions.
+- Render natural fabric drape, folds, seams, and closures under the scene lighting.
+
+Environment & Lighting:
+- Background: ${backgroundStyleText}
+- Lighting: soft, diffused studio illumination enhancing fabric texture, depth, and silhouette.
+
+Avoid:
+- NO mannequin heads, arms, legs, or human skin/body parts.
+- NO extra mannequins, clutter, or unrelated props.
+- NO invented details, missing garment pieces, or altered colors.`;
 };
 
 /**
@@ -262,53 +235,36 @@ no distortion, no missing garment details, no incorrect colors.
  * @returns Hanger prompt string
  */
 const buildHangerPrompt = (garmentType: GarmentType): string => {
-  const basePrompt = `
-**Task**: Generate a photorealistic, professional e-commerce product image.
-
-**Subject**: \${outfitType} from the provided source image(s).
-
-**Background & Arrangement Instructions**:
-- The setting is a minimalist, built-in closet alcove with off-white matte walls.
-- Both sides have open white shutter-style panel doors, framing the closet.
-- A single horizontal chrome clothing rack (matte silver) is mounted near the top of the alcove.
-- Garments are hung as follows:
-    - For one-piece: Hang the single item (dress, jumpsuit, shirt, or pants/skirt) on the transparent acrylic hanger (right position).
-    - For two-piece: Hang the top on the transparent acrylic hanger (right) and the bottom on the gold metal hanger (left), side by side.
-    - For three-piece: Hang the top and bottom as above, with the jacket/outer layer either layered on the right hanger or on a separate hanger next to the others, matching the spacing in the scene.
-- Hangers must be slim (one transparent acrylic, one gold metal), spaced identically as described, and attached to the rack in the same alignment and proportions.
-
-**Props & Decor**:
-- On the left of the built-in white shelf, place a stylish bag that visually complements and matches the style, color palette, and level of formality of \${outfitType}. The bag should enhance the overall fashion aesthetic, remain minimalist and clean in design, and never distract from the garment(s).
-- On the right of the shelf, place a pair of elegant shoes (heels, loafers, or sandals) that coordinate perfectly with \${outfitType} in both color and style. Shoes should be neatly paired, fashion-forward, and appropriate for the type of garment(s) displayed.
-- The props must always look modern, tasteful, and catalog-ready, fitting a minimalist closet scene.
-- All surfaces must remain clean, with no excess clutter or unrelated items.
-
-**Lighting & Mood**:
-- Soft, bright natural light from above or slightly to the side, with gentle shadows under rack, clothes, bag, and shoes.
-- Modern, calm, and catalog-ready mood, with subtle highlights on metal and acrylic details.
-
-**Display**:
-- \${outfitType} must be displayed fully visible from hanger top to hem, with spacing, proportions, and arrangement matching the above description exactly.
-
-**Critical Rule**:
-- Every detail of the new garment(s) must be preserved with 100% accuracy — fabric texture, color, pattern, seams, stitching, hardware, etc.
-- Do not stylize, simplify, or alter fit/silhouette.
-- Do not change or move any other background element, only props (bag and shoes) are allowed to adapt to match the outfit.
-
-**Output Specs**:
-- High-resolution (2K or higher), photorealistic.
-
-**Goal**:
-Produce a flawless product shot of \${outfitType} in a minimalist closet scene as described, with **bag and shoes auto-styled to match and enhance the outfit**, maintaining a clean, professional, and harmonious visual presentation.
-  `;
-
   const outfitTypeMap: Record<GarmentType, string> = {
     'one-piece': 'the one-piece garment (dress, jumpsuit, single shirt, single pants/skirt)',
     'two-piece': 'the two-piece set (shirt + pants, shirt + skirt)',
     'three-piece': 'the three-piece set (shirt + pants/skirt + jacket/outer layer)'
   };
   const outfitTypeText = outfitTypeMap[garmentType];
-  return basePrompt.replace(/\$\{outfitType\}/g, outfitTypeText);
+
+  return `## PRESENTATION: BOUTIQUE CLOSET HANGER SHOT
+Generate a professional e-commerce product photograph of ${outfitTypeText} displayed in an elegant closet setting.
+
+Setting & Arrangement:
+- Closet Setting: minimalist built-in alcove with off-white matte walls and open white shutter-style panel doors framing the space.
+- Clothing Rack: a horizontal satin chrome rack mounted cleanly across the alcove.
+- Hanger Configuration:
+    - One-piece: hung on a slim transparent acrylic hanger on the right position.
+    - Two-piece: top hung on a transparent acrylic hanger (right), bottom on a gold metal hanger (left), displayed side-by-side with balanced spacing.
+    - Three-piece: top and bottom hung as above, with the outer jacket hung on an adjacent hanger or layered naturally.
+- Display: the garment hangs fully visible from hanger to hem with natural vertical gravity drape.
+
+Supporting Props:
+- Left shelf: a stylish, minimalist handbag that harmonizes with the outfit's formality, material, and color palette.
+- Right shelf: a neatly paired set of shoes (heels, loafers, or sandals) that complements the outfit's style and color.
+- Props serve as subtle catalog accents without distracting from the clothing.
+
+Lighting:
+- Soft, bright natural daylight from above and slightly to the side, casting gentle contact shadows beneath the rack, garments, bag, and shoes.
+
+Avoid:
+- No mannequins, human figures, or clutter.
+- No altered garment silhouettes, missing pieces, or invented details.`;
 };
 
 /**
@@ -316,18 +272,22 @@ Produce a flawless product shot of \${outfitType} in a minimalist closet scene a
  * @returns Studio background prompt string
  */
 const buildStudioBackgroundPrompt = (): string => {
-  return `
-    **Task**: Recreate the provided image with a new, professional studio background, while perfectly preserving the subject.
-    **Subject**: The person and their complete outfit from the source image.
-    **CRITICAL RULES**:
-    1.  **Perfect Subject Preservation**: The person's identity (face, hair, body shape), their entire outfit (design, color, texture, fit), and their exact pose MUST be preserved with 100% accuracy. Do NOT alter, redraw, or change the subject in any way.
-    2.  **Background Replacement**: Completely remove and discard the original background.
-    3.  **New Background Generation**: Generate a new, photorealistic, and clean studio background. The background should be a seamless, slightly off-white or light gray paper backdrop, subtly textured.
-    4.  **Studio Lighting**: The lighting on the model must be adjusted to match a professional studio lighting setup. Use soft, diffused light (like from a large softbox) to create gentle, flattering shadows. The lighting should look clean, polished, and consistent across the model and the new background.
-    5.  **Floor**: The floor should be a smooth, reflective surface that subtly mirrors the model, creating a sense of space and professionalism.
-    6.  **Seamless Integration**: Ensure the model is perfectly integrated into the new scene. Pay close attention to edges, hair strands, and semi-translucent fabrics to avoid any "cut-out" look. The model must look like they were actually photographed in the new studio environment.
-    **Goal**: A high-resolution (2K), photorealistic image suitable for a premium e-commerce catalog or fashion lookbook, featuring the original model and clothing in a new, clean studio setting.
-  `;
+  return `## PRESENTATION: STUDIO BACKGROUND EDIT
+Recreate the image in a professional studio setting while strictly preserving the subject.
+
+Subject Preservation:
+- Preserve the model's identity, face, hair, skin tone, body proportions, exact outfit, and pose completely. Do not alter or redraw the subject.
+
+Studio Environment:
+- Background: completely replace the original background with a seamless, clean off-white or light gray studio paper backdrop with subtle fine texture.
+- Floor: smooth studio surface with soft, natural reflections beneath the model.
+- Lighting: soft diffused studio lighting (such as a large softbox) balanced across the subject and backdrop, creating gentle, flattering shadows.
+- Integration: seamless edges around hair and clothing contours with no cutout halo or compositing artifacts.
+
+Avoid:
+- No changes to the model's face, hair, body, clothing, or pose.
+- No residual elements from the old background.
+- No artificial compositing artifacts or mismatched lighting angles.`;
 };
 
 /**
@@ -336,82 +296,38 @@ const buildStudioBackgroundPrompt = (): string => {
  * @returns Minimalist showroom prompt string
  */
 const buildMinimalistShowroomPrompt = (garmentType: GarmentType): string => {
-  const basePrompt = `
-Task: Generate a photorealistic, high-end lookbook image of \${outfitType} displayed in a fixed minimalist beige studio setup.
-The background, rack, floor, and lighting must match a premium beige studio aesthetic.
-The outfit, bag, and shoes change according to styling logic below.
-
-Scene (LOCKED):
-- Background: seamless matte beige wall, warm and even tone.
-- Floor: smooth light-gray concrete with soft reflection.
-- Lighting: natural daylight from upper-left, diffused and shadow-soft. No visible window streaks.
-- Composition: centered, straight-on camera, mid height, symmetrical layout.
-
-Rack (LOCKED):
-- Freestanding rectangular clothing rack with two vertical posts and one horizontal bar in brushed/satin silver.
-- Bottom shelf in same metal, visible across frame.
-- Positioned level and centered; no hanging cables or ceiling wires.
-
-Pedestal (LOCKED):
-- Left side: a tall rectangular concrete pedestal with soft matte surface, neutral gray tone.
-- Size proportionate (roughly ¼ rack height), flush with floor.
-- Used to display the handbag accessory dynamically generated per outfit.
-
-Garment Display (variable):
-- \${outfitType} hangs naturally on thin gold/brass hangers.
-- For two-piece sets: top (left) and bottom (right) slightly spaced, full length visible.
-- For one-piece: center aligned.
-- Fabric hangs with natural gravity, realistic folds, premium texture.
-
-Auto-Styled Accessories (UNLOCKED):
-1️⃣ **Bag (on pedestal):**
-   - AI automatically generates a handbag that harmonizes with the outfit's tone, material, and formality.
-   - Style logic:
-     • For structured or tailored outfits → classic boxy leather handbag or mini satchel.
-     • For flowy or feminine outfits → soft clutch, curved shoulder bag, or woven tote.
-     • For casual outfits → minimalist bucket or crescent bag.
-   - Color harmony:
-     • If outfit light or neutral → darker accent bag (black, chocolate, tan).
-     • If outfit dark → lighter contrast (ivory, nude, beige).
-     • If outfit colorful → tonal analog (warm camel, soft taupe).
-   - The bag must sit realistically on the pedestal, lit by the same light direction.
-
-2️⃣ **Shoes (on floor, centered below rack):**
-   - AI automatically generates shoes that complement both outfit and bag in tone and mood.
-   - Style logic:
-     • Dresses/skirts → pumps, slingbacks, or mules.
-     • Trousers/suits → loafers, pointed heels, or structured flats.
-     • Relaxed sets → sandals or minimalist sneakers.
-   - Color harmony:
-     • Shoes either match or stay one tone lighter than the bag.
-     • Use only neutral, metallic, or soft tonal shades — never saturated hues.
-   - Shoes placed symmetrically, toes forward, shadow direction matching light source.
-
-Lighting & Color:
-- White balance: warm-neutral daylight (~4800K).
-- Keep overall tone balanced, soft, and realistic.
-- No high contrast or spotlights.
-
-Composition:
-- Camera angle straight-on, mid-height.
-- Equal headroom above rack and foot space below shelf.
-- Everything aligned on center axis.
-
-Negative prompt:
-no mannequin, no human, no clutter, no text, no bright colors, no mirror, no harsh shadows, no ceiling cables, no props outside scene, no perspective tilt, no spotlight beams, no white background.
-
-Absolute priorities:
-- Scene geometry (wall, rack, pedestal, floor, lighting) remains identical.
-- Bag and shoes adapt intelligently to outfit tone and style.
-  `;
-
   const outfitTypeMap: Record<GarmentType, string> = {
     'one-piece': 'the one-piece garment (dress, jumpsuit, single shirt, single pants/skirt)',
     'two-piece': 'the two-piece set (shirt + pants, shirt + skirt)',
     'three-piece': 'the three-piece set (shirt + pants/skirt + jacket/outer layer)'
   };
   const outfitTypeText = outfitTypeMap[garmentType];
-  return basePrompt.replace(/\$\{outfitType\}/g, outfitTypeText);
+
+  return `## PRESENTATION: MINIMALIST SHOWROOM
+Generate a high-end lookbook photograph of ${outfitTypeText} displayed in a fixed minimalist beige studio showroom.
+
+Locked Scene Geometry:
+- Background: seamless matte warm beige wall with even tone.
+- Floor: smooth light-gray concrete with soft subtle reflections.
+- Rack: freestanding rectangular clothing rack with two vertical posts and one horizontal bar in brushed satin silver, with a bottom shelf, positioned centered and level.
+- Pedestal: on the left side, a rectangular matte concrete pedestal (approx. 1/4 rack height) flush with the floor.
+- Framing: centered, straight-on camera at mid-height, symmetrical alignment.
+- Lighting: warm-neutral daylight (~4800K) diffused from the upper-left with gentle, soft shadows.
+
+Garment Display:
+- ${outfitTypeText} hangs naturally on thin gold/brass hangers:
+    - Two-piece sets: top on the left, bottom on the right, slightly spaced with full length visible.
+    - One-piece: centered on the rack.
+- Fabric hangs with natural gravity drape and realistic folds.
+
+Adaptive Accessories:
+1. Handbag (on pedestal): automatically styled handbag that harmonizes with the outfit's tone, formality, and materials (e.g. structured leather for tailored looks, soft clutch for fluid silhouettes).
+2. Shoes (on floor, centered below rack): automatically styled shoes that coordinate with the outfit and bag (e.g. pumps/slingbacks for dresses, loafers for tailoring, clean sneakers for relaxed sets). Placed symmetrically, toes forward.
+
+Avoid:
+- No mannequins, humans, or clutter.
+- No changes to the locked scene geometry (wall color, rack design, pedestal, floor, or lighting angle).
+- No invented garment details or distorted garment proportions.`;
 };
 
 /**
@@ -458,26 +374,28 @@ const buildProductShotPrompt = (
 /**
  * Build variation generation prompt
  * @param lookbookStyle - Current lookbook style
- * @param variationCount - Number of variations to generate
  * @returns Variation prompt string
  */
 export const buildVariationPrompt = (
-  lookbookStyle: LookbookStyle,
-  variationCount: number
+  lookbookStyle: LookbookStyle
 ): string => {
-  return `
-    **Task**: Generate ${variationCount} professional variations for a product lookbook.
-    **Base Image**: Use the provided image as the reference.
-    **Instructions**:
-    1.  Each variation must be a new, unique, photorealistic image.
-    2.  Strictly maintain the core subject (the clothing) and the original '${lookbookStyle}' aesthetic.
-    3.  Introduce subtle, professional variations. Ideas:
-        *   Slightly different camera angles (e.g., lower, higher, slightly to the side).
-        *   Minor adjustments in professional studio lighting (e.g., changing the key light position).
-        *   For '${lookbookStyle}', subtle changes in arrangement or pose that a photographer would make between shots.
-    4.  **Crucially, do not change the clothing item itself.** The goal is to provide alternative shots of the same product.
-    **Goal**: A set of cohesive, e-commerce ready, 2K resolution images that could be used together in a product gallery.
-  `;
+  return `## TASK: PRODUCT LOOKBOOK VARIATION SHOT
+Generate a single alternate photograph of the exact same clothing product shown in the reference image, maintaining the '${lookbookStyle}' presentation style.
+
+## EDIT & VARIATION RULES
+1. Single output image: render exactly one complete, standalone photograph. Do NOT generate a collage, grid, diptych, split-screen, contact sheet, or multi-panel composition.
+2. Product identity preservation: the garment design, silhouette, construction, color, pattern, texture, and details must remain identical to the reference product. Do not redesign, restyle, or alter the clothing item itself.
+3. Permitted photographic variations: introduce modest photographic changes such as:
+    - A subtle shift in camera angle (e.g. slightly higher, lower, or angled).
+    - A minor variation in camera distance or crop.
+    - A realistic adjustment in studio lighting direction or highlight placement.
+    - For '${lookbookStyle}', natural micro-adjustments in fabric drape or prop arrangement consistent with a real photoshoot.
+
+## AVOID
+- No collages, grids, split images, multi-panel layouts, or contact sheets.
+- No altering or redesigning the garment, colors, patterns, or construction details.
+- No changing the core '${lookbookStyle}' presentation concept.
+- No blurry details, distortion, or artificial compositing artifacts.`;
 };
 
 /**
@@ -486,9 +404,23 @@ export const buildVariationPrompt = (
  */
 export const buildCloseUpPrompts = (): string[] => {
   return [
-    `A hyper-realistic, high-end e-commerce close-up photograph of the garment's neckline or collar area. Focus on capturing the clean lines of the neckline (or collar if present), visible trims, seams, and stitching accuracy. Show texture and finishing details clearly, including buttons or fastenings if they exist. Lighting is soft and directional to highlight edges, fabric sheen, and precision craftsmanship. Background is clean and softly blurred, professional catalog style. Resolution 2K, sharp, color-accurate. Preserve 100% accuracy of garment details.`,
-    `A hyper-realistic, high-end e-commerce close-up photograph of the garment's sleeve area. Focus on the sleeve hem and structure — whether long, short, or sleeveless (if sleeveless, highlight the armhole finishing instead). Capture stitching precision, fabric weave, trims, and edge finishing. Lighting is angled and soft, emphasizing subtle folds and fabric depth. Background is clean and softly blurred, professional catalog style. Resolution 2K, sharp, color-accurate. Preserve 100% accuracy of garment details.`,
-    `A hyper-realistic, high-end e-commerce close-up photograph of the garment's front lower body section. Focus on showing the front design details clearly — waistband or hemline, seams, pleats, darts, fastenings (buttons, zippers, drawstrings, elastic waistband) if they exist. If the garment has no fastenings, emphasize the clean fabric surface and finishing quality. Capture fabric texture, stitching accuracy, edge finishing, and alignment of details. Lighting is soft and overhead, producing a clean catalog style that highlights craftsmanship. Background is clean and softly blurred. Resolution 2K, sharp, color-accurate. Preserve 100% accuracy of garment details and structure.`
+    `## TASK: DETAIL CLOSE-UP — NECKLINE / COLLAR
+Generate a high-end e-commerce macro detail photograph focusing on the neckline or collar of the garment from the reference image.
+- Grounding: capture the exact neckline or collar construction visible in the reference, including seams, stitching, fabric weave, and any visible fasteners (buttons, placket, or zip).
+- Conservative fallback: if specific fasteners or collar details are absent or obscured in the reference, faithfully capture the plain neckline contour and fabric surface without inventing buttons, trims, collars, or embroidery.
+- Photography: sharp macro focus on craftsmanship, soft directional lighting to reveal fabric texture and edge finishing, softly blurred clean catalog background. Preserve the exact product color, material, and construction.`,
+
+    `## TASK: DETAIL CLOSE-UP — SLEEVE / CUFF / ARMHOLE
+Generate a high-end e-commerce macro detail photograph focusing on the sleeve or armhole area of the garment from the reference image.
+- Grounding: capture the sleeve hem, cuff structure, or armhole finishing exactly as supported by the reference (whether long sleeve, short sleeve, or sleeveless).
+- Conservative fallback: if cuff hardware, buttons, or decorative trims are not clearly visible in the reference, render clean continuous seam finishing without inventing cuffs, tabs, buttons, or embellishments.
+- Photography: sharp macro focus on seam precision, fabric weave, and edge construction, soft angled lighting highlighting fabric depth, clean catalog background. Preserve true garment colors and textures.`,
+
+    `## TASK: DETAIL CLOSE-UP — LOWER BODY / HEMLINE / WAISTBAND
+Generate a high-end e-commerce macro detail photograph focusing on the lower section, waistband, or hemline of the garment from the reference image.
+- Grounding: capture visible waistband construction, front hemline, pleats, pockets, or closures exactly as shown in the reference.
+- Conservative fallback: if waist fastenings, drawstrings, or pockets are not present in the reference, emphasize the clean fabric surface, authentic drape, and hem finishing without inventing pockets, buttons, zippers, or ornamental details.
+- Photography: sharp macro focus on textile texture and stitching quality, clean overhead soft studio lighting, softly blurred catalog background. Preserve true garment design and structure.`
   ];
 };
 
@@ -498,6 +430,6 @@ export const buildCloseUpPrompts = (): string[] => {
  * @returns Combined negative prompt string
  */
 export const buildCloseUpNegativePrompt = (baseNegativePrompt: string): string => {
-  const closeUpNegativePrompt = 'no distorted proportions, no extra buttons, no missing buttons, no extra seams, no incorrect stitching, no unrealistic textures, no blurry details, no fabric warping, no duplicated trims, no misplaced zippers, no fake logos, no added accessories, no stains, no wrinkles beyond natural folds, no color shifting, no oversaturation, no underexposure, no pixelation, no watermark, no background objects';
+  const closeUpNegativePrompt = 'invented buttons, invented pockets, invented trims, invented collars, incorrect stitching, distorted proportions, blurry details, fabric warping, color shift, fake logos, watermark, background clutter';
   return [baseNegativePrompt.trim(), closeUpNegativePrompt].filter(Boolean).join(', ');
 };
