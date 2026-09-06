@@ -127,7 +127,6 @@ describe('buildVirtualTryOnParts', () => {
         '## POSE',
         '## BACKGROUND',
         '## PROHIBITIONS',
-        '## CRITICAL RECAP',
       ];
 
       let lastIndex = -1;
@@ -176,7 +175,6 @@ describe('buildVirtualTryOnParts', () => {
       expect(text).toContain('remove the subject\'s original top and original bottom together and replace both with the source look in the same result');
       expect(text).toContain('Do not preserve the subject\'s original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment');
       expect(text).toContain('Do not keep the subject\'s original lower-body garment when a clothing source image includes its own lower-body garment');
-      expect(text).toContain('including both top and bottom when both are present');
     });
 
     it('makes non-clothing preservation subordinate to clothing replacements in mixed requests', () => {
@@ -199,8 +197,9 @@ describe('buildVirtualTryOnParts', () => {
     it('contains natural fit, occlusion, and lighting requirements', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
       expect(text).toContain('fit naturally');
-      expect(text).toContain('Preserve occlusions');
-      expect(text).toContain('Match the lighting, shadows, and color grading of the ORIGINAL SUBJECT IMAGE exactly');
+      expect(text).toContain('physically correct fabric folds and contact points');
+      expect(text).toContain('Preserve occlusions: hands, fingers, hair, existing accessories, and foreground objects stay in front where physically appropriate');
+      expect(text).toContain('Match the lighting direction, shadows, and color temperature of the subject image');
     });
 
     it('preserves original pose and does not invent hands in pockets', () => {
@@ -212,15 +211,22 @@ describe('buildVirtualTryOnParts', () => {
       expect(text).not.toContain('new dynamic fashion pose');
     });
 
-    it('contains critical recap at the end', () => {
+    it('distinguishes supported logo/graphic preservation from invented text prohibition', () => {
       const text = getTaskText(buildVirtualTryOnParts(defaultInput));
-      const recapIndex = text.indexOf('## CRITICAL RECAP');
-      expect(recapIndex).toBeGreaterThan(0);
-      expect(text.substring(recapIndex + '## CRITICAL RECAP'.length)).not.toMatch(/^## /m);
-      expect(text).toContain('Each source item is 100% preserved');
-      expect(text).toContain('shoes, bags, and accessories do not rewrite unrelated areas');
-      expect(text).toContain('Face (100% identical, absolutely no changes to face features/expression)');
-      expect(text).toContain('hair/skin preserved; overall pose kept with only minor outfit-fit adjustments allowed');
+      expect(text).toContain('Preserve visible graphics, logos, and text that are supported by the source clothing references');
+      expect(text).toContain('do not invent new or unsupported logos, text, graphics, or watermarks');
+      expect(text).toContain('Preserve source-supported garment graphics and text, but do not invent new logos, text, graphics, or watermarks');
+    });
+
+    it('preserves unmarked people and targets marked person in multi-person mode', () => {
+      const text = getTaskText(buildVirtualTryOnParts({
+        ...defaultInput,
+        isMultiPersonMode: true,
+      }));
+      expect(text).toContain('Modify ONLY the person with the red dot');
+      expect(text).toContain('Preserve all other people (without the red dot) in the image exactly as they are');
+      expect(text).toContain('Do not add or remove any people');
+      expect(text).toContain('Do not modify anyone except the person with the red dot; do not add or remove people');
     });
   });
 

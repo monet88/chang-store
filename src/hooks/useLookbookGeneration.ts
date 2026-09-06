@@ -136,7 +136,7 @@ export const useLookbookGeneration = (
     setError(null);
 
     const baseImage = generatedLookbook.main;
-    const prompt = buildVariationPrompt(formState.lookbookStyle, variationCount);
+    const prompt = buildVariationPrompt(formState.lookbookStyle);
 
     try {
       const newVariations = await driver.editImage({

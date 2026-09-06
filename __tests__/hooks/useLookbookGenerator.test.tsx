@@ -590,6 +590,16 @@ describe('useLookbookGenerator', () => {
 
       expect(result.current.generatedLookbook?.variations).toHaveLength(2);
       expect(result.current.isGeneratingVariations).toBe(false);
+
+      const mainCall = vi.mocked(editImage).mock.calls[0][0];
+      expect(mainCall.prompt).toContain('REFERENCE EVIDENCE & RECONCILIATION');
+      expect(mainCall.numberOfImages).toBe(1);
+
+      const variationCall = vi.mocked(editImage).mock.calls[1][0];
+      expect(variationCall.prompt).toContain('TASK: PRODUCT LOOKBOOK VARIATION SHOT');
+      expect(variationCall.prompt).toContain('No collages, grids, split images, multi-panel layouts, or contact sheets');
+      expect(variationCall.prompt).not.toContain('Generate 2 professional variations');
+      expect(variationCall.numberOfImages).toBe(2);
     });
 
     /**
@@ -665,6 +675,11 @@ describe('useLookbookGenerator', () => {
       });
 
       expect(result.current.isGeneratingCloseUp).toBe(false);
+
+      const closeupCalls = vi.mocked(editImage).mock.calls.slice(1);
+      expect(closeupCalls.length).toBeGreaterThanOrEqual(1);
+      expect(closeupCalls[0][0].prompt).toContain('DETAIL CLOSE-UP');
+      expect(closeupCalls[0][0].numberOfImages).toBe(1);
     });
   });
 
