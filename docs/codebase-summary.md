@@ -31,6 +31,7 @@ Current feature set in `src/types.ts`:
 - `AIEditor`
 - `WatermarkRemover`
 - `ClothingTransfer`
+- `IdentityTransfer`
 - `PatternGenerator`
 
 Each feature has an operational product doc under `docs/product/`.

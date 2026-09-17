@@ -7,6 +7,7 @@ export enum Feature {
   AIEditor = 'ai-editor',
   WatermarkRemover = 'watermark-remover',
   ClothingTransfer = 'clothing-transfer',
+  IdentityTransfer = 'identity-transfer',
   PatternGenerator = 'pattern-generator',
 }
 
@@ -191,6 +192,15 @@ export interface ClothingTransferReferenceItem {
 export interface ClothingTransferBatchItem {
   id: string;
   conceptImage: ImageFile;
+  status: BatchImageStatus;
+  results: ImageFile[];
+  error?: string;
+}
+
+/** One destination image job inside an Identity Transfer batch run */
+export interface IdentityTransferBatchItem {
+  id: string;
+  destinationImage: ImageFile;
   status: BatchImageStatus;
   results: ImageFile[];
   error?: string;

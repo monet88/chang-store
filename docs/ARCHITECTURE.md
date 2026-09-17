@@ -183,6 +183,7 @@ the Gemini gallery pipeline.
 | Virtual Try-On | Yes | Yes | Yes | Provider studios support source-item types/notes and multi-person targeting. |
 | Lookbook | Yes | Yes | Yes | Provider studios support core controls; variations and close-ups remain deferred. |
 | Clothing Transfer | Yes | Yes | Yes | Uses the provider prompt adapter and provider REST service. |
+| Identity Transfer | Yes | No | No | Gemini-only batch edit using shared identity references and per-destination jobs. |
 | Pattern Generator | Yes | Yes | Yes | Provider studios support prompt-driven generation. |
 | AI Editor | Yes | Yes | Yes | Requires a source image in provider studios. |
 | Background Replacer | Yes | No | No | Gemini-only workflow. |

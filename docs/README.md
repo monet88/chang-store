@@ -41,6 +41,7 @@ Feature behavior contracts derived from the current source:
 
 - product/overview.md
 - product/provider-studios.md
+- product/identity-transfer.md
 - product/try-on.md
 - product/lookbook.md
 - product/background.md

@@ -9,6 +9,7 @@ scope, validation, and durable Harness state.
 | --- | --- | --- | --- | --- |
 | US-001-three-provider-studios | Provider studio contract | high-risk | epics/E01-provider-studios/US-001-three-provider-studios/ | planned |
 | US-002-docs-backfill-resync | Backup docs and current-code reconciliation | normal | epics/E02-docs-harness-sync/US-002-docs-backfill-resync.md | implemented |
+| US-003-identity-transfer | Gemini Identity Transfer batch feature | normal | epics/E03-identity-transfer/US-003-identity-transfer.md | implemented |
 | BUG-VTO-MULTI-GATEWAY | Multi-person gateway validation | normal | bugs/BUG-VTO-MULTI-GATEWAY/ | current branch packet |
 
 ## Normal story

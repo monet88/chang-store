@@ -21,6 +21,7 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'tabs.pose': 'Pose AI',
         'tabs.watermarkRemover': 'Watermark Remover',
         'tabs.photoAlbum': 'Photo Album',
+        'tabs.identityTransfer': 'Identity Transfer',
       };
 
       return translations[key] ?? key;
@@ -48,7 +49,10 @@ describe('Tabs', () => {
     expect(screen.getByText('Output studio')).toBeInTheDocument();
 
     const tabButtons = screen.getAllByRole('button');
-    expect(tabButtons).toHaveLength(9);
+    expect(tabButtons).toHaveLength(10);
+
+    await user.click(screen.getByRole('button', { name: /Identity Transfer/i }));
+    expect(setActiveFeature).toHaveBeenCalledWith(Feature.IdentityTransfer);
 
     await user.click(screen.getByRole('button', { name: /Lookbook AI/i }));
     expect(setActiveFeature).toHaveBeenCalledWith(Feature.Lookbook);

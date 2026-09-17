@@ -21,6 +21,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature, studioMode
     [Feature.Pose]: t('tabs.pose'),
     [Feature.WatermarkRemover]: t('tabs.watermarkRemover'),
     [Feature.PhotoAlbum]: t('tabs.photoAlbum'),
+    [Feature.IdentityTransfer]: t('tabs.identityTransfer'),
   };
 
   const isProviderMode = studioMode === 'grok' || studioMode === 'gptImage';
@@ -52,6 +53,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature, studioMode
           description: t('navigation.editImages.description'),
           items: [
             { id: Feature.AIEditor, label: featureLabels[Feature.AIEditor] },
+            { id: Feature.IdentityTransfer, label: featureLabels[Feature.IdentityTransfer] },
             { id: Feature.Background, label: featureLabels[Feature.Background] },
             { id: Feature.Pose, label: featureLabels[Feature.Pose] },
             { id: Feature.WatermarkRemover, label: featureLabels[Feature.WatermarkRemover] },

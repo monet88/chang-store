@@ -6,7 +6,7 @@ Chang Store is not Gemini-only. A header-level studio switch lets the user move
 between three isolated studios that all produce fashion imagery but use
 different AI providers and request contracts:
 
-- **Gemini** — the default, full-featured studio (all nine `Feature`
+- **Gemini** — the default, full-featured studio (all ten `Feature`
   workflows + Gallery + model selectors).
 - **Grok** — isolated xAI image studio for five workflows.
 - **GPT Image** — isolated OpenAI image studio for five workflows.
@@ -31,7 +31,7 @@ Switching studios:
 
 ## Supported Workflows
 
-Provider studios support five of the nine workflows
+Provider studios support five of the ten workflows
 (`PROVIDER_SUPPORTED_FEATURES` in `src/types.ts`):
 
 | Workflow | Grok | GPT Image | Notes |
@@ -43,7 +43,7 @@ Provider studios support five of the nine workflows
 | AI Editor | Yes | Yes | Prompt + required source image. |
 
 Gemini-only workflows **not** available in provider studios: Background
-Replacer, Pose Changer, Photo Album, Watermark Remover.
+Replacer, Pose Changer, Photo Album, Watermark Remover, Identity Transfer.
 
 Per-workflow UI descriptors live in
 `src/components/studios/provider-studio/providerWorkflows.ts`.

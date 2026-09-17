@@ -12,6 +12,7 @@ describe('model selection rules', () => {
   it('maps image-edit features to the image editing scope', () => {
     const tryOnScope = resolveModelSelectionScope(Feature.TryOn);
     const backgroundScope = resolveModelSelectionScope(Feature.Background);
+    const identityTransferScope = resolveModelSelectionScope(Feature.IdentityTransfer);
 
     expect(tryOnScope).toMatchObject({
       selectionType: 'imageEdit',
@@ -24,6 +25,10 @@ describe('model selection rules', () => {
       labelKey: 'modelSelector.scopes.imageEdit',
     });
     expect(backgroundScope?.options).toHaveLength(getModelOptionsBySelectionType('imageEdit').length);
+    expect(identityTransferScope).toMatchObject({
+      selectionType: 'imageEdit',
+      labelKey: 'modelSelector.scopes.imageEdit',
+    });
   });
 
   it('omits model selector for watermark remover', () => {

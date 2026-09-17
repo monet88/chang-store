@@ -3,7 +3,7 @@
 AI-powered virtual fashion studio built with React 19, TypeScript, and Vite.
 Chang Store lets users generate fashion imagery: virtual try-ons, lookbooks,
 background swaps, pose changes, photo albums, image edits, watermark removal,
-clothing transfer, and textile pattern generation. The default studio uses
+clothing transfer, identity transfer, and textile pattern generation. The default studio uses
 Google Gemini; two isolated provider studios (Grok / xAI and GPT Image / OpenAI)
 cover five workflows each.
 
@@ -19,6 +19,7 @@ cover five workflows each.
 | AI Editor | Prompt-driven image editing with `@img` references |
 | Watermark Remover | Batch-remove watermarks with retry/download flows |
 | Clothing Transfer | Transfer worn outfits from source to target photos |
+| Identity Transfer | Apply shared face/body identity references across destination images |
 | Pattern Generator | Generate and refine textile/fabric patterns |
 
 ## Tech Stack
@@ -49,6 +50,7 @@ Key docs:
 - `docs/README.md` — documentation map.
 - `docs/product/overview.md` — product overview.
 - `docs/product/provider-studios.md` — the three-provider studio split.
+- `docs/product/identity-transfer.md` — Identity Transfer role and batch contract.
 - `docs/ARCHITECTURE.md` — actual app architecture.
 - `docs/code-standards.md` — code conventions and quality gates.
 
