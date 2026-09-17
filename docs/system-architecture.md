@@ -58,7 +58,13 @@ pipeline calls, and local-only results (no Gallery writes). See
 ## Model Registry
 
 `src/config/modelRegistry.ts` defines selectable model IDs, labels, selection
-types, and capabilities such as aspect ratio and image size support.
+types, and capabilities such as aspect ratio and image size support. It derives
+from `src/config/imageModelCatalog.ts`, the evidence-dated capability catalog
+(driver, size vocabulary, response shapes, per-gateway overrides) that the Grok
+and GPT Image registries also project. Which models a provider studio lists is
+the catalog intersected with what the configured gateway profile serves
+(`gatewayDiscoveryService.ts`); capabilities decide whether a size/quality
+control is offered at all.
 
 ## Error Handling Pattern
 

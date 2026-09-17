@@ -4,7 +4,7 @@ Date: 2026-09-17
 
 ## Status
 
-Proposed
+Accepted (implemented in phases 1-5 of `US-006-gateway-image-model-routing`).
 
 ## Context
 

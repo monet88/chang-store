@@ -4,6 +4,26 @@
 
 ### Added
 
+- A capability-driven image model catalog (`src/config/imageModelCatalog.ts`) is
+  now the single source for image model ids, sizes, and response shapes;
+  `gptImageModelRegistry.ts`, `grokModelRegistry.ts`, and the
+  `RegisteredModel`/`ModelCapability` section of `modelRegistry.ts` derive from
+  it. Capabilities are evidence-dated (`verifiedAt`, `sizeObservations`) and
+  carry per-gateway overrides keyed by bare host, so a measured "this gateway
+  ignores `size`" is recorded rather than assumed.
+- Gateway model discovery: `GET {baseUrl}/v1/models` (10-minute TTL cache) tells
+  the app which models the configured key may use before a generation is
+  attempted. 401 maps to "the gateway rejected this key", 403 to an edge/UA
+  block, and only an unexpected body shape to a malformed response.
+- Settings → **Gateway** now edits profiles: one Gemini (CPA) profile plus any
+  number of image-gateway profiles (GPT Image / OpenAI Images and Grok), each
+  with its own name, API shape, base URL, key, enable toggle, and **Check**
+  button. Stored under `gateway_profiles_v1`; legacy `cpa_gateway_*` /
+  `vertex_proxy_*` and `provider:gptImage:*` / `provider:grok:*` keys migrate
+  into the matching profile.
+- The GPT Image and Grok studios have a provider selector above the model
+  selector. The model list is the catalog ∩ what that gateway serves, with
+  served-but-unmeasured ids in a separate group.
 - Identity Transfer pre-fills the Face and Body references with the bundled
   defaults (`docs/images/FACE_ANGLES.png`, `docs/images/BODY.png`) on mount; an
   upload or clear made before the default resolves still wins over the late
@@ -16,6 +36,20 @@
 
 ### Changed
 
+- Image requests now send only the fields the active gateway is measured to
+  honor, and say so: `response_format` is set explicitly (`b64_json`), and
+  `size` / `quality` are omitted — with their controls hidden — for gateways
+  measured to ignore them (the CPA gateway answers its own size, so
+  `gpt-image-2.5-sunburst` and friends now offer no size dropdown there).
+  Dropped fields are logged through the debug service instead of disappearing
+  silently.
+- `url` responses are supported instead of rejected: the image is fetched and
+  turned into base64, so a gateway that answers with a link no longer fails with
+  `error.provider.response.urlOnly`.
+- When a gateway answers a different size than requested, the result tile says
+  so (`requested → returned`) instead of presenting the image as if the size had
+  been honored; the image is still kept. A size measured as inconsistent
+  (`honorsSize: 'flaky'`) shows the measured honor rate next to the size control.
 - Gemini routing is now always the CPA gateway (`https://cliproxy.monet.uno`,
   CLIProxyAPI). The enable/disable toggle and the direct-Gemini API key field
   are gone, so no per-session gateway setup is needed; the gateway key defaults

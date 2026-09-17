@@ -51,17 +51,39 @@ Per-workflow UI descriptors live in
 ## Provider Configuration
 
 Provider keys and base URLs come from `ApiProviderContext` (per-provider
-settings), seeded from build-time env values in `src/config/providerRegistry.ts`
-and overridable via namespaced localStorage. They are never held in hook state.
+settings). Each provider resolves to the active **image-lane gateway profile**
+(`GatewayProfile`, `src/config/gatewayProfiles.ts`); with no image profile it
+falls back to the legacy per-provider localStorage override and then to the
+provider's built-in default seeded from build-time env values in
+`src/config/providerRegistry.ts`.
 
 | Provider | Default base URL | Env key | Env base URL |
 | --- | --- | --- | --- |
 | Grok | `https://api.x.ai/v1` | `GROK_API_KEY` | `GROK_BASE_URL` |
 | GPT Image | `https://api.openai.com/v1` | `GPT_IMAGE_API_KEY` | `GPT_IMAGE_BASE_URL` |
 
-Base URLs pass `validateProviderBaseUrl` (allowlist) before any bearer token is
-sent. Env vars are injected via `vite.config.ts` with a `VITE_`-prefixed
-fallback for local `.env` files.
+Profiles live in Settings → **Gateway**: one Gemini (CPA) profile plus any number
+of image-gateway profiles, each with its own name, API shape (`openai-images` or
+`grok-images`), base URL, key, enable toggle, and a **Check** button that probes
+`GET {baseUrl}/v1/models`. A check refuses an unusable address client-side, maps
+401 to "the gateway rejected this key" and 403 to an edge/User-Agent block, and
+its answer is cached for 10 minutes (`gatewayDiscoveryService.ts`).
+
+## Models and Capabilities
+
+Model ids, sizes, and response shapes come from the capability catalog
+(`src/config/imageModelCatalog.ts`), which is evidence-dated: each entry records
+what was measured for a `(model, gateway)` pair, with per-gateway overrides keyed
+by bare host. The studios list `catalog ∩ served(profile)` — models the gateway
+actually answers for the configured key — and show served-but-unmeasured ids in a
+separate group.
+
+Controls follow capabilities rather than assumption: a model whose gateway is
+measured to ignore `size` offers no size dropdown, a `flaky` size shows the
+measured honor rate, and a gateway that answers a different size than requested
+marks the result tile with `requested → returned` (the image is kept). A `url`
+response is downloaded and converted rather than rejected. Base URLs pass
+`validateProviderBaseUrl` (allowlist) before any bearer token is sent.
 
 ## Service Contracts
 
@@ -109,7 +131,8 @@ the provider service separately. No Gemini hook, service, context, or
 - Provider studios do not import Gemini prompt builders directly; they go
   through the adapter.
 - Provider studios use separate model registries (`grokModelRegistry.ts`,
-  `gptImageModelRegistry.ts`) and provider services.
+  `gptImageModelRegistry.ts`, both projections of `imageModelCatalog.ts`) and
+  provider services. Which models a studio lists is `catalog ∩ served(profile)`.
 
 ## Parity vs Gemini
 
@@ -130,8 +153,20 @@ is prompt-based rather than a native resolution flag.
 - `src/hooks/useProviderStudioFields.ts`, `useProviderResultActions.ts`,
   `useProviderTryOnBatch.ts`, `useProviderLookbookFields.ts` — shared hooks.
 - `src/config/providerRegistry.ts`, `grokModelRegistry.ts`,
-  `gptImageModelRegistry.ts` — provider metadata + model capabilities.
-- `src/services/providers/{grok,gpt-image,shared}/*` — provider services.
+  `gptImageModelRegistry.ts` — provider metadata (both registries project the
+  catalog).
+- `src/config/imageModelCatalog.ts` — the capability catalog (drivers,
+  capabilities, evidence dates, per-gateway overrides).
+- `src/config/gatewayProfiles.ts`, `src/hooks/useGatewayProfiles.ts`,
+  `useGatewayProfileEditor.ts`, `useServedModels.ts` — profile storage,
+  migration, and the served-model cache.
+- `src/services/gatewayDiscoveryService.ts` — `GET {baseUrl}/v1/models` with
+  401/403/unreachable/malformed mapping and a 10-minute TTL cache.
+- `src/components/modals/GatewayProfileEditor.tsx`, `GatewayProfileRow.tsx` —
+  the two-lane profile editor; `ProviderProfileSelector.tsx` +
+  `ModelOptionGroups.tsx` — the studio-side profile and model pickers.
+- `src/services/providers/{grok,gpt-image,shared}/*` — provider services
+  (`shared/imageDriverPolicy.ts` owns field discipline and the size guard).
 - `src/utils/provider-studio-prompt-adapter.ts`,
   `provider-refine-prompt.ts`, `provider-url-validation.ts`.
 
@@ -140,14 +175,21 @@ is prompt-based rather than a native resolution flag.
 - Switch studio in header → previous studio unmounts, feature clamps to a
   supported workflow.
 - Configure provider key/base URL → invalid base URL is rejected before any
-  request.
+  request (including from a profile's **Check**).
+- Settings → Gateway → add an image profile, **Check** it → the served list
+  appears, and the studio's model dropdown narrows to `catalog ∩ served`; a
+  reload keeps the profile and its selection.
 - Try-On on Grok / GPT Image with default composed prompt → outfit applied,
   result rendered locally (not written to Gallery).
 - Current automated proof: provider service and isolation tests under
-  `__tests__/services/providers/`, `__tests__/hooks/useGrokStudio.test.tsx`,
-  and `__tests__/hooks/useGptImageStudio.test.tsx`. The former
+  `__tests__/services/providers/`, `__tests__/services/gatewayDiscoveryService.test.ts`,
+  `__tests__/config/{imageModelCatalog,gatewayProfiles,modelSelectionRules}.test.ts`,
+  `__tests__/hooks/use{ModelSelection,GptImageStudio,GrokStudio,GatewayProfileEditor}*`,
+  and `__tests__/contexts/ApiProviderContext.test.tsx`. The former
   `scripts/provider-tryon-smoke.ts` helper is not present in this checkout.
 
 ## Related Story
 
-`docs/stories/epics/E01-provider-studios/US-001-three-provider-studios/`.
+`docs/stories/epics/E01-provider-studios/US-001-three-provider-studios/` for the
+studio split; `docs/stories/epics/E04-provider-gateways/US-006-gateway-image-model-routing/`
+for the capability catalog, gateway discovery, and profiles.

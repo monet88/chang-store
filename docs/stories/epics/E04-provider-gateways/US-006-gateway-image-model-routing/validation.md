@@ -120,4 +120,74 @@ Missing from the vendor doc entirely (each one an integration hazard):
 10. CORS (measured open: `Access-Control-Allow-Origin: *`), so browser clients can call the gateway directly.
 
 
-Add results here after each phase: test counts, the browser smoke capture, and the generation's IHDR.
+## Phase results (2026-09-17)
+
+### Focused test counts (each phase's own files)
+
+| Phase | Files | Cases |
+| --- | --- | --- |
+| 1 catalog | `__tests__/config/imageModelCatalog.test.ts` | 13 |
+| 2 drivers | `gptImageService.test.ts` 11 · `imageDriverPolicy.test.ts` 8 · `openaiCompatibleResponse.test.ts` 11 | 30 |
+| 3 discovery | `gatewayDiscoveryService.test.ts` | 11 |
+| 4 profiles | `gatewayProfiles.test.ts` 11 · `useGatewayProfileEditor.test.ts` 2 | 13 |
+| 5 pickers | `modelSelectionRules.test.ts` 12 · `useGptImageStudio.test.tsx` 10 · `useGrokStudio.test.tsx` 13 · `useModelSelection.test.ts` 2 · `ApiProviderContext.test.tsx` 25 · `SettingsModal.test.tsx` 2 · `ui-boundary-imports.test.ts` 3 · `App.test.tsx` 5 | 72 |
+
+### Full gate battery (working tree, after phase 6)
+
+```
+npx tsc --noEmit   → 0
+npm run lint       → 0
+npx vitest run     → 77 files, 823 tests passed
+npm run build      → 0
+```
+
+### Browser smoke (headless Chrome, CDP, real gateways, no credits)
+
+Run against `npm run dev` (`localhost:3549`) with the operator's own CPA key injected by
+`vite.config.ts`:
+
+| Step | Observed |
+| --- | --- |
+| Settings → GATEWAY → gemini lane **Kiểm tra** | `ok · 32 mô hình · 0.24s` on `cliproxy.monet.uno` — the live discovery path, matching the recorded 32 ids / 0.23 s |
+| Add an image-lane row (`cpa-images`, `https://cliproxy.monet.uno`), reload the page | the row persists (localStorage round-trip) and stays the active profile |
+| That row's **Kiểm tra** with an empty key | `Gateway từ chối API key này (401).` — 401 mapped to `unauthorized`, never "unreachable" |
+| Row pointed at `https://api.xompet.io.vn` with an empty key | same 401 mapping — second gateway, live, no credential |
+| Row with an empty address, **Kiểm tra** | `Hãy nhập địa chỉ cổng hợp lệ.` — refused client-side, no request sent (phase-6 fix, see below) |
+| GPT studio, active profile `cpa-images` | provider selector `Nhà cung cấp ảnh` = `cpa-images`; `32 mô hình đã kiểm tra`; model dropdown = 4 verified catalog rows (`Sunburst`, `Flare`, `2.5`, `2`) + the not-yet-verified served ids (`agy/*`, `gpt-5.6-*`, `claude-*`, …) |
+| GPT studio controls for that profile | **no size control, no quality control** — `gatewayOverrides['cliproxy.monet.uno']` measures both as ignored; capabilities drive the UI |
+| Gemini studio picker | `Nano Banana 2` + `Nano Banana 2 (agy alias)` — the served-driven model list |
+
+Not smoke-testable in this session: the `flaky` honor-rate hint and the wrong-size tile notice
+both need a gateway that answers a wrong size, i.e. an XomPet key (absent from `.env`) or an
+OpenAI key plus a paid credit. Both are covered by unit tests against the recorded measurements.
+
+### Phase-6 findings, fixed before the gates above
+
+1. `ProviderProfileSelector` read `studio.profile.*`, a namespace that did not exist — the
+   studio rendered raw i18n keys (`studio.profile.label`, `studio.profile.servedModels`).
+   Added the four keys to `en.ts`/`vi.ts` under `studio.profile` (reusing the wording already
+   established for the watermark remover's image-provider block). A repo-wide key audit found
+   17 further missing keys, all pre-existing and in unrelated features (BackgroundReplacer,
+   ClothingTransfer, GeneratedImage, IdentityTransfer, LookbookGenerator, PatternGenerator,
+   VirtualTryOn, WatermarkRemoverOutput, ProviderLookbookControls, useLookbookGeneration,
+   usePhotoAlbum) — out of scope here, not touched.
+2. **Kiểm tra** sent the key to whatever `fetch` resolves when the address is empty (the page
+   origin). Guarded with the existing `isUsableProviderBaseUrl` (`utils/provider-url-validation.ts`);
+   the probe now reports `settingsModal.cpaGateway.urlInvalid` and makes no request. Red proof:
+   `useGatewayProfileEditor.test.ts` failed first with
+   `expected "vi.fn()" to not be called at all, but actually been called 1 times` and the call args
+   `{baseUrl: "   ", apiKey: "sk-secret"}`.
+3. The dimension guard only wrote to the debug log, while design §Dimension guard requires a
+   non-blocking UI notice naming requested vs returned. `verifyReturnedDimensions` now returns the
+   first `SizeMismatch`, `gptImageService.handleResponse` marks the images with
+   `ImageFile.sizeWarning`, and the result tile renders `error.imageSizeMismatch` — the image is
+   still kept.
+4. `sizeObservations` was catalog data with no reader, while invariant 4 requires the `flaky`
+   observed rate to be displayed. `resolveGptImageSizeObservations` → `useGptImageStudio.sizeObservations`
+   → a hint under the size control (`studio.workflows.sizeObservation`).
+
+### Harness
+
+Story `US-006-gateway-image-model-routing` (intake #153) — `verify_command` is
+`npx vitest run __tests__/config/imageModelCatalog.test.ts`; status `implemented` after phase 3,
+re-verified with this phase's trace (phase 4-6).
