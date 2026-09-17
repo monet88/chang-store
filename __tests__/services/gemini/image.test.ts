@@ -313,33 +313,6 @@ describe('services/gemini/image.ts', () => {
       expect(callArgs.config.imageConfig.aspectRatio).toBe('16:9');
     });
 
-    it('clamps Flash-Lite image edits to its supported 1K resolution', async () => {
-      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
-
-      await editImage({
-        images: [sampleImage],
-        prompt: 'Edit image',
-        model: 'gemini-3.1-flash-lite-image',
-        resolution: '2K',
-      });
-
-      const callArgs = mockGenerateContent.mock.calls[0][0];
-      expect(callArgs.config.imageConfig.imageSize).toBe('1K');
-    });
-
-    it('always sends Flash-Lite imageSize 1K when resolution is omitted', async () => {
-      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
-
-      await editImage({
-        images: [sampleImage],
-        prompt: 'Edit image',
-        model: 'gemini-3.1-flash-lite-image',
-      });
-
-      const callArgs = mockGenerateContent.mock.calls[0][0];
-      expect(callArgs.config.imageConfig.imageSize).toBe('1K');
-    });
-
     it('preserves requested resolution for image models that support it', async () => {
       mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
 
@@ -713,15 +686,6 @@ describe('services/gemini/image.ts', () => {
 
       // Assert
       expect(result.mimeType).toBe('image/jpeg');
-    });
-
-    it('clamps Flash-Lite upscale requests to its supported 1K resolution', async () => {
-      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
-
-      await upscaleImage(sampleImage, '2K', undefined, 'gemini-3.1-flash-lite-image');
-
-      const callArgs = mockGenerateContent.mock.calls[0][0];
-      expect(callArgs.config.imageConfig.imageSize).toBe('1K');
     });
 
     it('preserves requested upscale resolution for image models that support it', async () => {

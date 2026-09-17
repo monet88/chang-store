@@ -130,10 +130,11 @@ This live run also surfaced and fixed a real bug: the Gemini vision helpers in
 gateway rejected with `VALIDATION_FAILED`. They now send
 `contents: [{ role: 'user', parts }]`, verified live.
 
-To route the browser app through the gateway: Settings → "Gemini Proxy /
-Gateway" → enable, set URL `https://vertex.monet.uno/gemini` and the proxy API
-key, then save (the key is stored in localStorage as plaintext — use a trusted
-device only).
+Gemini routing always goes through the CPA gateway
+(`https://cliproxy.monet.uno`), configured in Settings → "CPA Gateway" (URL plus
+optional API key; the key is stored in localStorage as plaintext — use a trusted
+device only). The default key comes from `CLIPROXY_API_KEY` at build time. There
+is no direct-Google mode.
 
 ## Known Documentation Notes
 

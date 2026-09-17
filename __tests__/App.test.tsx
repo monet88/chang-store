@@ -65,7 +65,7 @@ vi.mock('../src/contexts/ApiProviderContext', () => ({
     setImageEditModel: mockSetImageEditModel,
     imageGenerateModel: 'gemini-3.1-flash-image',
     setImageGenerateModel: mockSetImageGenerateModel,
-    textGenerateModel: 'gemini-3.5-flash',
+    textGenerateModel: 'gemini-3.8-flash',
     setTextGenerateModel: mockSetTextGenerateModel,
   }),
 }));
@@ -222,8 +222,12 @@ describe('App utility dock regression', () => {
     render(<App />);
 
     expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image');
-    await user.selectOptions(screen.getByLabelText('Image editing model'), 'gemini-2.5-flash-image');
-    expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-2.5-flash-image');
+    await user.selectOptions(
+      screen.getByLabelText('Image editing model'),
+      'gemini-3.1-flash-image',
+    );
+    expect(mockSetImageEditModel).toHaveBeenCalledWith('gemini-3.1-flash-image');
+    expect(mockSetTextGenerateModel).not.toHaveBeenCalled();
 
     await user.click(screen.getByText('feature-pattern-generator'));
     expect(screen.getByLabelText('Image editing model')).toHaveValue('gemini-3.1-flash-image');
@@ -231,7 +235,11 @@ describe('App utility dock regression', () => {
     await user.click(screen.getByText('feature-watermark-remover'));
     expect(screen.queryByLabelText('Image editing model')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Image generation model')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('settingsModal.fields.textGeneration')).toBeInTheDocument();
+
+    const textSelector = screen.getByLabelText('settingsModal.fields.textGeneration');
+    expect(textSelector).toHaveValue('gemini-3.8-flash');
+    await user.selectOptions(textSelector, 'gemini-3.7-flash');
+    expect(mockSetTextGenerateModel).toHaveBeenCalledWith('gemini-3.7-flash');
   });
 
   it('falls back to try-on when session storage contains retired feature ids', async () => {

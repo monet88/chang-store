@@ -1,5 +1,9 @@
 # Vertex Gateway Runbook
 
+> Historical: this documents the retired `vertex.monet.uno` gateway. The app now
+> routes every Gemini request through the CPA gateway
+> (`https://cliproxy.monet.uno`); see `docs/deployment-guide.md`.
+
 ## Purpose
 
 Operational notes for the `gateway/` service deployed on `vertex.monet.uno`.

@@ -11,14 +11,12 @@ import { isDebugEnabled, setDebugEnabled } from '../services/debugService';
 import { validateProviderBaseUrl } from '../utils/provider-url-validation';
 import { getLocalStorageUsage } from '../utils/storage';
 
-const VERTEX_PROXY_ENABLED_KEY = 'vertex_proxy_enabled';
-const VERTEX_PROXY_URL_KEY = 'vertex_proxy_url';
-const VERTEX_PROXY_API_KEY_KEY = 'vertex_proxy_api_key';
+const CPA_GATEWAY_URL_KEY = 'cpa_gateway_url';
+const CPA_GATEWAY_API_KEY_KEY = 'cpa_gateway_api_key';
 
 export {
-  VERTEX_PROXY_ENABLED_KEY,
-  VERTEX_PROXY_URL_KEY,
-  VERTEX_PROXY_API_KEY_KEY,
+  CPA_GATEWAY_URL_KEY,
+  CPA_GATEWAY_API_KEY_KEY,
 };
 
 interface StorageInfo {
@@ -44,20 +42,16 @@ export interface UseSettingsModalStateReturn {
   setLocalImageGenerateModel: (v: string) => void;
   localTextGenerateModel: string;
   setLocalTextGenerateModel: (v: string) => void;
-  localDirectGeminiApiKey: string;
-  setLocalDirectGeminiApiKey: (v: string) => void;
-  localVertexProxyEnabled: boolean;
-  setLocalVertexProxyEnabled: (v: boolean) => void;
-  localVertexProxyUrl: string;
-  setLocalVertexProxyUrl: (v: string) => void;
-  localVertexProxyApiKey: string;
-  setLocalVertexProxyApiKey: (v: string) => void;
+  localCpaGatewayUrl: string;
+  setLocalCpaGatewayUrl: (v: string) => void;
+  localCpaGatewayApiKey: string;
+  setLocalCpaGatewayApiKey: (v: string) => void;
   debugMode: boolean;
   handleDebugToggle: () => void;
-  isVertexProxyUrlInvalid: boolean;
-  isVertexProxyUrlCustom: boolean;
-  isVertexProxyApiKeyMissing: boolean;
-  customVertexProxyHost: string | null;
+  isCpaGatewayUrlInvalid: boolean;
+  isCpaGatewayUrlCustom: boolean;
+  isCpaGatewayApiKeyMissing: boolean;
+  customCpaGatewayHost: string | null;
   storageInfo: StorageInfo;
   refreshStorageUsage: () => Promise<void>;
   restoreInputRef: React.RefObject<HTMLInputElement>;
@@ -66,45 +60,40 @@ export interface UseSettingsModalStateReturn {
 export const useSettingsModalState = ({ isOpen }: UseSettingsModalStateParams): UseSettingsModalStateReturn => {
   const { t } = useLanguage();
   const {
-    googleApiKey,
     imageEditModel,
     imageGenerateModel,
     textGenerateModel,
-    vertexProxySettings,
+    cpaGatewaySettings,
   } = useApi();
   const { images } = useImageGallery();
 
   const [localImageEditModel, setLocalImageEditModel] = useState(imageEditModel);
   const [localImageGenerateModel, setLocalImageGenerateModel] = useState(imageGenerateModel);
   const [localTextGenerateModel, setLocalTextGenerateModel] = useState(textGenerateModel);
-  const [localDirectGeminiApiKey, setLocalDirectGeminiApiKey] = useState(googleApiKey ?? '');
-  const [localVertexProxyEnabled, setLocalVertexProxyEnabled] = useState(vertexProxySettings.enabled);
-  const [localVertexProxyUrl, setLocalVertexProxyUrl] = useState(vertexProxySettings.url);
-  const [localVertexProxyApiKey, setLocalVertexProxyApiKey] = useState(vertexProxySettings.apiKey);
+  const [localCpaGatewayUrl, setLocalCpaGatewayUrl] = useState(cpaGatewaySettings.url);
+  const [localCpaGatewayApiKey, setLocalCpaGatewayApiKey] = useState(cpaGatewaySettings.apiKey);
   const [debugMode, setDebugMode] = useState(() => isDebugEnabled());
   const [storageInfo, setStorageInfo] = useState<StorageInfo>(DEFAULT_STORAGE_INFO);
 
   const restoreInputRef = useRef<HTMLInputElement>(null);
   const wasOpenRef = useRef(false);
 
-  const vertexProxyUrlValidation = useMemo(
-    () => validateProviderBaseUrl(localVertexProxyUrl),
-    [localVertexProxyUrl],
+  const cpaGatewayUrlValidation = useMemo(
+    () => validateProviderBaseUrl(localCpaGatewayUrl),
+    [localCpaGatewayUrl],
   );
-  const hasVertexProxyChanges = useMemo(
+  const hasCpaGatewayChanges = useMemo(
     () => (
-      localVertexProxyEnabled !== vertexProxySettings.enabled
-      || localVertexProxyUrl.trim() !== vertexProxySettings.url
-      || localVertexProxyApiKey !== vertexProxySettings.apiKey
+      localCpaGatewayUrl.trim() !== cpaGatewaySettings.url
+      || localCpaGatewayApiKey !== cpaGatewaySettings.apiKey
     ),
-    [localVertexProxyApiKey, localVertexProxyEnabled, localVertexProxyUrl, vertexProxySettings],
+    [localCpaGatewayApiKey, localCpaGatewayUrl, cpaGatewaySettings],
   );
-  const isVertexProxyUrlInvalid = vertexProxyUrlValidation.status === 'invalid';
-  const isVertexProxyUrlCustom = vertexProxyUrlValidation.status === 'custom';
-  const isVertexProxyApiKeyMissing = localVertexProxyEnabled
-    && localVertexProxyApiKey.trim().length === 0
-    && hasVertexProxyChanges;
-  const customVertexProxyHost = isVertexProxyUrlCustom ? vertexProxyUrlValidation.host : null;
+  const isCpaGatewayUrlInvalid = cpaGatewayUrlValidation.status === 'invalid';
+  const isCpaGatewayUrlCustom = cpaGatewayUrlValidation.status === 'custom';
+  const isCpaGatewayApiKeyMissing = localCpaGatewayApiKey.trim().length === 0
+    && hasCpaGatewayChanges;
+  const customCpaGatewayHost = isCpaGatewayUrlCustom ? cpaGatewayUrlValidation.host : null;
 
   const refreshStorageUsage = useCallback(async (): Promise<void> => {
     const { usage, quota } = await getLocalStorageUsage();
@@ -132,11 +121,9 @@ export const useSettingsModalState = ({ isOpen }: UseSettingsModalStateParams): 
     setLocalImageEditModel(imageEditModel);
     setLocalImageGenerateModel(imageGenerateModel);
     setLocalTextGenerateModel(textGenerateModel);
-    setLocalDirectGeminiApiKey(googleApiKey ?? '');
-    setLocalVertexProxyEnabled(vertexProxySettings.enabled);
-    setLocalVertexProxyUrl(vertexProxySettings.url);
-    setLocalVertexProxyApiKey(vertexProxySettings.apiKey);
-  }, [isOpen, googleApiKey, imageEditModel, imageGenerateModel, textGenerateModel, vertexProxySettings]);
+    setLocalCpaGatewayUrl(cpaGatewaySettings.url);
+    setLocalCpaGatewayApiKey(cpaGatewaySettings.apiKey);
+  }, [isOpen, imageEditModel, imageGenerateModel, textGenerateModel, cpaGatewaySettings]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -150,20 +137,16 @@ export const useSettingsModalState = ({ isOpen }: UseSettingsModalStateParams): 
     setLocalImageGenerateModel,
     localTextGenerateModel,
     setLocalTextGenerateModel,
-    localDirectGeminiApiKey,
-    setLocalDirectGeminiApiKey,
-    localVertexProxyEnabled,
-    setLocalVertexProxyEnabled,
-    localVertexProxyUrl,
-    setLocalVertexProxyUrl,
-    localVertexProxyApiKey,
-    setLocalVertexProxyApiKey,
+    localCpaGatewayUrl,
+    setLocalCpaGatewayUrl,
+    localCpaGatewayApiKey,
+    setLocalCpaGatewayApiKey,
     debugMode,
     handleDebugToggle,
-    isVertexProxyUrlInvalid,
-    isVertexProxyUrlCustom,
-    isVertexProxyApiKeyMissing,
-    customVertexProxyHost,
+    isCpaGatewayUrlInvalid,
+    isCpaGatewayUrlCustom,
+    isCpaGatewayApiKeyMissing,
+    customCpaGatewayHost,
     storageInfo,
     refreshStorageUsage,
     restoreInputRef,

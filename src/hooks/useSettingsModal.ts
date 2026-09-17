@@ -28,21 +28,17 @@ export interface UseSettingsModalReturn {
   localImageEditModel: string;
   localImageGenerateModel: string;
   localTextGenerateModel: string;
-  localDirectGeminiApiKey: string;
-  localVertexProxyEnabled: boolean;
-  localVertexProxyUrl: string;
-  localVertexProxyApiKey: string;
-  isVertexProxyUrlInvalid: boolean;
-  isVertexProxyUrlCustom: boolean;
-  isVertexProxyApiKeyMissing: boolean;
-  customVertexProxyHost: string | null;
+  localCpaGatewayUrl: string;
+  localCpaGatewayApiKey: string;
+  isCpaGatewayUrlInvalid: boolean;
+  isCpaGatewayUrlCustom: boolean;
+  isCpaGatewayApiKeyMissing: boolean;
+  customCpaGatewayHost: string | null;
   setLocalImageEditModel: (modelId: string) => void;
   setLocalImageGenerateModel: (modelId: string) => void;
   setLocalTextGenerateModel: (modelId: string) => void;
-  setLocalDirectGeminiApiKey: (apiKey: string) => void;
-  setLocalVertexProxyEnabled: (enabled: boolean) => void;
-  setLocalVertexProxyUrl: (url: string) => void;
-  setLocalVertexProxyApiKey: (apiKey: string) => void;
+  setLocalCpaGatewayUrl: (url: string) => void;
+  setLocalCpaGatewayApiKey: (apiKey: string) => void;
   debugMode: boolean;
   handleDebugToggle: () => void;
   restoreInputRef: React.RefObject<HTMLInputElement>;
@@ -73,21 +69,18 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
   const state = useSettingsModalState({ isOpen });
 
   const actions = useSettingsModalActions({
-    localDirectGeminiApiKey: state.localDirectGeminiApiKey,
     localImageEditModel: state.localImageEditModel,
     localImageGenerateModel: state.localImageGenerateModel,
     localTextGenerateModel: state.localTextGenerateModel,
-    localVertexProxyEnabled: state.localVertexProxyEnabled,
-    localVertexProxyUrl: state.localVertexProxyUrl,
-    localVertexProxyApiKey: state.localVertexProxyApiKey,
-    isVertexProxyUrlInvalid: state.isVertexProxyUrlInvalid,
-    isVertexProxyApiKeyMissing: state.isVertexProxyApiKeyMissing,
+    localCpaGatewayUrl: state.localCpaGatewayUrl,
+    localCpaGatewayApiKey: state.localCpaGatewayApiKey,
+    isCpaGatewayUrlInvalid: state.isCpaGatewayUrlInvalid,
+    isCpaGatewayApiKeyMissing: state.isCpaGatewayApiKeyMissing,
     onClose,
-    setGoogleApiKey: api.setGoogleApiKey,
     setImageEditModel: api.setImageEditModel,
     setImageGenerateModel: api.setImageGenerateModel,
     setTextGenerateModel: api.setTextGenerateModel,
-    setVertexProxySettings: api.setVertexProxySettings,
+    setCpaGatewaySettings: api.setCpaGatewaySettings,
     showToast,
     t,
   });
@@ -118,21 +111,17 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     localImageEditModel: state.localImageEditModel,
     localImageGenerateModel: state.localImageGenerateModel,
     localTextGenerateModel: state.localTextGenerateModel,
-    localDirectGeminiApiKey: state.localDirectGeminiApiKey,
-    localVertexProxyEnabled: state.localVertexProxyEnabled,
-    localVertexProxyUrl: state.localVertexProxyUrl,
-    localVertexProxyApiKey: state.localVertexProxyApiKey,
-    isVertexProxyUrlInvalid: state.isVertexProxyUrlInvalid,
-    isVertexProxyUrlCustom: state.isVertexProxyUrlCustom,
-    isVertexProxyApiKeyMissing: state.isVertexProxyApiKeyMissing,
-    customVertexProxyHost: state.customVertexProxyHost,
+    localCpaGatewayUrl: state.localCpaGatewayUrl,
+    localCpaGatewayApiKey: state.localCpaGatewayApiKey,
+    isCpaGatewayUrlInvalid: state.isCpaGatewayUrlInvalid,
+    isCpaGatewayUrlCustom: state.isCpaGatewayUrlCustom,
+    isCpaGatewayApiKeyMissing: state.isCpaGatewayApiKeyMissing,
+    customCpaGatewayHost: state.customCpaGatewayHost,
     setLocalImageEditModel: state.setLocalImageEditModel,
     setLocalImageGenerateModel: state.setLocalImageGenerateModel,
     setLocalTextGenerateModel: state.setLocalTextGenerateModel,
-    setLocalDirectGeminiApiKey: state.setLocalDirectGeminiApiKey,
-    setLocalVertexProxyEnabled: state.setLocalVertexProxyEnabled,
-    setLocalVertexProxyUrl: state.setLocalVertexProxyUrl,
-    setLocalVertexProxyApiKey: state.setLocalVertexProxyApiKey,
+    setLocalCpaGatewayUrl: state.setLocalCpaGatewayUrl,
+    setLocalCpaGatewayApiKey: state.setLocalCpaGatewayApiKey,
     debugMode: state.debugMode,
     handleDebugToggle: state.handleDebugToggle,
     restoreInputRef: state.restoreInputRef,

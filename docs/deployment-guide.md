@@ -18,9 +18,8 @@ non-prefixed `GEMINI_API_KEY` through explicit injection in `vite.config.ts`.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `GEMINI_API_KEY` | Yes | Gemini API key injected into the client build |
-| `VITE_GEMINI_API_KEY` | Alternative | Vite-prefixed fallback for Gemini key |
-| `VITE_ENABLE_DIRECT_GEMINI` | Optional | Development flag for direct Gemini usage |
+| `CLIPROXY_API_KEY` | Yes | CPA gateway API key injected into the client build; used when no key is stored in the browser |
+| `VITE_CLIPROXY_API_KEY` | Alternative | Vite-prefixed fallback for the gateway key |
 | `GROK_API_KEY` | For Grok studio | xAI API key injected into the client build |
 | `VITE_GROK_API_KEY` | Alternative | Vite-prefixed fallback for the Grok key |
 | `GROK_BASE_URL` | Optional | Override the Grok base URL (default `https://api.x.ai/v1`) |
@@ -29,8 +28,9 @@ non-prefixed `GEMINI_API_KEY` through explicit injection in `vite.config.ts`.
 | `VITE_GPT_IMAGE_API_KEY` | Alternative | Vite-prefixed fallback for the GPT Image key |
 | `GPT_IMAGE_BASE_URL` | Optional | Override the GPT Image base URL (default `https://api.openai.com/v1`) |
 | `VITE_GPT_IMAGE_BASE_URL` | Alternative | Vite-prefixed fallback for the GPT Image base URL |
+| `GEMINI_API_KEY` | Legacy | Direct Google Gemini key. No longer used for routing — every Gemini call goes through the CPA gateway |
 
-Production hosting must set `GEMINI_API_KEY` or `VITE_GEMINI_API_KEY` in the
+Production hosting must set `CLIPROXY_API_KEY` or `VITE_CLIPROXY_API_KEY` in the
 hosting dashboard. The Grok and GPT Image studios are usable without build-time
 keys — users can paste keys into each studio's settings panel at runtime (stored
 in localStorage). Build-time keys only provide a default.
@@ -39,25 +39,39 @@ in localStorage). Build-time keys only provide a default.
 > the browser. This is accepted for v1. A serverless proxy is planned for v2 so
 > secrets never reach the client.
 
-## Gemini Proxy / Gateway (optional)
+## CPA Gateway (always on)
 
-Instead of calling Google Gemini directly, the app can route Gemini requests
-through a Gemini-compatible proxy or gateway. This is configured at runtime, not
-at build time:
+Every Gemini request is routed through the CPA gateway
+(`https://cliproxy.monet.uno`, the CLIProxyAPI). There is no direct-to-Google
+mode and no on/off toggle: the app always configures the `@google/genai` client
+with `httpOptions.baseUrl` pointing at the gateway.
 
-- Open Settings → "Gemini Proxy / Gateway".
-- Enable the toggle, set the proxy URL, and enter the proxy API key, then save.
-- When the URL ends in `/gemini`, image edit/generate/upscale requests use the
-  gateway image routes (`/api/images/*`) with an `x-api-key` header; text and
-  vision requests use the `@google/genai` client with `httpOptions.baseUrl`.
+- The gateway API key is read from `CLIPROXY_API_KEY` (or `VITE_CLIPROXY_API_KEY`)
+  at build time, injected via `vite.config.ts` `define`, and used when no key is
+  stored in the browser. It can be overridden at runtime in
+  Settings → "CPA Gateway", where a different gateway URL can also be set.
+- The gateway must serve the Gemini routes
+  (`/<version>/models/<model>:generateContent`). The client appends its own
+  `v1beta` version segment, so the URL must be the origin only
+  (`https://cliproxy.monet.uno`, not `.../v1beta`).
+- Settings persist in `localStorage` (`cpa_gateway_url`, `cpa_gateway_api_key`),
+  migrating the older `vertex_proxy_*` keys on first use, with fail-closed
+  restore validation. The key is stored as plaintext in the browser, so only
+  configure it on a trusted device.
+- Only models the gateway actually serves may be listed in the registry; the
+  registry was verified against `GET /v1/models` on 2026-09-17 and trimmed to
+  `gemini-3.1-flash-image` (images) plus `gemini-3.8-flash`, `gemini-3.7-flash`,
+  `gemini-3.6-flash`, `gemini-3.1-pro`, `gemini-3.5-flash-lite`, and
+  `gemini-3.1-flash-lite` (text). The removed ids
+  (`gemini-3-pro-image`, `gemini-3.1-flash-lite-image`, `gemini-2.5-flash-image`,
+  `gemini-3.1-pro-preview`, `gemini-3.5-flash`) return
+  `400 unknown provider for model`. Add a gateway and re-enable its models
+  together.
 
-Settings persist in `localStorage` (`vertex_proxy_*` keys) with fail-closed
-restore validation. The proxy API key is stored as plaintext in the browser, so
-only enable this on a trusted device.
-
-This routing was verified live against `https://vertex.monet.uno/gemini` on the
-2026-07-03 E2E run; see the "Live E2E Verification" section in
-`docs/codebase-summary.md`.
+This routing was verified live from the built app against
+`https://cliproxy.monet.uno` on 2026-09-17: the page issued
+`POST https://cliproxy.monet.uno/v1beta/models/gemini-3.1-flash-image:generateContent`
+and Identity Transfer reported `1 / 1 hoàn tất · 0 lỗi` with 1792x2400 output.
 
 ## Build Process
 

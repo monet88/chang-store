@@ -7,7 +7,7 @@ const {
   setDebugEnabledMock,
   showToastMock,
   clearAppDataMock,
-  setGoogleApiKeyMock,
+  setCpaGatewaySettingsMock,
   setImageEditModelMock,
   setImageGenerateModelMock,
   setTextGenerateModelMock,
@@ -18,7 +18,7 @@ const {
   setDebugEnabledMock: vi.fn(),
   showToastMock: vi.fn(),
   clearAppDataMock: vi.fn(),
-  setGoogleApiKeyMock: vi.fn(),
+  setCpaGatewaySettingsMock: vi.fn(),
   setImageEditModelMock: vi.fn(),
   setImageGenerateModelMock: vi.fn(),
   setTextGenerateModelMock: vi.fn(),
@@ -27,13 +27,12 @@ const {
 }));
 
 // Wire hoisted mocks into apiOverrides after hoisting
-apiOverrides.setGoogleApiKey = setGoogleApiKeyMock;
+apiOverrides.setCpaGatewaySettings = setCpaGatewaySettingsMock;
 apiOverrides.setImageEditModel = setImageEditModelMock;
 apiOverrides.setImageGenerateModel = setImageGenerateModelMock;
 apiOverrides.setTextGenerateModel = setTextGenerateModelMock;
-apiOverrides.vertexProxySettings = {
-  enabled: true,
-  url: 'https://vertex.monet.uno/gemini',
+apiOverrides.cpaGatewaySettings = {
+  url: 'https://cliproxy.monet.uno',
   apiKey: 'proxy-key',
 };
 
@@ -71,13 +70,11 @@ describe('useSettingsModal', () => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
     getLocalStorageUsageMock.mockResolvedValue({ usage: 0, quota: 1024 });
-    apiOverrides.googleApiKey = null;
     apiOverrides.imageEditModel = 'gemini-3.1-flash-image';
     apiOverrides.imageGenerateModel = 'gemini-3.1-flash-image';
-    apiOverrides.textGenerateModel = 'gemini-3.5-flash';
-    apiOverrides.vertexProxySettings = {
-      enabled: true,
-      url: 'https://vertex.monet.uno/gemini',
+    apiOverrides.textGenerateModel = 'gemini-3.8-flash';
+    apiOverrides.cpaGatewaySettings = {
+      url: 'https://cliproxy.monet.uno',
       apiKey: 'proxy-key',
     };
   });
@@ -219,24 +216,23 @@ describe('useSettingsModal', () => {
     expect(showToastMock).not.toHaveBeenCalled();
   });
 
-  // ── derived proxy validation ───────────────────────────────────────
+  // ── derived gateway validation ───────────────────────────────────────
 
-  it('does not mark the default proxy state as missing a key until the proxy config changes', () => {
-    apiOverrides.vertexProxySettings = {
-      enabled: true,
-      url: 'https://vertex.monet.uno/gemini',
+  it('does not mark the default gateway state as missing a key until the gateway config changes', () => {
+    apiOverrides.cpaGatewaySettings = {
+      url: 'https://cliproxy.monet.uno',
       apiKey: '',
     };
 
     const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
 
-    expect(result.current.isVertexProxyApiKeyMissing).toBe(false);
+    expect(result.current.isCpaGatewayApiKeyMissing).toBe(false);
 
     act(() => {
-      result.current.setLocalVertexProxyUrl('https://vertex.monet.uno/gemini/v2');
+      result.current.setLocalCpaGatewayUrl('https://cliproxy.monet.uno/v2');
     });
 
-    expect(result.current.isVertexProxyApiKeyMissing).toBe(true);
+    expect(result.current.isCpaGatewayApiKeyMissing).toBe(true);
   });
 
   // ── handleSave ──────────────────────────────────────────────────────
@@ -248,32 +244,34 @@ describe('useSettingsModal', () => {
       result.current.handleSave();
     });
 
-    expect(setGoogleApiKeyMock).toHaveBeenCalledWith(null);
+    expect(setCpaGatewaySettingsMock).toHaveBeenCalledWith({
+      url: 'https://cliproxy.monet.uno',
+      apiKey: 'proxy-key',
+    });
     expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-3.1-flash-image');
     expect(setImageGenerateModelMock).toHaveBeenCalledWith('gemini-3.1-flash-image');
-    expect(setTextGenerateModelMock).toHaveBeenCalledWith('gemini-3.5-flash');
+    expect(setTextGenerateModelMock).toHaveBeenCalledWith('gemini-3.8-flash');
     expect(onCloseMock).toHaveBeenCalled();
   });
 
-  it('saves non-proxy changes when the default proxy is enabled without an API key', () => {
-    apiOverrides.vertexProxySettings = {
-      enabled: true,
-      url: 'https://vertex.monet.uno/gemini',
+  it('saves model changes when the gateway has no explicit API key', () => {
+    apiOverrides.cpaGatewaySettings = {
+      url: 'https://cliproxy.monet.uno',
       apiKey: '',
     };
 
     const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
 
     act(() => {
-      result.current.setLocalImageEditModel('gemini-2.5-flash-image');
+      result.current.setLocalImageEditModel('gemini-3.1-flash-image');
     });
 
     act(() => {
       result.current.handleSave();
     });
 
-    expect(showToastMock).not.toHaveBeenCalledWith('settingsModal.notifications.vertexProxyMissingApiKey');
-    expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-2.5-flash-image');
+    expect(showToastMock).not.toHaveBeenCalledWith('settingsModal.notifications.cpaGatewayMissingApiKey');
+    expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-3.1-flash-image');
     expect(onCloseMock).toHaveBeenCalled();
   });
 
@@ -392,9 +390,9 @@ describe('useSettingsModal', () => {
     expect(result.current.localTextGenerateModel).toBe('custom-text-model');
 
     act(() => {
-      result.current.setLocalDirectGeminiApiKey('direct-gemini-key');
+      result.current.setLocalCpaGatewayUrl('https://gateway.example.com');
     });
-    expect(result.current.localDirectGeminiApiKey).toBe('direct-gemini-key');
+    expect(result.current.localCpaGatewayUrl).toBe('https://gateway.example.com');
   });
 
   // ── restoreInputRef ─────────────────────────────────────────────────
@@ -474,7 +472,7 @@ describe('useSettingsModal', () => {
   it('does not re-initialize local state when model deps change while open', () => {
     const { result, rerender } = renderHook(
       () => useSettingsModal({ isOpen: true, onClose: onCloseMock }),
-      { initialProps: { imageEditModel: 'gemini-2.5-flash-image' } },
+      { initialProps: { imageEditModel: 'gemini-3.1-flash-image' } },
     );
 
     // Change local selection away from the API value
@@ -506,14 +504,13 @@ describe('useSettingsModal', () => {
       result.current.setLocalImageEditModel('my-custom-edit-model');
       result.current.setLocalImageGenerateModel('my-custom-gen-model');
       result.current.setLocalTextGenerateModel('my-custom-text-model');
-      result.current.setLocalDirectGeminiApiKey('persisted-direct-key');
+      result.current.setLocalCpaGatewayApiKey('persisted-gateway-key');
     });
 
     act(() => {
       result.current.handleSave();
     });
 
-    expect(setGoogleApiKeyMock).toHaveBeenCalledWith('persisted-direct-key');
     expect(setImageEditModelMock).toHaveBeenCalledWith('my-custom-edit-model');
     expect(setImageGenerateModelMock).toHaveBeenCalledWith('my-custom-gen-model');
     expect(setTextGenerateModelMock).toHaveBeenCalledWith('my-custom-text-model');
@@ -521,7 +518,6 @@ describe('useSettingsModal', () => {
 
     // Simulate modal closed then reopened
     vi.clearAllMocks();
-    apiOverrides.googleApiKey = 'persisted-direct-key';
     apiOverrides.imageEditModel = 'my-custom-edit-model';
     apiOverrides.imageGenerateModel = 'my-custom-gen-model';
     apiOverrides.textGenerateModel = 'my-custom-text-model';
@@ -532,7 +528,6 @@ describe('useSettingsModal', () => {
     expect(result.current.localImageEditModel).toBe('my-custom-edit-model');
     expect(result.current.localImageGenerateModel).toBe('my-custom-gen-model');
     expect(result.current.localTextGenerateModel).toBe('my-custom-text-model');
-    expect(result.current.localDirectGeminiApiKey).toBe('persisted-direct-key');
   });
 
   it('does not call API setters when Escape closes modal without save', () => {

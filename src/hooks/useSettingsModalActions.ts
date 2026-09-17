@@ -8,30 +8,27 @@ import { useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../components/Toast';
 import { backupData, clearAppData, restoreData } from '../utils/storage';
+import type { CpaGatewaySettings } from '../contexts/ApiProviderContext';
 import {
-  VERTEX_PROXY_ENABLED_KEY,
-  VERTEX_PROXY_URL_KEY,
-  VERTEX_PROXY_API_KEY_KEY,
+  CPA_GATEWAY_URL_KEY,
+  CPA_GATEWAY_API_KEY_KEY,
 } from './useSettingsModalState';
 
 export interface UseSettingsModalActionsConfig {
-  localDirectGeminiApiKey: string;
   localImageEditModel: string;
   localImageGenerateModel: string;
   localTextGenerateModel: string;
-  localVertexProxyEnabled: boolean;
-  localVertexProxyUrl: string;
-  localVertexProxyApiKey: string;
-  isVertexProxyUrlInvalid: boolean;
-  isVertexProxyApiKeyMissing: boolean;
+  localCpaGatewayUrl: string;
+  localCpaGatewayApiKey: string;
+  isCpaGatewayUrlInvalid: boolean;
+  isCpaGatewayApiKeyMissing: boolean;
   onClose: () => void;
-  setGoogleApiKey: (k: string | null) => void;
   setImageEditModel: (m: string) => void;
   setImageGenerateModel: (m: string) => void;
   setTextGenerateModel: (m: string) => void;
-  setVertexProxySettings: (s: any) => void;
+  setCpaGatewaySettings: (s: CpaGatewaySettings) => void;
   showToast: (msg: string) => void;
-  t: (k: string, o?: any) => string;
+  t: (k: string, o?: Record<string, string | number>) => string;
 }
 
 export interface UseSettingsModalActionsReturn {
@@ -43,62 +40,52 @@ export interface UseSettingsModalActionsReturn {
 
 export const useSettingsModalActions = (config: UseSettingsModalActionsConfig): UseSettingsModalActionsReturn => {
   const {
-    localDirectGeminiApiKey,
     localImageEditModel,
     localImageGenerateModel,
     localTextGenerateModel,
-    localVertexProxyEnabled,
-    localVertexProxyUrl,
-    localVertexProxyApiKey,
-    isVertexProxyUrlInvalid,
-    isVertexProxyApiKeyMissing,
+    localCpaGatewayUrl,
+    localCpaGatewayApiKey,
+    isCpaGatewayUrlInvalid,
+    isCpaGatewayApiKeyMissing,
     onClose,
-    setGoogleApiKey,
     setImageEditModel,
     setImageGenerateModel,
     setTextGenerateModel,
-    setVertexProxySettings,
+    setCpaGatewaySettings,
     showToast,
     t,
   } = config;
 
   const handleSave = useCallback(() => {
-    if (localVertexProxyEnabled) {
-      if (isVertexProxyUrlInvalid) {
-        showToast(t('settingsModal.notifications.vertexProxyInvalidUrl'));
-        return;
-      }
-      if (isVertexProxyApiKeyMissing) {
-        showToast(t('settingsModal.notifications.vertexProxyMissingApiKey'));
-        return;
-      }
+    if (isCpaGatewayUrlInvalid) {
+      showToast(t('settingsModal.notifications.cpaGatewayInvalidUrl'));
+      return;
     }
-    setGoogleApiKey(localDirectGeminiApiKey.trim() || null);
+    if (isCpaGatewayApiKeyMissing) {
+      showToast(t('settingsModal.notifications.cpaGatewayMissingApiKey'));
+      return;
+    }
     setImageEditModel(localImageEditModel);
     setImageGenerateModel(localImageGenerateModel);
     setTextGenerateModel(localTextGenerateModel);
-    setVertexProxySettings({
-      enabled: localVertexProxyEnabled,
-      url: localVertexProxyUrl.trim(),
-      apiKey: localVertexProxyApiKey.trim(),
+    setCpaGatewaySettings({
+      url: localCpaGatewayUrl.trim(),
+      apiKey: localCpaGatewayApiKey.trim(),
     });
     onClose();
   }, [
-    localVertexProxyEnabled,
-    isVertexProxyUrlInvalid,
-    isVertexProxyApiKeyMissing,
-    localDirectGeminiApiKey,
+    isCpaGatewayUrlInvalid,
+    isCpaGatewayApiKeyMissing,
     localImageEditModel,
     localImageGenerateModel,
     localTextGenerateModel,
-    localVertexProxyApiKey,
-    localVertexProxyUrl,
+    localCpaGatewayApiKey,
+    localCpaGatewayUrl,
     onClose,
-    setGoogleApiKey,
     setImageEditModel,
     setImageGenerateModel,
     setTextGenerateModel,
-    setVertexProxySettings,
+    setCpaGatewaySettings,
     showToast,
     t,
   ]);
@@ -137,9 +124,8 @@ export const useSettingsModalActions = (config: UseSettingsModalActionsConfig): 
     if (!window.confirm(t('settingsModal.confirmations.clearAllData'))) {
       return;
     }
-    localStorage.removeItem(VERTEX_PROXY_ENABLED_KEY);
-    localStorage.removeItem(VERTEX_PROXY_URL_KEY);
-    localStorage.removeItem(VERTEX_PROXY_API_KEY_KEY);
+    localStorage.removeItem(CPA_GATEWAY_URL_KEY);
+    localStorage.removeItem(CPA_GATEWAY_API_KEY_KEY);
     await clearAppData();
     alert(t('settingsModal.notifications.clearSuccess'));
     window.location.reload();

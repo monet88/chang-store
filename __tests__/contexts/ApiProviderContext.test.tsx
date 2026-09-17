@@ -18,12 +18,10 @@ import { ApiProvider, useApi } from '@/contexts/ApiProviderContext';
 // -----------------------------------------------------------------------------
 
 /** Mock apiClient wiring */
-const mockSetGeminiApiKey = vi.fn();
 const mockConfigureGeminiClient = vi.fn();
 const mockShowToast = vi.fn();
 
 vi.mock('@/services/apiClient', () => ({
-  setGeminiApiKey: (key: string | null) => mockSetGeminiApiKey(key),
   configureGeminiClient: (config: unknown) => mockConfigureGeminiClient(config),
 }));
 
@@ -119,7 +117,7 @@ describe('ApiProviderContext', () => {
       });
 
       expect(result.current).toBeDefined();
-      expect(typeof result.current.setGoogleApiKey).toBe('function');
+      expect(typeof result.current.setCpaGatewaySettings).toBe('function');
     });
   });
 
@@ -131,20 +129,33 @@ describe('ApiProviderContext', () => {
 
       expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image');
       expect(result.current.imageGenerateModel).toBe('gemini-3.1-flash-image');
-      expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
+      expect(result.current.textGenerateModel).toBe('gemini-3.8-flash');
     });
 
-    it('has null Google API key by default', () => {
+    it('defaults to the CPA gateway URL with no key when the environment provides none', () => {
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.googleApiKey).toBeNull();
+      expect(result.current.cpaGatewaySettings.url).toBe('https://cliproxy.monet.uno');
+      expect(result.current.cpaGatewaySettings.apiKey).toBe('');
     });
 
-    it('loads Google API key from localStorage on mount when present', () => {
+    it('uses the gateway API key from the environment when nothing is stored', () => {
+      vi.stubEnv('CLIPROXY_API_KEY', 'env-gateway-key');
+
+      const { result } = renderHook(() => useApi(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.cpaGatewaySettings.apiKey).toBe('env-gateway-key');
+      vi.unstubAllEnvs();
+    });
+
+    it('migrates a legacy vertex_proxy key into the cpa_gateway key', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {
-        if (key === 'google_api_key') return 'stored-api-key';
+        if (key === 'vertex_proxy_url') return 'https://legacy.example.com';
+        if (key === 'vertex_proxy_api_key') return 'legacy-key';
         return null;
       });
 
@@ -152,45 +163,31 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('google_api_key');
-      expect(result.current.googleApiKey).toBe('stored-api-key');
+      expect(result.current.cpaGatewaySettings.url).toBe('https://legacy.example.com');
+      expect(result.current.cpaGatewaySettings.apiKey).toBe('legacy-key');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('cpa_gateway_url', 'https://legacy.example.com');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('cpa_gateway_api_key', 'legacy-key');
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('vertex_proxy_url');
     });
 
-    it('defaults vertex proxy to enabled with the Gemini gateway URL', () => {
+    it('honors a stored text model that the gateway serves', () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'text_generate_model') return 'gemini-3.7-flash';
+        return null;
+      });
+
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.vertexProxySettings.enabled).toBe(true);
-      expect(result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
-      expect(result.current.vertexProxySettings.apiKey).toBe('');
+      expect(result.current.textGenerateModel).toBe('gemini-3.7-flash');
     });
 
-    it('loads model selections from localStorage on mount when valid', () => {
+    it('falls back to default models when stored ids are not served by the gateway', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {
-        if (key === 'image_edit_model') return 'gemini-2.5-flash-image';
-        if (key === 'image_generate_model') return 'gemini-3-pro-image';
+        if (key === 'image_edit_model') return 'gemini-3-pro-image';
+        if (key === 'image_generate_model') return 'gemini-2.5-flash-image';
         if (key === 'text_generate_model') return 'gemini-3.5-flash';
-        return null;
-      });
-
-      const { result } = renderHook(() => useApi(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('image_edit_model');
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('image_generate_model');
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('text_generate_model');
-      expect(result.current.imageEditModel).toBe('gemini-2.5-flash-image');
-      expect(result.current.imageGenerateModel).toBe('gemini-3-pro-image');
-      expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
-    });
-
-    it('falls back to default models if legacy local/anti models are found in localStorage', () => {
-      localStorageMock.getItem.mockImplementation((key: string) => {
-        if (key === 'image_edit_model') return 'local-sdxl';
-        if (key === 'image_generate_model') return 'anti-generate';
-        if (key === 'text_generate_model') return 'llama-3';
         return null;
       });
 
@@ -200,55 +197,10 @@ describe('ApiProviderContext', () => {
 
       expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image');
       expect(result.current.imageGenerateModel).toBe('gemini-3.1-flash-image');
-      expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
+      expect(result.current.textGenerateModel).toBe('gemini-3.8-flash');
       expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-3.1-flash-image');
       expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'gemini-3.1-flash-image');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3.5-flash');
-    });
-  });
-
-  describe('setGoogleApiKey', () => {
-    it('persists Google API key to localStorage when setting a value', () => {
-      const { result } = renderHook(() => useApi(), {
-        wrapper: createWrapper(),
-      });
-
-      act(() => {
-        result.current.setGoogleApiKey('new-api-key');
-      });
-
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('google_api_key', 'new-api-key');
-      expect(result.current.googleApiKey).toBe('new-api-key');
-    });
-
-    it('calls setGeminiApiKey from apiClient', () => {
-      const { result } = renderHook(() => useApi(), {
-        wrapper: createWrapper(),
-      });
-
-      act(() => {
-        result.current.setGoogleApiKey('test-key');
-      });
-
-      expect(mockSetGeminiApiKey).toHaveBeenCalledWith('test-key');
-    });
-
-    it('clears in-memory key when setting null', () => {
-      const { result } = renderHook(() => useApi(), {
-        wrapper: createWrapper(),
-      });
-
-      act(() => {
-        result.current.setGoogleApiKey('temp-key');
-      });
-
-      act(() => {
-        result.current.setGoogleApiKey(null);
-      });
-
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_api_key');
-      expect(result.current.googleApiKey).toBeNull();
-      expect(mockSetGeminiApiKey).toHaveBeenLastCalledWith(null);
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3.8-flash');
     });
   });
 
@@ -311,14 +263,12 @@ describe('ApiProviderContext', () => {
       });
 
       act(() => {
-        firstMount.result.current.setImageEditModel('gemini-2.5-flash-image');
-        firstMount.result.current.setImageGenerateModel('gemini-3-pro-image');
-        firstMount.result.current.setTextGenerateModel('gemini-3.5-flash');
+        firstMount.result.current.setImageEditModel('gemini-3.1-flash-image');
+        firstMount.result.current.setImageGenerateModel('gemini-3.1-flash-image');
+        firstMount.result.current.setTextGenerateModel('gemini-3.7-flash');
       });
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_edit_model', 'gemini-2.5-flash-image');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('image_generate_model', 'gemini-3-pro-image');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3.5-flash');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('text_generate_model', 'gemini-3.7-flash');
 
       firstMount.unmount();
       localStorageMock.getItem.mockClear();
@@ -329,21 +279,22 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('image_edit_model');
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('image_generate_model');
       expect(localStorageMock.getItem).toHaveBeenCalledWith('text_generate_model');
-      expect(secondMount.result.current.imageEditModel).toBe('gemini-2.5-flash-image');
-      expect(secondMount.result.current.imageGenerateModel).toBe('gemini-3-pro-image');
-      expect(secondMount.result.current.textGenerateModel).toBe('gemini-3.5-flash');
+      expect(secondMount.result.current.imageEditModel).toBe('gemini-3.1-flash-image');
+      expect(secondMount.result.current.imageGenerateModel).toBe('gemini-3.1-flash-image');
+      expect(secondMount.result.current.textGenerateModel).toBe('gemini-3.7-flash');
     });
 
-    it('rehydrates persisted Google API key after remounting the provider', () => {
+    it('rehydrates persisted gateway settings after remounting the provider', () => {
       const firstMount = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
       act(() => {
-        firstMount.result.current.setGoogleApiKey('persisted-google-key');
+        firstMount.result.current.setCpaGatewaySettings({
+          url: 'https://gateway.example.com',
+          apiKey: 'persisted-gateway-key',
+        });
       });
 
       firstMount.unmount();
@@ -353,8 +304,9 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(secondMount.result.current.googleApiKey).toBe('persisted-google-key');
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('google_api_key');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('cpa_gateway_api_key');
+      expect(secondMount.result.current.cpaGatewaySettings.url).toBe('https://gateway.example.com');
+      expect(secondMount.result.current.cpaGatewaySettings.apiKey).toBe('persisted-gateway-key');
     });
 
     it('falls back safely when localStorage reads or cleanup throw', () => {
@@ -371,8 +323,8 @@ describe('ApiProviderContext', () => {
 
       expect(result.current.imageEditModel).toBe('gemini-3.1-flash-image');
       expect(result.current.imageGenerateModel).toBe('gemini-3.1-flash-image');
-      expect(result.current.textGenerateModel).toBe('gemini-3.5-flash');
-      expect(result.current.googleApiKey).toBeNull();
+      expect(result.current.textGenerateModel).toBe('gemini-3.8-flash');
+      expect(result.current.cpaGatewaySettings.url).toBe('https://cliproxy.monet.uno');
     });
 
     it('keeps in-memory model updates even when localStorage writes fail', () => {
@@ -420,12 +372,11 @@ describe('ApiProviderContext', () => {
     });
   });
 
-  describe('legacy cliproxy migration', () => {
-    it('auto-upgrades a stored cliproxy.monet.uno URL to the current default gateway', () => {
+  describe('stored gateway URL', () => {
+    it('keeps a stored cliproxy.monet.uno URL instead of rewriting it', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {
-        if (key === 'vertex_proxy_enabled') return 'true';
-        if (key === 'vertex_proxy_url') return 'https://cliproxy.monet.uno';
-        if (key === 'vertex_proxy_api_key') return 'legacy-key';
+        if (key === 'cpa_gateway_url') return 'https://cliproxy.monet.uno';
+        if (key === 'cpa_gateway_api_key') return 'legacy-key';
         return null;
       });
 
@@ -433,15 +384,14 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
-      expect(result.current.vertexProxySettings.enabled).toBe(true);
-      expect(result.current.vertexProxySettings.apiKey).toBe('legacy-key');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('vertex_proxy_url', 'https://vertex.monet.uno/gemini');
+      expect(result.current.cpaGatewaySettings.url).toBe('https://cliproxy.monet.uno');
+      expect(result.current.cpaGatewaySettings.apiKey).toBe('legacy-key');
+      expect(localStorageMock.setItem).not.toHaveBeenCalledWith('cpa_gateway_url', 'https://vertex.monet.uno/gemini');
     });
 
-    it('upgrades cliproxy hosts with trailing path variants', () => {
+    it('keeps a stored cliproxy URL that carries a path suffix', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {
-        if (key === 'vertex_proxy_url') return 'https://cliproxy.monet.uno/v1';
+        if (key === 'cpa_gateway_url') return 'https://cliproxy.monet.uno/v1';
         return null;
       });
 
@@ -449,16 +399,15 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
+      expect(result.current.cpaGatewaySettings.url).toBe('https://cliproxy.monet.uno/v1');
     });
   });
 
-  describe('vertex proxy restore handling', () => {
-    it('shows the invalid restore toast only once across rerenders', () => {
+  describe('CPA gateway restore handling', () => {
+    it('resets an invalid stored URL to the default and toasts only once across rerenders', () => {
       localStorageMock.getItem.mockImplementation((key: string) => {
-        if (key === 'vertex_proxy_enabled') return 'true';
-        if (key === 'vertex_proxy_url') return 'not-a-valid-url';
-        if (key === 'vertex_proxy_api_key') return '';
+        if (key === 'cpa_gateway_url') return 'not-a-valid-url';
+        if (key === 'cpa_gateway_api_key') return '';
         return null;
       });
 
@@ -466,8 +415,7 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.vertexProxySettings.enabled).toBe(false);
-      expect(result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
+      expect(result.current.cpaGatewaySettings.url).toBe('https://cliproxy.monet.uno');
       expect(mockShowToast).toHaveBeenCalledTimes(1);
 
       rerender();
@@ -475,16 +423,15 @@ describe('ApiProviderContext', () => {
       expect(mockShowToast).toHaveBeenCalledTimes(1);
     });
 
-    it('keeps the proxy disabled after remounting an invalid restored config', () => {
-      localStorageMock.setItem('vertex_proxy_enabled', 'true');
-      localStorageMock.setItem('vertex_proxy_url', 'not-a-valid-url');
-      localStorageMock.setItem('vertex_proxy_api_key', 'persisted-proxy-key');
+    it('does not re-toast after an invalid stored URL has been reset', () => {
+      localStorageMock.setItem('cpa_gateway_url', 'not-a-valid-url');
+      localStorageMock.setItem('cpa_gateway_api_key', 'persisted-gateway-key');
 
       const firstMount = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
-      expect(firstMount.result.current.vertexProxySettings.enabled).toBe(false);
+      expect(firstMount.result.current.cpaGatewaySettings.url).toBe('https://cliproxy.monet.uno');
       firstMount.unmount();
 
       localStorageMock.getItem.mockClear();
@@ -494,9 +441,8 @@ describe('ApiProviderContext', () => {
         wrapper: createWrapper(),
       });
 
-      expect(secondMount.result.current.vertexProxySettings.enabled).toBe(false);
-      expect(secondMount.result.current.vertexProxySettings.url).toBe('https://vertex.monet.uno/gemini');
-      expect(secondMount.result.current.vertexProxySettings.apiKey).toBe('persisted-proxy-key');
+      expect(secondMount.result.current.cpaGatewaySettings.url).toBe('https://cliproxy.monet.uno');
+      expect(secondMount.result.current.cpaGatewaySettings.apiKey).toBe('persisted-gateway-key');
       expect(mockShowToast).not.toHaveBeenCalled();
     });
   });

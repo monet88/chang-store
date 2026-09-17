@@ -1,16 +1,14 @@
 /**
  * Unit tests for services/apiClient.ts
  *
- * Tests the Gemini API client singleton management and API key handling.
- * Covers: setGeminiApiKey, getActiveApiKey, getGeminiClient, reinitializeGeminiClient
+ * Tests the Gemini client singleton and credential resolution:
+ * gateway mode (base URL configured) is the only accepted route; the direct
+ * Gemini path survives only when no base URL is configured.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-/** Tracks all instances created by mocked GoogleGenAI */
-const createdInstances: Array<{ config: { apiKey: string } }> = [];
-
 /** Tracks constructor calls for verification */
-const constructorCalls: Array<{ apiKey: string }> = [];
+const constructorCalls: Array<Record<string, unknown>> = [];
 
 /**
  * Mock the @google/genai module before importing apiClient
@@ -23,18 +21,8 @@ vi.mock('@google/genai', () => {
    * Mock constructor for GoogleGenAI SDK
    * Uses function pattern to work with `new` keyword.
    */
-  function MockGoogleGenAI(this: {
-    config: { apiKey: string };
-    models: Record<string, unknown>;
-    operations: Record<string, unknown>;
-  }, config: { apiKey: string }) {
+  function MockGoogleGenAI(this: { config: Record<string, unknown> }, config: Record<string, unknown>) {
     this.config = config;
-    this.models = {
-      generateContent: vi.fn(),
-    };
-
-    // Track for assertions
-    createdInstances.push(this);
     constructorCalls.push(config);
   }
 
@@ -45,31 +33,27 @@ vi.mock('@google/genai', () => {
 
 // Import after mocking
 import {
-  setGeminiApiKey,
+  configureGeminiClient,
   getActiveApiKey,
   getGeminiClient,
+  isProxyEnabled,
   reinitializeGeminiClient,
 } from '@/services/apiClient';
+
+const GATEWAY_URL = 'https://cliproxy.monet.uno';
 
 describe('apiClient', () => {
   /** Store original env value to restore after tests */
   const originalApiKey = process.env.GEMINI_API_KEY;
 
   beforeEach(() => {
-    // Reset module state before each test
-    setGeminiApiKey(null);
+    configureGeminiClient({ apiKey: null, baseUrl: null });
     reinitializeGeminiClient();
-
-    // Clear tracking arrays
-    createdInstances.length = 0;
     constructorCalls.length = 0;
-
-    // Clear environment variable by default
     delete process.env.GEMINI_API_KEY;
   });
 
   afterEach(() => {
-    // Restore original environment variable
     if (originalApiKey !== undefined) {
       process.env.GEMINI_API_KEY = originalApiKey;
     } else {
@@ -78,44 +62,20 @@ describe('apiClient', () => {
   });
 
   // ============================================================
-  // setGeminiApiKey tests
+  // isProxyEnabled tests
   // ============================================================
-  describe('setGeminiApiKey', () => {
-    it('should set a custom API key', () => {
-      // Arrange
-      const customKey = 'custom-api-key-123';
+  describe('isProxyEnabled', () => {
+    it('should report a configured base URL as proxy mode', () => {
+      // Arrange & Act
+      configureGeminiClient({ apiKey: 'gateway-key', baseUrl: GATEWAY_URL });
 
-      // Act
-      setGeminiApiKey(customKey);
-
-      // Assert - verify by getting active key
-      expect(getActiveApiKey()).toBe(customKey);
+      // Assert
+      expect(isProxyEnabled()).toBe(true);
     });
 
-    it('should clear the client instance when setting a new key', () => {
-      // Arrange - create initial client
-      setGeminiApiKey('initial-key');
-      const firstClient = getGeminiClient();
-
-      // Act - set a new key
-      setGeminiApiKey('new-key');
-      const secondClient = getGeminiClient();
-
-      // Assert - constructor should be called twice (new instance created)
-      expect(constructorCalls).toHaveLength(2);
-      expect(firstClient).not.toBe(secondClient);
-    });
-
-    it('should allow clearing the custom key by passing null', () => {
-      // Arrange
-      setGeminiApiKey('some-key');
-      process.env.GEMINI_API_KEY = 'env-key';
-
-      // Act
-      setGeminiApiKey(null);
-
-      // Assert - should fall back to env key
-      expect(getActiveApiKey()).toBe('env-key');
+    it('should report direct mode when no base URL is configured', () => {
+      // Act & Assert
+      expect(isProxyEnabled()).toBe(false);
     });
   });
 
@@ -123,34 +83,18 @@ describe('apiClient', () => {
   // getActiveApiKey tests
   // ============================================================
   describe('getActiveApiKey', () => {
-    it('should return custom API key when set and no env key exists', () => {
+    it('should return the gateway key when the gateway is configured', () => {
       // Arrange
-      const customKey = 'my-custom-key';
-      setGeminiApiKey(customKey);
-      delete process.env.GEMINI_API_KEY;
+      configureGeminiClient({ apiKey: 'gateway-key', baseUrl: GATEWAY_URL });
 
-      // Act
-      const result = getActiveApiKey();
-
-      // Assert - custom key used when no env key
-      expect(result).toBe(customKey);
+      // Act & Assert
+      expect(getActiveApiKey()).toBe('gateway-key');
     });
 
-    it('should return environment variable when no custom key is set', () => {
-      // Arrange
-      process.env.GEMINI_API_KEY = 'env-api-key-456';
-
-      // Act
-      const result = getActiveApiKey();
-
-      // Assert
-      expect(result).toBe('env-api-key-456');
-    });
-
-    it('should throw error when no API key is configured', () => {
-      // Arrange - ensure no keys are set
-      setGeminiApiKey(null);
-      delete process.env.GEMINI_API_KEY;
+    it('should not fall back to a Google key when the gateway key is missing', () => {
+      // Arrange - a stray Google key must never leak past the gateway
+      configureGeminiClient({ apiKey: '   ', baseUrl: GATEWAY_URL });
+      process.env.GEMINI_API_KEY = 'google-key';
 
       // Act & Assert
       expect(() => getActiveApiKey()).toThrow(
@@ -158,16 +102,36 @@ describe('apiClient', () => {
       );
     });
 
-    it('should prioritize environment variable over custom key', () => {
+    it('should use the environment key when no gateway is configured', () => {
       // Arrange
-      setGeminiApiKey('priority-custom-key');
-      process.env.GEMINI_API_KEY = 'env-always-wins';
+      process.env.GEMINI_API_KEY = 'env-api-key-456';
 
-      // Act
-      const result = getActiveApiKey();
+      // Act & Assert
+      expect(getActiveApiKey()).toBe('env-api-key-456');
+    });
 
-      // Assert - env key takes precedence
-      expect(result).toBe('env-always-wins');
+    it('should prefer the environment key over a configured key in direct mode', () => {
+      // Arrange
+      configureGeminiClient({ apiKey: 'direct-key', baseUrl: null });
+      process.env.GEMINI_API_KEY = 'env-wins';
+
+      // Act & Assert
+      expect(getActiveApiKey()).toBe('env-wins');
+    });
+
+    it('should fall back to the configured key when the environment key is absent', () => {
+      // Arrange
+      configureGeminiClient({ apiKey: 'direct-key', baseUrl: null });
+
+      // Act & Assert
+      expect(getActiveApiKey()).toBe('direct-key');
+    });
+
+    it('should throw when nothing is configured', () => {
+      // Act & Assert
+      expect(() => getActiveApiKey()).toThrow(
+        'API_KEY is not configured. Please set it in the settings or environment.'
+      );
     });
   });
 
@@ -175,51 +139,38 @@ describe('apiClient', () => {
   // getGeminiClient tests
   // ============================================================
   describe('getGeminiClient', () => {
-    it('should create a new GoogleGenAI instance with the active API key', () => {
+    it('should send the gateway key and base URL to the SDK', () => {
       // Arrange
-      setGeminiApiKey('test-api-key');
+      configureGeminiClient({ apiKey: 'gateway-key', baseUrl: GATEWAY_URL });
 
       // Act
       getGeminiClient();
 
       // Assert
       expect(constructorCalls).toHaveLength(1);
-      expect(constructorCalls[0]).toMatchObject({ apiKey: 'test-api-key', apiVersion: 'v1beta' });
+      expect(constructorCalls[0]).toMatchObject({
+        apiKey: 'gateway-key',
+        apiVersion: 'v1beta',
+        httpOptions: { baseUrl: GATEWAY_URL },
+      });
     });
 
     it('should return the same instance on subsequent calls (singleton pattern)', () => {
       // Arrange
-      setGeminiApiKey('singleton-test-key');
+      configureGeminiClient({ apiKey: 'gateway-key', baseUrl: GATEWAY_URL });
 
       // Act
       const firstCall = getGeminiClient();
       const secondCall = getGeminiClient();
-      const thirdCall = getGeminiClient();
 
-      // Assert - only one instance created
+      // Assert
       expect(constructorCalls).toHaveLength(1);
       expect(firstCall).toBe(secondCall);
-      expect(secondCall).toBe(thirdCall);
     });
 
-    it('should create new instance after reinitializeGeminiClient is called', () => {
+    it('should throw when the gateway has no key', () => {
       // Arrange
-      setGeminiApiKey('reuse-key');
-      const firstClient = getGeminiClient();
-
-      // Act
-      reinitializeGeminiClient();
-      const secondClient = getGeminiClient();
-
-      // Assert - new instance created
-      expect(constructorCalls).toHaveLength(2);
-      expect(firstClient).not.toBe(secondClient);
-    });
-
-    it('should throw error if no API key is available', () => {
-      // Arrange - no keys configured
-      setGeminiApiKey(null);
-      delete process.env.GEMINI_API_KEY;
+      configureGeminiClient({ apiKey: null, baseUrl: GATEWAY_URL });
 
       // Act & Assert
       expect(() => getGeminiClient()).toThrow(
@@ -227,15 +178,19 @@ describe('apiClient', () => {
       );
     });
 
-    it('should use env key when no custom key is set', () => {
+    it('should rebuild the client when the gateway credentials change', () => {
       // Arrange
-      process.env.GEMINI_API_KEY = 'env-key-for-client';
+      configureGeminiClient({ apiKey: 'first-key', baseUrl: GATEWAY_URL });
+      const firstClient = getGeminiClient();
 
       // Act
-      getGeminiClient();
+      configureGeminiClient({ apiKey: 'second-key', baseUrl: GATEWAY_URL });
+      const secondClient = getGeminiClient();
 
       // Assert
-      expect(constructorCalls[0]).toMatchObject({ apiKey: 'env-key-for-client', apiVersion: 'v1beta' });
+      expect(constructorCalls).toHaveLength(2);
+      expect(firstClient).not.toBe(secondClient);
+      expect(constructorCalls[1]).toMatchObject({ apiKey: 'second-key' });
     });
   });
 
@@ -245,78 +200,20 @@ describe('apiClient', () => {
   describe('reinitializeGeminiClient', () => {
     it('should clear the cached client instance', () => {
       // Arrange
-      setGeminiApiKey('cached-key');
-      getGeminiClient(); // Create instance
+      configureGeminiClient({ apiKey: 'gateway-key', baseUrl: GATEWAY_URL });
+      getGeminiClient();
 
       // Act
       reinitializeGeminiClient();
-      getGeminiClient(); // Should create new instance
+      getGeminiClient();
 
       // Assert
       expect(constructorCalls).toHaveLength(2);
     });
 
     it('should not throw when called with no existing instance', () => {
-      // Act & Assert - should not throw
+      // Act & Assert
       expect(() => reinitializeGeminiClient()).not.toThrow();
-    });
-
-    it('should allow key change to take effect after reinitialization', () => {
-      // Arrange
-      setGeminiApiKey('first-key');
-      getGeminiClient();
-
-      // Act - change key via env and reinitialize
-      reinitializeGeminiClient();
-      setGeminiApiKey('second-key');
-      getGeminiClient();
-
-      // Assert - second call should use new key
-      expect(constructorCalls[constructorCalls.length - 1]).toMatchObject({ apiKey: 'second-key', apiVersion: 'v1beta' });
-    });
-  });
-
-  // ============================================================
-  // Integration scenarios
-  // ============================================================
-  describe('integration scenarios', () => {
-    it('should handle complete key rotation workflow', () => {
-      // Step 1: Start with env key
-      process.env.GEMINI_API_KEY = 'initial-env-key';
-      const client1 = getGeminiClient();
-      expect(constructorCalls[0]).toMatchObject({ apiKey: 'initial-env-key', apiVersion: 'v1beta' });
-
-      // Step 2: User sets custom key — but env should still win
-      setGeminiApiKey('user-custom-key');
-      const client2 = getGeminiClient();
-      expect(constructorCalls[1]).toMatchObject({ apiKey: 'initial-env-key', apiVersion: 'v1beta' });
-      expect(client1).not.toBe(client2);
-
-      // Step 3: Remove env key, custom key kicks in as fallback
-      delete process.env.GEMINI_API_KEY;
-      setGeminiApiKey('user-custom-key');
-      getGeminiClient();
-      expect(constructorCalls[2]).toMatchObject({ apiKey: 'user-custom-key', apiVersion: 'v1beta' });
-
-      // Verify total instances created
-      expect(constructorCalls).toHaveLength(3);
-    });
-
-    it('should maintain singleton between getGeminiClient calls without key changes', () => {
-      // Arrange
-      setGeminiApiKey('stable-key');
-
-      // Act - multiple calls
-      const clients = [
-        getGeminiClient(),
-        getGeminiClient(),
-        getGeminiClient(),
-        getGeminiClient(),
-      ];
-
-      // Assert - all same instance
-      expect(constructorCalls).toHaveLength(1);
-      expect(new Set(clients).size).toBe(1); // All references are the same
     });
   });
 });

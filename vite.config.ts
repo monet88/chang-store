@@ -6,7 +6,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     server: {
-      port: 3000,
+      port: 3549,
+      // Fail loudly instead of silently drifting to another port when 3549 is taken.
+      strictPort: true,
       // Default to localhost for security; set VITE_ENABLE_LAN=true for cross-device testing
       host: process.env.VITE_ENABLE_LAN === 'true' ? '0.0.0.0' : undefined,
 
@@ -55,7 +57,9 @@ export default defineConfig(({ mode }) => {
       // bundle. This is accepted for v1 — plan a serverless proxy for v2.
       // See docs/deployment.md and the three-provider-studios plan.
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY),
-      'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env.GOOGLE_CLIENT_ID),
+      // CPA gateway key: the app always routes Gemini through the gateway, so
+      // this default removes the need to paste the key into Settings.
+      'process.env.CLIPROXY_API_KEY': JSON.stringify(env.CLIPROXY_API_KEY || env.VITE_CLIPROXY_API_KEY),
       // Provider studio keys/base URLs use non-prefixed hosting names with a
       // VITE_-prefixed fallback for local .env files.
       'process.env.GROK_API_KEY': JSON.stringify(env.GROK_API_KEY || env.VITE_GROK_API_KEY),

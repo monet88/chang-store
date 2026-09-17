@@ -23,14 +23,6 @@ const CAPABILITY_RULES: Array<{ pattern: RegExp; capabilities: ModelCapability }
     pattern: /gemini-3/,
     capabilities: { supportsImageSize: true, supportsAspectRatio: true },
   },
-  {
-    pattern: /gemini-2\.5/,
-    capabilities: {
-      supportsImageSize: false,
-      supportsAspectRatio: true,
-      supportedImageSizes: ['1K'],
-    },
-  },
 ];
 
 const DEFAULT_CAPABILITIES: ModelCapability = {
@@ -38,95 +30,61 @@ const DEFAULT_CAPABILITIES: ModelCapability = {
   supportsAspectRatio: true,
 };
 
+/**
+ * Only models the configured gateway actually serves may be listed here.
+ * Verified against https://cliproxy.monet.uno/v1/models on 2026-09-17:
+ * gemini-3.1-flash-image is the sole image model (the Pro/Lite/2.5 image
+ * models return 400 "unknown provider for model").
+ */
 const IMAGE_EDIT_MODELS: RegisteredModel[] = [
-  {
-    providerId: 'google',
-    modelId: 'gemini-3-pro-image',
-    label: 'Nano Banana Pro',
-    selectionType: 'imageEdit',
-    capabilities: { supportsImageSize: true, supportsAspectRatio: true },
-  },
   {
     providerId: 'google',
     modelId: 'gemini-3.1-flash-image',
     label: 'Nano Banana 2',
     selectionType: 'imageEdit',
     capabilities: { supportsImageSize: true, supportsAspectRatio: true },
-  },
-  {
-    providerId: 'google',
-    modelId: 'gemini-3.1-flash-lite-image',
-    label: 'Nano Banana 2 Lite',
-    selectionType: 'imageEdit',
-    capabilities: {
-      supportsImageSize: true,
-      supportsAspectRatio: true,
-      supportedImageSizes: ['1K'],
-    },
-  },
-  {
-    providerId: 'google',
-    modelId: 'gemini-2.5-flash-image',
-    label: 'Nano Banana',
-    selectionType: 'imageEdit',
-    capabilities: {
-      supportsImageSize: false,
-      supportsAspectRatio: true,
-      supportedImageSizes: ['1K'],
-    },
   },
 ];
 
 const IMAGE_GENERATE_MODELS: RegisteredModel[] = [
   {
     providerId: 'google',
-    modelId: 'gemini-3-pro-image',
-    label: 'Nano Banana Pro',
-    selectionType: 'imageGenerate',
-    capabilities: { supportsImageSize: true, supportsAspectRatio: true },
-  },
-  {
-    providerId: 'google',
     modelId: 'gemini-3.1-flash-image',
     label: 'Nano Banana 2',
     selectionType: 'imageGenerate',
     capabilities: { supportsImageSize: true, supportsAspectRatio: true },
-  },
-  {
-    providerId: 'google',
-    modelId: 'gemini-3.1-flash-lite-image',
-    label: 'Nano Banana 2 Lite',
-    selectionType: 'imageGenerate',
-    capabilities: {
-      supportsImageSize: true,
-      supportsAspectRatio: true,
-      supportedImageSizes: ['1K'],
-    },
-  },
-  {
-    providerId: 'google',
-    modelId: 'gemini-2.5-flash-image',
-    label: 'Nano Banana',
-    selectionType: 'imageGenerate',
-    capabilities: {
-      supportsImageSize: false,
-      supportsAspectRatio: true,
-      supportedImageSizes: ['1K'],
-    },
   },
 ];
 
 const TEXT_GENERATE_MODELS: RegisteredModel[] = [
   {
     providerId: 'google',
-    modelId: 'gemini-3.1-pro-preview',
-    label: 'Gemini 3.1 Pro (Preview)',
+    modelId: 'gemini-3.8-flash',
+    label: 'Gemini 3.8 Flash',
     selectionType: 'textGenerate',
   },
   {
     providerId: 'google',
-    modelId: 'gemini-3.5-flash',
-    label: 'Gemini 3.5 Flash',
+    modelId: 'gemini-3.7-flash',
+    label: 'Gemini 3.7 Flash',
+    selectionType: 'textGenerate',
+  },
+  {
+    providerId: 'google',
+    modelId: 'gemini-3.6-flash',
+    label: 'Gemini 3.6 Flash',
+    selectionType: 'textGenerate',
+  },
+  {
+    providerId: 'google',
+    modelId: 'gemini-3.1-pro',
+    label: 'Gemini 3.1 Pro',
+    selectionType: 'textGenerate',
+  },
+  {
+    providerId: 'google',
+    modelId: 'gemini-3.5-flash-lite',
+    label: 'Gemini 3.5 Flash-Lite',
     selectionType: 'textGenerate',
   },
   {
@@ -146,7 +104,7 @@ export const MODEL_REGISTRY: RegisteredModel[] = [
 export const DEFAULT_MODEL_BY_SELECTION_TYPE: Record<ModelSelectionType, string> = {
   imageEdit: 'gemini-3.1-flash-image',
   imageGenerate: 'gemini-3.1-flash-image',
-  textGenerate: 'gemini-3.5-flash',
+  textGenerate: 'gemini-3.8-flash',
 };
 
 const MODEL_REGISTRY_BY_SELECTION_TYPE: Record<ModelSelectionType, RegisteredModel[]> = {

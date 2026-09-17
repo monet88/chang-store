@@ -61,7 +61,13 @@ npm install
 npm run dev
 ```
 
-The dev server runs on port 3000.
+The dev server runs on port 3549. Ports are pinned (`server.strictPort`), so a
+second instance fails fast instead of drifting to another port. On Windows, `npm`
+is a batch shim; launch Vite directly when a `cmd.exe` wrapper is not available:
+
+```bash
+node node_modules/vite/bin/vite.js
+```
 
 ## Environment Variables
 

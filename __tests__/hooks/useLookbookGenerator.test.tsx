@@ -358,7 +358,7 @@ describe('useLookbookGenerator', () => {
 
       expect(generateClothingDescription).toHaveBeenCalledWith(
         TEST_CLOTHING_IMAGE,
-        'gemini-3.5-flash',
+        'gemini-3.8-flash',
       );
       expect(result.current.formState.clothingDescription).toBe('A beautiful red dress');
       expect(result.current.isGeneratingDescription).toBe(false);

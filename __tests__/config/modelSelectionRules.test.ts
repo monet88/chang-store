@@ -3,6 +3,7 @@ import { Feature } from '@/types';
 import {
   getModelCapabilities,
   getModelOptionsBySelectionType,
+  getSupportedImageResolutions,
   resolveEffectiveImageResolution,
   resolveImageSizeConfig,
 } from '@/config/modelRegistry';
@@ -36,65 +37,43 @@ describe('model selection rules', () => {
   });
 
   it('exposes registry-backed options for all shared selection scopes', () => {
-    expect(getModelOptionsBySelectionType('imageEdit')).toHaveLength(4);
-    expect(getModelOptionsBySelectionType('imageGenerate')).toHaveLength(4);
-    expect(getModelOptionsBySelectionType('textGenerate')).toHaveLength(3);
-  });
-
-  it('includes Nano Banana image-edit variants in registry-backed options', () => {
-    expect(getModelOptionsBySelectionType('imageEdit')).toContainEqual({
-      id: 'gemini-2.5-flash-image',
-      name: 'Nano Banana',
-    });
-    expect(getModelOptionsBySelectionType('imageEdit')).toContainEqual({
-      id: 'gemini-3.1-flash-image',
-      name: 'Nano Banana 2',
-    });
-    expect(getModelOptionsBySelectionType('imageEdit')).toContainEqual({
-      id: 'gemini-3.1-flash-lite-image',
-      name: 'Nano Banana 2 Lite',
-    });
-  });
-
-  it('includes Nano Banana 2 Lite in image generation options', () => {
-    expect(getModelOptionsBySelectionType('imageGenerate')).toContainEqual({
-      id: 'gemini-3.1-flash-lite-image',
-      name: 'Nano Banana 2 Lite',
-    });
+    expect(getModelOptionsBySelectionType('imageEdit')).toEqual([
+      { id: 'gemini-3.1-flash-image', name: 'Nano Banana 2' },
+    ]);
+    expect(getModelOptionsBySelectionType('imageGenerate')).toEqual([
+      { id: 'gemini-3.1-flash-image', name: 'Nano Banana 2' },
+    ]);
+    expect(getModelOptionsBySelectionType('textGenerate')).toEqual([
+      { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash' },
+      { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash' },
+      { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash' },
+      { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro' },
+      { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite' },
+      { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite' },
+    ]);
   });
 
   it('preserves existing capability checks for Gemini image models', () => {
-    expect(getModelCapabilities('gemini-3-pro-image')).toEqual({
-      supportsImageSize: true,
-      supportsAspectRatio: true,
-    });
-
-    expect(getModelCapabilities('gemini-2.5-flash-image')).toEqual({
-      supportsImageSize: false,
-      supportsAspectRatio: true,
-      supportedImageSizes: ['1K'],
-    });
-
     expect(getModelCapabilities('gemini-3.1-flash-image')).toEqual({
       supportsImageSize: true,
       supportsAspectRatio: true,
     });
 
-    expect(getModelCapabilities('gemini-3.1-flash-lite-image')).toEqual({
-      supportsImageSize: true,
+    expect(getSupportedImageResolutions('gemini-3.1-flash-image')).toEqual(['1K', '2K', '4K']);
+
+    expect(getModelCapabilities('unregistered-model')).toEqual({
+      supportsImageSize: false,
       supportsAspectRatio: true,
-      supportedImageSizes: ['1K'],
     });
   });
 
   it('resolves model-aware image sizes for UI and request config', () => {
-    expect(resolveEffectiveImageResolution('gemini-3.1-flash-lite-image', '2K')).toBe('1K');
+    expect(resolveEffectiveImageResolution('gemini-3.1-flash-image', '2K')).toBe('2K');
     expect(resolveEffectiveImageResolution('gemini-3.1-flash-image', '4K')).toBe('4K');
+    expect(resolveEffectiveImageResolution('gemini-3.1-flash-image')).toBe('1K');
 
-    expect(resolveImageSizeConfig('gemini-3.1-flash-lite-image', '2K')).toBe('1K');
-    expect(resolveImageSizeConfig('gemini-3.1-flash-lite-image')).toBe('1K');
     expect(resolveImageSizeConfig('gemini-3.1-flash-image', '4K')).toBe('4K');
     expect(resolveImageSizeConfig('gemini-3.1-flash-image')).toBeUndefined();
-    expect(resolveImageSizeConfig('gemini-2.5-flash-image', '2K')).toBeUndefined();
+    expect(resolveImageSizeConfig('unregistered-model', '2K')).toBeUndefined();
   });
 });

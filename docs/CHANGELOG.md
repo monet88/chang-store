@@ -1,5 +1,55 @@
 # Changelog
 
+## [Unreleased] — 2026-09-17
+
+### Changed
+
+- Gemini routing is now always the CPA gateway (`https://cliproxy.monet.uno`,
+  CLIProxyAPI). The enable/disable toggle and the direct-Gemini API key field
+  are gone, so no per-session gateway setup is needed; the gateway key defaults
+  to `CLIPROXY_API_KEY` from the build environment and can be overridden in
+  Settings. The retired `https://vertex.monet.uno/gemini` URL is no longer
+  referenced, and the stored-URL rewrite that replaced cliproxy URLs with it was
+  removed. Stored settings move from `vertex_proxy_*` to `cpa_gateway_*`
+  localStorage keys with a one-time migration.
+- The model registry now lists only models the gateway serves. Images:
+  `gemini-3.1-flash-image`. Text: `gemini-3.8-flash` (default),
+  `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.1-pro`,
+  `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`. Removed because the gateway
+  `400 unknown provider for model`: `gemini-3-pro-image`,
+  `gemini-3.1-flash-lite-image`, `gemini-2.5-flash-image`,
+  `gemini-3.1-pro-preview`, `gemini-3.5-flash`.
+- Removed the leftover direct-Gemini credential path from
+  `src/services/apiClient.ts`: `setGeminiApiKey`, the unused
+  `setGeminiBaseUrl`/`getGeminiBaseUrl` accessors, the `directApiKeyOverride`
+  slot, and the `requireExplicitApiKey` option (a configured base URL already
+  makes the gateway key the only accepted credential). `configureGeminiClient`,
+  `isProxyEnabled`, `getActiveApiKey`, `getGeminiClient`, and
+  `reinitializeGeminiClient` remain the module's surface.
+
+### Verified
+
+- Resolution matrix for `gemini-3.1-flash-image`, probed live against the
+  gateway (`generationConfig.imageConfig`, JPEG output): 1K → 1:1 1024x1024,
+  3:4 896x1200, 4:3 1200x896, 9:16 768x1376, 16:9 1376x768, 2:3 848x1264,
+  3:2 1264x848, 4:5 928x1152, 5:4 1152x928, 21:9 1584x672; 2K → 3:4
+  1792x2400, 16:9 2752x1536; 4K → 3:4 3584x4800, 1:1 4096x4096. The gateway
+  also accepts the ratios the app does not offer (2:3, 3:2, 4:5, 5:4, 21:9);
+  the app's `IMAGE_ASPECT_RATIOS` remains `1:1, 3:4, 4:3, 9:16, 16:9`.
+- Live run from the app at 4K: selecting the `4K` option and generating issued
+  one gateway request and produced a 3584x4800 image with `1 / 1 hoàn tất · 0 lỗi`.
+
+- `GET https://cliproxy.monet.uno/v1/models` lists 23 models; each Gemini id
+  kept in the registry was probed with a real request (text ids returned a text
+  candidate, `gemini-3.1-flash-image` returned inline image data), and each
+  removed id returned `400 unknown provider for model`.
+- Live run from the built app: the page issued
+  `POST https://cliproxy.monet.uno/v1beta/models/gemini-3.1-flash-image:generateContent`
+  and Identity Transfer reported `1 / 1 hoàn tất · 0 lỗi` with 1792x2400 output.
+- curl checks against the same gateway: image edit with one and with three input
+  images, and `generationConfig.imageConfig` passthrough (1:1 @ 1K → 1024x1024;
+  3:4 @ 2K → 1792x2400).
+
 ## [Unreleased] — 2026-07-16
 
 ### Docs

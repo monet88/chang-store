@@ -149,20 +149,6 @@ describe('generateImage', () => {
     );
     expect(result).toEqual(mockResult);
   });
-
-  it('keeps the upscale prompt aligned with Flash-Lite fixed 1K output', async () => {
-    const mockResult = { base64: 'upscaled', mimeType: 'image/png' };
-    vi.mocked(geminiImageService.upscaleImage).mockResolvedValueOnce(mockResult);
-
-    await upscaleImage(TEST_IMAGE, 'gemini-3.1-flash-lite-image', DEFAULT_CONFIG);
-
-    expect(geminiImageService.upscaleImage).toHaveBeenCalledWith(
-      TEST_IMAGE,
-      '2K',
-      expect.stringContaining('Upscale this image to 1K resolution'),
-      'gemini-3.1-flash-lite-image',
-    );
-  });
 });
 
 // ============================================================================
@@ -183,14 +169,14 @@ describe('upscaleImage', () => {
     vi.mocked(geminiImageService.upscaleImage).mockResolvedValueOnce(mockResult);
 
     // Act
-    const result = await upscaleImage(TEST_IMAGE, 'gemini-2.5-flash-image', DEFAULT_CONFIG);
+    const result = await upscaleImage(TEST_IMAGE, 'gemini-3.1-flash-image', DEFAULT_CONFIG);
 
     // Assert
     expect(geminiImageService.upscaleImage).toHaveBeenCalledWith(
       TEST_IMAGE,
       '2K',
-      expect.stringContaining('Upscale this image to 1K resolution'),
-      'gemini-2.5-flash-image',
+      expect.stringContaining('Upscale this image to 2K resolution'),
+      'gemini-3.1-flash-image',
     );
     expect(result).toEqual(mockResult);
   });

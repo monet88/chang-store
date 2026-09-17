@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect, useRe
 import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
 import { getDefaultModelForSelectionType, isKnownModelForSelectionType, ModelSelectionType } from '../config/modelRegistry';
 import { ProviderId, PROVIDER_IDS, getProviderDefaultBaseUrl, getProviderEnvApiKey } from '../config/providerRegistry';
-import { configureGeminiClient, setGeminiApiKey } from '../services/apiClient';
+import { configureGeminiClient } from '../services/apiClient';
 import { useToast } from '../components/Toast';
 import { validateProviderBaseUrl } from '../utils/provider-url-validation';
 import { useLanguage } from './LanguageContext';
@@ -13,23 +13,22 @@ export interface ProviderSettings {
   baseUrl: string;
 }
 
-export interface VertexProxySettings {
-  enabled: boolean;
+/** Gateway settings. The gateway is always the Gemini route; only its address
+ *  and key are configurable. */
+export interface CpaGatewaySettings {
   url: string;
   apiKey: string;
 }
 
 interface ApiContextType {
-  googleApiKey: string | null;
-  setGoogleApiKey: (key: string | null) => void;
   imageEditModel: ImageEditModel;
   setImageEditModel: (model: ImageEditModel) => void;
   imageGenerateModel: ImageGenerateModel;
   setImageGenerateModel: (model: ImageGenerateModel) => void;
   textGenerateModel: TextGenerateModel;
   setTextGenerateModel: (model: TextGenerateModel) => void;
-  vertexProxySettings: VertexProxySettings;
-  setVertexProxySettings: (settings: VertexProxySettings) => void;
+  cpaGatewaySettings: CpaGatewaySettings;
+  setCpaGatewaySettings: (settings: CpaGatewaySettings) => void;
   /** Resolved provider settings (env defaults merged with localStorage overrides). */
   providerSettings: Record<ProviderId, ProviderSettings>;
   /** Persist a partial override for a provider. */
@@ -42,13 +41,9 @@ const ApiContext = createContext<ApiContextType | undefined>(undefined);
 const IMAGE_EDIT_MODEL_KEY = 'image_edit_model';
 const IMAGE_GENERATE_MODEL_KEY = 'image_generate_model';
 const TEXT_GENERATE_MODEL_KEY = 'text_generate_model';
-const LEGACY_GOOGLE_API_KEY = 'google_api_key';
-const VERTEX_PROXY_ENABLED_KEY = 'vertex_proxy_enabled';
-const VERTEX_PROXY_URL_KEY = 'vertex_proxy_url';
-const VERTEX_PROXY_API_KEY_KEY = 'vertex_proxy_api_key';
-const DEFAULT_VERTEX_PROXY_ENABLED = true;
-const DEFAULT_VERTEX_PROXY_URL = 'https://vertex.monet.uno/gemini';
-const LEGACY_CLIPROXY_HOST = 'cliproxy.monet.uno';
+const CPA_GATEWAY_URL_KEY = 'cpa_gateway_url';
+const CPA_GATEWAY_API_KEY_KEY = 'cpa_gateway_api_key';
+const DEFAULT_CPA_GATEWAY_URL = 'https://cliproxy.monet.uno';
 
 const providerApiKeyStorageKey = (provider: ProviderId): string => `provider:${provider}:apiKey`;
 const providerBaseUrlStorageKey = (provider: ProviderId): string => `provider:${provider}:baseUrl`;
@@ -88,34 +83,36 @@ const resolveStoredModel = (selectionType: ModelSelectionType, storedValue: stri
   return getDefaultModelForSelectionType(selectionType);
 };
 
-const isLegacyCliproxyUrl = (url: string): boolean => {
-  try {
-    return new URL(url).hostname === LEGACY_CLIPROXY_HOST;
-  } catch {
-    return false;
+/** Gateway key from the build environment, used when nothing is stored. */
+const readCpaGatewayEnvApiKey = (): string => (process.env.CLIPROXY_API_KEY || '').trim();
+
+const LEGACY_GATEWAY_URL_KEY = 'vertex_proxy_url';
+const LEGACY_GATEWAY_API_KEY_KEY = 'vertex_proxy_api_key';
+
+/** Reads a gateway setting, migrating the pre-CPA-rename storage key on first use. */
+const readGatewayValue = (key: string, legacyKey: string): string => {
+  const current = safeStorage.getItem(key)?.trim() || '';
+  if (current) return current;
+
+  const legacy = safeStorage.getItem(legacyKey)?.trim() || '';
+  if (legacy) {
+    safeStorage.setItem(key, legacy);
+    safeStorage.removeItem(legacyKey);
   }
+  return legacy;
 };
 
-const resolveStoredVertexProxySettings = (): { invalidRestore: boolean; settings: VertexProxySettings } => {
-  const storedEnabled = safeStorage.getItem(VERTEX_PROXY_ENABLED_KEY);
-  const enabled = storedEnabled === null ? DEFAULT_VERTEX_PROXY_ENABLED : storedEnabled === 'true';
-  const storedUrl = safeStorage.getItem(VERTEX_PROXY_URL_KEY)?.trim() || '';
-  // Retired cliproxy host → auto-upgrade so existing installs stop hitting a dead endpoint.
-  const rawUrl = !storedUrl || isLegacyCliproxyUrl(storedUrl) ? DEFAULT_VERTEX_PROXY_URL : storedUrl;
-  if (storedUrl && isLegacyCliproxyUrl(storedUrl)) {
-    safeStorage.setItem(VERTEX_PROXY_URL_KEY, DEFAULT_VERTEX_PROXY_URL);
-  }
-  const apiKey = safeStorage.getItem(VERTEX_PROXY_API_KEY_KEY)?.trim() || '';
-  const validation = validateProviderBaseUrl(rawUrl);
-  const hasStoredRuntimeConfig = storedEnabled !== null;
-  const hasInvalidRuntimeConfig = hasStoredRuntimeConfig && enabled && (validation.status === 'invalid' || apiKey.length === 0);
+const resolveStoredCpaGatewaySettings = (): { invalidRestore: boolean; settings: CpaGatewaySettings } => {
+  const storedUrl = readGatewayValue(CPA_GATEWAY_URL_KEY, LEGACY_GATEWAY_URL_KEY);
+  const storedApiKey = readGatewayValue(CPA_GATEWAY_API_KEY_KEY, LEGACY_GATEWAY_API_KEY_KEY);
+  const validation = validateProviderBaseUrl(storedUrl || DEFAULT_CPA_GATEWAY_URL);
 
   return {
-    invalidRestore: hasInvalidRuntimeConfig,
+    // A stored URL that no longer validates falls back to the default gateway.
+    invalidRestore: storedUrl.length > 0 && validation.status === 'invalid',
     settings: {
-      enabled: hasInvalidRuntimeConfig ? false : enabled,
-      url: validation.status === 'invalid' ? DEFAULT_VERTEX_PROXY_URL : rawUrl,
-      apiKey,
+      url: validation.status === 'invalid' ? DEFAULT_CPA_GATEWAY_URL : validation.url,
+      apiKey: storedApiKey || readCpaGatewayEnvApiKey(),
     },
   };
 };
@@ -123,11 +120,9 @@ const resolveStoredVertexProxySettings = (): { invalidRestore: boolean; settings
 export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { showToast } = useToast();
   const { t } = useLanguage();
-  const restoredVertexProxyRef = useRef(resolveStoredVertexProxySettings());
-  const storedGoogleApiKey = safeStorage.getItem(LEGACY_GOOGLE_API_KEY)?.trim() || null;
-  const [googleApiKey, setGoogleApiKeyState] = useState<string | null>(storedGoogleApiKey);
-  const [vertexProxySettings, setVertexProxySettingsState] = useState<VertexProxySettings>(
-    restoredVertexProxyRef.current.settings,
+  const restoredCpaGatewayRef = useRef(resolveStoredCpaGatewaySettings());
+  const [cpaGatewaySettings, setCpaGatewaySettingsState] = useState<CpaGatewaySettings>(
+    restoredCpaGatewayRef.current.settings,
   );
 
   const resolveProviderSettings = (provider: ProviderId): ProviderSettings => {
@@ -186,21 +181,14 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   useEffect(() => {
-    if (!restoredVertexProxyRef.current.invalidRestore) {
+    if (!restoredCpaGatewayRef.current.invalidRestore) {
       return;
     }
 
-    safeStorage.setItem(VERTEX_PROXY_ENABLED_KEY, 'false');
-    safeStorage.setItem(VERTEX_PROXY_URL_KEY, restoredVertexProxyRef.current.settings.url);
+    safeStorage.setItem(CPA_GATEWAY_URL_KEY, restoredCpaGatewayRef.current.settings.url);
 
-    if (restoredVertexProxyRef.current.settings.apiKey) {
-      safeStorage.setItem(VERTEX_PROXY_API_KEY_KEY, restoredVertexProxyRef.current.settings.apiKey);
-    } else {
-      safeStorage.removeItem(VERTEX_PROXY_API_KEY_KEY);
-    }
-
-    restoredVertexProxyRef.current.invalidRestore = false;
-    showToast(t('settingsModal.notifications.vertexProxyRestoreInvalid'));
+    restoredCpaGatewayRef.current.invalidRestore = false;
+    showToast(t('settingsModal.notifications.cpaGatewayRestoreInvalid'));
   }, [showToast, t]);
 
   useEffect(() => {
@@ -220,44 +208,21 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [imageEditModel, imageGenerateModel, textGenerateModel]);
 
+  // The gateway is the only Gemini route, so it is always configured; a missing
+  // key surfaces as an explicit client error instead of a silent fallback.
   useEffect(() => {
-    if (vertexProxySettings.enabled) {
-      const validation = validateProviderBaseUrl(vertexProxySettings.url);
-      const proxyApiKey = vertexProxySettings.apiKey.trim();
-
-      if (validation.status !== 'invalid' && proxyApiKey) {
-        configureGeminiClient({
-          apiKey: proxyApiKey,
-          baseUrl: validation.url,
-          requireExplicitApiKey: true,
-        });
-        return;
-      }
-    }
+    const validation = validateProviderBaseUrl(cpaGatewaySettings.url);
 
     configureGeminiClient({
-      apiKey: googleApiKey,
-      baseUrl: null,
-      requireExplicitApiKey: false,
+      apiKey: cpaGatewaySettings.apiKey.trim(),
+      baseUrl: validation.status === 'invalid' ? DEFAULT_CPA_GATEWAY_URL : validation.url,
     });
-  }, [googleApiKey, vertexProxySettings]);
+  }, [cpaGatewaySettings]);
 
-  const setGoogleApiKey = useCallback((key: string | null) => {
-    const trimmedKey = key?.trim() || null;
-    setGoogleApiKeyState(trimmedKey);
-    if (trimmedKey) {
-      safeStorage.setItem(LEGACY_GOOGLE_API_KEY, trimmedKey);
-    } else {
-      safeStorage.removeItem(LEGACY_GOOGLE_API_KEY);
-    }
-    setGeminiApiKey(trimmedKey);
-  }, []);
-
-  const setVertexProxySettings = useCallback((settings: VertexProxySettings) => {
-    setVertexProxySettingsState(settings);
-    safeStorage.setItem(VERTEX_PROXY_ENABLED_KEY, String(settings.enabled));
-    safeStorage.setItem(VERTEX_PROXY_URL_KEY, settings.url);
-    safeStorage.setItem(VERTEX_PROXY_API_KEY_KEY, settings.apiKey);
+  const setCpaGatewaySettings = useCallback((settings: CpaGatewaySettings) => {
+    setCpaGatewaySettingsState(settings);
+    safeStorage.setItem(CPA_GATEWAY_URL_KEY, settings.url);
+    safeStorage.setItem(CPA_GATEWAY_API_KEY_KEY, settings.apiKey);
   }, []);
 
   const setImageEditModel = useCallback((model: ImageEditModel) => {
@@ -278,20 +243,18 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // ⚡ Bolt: Wrap Context Provider value in useMemo to preserve object identity
   // and prevent massive cascading re-renders across all consumer components.
   const contextValue = useMemo(() => ({
-      googleApiKey,
-      setGoogleApiKey,
       imageEditModel,
       setImageEditModel,
       imageGenerateModel,
       setImageGenerateModel,
       textGenerateModel,
       setTextGenerateModel,
-      vertexProxySettings,
-      setVertexProxySettings,
+      cpaGatewaySettings,
+      setCpaGatewaySettings,
       providerSettings,
       setProviderSettings,
       resetProviderSettings,
-  }), [googleApiKey, setGoogleApiKey, imageEditModel, setImageEditModel, imageGenerateModel, setImageGenerateModel, textGenerateModel, setTextGenerateModel, vertexProxySettings, setVertexProxySettings, providerSettings, setProviderSettings, resetProviderSettings]);
+  }), [imageEditModel, setImageEditModel, imageGenerateModel, setImageGenerateModel, textGenerateModel, setTextGenerateModel, cpaGatewaySettings, setCpaGatewaySettings, providerSettings, setProviderSettings, resetProviderSettings]);
 
   return (
     <ApiContext.Provider value={contextValue}>

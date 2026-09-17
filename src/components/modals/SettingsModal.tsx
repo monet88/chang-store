@@ -56,21 +56,17 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
     localImageEditModel,
     localImageGenerateModel,
     localTextGenerateModel,
-    localDirectGeminiApiKey,
-    localVertexProxyEnabled,
-    localVertexProxyUrl,
-    localVertexProxyApiKey,
-    isVertexProxyUrlInvalid,
-    isVertexProxyUrlCustom,
-    isVertexProxyApiKeyMissing,
-    customVertexProxyHost,
+    localCpaGatewayUrl,
+    localCpaGatewayApiKey,
+    isCpaGatewayUrlInvalid,
+    isCpaGatewayUrlCustom,
+    isCpaGatewayApiKeyMissing,
+    customCpaGatewayHost,
     setLocalImageEditModel,
     setLocalImageGenerateModel,
     setLocalTextGenerateModel,
-    setLocalDirectGeminiApiKey,
-    setLocalVertexProxyEnabled,
-    setLocalVertexProxyUrl,
-    setLocalVertexProxyApiKey,
+    setLocalCpaGatewayUrl,
+    setLocalCpaGatewayApiKey,
     debugMode,
     handleDebugToggle,
     restoreInputRef,
@@ -148,79 +144,47 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
               </SectionCard>
 
               <SectionCard
-                title={t('settingsModal.sections.vertexProxy.title')}
-                description={t('settingsModal.sections.vertexProxy.description')}
+                title={t('settingsModal.sections.cpaGateway.title')}
+                description={t('settingsModal.sections.cpaGateway.description')}
               >
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
-                    <div className="min-w-0 space-y-1 pr-2">
-                      <p className={sectionTitleClassName}>{t('settingsModal.vertexProxy.toggleTitle')}</p>
-                      <p className="text-sm leading-6 text-zinc-400">{t('settingsModal.vertexProxy.toggleDescription')}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setLocalVertexProxyEnabled(!localVertexProxyEnabled)}
-                      className={`relative h-8 w-14 shrink-0 rounded-full border shadow-inner transition-colors ${localVertexProxyEnabled ? 'border-emerald-400/50 bg-emerald-400/20' : 'border-white/15 bg-zinc-800/80'}`}
-                      aria-pressed={localVertexProxyEnabled}
-                      aria-label={t('settingsModal.vertexProxy.toggleAria')}
-                    >
-                      <span
-                        className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.45)] transition-transform ${localVertexProxyEnabled ? 'translate-x-6' : 'translate-x-0'}`}
-                      />
-                    </button>
-                  </div>
-
                   <label className="block space-y-2">
-                    <span className={sectionTitleClassName}>{t('settingsModal.vertexProxy.urlLabel')}</span>
+                    <span className={sectionTitleClassName}>{t('settingsModal.cpaGateway.urlLabel')}</span>
                     <input
-                      aria-label={t('settingsModal.vertexProxy.urlLabel')}
+                      aria-label={t('settingsModal.cpaGateway.urlLabel')}
                       type="url"
-                      value={localVertexProxyUrl}
-                      onChange={(e) => setLocalVertexProxyUrl(e.target.value)}
-                      placeholder="https://vertex.monet.uno/gemini or https://chang-store-vertex-gateway-eeqmzij23a-as.a.run.app/gemini"
+                      value={localCpaGatewayUrl}
+                      onChange={(e) => setLocalCpaGatewayUrl(e.target.value)}
+                      placeholder="https://cliproxy.monet.uno"
                       className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
                     />
-                    {isVertexProxyUrlInvalid && (
-                      <p className="text-xs text-red-400">{t('settingsModal.vertexProxy.urlInvalid')}</p>
+                    {isCpaGatewayUrlInvalid && (
+                      <p className="text-xs text-red-400">{t('settingsModal.cpaGateway.urlInvalid')}</p>
                     )}
-                    {isVertexProxyUrlCustom && customVertexProxyHost && (
+                    {isCpaGatewayUrlCustom && customCpaGatewayHost && (
                       <p className="text-xs text-amber-400">
-                        {t('settingsModal.vertexProxy.urlCustomWarning', { host: customVertexProxyHost })}
+                        {t('settingsModal.cpaGateway.urlCustomWarning', { host: customCpaGatewayHost })}
                       </p>
                     )}
                   </label>
 
                   <label className="block space-y-2">
-                    <span className={sectionTitleClassName}>{t('settingsModal.vertexProxy.directApiKeyLabel')}</span>
+                    <span className={sectionTitleClassName}>{t('settingsModal.cpaGateway.apiKeyLabel')}</span>
                     <input
-                      aria-label={t('settingsModal.vertexProxy.directApiKeyLabel')}
+                      aria-label={t('settingsModal.cpaGateway.apiKeyLabel')}
                       type="password"
-                      value={localDirectGeminiApiKey}
-                      onChange={(e) => setLocalDirectGeminiApiKey(e.target.value)}
+                      value={localCpaGatewayApiKey}
+                      onChange={(e) => setLocalCpaGatewayApiKey(e.target.value)}
                       autoComplete="off"
-                      placeholder={t('settingsModal.vertexProxy.directApiKeyPlaceholder')}
+                      placeholder={t('settingsModal.cpaGateway.apiKeyPlaceholder')}
                       className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
                     />
-                    <p className="text-xs text-zinc-500">{t('settingsModal.vertexProxy.directApiKeyHint')}</p>
-                  </label>
-
-                  <label className="block space-y-2">
-                    <span className={sectionTitleClassName}>{t('settingsModal.vertexProxy.apiKeyLabel')}</span>
-                    <input
-                      aria-label={t('settingsModal.vertexProxy.apiKeyLabel')}
-                      type="password"
-                      value={localVertexProxyApiKey}
-                      onChange={(e) => setLocalVertexProxyApiKey(e.target.value)}
-                      autoComplete="off"
-                      placeholder={t('settingsModal.vertexProxy.apiKeyPlaceholder')}
-                      className="workspace-input min-h-[46px] w-full px-4 py-3 text-sm text-zinc-100"
-                    />
-                    {isVertexProxyApiKeyMissing && (
-                      <p className="text-xs text-red-400">{t('settingsModal.vertexProxy.apiKeyMissing')}</p>
+                    {isCpaGatewayApiKeyMissing && (
+                      <p className="text-xs text-red-400">{t('settingsModal.cpaGateway.apiKeyMissing')}</p>
                     )}
-                    <p className="text-xs text-zinc-500">{t('settingsModal.vertexProxy.apiKeyHint')}</p>
+                    <p className="text-xs text-zinc-500">{t('settingsModal.cpaGateway.apiKeyHint')}</p>
                     <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">
-                      {t('settingsModal.vertexProxy.storageWarning')}
+                      {t('settingsModal.cpaGateway.storageWarning')}
                     </p>
                   </label>
                 </div>

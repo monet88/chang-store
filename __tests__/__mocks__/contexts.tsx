@@ -42,21 +42,22 @@ interface ImageGalleryContextType {
 
 /** Type for useApi hook return value */
 interface ApiContextType {
-  googleApiKey: string | null;
-  setGoogleApiKey: ReturnType<typeof vi.fn>;
   imageEditModel: string;
-  setImageEditModel: ReturnType<typeof vi.fn>;
+  setImageEditModel: (model: string) => void;
   imageGenerateModel: string;
-  setImageGenerateModel: ReturnType<typeof vi.fn>;
+  setImageGenerateModel: (model: string) => void;
   textGenerateModel: string;
-  setTextGenerateModel: ReturnType<typeof vi.fn>;
-  vertexProxySettings: {
-    enabled: boolean;
+  setTextGenerateModel: (model: string) => void;
+  cpaGatewaySettings: {
     url: string;
     apiKey: string;
   };
-  setVertexProxySettings: ReturnType<typeof vi.fn>;
-  getModelsForFeature: ReturnType<typeof vi.fn>;
+  setCpaGatewaySettings: (settings: { url: string; apiKey: string }) => void;
+  getModelsForFeature: (feature: Feature) => {
+    imageEditModel: string;
+    imageGenerateModel: string;
+    textGenerateModel: string;
+  };
 }
 
 /** Type for useImageViewer hook return value */
@@ -145,25 +146,22 @@ export const mockUseApi = (
   overrides: Partial<ApiContextType> = {}
 ): { useApi: () => ApiContextType } => {
   const defaults: ApiContextType = {
-    googleApiKey: null,
-    setGoogleApiKey: vi.fn(),
     imageEditModel: 'gemini-3.1-flash-image',
     setImageEditModel: vi.fn(),
     imageGenerateModel: 'gemini-3.1-flash-image',
     setImageGenerateModel: vi.fn(),
-    textGenerateModel: 'gemini-3.5-flash',
+    textGenerateModel: 'gemini-3.8-flash',
     setTextGenerateModel: vi.fn(),
-    vertexProxySettings: {
-      enabled: true,
-      url: 'https://vertex.monet.uno/gemini',
+    cpaGatewaySettings: {
+      url: 'https://cliproxy.monet.uno',
       apiKey: '',
     },
-    setVertexProxySettings: vi.fn(),
+    setCpaGatewaySettings: vi.fn(),
     /** Default returns all current models */
     getModelsForFeature: vi.fn((_feature: Feature) => ({
       imageEditModel: overrides.imageEditModel ?? 'gemini-3.1-flash-image',
       imageGenerateModel: overrides.imageGenerateModel ?? 'gemini-3.1-flash-image',
-      textGenerateModel: overrides.textGenerateModel ?? 'gemini-3.5-flash',
+      textGenerateModel: overrides.textGenerateModel ?? 'gemini-3.8-flash',
     })),
   };
 

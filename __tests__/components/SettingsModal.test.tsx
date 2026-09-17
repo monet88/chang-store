@@ -10,10 +10,8 @@ const translations: Record<string, string> = {
   'settingsModal.closeAria': 'Close settings',
   'settingsModal.sections.models.title': 'Default model selection',
   'settingsModal.sections.models.description': 'Choose defaults.',
-  'settingsModal.sections.vertexProxy.title': 'Vertex Proxy',
-  'settingsModal.sections.vertexProxy.description': 'Route Gemini through a proxy.',
-  'settingsModal.sections.cloud.title': 'Cloud sync',
-  'settingsModal.sections.cloud.description': 'Connect sync.',
+  'settingsModal.sections.cpaGateway.title': 'CPA Gateway',
+  'settingsModal.sections.cpaGateway.description': 'Every Gemini request goes through the gateway.',
   'settingsModal.sections.data.title': 'Application data',
   'settingsModal.sections.data.description': 'Manage backups.',
   'settingsModal.sections.developer.title': 'Developer',
@@ -21,17 +19,14 @@ const translations: Record<string, string> = {
   'settingsModal.fields.textGeneration': 'Text generation',
   'settingsModal.fields.imageEditing': 'Image editing',
   'settingsModal.fields.imageGeneration': 'Image generation',
-  'settingsModal.vertexProxy.toggleTitle': 'Enable Vertex Proxy',
-  'settingsModal.vertexProxy.toggleDescription': 'Send Gemini requests through a proxy.',
-  'settingsModal.vertexProxy.toggleAria': 'Toggle Vertex Proxy',
-  'settingsModal.vertexProxy.urlLabel': 'Proxy URL',
-  'settingsModal.vertexProxy.urlInvalid': 'Invalid proxy URL',
-  'settingsModal.vertexProxy.urlCustomWarning': 'Custom host warning',
-  'settingsModal.vertexProxy.apiKeyLabel': 'Proxy API key',
-  'settingsModal.vertexProxy.apiKeyPlaceholder': 'Enter proxy API key',
-  'settingsModal.vertexProxy.apiKeyHint': 'Proxy key only.',
-  'settingsModal.vertexProxy.apiKeyMissing': 'Proxy key missing',
-  'settingsModal.vertexProxy.storageWarning': 'Stored in plaintext localStorage.',
+  'settingsModal.cpaGateway.urlLabel': 'Gateway URL',
+  'settingsModal.cpaGateway.urlInvalid': 'Invalid gateway URL',
+  'settingsModal.cpaGateway.urlCustomWarning': 'Custom host warning',
+  'settingsModal.cpaGateway.apiKeyLabel': 'Gateway API key',
+  'settingsModal.cpaGateway.apiKeyPlaceholder': 'Enter gateway API key',
+  'settingsModal.cpaGateway.apiKeyHint': 'Gateway key only.',
+  'settingsModal.cpaGateway.apiKeyMissing': 'Gateway key missing',
+  'settingsModal.cpaGateway.storageWarning': 'Stored in plaintext localStorage.',
   'settingsModal.storage.title': 'Local storage usage',
   'settingsModal.storage.usageHint': 'Usage hint',
   'settingsModal.actions.backup': 'Backup data',
@@ -57,14 +52,13 @@ vi.mock('@/contexts/ApiProviderContext', () => ({
     setImageEditModel: vi.fn(),
     imageGenerateModel: 'gemini-3.1-flash-image',
     setImageGenerateModel: vi.fn(),
-    textGenerateModel: 'gemini-3.5-flash',
+    textGenerateModel: 'gemini-3.8-flash',
     setTextGenerateModel: vi.fn(),
-    vertexProxySettings: {
-      enabled: true,
-      url: 'https://vertex.monet.uno/gemini',
+    cpaGatewaySettings: {
+      url: 'https://cliproxy.monet.uno',
       apiKey: '',
     },
-    setVertexProxySettings: vi.fn(),
+    setCpaGatewaySettings: vi.fn(),
   }),
 }));
 
@@ -116,15 +110,16 @@ describe('SettingsModal', () => {
     expect(within(imageGenerateSelect).getAllByRole('option')).toHaveLength(getModelOptionsBySelectionType('imageGenerate').length);
 
     expect(within(imageEditSelect).getByRole('option', { name: 'Nano Banana 2' })).toBeInTheDocument();
-    expect(within(imageEditSelect).getByRole('option', { name: 'Nano Banana 2 Lite' })).toBeInTheDocument();
-    expect(within(imageEditSelect).getByRole('option', { name: 'Nano Banana' })).toBeInTheDocument();
-    expect(within(imageGenerateSelect).getByRole('option', { name: 'Nano Banana Pro' })).toBeInTheDocument();
-    expect(within(imageGenerateSelect).getByRole('option', { name: 'Nano Banana 2 Lite' })).toBeInTheDocument();
-    expect(within(textSelect).getByRole('option', { name: 'Gemini 3.5 Flash' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Proxy URL')).toHaveValue('https://vertex.monet.uno/gemini');
-    expect(screen.getByRole('button', { name: 'Toggle Vertex Proxy' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByText('Proxy key missing')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Proxy API key')).toHaveValue('');
+    expect(within(imageGenerateSelect).getByRole('option', { name: 'Nano Banana 2' })).toBeInTheDocument();
+    expect(within(textSelect).getByRole('option', { name: 'Gemini 3.8 Flash' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Gateway URL')).toHaveValue('https://cliproxy.monet.uno');
+    expect(screen.queryByText('Gateway key missing')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Gateway API key')).toHaveValue('');
+
+    // The gateway is always on: the only remaining on/off control is debug mode.
+    const toggles = document.querySelectorAll('[aria-pressed]');
+    expect(toggles).toHaveLength(1);
+    expect(toggles[0]).toHaveAttribute('aria-label', 'Toggle debug mode');
   });
 
   it('does not reset unsaved model selections when gallery images change while open', async () => {
@@ -134,14 +129,14 @@ describe('SettingsModal', () => {
       expect(screen.getByText('google-drive-settings')).toBeInTheDocument();
     });
 
-    const imageEditSelect = screen.getByLabelText('Image editing');
-    fireEvent.change(imageEditSelect, { target: { value: 'gemini-2.5-flash-image' } });
+    const textSelect = screen.getByLabelText('Text generation');
+    fireEvent.change(textSelect, { target: { value: 'gemini-3.7-flash' } });
 
-    expect(imageEditSelect).toHaveValue('gemini-2.5-flash-image');
+    expect(textSelect).toHaveValue('gemini-3.7-flash');
 
     galleryImages = [{ id: 'gallery-image-1' }];
     rerender(<SettingsModal isOpen onClose={vi.fn()} />);
 
-    expect(screen.getByLabelText('Image editing')).toHaveValue('gemini-2.5-flash-image');
+    expect(screen.getByLabelText('Text generation')).toHaveValue('gemini-3.7-flash');
   });
 });
