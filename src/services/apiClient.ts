@@ -104,6 +104,9 @@ export function getActiveApiKey(): string {
     throw new Error("API_KEY is not configured. Please set it in the settings or environment.");
   }
 
+  // Direct mode (no gateway URL configured) keeps the env-key precedence. The app's own
+  // wiring always configures a gateway (ApiProviderContext), so today only an explicit
+  // `baseUrl: null` caller reaches this.
   const envApiKey = getEnvGeminiApiKey();
   if (envApiKey) {
     return envApiKey;

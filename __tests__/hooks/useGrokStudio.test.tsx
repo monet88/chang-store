@@ -48,12 +48,24 @@ vi.mock('@/utils/imageUtils', async () => {
 
 import { useGrokStudio } from '@/hooks/useGrokStudio';
 import { generateGrokImage, editGrokImage } from '@/services/providers/grok/grokImageService';
+import { listGatewayModels } from '@/services/gatewayDiscoveryService';
 import { compositeMarkerOnImage } from '@/utils/imageUtils';
 import { Feature, ImageFile } from '@/types';
 
 const RESULT: ImageFile = { base64: 'OUT', mimeType: 'image/png' };
 const SOURCE: ImageFile = { base64: 'SRC', mimeType: 'image/jpeg' };
 const SUBJECT: ImageFile = { base64: 'SUBJ', mimeType: 'image/jpeg' };
+
+/** Seed the served-model cache through the real probe: the hook reads it synchronously. */
+const seedServedModels = async (baseUrl: string, apiKey: string, modelIds: string[]): Promise<void> => {
+  vi.stubGlobal('fetch', vi.fn(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ object: 'list', data: modelIds.map((id) => ({ id })) }),
+  })));
+  await listGatewayModels({ baseUrl, apiKey });
+  vi.unstubAllGlobals();
+};
 
 describe('useGrokStudio', () => {
   beforeEach(() => {
@@ -64,22 +76,18 @@ describe('useGrokStudio', () => {
     vi.mocked(editGrokImage).mockResolvedValue([RESULT]);
   });
 
-  it('lists the models the active profile serves', () => {
-    localStorage.setItem('gateway_models_cache_v1', JSON.stringify([{
-      baseUrl: 'https://api.xai-mirror.test',
-      fetchedAt: Date.now(),
-      modelIds: ['grok-imagine-image-2.0'],
-      ownedBy: {},
-    }]));
-    mockImageProfiles.push({
+  it('lists the models the active profile serves', async () => {
+    const mirror = {
       id: 'grok-mirror',
       label: 'grok mirror',
       baseUrl: 'https://api.xai-mirror.test',
       apiKey: 'k',
-      lane: 'image',
-      driver: 'grok-images',
+      lane: 'image' as const,
+      driver: 'grok-images' as const,
       enabled: true,
-    });
+    };
+    mockImageProfiles.push(mirror);
+    await seedServedModels(mirror.baseUrl, mirror.apiKey, ['grok-imagine-image-2.0']);
 
     const { result } = renderHook(() => useGrokStudio(Feature.PatternGenerator, 'grok'));
 

@@ -47,9 +47,10 @@ describe('image driver policy', () => {
     expect(resolveDriverPolicy('gpt-image-9-unknown', 'https://api.openai.com/v1')).toBeNull();
   });
 
-  it('extracts a bare host from a base URL, including a non-default port', () => {
+  it('extracts the bare host from a base URL, ignoring the port and the version', () => {
     expect(gatewayHostOf('https://cliproxy.monet.uno/v1')).toBe('cliproxy.monet.uno');
-    expect(gatewayHostOf('http://localhost:5173/v1')).toBe('localhost:5173');
+    // Catalog overrides are keyed by host, so a gateway on a non-default port must still match.
+    expect(gatewayHostOf('http://localhost:8333/v1')).toBe('localhost');
     expect(gatewayHostOf('not a url')).toBeUndefined();
   });
 

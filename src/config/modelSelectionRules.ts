@@ -8,6 +8,7 @@ import {
   IMAGE_MODEL_CATALOG,
   getImageModelDescriptor,
   isVerifiedModel,
+  resolveCapabilities,
   type ImageDriverId,
 } from './imageModelCatalog';
 
@@ -51,7 +52,7 @@ const isLaneCatalogRow = (modelId: string, driver: ImageDriverId | null, gateway
   if (!descriptor || driver === null) {
     return false;
   }
-  return descriptor.capabilities.driver === driver && isVerifiedModel(descriptor, gatewayHost);
+  return resolveCapabilities(descriptor, gatewayHost).driver === driver && isVerifiedModel(descriptor, gatewayHost);
 };
 
 /**
@@ -131,7 +132,8 @@ export function resolveProviderModelOptions(
   }
 
   const catalogRows = IMAGE_MODEL_CATALOG.filter(
-    (descriptor) => descriptor.capabilities.driver === driver && isVerifiedModel(descriptor, gatewayHost),
+    (descriptor) =>
+      resolveCapabilities(descriptor, gatewayHost).driver === driver && isVerifiedModel(descriptor, gatewayHost),
   );
   const servedIds = new Set(served);
   const catalogIds = new Set(catalogRows.map((descriptor) => descriptor.modelId));

@@ -120,7 +120,7 @@ describe('gatewayDiscoveryService', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     // A cached answer made no request, so it reports no latency.
     expect(second).toMatchObject({ status: 'ok', latencyMs: 0, modelIds: SERVED_LIST.data.map((m) => m.id) });
-    expect(getCachedGatewayModels(TARGET.baseUrl)?.modelIds).toEqual(SERVED_LIST.data.map((m) => m.id));
+    expect(getCachedGatewayModels(TARGET.baseUrl, TARGET.apiKey)?.modelIds).toEqual(SERVED_LIST.data.map((m) => m.id));
 
     vi.setSystemTime(Date.now() + GATEWAY_MODELS_TTL_MS + 1);
     await listGatewayModels(TARGET);
@@ -136,7 +136,35 @@ describe('gatewayDiscoveryService', () => {
       status: 'ok',
       modelIds: ['freshly-added-model'],
     });
-    expect(getCachedGatewayModels(TARGET.baseUrl)?.modelIds).toEqual(['freshly-added-model']);
+    expect(getCachedGatewayModels(TARGET.baseUrl, TARGET.apiKey)?.modelIds).toEqual(['freshly-added-model']);
+  });
+
+  it('normalizes the versioned and unversioned API root into one probe and one cache entry', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, SERVED_LIST));
+
+    // The image lanes document the versioned form (`…/v1/images/generations`); the probe must
+    // ask `{root}/v1/models`, never `{root}/v1/v1/models`.
+    const versioned = await listGatewayModels({ ...TARGET, baseUrl: 'https://api.xompet.io.vn/v1' });
+    const unversioned = await listGatewayModels({ ...TARGET, baseUrl: 'https://api.xompet.io.vn' });
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api.xompet.io.vn/v1/models', expect.anything());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(versioned).toMatchObject({ status: 'ok' });
+    expect(unversioned).toMatchObject({ status: 'ok', latencyMs: 0 });
+  });
+
+  it('never hands one key the served list another key probed on the same host', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, SERVED_LIST));
+    await listGatewayModels({ ...TARGET, apiKey: 'sk-other-key' });
+
+    expect(getCachedGatewayModels(TARGET.baseUrl, 'sk-other-key')?.modelIds).toHaveLength(2);
+    expect(getCachedGatewayModels(TARGET.baseUrl, TARGET.apiKey)).toBeNull();
+
+    fetchMock.mockResolvedValue(jsonResponse(200, { object: 'list', data: [] }));
+    await expect(listGatewayModels(TARGET)).resolves.toMatchObject({ status: 'ok', modelIds: [] });
+
+    expect(getCachedGatewayModels(TARGET.baseUrl, TARGET.apiKey)?.modelIds).toEqual([]);
+    expect(getCachedGatewayModels(TARGET.baseUrl, 'sk-other-key')?.modelIds).toHaveLength(2);
   });
 
   it('never caches a failure and never stores the api key', async () => {

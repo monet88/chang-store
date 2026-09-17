@@ -25,6 +25,8 @@ export interface ProviderStudioController
   setApiKey: (value: string) => void;
   setBaseUrl: (value: string) => void;
   resetSettings: () => void;
+  /** True when no offered model is one the active profile serves — Generate stays disabled. */
+  noSelectableModel: boolean;
   prompt: string;
   setPrompt: (value: string) => void;
   images: ImageFile[];

@@ -31,10 +31,14 @@ export interface SizeMismatch {
   returned: string;
 }
 
-/** Bare host of a base URL ('cliproxy.monet.uno', 'localhost:5173'), or undefined. */
+/**
+ * Bare host of a base URL ('cliproxy.monet.uno', 'localhost'), or undefined.
+ * No port: catalog overrides are keyed by the host the facts were measured on, so the
+ * same gateway on `localhost:8333` must still pick up its own measured quirks.
+ */
 export function gatewayHostOf(baseUrl: string): string | undefined {
   try {
-    return new URL(baseUrl).host || undefined;
+    return new URL(baseUrl).hostname || undefined;
   } catch {
     return undefined;
   }
@@ -94,6 +98,10 @@ export function parsePixelSize(size: string): { width: number; height: number } 
  * call. Best effort: the image is always kept (a wrong-size image beats a lost
  * one) and an unmeasurable payload is not a generation failure. Returns the first
  * mismatch so the caller can surface one non-blocking notice.
+ *
+ * Scope: pixel sizes. A `ratio` lane is not compared yet — the Gemini lane sends
+ * `imageConfig` and the xAI rows are still `honorsSize: 'no'`, so a ratio branch would
+ * have no caller able to exercise it; add it with that lane's live measurement.
  */
 export async function verifyReturnedDimensions(
   images: ImageFile[],

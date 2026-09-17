@@ -30,6 +30,8 @@ export interface GatewayProbeTarget {
 
 interface GatewayModelsCacheEntry {
   baseUrl: string;
+  /** Non-reversible key identity: two keys on one host must never share a served list. */
+  keyId: string;
   fetchedAt: number;
   modelIds: string[];
   ownedBy: Record<string, string>;
@@ -43,6 +45,22 @@ export const GATEWAY_PROBE_TIMEOUT_MS = 10_000;
 
 const trimSlashes = (baseUrl: string): string => baseUrl.replace(/\/+$/, '');
 
+/**
+ * `https://host`, `https://host/` and `https://host/v1` address the same API root: the
+ * image lanes document the versioned form (`…/v1/images/generations`), so the probe must
+ * accept it instead of asking for `/v1/v1/models`.
+ */
+const toApiRoot = (baseUrl: string): string => trimSlashes(baseUrl).replace(/\/v1$/, '');
+
+/** FNV-1a over the key: enough to tell two keys apart, useless for recovering one. */
+const keyIdentity = (apiKey: string): string => {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < apiKey.length; index += 1) {
+    hash = Math.imul(hash ^ apiKey.charCodeAt(index), 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
+};
+
 const readCache = (): GatewayModelsCacheEntry[] => {
   try {
     const parsed = JSON.parse(localStorage.getItem(CACHE_STORAGE_KEY) ?? '[]');
@@ -54,16 +72,20 @@ const readCache = (): GatewayModelsCacheEntry[] => {
 
 const writeCacheEntry = (entry: GatewayModelsCacheEntry): void => {
   try {
-    const entries = readCache().filter((cached) => cached?.baseUrl !== entry.baseUrl);
+    const entries = readCache().filter(
+      (cached) => cached?.baseUrl !== entry.baseUrl || cached?.keyId !== entry.keyId,
+    );
     localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify([...entries, entry]));
   } catch {
     // A blocked or full localStorage must never break discovery.
   }
 };
 
-/** Cached `ok` probe for this base URL, still inside the TTL — keyed by URL, never by key. */
-export function getCachedGatewayModels(baseUrl: string, now: number = Date.now()): GatewayProbeResult | null {
-  const entry = readCache().find((cached) => cached?.baseUrl === trimSlashes(baseUrl));
+/** Cached `ok` probe for this (host, key) pair, still inside the TTL — never keyed by host alone. */
+export function getCachedGatewayModels(baseUrl: string, apiKey: string, now: number = Date.now()): GatewayProbeResult | null {
+  const entry = readCache().find(
+    (cached) => cached?.baseUrl === toApiRoot(baseUrl) && cached?.keyId === keyIdentity(apiKey),
+  );
   if (!entry || now - entry.fetchedAt > GATEWAY_MODELS_TTL_MS) {
     return null;
   }
@@ -145,10 +167,10 @@ export async function listGatewayModels(
   target: GatewayProbeTarget,
   options: { force?: boolean } = {},
 ): Promise<GatewayProbeResult> {
-  const baseUrl = trimSlashes(target.baseUrl);
+  const baseUrl = toApiRoot(target.baseUrl);
 
   if (!options.force) {
-    const cached = getCachedGatewayModels(baseUrl);
+    const cached = getCachedGatewayModels(baseUrl, target.apiKey);
     if (cached) {
       return cached;
     }
@@ -159,6 +181,7 @@ export async function listGatewayModels(
   if (result.status === 'ok') {
     writeCacheEntry({
       baseUrl,
+      keyId: keyIdentity(target.apiKey),
       fetchedAt: Date.now(),
       modelIds: result.modelIds,
       ownedBy: result.ownedBy,

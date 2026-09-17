@@ -42,6 +42,8 @@ export interface UseGptImageStudioReturn extends UseProviderStudioEngineReturn {
   model: string;
   setModel: (value: string) => void;
   modelOptions: SelectableModel[];
+  /** True when discovery knows this profile serves none of the models this lane can offer. */
+  noSelectableModel: boolean;
   quality: GptImageQuality;
   setQuality: (value: string) => void;
   /** `false` when the gateway answers its own size / ignores the quality it is sent. */
@@ -85,7 +87,7 @@ export const useGptImageStudio = (
   // which of their fields the gateway honors (capabilities are a (gateway, model) property).
   const profile = resolveActiveProfile(imageProfiles, 'image', activeImageProfileId, 'openai-images');
   const gatewayHost = profile ? gatewayHostOf(profile.baseUrl) : undefined;
-  const served = useServedModels(profile?.baseUrl, servedModelsVersion);
+  const served = useServedModels(profile?.baseUrl, profile?.apiKey, servedModelsVersion);
 
   const [requestedModel, setModel] = useState<string>(DEFAULT_GPT_IMAGE_MODEL);
   const [quality, setQuality] = useState<GptImageQuality>(DEFAULT_GPT_IMAGE_QUALITY);
@@ -101,6 +103,8 @@ export const useGptImageStudio = (
   const model = isSelectable(requestedModel)
     ? requestedModel
     : firstSelectableModelId(modelOptions) ?? DEFAULT_GPT_IMAGE_MODEL;
+  // A profile that serves none of this lane's models must not submit a disabled id.
+  const noSelectableModel = !modelOptions.some((option) => !option.disabled);
   const sizeOptions = useMemo(() => resolveGptImageSizeOptions(model, gatewayHost), [model, gatewayHost]);
   // Sizes are per model: keep the studio on one this model can actually produce.
   const size = sizeOptions.includes(requestedSize) ? requestedSize : sizeOptions[0] ?? DEFAULT_GPT_IMAGE_SIZE;
@@ -160,6 +164,7 @@ export const useGptImageStudio = (
     model,
     setModel,
     modelOptions,
+    noSelectableModel,
     quality,
     setQuality: (value: string) => setQuality(value as GptImageQuality),
     supportsSize,

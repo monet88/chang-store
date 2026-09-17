@@ -44,10 +44,22 @@ vi.mock('@/services/providers/gpt-image/gptImageService', () => ({
 
 import { useGptImageStudio } from '@/hooks/useGptImageStudio';
 import { generateGptImage, editGptImage } from '@/services/providers/gpt-image/gptImageService';
+import { listGatewayModels } from '@/services/gatewayDiscoveryService';
 import { Feature, ImageFile } from '@/types';
 
 const RESULT: ImageFile = { base64: 'OUT', mimeType: 'image/png' };
 const SOURCE: ImageFile = { base64: 'SRC', mimeType: 'image/jpeg' };
+
+/** Seed the served-model cache through the real probe: the hook reads it synchronously. */
+const seedServedModels = async (baseUrl: string, apiKey: string, modelIds: string[]): Promise<void> => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ object: 'list', data: modelIds.map((id) => ({ id })) }),
+    })));
+    await listGatewayModels({ baseUrl, apiKey });
+    vi.unstubAllGlobals();
+};
 
 describe('useGptImageStudio', () => {
     beforeEach(() => {
@@ -58,14 +70,9 @@ describe('useGptImageStudio', () => {
         vi.mocked(editGptImage).mockResolvedValue([RESULT]);
     });
 
-    it('offers the models the active profile serves, and their sizes', () => {
-        localStorage.setItem('gateway_models_cache_v1', JSON.stringify([{
-            baseUrl: 'https://api.xompet.io.vn',
-            fetchedAt: Date.now(),
-            modelIds: ['gpt-image-2.5-sunburst'],
-            ownedBy: {},
-        }]));
+    it('offers the models the active profile serves, and their sizes', async () => {
         mockImageProfiles.push(PROFILE);
+        await seedServedModels(PROFILE.baseUrl, PROFILE.apiKey, ['gpt-image-2.5-sunburst']);
 
         const { result } = renderHook(() => useGptImageStudio(Feature.PatternGenerator, 'gptImage'));
 
@@ -95,20 +102,27 @@ describe('useGptImageStudio', () => {
         expect(result.current.supportsQuality).toBe(true);
     });
 
-    it('hides the size control on a gateway that answers its own size', () => {
-        mockImageProfiles.push({ ...PROFILE, id: 'cpa-image', baseUrl: 'https://cliproxy.monet.uno' });
-        localStorage.setItem('gateway_models_cache_v1', JSON.stringify([{
-            baseUrl: 'https://cliproxy.monet.uno',
-            fetchedAt: Date.now(),
-            modelIds: ['gpt-image-2'],
-            ownedBy: {},
-        }]));
+    it('hides the size control on a gateway that answers its own size', async () => {
+        const cpa = { ...PROFILE, id: 'cpa-image', baseUrl: 'https://cliproxy.monet.uno' };
+        mockImageProfiles.push(cpa);
+        await seedServedModels(cpa.baseUrl, cpa.apiKey, ['gpt-image-2']);
 
         const { result } = renderHook(() => useGptImageStudio(Feature.PatternGenerator, 'gptImage'));
 
         expect(result.current.model).toBe('gpt-image-2');
         expect(result.current.supportsSize).toBe(false);
         expect(result.current.supportsQuality).toBe(false);
+    });
+
+    it('marks the lane unavailable when the profile serves none of its models', async () => {
+        mockImageProfiles.push(PROFILE);
+        await seedServedModels(PROFILE.baseUrl, PROFILE.apiKey, []);
+
+        const { result } = renderHook(() => useGptImageStudio(Feature.PatternGenerator, 'gptImage'));
+
+        // A served-nothing key leaves every offered model disabled: Generate must stay blocked
+        // instead of submitting an id discovery already said this profile does not serve.
+        expect(result.current.noSelectableModel).toBe(true);
     });
 
     it('routes prompt-only requests to generate', async () => {

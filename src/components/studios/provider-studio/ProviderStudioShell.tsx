@@ -50,6 +50,7 @@ const ProviderStudioShell: React.FC<ProviderStudioShellProps> = ({
     studio.isBatchRunning ||
     studio.busyIndex !== null ||
     !studio.apiKey ||
+    studio.noSelectableModel ||
     (workflow.requiresImages && studio.images.length === 0);
 
   // The Customize step shows only when the workflow exposes any customization

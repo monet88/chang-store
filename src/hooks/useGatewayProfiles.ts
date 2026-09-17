@@ -12,6 +12,7 @@ import {
   driverForProvider,
   geminiProfileFor,
   imageProfileIdForProvider,
+  isProfileSelectable,
   legacyProviderApiKeyKey,
   legacyProviderBaseUrlKey,
   loadGatewayProfiles,
@@ -81,10 +82,10 @@ export const useGatewayProfiles = ({ gemini, storage }: UseGatewayProfilesParams
     setStoredProfiles(profiles);
   }, [storage]);
 
-  /** The image profile a driver uses: the active one, else that driver's first. */
+  /** The image profile a driver uses: the active one, else that driver's first selectable one. */
   const imageProfileForDriver = useCallback((driver: ImageDriverId): GatewayProfile | undefined =>
     resolveActiveProfile(gatewayProfiles, 'image', activeImageProfileId, driver)
-    ?? imageProfiles.find((profile) => profile.driver === driver),
+    ?? imageProfiles.find((profile) => profile.driver === driver && isProfileSelectable(profile)),
   [activeImageProfileId, gatewayProfiles, imageProfiles]);
 
   const imageProfileFor = useCallback(
@@ -97,10 +98,12 @@ export const useGatewayProfiles = ({ gemini, storage }: UseGatewayProfilesParams
     for (const provider of PROVIDER_IDS) {
       const profile = imageProfileFor(provider);
       if (profile) {
-        resolved[provider] = {
-          baseUrl: profile.baseUrl.trim() || getProviderDefaultBaseUrl(provider),
-          apiKey: profile.apiKey.trim() || getProviderEnvApiKey(provider),
-        };
+        const baseUrl = profile.baseUrl.trim();
+        // A profile with no address has no request target: pairing its key with the provider
+        // default would send a gateway key to OpenAI. Fail closed until an address is set.
+        resolved[provider] = baseUrl
+          ? { baseUrl, apiKey: profile.apiKey.trim() || getProviderEnvApiKey(provider) }
+          : { baseUrl: '', apiKey: '' };
         continue;
       }
       // No image-lane profile yet: the legacy override, then the provider's own defaults.

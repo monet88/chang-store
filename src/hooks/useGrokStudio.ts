@@ -51,6 +51,8 @@ export interface UseGrokStudioReturn extends UseProviderStudioEngineReturn {
   setResolution: (value: string) => void;
   // Option lists (sourced from registry, exposed so the UI never imports config)
   modelOptions: SelectableModel[];
+  /** True when discovery knows this profile serves none of the models this lane can offer. */
+  noSelectableModel: boolean;
   aspectRatioOptions: string[];
   resolutionOptions: string[];
   // Bounds
@@ -83,7 +85,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
   // The active Grok-driver profile decides which ids this studio may offer.
   const profile = resolveActiveProfile(imageProfiles, 'image', activeImageProfileId, 'grok-images');
   const gatewayHost = profile ? gatewayHostOf(profile.baseUrl) : undefined;
-  const served = useServedModels(profile?.baseUrl, servedModelsVersion);
+  const served = useServedModels(profile?.baseUrl, profile?.apiKey, servedModelsVersion);
   const modelOptions = useMemo(
     () => resolveProviderModelOptions('grok-images', GROK_MODELS, served, gatewayHost),
     [served, gatewayHost],
@@ -95,6 +97,8 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
   const model = isSelectable(requestedModel)
     ? requestedModel
     : firstSelectableModelId(modelOptions) ?? DEFAULT_GROK_MODEL;
+  // A profile that serves none of this lane's models must not submit a disabled id.
+  const noSelectableModel = !modelOptions.some((option) => !option.disabled);
   const [n, setN] = useState(1);
   const [aspectRatio, setAspectRatio] = useState<GrokAspectRatio>(DEFAULT_GROK_ASPECT_RATIO);
   const [resolution, setResolution] = useState<GrokResolution>(DEFAULT_GROK_RESOLUTION);
@@ -162,6 +166,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     resolution,
     setResolution: (value: string) => setResolution(value as GrokResolution),
     modelOptions,
+    noSelectableModel,
     aspectRatioOptions: [...GROK_ASPECT_RATIOS],
     resolutionOptions: [...GROK_RESOLUTIONS],
     maxReferenceImages: GROK_MAX_REFERENCE_IMAGES,

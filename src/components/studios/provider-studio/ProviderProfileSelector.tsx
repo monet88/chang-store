@@ -17,7 +17,7 @@ export const ProviderProfileSelector: React.FC<{ driver: StudioDriverId }> = ({ 
   const { imageProfiles, selectImageProfile, servedModelsVersion, imageProfileForDriver } = useApi();
   const profiles = imageProfiles.filter((profile) => profile.driver === driver);
   const activeProfile = imageProfileForDriver(driver);
-  const served = useServedModels(activeProfile?.baseUrl, servedModelsVersion);
+  const served = useServedModels(activeProfile?.baseUrl, activeProfile?.apiKey, servedModelsVersion);
 
   return (
     <div className="flex flex-col gap-2">
