@@ -10,7 +10,9 @@ export default defineConfig(({ mode }) => {
       // Fail loudly instead of silently drifting to another port when 3549 is taken.
       strictPort: true,
       // Default to localhost for security; set VITE_ENABLE_LAN=true for cross-device testing
-      host: process.env.VITE_ENABLE_LAN === 'true' ? '0.0.0.0' : undefined,
+      // Explicit IPv4 loopback: `localhost` resolves to ::1 first on Windows, so anything that
+      // probes 127.0.0.1 (the hub's `ready.port` check, curl, other agents) never saw the server.
+      host: process.env.VITE_ENABLE_LAN === 'true' ? '0.0.0.0' : '127.0.0.1',
 
       // Exclude unnecessary directories from file watching
       watch: {
