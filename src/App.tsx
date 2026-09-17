@@ -22,6 +22,7 @@ const PhotoAlbumCreator = lazy(() => import('./components/PhotoAlbumCreator').th
 const AIEditor = lazy(() => import('./components/AIEditor'));
 const WatermarkRemover = lazy(() => import('./components/WatermarkRemover'));
 const ClothingTransfer = lazy(() => import('./components/ClothingTransfer'));
+const IdentityTransfer = lazy(() => import('./components/IdentityTransfer'));
 const PatternGenerator = lazy(() => import('./components/PatternGenerator'));
 
 const GrokStudio = lazy(() => import('./components/studios/GrokStudio'));
@@ -134,6 +135,11 @@ const AppContent: React.FC = () => {
       group: t('navigation.createLooks.label'),
       description: t('workspace.flows.clothingTransfer'),
     },
+    [Feature.IdentityTransfer]: {
+      label: t('tabs.identityTransfer'),
+      group: t('navigation.editImages.label'),
+      description: t('workspace.flows.identityTransfer'),
+    },
     [Feature.PatternGenerator]: {
       label: t('tabs.patternGenerator'),
       group: t('navigation.createLooks.label'),
@@ -206,6 +212,8 @@ const AppContent: React.FC = () => {
         return <WatermarkRemover key="watermark-remover" />;
       case Feature.ClothingTransfer:
         return <ClothingTransfer key="clothing-transfer" onSendToFeature={handleSendToFeature} />;
+      case Feature.IdentityTransfer:
+        return <IdentityTransfer key="identity-transfer" />;
       case Feature.PatternGenerator:
         return <PatternGenerator key="pattern-generator" />;
       default:

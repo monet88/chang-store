@@ -115,5 +115,5 @@ docs/superpowers/
 # Gateway is now a separate repo: https://github.com/monet88/vertex-gateway
 gateway/
 gateway-data/
-
+.scratch
 scripts/bin/harness-cli.exe

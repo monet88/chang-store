@@ -6,7 +6,7 @@ virtual try-ons, lookbooks, background replacements, pose changes, and more.
 
 The app ships **three isolated provider studios** behind a header switch:
 **Gemini** (default, full-featured), **Grok** (xAI), and **GPT Image** (OpenAI).
-Gemini is the primary studio with all nine workflows; the Grok and GPT Image
+Gemini is the primary studio with all ten workflows; the Grok and GPT Image
 studios cover five workflows each. See `provider-studios.md` for the studio
 split contract.
 
@@ -34,6 +34,7 @@ aspect ratios, and quality settings.
 | AI Editor | `AIEditor` | Free-form image editing via natural language |
 | Watermark Remover | `WatermarkRemover` | Remove watermarks from images |
 | Clothing Transfer | `ClothingTransfer` | Transfer clothing between subjects |
+| Identity Transfer | `IdentityTransfer` | Apply one shared identity across destination images |
 | Pattern Generator | `PatternGenerator` | Generate textile/fabric patterns |
 
 ## Tech Stack

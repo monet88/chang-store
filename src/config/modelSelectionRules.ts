@@ -25,6 +25,7 @@ const FEATURE_SELECTION_SCOPE: Record<Feature, ModelSelectionType | null> = {
   [Feature.AIEditor]: 'imageEdit',
   [Feature.WatermarkRemover]: null,
   [Feature.ClothingTransfer]: 'imageEdit',
+  [Feature.IdentityTransfer]: 'imageEdit',
   [Feature.PatternGenerator]: 'imageEdit',
 };
 

@@ -21,6 +21,7 @@ on 2026-05-30.
 - AI Editor.
 - Watermark Remover.
 - Clothing Transfer.
+- Identity Transfer.
 - Pattern Generator.
 
 ## Phase 3: Archive & Export Workflows — Completed

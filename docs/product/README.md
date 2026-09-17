@@ -18,6 +18,7 @@ depth so agents can plan or review work without reverse-engineering every hook.
 | ai-editor.md | AI Editor and @mention image references |
 | watermark-remover.md | Batch Watermark Remover |
 | clothing-transfer.md | Clothing Transfer |
+| identity-transfer.md | Identity Transfer batch workflow and role contract |
 | pattern-generator.md | Pattern Generator |
 
 ## Source Hierarchy

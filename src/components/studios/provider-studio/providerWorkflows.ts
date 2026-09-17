@@ -37,7 +37,7 @@ export interface ProviderWorkflowConfig {
   hasExtraInstructionsField?: boolean;
 }
 
-export const PROVIDER_WORKFLOWS: Record<Feature, ProviderWorkflowConfig> = {
+export const PROVIDER_WORKFLOWS: Partial<Record<Feature, ProviderWorkflowConfig>> = {
   [Feature.AIEditor]: {
     feature: Feature.AIEditor,
     titleKey: 'studio.workflows.aiEditor.title',

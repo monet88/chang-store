@@ -2,7 +2,7 @@
  * ImageOptionsPanel - Unified image generation options component
  *
  * Combines AspectRatioSelector and ResolutionSelector into a single panel.
- * When adding new image options, only modify this file - all 9 features update automatically.
+ * When adding new image options, only modify this file so every consumer updates automatically.
  */
 
 import React from 'react';

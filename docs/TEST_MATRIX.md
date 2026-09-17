@@ -18,13 +18,10 @@ npx vitest run --passWithNoTests
 npm run build
 ~~~
 
-The package test wrapper currently invokes scripts/check-node-platform.mjs,
-which is absent from this checkout after the tooling retirement. Therefore
-npm run test and npm run check:platform are not represented as passing current
-proof until that code/tooling drift is handled in a separate change. The
-tracked __tests__/scripts/e2e-live-config.test.ts also imports the retired
-scripts/e2e-live/config module; the direct Vitest run reached 745 passing tests
-and 1 failed suite for that missing module, and npx tsc reports the same error.
+The retired platform wrapper and live-E2E config test are no longer part of the
+current checkout. On 2026-09-17, `npx tsc --noEmit`, `npm run lint`, direct
+Vitest (73 files / 761 tests), and `npm run build` all passed while validating
+US-003 Identity Transfer.
 
 ## Status values
 
@@ -42,6 +39,7 @@ and 1 failed suite for that missing module, and npx tsc reports the same error.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | US-001-three-provider-studios | Three isolated provider studios | no | no | no | no | planned | Story packet exists; implementation/proof status must be verified separately. |
 | US-002-docs-backfill-resync | Documentation reflects current source | N/A | N/A | N/A | N/A | implemented | Backup recovery plus source/inventory path checks, lint, build, scoped Vitest, and git diff --check passed. |
+| US-003-identity-transfer | Gemini Identity Transfer batch workflow | yes | yes | no | N/A | implemented | Prompt-builder + hook orchestration tests cover role invariants, concurrency, queueing, failure isolation, regenerate, and no-body; full Vitest 73 files / 761 tests, typecheck, lint, build, and diff check passed. |
 
 ## Historical evidence
 

@@ -26,10 +26,6 @@
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true,
-
-    // Performance optimizations
-    "incremental": true, // Enable incremental compilation (faster rebuilds)
-    "assumeChangesOnlyAffectDirectDependencies": true // Faster type checking
+    "noEmit": true
   }
 }
