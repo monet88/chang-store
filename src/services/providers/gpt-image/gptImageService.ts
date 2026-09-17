@@ -8,6 +8,7 @@ import {
 } from '../../../config/gptImageModelRegistry';
 import { ProviderApiError } from '../shared/ProviderApiError';
 import { parseOpenAIResponse } from '../shared/openaiCompatibleResponse';
+import { prepareRequestFields, resolveDriverPolicy, verifyReturnedDimensions, type DriverPolicy } from '../shared/imageDriverPolicy';
 import { withRetry } from '../shared/withRetry';
 import { validatePrompt } from '../shared/validatePrompt';
 import { validateProviderBaseUrl } from '../../../utils/provider-url-validation';
@@ -68,7 +69,7 @@ export async function imageFileToBlob(image: ImageFile): Promise<Blob> {
   return response.blob();
 }
 
-async function handleResponse(response: Response): Promise<ImageFile[]> {
+async function handleResponse(response: Response, policy: DriverPolicy | null, requestedSize: string): Promise<ImageFile[]> {
   if (!response.ok) {
     let code: string | undefined;
     let message = 'error.provider.requestFailed';
@@ -83,7 +84,15 @@ async function handleResponse(response: Response): Promise<ImageFile[]> {
   }
 
   const data = await response.json();
-  return parseOpenAIResponse(data, RESULT_MIME_TYPE);
+  const images = await parseOpenAIResponse(data, RESULT_MIME_TYPE);
+
+  if (policy) {
+    await verifyReturnedDimensions(images, requestedSize, policy.capabilities, {
+      modelId: policy.descriptor.modelId,
+    });
+  }
+
+  return images;
 }
 
 /**
@@ -96,14 +105,18 @@ export async function generateGptImage(
 ): Promise<ImageFile[]> {
   assertConfig(config);
   const prompt = validatePrompt(params.prompt);
+  const policy = resolveDriverPolicy(params.model, config.baseUrl);
+  const fields = prepareRequestFields(params.model, params, policy);
 
-  const body = {
+  const body: Record<string, string | number> = {
     model: params.model,
     prompt,
     n: GPT_IMAGE_OUTPUT_COUNT,
-    size: params.size,
-    quality: params.quality,
+    response_format: 'b64_json',
   };
+  for (const [name, value] of fields) {
+    body[name] = value;
+  }
 
   return withRetry(
     async (retrySignal) => {
@@ -116,7 +129,7 @@ export async function generateGptImage(
         body: JSON.stringify(body),
         signal: retrySignal,
       });
-      return handleResponse(response);
+      return handleResponse(response, policy, params.size);
     },
     { signal },
   );
@@ -142,6 +155,8 @@ export async function editGptImage(
   }
 
   const prompt = validatePrompt(params.prompt);
+  const policy = resolveDriverPolicy(params.model, config.baseUrl);
+  const fields = prepareRequestFields(params.model, params, policy);
 
   return withRetry(
     async (retrySignal) => {
@@ -149,8 +164,10 @@ export async function editGptImage(
       form.append('model', params.model);
       form.append('prompt', prompt);
       form.append('n', String(GPT_IMAGE_OUTPUT_COUNT));
-      form.append('size', params.size);
-      form.append('quality', params.quality);
+      form.append('response_format', 'b64_json');
+      for (const [name, value] of fields) {
+        form.append(name, value);
+      }
 
       const blobs = await Promise.all(params.images.map(imageFileToBlob));
       params.images.forEach((image, index) => {
@@ -166,7 +183,7 @@ export async function editGptImage(
         body: form,
         signal: retrySignal,
       });
-      return handleResponse(response);
+      return handleResponse(response, policy, params.size);
     },
     { signal },
   );

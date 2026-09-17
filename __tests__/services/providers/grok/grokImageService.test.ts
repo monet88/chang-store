@@ -70,8 +70,34 @@ describe('grokImageService', () => {
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('throws unsupported-response error when only URLs are returned', async () => {
-      fetchMock.mockResolvedValue(okResponse({ data: [{ url: 'https://x.ai/a.png' }] }));
+    it('downloads a url-only response instead of discarding the image', async () => {
+      fetchMock.mockImplementation((url: string) =>
+        Promise.resolve(
+          url.startsWith('https://x.ai/a.png')
+            ? ({
+                ok: true,
+                status: 200,
+                headers: new Headers({ 'content-type': 'image/png' }),
+                arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+              } as unknown as Response)
+            : okResponse({ data: [{ url: 'https://x.ai/a.png' }] }),
+        ),
+      );
+
+      const result = await generateGrokImage(
+        { model: 'grok-imagine-image', prompt: 'x', n: 1, aspectRatio: '1:1', resolution: '1k' },
+        CONFIG,
+      );
+
+      expect(result).toEqual([{ base64: btoa('\u0001\u0002\u0003'), mimeType: 'image/png' }]);
+    });
+
+    it('throws unsupported-response error when the image URL cannot be downloaded', async () => {
+      fetchMock.mockImplementation((url: string) =>
+        url.startsWith('https://x.ai/')
+          ? Promise.reject(new TypeError('Failed to fetch'))
+          : Promise.resolve(okResponse({ data: [{ url: 'https://x.ai/a.png' }] })),
+      );
 
       await expect(
         generateGrokImage(

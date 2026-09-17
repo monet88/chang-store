@@ -70,7 +70,8 @@ const validateOutputCount = (n: number): void => {
 
 /**
  * Read a fetch Response and throw ProviderApiError on non-2xx. Otherwise parse
- * the OpenAI-compatible JSON body into ImageFile[] (requires b64_json output).
+ * the OpenAI-compatible JSON body into ImageFile[] (`b64_json` directly, a `url`
+ * item by downloading it).
  */
 async function handleResponse(response: Response): Promise<ImageFile[]> {
   if (!response.ok) {
@@ -87,13 +88,12 @@ async function handleResponse(response: Response): Promise<ImageFile[]> {
   }
 
   const data = await response.json();
-  return parseOpenAIResponse(data, RESULT_MIME_TYPE);
+  return await parseOpenAIResponse(data, RESULT_MIME_TYPE);
 }
 
 /**
  * Generate images via xAI `POST /v1/images/generations`.
- * Always requests `response_format: 'b64_json'`. Throws a typed
- * unsupported-response error if the provider returns URL-only output.
+ * Always requests `response_format: 'b64_json'`; a `url` answer is downloaded.
  */
 export async function generateGrokImage(
   params: GrokGenerateParams,

@@ -56,3 +56,13 @@ export function logApiCall(log: ApiCallLog): void {
     console.error('[ChangStore] Debug log error:', e, 'Log data:', log);
   }
 }
+
+/**
+ * Log a structured debug event (`provider.request`, `image.dimensionMismatch`,
+ * `gateway.discovery`, …). Debug-mode gated; never carries an API key.
+ */
+export function logEvent(event: string, details: Record<string, string | number>): void {
+  if (!isDebugEnabled()) return;
+
+  console.log(`[ChangStore] ${event}`, details);
+}

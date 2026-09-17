@@ -87,11 +87,15 @@ interface OpenAiCapabilitiesInput {
   sizes?: readonly string[];
   defaultSize?: string;
   transparent?: boolean;
+  honorsQuality?: boolean;
   responseShapes?: readonly ImageResponseShape[];
   verifiedAt?: string;
 }
 
-/** Unmeasured values fail closed: `honorsSize: 'no'` hides the size control until a probe says otherwise. */
+/**
+ * Defaults describe the documented OpenAI Images contract (pixel `size`, `quality`,
+ * `background: transparent`); every measured deviation lives in `gatewayOverrides`.
+ */
 const openAiCapabilities = (input: OpenAiCapabilitiesInput = {}): ImageModelCapabilities => {
   const sizes = input.sizes ?? OPENAI_IMAGE_SIZES;
   return {
@@ -99,10 +103,10 @@ const openAiCapabilities = (input: OpenAiCapabilitiesInput = {}): ImageModelCapa
     sizeMode: 'pixel',
     sizes,
     defaultSize: input.defaultSize ?? sizes[0],
-    honorsSize: input.honorsSize ?? 'no',
+    honorsSize: input.honorsSize ?? 'yes',
     ...(input.sizeObservations ? { sizeObservations: input.sizeObservations } : {}),
-    honorsQuality: false, // measured: `high` came back echoed as `medium`/`low` on both gateways
-    supportsTransparentBackground: input.transparent ?? false,
+    honorsQuality: input.honorsQuality ?? true,
+    supportsTransparentBackground: input.transparent ?? true,
     responseShapes: input.responseShapes ?? OPENAI_IMAGE_SHAPES,
     verifiedAt: input.verifiedAt ?? MEASURED_AT,
   };
@@ -145,6 +149,7 @@ const grokRow = (modelId: string, label: string, notes: string): ImageModelDescr
 
 const CPA_IMAGE_FACTS: ImageCapabilityOverride = {
   honorsSize: 'no', // measured: 1254x1254 whatever `size` asked for
+  honorsQuality: false, // measured: `high` came back echoed as `medium`/`low`
   supportsTransparentBackground: true,
   responseShapes: ['echo_fields', 'b64_json'],
   verifiedAt: MEASURED_AT,
