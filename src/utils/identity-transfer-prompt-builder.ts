@@ -24,7 +24,7 @@ export const buildIdentityTransferParts = (
     },
     imagePart(input.destinationImage),
     {
-      text: 'FACE REFERENCE: Authority only for stable facial identity, skin tone, stable facial marks/beauty marks/identity-specific marks, and hair. It is not a pose, gaze, expression, mouth, framing, or camera reference.',
+      text: 'FACE REFERENCE: Authority only for stable facial identity, skin tone, stable facial marks/beauty marks/identity-specific marks, and hair. It is not a pose, gaze, expression, mouth, framing, or camera reference. The reference may be a single photograph or a multi-panel contact sheet of one person at several head angles: read it as one single identity, take identity and hair from the panel whose head angle is closest to the Destination Image head angle, and never reproduce its panel layout, panel borders, gutters, repeated frames, or panel count.',
     },
     imagePart(input.faceReference),
   ];
@@ -81,5 +81,5 @@ ${backgroundRule}
 ${extraRule}
 
 ## FINAL INVARIANTS
-One destination produces one edited image. Preserve destination pose, skeleton placement, spatial performance, and camera relationships, plus composition, lighting, and all unrelated details. ${finalBodyRule} Face Reference controls stable facial identity, skin tone, identity-specific marks, and hair only. Body Reference, when present, controls morphology only. Destination pose and posture always win.`;
+One destination produces one edited image. Preserve destination pose, skeleton placement, spatial performance, and camera relationships, plus composition, lighting, and all unrelated details. ${finalBodyRule} Face Reference controls stable facial identity, skin tone, identity-specific marks, and hair only. A multi-panel Face Reference supplies one single identity and never its panel layout. Body Reference, when present, controls morphology only. Destination pose and posture always win.`;
 };

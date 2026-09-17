@@ -64,6 +64,18 @@ describe('buildIdentityTransferParts', () => {
     expect(normalized).toContain('reconstruct');
   });
 
+  it('declares the reference format so a multi-panel Face Reference yields one identity', () => {
+    const parts = buildIdentityTransferParts(defaultInput);
+    const facePart = parts[2].text ?? '';
+    const text = taskText(parts);
+
+    expect(facePart).toContain('single photograph or a multi-panel contact sheet of one person');
+    expect(facePart).toContain('one single identity');
+    expect(facePart).toContain('panel whose head angle is closest to the Destination Image head angle');
+    expect(facePart).toContain('never reproduce its panel layout, panel borders, gutters, repeated frames, or panel count');
+    expect(text).toContain('A multi-panel Face Reference supplies one single identity and never its panel layout');
+  });
+
   it('preserves destination spatial performance while allowing body morphology and fit to change', () => {
     const text = taskText(buildIdentityTransferParts(defaultInput));
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DEFAULT_IMAGE_RESOLUTION,
   Feature,
@@ -13,6 +13,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { editImage } from '../services/imageEditingService';
 import { buildIdentityTransferParts } from '../utils/identity-transfer-prompt-builder';
 import { getErrorMessage } from '../utils/imageUtils';
+import { loadDefaultIdentityReferences } from '../utils/identity-transfer-defaults';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 
@@ -35,6 +36,33 @@ export const useIdentityTransfer = () => {
   const { imageEditModel } = useApi();
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
+
+  const faceReferenceOverridden = useRef(false);
+  const bodyReferenceOverridden = useRef(false);
+
+  // Pre-fill the built-in Face/Body references; a user upload wins over a
+  // default that resolves later.
+  useEffect(() => {
+    let cancelled = false;
+    void loadDefaultIdentityReferences().then(({ face, body }) => {
+      if (cancelled) return;
+      if (face && !faceReferenceOverridden.current) setFaceReference(face);
+      if (body && !bodyReferenceOverridden.current) setBodyReference(body);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const updateFaceReference = useCallback((image: ImageFile | null) => {
+    faceReferenceOverridden.current = true;
+    setFaceReference(image);
+  }, []);
+
+  const updateBodyReference = useCallback((image: ImageFile | null) => {
+    bodyReferenceOverridden.current = true;
+    setBodyReference(image);
+  }, []);
 
   const createDestinationItem = useCallback((image: ImageFile): IdentityTransferBatchItem => ({
     id: `identity-${++batchIdCounter.current}`,
@@ -161,7 +189,7 @@ export const useIdentityTransfer = () => {
     destinationItems, destinationImages, faceReference, bodyReference,
     backgroundPrompt, extraPrompt, aspectRatio, resolution, isLoading,
     loadingMessage, error, canGenerate, completedCount, failedCount, imageEditModel,
-    setFaceReference, setBodyReference, setBackgroundPrompt, setExtraPrompt,
+    setFaceReference: updateFaceReference, setBodyReference: updateBodyReference, setBackgroundPrompt, setExtraPrompt,
     setAspectRatio, setResolution, setError, handleDestinationImagesUpload,
     handleGenerate, handleRegenerateSingle,
   };

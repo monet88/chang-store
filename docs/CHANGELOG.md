@@ -2,6 +2,18 @@
 
 ## [Unreleased] — 2026-09-17
 
+### Added
+
+- Identity Transfer pre-fills the Face and Body references with the bundled
+  defaults (`docs/images/FACE_ANGLES.png`, `docs/images/BODY.png`) on mount; an
+  upload or clear made before the default resolves still wins over the late
+  default. The Face Reference part now also declares that the reference may be a
+  single photograph or a multi-panel contact sheet of one person at several head
+  angles: the model reads one single identity, takes identity and hair from the
+  panel whose head angle is closest to the destination head angle, and never
+  reproduces the panel layout, panel borders, gutters, repeated frames, or panel
+  count.
+
 ### Changed
 
 - Gemini routing is now always the CPA gateway (`https://cliproxy.monet.uno`,

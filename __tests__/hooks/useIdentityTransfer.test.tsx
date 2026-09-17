@@ -19,8 +19,15 @@ vi.mock('../../src/contexts/ImageGalleryContext', () => ({
   useImageGallery: () => ({ addImage: addImageMock }),
 }));
 
+const defaultsMock = vi.hoisted(() => ({ load: vi.fn() }));
+
+vi.mock('../../src/utils/identity-transfer-defaults', () => ({
+  loadDefaultIdentityReferences: defaultsMock.load,
+}));
+
 import { editImage } from '../../src/services/imageEditingService';
 import { useIdentityTransfer } from '../../src/hooks/useIdentityTransfer';
+import type { DefaultIdentityReferences } from '../../src/utils/identity-transfer-defaults';
 
 const DESTINATION_A = { base64: 'destination-a', mimeType: 'image/png' };
 const DESTINATION_B = { base64: 'destination-b', mimeType: 'image/png' };
@@ -53,6 +60,7 @@ describe('useIdentityTransfer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     addImageMock.mockReset();
+    defaultsMock.load.mockReset().mockReturnValue(createDeferred<DefaultIdentityReferences>().promise);
   });
 
   it('requires destination images and a shared Face Reference', async () => {
@@ -323,5 +331,58 @@ describe('useIdentityTransfer', () => {
     expect(imageData(0)).toEqual(['destination-a', 'face-reference']);
     expect(textData(0)).toContain('No Body Reference is provided');
     expect(textData(0)).toContain('Preserve the Destination Image body morphology and proportions');
+  });
+
+  it('pre-fills the built-in Face and Body references on mount', async () => {
+    const deferred = createDeferred<DefaultIdentityReferences>();
+    defaultsMock.load.mockReturnValue(deferred.promise);
+
+    const { result } = renderHook(() => useIdentityTransfer());
+    expect(result.current.faceReference).toBeNull();
+
+    await act(async () => {
+      deferred.resolve({ face: FACE, body: BODY });
+      await deferred.promise;
+    });
+
+    expect(result.current.faceReference).toEqual(FACE);
+    expect(result.current.bodyReference).toEqual(BODY);
+  });
+
+  it('keeps a user-uploaded reference that lands before the default resolves', async () => {
+    const deferred = createDeferred<DefaultIdentityReferences>();
+    defaultsMock.load.mockReturnValue(deferred.promise);
+    const userFace = { base64: 'user-face', mimeType: 'image/jpeg' };
+
+    const { result } = renderHook(() => useIdentityTransfer());
+    act(() => {
+      result.current.setFaceReference(userFace);
+    });
+
+    await act(async () => {
+      deferred.resolve({ face: FACE, body: BODY });
+      await deferred.promise;
+    });
+
+    expect(result.current.faceReference).toEqual(userFace);
+    expect(result.current.bodyReference).toEqual(BODY);
+  });
+
+  it('does not restore the default body after the user clears it', async () => {
+    const deferred = createDeferred<DefaultIdentityReferences>();
+    defaultsMock.load.mockReturnValue(deferred.promise);
+
+    const { result } = renderHook(() => useIdentityTransfer());
+    act(() => {
+      result.current.setBodyReference(null);
+    });
+
+    await act(async () => {
+      deferred.resolve({ face: FACE, body: BODY });
+      await deferred.promise;
+    });
+
+    expect(result.current.bodyReference).toBeNull();
+    expect(result.current.faceReference).toEqual(FACE);
   });
 });
