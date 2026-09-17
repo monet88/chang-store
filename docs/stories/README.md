@@ -11,6 +11,7 @@ scope, validation, and durable Harness state.
 | US-002-docs-backfill-resync | Backup docs and current-code reconciliation | normal | epics/E02-docs-harness-sync/US-002-docs-backfill-resync.md | implemented |
 | US-003-identity-transfer | Gemini Identity Transfer batch feature | normal | epics/E03-identity-transfer/US-003-identity-transfer.md | implemented |
 | BUG-VTO-MULTI-GATEWAY | Multi-person gateway validation | normal | bugs/BUG-VTO-MULTI-GATEWAY/ | current branch packet |
+| US-006-gateway-image-model-routing | Lớp 1+2: capability-driven image-model catalog + gateway profiles with `/v1/models` validation | high-risk | epics/E04-provider-gateways/US-006-gateway-image-model-routing/ | planned |
 
 ## Normal story
 

@@ -20,6 +20,7 @@ on.
 - Grok contract notes: `docs/api/grok-image-api-guide.md`
 - GPT Image 2 contract notes: `docs/api/gpt-image-2-api-guide.md`
 - CPA gateway contract notes (`https://cliproxy.monet.uno`, the active and only Gemini route): `docs/api/cliproxy-vertex-ai-api-guide.md`
+- XomPet OpenAI-compatible Images contract notes (`https://api.xompet.io.vn`, the image-lane reference gateway for `gpt-image-2.5-sunburst`), measured 2026-09-17: `docs/api/xompet-image-api-guide.md`
 - Retired backend gateway contract notes (`https://vertex.monet.uno`, no longer used by the app): `docs/api/vertex-gateway-api-guide.md`
 - Direct Vertex AI TTS + embedding notes (service account / SDK): `docs/api/vertex-tts-embedding-guide.md`
 
