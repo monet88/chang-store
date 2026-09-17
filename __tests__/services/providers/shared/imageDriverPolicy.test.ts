@@ -63,20 +63,22 @@ describe('image driver policy', () => {
     dimensionsMock.mockResolvedValue({ width: 1254, height: 1254 });
     const sunburst = resolveDriverPolicy('gpt-image-2.5-sunburst', 'https://api.xompet.io.vn/v1');
 
-    await verifyReturnedDimensions(IMAGES, '1080x1920', sunburst!.capabilities, { modelId: 'gpt-image-2.5-sunburst' });
+    const mismatch = await verifyReturnedDimensions(IMAGES, '1080x1920', sunburst!.capabilities, { modelId: 'gpt-image-2.5-sunburst' });
 
     expect(dimensionsMock).toHaveBeenCalledWith('AAAA', 'image/png');
     expect(logged.join('\n')).toContain('image.dimensionMismatch');
     expect(logged.join('\n')).toContain('1254x1254');
+    expect(mismatch).toEqual({ requested: '1080x1920', returned: '1254x1254' });
   });
 
   it('stays silent when the requested size is honoured', async () => {
     dimensionsMock.mockResolvedValue({ width: 1080, height: 1920 });
     const sunburst = resolveDriverPolicy('gpt-image-2.5-sunburst', 'https://api.xompet.io.vn/v1');
 
-    await verifyReturnedDimensions(IMAGES, '1080x1920', sunburst!.capabilities, { modelId: 'gpt-image-2.5-sunburst' });
+    const mismatch = await verifyReturnedDimensions(IMAGES, '1080x1920', sunburst!.capabilities, { modelId: 'gpt-image-2.5-sunburst' });
 
     expect(logged.join('\n')).not.toContain('image.dimensionMismatch');
+    expect(mismatch).toBeNull();
   });
 
   it('always verifies a flaky gateway, never a gateway that ignores size', async () => {
@@ -107,7 +109,7 @@ describe('image driver policy', () => {
 
     await expect(
       verifyReturnedDimensions(IMAGES, '1024x1024', policy!.capabilities, { modelId: 'gpt-image-2' }),
-    ).resolves.toBeUndefined();
+    ).resolves.toBeNull();
     expect(logged.join('\n')).not.toContain('image.dimensionMismatch');
   });
 });

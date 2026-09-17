@@ -1,5 +1,6 @@
 import React from 'react';
 import { type SelectableModel } from '../types';
+import { ModelOptionGroups } from './ModelOptionGroups';
 
 interface GlobalModelSelectorProps {
   label: string;
@@ -26,11 +27,7 @@ export const GlobalModelSelector: React.FC<GlobalModelSelectorProps> = ({
           onChange={(event) => onChange(event.target.value)}
           className="workspace-input min-h-[46px] w-full appearance-none px-4 py-3 pr-10 text-sm text-zinc-100"
         >
-          {options.map((option) => (
-            <option key={option.modelId} value={option.modelId}>
-              {option.label}
-            </option>
-          ))}
+          <ModelOptionGroups options={options} />
         </select>
         <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-zinc-500">⌄</span>
       </div>

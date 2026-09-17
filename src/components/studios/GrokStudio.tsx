@@ -3,6 +3,8 @@ import { Feature, StudioMode } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useGrokStudio } from '../../hooks/useGrokStudio';
 import ProviderStudioShell from './provider-studio/ProviderStudioShell';
+import ProviderProfileSelector from './provider-studio/ProviderProfileSelector';
+import { ModelOptionGroups } from '../ModelOptionGroups';
 import { getProviderWorkflow } from './provider-studio/providerWorkflows';
 
 interface GrokStudioProps {
@@ -22,6 +24,8 @@ const GrokStudio: React.FC<GrokStudioProps> = ({ activeFeature, studioMode }) =>
 
   const optionsSlot = (
     <div className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-zinc-900/40 p-4 sm:grid-cols-2">
+      <ProviderProfileSelector driver="grok-images" />
+
       <div className="flex flex-col gap-2">
         <label htmlFor="grok-model" className="text-sm font-medium text-zinc-300">
           {t('studio.workflows.modelLabel')}
@@ -32,11 +36,7 @@ const GrokStudio: React.FC<GrokStudioProps> = ({ activeFeature, studioMode }) =>
           onChange={(e) => studio.setModel(e.target.value)}
           className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-100 focus:border-white/30 focus:outline-none"
         >
-          {studio.modelOptions.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
-          ))}
+          <ModelOptionGroups options={studio.modelOptions} />
         </select>
       </div>
 

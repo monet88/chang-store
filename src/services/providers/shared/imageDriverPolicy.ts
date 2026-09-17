@@ -25,6 +25,12 @@ export interface DimensionGuardContext {
   modelId: string;
 }
 
+/** Requested vs returned `WxH` of the first image a gateway answered at the wrong size. */
+export interface SizeMismatch {
+  requested: string;
+  returned: string;
+}
+
 /** Bare host of a base URL ('cliproxy.monet.uno', 'localhost:5173'), or undefined. */
 export function gatewayHostOf(baseUrl: string): string | undefined {
   try {
@@ -86,23 +92,25 @@ export function parsePixelSize(size: string): { width: number; height: number } 
  * Compare what came back with what was asked for. A gateway that silently answers
  * its own size is the exact failure this guards, so `flaky` still checks every
  * call. Best effort: the image is always kept (a wrong-size image beats a lost
- * one) and an unmeasurable payload is not a generation failure.
+ * one) and an unmeasurable payload is not a generation failure. Returns the first
+ * mismatch so the caller can surface one non-blocking notice.
  */
 export async function verifyReturnedDimensions(
   images: ImageFile[],
   requestedSize: string,
   capabilities: ImageModelCapabilities,
   context: DimensionGuardContext,
-): Promise<void> {
+): Promise<SizeMismatch | null> {
   if (capabilities.sizeMode !== 'pixel' || capabilities.honorsSize === 'no') {
-    return;
+    return null;
   }
 
   const requested = parsePixelSize(requestedSize);
   if (!requested) {
-    return;
+    return null;
   }
 
+  let mismatch: SizeMismatch | null = null;
   for (const image of images) {
     try {
       const { width, height } = await getImageDimensions(image.base64, image.mimeType);
@@ -113,9 +121,11 @@ export async function verifyReturnedDimensions(
           requested: requestedSize,
           returned: `${width}x${height}`,
         });
+        mismatch ??= { requested: requestedSize, returned: `${width}x${height}` };
       }
     } catch {
       // Cannot measure the payload — never fail the generation for that.
     }
   }
+  return mismatch;
 }

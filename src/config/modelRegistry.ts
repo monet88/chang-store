@@ -34,12 +34,8 @@ const DEFAULT_CAPABILITIES: ModelCapability = {
 /** The Gemini image model the app drives; its capability facts live in `imageModelCatalog.ts`. */
 const GEMINI_IMAGE_MODEL_ID = 'gemini-3.1-flash-image';
 
-/**
- * Only models the configured gateway actually serves may be listed here.
- * Verified against https://cliproxy.monet.uno/v1/models on 2026-09-17:
- * gemini-3.1-flash-image is the sole image model (the Pro/Lite/2.5 image
- * models return 400 "unknown provider for model").
- */
+/** Only models the configured gateway serves: verified on 2026-09-17, gemini-3.1-flash-image
+ *  is the sole image model on the CPA route (the Pro/Lite/2.5 rows answer 400). */
 const registeredGeminiImageModel = (selectionType: ModelSelectionType): RegisteredModel => {
   const descriptor = requireImageModelDescriptor(GEMINI_IMAGE_MODEL_ID);
   const capabilities = resolveCapabilities(descriptor);

@@ -4,6 +4,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockSetProviderSettings = vi.fn();
 const mockResetProviderSettings = vi.fn();
 
+const mockImageProfiles: Array<{
+  id: string;
+  label: string;
+  baseUrl: string;
+  apiKey: string;
+  lane: 'image';
+  driver: 'grok-images';
+  enabled: boolean;
+}> = [];
+
 vi.mock('@/contexts/ApiProviderContext', () => ({
   useApi: () => ({
     providerSettings: {
@@ -12,6 +22,13 @@ vi.mock('@/contexts/ApiProviderContext', () => ({
     },
     setProviderSettings: mockSetProviderSettings,
     resetProviderSettings: mockResetProviderSettings,
+    imageProfiles: mockImageProfiles,
+    activeImageProfileId: mockImageProfiles[0]?.id ?? null,
+    servedModelsVersion: 0,
+    saveGatewayProfiles: vi.fn(),
+    selectImageProfile: vi.fn(),
+    imageProfileForDriver: () => undefined,
+    notifyServedModelsChanged: vi.fn(),
   }),
 }));
 
@@ -41,8 +58,42 @@ const SUBJECT: ImageFile = { base64: 'SUBJ', mimeType: 'image/jpeg' };
 describe('useGrokStudio', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    mockImageProfiles.length = 0;
     vi.mocked(generateGrokImage).mockResolvedValue([RESULT]);
     vi.mocked(editGrokImage).mockResolvedValue([RESULT]);
+  });
+
+  it('lists the models the active profile serves', () => {
+    localStorage.setItem('gateway_models_cache_v1', JSON.stringify([{
+      baseUrl: 'https://api.xai-mirror.test',
+      fetchedAt: Date.now(),
+      modelIds: ['grok-imagine-image-2.0'],
+      ownedBy: {},
+    }]));
+    mockImageProfiles.push({
+      id: 'grok-mirror',
+      label: 'grok mirror',
+      baseUrl: 'https://api.xai-mirror.test',
+      apiKey: 'k',
+      lane: 'image',
+      driver: 'grok-images',
+      enabled: true,
+    });
+
+    const { result } = renderHook(() => useGrokStudio(Feature.PatternGenerator, 'grok'));
+
+    expect(result.current.modelOptions.map((option) => option.modelId)).toEqual(['grok-imagine-image-2.0']);
+    expect(result.current.model).toBe('grok-imagine-image-2.0');
+  });
+
+  it('keeps the two pinned models while discovery has not run', () => {
+    const { result } = renderHook(() => useGrokStudio(Feature.PatternGenerator, 'grok'));
+
+    expect(result.current.modelOptions.map((option) => option.modelId)).toEqual([
+      'grok-imagine-image-quality',
+      'grok-imagine-image',
+    ]);
   });
 
   it('reads provider settings from context', () => {

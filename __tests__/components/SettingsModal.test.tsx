@@ -59,6 +59,22 @@ vi.mock('@/contexts/ApiProviderContext', () => ({
       apiKey: '',
     },
     setCpaGatewaySettings: vi.fn(),
+    imageProfiles: [],
+    activeImageProfileId: null,
+    servedModelsVersion: 0,
+    geminiProfile: {
+      id: 'cpa-default',
+      label: 'Cliproxy',
+      baseUrl: 'https://cliproxy.monet.uno',
+      apiKey: '',
+      lane: 'gemini',
+      driver: 'gemini-native',
+      enabled: true,
+    },
+    saveGatewayProfiles: vi.fn(),
+    selectImageProfile: vi.fn(),
+    imageProfileForDriver: () => undefined,
+    notifyServedModelsChanged: vi.fn(),
   }),
 }));
 

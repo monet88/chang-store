@@ -53,6 +53,22 @@ interface ApiContextType {
     apiKey: string;
   };
   setCpaGatewaySettings: (settings: { url: string; apiKey: string }) => void;
+  geminiProfile: {
+    id: string;
+    label: string;
+    baseUrl: string;
+    apiKey: string;
+    lane: string;
+    driver: string;
+    enabled: boolean;
+  };
+  imageProfiles: unknown[];
+  activeImageProfileId: string | null;
+  servedModelsVersion: number;
+  saveGatewayProfiles: (profiles: unknown[]) => void;
+  selectImageProfile: (id: string | null) => void;
+  imageProfileForDriver: () => undefined;
+  notifyServedModelsChanged: () => void;
   getModelsForFeature: (feature: Feature) => {
     imageEditModel: string;
     imageGenerateModel: string;
@@ -157,6 +173,22 @@ export const mockUseApi = (
       apiKey: '',
     },
     setCpaGatewaySettings: vi.fn(),
+    imageProfiles: [],
+    activeImageProfileId: null,
+    servedModelsVersion: 0,
+    geminiProfile: {
+      id: 'cpa-default',
+      label: 'Cliproxy',
+      baseUrl: 'https://cliproxy.monet.uno',
+      apiKey: '',
+      lane: 'gemini',
+      driver: 'gemini-native',
+      enabled: true,
+    },
+    saveGatewayProfiles: vi.fn(),
+    selectImageProfile: vi.fn(),
+    imageProfileForDriver: () => undefined,
+    notifyServedModelsChanged: vi.fn(),
     /** Default returns all current models */
     getModelsForFeature: vi.fn((_feature: Feature) => ({
       imageEditModel: overrides.imageEditModel ?? 'gemini-3.1-flash-image',

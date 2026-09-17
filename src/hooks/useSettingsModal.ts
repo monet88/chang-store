@@ -8,6 +8,8 @@
 
 import { useEffect, useMemo } from 'react';
 import { getModelsBySelectionType } from '../config/modelRegistry';
+import { resolveSelectableModels } from '../config/modelSelectionRules';
+import { useServedModels } from './useServedModels';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -30,6 +32,7 @@ export interface UseSettingsModalReturn {
   localTextGenerateModel: string;
   localCpaGatewayUrl: string;
   localCpaGatewayApiKey: string;
+  geminiProfileId: string;
   isCpaGatewayUrlInvalid: boolean;
   isCpaGatewayUrlCustom: boolean;
   isCpaGatewayApiKeyMissing: boolean;
@@ -56,10 +59,6 @@ const toSelectableModels = (
   models: ReturnType<typeof getModelsBySelectionType>,
 ): SelectableModel[] => models.map(({ modelId, label }) => ({ modelId, label }));
 
-const IMAGE_EDIT_MODELS = toSelectableModels(getModelsBySelectionType('imageEdit'));
-const IMAGE_GENERATE_MODELS = toSelectableModels(getModelsBySelectionType('imageGenerate'));
-const TEXT_GENERATE_MODELS = toSelectableModels(getModelsBySelectionType('textGenerate'));
-
 export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): UseSettingsModalReturn => {
   const { t } = useLanguage();
   const api = useApi();
@@ -85,13 +84,15 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     t,
   });
 
+  // Model lists follow the Gemini lane's served models once discovery has run.
+  const geminiServed = useServedModels(api.geminiProfile.baseUrl, api.servedModelsVersion);
   const models = useMemo(
     () => ({
-      imageEditModels: IMAGE_EDIT_MODELS,
-      imageGenerateModels: IMAGE_GENERATE_MODELS,
-      textGenerateModels: TEXT_GENERATE_MODELS,
+      imageEditModels: resolveSelectableModels('imageEdit', geminiServed),
+      imageGenerateModels: resolveSelectableModels('imageGenerate', geminiServed),
+      textGenerateModels: toSelectableModels(getModelsBySelectionType('textGenerate')),
     }),
-    [],
+    [geminiServed],
   );
 
   // Close on Escape while the modal is open (matches original behavior).
@@ -113,6 +114,7 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
     localTextGenerateModel: state.localTextGenerateModel,
     localCpaGatewayUrl: state.localCpaGatewayUrl,
     localCpaGatewayApiKey: state.localCpaGatewayApiKey,
+    geminiProfileId: api.geminiProfile.id,
     isCpaGatewayUrlInvalid: state.isCpaGatewayUrlInvalid,
     isCpaGatewayUrlCustom: state.isCpaGatewayUrlCustom,
     isCpaGatewayApiKeyMissing: state.isCpaGatewayApiKeyMissing,

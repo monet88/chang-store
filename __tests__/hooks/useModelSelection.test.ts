@@ -4,6 +4,21 @@ import { getModelsBySelectionType } from '@/config/modelRegistry';
 import { useModelSelection } from '@/hooks/useModelSelection';
 import { Feature } from '@/types';
 
+vi.mock('@/contexts/ApiProviderContext', () => ({
+  useApi: () => ({
+    geminiProfile: {
+      id: 'cpa-default',
+      label: 'Cliproxy',
+      baseUrl: 'https://cliproxy.monet.uno',
+      apiKey: '',
+      lane: 'gemini',
+      driver: 'gemini-native',
+      enabled: true,
+    },
+    servedModelsVersion: 0,
+  }),
+}));
+
 describe('useModelSelection', () => {
   const setImageEditModel = vi.fn();
   const setImageGenerateModel = vi.fn();

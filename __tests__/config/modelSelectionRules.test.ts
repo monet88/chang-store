@@ -7,7 +7,13 @@ import {
   resolveEffectiveImageResolution,
   resolveImageSizeConfig,
 } from '@/config/modelRegistry';
-import { resolveModelSelectionScope } from '@/config/modelSelectionRules';
+import {
+  firstSelectableModelId,
+  resolveModelSelectionScope,
+  resolveProviderModelOptions,
+  resolveSelectableModels,
+} from '@/config/modelSelectionRules';
+import { GPT_IMAGE_MODELS } from '@/config/gptImageModelRegistry';
 
 describe('model selection rules', () => {
   it('maps image-edit features to the image editing scope', () => {
@@ -75,5 +81,76 @@ describe('model selection rules', () => {
     expect(resolveImageSizeConfig('gemini-3.1-flash-image', '4K')).toBe('4K');
     expect(resolveImageSizeConfig('gemini-3.1-flash-image')).toBeUndefined();
     expect(resolveImageSizeConfig('unregistered-model', '2K')).toBeUndefined();
+  });
+});
+
+describe('capability-driven picker rules (US-006 Lớp 2c)', () => {
+  it('degrades to the static registry list while discovery has not run', () => {
+    expect(resolveSelectableModels('imageEdit')).toEqual([
+      { modelId: 'gemini-3.1-flash-image', label: 'Nano Banana 2' },
+    ]);
+    expect(resolveProviderModelOptions('openai-images', GPT_IMAGE_MODELS)).toEqual([
+      { modelId: 'gpt-image-2', label: 'GPT Image 2' },
+    ]);
+  });
+
+  it('offers only served models as selectable, and lists the rest disabled', () => {
+    const options = resolveSelectableModels('imageEdit', ['gemini-3.1-flash-image']);
+
+    expect(options).toEqual([{ modelId: 'gemini-3.1-flash-image', label: 'Nano Banana 2' }]);
+    expect(firstSelectableModelId(options)).toBe('gemini-3.1-flash-image');
+  });
+
+  it('flags a served catalog model the registry does not carry as unverified', () => {
+    const options = resolveSelectableModels('imageEdit', [
+      'gemini-3.1-flash-image',
+      'agy/gemini-3.1-flash-image',
+    ]);
+
+    expect(options).toContainEqual({
+      modelId: 'agy/gemini-3.1-flash-image',
+      label: 'Nano Banana 2 (agy alias)',
+      unverified: true,
+    });
+  });
+
+  it('never leaks another lane into the Gemini picker', () => {
+    const options = resolveSelectableModels('imageEdit', [
+      'gemini-3.1-flash-image',
+      'gpt-image-2.5-sunburst',
+      'gpt-image-2',
+    ]);
+
+    expect(options.map((option) => option.modelId)).toEqual(['gemini-3.1-flash-image']);
+  });
+
+  it('keeps a text model selectable when the served list says nothing about it', () => {
+    const options = resolveSelectableModels('textGenerate', ['gemini-3.8-flash']);
+
+    expect(options.find((option) => option.modelId === 'gemini-3.8-flash')).toEqual({
+      modelId: 'gemini-3.8-flash',
+      label: 'Gemini 3.8 Flash',
+    });
+    expect(options.every((option) => option.disabled !== true)).toBe(true);
+  });
+
+  it('lists the models a profile serves instead of the pinned studio membership', () => {
+    const options = resolveProviderModelOptions(
+      'openai-images',
+      GPT_IMAGE_MODELS,
+      ['gpt-image-2.5-sunburst'],
+      'api.xompet.io.vn',
+    );
+
+    expect(options).toContainEqual({ modelId: 'gpt-image-2.5-sunburst', label: 'GPT Image 2.5 Sunburst' });
+    expect(options).toContainEqual({ modelId: 'gpt-image-2', label: 'GPT Image 2', disabled: true });
+    expect(firstSelectableModelId(options)).toBe('gpt-image-2.5-sunburst');
+  });
+
+  it('offers a served id the catalog does not know as an unverified option', () => {
+    const options = resolveProviderModelOptions('openai-images', GPT_IMAGE_MODELS, ['gpt-image-9-unknown']);
+
+    expect(options).toContainEqual({ modelId: 'gpt-image-9-unknown', label: 'gpt-image-9-unknown', unverified: true });
+    expect(firstSelectableModelId(options)).toBe('gpt-image-9-unknown');
   });
 });

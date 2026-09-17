@@ -92,10 +92,7 @@ interface OpenAiCapabilitiesInput {
   verifiedAt?: string;
 }
 
-/**
- * Defaults describe the documented OpenAI Images contract (pixel `size`, `quality`,
- * `background: transparent`); every measured deviation lives in `gatewayOverrides`.
- */
+/** Documented OpenAI Images contract; every measured deviation lives in `gatewayOverrides`. */
 const openAiCapabilities = (input: OpenAiCapabilitiesInput = {}): ImageModelCapabilities => {
   const sizes = input.sizes ?? OPENAI_IMAGE_SIZES;
   return {
@@ -159,7 +156,8 @@ const CPA_IMAGE_FACTS: ImageCapabilityOverride = {
 export const IMAGE_MODEL_CATALOG: readonly ImageModelDescriptor[] = [
   openAiRow('gpt-image-2.5-sunburst', 'GPT Image 2.5 Sunburst', openAiCapabilities({
     honorsSize: 'flaky', sizeObservations: { honored: 2, total: 3 }, sizes: XOMPET_HONORED_SIZES,
-    defaultSize: '1080x1920', transparent: true, responseShapes: ['b64_json', 'url', 'echo_fields'],
+    defaultSize: '1080x1920', transparent: true, honorsQuality: false,
+    responseShapes: ['b64_json', 'url', 'echo_fields'],
   }), { [CPA_GATEWAY_HOST]: CPA_IMAGE_FACTS },
   'Three identical 1080x1920 calls returned 1080x1920, 1080x1920, 1254x1254 — hence `flaky` and the mandatory dimension guard.'),
   openAiRow('gpt-image-2.5-flare', 'GPT Image 2.5 Flare', openAiCapabilities(),

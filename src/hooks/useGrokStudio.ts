@@ -1,9 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Feature, ImageFile, StudioMode } from '../types';
+import { Feature, ImageFile, StudioMode, type SelectableModel } from '../types';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
-  GrokModelId,
   GrokAspectRatio,
   GrokResolution,
   DEFAULT_GROK_MODEL,
@@ -15,8 +14,11 @@ import {
   GROK_MAX_REFERENCE_IMAGES,
   GROK_MIN_OUTPUTS,
   GROK_MAX_OUTPUTS,
-  isKnownGrokModel,
 } from '../config/grokModelRegistry';
+import { firstSelectableModelId, resolveProviderModelOptions } from '../config/modelSelectionRules';
+import { resolveActiveProfile } from '../config/gatewayProfiles';
+import { gatewayHostOf } from '../services/providers/shared/imageDriverPolicy';
+import { useServedModels } from './useServedModels';
 import { generateGrokImage, editGrokImage } from '../services/providers/grok/grokImageService';
 import { PROVIDER_UPSCALE_PROMPTS } from '../utils/provider-refine-prompt';
 import {
@@ -31,11 +33,6 @@ const GROK_WARDROBE_CONFIG = { maxSets: 4, maxItemsPerSet: 4, concurrency: 4 };
 /** Grok lookbook: up to 4 variations. */
 const GROK_LOOKBOOK_MAX_VARIATIONS = 4;
 
-export interface ProviderOption {
-  value: string;
-  label: string;
-}
-
 export interface UseGrokStudioReturn extends UseProviderStudioEngineReturn {
   // Settings (from ApiProviderContext)
   apiKey: string;
@@ -44,7 +41,7 @@ export interface UseGrokStudioReturn extends UseProviderStudioEngineReturn {
   setBaseUrl: (value: string) => void;
   resetSettings: () => void;
   // Grok-specific workflow options
-  model: GrokModelId;
+  model: string;
   setModel: (model: string) => void;
   n: number;
   setN: (value: number) => void;
@@ -53,7 +50,7 @@ export interface UseGrokStudioReturn extends UseProviderStudioEngineReturn {
   resolution: GrokResolution;
   setResolution: (value: string) => void;
   // Option lists (sourced from registry, exposed so the UI never imports config)
-  modelOptions: ProviderOption[];
+  modelOptions: SelectableModel[];
   aspectRatioOptions: string[];
   resolutionOptions: string[];
   // Bounds
@@ -73,10 +70,31 @@ export interface UseGrokStudioReturn extends UseProviderStudioEngineReturn {
  */
 export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): UseGrokStudioReturn => {
   const { t } = useLanguage();
-  const { providerSettings, setProviderSettings, resetProviderSettings } = useApi();
+  const {
+    providerSettings,
+    setProviderSettings,
+    resetProviderSettings,
+    imageProfiles,
+    activeImageProfileId,
+    servedModelsVersion,
+  } = useApi();
   const settings = providerSettings.grok;
 
-  const [model, setModel] = useState<GrokModelId>(DEFAULT_GROK_MODEL);
+  // The active Grok-driver profile decides which ids this studio may offer.
+  const profile = resolveActiveProfile(imageProfiles, 'image', activeImageProfileId, 'grok-images');
+  const gatewayHost = profile ? gatewayHostOf(profile.baseUrl) : undefined;
+  const served = useServedModels(profile?.baseUrl, servedModelsVersion);
+  const modelOptions = useMemo(
+    () => resolveProviderModelOptions('grok-images', GROK_MODELS, served, gatewayHost),
+    [served, gatewayHost],
+  );
+
+  const [requestedModel, setModel] = useState<string>(DEFAULT_GROK_MODEL);
+  const isSelectable = (modelId: string): boolean =>
+    modelOptions.some((option) => option.modelId === modelId && !option.disabled);
+  const model = isSelectable(requestedModel)
+    ? requestedModel
+    : firstSelectableModelId(modelOptions) ?? DEFAULT_GROK_MODEL;
   const [n, setN] = useState(1);
   const [aspectRatio, setAspectRatio] = useState<GrokAspectRatio>(DEFAULT_GROK_ASPECT_RATIO);
   const [resolution, setResolution] = useState<GrokResolution>(DEFAULT_GROK_RESOLUTION);
@@ -123,10 +141,10 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
   );
 
   const setModelSafe = useCallback((value: string) => {
-    if (isKnownGrokModel(value)) {
+    if (modelOptions.some((option) => option.modelId === value)) {
       setModel(value);
     }
-  }, []);
+  }, [modelOptions]);
 
   return {
     ...engine,
@@ -143,7 +161,7 @@ export const useGrokStudio = (activeFeature: Feature, _studioMode: StudioMode): 
     setAspectRatio: (value: string) => setAspectRatio(value as GrokAspectRatio),
     resolution,
     setResolution: (value: string) => setResolution(value as GrokResolution),
-    modelOptions: GROK_MODELS.map((m) => ({ value: m.modelId, label: m.label })),
+    modelOptions,
     aspectRatioOptions: [...GROK_ASPECT_RATIOS],
     resolutionOptions: [...GROK_RESOLUTIONS],
     maxReferenceImages: GROK_MAX_REFERENCE_IMAGES,

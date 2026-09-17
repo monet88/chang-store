@@ -1,8 +1,6 @@
 import { ImageFile } from '../../../types';
 import {
-  GptImageModelId,
   GptImageQuality,
-  GptImageSize,
   GPT_IMAGE_OUTPUT_COUNT,
   MAX_GPT_REFERENCE_IMAGES,
 } from '../../../config/gptImageModelRegistry';
@@ -20,17 +18,19 @@ export interface GptImageServiceConfig {
 }
 
 export interface GptImageGenerateParams {
-  model: GptImageModelId;
+  /** Model id sent verbatim; the catalog decides which ids a gateway can serve. */
+  model: string;
   prompt: string;
-  size: GptImageSize;
+  size: string;
   quality: GptImageQuality;
 }
 
 export interface GptImageEditParams {
-  model: GptImageModelId;
+  /** Model id sent verbatim; the catalog decides which ids a gateway can serve. */
+  model: string;
   prompt: string;
   images: ImageFile[];
-  size: GptImageSize;
+  size: string;
   quality: GptImageQuality;
 }
 
@@ -87,9 +87,11 @@ async function handleResponse(response: Response, policy: DriverPolicy | null, r
   const images = await parseOpenAIResponse(data, RESULT_MIME_TYPE);
 
   if (policy) {
-    await verifyReturnedDimensions(images, requestedSize, policy.capabilities, {
+    const mismatch = await verifyReturnedDimensions(images, requestedSize, policy.capabilities, {
       modelId: policy.descriptor.modelId,
     });
+    // The guard never drops an image; it marks it so the tile can say what came back.
+    return mismatch ? images.map((image) => ({ ...image, sizeWarning: mismatch })) : images;
   }
 
   return images;

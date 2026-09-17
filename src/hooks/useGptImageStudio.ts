@@ -1,18 +1,24 @@
 import { useMemo, useState } from 'react';
-import { Feature, StudioMode } from '../types';
+import { Feature, StudioMode, type SelectableModel } from '../types';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
-  GptImageModelId,
   GptImageQuality,
-  GptImageSize,
   DEFAULT_GPT_IMAGE_MODEL,
   DEFAULT_GPT_IMAGE_QUALITY,
   DEFAULT_GPT_IMAGE_SIZE,
+  GPT_IMAGE_MODELS,
   GPT_IMAGE_QUALITIES,
-  GPT_IMAGE_SIZES,
   MAX_GPT_REFERENCE_IMAGES,
+  resolveGptImageSizeObservations,
+  resolveGptImageSizeOptions,
+  resolveGptImageSupportsQuality,
+  resolveGptImageSupportsSize,
 } from '../config/gptImageModelRegistry';
+import { firstSelectableModelId, resolveProviderModelOptions } from '../config/modelSelectionRules';
+import { resolveActiveProfile } from '../config/gatewayProfiles';
+import { gatewayHostOf } from '../services/providers/shared/imageDriverPolicy';
+import { useServedModels } from './useServedModels';
 import { generateGptImage, editGptImage } from '../services/providers/gpt-image/gptImageService';
 import { PROVIDER_UPSCALE_PROMPTS } from '../utils/provider-refine-prompt';
 import {
@@ -33,13 +39,20 @@ export interface UseGptImageStudioReturn extends UseProviderStudioEngineReturn {
   setApiKey: (value: string) => void;
   setBaseUrl: (value: string) => void;
   resetSettings: () => void;
-  model: GptImageModelId;
+  model: string;
+  setModel: (value: string) => void;
+  modelOptions: SelectableModel[];
   quality: GptImageQuality;
   setQuality: (value: string) => void;
-  size: GptImageSize;
+  /** `false` when the gateway answers its own size / ignores the quality it is sent. */
+  supportsSize: boolean;
+  supportsQuality: boolean;
+  size: string;
   setSize: (value: string) => void;
   qualityOptions: string[];
   sizeOptions: string[];
+  /** Measured honor rate of a `flaky` size on the active gateway, when recorded. */
+  sizeObservations?: { honored: number; total: number };
   maxReferenceImages: number;
 }
 
@@ -58,11 +71,42 @@ export const useGptImageStudio = (
   _studioMode: StudioMode,
 ): UseGptImageStudioReturn => {
   const { t } = useLanguage();
-  const { providerSettings, setProviderSettings, resetProviderSettings } = useApi();
+  const {
+    providerSettings,
+    setProviderSettings,
+    resetProviderSettings,
+    imageProfiles,
+    activeImageProfileId,
+    servedModelsVersion,
+  } = useApi();
   const settings = providerSettings.gptImage;
 
+  // The image-lane profile the studio is pointed at decides which models can be offered and
+  // which of their fields the gateway honors (capabilities are a (gateway, model) property).
+  const profile = resolveActiveProfile(imageProfiles, 'image', activeImageProfileId, 'openai-images');
+  const gatewayHost = profile ? gatewayHostOf(profile.baseUrl) : undefined;
+  const served = useServedModels(profile?.baseUrl, servedModelsVersion);
+
+  const [requestedModel, setModel] = useState<string>(DEFAULT_GPT_IMAGE_MODEL);
   const [quality, setQuality] = useState<GptImageQuality>(DEFAULT_GPT_IMAGE_QUALITY);
-  const [size, setSize] = useState<GptImageSize>(DEFAULT_GPT_IMAGE_SIZE);
+  const [requestedSize, setSize] = useState<string>(DEFAULT_GPT_IMAGE_SIZE);
+
+  const modelOptions = useMemo(
+    () => resolveProviderModelOptions('openai-images', GPT_IMAGE_MODELS, served, gatewayHost),
+    [served, gatewayHost],
+  );
+  // A profile that serves none of the pinned models must not leave the studio on a dead id.
+  const isSelectable = (modelId: string): boolean =>
+    modelOptions.some((option) => option.modelId === modelId && !option.disabled);
+  const model = isSelectable(requestedModel)
+    ? requestedModel
+    : firstSelectableModelId(modelOptions) ?? DEFAULT_GPT_IMAGE_MODEL;
+  const sizeOptions = useMemo(() => resolveGptImageSizeOptions(model, gatewayHost), [model, gatewayHost]);
+  // Sizes are per model: keep the studio on one this model can actually produce.
+  const size = sizeOptions.includes(requestedSize) ? requestedSize : sizeOptions[0] ?? DEFAULT_GPT_IMAGE_SIZE;
+  const supportsSize = resolveGptImageSupportsSize(model, gatewayHost);
+  const supportsQuality = resolveGptImageSupportsQuality(model, gatewayHost);
+  const sizeObservations = resolveGptImageSizeObservations(model, gatewayHost);
 
   // GPT image primitives for the shared engine. The `count` argument is ignored
   // (GPT endpoints always emit `GPT_IMAGE_OUTPUT_COUNT`). Memoized so the engine
@@ -72,13 +116,13 @@ export const useGptImageStudio = (
     () => ({
       edit: (prompt, images, _count, signal) =>
         editGptImage(
-          { model: DEFAULT_GPT_IMAGE_MODEL, prompt, images, size, quality },
+          { model, prompt, images, size, quality },
           { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
           signal,
         ),
       generate: (prompt, _count, signal) =>
         generateGptImage(
-          { model: DEFAULT_GPT_IMAGE_MODEL, prompt, size, quality },
+          { model, prompt, size, quality },
           { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
           signal,
         ),
@@ -86,12 +130,12 @@ export const useGptImageStudio = (
       // the largest quality.
       upscale: (source, qualityLevel, signal) =>
         editGptImage(
-          { model: DEFAULT_GPT_IMAGE_MODEL, prompt: PROVIDER_UPSCALE_PROMPTS[qualityLevel], images: [source], size, quality: 'high' },
+          { model, prompt: PROVIDER_UPSCALE_PROMPTS[qualityLevel], images: [source], size, quality: 'high' },
           { apiKey: settings.apiKey, baseUrl: settings.baseUrl },
           signal,
         ),
     }),
-    [size, quality, settings.apiKey, settings.baseUrl],
+    [model, size, quality, settings.apiKey, settings.baseUrl],
   );
 
   const engine = useProviderStudioEngine(
@@ -113,13 +157,18 @@ export const useGptImageStudio = (
     setApiKey: (value: string) => setProviderSettings('gptImage', { apiKey: value }),
     setBaseUrl: (value: string) => setProviderSettings('gptImage', { baseUrl: value }),
     resetSettings: () => resetProviderSettings('gptImage'),
-    model: DEFAULT_GPT_IMAGE_MODEL,
+    model,
+    setModel,
+    modelOptions,
     quality,
     setQuality: (value: string) => setQuality(value as GptImageQuality),
+    supportsSize,
+    supportsQuality,
     size,
-    setSize: (value: string) => setSize(value as GptImageSize),
+    setSize,
     qualityOptions: [...GPT_IMAGE_QUALITIES],
-    sizeOptions: [...GPT_IMAGE_SIZES],
+    sizeOptions,
+    sizeObservations,
     maxReferenceImages: MAX_GPT_REFERENCE_IMAGES,
   };
 };

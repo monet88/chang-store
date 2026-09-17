@@ -202,9 +202,23 @@ describe('gptImageService', () => {
                 CONFIG,
             );
 
-            expect(result).toEqual([{ base64: 'IMG', mimeType: 'image/png' }]);
+            expect(result).toEqual([
+                { base64: 'IMG', mimeType: 'image/png', sizeWarning: { requested: '1024x1024', returned: '1254x1254' } },
+            ]);
             expect(logged.join('\n')).toContain('image.dimensionMismatch');
             expect(logged.join('\n')).toContain('1254x1254');
+        });
+
+        it('marks nothing when the gateway honoured the requested size', async () => {
+            dimensionsMock.mockResolvedValue({ width: 1024, height: 1024 });
+            fetchMock.mockResolvedValue(okResponse({ data: [{ b64_json: 'IMG' }] }));
+
+            const result = await generateGptImage(
+                { model: 'gpt-image-2', prompt: 'x', size: '1024x1024', quality: 'high' },
+                CONFIG,
+            );
+
+            expect(result).toEqual([{ base64: 'IMG', mimeType: 'image/png' }]);
         });
 
         it('skips the measurement when the gateway ignores size', async () => {

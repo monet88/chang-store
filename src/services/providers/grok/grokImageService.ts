@@ -1,6 +1,5 @@
 import { ImageFile } from '../../../types';
 import {
-  GrokModelId,
   GrokAspectRatio,
   GrokResolution,
   GROK_MIN_OUTPUTS,
@@ -20,7 +19,8 @@ export interface GrokServiceConfig {
 }
 
 export interface GrokGenerateParams {
-  model: GrokModelId;
+  /** Model id sent verbatim; the catalog decides which ids a gateway can serve. */
+  model: string;
   prompt: string;
   n: number;
   aspectRatio: GrokAspectRatio;
@@ -28,7 +28,8 @@ export interface GrokGenerateParams {
 }
 
 export interface GrokEditParams {
-  model: GrokModelId;
+  /** Model id sent verbatim; the catalog decides which ids a gateway can serve. */
+  model: string;
   prompt: string;
   /** Source images. 1 image → `image` object; 2-3 → `images` array. */
   images: ImageFile[];

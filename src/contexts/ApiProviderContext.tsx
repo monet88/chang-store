@@ -2,16 +2,14 @@ import React, { createContext, useState, useContext, ReactNode, useEffect, useRe
 import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
 import { getDefaultModelForSelectionType, isKnownModelForSelectionType, ModelSelectionType } from '../config/modelRegistry';
 import { ProviderId, PROVIDER_IDS, getProviderDefaultBaseUrl, getProviderEnvApiKey } from '../config/providerRegistry';
+import { isImageDriverId, type GatewayProfile } from '../config/gatewayProfiles';
+import { useGatewayProfiles, type ProviderSettings } from '../hooks/useGatewayProfiles';
 import { configureGeminiClient } from '../services/apiClient';
 import { useToast } from '../components/Toast';
 import { validateProviderBaseUrl } from '../utils/provider-url-validation';
 import { useLanguage } from './LanguageContext';
 
-/** User-overridable settings for a single provider studio. */
-export interface ProviderSettings {
-  apiKey: string;
-  baseUrl: string;
-}
+export type { ProviderSettings };
 
 /** Gateway settings. The gateway is always the Gemini route; only its address
  *  and key are configurable. */
@@ -29,12 +27,24 @@ interface ApiContextType {
   setTextGenerateModel: (model: TextGenerateModel) => void;
   cpaGatewaySettings: CpaGatewaySettings;
   setCpaGatewaySettings: (settings: CpaGatewaySettings) => void;
-  /** Resolved provider settings (env defaults merged with localStorage overrides). */
+  /** Resolved provider settings (env defaults merged with the active image-lane profile). */
   providerSettings: Record<ProviderId, ProviderSettings>;
   /** Persist a partial override for a provider. */
   setProviderSettings: (provider: ProviderId, settings: Partial<ProviderSettings>) => void;
   /** Clear user overrides for a provider and fall back to env defaults. */
   resetProviderSettings: (provider: ProviderId) => void;
+  /** The gateway profiles: one Gemini-lane profile, any number of image-lane ones. */
+  gatewayProfiles: GatewayProfile[];
+  geminiProfile: GatewayProfile;
+  imageProfiles: GatewayProfile[];
+  activeImageProfileId: string | null;
+  /** Bumped when discovery wrote the served-model cache, so pickers re-read it. */
+  servedModelsVersion: number;
+  saveGatewayProfiles: (profiles: GatewayProfile[]) => void;
+  selectImageProfile: (id: string | null) => void;
+  /** The image-lane profile a studio driver uses right now, or `undefined` when none is set. */
+  imageProfileForDriver: (driver: string) => GatewayProfile | undefined;
+  notifyServedModelsChanged: () => void;
 }
 
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
@@ -125,47 +135,16 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     restoredCpaGatewayRef.current.settings,
   );
 
-  const resolveProviderSettings = (provider: ProviderId): ProviderSettings => {
-    const storedApiKey = safeStorage.getItem(providerApiKeyStorageKey(provider));
-    const storedBaseUrl = safeStorage.getItem(providerBaseUrlStorageKey(provider));
-    return {
-      apiKey: storedApiKey ?? getProviderEnvApiKey(provider),
-      baseUrl: storedBaseUrl ?? getProviderDefaultBaseUrl(provider),
-    };
-  };
-
-  const [providerSettings, setProviderSettingsState] = useState<Record<ProviderId, ProviderSettings>>(() => {
-    const initial = {} as Record<ProviderId, ProviderSettings>;
-    for (const provider of PROVIDER_IDS) {
-      initial[provider] = resolveProviderSettings(provider);
-    }
-    return initial;
+  const profiles = useGatewayProfiles({
+    gemini: cpaGatewaySettings,
+    storage: safeStorage,
   });
 
-  const setProviderSettings = useCallback((provider: ProviderId, settings: Partial<ProviderSettings>) => {
-    setProviderSettingsState((current) => {
-      const next: ProviderSettings = { ...current[provider], ...settings };
-      if (settings.apiKey !== undefined) {
-        safeStorage.setItem(providerApiKeyStorageKey(provider), next.apiKey);
-      }
-      if (settings.baseUrl !== undefined) {
-        safeStorage.setItem(providerBaseUrlStorageKey(provider), next.baseUrl);
-      }
-      return { ...current, [provider]: next };
-    });
-  }, []);
-
-  const resetProviderSettings = useCallback((provider: ProviderId) => {
-    safeStorage.removeItem(providerApiKeyStorageKey(provider));
-    safeStorage.removeItem(providerBaseUrlStorageKey(provider));
-    setProviderSettingsState((current) => ({
-      ...current,
-      [provider]: {
-        apiKey: getProviderEnvApiKey(provider),
-        baseUrl: getProviderDefaultBaseUrl(provider),
-      },
-    }));
-  }, []);
+  // The UI passes driver ids as plain strings, so the guard lives at this boundary.
+  const imageProfileForDriver = useCallback(
+    (driver: string) => (isImageDriverId(driver) ? profiles.imageProfileForDriver(driver) : undefined),
+    [profiles],
+  );
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
     const saved = safeStorage.getItem(IMAGE_EDIT_MODEL_KEY);
@@ -251,10 +230,19 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setTextGenerateModel,
       cpaGatewaySettings,
       setCpaGatewaySettings,
-      providerSettings,
-      setProviderSettings,
-      resetProviderSettings,
-  }), [imageEditModel, setImageEditModel, imageGenerateModel, setImageGenerateModel, textGenerateModel, setTextGenerateModel, cpaGatewaySettings, setCpaGatewaySettings, providerSettings, setProviderSettings, resetProviderSettings]);
+      providerSettings: profiles.providerSettings,
+      setProviderSettings: profiles.setProviderSettings,
+      resetProviderSettings: profiles.resetProviderSettings,
+      gatewayProfiles: profiles.gatewayProfiles,
+      geminiProfile: profiles.geminiProfile,
+      imageProfiles: profiles.imageProfiles,
+      activeImageProfileId: profiles.activeImageProfileId,
+      servedModelsVersion: profiles.servedModelsVersion,
+      saveGatewayProfiles: profiles.saveProfiles,
+      selectImageProfile: profiles.selectImageProfile,
+      imageProfileForDriver,
+      notifyServedModelsChanged: profiles.notifyServedModelsChanged,
+  }), [imageEditModel, setImageEditModel, imageGenerateModel, setImageGenerateModel, textGenerateModel, setTextGenerateModel, cpaGatewaySettings, setCpaGatewaySettings, profiles, imageProfileForDriver]);
 
   return (
     <ApiContext.Provider value={contextValue}>

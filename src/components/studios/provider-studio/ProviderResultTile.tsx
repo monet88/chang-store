@@ -81,6 +81,15 @@ const ProviderResultTile: React.FC<ProviderResultTileProps> = ({
                 </div>
             </div>
 
+            {image.sizeWarning && (
+                <p className="border-t border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">
+                    {t('error.imageSizeMismatch', {
+                        requested: image.sizeWarning.requested,
+                        returned: image.sizeWarning.returned,
+                    })}
+                </p>
+            )}
+
             {hasActions && (
                 <div className="flex flex-col gap-2 border-t border-white/10 p-3">
                     <div className="flex gap-2">

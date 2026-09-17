@@ -9,8 +9,10 @@
  * `low|medium|high|auto`, multipart `image[]` fields for raw HTTP edits.
  */
 import {
+  getImageModelDescriptor,
   resolveCapabilities,
   requireImageModelDescriptor,
+  type ImageModelCapabilities,
   type OpenAiImageSize,
 } from './imageModelCatalog';
 
@@ -59,6 +61,42 @@ export const GPT_IMAGE_ESTIMATED_RESPONSE_SECONDS = '60-90';
 
 export function isKnownGptImageQuality(value: string): value is GptImageQuality {
   return (GPT_IMAGE_QUALITIES as readonly string[]).includes(value);
+}
+
+/**
+ * Capability facts of the (gateway, model) pair the studio is about to use. No host ⇒ the
+ * model's own documented contract. `null` for an unverified model the gateway serves.
+ */
+export function resolveGptImageCapabilities(
+  modelId: string,
+  gatewayHost?: string,
+): ImageModelCapabilities | null {
+  const descriptor = getImageModelDescriptor(modelId);
+  return descriptor ? resolveCapabilities(descriptor, gatewayHost) : null;
+}
+
+/** `auto` plus the sizes the model's capabilities claim honor, for the active gateway. */
+export function resolveGptImageSizeOptions(modelId: string, gatewayHost?: string): string[] {
+  const capabilities = resolveGptImageCapabilities(modelId, gatewayHost);
+  return ['auto', ...(capabilities?.sizes ?? GPT_IMAGE_SIZES.slice(1))];
+}
+
+/** `honorsSize: 'no'` ⇒ the gateway answers its own size, so the control must not be offered. */
+export function resolveGptImageSupportsSize(modelId: string, gatewayHost?: string): boolean {
+  return resolveGptImageCapabilities(modelId, gatewayHost)?.honorsSize !== 'no';
+}
+
+/** Observed honor rate behind a `flaky` size, so the studio can show what was measured. */
+export function resolveGptImageSizeObservations(
+  modelId: string,
+  gatewayHost?: string,
+): { honored: number; total: number } | undefined {
+  return resolveGptImageCapabilities(modelId, gatewayHost)?.sizeObservations;
+}
+
+/** Measured: both gateways echo a quality they chose (`high` in, `medium` out). */
+export function resolveGptImageSupportsQuality(modelId: string, gatewayHost?: string): boolean {
+  return resolveGptImageCapabilities(modelId, gatewayHost)?.honorsQuality !== false;
 }
 
 export function isKnownGptImageSize(value: string): value is GptImageSize {

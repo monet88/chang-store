@@ -119,6 +119,7 @@ export const en = {
       imageGenerate: 'Image generation model',
       textGenerate: 'Text generation model',
     },
+    unverified: 'Not verified yet',
   },
   tabs: {
     tryOn: 'Virtual Try-On',
@@ -159,6 +160,12 @@ export const en = {
         regenerate: 'Regenerate',
       },
     },
+    profile: {
+      label: 'Image provider',
+      none: 'No image provider configured',
+      servedModels: '{{count}} models served',
+      notChecked: 'Not checked yet — run Check in Settings',
+    },
     settings: {
       title: '{{provider}} settings',
       reset: 'Reset',
@@ -178,6 +185,7 @@ export const en = {
       aspectRatioLabel: 'Aspect ratio',
       resolutionLabel: 'Resolution',
       sizeLabel: 'Size',
+      sizeObservation: 'Measured: this size came back as requested in {{honored}} of {{total}} calls.',
       qualityLabel: 'Quality',
       outputCountLabel: 'Number of outputs: {{count}}',
       maxReferenceHint: 'Up to {{max}} reference images.',
@@ -409,6 +417,14 @@ export const en = {
   },
   error: {
     unknown: 'An unknown error occurred. Please try again.',
+    gateway: {
+      unauthorized: 'The gateway rejected this API key (401).',
+      forbidden: 'The gateway blocked the request (403) — usually an edge rule or User-Agent policy, not a bad key.',
+      unreachable: 'The gateway could not be reached.',
+      malformedShape: 'The gateway answered with an unexpected shape.',
+      modelNotServed: 'Not served by this gateway',
+      imageSizeMismatch: 'The gateway returned {{returned}} instead of the requested {{requested}}.',
+    },
     api: {
       safetyBlock: 'The request was blocked due to safety settings. Please modify your prompt.',
       noContent: 'The API returned no content. This might be due to a safety block or an issue with the request.',
@@ -980,6 +996,12 @@ Do not include any other text or markdown.
     description: 'Upload multiple images to remove watermarks using AI.',
     uploadTitle: 'Upload Images',
     settings: 'Processing Settings',
+    profile: {
+      label: 'Image provider',
+      none: 'No image provider configured',
+      servedModels: '{{count}} models served',
+      notChecked: 'Not checked yet — run Check in Settings',
+    },
     modelLabel: 'AI Model',
     promptLabel: 'Removal Style',
     customPromptLabel: 'Custom Prompt',
@@ -1125,9 +1147,9 @@ Do not include any other text or markdown.
         title: 'Default model selection',
         description: 'Review the registry-backed defaults for text, image editing, and image generation.',
       },
-      cpaGateway: {
-        title: 'CPA Gateway',
-        description: 'Every Gemini request is sent through the CPA gateway. Only its address and API key are configurable.',
+      gatewayProfiles: {
+        title: 'Gateways',
+        description: 'One Gemini gateway (the CPA route) plus any number of OpenAI Images / Grok gateways for the provider studios.',
       },
       data: {
         title: 'Application data',
@@ -1136,6 +1158,31 @@ Do not include any other text or markdown.
       developer: {
         title: 'Developer',
         description: 'Switch on diagnostics when you need to inspect API traffic in the browser console.',
+      },
+    },
+    gatewayProfiles: {
+      geminiLane: 'Gemini gateway (CPA)',
+      geminiLaneHint: 'Every Gemini request goes through this gateway. Saved with this panel.',
+      imageLane: 'Image providers (GPT / Grok)',
+      imageLaneHint: 'Saved as you edit. The GPT Image and Grok studios pick from this list and from the models it serves.',
+      emptyLane: 'No image gateway yet. Add the OpenAI Images / Grok gateway the provider studios should use.',
+      addProfile: 'Add gateway',
+      removeProfile: 'Remove',
+      unnamedProfile: 'New gateway',
+      activeBadge: 'in use',
+      labelField: 'Name',
+      driverField: 'API shape',
+      baseUrlField: 'Base URL',
+      apiKeyField: 'API key',
+      enabledField: 'Enabled',
+      testButton: 'Check',
+      drivers: {
+        openaiImages: 'GPT Image (OpenAI Images)',
+        grokImages: 'Grok (xAI)',
+      },
+      status: {
+        probing: 'Checking…',
+        ok: 'ok · {{count}} models · {{seconds}}s',
       },
     },
     fields: {

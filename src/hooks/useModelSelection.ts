@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { Feature, SelectableModel } from '../types';
 import { resolveModelSelectionScope } from '../config/modelSelectionRules';
 import { getModelsBySelectionType } from '../config/modelRegistry';
+import { useApi } from '../contexts/ApiProviderContext';
+import { useServedModels } from './useServedModels';
 
 interface ModelSetterMap {
   imageEdit: (modelId: string) => void;
@@ -32,6 +34,10 @@ export const useModelSelection = ({
   setImageGenerateModel,
   setTextGenerateModel,
 }: UseModelSelectionParams) => {
+  const { geminiProfile, servedModelsVersion } = useApi();
+  // Gemini features see the Gemini lane's served models only (lane-scoped picker).
+  const geminiServed = useServedModels(geminiProfile.baseUrl, servedModelsVersion);
+
   const selectedModelBySelectionType = useMemo(
     () => ({
       imageEdit: imageEditModel,
@@ -51,8 +57,8 @@ export const useModelSelection = ({
   );
 
   const activeModelSelectionScope = useMemo(
-    () => resolveModelSelectionScope(activeFeature),
-    [activeFeature],
+    () => resolveModelSelectionScope(activeFeature, geminiServed),
+    [activeFeature, geminiServed],
   );
 
   const textGenerationOptions = useMemo(

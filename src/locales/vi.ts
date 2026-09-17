@@ -119,6 +119,7 @@ export const vi: Translation = {
       imageGenerate: 'Model tạo ảnh',
       textGenerate: 'Model tạo văn bản',
     },
+    unverified: 'Chưa xác minh',
   },
   tabs: {
     tryOn: 'Thử đồ Ảo',
@@ -159,6 +160,12 @@ export const vi: Translation = {
         regenerate: 'Tạo lại',
       },
     },
+    profile: {
+      label: 'Nhà cung cấp ảnh',
+      none: 'Chưa cấu hình nhà cung cấp ảnh',
+      servedModels: '{{count}} mô hình đã kiểm tra',
+      notChecked: 'Chưa kiểm tra — bấm "Kiểm tra" trong Cài đặt',
+    },
     settings: {
       title: 'Cài đặt {{provider}}',
       reset: 'Đặt lại',
@@ -178,6 +185,7 @@ export const vi: Translation = {
       aspectRatioLabel: 'Tỷ lệ khung hình',
       resolutionLabel: 'Độ phân giải',
       sizeLabel: 'Kích thước',
+      sizeObservation: 'Đo được: kích thước này trả về đúng {{honored}}/{{total}} lần.',
       qualityLabel: 'Chất lượng',
       outputCountLabel: 'Số lượng đầu ra: {{count}}',
       maxReferenceHint: 'Tối đa {{max}} ảnh tham chiếu.',
@@ -410,6 +418,14 @@ export const vi: Translation = {
   },
   error: {
     unknown: 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.',
+    gateway: {
+      unauthorized: 'Gateway từ chối API key này (401).',
+      forbidden: 'Gateway chặn request (403) — thường do rule ở edge hoặc User-Agent, không phải key sai.',
+      unreachable: 'Không kết nối được gateway.',
+      malformedShape: 'Gateway trả về dữ liệu sai dạng.',
+      modelNotServed: 'Gateway không cung cấp model này',
+      imageSizeMismatch: 'Gateway trả về {{returned}} thay vì {{requested}} như yêu cầu.',
+    },
     api: {
       safetyBlock: 'Yêu cầu đã bị chặn vì cài đặt an toàn. Vui lòng sửa đổi prompt của bạn.',
       noContent: 'API không trả về nội dung. Điều này có thể do chặn an toàn hoặc sự cố với yêu cầu.',
@@ -982,6 +998,12 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     description: 'Tải lên nhiều ảnh để xóa watermark bằng AI.',
     uploadTitle: 'Tải ảnh lên',
     settings: 'Cài đặt Xử lý',
+    profile: {
+      label: 'Nhà cung cấp ảnh',
+      none: 'Chưa cấu hình nhà cung cấp ảnh',
+      servedModels: '{{count}} mô hình đã kiểm tra',
+      notChecked: 'Chưa kiểm tra — bấm "Kiểm tra" trong Cài đặt',
+    },
     modelLabel: 'Mô hình AI',
     promptLabel: 'Kiểu Xóa',
     customPromptLabel: 'Prompt Tùy chỉnh',
@@ -1127,9 +1149,9 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
         title: 'Chọn model mặc định',
         description: 'Xem lại các model mặc định từ registry cho text, chỉnh sửa ảnh và tạo ảnh.',
       },
-      cpaGateway: {
-        title: 'Cổng CPA',
-        description: 'Mọi request Gemini đều đi qua cổng CPA. Chỉ cấu hình được địa chỉ và API key của cổng.',
+      gatewayProfiles: {
+        title: 'Gateway',
+        description: 'Một gateway Gemini (tuyến CPA) và bao nhiêu gateway ảnh (OpenAI Images / Grok) tuỳ ý cho hai studio.',
       },
       data: {
         title: 'Dữ liệu ứng dụng',
@@ -1138,6 +1160,31 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       developer: {
         title: 'Nhà phát triển',
         description: 'Bật chẩn đoán khi cần kiểm tra lưu lượng API trong console trình duyệt.',
+      },
+    },
+    gatewayProfiles: {
+      geminiLane: 'Gateway Gemini (CPA)',
+      geminiLaneHint: 'Mọi request Gemini đều đi qua gateway này. Lưu cùng panel này.',
+      imageLane: 'Nhà cung cấp ảnh (GPT / Grok)',
+      imageLaneHint: 'Sửa tới đâu lưu tới đó. Studio GPT Image và Grok chọn từ danh sách này và các model nó cung cấp.',
+      emptyLane: 'Chưa có gateway ảnh. Thêm gateway OpenAI Images / Grok mà hai studio sẽ dùng.',
+      addProfile: 'Thêm gateway',
+      removeProfile: 'Xoá',
+      unnamedProfile: 'Gateway mới',
+      activeBadge: 'đang dùng',
+      labelField: 'Tên',
+      driverField: 'Kiểu API',
+      baseUrlField: 'Địa chỉ',
+      apiKeyField: 'API key',
+      enabledField: 'Bật',
+      testButton: 'Kiểm tra',
+      drivers: {
+        openaiImages: 'GPT Image (OpenAI Images)',
+        grokImages: 'Grok (xAI)',
+      },
+      status: {
+        probing: 'Đang kiểm tra…',
+        ok: 'ok · {{count}} mô hình · {{seconds}}s',
       },
     },
     fields: {

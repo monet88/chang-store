@@ -37,6 +37,11 @@ export const isProviderSupportedFeature = (feature: Feature): boolean =>
 export interface ImageFile {
   base64: string;
   mimeType: string;
+  /**
+   * Set when a gateway answered a different size than the one requested
+   * (US-006 dimension guard). Advisory only: the image is kept either way.
+   */
+  sizeWarning?: { requested: string; returned: string };
 }
 
 /** Extended ImageFile with gallery metadata */
@@ -81,6 +86,10 @@ export interface RefinementHistoryItem {
 export interface SelectableModel {
   modelId: string;
   label: string;
+  /** Served by the profile but absent from the catalog: generic contract, flagged in the picker. */
+  unverified?: boolean;
+  /** In the catalog but not served by the active profile: listed, never selectable. */
+  disabled?: boolean;
 }
 
 // ============================================
