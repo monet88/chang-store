@@ -20,6 +20,7 @@ const IDENTITY_TRANSFER_BATCH_CONCURRENCY = 4;
 
 export const useIdentityTransfer = () => {
   const batchIdCounter = useRef(0);
+  const generationInFlight = useRef(false);
   const [destinationItems, setDestinationItems] = useState<IdentityTransferBatchItem[]>([]);
   const [faceReference, setFaceReference] = useState<ImageFile | null>(null);
   const [bodyReference, setBodyReference] = useState<ImageFile | null>(null);
@@ -99,11 +100,13 @@ export const useIdentityTransfer = () => {
   const canGenerate = destinationItems.length > 0 && faceReference !== null;
 
   const handleGenerate = useCallback(async () => {
+    if (generationInFlight.current) return;
     if (!faceReference || destinationItems.length === 0) {
       setError(t('identityTransfer.inputError'));
       return;
     }
 
+    generationInFlight.current = true;
     setIsLoading(true);
     setLoadingMessage(t('identityTransfer.generatingStatus'));
     setError(null);
@@ -120,18 +123,25 @@ export const useIdentityTransfer = () => {
     } catch (batchError) {
       setError(getErrorMessage(batchError, t));
     } finally {
+      generationInFlight.current = false;
       setIsLoading(false);
       setLoadingMessage('');
     }
   }, [bodyReference, destinationItems, faceReference, generateForDestination, t]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
+    if (generationInFlight.current) return;
     if (!faceReference) return;
     const item = destinationItems.find((candidate) => candidate.id === itemId);
     if (!item) return;
 
+    generationInFlight.current = true;
     setError(null);
-    await generateForDestination(item, { face: faceReference, body: bodyReference });
+    try {
+      await generateForDestination(item, { face: faceReference, body: bodyReference });
+    } finally {
+      generationInFlight.current = false;
+    }
   }, [bodyReference, destinationItems, faceReference, generateForDestination]);
 
   const destinationImages = useMemo(

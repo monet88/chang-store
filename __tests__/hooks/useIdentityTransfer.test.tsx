@@ -223,6 +223,90 @@ describe('useIdentityTransfer', () => {
     expect(result.current.destinationItems[1].results).toEqual([regenerated]);
   });
 
+  it('ignores a new generation operation while a single regeneration is still in flight', async () => {
+    const regenerated = { base64: 'result-b-regenerated', mimeType: 'image/png' };
+    const deferred = createDeferred<Array<typeof RESULT_A>>();
+
+    vi.mocked(editImage)
+      .mockResolvedValueOnce([RESULT_A])
+      .mockResolvedValueOnce([RESULT_B])
+      .mockImplementationOnce(() => deferred.promise);
+
+    const { result } = renderHook(() => useIdentityTransfer());
+    act(() => {
+      result.current.handleDestinationImagesUpload([DESTINATION_A, DESTINATION_B]);
+      result.current.setFaceReference(FACE);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+    expect(editImage).toHaveBeenCalledTimes(2);
+
+    const secondId = result.current.destinationItems[1].id;
+    let regeneration!: Promise<void>;
+    act(() => {
+      regeneration = result.current.handleRegenerateSingle(secondId);
+    });
+    await vi.waitFor(() => expect(editImage).toHaveBeenCalledTimes(3));
+
+    await act(async () => {
+      await result.current.handleRegenerateSingle(secondId);
+      await result.current.handleGenerate();
+    });
+    expect(editImage).toHaveBeenCalledTimes(3);
+
+    await act(async () => {
+      deferred.resolve([regenerated]);
+      await regeneration;
+    });
+
+    expect(editImage).toHaveBeenCalledTimes(3);
+    expect(result.current.destinationItems[0].results).toEqual([RESULT_A]);
+    expect(result.current.destinationItems[1].results).toEqual([regenerated]);
+  });
+
+  it('allows a later regeneration once the in-flight one resolves', async () => {
+    const first = { base64: 'result-b-first', mimeType: 'image/png' };
+    const second = { base64: 'result-b-second', mimeType: 'image/png' };
+    const deferred = createDeferred<Array<typeof RESULT_A>>();
+
+    vi.mocked(editImage)
+      .mockResolvedValueOnce([RESULT_A])
+      .mockResolvedValueOnce([RESULT_B])
+      .mockImplementationOnce(() => deferred.promise)
+      .mockResolvedValueOnce([second]);
+
+    const { result } = renderHook(() => useIdentityTransfer());
+    act(() => {
+      result.current.handleDestinationImagesUpload([DESTINATION_A, DESTINATION_B]);
+      result.current.setFaceReference(FACE);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    const secondId = result.current.destinationItems[1].id;
+    let regeneration!: Promise<void>;
+    act(() => {
+      regeneration = result.current.handleRegenerateSingle(secondId);
+    });
+    await vi.waitFor(() => expect(editImage).toHaveBeenCalledTimes(3));
+
+    await act(async () => {
+      deferred.resolve([first]);
+      await regeneration;
+    });
+
+    await act(async () => {
+      await result.current.handleRegenerateSingle(secondId);
+    });
+
+    expect(editImage).toHaveBeenCalledTimes(4);
+    expect(result.current.destinationItems[1].results).toEqual([second]);
+  });
+
   it('uses the no-body prompt branch when Body Reference is omitted', async () => {
     vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
     const { result } = renderHook(() => useIdentityTransfer());
