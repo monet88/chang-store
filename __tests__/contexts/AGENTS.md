@@ -4,7 +4,7 @@
 # contexts tests
 
 ## Purpose
-Provider và context hook tests cho language, API/model preferences, image gallery, Google Drive auth state, và image viewer behavior. Các tests này đảm bảo global state không vỡ khi feature hooks/components tiêu thụ contexts.
+Provider và context hook tests cho language, API/model preferences, image gallery, và image viewer behavior. Các tests này đảm bảo global state không vỡ khi feature hooks/components tiêu thụ contexts.
 
 ## Key Files
 | File | Description |
@@ -12,7 +12,6 @@ Provider và context hook tests cho language, API/model preferences, image galle
 | `ApiProviderContext.test.tsx` | API key/model preference provider behavior. |
 | `LanguageContext.test.tsx` | Translation lookup và language state behavior. |
 | `ImageGalleryContext.test.tsx` | Gallery state, cache, và mutations. |
-| `GoogleDriveContext.test.tsx` | Drive auth/session behavior. |
 | `ImageViewerContext.test.tsx` | Viewer open/close/navigation state. |
 
 ## Subdirectories

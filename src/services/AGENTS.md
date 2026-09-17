@@ -12,7 +12,6 @@ Stateless service facade layer của ứng dụng. Thư mục này gom các API-
 | `imageEditingService.ts` | Unified facade cho edit/generate flows, routing request vào Gemini image operations. |
 | `textService.ts` | Text generation facade cho descriptions, scene analysis, và prompt-based text workflows. |
 | `apiClient.ts` | Gemini SDK client access và API key–aware client setup. |
-| `googleDriveService.ts` | Google Drive upload/list/delete helpers cho gallery sync. |
 | `debugService.ts` | Debug logging helpers cho service-layer instrumentation. |
 
 ## Subdirectories
@@ -47,6 +46,6 @@ Stateless service facade layer của ứng dụng. Thư mục này gom các API-
 
 ### External
 - `@google/genai` qua client/provider modules.
-- Browser `fetch`/OAuth-related APIs cho Google Drive integration.
+- Browser `fetch` cho image provider integrations.
 
 <!-- MANUAL: Add durable notes below this line; regeneration should preserve them. -->

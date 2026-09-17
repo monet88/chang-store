@@ -1,17 +1,14 @@
 /**
  * Gallery Modal Component
  *
- * Displays saved images in a fullscreen modal with sync status indicator.
- * Shows loading state when fetching from Google Drive.
+ * Displays saved gallery images in a fullscreen modal.
  */
 
 import React, { useEffect } from 'react';
 import { useImageGallery } from '../../contexts/ImageGalleryContext';
-import { useGoogleDrive } from '../../contexts/GoogleDriveContext';
 import HoverableImage from '../HoverableImage';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { CloseIcon, CloudIcon, CheckCircleIcon, WarningIcon, RefreshIcon, GalleryIcon } from '../Icons';
-import Spinner from '../Spinner';
+import { CloseIcon, GalleryIcon } from '../Icons';
 
 // ============================================================================
 // Types
@@ -22,63 +19,6 @@ interface GalleryModalProps {
 }
 
 // ============================================================================
-// Sub-components
-// ============================================================================
-
-/** Loading skeleton shown during Drive fetch */
-const GalleryLoadingSkeleton: React.FC = () => (
-  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-w-7xl mx-auto">
-    {Array.from({ length: 12 }).map((_, i) => (
-      <div
-        key={i}
-        className="aspect-square bg-zinc-700/50 rounded-lg animate-pulse"
-      />
-    ))}
-  </div>
-);
-
-/** Sync status pill shown in header when connected to Drive */
-const SyncStatusPill: React.FC<{
-  syncStatus: string;
-  isLoading: boolean;
-  syncError: string | null;
-  t: (key: string) => string;
-}> = ({ syncStatus, isLoading, syncError, t }) => {
-  // Determine icon and color based on status
-  const renderIcon = () => {
-    if (isLoading || syncStatus === 'syncing') {
-      return <Spinner />;
-    }
-    if (syncStatus === 'error' || syncError) {
-      return <WarningIcon className="w-3.5 h-3.5 text-red-400" />;
-    }
-    if (syncStatus === 'synced') {
-      return <CheckCircleIcon className="w-3.5 h-3.5 text-green-400" />;
-    }
-    return <CloudIcon className="w-3.5 h-3.5 text-zinc-400" />;
-  };
-
-  const getStatusText = (): string => {
-    if (isLoading) return t('googleDrive.status.syncing');
-    return t(`googleDrive.status.${syncStatus}`);
-  };
-
-  const getBgColor = (): string => {
-    if (syncStatus === 'error' || syncError) return 'bg-red-900/50';
-    if (syncStatus === 'synced') return 'bg-green-900/50';
-    if (syncStatus === 'syncing' || isLoading) return 'bg-amber-900/50';
-    return 'bg-zinc-700/50';
-  };
-
-  return (
-    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs ${getBgColor()}`}>
-      {renderIcon()}
-      <span className="text-zinc-200">{getStatusText()}</span>
-    </div>
-  );
-};
-
-// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -87,11 +27,7 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
     images,
     deleteImage,
     clearImages,
-    syncStatus,
-    syncError,
-    isLoadingFromDrive,
   } = useImageGallery();
-  const { isConnected } = useGoogleDrive();
   const { t } = useLanguage();
 
   // --- Keyboard and scroll lock ---
@@ -130,16 +66,6 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
             {t('gallery.title')} ({images.length})
           </h2>
 
-          {/* Sync status pill - only show when connected */}
-          {isConnected && (
-            <SyncStatusPill
-              syncStatus={syncStatus}
-              isLoading={isLoadingFromDrive}
-              syncError={syncError}
-              t={t}
-            />
-          )}
-
           {images.length > 0 && (
             <button
               onClick={handleClearAll}
@@ -163,10 +89,7 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
         className="flex-grow overflow-y-auto p-4"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Loading state */}
-        {isLoadingFromDrive ? (
-          <GalleryLoadingSkeleton />
-        ) : images.length === 0 ? (
+        {images.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="flex max-w-md flex-col items-center gap-4 px-6 text-center">
               <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-300">

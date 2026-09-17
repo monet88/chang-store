@@ -41,11 +41,10 @@ const TEST_IMAGE: GalleryImageFile = {
   createdAt: new Date('2026-04-29T00:00:00.000Z'),
 };
 
-const TEST_IMAGE_WITH_DRIVE: GalleryImageFile = {
-  base64: 'ZHJpdmUtaW1hZ2U=',
-  mimeType: 'image/png',
-  driveFileId: 'drive-file-123',
-  createdAt: new Date('2026-04-29T00:00:00.000Z'),
+const OTHER_IMAGE: GalleryImageFile = {
+  base64: 'b3RoZXItaW1hZ2UtZGF0YQ==',
+  mimeType: 'image/jpeg',
+  createdAt: new Date('2026-04-30T00:00:00.000Z'),
 };
 
 // ============================================================================
@@ -67,7 +66,7 @@ describe('galleryDB', () => {
 
   describe('getAllImages', () => {
     it('returns images from IndexedDB', async () => {
-      const savedImages: GalleryImageFile[] = [TEST_IMAGE, TEST_IMAGE_WITH_DRIVE];
+      const savedImages: GalleryImageFile[] = [TEST_IMAGE, OTHER_IMAGE];
       getMock.mockResolvedValueOnce(savedImages);
 
       const result = await galleryDB.getAllImages();
@@ -101,7 +100,7 @@ describe('galleryDB', () => {
 
   describe('saveAllImages', () => {
     it('saves images array to IndexedDB', async () => {
-      const images: GalleryImageFile[] = [TEST_IMAGE, TEST_IMAGE_WITH_DRIVE];
+      const images: GalleryImageFile[] = [TEST_IMAGE, OTHER_IMAGE];
 
       await galleryDB.saveAllImages(images);
 
@@ -128,16 +127,7 @@ describe('galleryDB', () => {
   // --------------------------------------------------------------------------
 
   describe('saveImage', () => {
-    it('uses driveFileId as key when present', async () => {
-      await galleryDB.saveImage(TEST_IMAGE_WITH_DRIVE);
-
-      expect(setMock).toHaveBeenCalledWith(
-        'img_drive-file-123',
-        TEST_IMAGE_WITH_DRIVE,
-      );
-    });
-
-    it('uses first 32 chars of base64 as key when no driveFileId', async () => {
+    it('uses the first 32 chars of base64 as key', async () => {
       await galleryDB.saveImage(TEST_IMAGE);
 
       expect(setMock).toHaveBeenCalledWith(
@@ -165,28 +155,20 @@ describe('galleryDB', () => {
   // --------------------------------------------------------------------------
 
   describe('deleteImage', () => {
-    it('removes image matching driveFileId', async () => {
-      getMock.mockResolvedValueOnce([TEST_IMAGE_WITH_DRIVE, TEST_IMAGE]);
-
-      await galleryDB.deleteImage('drive-file-123');
-
-      expect(setMock).toHaveBeenCalledWith('chang-store-gallery-images', [TEST_IMAGE]);
-    });
-
-    it('removes image matching base64 prefix', async () => {
-      getMock.mockResolvedValueOnce([TEST_IMAGE, TEST_IMAGE_WITH_DRIVE]);
+    it('removes the image matching the base64 prefix', async () => {
+      getMock.mockResolvedValueOnce([TEST_IMAGE, OTHER_IMAGE]);
 
       await galleryDB.deleteImage(TEST_IMAGE.base64.substring(0, 32));
 
-      expect(setMock).toHaveBeenCalledWith('chang-store-gallery-images', [TEST_IMAGE_WITH_DRIVE]);
+      expect(setMock).toHaveBeenCalledWith('chang-store-gallery-images', [OTHER_IMAGE]);
     });
 
     it('keeps images that do not match the key', async () => {
-      getMock.mockResolvedValueOnce([TEST_IMAGE, TEST_IMAGE_WITH_DRIVE]);
+      getMock.mockResolvedValueOnce([TEST_IMAGE, OTHER_IMAGE]);
 
       await galleryDB.deleteImage('non-existent-key');
 
-      expect(setMock).toHaveBeenCalledWith('chang-store-gallery-images', [TEST_IMAGE, TEST_IMAGE_WITH_DRIVE]);
+      expect(setMock).toHaveBeenCalledWith('chang-store-gallery-images', [TEST_IMAGE, OTHER_IMAGE]);
     });
 
     it('handles read failure gracefully via getAllImages error path', async () => {
@@ -195,7 +177,7 @@ describe('galleryDB', () => {
 
       // deleteImage calls getAllImages internally, which catches the error
       // and returns [], so the delete catch block never runs
-      await galleryDB.deleteImage('drive-file-123');
+      await galleryDB.deleteImage(TEST_IMAGE.base64.substring(0, 32));
 
       expect(consoleSpy).toHaveBeenCalledWith(
         'Failed to get gallery from IndexedDB:',

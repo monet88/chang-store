@@ -8,7 +8,7 @@ on 2026-05-30.
 - React + TypeScript + Vite SPA.
 - Gemini AI provider integration as the original/default full-featured studio.
 - Feature enum routing in `App.tsx`.
-- Provider stack for language, API config, Drive sync, gallery, viewer.
+- Provider stack for language, API config, gallery, viewer.
 - Local gallery persistence with IndexedDB.
 
 ## Phase 2: Virtual Studio Features — Completed
@@ -27,7 +27,6 @@ on 2026-05-30.
 ## Phase 3: Archive & Export Workflows — Completed
 
 - Gallery persistence.
-- Google Drive sync.
 - ZIP download flows for batch outputs.
 - Image cache and session persistence helpers.
 

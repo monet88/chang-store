@@ -154,17 +154,16 @@ React component
 ~~~
 
 The app has no custom backend server. Browser-local persistence uses IndexedDB
-for gallery/cache data, localStorage for session and preferences, and optional
-Google Drive sync. App-wide providers are ordered as:
+for gallery/cache data and localStorage for session and preferences.
+App-wide providers are ordered as:
 
 ~~~text
 LanguageProvider
   -> ToastProvider
     -> ApiProvider
-      -> GoogleDriveProvider
-        -> ImageGalleryProvider
-          -> ImageViewerProvider
-            -> AppContent
+      -> ImageGalleryProvider
+        -> ImageViewerProvider
+          -> AppContent
 ~~~
 
 ### Studio Modes

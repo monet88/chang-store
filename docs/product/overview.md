@@ -44,7 +44,7 @@ aspect ratios, and quality settings.
 | Frontend | React 19, TypeScript, Vite |
 | Styling | Tailwind CSS |
 | AI Backend | Google Gemini SDK (`@google/genai`); plus Grok (xAI) and GPT Image (OpenAI) REST in provider studios |
-| Storage | IndexedDB (idb-keyval), Google Drive (optional) |
+| Storage | IndexedDB (idb-keyval) |
 | Build/Deploy | Vite, Vercel |
 
 ## Architecture Summary
@@ -55,7 +55,7 @@ Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API
 
 No React Router. `App.tsx` switches on `Feature` enum with lazy-loading.
 Provider nesting: `LanguageProvider → ToastProvider → ApiProvider →
-GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent`.
+ImageGalleryProvider → ImageViewerProvider → AppContent`.
 
 `AppContent` also holds a `StudioMode` (`gemini | grok | gptImage`). The Gemini
 studio uses the pipeline above; Grok and GPT Image studios are isolated and call
@@ -77,5 +77,4 @@ Model registry at `src/config/modelRegistry.ts` defines capabilities per model
 
 - Gallery images: IndexedDB via `src/utils/galleryDB.ts`
 - Session state: localStorage via `src/utils/storage.ts`
-- Optional cloud sync: Google Drive via `src/services/googleDriveService.ts`
 - Image cache: IndexedDB via `src/utils/imageCache.ts`

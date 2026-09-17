@@ -39,6 +39,16 @@
   `isProxyEnabled`, `getActiveApiKey`, `getGeminiClient`, and
   `reinitializeGeminiClient` remain the module's surface.
 
+### Removed
+
+- Google Drive sync: `src/services/googleDriveService.ts`,
+  `src/contexts/GoogleDriveContext.tsx`, `src/hooks/useGoogleDriveSync*.ts`,
+  `src/components/GoogleDriveSettings.tsx`, `types/google.d.ts`, and their tests.
+  The gallery keeps its local IndexedDB persistence and no longer merges a
+  remote copy, so the settings section, the `googleDrive` locale block, the
+  `GOOGLE_CLIENT_ID` build variable, and the Google Identity Services script are
+  gone as well.
+
 ### Verified
 
 - Resolution matrix for `gemini-3.1-flash-image`, probed live against the

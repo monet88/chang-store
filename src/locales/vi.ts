@@ -1115,7 +1115,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     patternAlt: 'Mẫu hoa văn {{index}}',
     patternPreviewAlt: 'Xem trước mẫu đã chọn {{index}}',
   },
-  /** Cài đặt và thông báo trạng thái đồng bộ Google Drive */
+  /** Copy cho panel cài đặt */
   settingsModal: {
     eyebrow: 'Thiết lập studio',
     title: 'Cài đặt ứng dụng',
@@ -1129,10 +1129,6 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       cpaGateway: {
         title: 'Cổng CPA',
         description: 'Mọi request Gemini đều đi qua cổng CPA. Chỉ cấu hình được địa chỉ và API key của cổng.',
-      },
-      cloud: {
-        title: 'Đồng bộ đám mây',
-        description: 'Kết nối Drive để giữ kho thư viện và bản sao lưu studio luôn sẵn sàng.',
       },
       data: {
         title: 'Dữ liệu ứng dụng',
@@ -1186,29 +1182,5 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       toggleDebugAria: 'Bật tắt chế độ debug',
     },
     footerHint: 'Các thay đổi model sẽ áp dụng khi bạn lưu panel này.',
-  },
-  googleDrive: {
-    title: 'Google Drive',
-    description: 'Giữ bản sao lưu thư viện luôn sẵn sàng giữa các phiên và thiết bị.',
-    connect: 'Kết nối Google Drive',
-    connecting: 'Đang kết nối...',
-    disconnect: 'Ngắt kết nối',
-    connected: 'Đã kết nối',
-    dismiss: 'Ẩn',
-    privacyNote: 'Chúng tôi chỉ truy cập các tệp do ứng dụng này tạo trong Drive của bạn.',
-    lastSynced: 'Lần đồng bộ cuối',
-    never: 'Chưa bao giờ',
-    justNow: 'Vừa xong',
-    minutesAgo: '{{count}} phút trước',
-    hoursAgo: '{{count}} giờ trước',
-    status: {
-      idle: 'Sẵn sàng đồng bộ',
-      syncing: 'Đang đồng bộ...',
-      synced: 'Đã đồng bộ',
-      error: 'Đồng bộ thất bại',
-    },
-    syncNow: 'Đồng bộ ngay',
-    autoSync: 'Tự động đồng bộ',
-    autoSyncDescription: 'Tự động đồng bộ ảnh khi thêm vào thư viện.',
   },
 };

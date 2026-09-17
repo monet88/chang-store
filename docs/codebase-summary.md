@@ -13,7 +13,7 @@ GPT Image studios call provider REST endpoints directly from the browser.
 | `src/services/` | Stateless API facades and provider wrappers |
 | `src/services/gemini/` | Gemini SDK image/text/chat modules |
 | `src/services/providers/` | Grok + GPT Image studio services and shared helpers |
-| `src/contexts/` | Global providers for language, API config, gallery, Drive, viewer |
+| `src/contexts/` | Global providers for language, API config, gallery, viewer |
 | `src/utils/` | Prompt builders, image helpers, storage, downloads, workers |
 | `src/config/` | Model registry and capability metadata (Gemini + provider registries) |
 | `src/locales/` | i18n strings (`en.ts` source, `vi.ts` mirror) |
@@ -63,7 +63,6 @@ See `docs/ARCHITECTURE.md` for the authoritative app architecture.
 
 - Gallery and cache data: IndexedDB.
 - Session state and model preferences: localStorage.
-- Optional cloud sync: Google Drive.
 
 ## Testing and Validation
 
@@ -100,7 +99,7 @@ provider services (`services/providers/grok`, `services/providers/gpt-image`),
 Gemini `text.ts`, and most Virtual Try-On / Lookbook / Photo Album hooks.
 
 Lower-covered areas (opportunities, not regressions): `utils/imageUtils.ts`
-(~23%), `services/googleDriveService.ts` (~18%), the Watermark Remover hook
+(~23%), the Watermark Remover hook
 family (engine/queue/actions, 0% — logic exercised by the historical live E2E
 run below), and
 `services/gemini/chat.ts` (0%, refine-session path).

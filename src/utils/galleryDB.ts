@@ -16,7 +16,7 @@ export const galleryDB = {
   async saveImage(image: GalleryImageFile): Promise<void> {
     try {
       // Chúng ta sẽ lưu từng ảnh theo khóa an toàn để dễ quản lý
-      const key = image.driveFileId || image.base64.substring(0, 32);
+      const key = image.base64.substring(0, 32);
       await set(`img_${key}`, image);
     } catch (error) {
       console.error('Failed to save image to IndexedDB:', error);
@@ -55,7 +55,7 @@ export const galleryDB = {
   async deleteImage(key: string): Promise<void> {
     try {
       const images = await this.getAllImages();
-      const filtered = images.filter(img => img.driveFileId !== key && img.base64.substring(0, 32) !== key);
+      const filtered = images.filter(img => img.base64.substring(0, 32) !== key);
       await this.saveAllImages(filtered);
     } catch (error) {
       console.error('Failed to delete image from IndexedDB:', error);

@@ -9,7 +9,6 @@ studios call Grok and GPT Image REST endpoints from the browser as well.
 - Node.js and npm available locally.
 - Google Gemini API key for the default studio.
 - Optional Grok and GPT Image keys for provider-studio defaults.
-- Optional Google Drive OAuth configuration if Drive sync is enabled.
 
 ## Environment Variables
 
@@ -119,4 +118,3 @@ https://github.com/monet88/vertex-gateway
 - Run one Gemini-backed feature with a small test image.
 - If Grok/GPT Image keys are configured, switch studios and run one provider-backed workflow.
 - Verify API key errors are user-visible if a required key is missing.
-- If Drive sync is enabled, verify Google Drive authorization and upload flow.

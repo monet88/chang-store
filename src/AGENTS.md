@@ -20,7 +20,7 @@ Mã nguồn chính của ứng dụng React 19 + TypeScript + Vite. Thư mục n
 | `components/` | UI layer với feature screens, modal dialogs, và shared presentation pieces (xem `components/AGENTS.md`). |
 | `hooks/` | Feature logic, state orchestration, validation, và side effects (xem `hooks/AGENTS.md`). |
 | `services/` | Stateless service facades và Gemini integrations (xem `services/AGENTS.md`). |
-| `contexts/` | Global providers cho language, API config, gallery, Drive, và viewer state (xem `contexts/AGENTS.md`). |
+| `contexts/` | Global providers cho language, API config, gallery, và viewer state (xem `contexts/AGENTS.md`). |
 | `utils/` | Pure helpers, prompt builders, image helpers, storage helpers, và worker utilities (xem `utils/AGENTS.md`). |
 | `config/` | Model registry, capabilities, và feature-to-scope selection rules (xem `config/AGENTS.md`). |
 | `locales/` | Translation dictionaries; `en.ts` là source of truth (xem `locales/AGENTS.md`). |
@@ -39,7 +39,7 @@ Mã nguồn chính của ứng dụng React 19 + TypeScript + Vite. Thư mục n
 - Với thay đổi UI đáng kể, kiểm tra manual flow của feature liên quan trước khi kết luận.
 
 ### Common Patterns
-- Provider nesting trong `App.tsx`: `LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider`.
+- Provider nesting trong `App.tsx`: `LanguageProvider → ToastProvider → ApiProvider → ImageGalleryProvider → ImageViewerProvider`.
 - Path alias `@/*` trỏ về `src/`.
 - `types.ts` là hợp đồng chia sẻ giữa UI, hooks, services, và config.
 
@@ -48,7 +48,6 @@ Mã nguồn chính của ứng dụng React 19 + TypeScript + Vite. Thư mục n
 ### Internal
 - `../__tests__/` xác nhận hành vi cho hooks, services, contexts, và utilities.
 - `../docs/ARCHITECTURE.md` mô tả kiến trúc cấp cao và execution flows.
-- `../types/` chứa ambient browser typings dùng bởi một số integration bề mặt.
 
 ### External
 - `react`, `react-dom` cho UI runtime.

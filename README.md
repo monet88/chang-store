@@ -31,7 +31,6 @@ cover five workflows each.
 - Google Gemini SDK (`@google/genai`)
 - Grok (xAI) and GPT Image (OpenAI) REST in the provider studios
 - IndexedDB via `idb-keyval`
-- Optional Google Drive sync
 
 ## Architecture
 

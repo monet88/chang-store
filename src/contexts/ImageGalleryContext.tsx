@@ -1,10 +1,8 @@
 /**
  * Image Gallery Context
  *
- * Manages local gallery state with optional Google Drive synchronization.
- * Images are stored in memory with automatic sync when connected to Drive.
- *
- * @see hooks/useGoogleDriveSync.ts for Drive sync logic
+ * Manages local gallery state, persisted to IndexedDB through
+ * `hooks/useGalleryPersistence.ts`.
  */
 
 import React, {
@@ -13,47 +11,26 @@ import React, {
   useContext,
   useCallback,
   useEffect,
-  useRef,
   ReactNode,
   useMemo,
 } from 'react';
 import { ImageFile, GalleryImageFile } from '../types';
 import { ImageLRUCache } from '../utils/imageCache';
-import { useGoogleDrive } from './GoogleDriveContext';
-import {
-  useGoogleDriveSync,
-  SyncStatus,
-} from '../hooks/useGoogleDriveSync';
 import { useGalleryPersistence } from '../hooks/useGalleryPersistence';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-/** Extended context type with Drive sync state */
 interface ImageGalleryContextType {
-  /** Gallery images (local + Drive) */
+  /** Gallery images */
   images: GalleryImageFile[];
-  /** Add image to gallery (auto-syncs to Drive if connected) */
+  /** Add image to gallery */
   addImage: (image: ImageFile, feature?: string) => void;
-  /** Delete image from gallery (auto-syncs to Drive if connected) */
+  /** Delete image from gallery */
   deleteImage: (base64: string) => void;
-  /** Clear all images (auto-syncs to Drive if connected) */
+  /** Clear all images */
   clearImages: () => void;
-
-  // --- Drive sync state ---
-  /** Current sync status */
-  syncStatus: SyncStatus;
-  /** Last successful sync timestamp */
-  lastSynced: Date | null;
-  /** Current sync error message */
-  syncError: string | null;
-  /** Whether initial load from Drive is in progress */
-  isLoadingFromDrive: boolean;
-  /** Force sync all pending operations */
-  forceSync: () => Promise<void>;
-  /** Clear sync error */
-  clearSyncError: () => void;
 
   // --- LRU Cache metrics ---
   /** Get cache metrics for monitoring/debugging */
@@ -86,23 +63,8 @@ const ImageGalleryContext = createContext<ImageGalleryContextType | undefined>(u
 // ============================================================================
 
 export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // --- External state ---
-  const { isConnected } = useGoogleDrive();
-  const {
-    syncStatus,
-    lastSynced,
-    syncError,
-    loadFromDrive,
-    queueUpload,
-    queueDelete,
-    forceSync,
-    clearError,
-  } = useGoogleDriveSync();
-
   // --- Local state ---
   const [images, setImages] = useState<GalleryImageFile[]>([]);
-  const [isLoadingFromDrive, setIsLoadingFromDrive] = useState(false);
-  const [hasLoadedFromDrive, setHasLoadedFromDrive] = useState(false);
 
   // --- Persistence ---
   const { isHydrated, persistGallery } = useGalleryPersistence(imageCache, setImages);
@@ -113,50 +75,6 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
       persistGallery(images);
     }
   }, [images, persistGallery, isHydrated]);
-
-  // --- Refs for stable access in callbacks ---
-  const isConnectedRef = useRef(isConnected);
-  useEffect(() => {
-    isConnectedRef.current = isConnected;
-  }, [isConnected]);
-
-  // --- Load from Drive on connect ---
-  useEffect(() => {
-    // Cancellation flag for race condition prevention
-    let cancelled = false;
-
-    // Only load once when connected and not already loaded
-    if (isConnected && !hasLoadedFromDrive && !isLoadingFromDrive) {
-      setIsLoadingFromDrive(true);
-
-      loadFromDrive()
-        .then((driveImages) => {
-          if (cancelled) return; // Ignore stale results
-          if (driveImages.length > 0) {
-            setImages(driveImages.slice(0, GALLERY_SIZE_LIMIT));
-          }
-          setHasLoadedFromDrive(true);
-        })
-        .catch((err) => {
-          if (cancelled) return;
-          console.error('[Gallery] Failed to load from Drive:', err.message || err);
-        })
-        .finally(() => {
-          if (!cancelled) setIsLoadingFromDrive(false);
-        });
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isConnected, hasLoadedFromDrive, isLoadingFromDrive, loadFromDrive]);
-
-  // --- Reset load state on disconnect ---
-  useEffect(() => {
-    if (!isConnected) {
-      setHasLoadedFromDrive(false);
-    }
-  }, [isConnected]);
 
   // --- Add Image ---
   const addImage = useCallback((image: ImageFile, feature?: string) => {
@@ -182,12 +100,7 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
       // Apply gallery size limit on top of cache limit
       return cachedImages.slice(0, GALLERY_SIZE_LIMIT);
     });
-
-    // Queue upload outside setImages to use fresh connection state
-    if (isConnectedRef.current) {
-      queueUpload(image.base64, image.mimeType, feature || 'unknown');
-    }
-  }, [queueUpload]);
+  }, []);
 
   // --- Delete Image ---
   const deleteImage = useCallback((base64: string) => {
@@ -199,32 +112,17 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       return filteredImages;
     });
-
-    // Queue delete using ref for fresh connection state
-    if (isConnectedRef.current) {
-      queueDelete(base64);
-    }
-  }, [queueDelete]);
+  }, []);
 
   // --- Clear Images ---
   const clearImages = useCallback(() => {
-    // Use functional update to get fresh images and queue deletes
-    setImages((currentImages) => {
-      if (isConnectedRef.current) {
-        currentImages.forEach((img) => queueDelete(img.base64));
-      }
-
+    setImages(() => {
       // Clear cache
       imageCache.clear();
 
       return [];
     });
-  }, [queueDelete]);
-
-  // --- Clear Sync Error ---
-  const clearSyncError = useCallback(() => {
-    clearError();
-  }, [clearError]);
+  }, []);
 
   // --- Get Cache Metrics ---
   const getCacheMetrics = useCallback(() => {
@@ -240,14 +138,8 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
     addImage,
     deleteImage,
     clearImages,
-    syncStatus,
-    lastSynced,
-    syncError,
-    isLoadingFromDrive,
-    forceSync,
-    clearSyncError,
     getCacheMetrics,
-  }), [images, addImage, deleteImage, clearImages, syncStatus, lastSynced, syncError, isLoadingFromDrive, forceSync, clearSyncError, getCacheMetrics]);
+  }), [images, addImage, deleteImage, clearImages, getCacheMetrics]);
 
   return (
     <ImageGalleryContext.Provider value={contextValue}>

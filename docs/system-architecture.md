@@ -15,8 +15,7 @@ React Component
         → Google Gemini API
 ```
 
-There is no custom backend server. Persistence is browser-local with optional
-Google Drive sync.
+There is no custom backend server. Persistence is browser-local.
 
 ## Component Roles
 
@@ -36,10 +35,9 @@ Provider order:
 LanguageProvider
   → ToastProvider
     → ApiProvider
-      → GoogleDriveProvider
-        → ImageGalleryProvider
-          → ImageViewerProvider
-            → AppContent
+      → ImageGalleryProvider
+        → ImageViewerContext
+          → AppContent
 ```
 
 ## Feature Routing
@@ -80,7 +78,6 @@ try {
 
 - IndexedDB: gallery and image cache.
 - localStorage: session state and preferences.
-- Google Drive: optional cloud sync.
 
 ## Prompt Builder Pattern
 

@@ -21,7 +21,7 @@ AI tools.
 - Generate fashion outputs through Gemini image models or the isolated Grok and
   GPT Image provider studios.
 - Keep feature UIs fast and understandable.
-- Persist outputs locally and optionally sync to Google Drive.
+- Persist outputs locally in the browser gallery.
 - Support English and Vietnamese UI strings.
 - Keep deployment as a static Vite SPA.
 

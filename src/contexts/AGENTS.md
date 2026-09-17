@@ -4,15 +4,14 @@
 # contexts
 
 ## Purpose
-Global React providers cho language, API/model preferences, Google Drive auth, image gallery state, và image viewer state. Đây là lớp persistence/shared state giữa nhiều features.
+Global React providers cho language, API/model preferences, image gallery state, và image viewer state. Đây là lớp persistence/shared state giữa nhiều features.
 
 ## Key Files
 | File | Description |
 |------|-------------|
 | `LanguageContext.tsx` | i18n state và `t('key.path')` lookup. |
 | `ApiProviderContext.tsx` | API key access và model selection persistence. |
-| `GoogleDriveContext.tsx` | OAuth/session state cho Google Drive sync. |
-| `ImageGalleryContext.tsx` | In-memory gallery state và sync coordination. |
+| `ImageGalleryContext.tsx` | In-memory gallery state, persisted qua IndexedDB. |
 | `ImageViewerContext.tsx` | Shared viewer modal state và navigation. |
 
 ## Subdirectories

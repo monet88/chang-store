@@ -1113,7 +1113,7 @@ Do not include any other text or markdown.
     patternAlt: 'Pattern {{index}}',
     patternPreviewAlt: 'Selected pattern preview {{index}}',
   },
-  /** Google Drive sync settings and status messages */
+  /** Settings panel copy */
   settingsModal: {
     eyebrow: 'Studio settings',
     title: 'Application settings',
@@ -1127,10 +1127,6 @@ Do not include any other text or markdown.
       cpaGateway: {
         title: 'CPA Gateway',
         description: 'Every Gemini request is sent through the CPA gateway. Only its address and API key are configurable.',
-      },
-      cloud: {
-        title: 'Cloud sync',
-        description: 'Connect Drive to keep the gallery archive and studio backups portable.',
       },
       data: {
         title: 'Application data',
@@ -1184,29 +1180,5 @@ Do not include any other text or markdown.
       toggleDebugAria: 'Toggle debug mode',
     },
     footerHint: 'Model changes apply when you save this panel.',
-  },
-  googleDrive: {
-    title: 'Google Drive',
-    description: 'Keep gallery backups portable across sessions and devices.',
-    connect: 'Connect to Google Drive',
-    connecting: 'Connecting...',
-    disconnect: 'Disconnect',
-    connected: 'Connected',
-    dismiss: 'Dismiss',
-    privacyNote: 'We only access files created by this app in your Drive.',
-    lastSynced: 'Last synced',
-    never: 'Never',
-    justNow: 'Just now',
-    minutesAgo: '{{count}} minutes ago',
-    hoursAgo: '{{count}} hours ago',
-    status: {
-      idle: 'Ready to sync',
-      syncing: 'Syncing...',
-      synced: 'Synced',
-      error: 'Sync failed',
-    },
-    syncNow: 'Sync Now',
-    autoSync: 'Auto-sync',
-    autoSyncDescription: 'Automatically sync images when they are added to the gallery.',
   },
 };

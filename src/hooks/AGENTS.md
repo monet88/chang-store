@@ -11,7 +11,6 @@ Tầng logic của ứng dụng. Mỗi feature hook chịu trách nhiệm state,
 |------|-------------|
 | `useVirtualTryOn.ts` | Batch try-on workflow với per-item processing và gallery integration. |
 | `useLookbookGenerator.ts` | Lookbook generation, refinement, draft persistence, và variations flow. |
-| `useGoogleDriveSync.ts` | Queue-based Google Drive sync flow cho gallery operations. |
 | `usePatternGenerator.ts` | Logic cho pattern generation flow và prompt-driven image outputs. |
 | `useWatermarkRemover.ts` | Batch watermark removal workflow state, retries, and result handling. |
 

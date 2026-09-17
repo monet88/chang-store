@@ -85,10 +85,6 @@ vi.mock('@/services/debugService', () => ({
   setDebugEnabled: vi.fn(),
 }));
 
-vi.mock('@/components/GoogleDriveSettings', () => ({
-  GoogleDriveSettings: () => <div>google-drive-settings</div>,
-}));
-
 describe('SettingsModal', () => {
   beforeEach(() => {
     galleryImages = [];
@@ -98,7 +94,7 @@ describe('SettingsModal', () => {
     render(<SettingsModal isOpen onClose={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('google-drive-settings')).toBeInTheDocument();
+      expect(screen.getByText('Application settings')).toBeInTheDocument();
     });
 
     const textSelect = screen.getByLabelText('Text generation');
@@ -126,7 +122,7 @@ describe('SettingsModal', () => {
     const { rerender } = render(<SettingsModal isOpen onClose={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText('google-drive-settings')).toBeInTheDocument();
+      expect(screen.getByText('Application settings')).toBeInTheDocument();
     });
 
     const textSelect = screen.getByLabelText('Text generation');

@@ -9,7 +9,7 @@ Các dialog và overlay surfaces lazy-loaded từ `App.tsx`. Chúng nhận state
 ## Key Files
 | File | Description |
 |------|-------------|
-| `GalleryModal.tsx` | Gallery browser với Drive sync indicators và mở editor từ ảnh đã lưu. |
+| `GalleryModal.tsx` | Gallery browser và mở editor từ ảnh đã lưu. |
 | `PromptLibraryModal.tsx` | Quản lý prompt library và reused prompt selections. |
 | `SettingsModal.tsx` | Studio settings, API keys, và model selection surfaces. |
 | `PoseLibraryModal.tsx` | Chọn pose references cho pose-related workflows. |
@@ -40,7 +40,7 @@ Không có thư mục con đáng kể trong phạm vi sản phẩm.
 
 ### Internal
 - `../AGENTS.md` cho component-level conventions.
-- `../../contexts/` cho gallery, language, API, và Drive state.
+- `../../contexts/` cho gallery, language, và API state.
 
 ### External
 - React lazy/suspense runtime.

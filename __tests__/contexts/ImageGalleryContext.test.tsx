@@ -14,7 +14,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React, { ReactNode } from 'react';
 import { ImageGalleryProvider, useImageGallery } from '@/contexts/ImageGalleryContext';
-import { GoogleDriveProvider } from '@/contexts/GoogleDriveContext';
 import { ImageFile } from '@/types';
 
 // -----------------------------------------------------------------------------
@@ -24,14 +23,11 @@ import { ImageFile } from '@/types';
 /**
  * Wrapper component that provides ImageGalleryProvider context.
  * Required for testing hooks that depend on the provider.
- * Includes GoogleDriveProvider since ImageGalleryContext depends on it.
  */
 const createWrapper = () => {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <GoogleDriveProvider>
-        <ImageGalleryProvider>{children}</ImageGalleryProvider>
-      </GoogleDriveProvider>
+      <ImageGalleryProvider>{children}</ImageGalleryProvider>
     );
   };
 };

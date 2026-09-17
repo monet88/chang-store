@@ -39,10 +39,8 @@ export interface ImageFile {
   mimeType: string;
 }
 
-/** Extended ImageFile with Drive metadata */
+/** Extended ImageFile with gallery metadata */
 export interface GalleryImageFile extends ImageFile {
-  /** Google Drive file ID (undefined if not yet synced) */
-  driveFileId?: string;
   /** Feature that generated this image */
   feature?: string;
   /** Creation timestamp */

@@ -6,7 +6,6 @@ import { ImageGalleryProvider } from './contexts/ImageGalleryContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ApiProvider, useApi } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
-import { GoogleDriveProvider } from './contexts/GoogleDriveContext';
 import { ToastProvider } from './components/Toast';
 import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
@@ -345,13 +344,11 @@ const App: React.FC = () => {
     <LanguageProvider>
       <ToastProvider>
         <ApiProvider>
-          <GoogleDriveProvider>
-            <ImageGalleryProvider>
-              <ImageViewerProvider>
-                <AppContent />
-              </ImageViewerProvider>
-            </ImageGalleryProvider>
-          </GoogleDriveProvider>
+          <ImageGalleryProvider>
+            <ImageViewerProvider>
+              <AppContent />
+            </ImageViewerProvider>
+          </ImageGalleryProvider>
         </ApiProvider>
       </ToastProvider>
     </LanguageProvider>

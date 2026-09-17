@@ -74,10 +74,6 @@ vi.mock('../src/contexts/ImageViewerContext', () => ({
   ImageViewerProvider: passthrough,
 }));
 
-vi.mock('../src/contexts/GoogleDriveContext', () => ({
-  GoogleDriveProvider: passthrough,
-}));
-
 vi.mock('../src/components/Toast', () => ({
   ToastProvider: passthrough,
 }));

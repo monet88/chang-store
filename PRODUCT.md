@@ -36,7 +36,7 @@ Identity Transfer, Pattern Generator).
 Success looks like:
 
 - The user generates a usable image inside their first minute.
-- They never lose a result; gallery + Drive sync are silent and reliable.
+- They never lose a result; the gallery is silent and reliable.
 - Switching providers or features is one click and never loses the running
   prompt unless the user agrees to lose it.
 

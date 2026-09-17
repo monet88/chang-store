@@ -11,7 +11,7 @@ Component (thin UI) → Hook (state + logic) → Service Facade → Provider API
 **Provider nesting order** (each depends on parent):
 
 ```
-LanguageProvider → ToastProvider → ApiProvider → GoogleDriveProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
+LanguageProvider → ToastProvider → ApiProvider → ImageGalleryProvider → ImageViewerProvider → AppContent
 ```
 
 **Service routing** — `src/services/imageEditingService.ts` stays the unified facade and delegates into `src/services/gemini/*`.
