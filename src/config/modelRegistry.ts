@@ -1,4 +1,5 @@
 import { IMAGE_RESOLUTIONS, type ImageResolution } from '../types';
+import { requireImageModelDescriptor, resolveCapabilities } from './imageModelCatalog';
 
 export interface ModelCapability {
   /** Whether the API accepts imageConfig.imageSize for this model. */
@@ -30,31 +31,33 @@ const DEFAULT_CAPABILITIES: ModelCapability = {
   supportsAspectRatio: true,
 };
 
+/** The Gemini image model the app drives; its capability facts live in `imageModelCatalog.ts`. */
+const GEMINI_IMAGE_MODEL_ID = 'gemini-3.1-flash-image';
+
 /**
  * Only models the configured gateway actually serves may be listed here.
  * Verified against https://cliproxy.monet.uno/v1/models on 2026-09-17:
  * gemini-3.1-flash-image is the sole image model (the Pro/Lite/2.5 image
  * models return 400 "unknown provider for model").
  */
-const IMAGE_EDIT_MODELS: RegisteredModel[] = [
-  {
-    providerId: 'google',
-    modelId: 'gemini-3.1-flash-image',
-    label: 'Nano Banana 2',
-    selectionType: 'imageEdit',
-    capabilities: { supportsImageSize: true, supportsAspectRatio: true },
-  },
-];
+const registeredGeminiImageModel = (selectionType: ModelSelectionType): RegisteredModel => {
+  const descriptor = requireImageModelDescriptor(GEMINI_IMAGE_MODEL_ID);
+  const capabilities = resolveCapabilities(descriptor);
+  return {
+    providerId: descriptor.providerId,
+    modelId: descriptor.modelId,
+    label: descriptor.label,
+    selectionType,
+    capabilities: {
+      supportsImageSize: (capabilities.resolutions?.length ?? 0) > 0,
+      supportsAspectRatio: capabilities.sizeMode === 'ratio',
+    },
+  };
+};
 
-const IMAGE_GENERATE_MODELS: RegisteredModel[] = [
-  {
-    providerId: 'google',
-    modelId: 'gemini-3.1-flash-image',
-    label: 'Nano Banana 2',
-    selectionType: 'imageGenerate',
-    capabilities: { supportsImageSize: true, supportsAspectRatio: true },
-  },
-];
+const IMAGE_EDIT_MODELS: RegisteredModel[] = [registeredGeminiImageModel('imageEdit')];
+
+const IMAGE_GENERATE_MODELS: RegisteredModel[] = [registeredGeminiImageModel('imageGenerate')];
 
 const TEXT_GENERATE_MODELS: RegisteredModel[] = [
   {
@@ -102,8 +105,8 @@ export const MODEL_REGISTRY: RegisteredModel[] = [
 ];
 
 export const DEFAULT_MODEL_BY_SELECTION_TYPE: Record<ModelSelectionType, string> = {
-  imageEdit: 'gemini-3.1-flash-image',
-  imageGenerate: 'gemini-3.1-flash-image',
+  imageEdit: IMAGE_EDIT_MODELS[0].modelId,
+  imageGenerate: IMAGE_GENERATE_MODELS[0].modelId,
   textGenerate: 'gemini-3.8-flash',
 };
 
