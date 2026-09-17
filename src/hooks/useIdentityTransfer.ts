@@ -104,8 +104,6 @@ export const useIdentityTransfer = () => {
       return;
     }
 
-    const jobs = destinationItems.map(({ id, destinationImage }) => ({ id, destinationImage }));
-    const refs = { face: faceReference, body: bodyReference };
     setIsLoading(true);
     setLoadingMessage(t('identityTransfer.generatingStatus'));
     setError(null);
@@ -117,8 +115,8 @@ export const useIdentityTransfer = () => {
     })));
 
     try {
-      await runBoundedWorkers(jobs, IDENTITY_TRANSFER_BATCH_CONCURRENCY, (job) =>
-        generateForDestination(job, refs));
+      await runBoundedWorkers(destinationItems, IDENTITY_TRANSFER_BATCH_CONCURRENCY, (item) =>
+        generateForDestination(item, { face: faceReference, body: bodyReference }));
     } catch (batchError) {
       setError(getErrorMessage(batchError, t));
     } finally {

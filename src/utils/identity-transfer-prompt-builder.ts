@@ -15,21 +15,9 @@ const imagePart = (image: ImageFile): Part => ({
   inlineData: { data: image.base64, mimeType: image.mimeType },
 });
 
-const assertImage = (image: ImageFile | null | undefined, label: string) => {
-  if (!image?.base64 || !image.mimeType) {
-    throw new Error(`${label} must contain a valid image`);
-  }
-};
-
 export const buildIdentityTransferParts = (
   input: IdentityTransferPromptInput,
 ): Part[] => {
-  assertImage(input.destinationImage, 'destinationImage');
-  assertImage(input.faceReference, 'faceReference');
-  if (input.bodyReference) {
-    assertImage(input.bodyReference, 'bodyReference');
-  }
-
   const parts: Part[] = [
     {
       text: 'DESTINATION IMAGE: Authority for pose, performance, outfit, framing, camera, lighting, composition, and scene.',
