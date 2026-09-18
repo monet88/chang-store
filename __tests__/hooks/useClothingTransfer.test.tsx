@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { Feature } from '../../src/types';
 
 const addImageMock = vi.fn();
 
@@ -40,17 +41,22 @@ vi.mock('../../src/contexts/ApiProviderContext', () => ({
 vi.mock('../../src/utils/zipDownload', () => ({
   downloadImagesAsZip: vi.fn(),
 }));
+const activeEngineId = vi.hoisted(() => ({ current: 'gemini' as 'gemini' | 'gptImage' }));
 
-vi.mock('../../src/contexts/ImageEngineContext', () =>
-  mockUseImageEngine({
+vi.mock('../../src/contexts/ImageEngineContext', () => ({
+  useImageEngine: () => ({
+    id: activeEngineId.current,
+    model: 'gemini-2.5-flash-image',
     editImage,
     upscaleImage,
     createImageChatSession,
-    model: 'gemini-2.5-flash-image',
+    modelOptions: null,
+    setModel: null,
+    noSelectableModel: false,
+    options: null,
   }),
-);
+}));
 
-import { mockUseImageEngine } from '../__mocks__/contexts';
 import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 import { useClothingTransfer } from '../../src/hooks/useClothingTransfer';
@@ -80,6 +86,7 @@ const createDeferred = <T,>() => {
 describe('useClothingTransfer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    activeEngineId.current = 'gemini';
     addImageMock.mockReset();
     refineSessionMock.sendRefinement.mockReset();
   });
@@ -149,6 +156,26 @@ describe('useClothingTransfer', () => {
     expect(textParts).toContain('USER INSTRUCTIONS:\nkeep jewelry visible');
     expect(result.current.completedCount).toBe(2);
     expect(addImageMock).toHaveBeenCalledTimes(2);
+    expect(addImageMock).toHaveBeenNthCalledWith(1, RESULT_A, Feature.ClothingTransfer, 'gemini');
+    expect(addImageMock).toHaveBeenNthCalledWith(2, RESULT_B, Feature.ClothingTransfer, 'gemini');
+  });
+
+  it('persists generated images with gptImage engine tag when running on GPT lane', async () => {
+    activeEngineId.current = 'gptImage';
+    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+
+    const { result } = renderHook(() => useClothingTransfer());
+    act(() => {
+      result.current.handleConceptImagesUpload([CONCEPT_A]);
+      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
+      result.current.handleReferenceLabel('top', result.current.referenceItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    expect(addImageMock).toHaveBeenCalledWith(RESULT_A, Feature.ClothingTransfer, 'gptImage');
   });
 
   it('stores per-item errors without aborting sibling concept jobs', async () => {
@@ -257,7 +284,7 @@ describe('useClothingTransfer', () => {
       }),
     );
     expect(result.current.conceptItems[0].results[0]).toEqual(UPSCALED);
-    expect(addImageMock).toHaveBeenCalledWith(UPSCALED);
+    expect(addImageMock).toHaveBeenCalledWith(UPSCALED, Feature.ClothingTransfer, 'gemini');
     expect(result.current.upscalingStates[`${itemId}:0`]).toBe(false);
   });
 
@@ -440,7 +467,7 @@ describe('useClothingTransfer', () => {
     expect(result.current.conceptItems[0].results[0]).toEqual(REFINED);
     expect(result.current.refinePrompts[refineKey]).toBe('');
     expect(result.current.isRefining[refineKey]).toBe(false);
-    expect(addImageMock).toHaveBeenCalledWith(REFINED);
+    expect(addImageMock).toHaveBeenCalledWith(REFINED, Feature.ClothingTransfer, 'gemini');
   });
 
   it('sets error and clears refining state when refinement fails', async () => {

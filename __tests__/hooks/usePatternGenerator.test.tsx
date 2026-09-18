@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { Feature } from '../../src/types';
 
 const addImageMock = vi.fn();
 
@@ -36,6 +37,20 @@ vi.mock('../../src/contexts/ApiProviderContext', () => ({
 
 vi.mock('../../src/utils/zipDownload', () => ({
   downloadImagesAsZip: vi.fn(),
+}));
+
+vi.mock('../../src/contexts/ImageEngineContext', () => ({
+  useImageEngine: () => ({
+    id: 'gemini',
+    model: 'gemini-2.5-flash-image',
+    editImage,
+    upscaleImage: vi.fn(),
+    createImageChatSession,
+    modelOptions: null,
+    setModel: null,
+    noSelectableModel: false,
+    options: null,
+  }),
 }));
 
 import { usePatternGenerator } from '../../src/hooks/usePatternGenerator';
@@ -119,8 +134,8 @@ describe('usePatternGenerator', () => {
     });
 
     expect(addImageMock).toHaveBeenCalledTimes(2);
-    expect(addImageMock).toHaveBeenNthCalledWith(1, GENERATED_PATTERN_A);
-    expect(addImageMock).toHaveBeenNthCalledWith(2, GENERATED_PATTERN_B);
+    expect(addImageMock).toHaveBeenNthCalledWith(1, GENERATED_PATTERN_A, Feature.PatternGenerator, 'gemini');
+    expect(addImageMock).toHaveBeenNthCalledWith(2, GENERATED_PATTERN_B, Feature.PatternGenerator, 'gemini');
   });
 
   it('sets isLoading while generation is pending', async () => {
@@ -219,6 +234,7 @@ describe('usePatternGenerator', () => {
       expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
     );
     expect(result.current.generatedPatterns[0]).toEqual(REFINED_PATTERN);
+    expect(addImageMock).toHaveBeenCalledWith(REFINED_PATTERN, Feature.PatternGenerator, 'gemini');
   });
 
   it('handleRefine appends REFINE_CORRECTION to the prompt', async () => {

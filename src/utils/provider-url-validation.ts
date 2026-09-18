@@ -1,5 +1,5 @@
 /**
- * Base URL validation for provider studios.
+ * Base URL validation for the image lane.
  *
  * Provider API keys are sent to whatever base URL the user configures, so an
  * attacker-controlled URL could exfiltrate the key. The app therefore warns

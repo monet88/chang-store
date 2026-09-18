@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   ACTIVE_GATEWAY_PROFILE_KEY,
+  ACTIVE_IMAGE_PROFILE_KEY,
   DEFAULT_GEMINI_PROFILE_ID,
-  driverForProvider,
+  DEFAULT_IMAGE_PROFILE_ID,
+  DEFAULT_OPENAI_BASE_URL,
   geminiProfileFor,
-  imageProfileIdForProvider,
   isGatewayProfile,
+  isImageDriverId,
   loadGatewayProfiles,
-  providerIdForDriver,
   readStoredProfiles,
   resolveActiveProfile,
+  seedImageProfiles,
   type ProfileStorage,
 } from '@/config/gatewayProfiles';
 
@@ -29,11 +31,11 @@ const memoryStorage = (initial: Record<string, string> = {}): ProfileStorage => 
 const GEMINI = { url: 'https://cliproxy.monet.uno', apiKey: 'cpa-key' };
 
 describe('gateway profiles (US-006 Lớp 2b)', () => {
-  it('folds the CPA settings into the single Gemini-lane profile and stores it once', () => {
+  it('folds the CPA settings into the single Gemini-lane profile and seeds the default image profile', () => {
     const storage = memoryStorage();
     const profiles = loadGatewayProfiles(storage, GEMINI);
 
-    expect(profiles).toHaveLength(1);
+    expect(profiles).toHaveLength(2);
     expect(profiles[0]).toMatchObject({
       id: DEFAULT_GEMINI_PROFILE_ID,
       lane: 'gemini',
@@ -42,25 +44,31 @@ describe('gateway profiles (US-006 Lớp 2b)', () => {
       apiKey: 'cpa-key',
       enabled: true,
     });
+    expect(profiles[1]).toMatchObject({
+      id: DEFAULT_IMAGE_PROFILE_ID,
+      label: 'GPT',
+      baseUrl: DEFAULT_OPENAI_BASE_URL,
+      apiKey: '',
+      lane: 'image',
+      driver: 'openai-images',
+      enabled: true,
+    });
     expect(storage.getItem(ACTIVE_GATEWAY_PROFILE_KEY)).toBe(DEFAULT_GEMINI_PROFILE_ID);
+    expect(storage.getItem(ACTIVE_IMAGE_PROFILE_KEY)).toBe(DEFAULT_IMAGE_PROFILE_ID);
     expect(readStoredProfiles(storage)).toEqual(profiles);
   });
 
-  it('turns the legacy provider overrides into image-lane profiles of their own driver', () => {
-    const storage = memoryStorage({
-      'provider:gptImage:baseUrl': 'https://api.xompet.io.vn',
-      'provider:gptImage:apiKey': 'xompet-key',
-    });
-
+  it('seeds an env-default image profile with openai-images driver on fresh install', () => {
+    const storage = memoryStorage();
     const profiles = loadGatewayProfiles(storage, GEMINI);
     const imageProfiles = profiles.filter((profile) => profile.lane === 'image');
 
     expect(imageProfiles).toHaveLength(1);
-    expect(imageProfiles.find((profile) => profile.driver === 'openai-images')).toEqual({
-      id: imageProfileIdForProvider('gptImage'),
+    expect(imageProfiles[0]).toEqual({
+      id: DEFAULT_IMAGE_PROFILE_ID,
       label: 'GPT',
-      baseUrl: 'https://api.xompet.io.vn',
-      apiKey: 'xompet-key',
+      baseUrl: DEFAULT_OPENAI_BASE_URL,
+      apiKey: '',
       lane: 'image',
       driver: 'openai-images',
       enabled: true,
@@ -68,18 +76,13 @@ describe('gateway profiles (US-006 Lớp 2b)', () => {
   });
 
   it('never seeds the CPA host into the image lane (invariant 11)', () => {
-    const storage = memoryStorage({
-      'provider:gptImage:baseUrl': 'https://cliproxy.monet.uno/v1',
-      'provider:gptImage:apiKey': 'cpa-key',
-    });
-
-    const profiles = loadGatewayProfiles(storage, GEMINI);
-
-    expect(profiles.filter((profile) => profile.lane === 'image')).toEqual([]);
-  });
-
-  it('seeds nothing for a provider that was never configured', () => {
-    expect(loadGatewayProfiles(memoryStorage(), GEMINI).filter((p) => p.lane === 'image')).toEqual([]);
+    const originalBaseUrl = process.env.GPT_IMAGE_BASE_URL;
+    process.env.GPT_IMAGE_BASE_URL = 'https://cliproxy.monet.uno/v1';
+    try {
+      expect(seedImageProfiles()).toEqual([]);
+    } finally {
+      process.env.GPT_IMAGE_BASE_URL = originalBaseUrl;
+    }
   });
 
   it('is idempotent and keeps operator edits while re-projecting the Gemini address', () => {
@@ -90,7 +93,7 @@ describe('gateway profiles (US-006 Lớp 2b)', () => {
 
     const reloaded = loadGatewayProfiles(storage, { url: 'https://gateway.example.com', apiKey: 'new-key' });
 
-    expect(reloaded).toHaveLength(1);
+    expect(reloaded).toHaveLength(2);
     expect(reloaded[0]).toMatchObject({
       label: 'CPA nhà',
       enabled: false,
@@ -104,7 +107,7 @@ describe('gateway profiles (US-006 Lớp 2b)', () => {
       const storage = memoryStorage({ gateway_profiles_v1: stored });
 
       expect(readStoredProfiles(storage)).toBeNull();
-      expect(loadGatewayProfiles(storage, GEMINI)).toHaveLength(1);
+      expect(loadGatewayProfiles(storage, GEMINI)).toHaveLength(2);
     }
   });
 
@@ -113,14 +116,35 @@ describe('gateway profiles (US-006 Lớp 2b)', () => {
 
     expect(isGatewayProfile({ ...base, lane: 'image', driver: 'openai-images' })).toBe(true);
     expect(isGatewayProfile({ ...base, lane: 'video', driver: 'openai-images' })).toBe(false);
-    expect(isGatewayProfile({ ...base, lane: 'image', driver: 'guessed-images' })).toBe(false);
+    expect(isGatewayProfile({ ...base, lane: 'image', driver: 'grok-images' })).toBe(false);
+    expect(isImageDriverId('grok-images')).toBe(false);
     expect(isGatewayProfile({ ...base, lane: 'image' })).toBe(false);
   });
 
-  it('maps providers onto drivers both ways', () => {
-    expect(driverForProvider('gptImage')).toBe('openai-images');
-    expect(providerIdForDriver('openai-images')).toBe('gptImage');
-    expect(providerIdForDriver('gemini-native')).toBeNull();
+  it('drops stored Grok image profiles on load', () => {
+    const storage = memoryStorage({
+      gateway_profiles_v1: JSON.stringify([
+        { id: 'cpa', label: 'CPA', baseUrl: 'https://cpa.test', apiKey: 'k', lane: 'gemini', driver: 'gemini-native', enabled: true },
+        { id: 'grok-1', label: 'Grok', baseUrl: 'https://api.x.ai/v1', apiKey: 'k', lane: 'image', driver: 'grok-images', enabled: true },
+      ]),
+    });
+    const loaded = loadGatewayProfiles(storage, GEMINI);
+    expect(loaded.some((p) => (p.driver as string) === 'grok-images')).toBe(false);
+    expect(readStoredProfiles(storage)?.some((p) => (p.driver as string) === 'grok-images')).toBe(false);
+  });
+
+  it('cleans up orphaned legacy provider:* keys on load', () => {
+    const storage = memoryStorage({
+      'provider:gptImage:baseUrl': 'https://api.openai.com/v1',
+      'provider:gptImage:apiKey': 'oai-key',
+      'provider:grok:baseUrl': 'https://api.x.ai/v1',
+      'provider:grok:apiKey': 'xai-key',
+    });
+    loadGatewayProfiles(storage, GEMINI);
+    expect(storage.getItem('provider:gptImage:baseUrl')).toBeNull();
+    expect(storage.getItem('provider:gptImage:apiKey')).toBeNull();
+    expect(storage.getItem('provider:grok:baseUrl')).toBeNull();
+    expect(storage.getItem('provider:grok:apiKey')).toBeNull();
   });
 });
 

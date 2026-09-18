@@ -17,10 +17,7 @@ import {
   ACTIVE_GATEWAY_PROFILE_KEY,
   ACTIVE_IMAGE_PROFILE_KEY,
   GATEWAY_PROFILES_KEY,
-  legacyProviderApiKeyKey,
-  legacyProviderBaseUrlKey,
 } from '../config/gatewayProfiles';
-import { PROVIDER_IDS } from '../config/providerRegistry';
 
 export interface UseSettingsModalActionsConfig {
   localImageEditModel: string;
@@ -134,15 +131,10 @@ export const useSettingsModalActions = (config: UseSettingsModalActionsConfig): 
     }
     localStorage.removeItem(CPA_GATEWAY_URL_KEY);
     localStorage.removeItem(CPA_GATEWAY_API_KEY_KEY);
-    // The confirm text promises API keys: the profile store and the legacy `provider:*`
-    // mirror both hold one, so they must go with the rest.
+    // The confirm text promises API keys: the profile store holds them, so clear it with the rest.
     localStorage.removeItem(GATEWAY_PROFILES_KEY);
     localStorage.removeItem(ACTIVE_GATEWAY_PROFILE_KEY);
     localStorage.removeItem(ACTIVE_IMAGE_PROFILE_KEY);
-    for (const provider of PROVIDER_IDS) {
-      localStorage.removeItem(legacyProviderBaseUrlKey(provider));
-      localStorage.removeItem(legacyProviderApiKeyKey(provider));
-    }
     await clearAppData();
     alert(t('settingsModal.notifications.clearSuccess'));
     window.location.reload();

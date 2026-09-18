@@ -2,7 +2,7 @@ import { ImageResolution, UpscaleQuality } from '../types';
 
 /**
  * Upscale prompt builder — single source of truth for the preservation-first
- * upscale wording shared by the Gemini image service and the provider studios.
+ * upscale wording shared by the Gemini image service and the GPT lane.
  *
  * The only wording difference between the two historical copies was the subject
  * noun ("model's face" for Gemini, "subject's face" for providers), so callers

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { editImage } from '@/services/gemini/image';
-import { type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '@/types';
+import { Feature, type ImageEngineId, type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '@/types';
 import { type WatermarkModel } from '@/utils/watermark-prompts';
 import { useWatermarkRemoverQueue } from './useWatermarkRemoverQueue';
 import { useWatermarkRemoverEngine, type WatermarkImageDriver } from './useWatermarkRemoverEngine';
@@ -39,7 +39,8 @@ export interface UseWatermarkRemoverReturn {
  * component needs zero changes.
  */
 export function useWatermarkRemover(
-  addToGallery: (image: ImageFile) => void,
+  addToGallery: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void,
+  engineId?: ImageEngineId,
 ): UseWatermarkRemoverReturn {
   const queue = useWatermarkRemoverQueue();
 
@@ -57,6 +58,7 @@ export function useWatermarkRemover(
   const actions = useWatermarkRemoverActions({
     items: queue.items,
     addToGallery,
+    engineId,
   });
 
   return {

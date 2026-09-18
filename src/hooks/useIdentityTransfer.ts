@@ -32,7 +32,7 @@ export const useIdentityTransfer = () => {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const { editImage, model: imageEditModel } = useImageEngine();
+  const { editImage, model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
 
@@ -114,7 +114,7 @@ export const useIdentityTransfer = () => {
       }
 
       updateDestinationItem(item.id, { status: 'completed', results: [result], error: undefined });
-      addImage(result, Feature.IdentityTransfer);
+      addImage(result, Feature.IdentityTransfer, engineId);
     } catch (itemError) {
       updateDestinationItem(item.id, {
         status: 'error',
@@ -122,7 +122,7 @@ export const useIdentityTransfer = () => {
         error: getErrorMessage(itemError, t),
       });
     }
-  }, [addImage, aspectRatio, backgroundPrompt, editImage, extraPrompt, imageEditModel, resolution, t, updateDestinationItem]);
+  }, [addImage, aspectRatio, backgroundPrompt, editImage, engineId, extraPrompt, imageEditModel, resolution, t, updateDestinationItem]);
 
   const canGenerate = destinationItems.length > 0 && faceReference !== null;
 

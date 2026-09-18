@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { ImageFile } from '../types';
+import { Feature, ImageFile } from '../types';
+import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
@@ -12,6 +13,7 @@ export function usePatternGenerator() {
   const { t } = useLanguage();
   const { imageEditModel } = useApi();
   const { addImage } = useImageGallery();
+  const { id: engineId } = useImageEngine();
 
   const [referenceImages, setReferenceImages] = useState<ImageFile[]>([]);
   const [generatedPatterns, setGeneratedPatterns] = useState<ImageFile[]>([]);
@@ -85,7 +87,7 @@ export function usePatternGenerator() {
       );
 
       setGeneratedPatterns(results);
-      results.forEach((img) => addImage(img));
+      results.forEach((img) => addImage(img, Feature.PatternGenerator, engineId));
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -93,7 +95,7 @@ export function usePatternGenerator() {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [referenceImages, prompt, numImages, imageEditModel, buildImageServiceConfig, handleStatusUpdate, addImage, t, isRefining]);
+  }, [referenceImages, prompt, numImages, imageEditModel, buildImageServiceConfig, handleStatusUpdate, addImage, engineId, t, isRefining]);
 
   const handleRefine = useCallback(async () => {
     const currentImage = generatedPatterns[selectedPatternIndex];
@@ -122,7 +124,7 @@ export function usePatternGenerator() {
       setGeneratedPatterns((prev) =>
         prev.map((img, i) => (i === selectedPatternIndex ? refined : img)),
       );
-      addImage(refined);
+      addImage(refined, Feature.PatternGenerator, engineId);
       setRefinePrompt('');
     } catch (err) {
       setError(getErrorMessage(err, t));
@@ -130,7 +132,7 @@ export function usePatternGenerator() {
       setIsRefining(false);
       setLoadingMessage('');
     }
-  }, [generatedPatterns, selectedPatternIndex, refinePrompt, imageEditModel, buildImageServiceConfig, addImage, t]);
+  }, [generatedPatterns, selectedPatternIndex, refinePrompt, imageEditModel, buildImageServiceConfig, addImage, engineId, t]);
 
   const handleDownloadSelected = useCallback(() => {
     const image = generatedPatterns[selectedPatternIndex];

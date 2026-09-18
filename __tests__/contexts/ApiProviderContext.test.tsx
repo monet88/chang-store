@@ -447,62 +447,63 @@ describe('ApiProviderContext', () => {
     });
   });
 
-  describe('provider settings', () => {
-    it('exposes gptImage default settings with built-in base URLs', () => {
+  describe('gateway profile management', () => {
+    it('seeds the default image profile with openai-images driver on fresh install', () => {
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.providerSettings.gptImage.baseUrl).toBe('https://api.openai.com/v1');
-      // No env injection in test env → empty key defaults.
-      expect(result.current.providerSettings.gptImage.apiKey).toBe('');
+      const openAiProfile = result.current.imageProfiles.find((p) => p.driver === 'openai-images');
+      expect(openAiProfile).toBeDefined();
+      expect(openAiProfile?.baseUrl).toBe('https://api.openai.com/v1');
+      expect(openAiProfile?.apiKey).toBe('');
     });
 
-    it('persists provider overrides to namespaced localStorage keys', () => {
+    it('persists profile changes to gateway_profiles_v1 in storage', () => {
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
+
+      const updated = result.current.imageProfiles.map((p) =>
+        p.id === 'gptImage-default' ? { ...p, apiKey: 'new-key', baseUrl: 'https://custom.example.com/v1' } : p,
+      );
 
       act(() => {
-        result.current.setProviderSettings('gptImage', { apiKey: 'xai-key', baseUrl: 'https://api.openai.com/v1' });
+        result.current.saveGatewayProfiles([...result.current.gatewayProfiles.filter((p) => p.lane === 'gemini'), ...updated]);
       });
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('provider:gptImage:apiKey', 'xai-key');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('provider:gptImage:baseUrl', 'https://api.openai.com/v1');
-      expect(result.current.providerSettings.gptImage.apiKey).toBe('xai-key');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('gateway_profiles_v1', expect.any(String));
+      const calls = localStorageMock.setItem.mock.calls.filter((call) => call[0] === 'gateway_profiles_v1');
+      const lastCall = calls[calls.length - 1];
+      const saved = JSON.parse(lastCall[1]) as Array<{ id: string; apiKey: string }>;
+      expect(saved.find((p) => p.id === 'gptImage-default')?.apiKey).toBe('new-key');
     });
 
-    it('rehydrates persisted provider settings after remount', () => {
+    it('rehydrates persisted image profiles after remount', () => {
       const first = renderHook(() => useApi(), { wrapper: createWrapper() });
 
       act(() => {
-        first.result.current.setProviderSettings('gptImage', { apiKey: 'oai-key' });
+        const modified = first.result.current.gatewayProfiles.map((p) =>
+          p.id === 'gptImage-default' ? { ...p, apiKey: 'remount-key' } : p,
+        );
+        first.result.current.saveGatewayProfiles(modified);
       });
 
       first.unmount();
 
       const second = renderHook(() => useApi(), { wrapper: createWrapper() });
-      expect(second.result.current.providerSettings.gptImage.apiKey).toBe('oai-key');
+      const profile = second.result.current.imageProfiles.find((p) => p.id === 'gptImage-default');
+      expect(profile?.apiKey).toBe('remount-key');
     });
 
-    it('resetProviderSettings clears overrides and falls back to defaults', () => {
+    it('resolves the active profile through imageProfileForDriver', () => {
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
-      act(() => {
-        result.current.setProviderSettings('gptImage', { apiKey: 'temp-key', baseUrl: 'https://custom.example.com/v1' });
-      });
-      expect(result.current.providerSettings.gptImage.apiKey).toBe('temp-key');
-
-      act(() => {
-        result.current.resetProviderSettings('gptImage');
-      });
-
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('provider:gptImage:apiKey');
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('provider:gptImage:baseUrl');
-      expect(result.current.providerSettings.gptImage.apiKey).toBe('');
-      expect(result.current.providerSettings.gptImage.baseUrl).toBe('https://api.openai.com/v1');
+      const resolved = result.current.imageProfileForDriver('openai-images');
+      expect(resolved).toBeDefined();
+      expect(resolved?.id).toBe('gptImage-default');
     });
   });
 });

@@ -2,7 +2,7 @@ import { UpscaleQuality } from '../types';
 import { buildUpscalePromptTable } from './upscale-prompt-builder';
 
 /**
- * Preservation-first prompt helpers for provider-studio post-generation tools.
+ * Preservation-first prompt helpers for the GPT lane's post-generation tools.
  *
  * Provider edit endpoints are stateless (no server chat history), so refine and
  * upscale work exactly like the Gemini client-side flow: feed the current

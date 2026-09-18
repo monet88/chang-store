@@ -1,9 +1,8 @@
-
-// hooks/useBackgroundReplacer.ts
 import { useState, useCallback, useMemo } from 'react';
-import { AspectRatio, ImageFile, ImageResolution, DEFAULT_IMAGE_RESOLUTION } from '../types';
+import { AspectRatio, ImageFile, ImageResolution, DEFAULT_IMAGE_RESOLUTION, Feature } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
+import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generateImageDescription } from '../services/textService';
@@ -16,10 +15,9 @@ export const useBackgroundReplacer = () => {
   const { t } = useLanguage();
   const { imageEditModel, textGenerateModel } = useApi();
   const { addImage } = useImageGallery();
+  const { id: engineId } = useImageEngine();
 
-  const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({
-    onStatusUpdate,
-  }), []);
+  const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }), []);
 
   const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);
   const [backgroundImage, setBackgroundImage] = useState<ImageFile | null>(null);
@@ -132,14 +130,14 @@ export const useBackgroundReplacer = () => {
         resolution,
       }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
       setGeneratedImages(results);
-      results.forEach((img) => addImage(img));
+      results.forEach((img) => addImage(img, Feature.Background, engineId));
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [addImage, aspectRatio, backgroundImage, buildImageServiceConfig, buildPrompt, cameraView, imageEditModel, negativePrompt, promptText, resolution, subjectImage, t]);
+  }, [addImage, aspectRatio, backgroundImage, buildImageServiceConfig, buildPrompt, cameraView, engineId, imageEditModel, negativePrompt, promptText, resolution, subjectImage, t]);
 
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number) => {
     setUpscalingStates((prev) => ({ ...prev, [index]: true }));
@@ -147,21 +145,21 @@ export const useBackgroundReplacer = () => {
     try {
       const result = await upscaleImage(imageToUpscale, imageEditModel, buildImageServiceConfig(() => {}));
       setGeneratedImages((prev) => prev.map((img, i) => (i === index ? result : img)));
-      addImage(result);
+      addImage(result, Feature.Background, engineId);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
       setUpscalingStates((prev) => ({ ...prev, [index]: false }));
     }
-  }, [addImage, buildImageServiceConfig, imageEditModel, t]);
+  }, [addImage, buildImageServiceConfig, engineId, imageEditModel, t]);
 
   const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, prompt: string) => {
     const key = String(index);
     await refinement.runRefine(key, prompt, imageToRefine, (refined) => {
       setGeneratedImages((prev) => prev.map((img, i) => (i === index ? refined : img)));
-      addImage(refined);
+      addImage(refined, Feature.Background, engineId);
     });
-  }, [addImage, refinement]);
+  }, [addImage, engineId, refinement]);
 
   return {
     subjectImage,

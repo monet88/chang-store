@@ -26,6 +26,8 @@ describe('useGalleryPersistence', () => {
       {
         base64: 'persisted-image',
         mimeType: 'image/png',
+        feature: 'clothing-transfer',
+        engine: 'gptImage',
         createdAt: '2026-04-29T00:00:00.000Z',
       },
     ] as unknown as GalleryImageFile[];
@@ -33,6 +35,8 @@ describe('useGalleryPersistence', () => {
       {
         base64: 'persisted-image',
         mimeType: 'image/png',
+        feature: 'clothing-transfer',
+        engine: 'gptImage',
         createdAt: new Date('2026-04-29T00:00:00.000Z'),
       },
     ];
@@ -55,6 +59,8 @@ describe('useGalleryPersistence', () => {
 
     expect(imageCache.hydrate).toHaveBeenCalledWith([
       expect.objectContaining({
+        feature: 'clothing-transfer',
+        engine: 'gptImage',
         createdAt: expect.any(Date),
       }),
     ]);
@@ -74,6 +80,8 @@ describe('useGalleryPersistence', () => {
       {
         base64: 'to-save',
         mimeType: 'image/png',
+        feature: 'try-on',
+        engine: 'gemini',
         createdAt: new Date('2026-04-29T00:00:00.000Z'),
       },
     ];

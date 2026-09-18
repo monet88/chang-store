@@ -37,22 +37,29 @@ const profilesFrom = (profiles: GatewayProfile[], activeId?: string) =>
   renderHook(() => useGatewayProfiles({ gemini: GEMINI, storage: storageWith(profiles, activeId) })).result.current;
 
 describe('useGatewayProfiles image-lane resolution', () => {
-  it('keeps a disabled profile out of the driver fallback and out of provider settings', () => {
+  it('keeps a disabled profile out of the driver fallback', () => {
     const api = profilesFrom([openAiProfile({ enabled: false, apiKey: 'sk-disabled-profile' })]);
 
     expect(api.imageProfileForDriver('openai-images')).toBeUndefined();
-    // The retired profile's key must never become the studio's request credential.
-    expect(api.providerSettings.gptImage.apiKey).not.toBe('sk-disabled-profile');
   });
 
-  it('refuses to pair a profile with no address against the provider default host', () => {
+  it('refuses to pair a profile with no address against the default host', () => {
     const api = profilesFrom(
       [openAiProfile({ id: 'blank-address', baseUrl: '   ', apiKey: 'sk-gateway-secret' })],
       'blank-address',
     );
 
     // A selected profile whose address was cleared has no request target: fail closed
-    // instead of sending its gateway key to api.openai.com.
-    expect(api.providerSettings.gptImage).toEqual({ baseUrl: '', apiKey: '' });
+    // with its empty address instead of sending its key to api.openai.com.
+    const resolved = api.imageProfileForDriver('openai-images');
+    expect(resolved?.baseUrl.trim()).toBe('');
+  });
+
+  it('selects and switches active image profile', () => {
+    const custom = openAiProfile({ id: 'custom-profile', baseUrl: 'https://api.custom.com/v1', apiKey: 'custom-key' });
+    const api = profilesFrom([openAiProfile(), custom], 'custom-profile');
+
+    expect(api.activeImageProfileId).toBe('custom-profile');
+    expect(api.imageProfileForDriver('openai-images')?.id).toBe('custom-profile');
   });
 });

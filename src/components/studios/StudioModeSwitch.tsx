@@ -14,7 +14,7 @@ const STUDIO_SEGMENTS: Array<{ mode: StudioMode; labelKey: string }> = [
 
 /**
  * Studio switcher. Lets the user move between the Gemini studio
- * (default) and the isolated GPT Image provider studio.
+ * (default) and the GPT Image studio.
  */
 const StudioModeSwitch: React.FC<StudioModeSwitchProps> = ({ studioMode, onChange }) => {
   const { t } = useLanguage();

@@ -14,7 +14,7 @@ import React, {
   ReactNode,
   useMemo,
 } from 'react';
-import { ImageFile, GalleryImageFile } from '../types';
+import { ImageFile, GalleryImageFile, Feature, ImageEngineId } from '../types';
 import { ImageLRUCache } from '../utils/imageCache';
 import { useGalleryPersistence } from '../hooks/useGalleryPersistence';
 
@@ -26,7 +26,7 @@ interface ImageGalleryContextType {
   /** Gallery images */
   images: GalleryImageFile[];
   /** Add image to gallery */
-  addImage: (image: ImageFile, feature?: string) => void;
+  addImage: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
   /** Delete image from gallery */
   deleteImage: (base64: string) => void;
   /** Clear all images */
@@ -77,11 +77,12 @@ export const ImageGalleryProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [images, persistGallery, isHydrated]);
 
   // --- Add Image ---
-  const addImage = useCallback((image: ImageFile, feature?: string) => {
+  const addImage = useCallback((image: ImageFile, feature?: Feature, engine?: ImageEngineId) => {
     // Create gallery image with metadata
     const galleryImage: GalleryImageFile = {
       ...image,
       feature: feature || 'unknown',
+      engine,
       createdAt: new Date(),
     };
 

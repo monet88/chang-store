@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import type { ImageAspectRatio, SelectableModel } from '../types';
-import type { StudioMode } from '../types';
+import type { ImageAspectRatio, SelectableModel, StudioMode, ImageEngineId } from '../types';
 import type { GptImageQuality } from '../config/gptImageModelRegistry';
 import { createImageChatSession, editImage, upscaleImage } from '../services/imageEditingService';
 import { useApi } from './ApiProviderContext';
@@ -28,7 +27,7 @@ export interface ImageEngineOptions {
 }
 
 export interface ImageEngine {
-  id: 'gemini' | 'gptImage';
+  id: ImageEngineId;
   /** Image model id every request on this lane carries. */
   model: string;
   editImage: typeof editImage;

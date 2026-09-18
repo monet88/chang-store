@@ -6,13 +6,6 @@
  * number of OpenAI-Images gateways. The legacy `cpa_gateway_*` / `provider:*` keys
  * are read once and folded into profiles; `gateway_profiles_v1` is the store from then on.
  */
-import {
-  PROVIDER_IDS,
-  getProviderDefaultBaseUrl,
-  getProviderEnvApiKey,
-  getProviderMetadata,
-  type ProviderId,
-} from './providerRegistry';
 import { CPA_GATEWAY_HOST, type GatewayLane, type ImageDriverId } from './imageModelCatalog';
 import { gatewayHostOf } from '../services/providers/shared/imageDriverPolicy';
 
@@ -34,27 +27,55 @@ export const ACTIVE_GATEWAY_PROFILE_KEY = 'active_gateway_profile_v1';
 export const ACTIVE_IMAGE_PROFILE_KEY = 'active_image_profile_v1';
 export const DEFAULT_GEMINI_PROFILE_ID = 'cpa-default';
 export const DEFAULT_GEMINI_PROFILE_LABEL = 'Cliproxy';
+export const DEFAULT_IMAGE_PROFILE_ID = 'gptImage-default';
+export const DEFAULT_IMAGE_PROFILE_LABEL = 'GPT';
+export const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
+
+const ORPHANED_PROVIDER_KEYS = [
+  'provider:gptImage:baseUrl',
+  'provider:gptImage:apiKey',
+  'provider:grok:baseUrl',
+  'provider:grok:apiKey',
+] as const;
+
+export function cleanOrphanProviderKeys(storage: ProfileStorage): void {
+  for (const key of ORPHANED_PROVIDER_KEYS) {
+    storage.removeItem(key);
+  }
+}
+
+const readEnv = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+export function defaultImageProfile(): GatewayProfile | null {
+  const envBaseUrl = (typeof process !== 'undefined' && (readEnv(process.env?.XOMPET_BASE_URL) || readEnv(process.env?.GPT_IMAGE_BASE_URL))) || '';
+  const envApiKey = (typeof process !== 'undefined' && (readEnv(process.env?.XOMPET_API_KEY) || readEnv(process.env?.GPT_IMAGE_API_KEY))) || '';
+  const baseUrl = envBaseUrl || DEFAULT_OPENAI_BASE_URL;
+
+  if (gatewayHostOf(baseUrl) === CPA_GATEWAY_HOST) {
+    return null;
+  }
+
+  return {
+    id: DEFAULT_IMAGE_PROFILE_ID,
+    label: DEFAULT_IMAGE_PROFILE_LABEL,
+    baseUrl,
+    apiKey: envApiKey,
+    lane: 'image',
+    driver: 'openai-images',
+    enabled: true,
+  };
+}
+
+export function seedImageProfiles(): GatewayProfile[] {
+  const profile = defaultImageProfile();
+  return profile ? [profile] : [];
+}
 
 /** The slice of `Storage` this module needs, so the store is testable without a DOM. */
 export interface ProfileStorage {
   getItem: (key: string) => string | null;
   setItem: (key: string, value: string) => void;
   removeItem: (key: string) => void;
-}
-
-export const legacyProviderBaseUrlKey = (provider: ProviderId): string => `provider:${provider}:baseUrl`;
-export const legacyProviderApiKeyKey = (provider: ProviderId): string => `provider:${provider}:apiKey`;
-export const imageProfileIdForProvider = (provider: ProviderId): string => `${provider}-default`;
-
-const DRIVER_BY_PROVIDER: Record<ProviderId, ImageDriverId> = {
-  gptImage: 'openai-images',
-};
-
-export const driverForProvider = (provider: ProviderId): ImageDriverId => DRIVER_BY_PROVIDER[provider];
-
-/** The provider a driver's profiles serve; `gemini-native` has no studio-side provider. */
-export function providerIdForDriver(driver: ImageDriverId): ProviderId | null {
-  return PROVIDER_IDS.find((provider) => DRIVER_BY_PROVIDER[provider] === driver) ?? null;
 }
 
 const isLane = (value: unknown): value is GatewayLane => value === 'gemini' || value === 'image';
@@ -89,6 +110,9 @@ export function readStoredProfiles(storage: ProfileStorage): GatewayProfile[] | 
       return null;
     }
     const profiles = parsed.filter(isGatewayProfile);
+    if (profiles.length !== parsed.length) {
+      saveGatewayProfiles(storage, profiles);
+    }
     return profiles.length > 0 ? profiles : null;
   } catch {
     return null;
@@ -130,45 +154,20 @@ export const geminiProfileFor = (seed: GeminiGatewaySeed, previous?: GatewayProf
 export const geminiProfileOf = (profiles: readonly GatewayProfile[]): GatewayProfile | undefined =>
   profiles.find((profile) => profile.lane === 'gemini');
 
-/**
- * One image-lane profile per provider that carries a stored override, and never the CPA host
- * (invariant 11: the CPA answers the images route in its own fixed size, so it is not an
- * image-lane gateway unless the operator adds it as one explicitly).
- */
-export function seedImageProfiles(storage: ProfileStorage): GatewayProfile[] {
-  const seeded: GatewayProfile[] = [];
-  for (const provider of PROVIDER_IDS) {
-    const storedBaseUrl = storage.getItem(legacyProviderBaseUrlKey(provider))?.trim() ?? '';
-    const storedApiKey = storage.getItem(legacyProviderApiKeyKey(provider))?.trim() ?? '';
-    if (!storedBaseUrl && !storedApiKey) {
-      continue;
-    }
-    const baseUrl = storedBaseUrl || getProviderDefaultBaseUrl(provider);
-    if (gatewayHostOf(baseUrl) === CPA_GATEWAY_HOST) {
-      continue;
-    }
-    seeded.push({
-      id: imageProfileIdForProvider(provider),
-      label: getProviderMetadata(provider).label,
-      baseUrl,
-      apiKey: storedApiKey || getProviderEnvApiKey(provider),
-      lane: 'image',
-      driver: driverForProvider(provider),
-      enabled: true,
-    });
-  }
-  return seeded;
-}
-
-/** The stored profiles, seeded from the legacy keys on first run. Idempotent. */
+/** The stored profiles, seeded from env defines on first run. Idempotent. */
 export function loadGatewayProfiles(storage: ProfileStorage, gemini: GeminiGatewaySeed): GatewayProfile[] {
+  cleanOrphanProviderKeys(storage);
   const stored = readStoredProfiles(storage);
   const geminiProfile = geminiProfileFor(gemini, geminiProfileOf(stored ?? []));
-  const profiles = [geminiProfile, ...(stored ?? seedImageProfiles(storage)).filter((p) => p.lane !== 'gemini')];
+  const profiles = [geminiProfile, ...(stored ?? seedImageProfiles()).filter((p) => p.lane !== 'gemini')];
 
   if (!stored) {
     saveGatewayProfiles(storage, profiles);
     writeActiveProfileId(storage, ACTIVE_GATEWAY_PROFILE_KEY, geminiProfile.id);
+    const firstImage = profiles.find((p) => p.lane === 'image');
+    if (firstImage) {
+      writeActiveProfileId(storage, ACTIVE_IMAGE_PROFILE_KEY, firstImage.id);
+    }
   }
   return profiles;
 }

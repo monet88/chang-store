@@ -2,6 +2,8 @@ import { useCallback } from 'react';
 import {
   AspectRatio,
   ClothingTransferReferenceItem,
+  Feature,
+  ImageEngineId,
   ImageFile,
   ImageResolution,
 } from '../types';
@@ -39,7 +41,8 @@ export interface UseClothingTransferEngineConfig {
   canGenerate: boolean;
   refinement: UseImageRefinementReturn;
   buildImageServiceConfig: (onStatusUpdate: (message: string) => void) => { onStatusUpdate: (message: string) => void };
-  addImage: (image: ImageFile) => void;
+  addImage: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
+  engineId?: ImageEngineId;
   setIsLoading: (value: boolean) => void;
   setLoadingMessage: (message: string) => void;
   setError: (message: string | null) => void;
@@ -64,7 +67,7 @@ export const useClothingTransferEngine = (
   const {
     driver, concepts, validReferences, extraPrompt, numImages, aspectRatio,
     resolution, imageEditModel, canGenerate, refinement, buildImageServiceConfig,
-    addImage, setIsLoading, setLoadingMessage, setError, setUpscalingStates, t,
+    addImage, engineId, setIsLoading, setLoadingMessage, setError, setUpscalingStates, t,
   } = config;
   const { conceptItems, updateConceptItem, resetAllStatus } = concepts;
 
@@ -97,7 +100,7 @@ export const useClothingTransferEngine = (
           buildImageServiceConfig(setLoadingMessage),
         );
         updateConceptItem(itemId, { status: 'completed', results, error: undefined });
-        results.forEach((image) => addImage(image));
+        results.forEach((image) => addImage(image, Feature.ClothingTransfer, engineId));
       } catch (itemError) {
         updateConceptItem(itemId, {
           status: 'error',
@@ -107,7 +110,7 @@ export const useClothingTransferEngine = (
       }
     },
     [driver, updateConceptItem, extraPrompt, numImages, aspectRatio, resolution,
-      imageEditModel, buildImageServiceConfig, setLoadingMessage, addImage, t],
+      imageEditModel, buildImageServiceConfig, setLoadingMessage, addImage, engineId, t],
   );
 
   const handleGenerate = useCallback(async () => {

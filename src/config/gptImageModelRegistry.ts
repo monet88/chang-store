@@ -1,5 +1,5 @@
 /**
- * GPT Image (OpenAI) model registry for the GPT Image provider studio.
+ * GPT Image (OpenAI) model registry for the GPT Image studio.
  *
  * A projection of `imageModelCatalog.ts`: the catalog owns the capability facts, the size
  * vocabulary and the labels; this file owns which of its entries the studio lists today.

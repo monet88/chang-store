@@ -327,6 +327,7 @@ describe('useSettingsModal', () => {
     vi.stubGlobal('alert', alertMock);
     const reloadMock = vi.fn();
     vi.stubGlobal('location', { reload: reloadMock });
+    const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');
     clearAppDataMock.mockResolvedValueOnce(undefined);
 
     const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
@@ -335,9 +336,14 @@ describe('useSettingsModal', () => {
       result.current.handleClear();
     });
 
+    expect(removeItemSpy).toHaveBeenCalledWith('gateway_profiles_v1');
+    expect(removeItemSpy).toHaveBeenCalledWith('active_gateway_profile_v1');
+    expect(removeItemSpy).toHaveBeenCalledWith('active_image_profile_v1');
+    expect(removeItemSpy).not.toHaveBeenCalledWith('provider:gptImage:baseUrl');
     expect(clearAppDataMock).toHaveBeenCalled();
     expect(alertMock).toHaveBeenCalledWith('settingsModal.notifications.clearSuccess');
     expect(reloadMock).toHaveBeenCalled();
+    removeItemSpy.mockRestore();
   });
 
   it('does not clear data when confirmation is canceled', async () => {

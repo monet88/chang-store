@@ -12,6 +12,7 @@
 import React, { useCallback, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
+import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useWatermarkRemover } from '../hooks/useWatermarkRemover';
 import { WATERMARK_MODELS, WATERMARK_PROMPTS } from '../utils/watermark-prompts';
 import MultiImageUploader from './MultiImageUploader';
@@ -219,6 +220,7 @@ const BatchItemCard: React.FC<{
 const WatermarkRemover: React.FC = () => {
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
+  const { id: engineId } = useImageEngine();
 
   // Initialize hook with gallery save callback
   const {
@@ -243,7 +245,7 @@ const WatermarkRemover: React.FC = () => {
     successItems,
     pendingCount,
     errorCount,
-  } = useWatermarkRemover(addImage);
+  } = useWatermarkRemover(addImage, engineId);
 
   // Handle multi-image upload
   const handleImagesUpload = useCallback(

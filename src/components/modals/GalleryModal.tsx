@@ -115,6 +115,11 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
                     onDelete={() => deleteImage(image.base64)}
                   />
                 </div>
+                {image.engine && (
+                  <span className="pointer-events-none absolute top-2 left-2 z-10 rounded-full border border-white/10 bg-black/70 px-2 py-0.5 text-[10px] font-medium text-zinc-300 backdrop-blur-sm">
+                    {t(image.engine === 'gptImage' ? 'studio.switch.gptImage' : 'studio.switch.gemini')}
+                  </span>
+                )}
               </div>
             ))}
           </div>

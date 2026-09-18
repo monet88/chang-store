@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
-import { Feature, type ImageFile, type WatermarkBatchItem } from '@/types';
+import { Feature, type ImageEngineId, type ImageFile, type WatermarkBatchItem } from '@/types';
 import { downloadImagesAsZip } from '@/utils/zipDownload';
 import { downloadImageAsJpeg } from '@/utils/imageDownload';
 
 export interface UseWatermarkRemoverActionsConfig {
   items: WatermarkBatchItem[];
-  addToGallery: (image: ImageFile) => void;
+  addToGallery: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
+  engineId?: ImageEngineId;
 }
 
 export interface UseWatermarkRemoverActionsReturn {
@@ -23,21 +24,20 @@ export interface UseWatermarkRemoverActionsReturn {
 export const useWatermarkRemoverActions = (
   config: UseWatermarkRemoverActionsConfig,
 ): UseWatermarkRemoverActionsReturn => {
-  const { items, addToGallery } = config;
-
+  const { items, addToGallery, engineId } = config;
   const saveToGallery = useCallback((item: WatermarkBatchItem) => {
     if (item.result) {
-      addToGallery(item.result);
+      addToGallery(item.result, Feature.WatermarkRemover, engineId);
     }
-  }, [addToGallery]);
+  }, [addToGallery, engineId]);
 
   const saveAllToGallery = useCallback(() => {
     items
       .filter((i) => i.status === 'completed' && i.result)
       .forEach((item) => {
-        if (item.result) addToGallery(item.result);
+        if (item.result) addToGallery(item.result, Feature.WatermarkRemover, engineId);
       });
-  }, [items, addToGallery]);
+  }, [items, addToGallery, engineId]);
 
   const downloadItem = useCallback((item: WatermarkBatchItem) => {
     if (!item.result) return;

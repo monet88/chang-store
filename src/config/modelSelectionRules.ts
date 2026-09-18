@@ -115,7 +115,7 @@ export function resolveModelSelectionScope(
 }
 
 /**
- * Provider-studio options for one driver.
+ * GPT-lane model options for one driver.
  *
  * `fallback` is the studio's pinned membership (the pre-profile behaviour); it is replaced by
  * `catalog ∩ served` as soon as discovery has run, so a model the profile does not serve can

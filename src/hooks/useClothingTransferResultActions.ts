@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Feature, ImageFile } from '../types';
+import { Feature, ImageEngineId, ImageFile } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import { UseClothingTransferConceptsReturn } from './useClothingTransferConcepts';
@@ -16,7 +16,8 @@ export interface UseClothingTransferResultActionsConfig {
   imageEditModel: string;
   refinement: UseImageRefinementReturn;
   buildImageServiceConfig: (onStatusUpdate: (message: string) => void) => { onStatusUpdate: (message: string) => void };
-  addImage: (image: ImageFile) => void;
+  addImage: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
+  engineId?: ImageEngineId;
   setError: (message: string | null) => void;
   setUpscalingStates: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   t: TranslateFn;
@@ -38,7 +39,7 @@ export const useClothingTransferResultActions = (
   config: UseClothingTransferResultActionsConfig,
 ): UseClothingTransferResultActionsReturn => {
   const { driver, concepts, imageEditModel, refinement, buildImageServiceConfig,
-    addImage, setError, setUpscalingStates, t } = config;
+    addImage, engineId, setError, setUpscalingStates, t } = config;
   const { activeConceptItem, updateConceptItem, conceptItems } = concepts;
 
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number, itemId?: string) => {
@@ -64,14 +65,14 @@ export const useClothingTransferResultActions = (
           resultIndex === index ? result : image
         )),
       }));
-      addImage(result);
+      addImage(result, Feature.ClothingTransfer, engineId);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
       setUpscalingStates((prev) => ({ ...prev, [stateKey]: false }));
     }
   }, [driver, activeConceptItem?.id, updateConceptItem, imageEditModel,
-    buildImageServiceConfig, addImage, setUpscalingStates, setError, t]);
+    buildImageServiceConfig, addImage, engineId, setUpscalingStates, setError, t]);
 
   const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, itemId: string, prompt: string) => {
     const key = `${itemId}:${index}`;
@@ -80,9 +81,9 @@ export const useClothingTransferResultActions = (
         ...item,
         results: item.results.map((img, i) => (i === index ? refined : img)),
       }));
-      addImage(refined);
+      addImage(refined, Feature.ClothingTransfer, engineId);
     });
-  }, [refinement, updateConceptItem, addImage]);
+  }, [refinement, updateConceptItem, addImage, engineId]);
 
   const handleDownloadAll = useCallback(async () => {
     const successItems = conceptItems.filter(

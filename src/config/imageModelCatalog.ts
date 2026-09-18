@@ -8,14 +8,13 @@
  *
  * Evidence: docs/api/xompet-image-api-guide.md and the per-row probes it records.
  */
-import type { ProviderId } from './providerRegistry';
 
 export type ImageDriverId = 'gemini-native' | 'openai-images';
 export type ImageSizeMode = 'ratio' | 'pixel';
 export type ImageHonorsSize = 'yes' | 'no' | 'flaky';
 export type ImageResponseShape = 'b64_json' | 'url' | 'echo_fields';
 /** Provider scopes: the two studios, the Gemini route, and the CPA gateway. */
-export type ImageModelProviderId = ProviderId | 'google' | 'cpa';
+export type ImageModelProviderId = 'gptImage' | 'google' | 'cpa';
 /** One profile = one lane = one driver (design invariant 10). */
 export type GatewayLane = 'gemini' | 'image';
 

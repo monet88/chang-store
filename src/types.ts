@@ -12,15 +12,17 @@ export enum Feature {
 }
 
 // ============================================
-// STUDIO MODE (Three Provider Studios)
+// STUDIO MODE (Gemini / GPT Image)
 // ============================================
 
 /** Studio mode for the provider split. Gemini is default. */
 export type StudioMode = 'gemini' | 'gptImage';
 
+/** Engine identifier for image generation and gallery persistence. */
+export type ImageEngineId = 'gemini' | 'gptImage';
 /**
- * Subset of features available inside the GPT Image provider studio.
- * Provider studios only support these five workflows.
+ * Subset of features available inside the GPT Image studio.
+ * The GPT studio only supports these five workflows.
  */
 export const PROVIDER_SUPPORTED_FEATURES: Feature[] = [
   Feature.TryOn,
@@ -30,7 +32,7 @@ export const PROVIDER_SUPPORTED_FEATURES: Feature[] = [
   Feature.AIEditor,
 ];
 
-/** Returns true when a feature is supported inside provider studios. */
+/** Returns true when a feature is supported inside the GPT Image studio. */
 export const isProviderSupportedFeature = (feature: Feature): boolean =>
   PROVIDER_SUPPORTED_FEATURES.includes(feature);
 
@@ -47,7 +49,9 @@ export interface ImageFile {
 /** Extended ImageFile with gallery metadata */
 export interface GalleryImageFile extends ImageFile {
   /** Feature that generated this image */
-  feature?: string;
+  feature?: Feature | string;
+  /** Engine that generated this image */
+  engine?: ImageEngineId;
   /** Creation timestamp */
   createdAt?: Date;
 }

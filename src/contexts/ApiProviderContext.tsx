@@ -1,15 +1,13 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useRef, useMemo, useCallback } from 'react';
 import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
 import { getDefaultModelForSelectionType, isKnownModelForSelectionType, ModelSelectionType } from '../config/modelRegistry';
-import { ProviderId, PROVIDER_IDS, getProviderDefaultBaseUrl, getProviderEnvApiKey } from '../config/providerRegistry';
 import { isImageDriverId, type GatewayProfile } from '../config/gatewayProfiles';
-import { useGatewayProfiles, type ProviderSettings } from '../hooks/useGatewayProfiles';
+import { useGatewayProfiles } from '../hooks/useGatewayProfiles';
 import { configureGeminiClient } from '../services/apiClient';
 import { useToast } from '../components/Toast';
 import { validateProviderBaseUrl } from '../utils/provider-url-validation';
 import { useLanguage } from './LanguageContext';
 
-export type { ProviderSettings };
 
 /** Gateway settings. The gateway is always the Gemini route; only its address
  *  and key are configurable. */
@@ -27,12 +25,6 @@ interface ApiContextType {
   setTextGenerateModel: (model: TextGenerateModel) => void;
   cpaGatewaySettings: CpaGatewaySettings;
   setCpaGatewaySettings: (settings: CpaGatewaySettings) => void;
-  /** Resolved provider settings (env defaults merged with the active image-lane profile). */
-  providerSettings: Record<ProviderId, ProviderSettings>;
-  /** Persist a partial override for a provider. */
-  setProviderSettings: (provider: ProviderId, settings: Partial<ProviderSettings>) => void;
-  /** Clear user overrides for a provider and fall back to env defaults. */
-  resetProviderSettings: (provider: ProviderId) => void;
   /** The gateway profiles: one Gemini-lane profile, any number of image-lane ones. */
   gatewayProfiles: GatewayProfile[];
   geminiProfile: GatewayProfile;
@@ -55,8 +47,6 @@ const CPA_GATEWAY_URL_KEY = 'cpa_gateway_url';
 const CPA_GATEWAY_API_KEY_KEY = 'cpa_gateway_api_key';
 const DEFAULT_CPA_GATEWAY_URL = 'https://cliproxy.monet.uno';
 
-const providerApiKeyStorageKey = (provider: ProviderId): string => `provider:${provider}:apiKey`;
-const providerBaseUrlStorageKey = (provider: ProviderId): string => `provider:${provider}:baseUrl`;
 
 const safeStorage = {
   getItem: (key: string) => {
@@ -230,9 +220,6 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setTextGenerateModel,
       cpaGatewaySettings,
       setCpaGatewaySettings,
-      providerSettings: profiles.providerSettings,
-      setProviderSettings: profiles.setProviderSettings,
-      resetProviderSettings: profiles.resetProviderSettings,
       gatewayProfiles: profiles.gatewayProfiles,
       geminiProfile: profiles.geminiProfile,
       imageProfiles: profiles.imageProfiles,

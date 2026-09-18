@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React, { ReactNode } from 'react';
 import { ImageGalleryProvider, useImageGallery } from '@/contexts/ImageGalleryContext';
-import { ImageFile } from '@/types';
+import { Feature, ImageFile } from '@/types';
 
 // -----------------------------------------------------------------------------
 // Test Utilities
@@ -102,6 +102,22 @@ describe('ImageGalleryContext', () => {
       expect(result.current.images).toHaveLength(1);
       // Use toMatchObject to ignore metadata fields (createdAt, feature)
       expect(result.current.images[0]).toMatchObject(mockImage);
+    });
+
+    it('records feature and engine metadata when provided', () => {
+      const { result } = renderHook(() => useImageGallery(), {
+        wrapper: createWrapper(),
+      });
+
+      const mockImage = createMockImage(1);
+
+      act(() => {
+        result.current.addImage(mockImage, Feature.ClothingTransfer, 'gptImage');
+      });
+
+      expect(result.current.images).toHaveLength(1);
+      expect(result.current.images[0].feature).toBe(Feature.ClothingTransfer);
+      expect(result.current.images[0].engine).toBe('gptImage');
     });
 
     it('adds images to the front of the array (newest first)', () => {

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
+import { Feature } from '../../src/types';
 
 const addImageMock = vi.fn();
 
@@ -124,6 +125,9 @@ describe('useIdentityTransfer', () => {
     ]);
     expect(result.current.completedCount).toBe(2);
     expect(result.current.failedCount).toBe(0);
+    expect(addImageMock).toHaveBeenCalledTimes(2);
+    expect(addImageMock).toHaveBeenNthCalledWith(1, RESULT_A, Feature.IdentityTransfer, 'gemini');
+    expect(addImageMock).toHaveBeenNthCalledWith(2, RESULT_B, Feature.IdentityTransfer, 'gemini');
   });
 
   it('caps active destination requests at four and queues destinations beyond the cap', async () => {

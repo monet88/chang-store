@@ -31,7 +31,7 @@ export const useClothingTransfer = () => {
 
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
-  const { editImage, upscaleImage, model: imageEditModel } = useImageEngine();
+  const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
 
   const refinement = useImageRefinement({ imageEditModel, setError, t });
   const { refinePrompts, setRefinePrompts, isRefining } = refinement;
@@ -69,6 +69,7 @@ export const useClothingTransfer = () => {
     refinement,
     buildImageServiceConfig,
     addImage,
+    engineId,
     setIsLoading,
     setLoadingMessage,
     setError,
@@ -83,6 +84,7 @@ export const useClothingTransfer = () => {
     refinement,
     buildImageServiceConfig,
     addImage,
+    engineId,
     setError,
     setUpscalingStates,
     t,
