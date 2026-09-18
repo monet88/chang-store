@@ -66,5 +66,5 @@ ${imageRolesPrompt}
 ${additionalNotesInstruction}
 
 ## 5. FINAL OUTPUT
-Generate a single, hyper-realistic, 2K resolution, professional-grade fashion photograph that perfectly combines all the above elements.
+Generate a single, hyper-realistic, professional-grade fashion photograph that perfectly combines all the above elements.
     `.trim();

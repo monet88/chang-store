@@ -194,6 +194,18 @@ describe('buildLookbookPrompt', () => {
     expect(showroom).toContain('PRESENTATION: MINIMALIST SHOWROOM');
     expect(showroom).toContain('freestanding rectangular clothing rack');
   });
+
+  it('requests one standalone photograph for every style, ahead of the presentation contract', () => {
+    const styles = ['flat lay', 'folded', 'mannequin', 'hanger', 'studio background', 'minimalist showroom', 'product shot'] as const;
+
+    styles.forEach((lookbookStyle) => {
+      const prompt = buildLookbookPrompt(createFormState({ lookbookStyle }), [mockImage('1')], null);
+
+      expect(prompt).toContain('Render exactly one complete, standalone photograph');
+      expect(prompt).toContain('Do NOT generate a collage, grid, diptych, split-screen, contact sheet, or multi-panel composition');
+      expect(prompt.indexOf('## OUTPUT')).toBeLessThan(prompt.indexOf('## PRESENTATION'));
+    });
+  });
 });
 
 describe('buildVariationPrompt', () => {

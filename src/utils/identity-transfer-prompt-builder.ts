@@ -1,5 +1,6 @@
 import type { Part } from '@google/genai';
 import type { ImageFile } from '../types';
+import type { PromptFormat } from './promptFormat';
 
 export interface IdentityTransferPromptInput {
   destinationImage: ImageFile;
@@ -11,36 +12,93 @@ export interface IdentityTransferPromptInput {
 
 const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
 
+/**
+ * Flat-lane compaction anchors. The OpenAI-compatible lane receives one prompt,
+ * so the sections that only restate an earlier one dilute the rules instead of
+ * reinforcing them. Compaction cuts those sentences by anchor — no rule is ever
+ * re-typed here, and a missing anchor leaves the text whole rather than silently
+ * dropping a rule.
+ */
+const FACE_RESTATEMENT_ANCHOR = 'Do not paste the reference face as a rigid mask';
+const FINAL_CLOSING_ANCHOR = 'Body Reference, when present, controls morphology only.';
+
+/** Drop the sentence that ends where `anchor` begins, keeping the paragraph break. */
+const dropSentenceBefore = (text: string, anchor: string): string => {
+  const at = text.indexOf(anchor);
+  if (at <= 0) return text;
+  const paragraphAt = text.lastIndexOf('\n\n', at);
+  const sentenceStart = paragraphAt >= 0 ? paragraphAt : text.lastIndexOf('\n', at);
+  if (sentenceStart < 0) return text;
+  const gap = paragraphAt >= 0 ? '\n\n' : '\n';
+  return `${text.slice(0, sentenceStart)}${gap}${text.slice(at)}`;
+};
+
+/** Keep the opening count rule, the body clause, and the closing block; drop the restatements between them. */
+const slimFinalInvariants = (text: string, finalBodyRule: string): string => {
+  const sectionAt = text.indexOf('## FINAL INVARIANTS');
+  const closingAt = text.indexOf(FINAL_CLOSING_ANCHOR);
+  const firstSentenceAt = sectionAt >= 0 ? text.indexOf('. ', sectionAt) : -1;
+  if (firstSentenceAt < 0 || closingAt < 0) return text;
+  return `${text.slice(0, firstSentenceAt + 2)}${finalBodyRule} ${text.slice(closingAt)}`;
+};
+
 const imagePart = (image: ImageFile): Part => ({
   inlineData: { data: image.base64, mimeType: image.mimeType },
 });
 
+const destinationRoleLabel = 'DESTINATION IMAGE: Authority for pose, performance, outfit, framing, camera, lighting, composition, and scene.';
+
+const faceRoleLabel = 'FACE REFERENCE: Authority for stable facial identity, skin tone, stable facial marks/beauty marks/identity-specific marks, hair, and the worn makeup and grooming look. It is not a pose, gaze, expression, mouth state, framing, or camera reference. The reference may be a single photograph or a multi-panel contact sheet of one person at several head angles: read it as one single identity, take identity and hair from the panel whose head angle is closest to the Destination Image head angle, and never reproduce its panel layout, panel borders, gutters, repeated frames, or panel count. Ignore and never reproduce any text, labels, numbers, captions, watermarks, or UI chrome the reference carries.';
+
+const bodyRoleLabel = 'BODY REFERENCE: Authority only for body morphology and proportions. It is not a pose or posture reference.';
+
+/** Image roles in authority order: destination first, then face, then body when supplied. */
+const rolesOf = (input: IdentityTransferPromptInput): { label: string; image: ImageFile }[] => {
+  const roles = [
+    { label: destinationRoleLabel, image: input.destinationImage },
+    { label: faceRoleLabel, image: input.faceReference },
+  ];
+  if (input.bodyReference) {
+    roles.push({ label: bodyRoleLabel, image: input.bodyReference });
+  }
+  return roles;
+};
+
 export const buildIdentityTransferParts = (
   input: IdentityTransferPromptInput,
+  format: PromptFormat = 'parts',
 ): Part[] => {
-  const parts: Part[] = [
-    {
-      text: 'DESTINATION IMAGE: Authority for pose, performance, outfit, framing, camera, lighting, composition, and scene.',
-    },
-    imagePart(input.destinationImage),
-    {
-      text: 'FACE REFERENCE: Authority for stable facial identity, skin tone, stable facial marks/beauty marks/identity-specific marks, hair, and the worn makeup and grooming look. It is not a pose, gaze, expression, mouth state, framing, or camera reference. The reference may be a single photograph or a multi-panel contact sheet of one person at several head angles: read it as one single identity, take identity and hair from the panel whose head angle is closest to the Destination Image head angle, and never reproduce its panel layout, panel borders, gutters, repeated frames, or panel count. Ignore and never reproduce any text, labels, numbers, captions, watermarks, or UI chrome the reference carries.',
-    },
-    imagePart(input.faceReference),
-  ];
+  const roles = rolesOf(input);
 
-  if (input.bodyReference) {
-    parts.push({
-      text: 'BODY REFERENCE: Authority only for body morphology and proportions. It is not a pose or posture reference.',
-    });
-    parts.push(imagePart(input.bodyReference));
+  if (format === 'text') {
+    const roleMap = roles.map((role, index) => `IMAGE ${index + 1} = ${role.label}`).join('\n');
+    return [
+      { text: `${roleMap}\n\n${buildTaskText(input, { compactRestatements: true })}` },
+      ...roles.map((role) => imagePart(role.image)),
+    ];
   }
 
+  const parts: Part[] = [];
+  roles.forEach((role) => {
+    parts.push({ text: role.label });
+    parts.push(imagePart(role.image));
+  });
   parts.push({ text: buildTaskText(input) });
   return parts;
 };
 
-const buildTaskText = (input: IdentityTransferPromptInput): string => {
+/**
+ * Build the instruction block.
+ *
+ * `compactRestatements` is the flat lane's form: it cuts the sentences that only
+ * repeat an earlier section (see the anchors above). The interleaved lane keeps
+ * them, because a label sits next to each image there and the repetition costs
+ * nothing.
+ */
+const buildTaskText = (
+  input: IdentityTransferPromptInput,
+  options: { compactRestatements?: boolean } = {},
+): string => {
   const backgroundPrompt = normalize(input.backgroundPrompt);
   const extraPrompt = normalize(input.extraPrompt);
 
@@ -60,7 +118,7 @@ const buildTaskText = (input: IdentityTransferPromptInput): string => {
     ? 'Allow body morphology and silhouette to change to match the Body Reference, including necessary clothing drape and fit adjustments caused by that morphology, while preserving the destination outfit design and accessories.'
     : 'Preserve the Destination Image body morphology, silhouette, clothing drape, and fit.';
 
-  return `## TASK
+  const taskText = `## TASK
 Create one photorealistic edit of the Destination Image. Transfer the person identity from the Face Reference, and when supplied transfer only the body morphology from the Body Reference. The Destination Image remains the authority for the photographed moment.
 
 ## DESTINATION IMAGE AUTHORITY
@@ -87,4 +145,8 @@ ${extraRule}
 
 ## FINAL INVARIANTS
 One destination produces one edited image. Preserve destination pose, skeleton placement, spatial performance, and camera relationships, plus composition, lighting, and all unrelated details. The worn makeup look — lashes, brows, eye and lip styling, lip colour and finish, blush, contour — is taken from the Face Reference, re-lit by the destination lighting and laid thinly over real skin; nails, outfit and the scene stay with the Destination Image. The destination expression and colour grade win over the Face Reference's own expression, lighting and rendering: the transferred identity is lit, graded, and performing exactly as the Destination Image. ${finalBodyRule} Face Reference controls stable facial identity, the underlying skin tone family (re-rendered in the destination grade), identity-specific marks, hair, and the worn makeup look. A multi-panel Face Reference supplies one single identity and never its panel layout, and no text, label, or watermark from any reference may appear in the result. Body Reference, when present, controls morphology only. Destination pose and posture always win. Avoid plastic or waxy skin, poreless porcelain finish, airbrushed beauty-filter smoothing, smeared foundation, painted-on hair, and dead eyes; keep pores, fine lines and small blemishes visible.`;
+
+  return options.compactRestatements
+    ? slimFinalInvariants(dropSentenceBefore(taskText, FACE_RESTATEMENT_ANCHOR), finalBodyRule)
+    : taskText;
 };

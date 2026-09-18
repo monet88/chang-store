@@ -155,7 +155,7 @@ export const recreateImageWithFace = async (
 ## 2. REFERENCE IMAGE ROLE: The single provided image is the **'Face Reference'**. Use this image ONLY to capture the person's facial features, hair, and identity.
 ## 3. TEXT PROMPT (STYLE GUIDE): The following text prompt is the complete guide for the new image's aesthetic. Adhere to it strictly.\n---\n${prompt}\n---
 ## 4. CRITICAL RULES: Ignore any visual style from other images. The 'Face Reference' is for identity only. The text prompt is for style only.
-## 5. FINAL OUTPUT: Generate a single, high-resolution (2K), photorealistic image that fuses the person from the 'Face Reference' with the style from the text prompt.`;
+## 5. FINAL OUTPUT: Generate a single, high-resolution, photorealistic image that fuses the person from the 'Face Reference' with the style from the text prompt.`;
 
     try {
         let finalAspectRatio: AspectRatio = 'Default';

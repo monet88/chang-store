@@ -145,4 +145,50 @@ describe('buildClothingTransferParts', () => {
       expect(taskText).toContain('No altering the destination scene\'s background, camera perspective, lighting geometry, or destination person identity');
     });
   });
+
+  describe('flat prompt format', () => {
+    it('maps every image by position and keeps the same task instructions', () => {
+      const references = [
+        { image: mockImage('top'), label: 'blouse' },
+        { image: mockImage('bottom'), label: '' },
+      ];
+      const parts = buildClothingTransferParts(defaultConcept, references, '', 'text');
+
+      // 1 role map + 3 images: the flat lane has no interleaving to carry roles.
+      expect(parts).toHaveLength(4);
+      expect(parts[0].text).toContain('IMAGE 1 = DESTINATION SCENE (owns background, scene composition, lighting, display method, and any subject person)');
+      expect(parts[0].text).toContain('IMAGE 2 = SOURCE OUTFIT 1 (extract this clothing — blouse)');
+      expect(parts[0].text).toContain('IMAGE 3 = SOURCE OUTFIT 2 (extract this clothing — auto-detect clothing type)');
+      expect(parts[0].text).toContain('TASK: Replace the clothing in the DESTINATION SCENE');
+      expect(parts[0].text).toContain('SOURCE OUTFIT REFERENCES OWN GARMENT DESIGN ONLY');
+      expect(parts[0].text).toContain('AVOID:');
+      expect(parts[1].inlineData?.data).toBe('mock-base64-concept-scene');
+      expect(parts[2].inlineData?.data).toBe('mock-base64-top');
+      expect(parts[3].inlineData?.data).toBe('mock-base64-bottom');
+    });
+
+    it('drops the avoid bullets that only restate ROLE 1/2 and PLACEMENT', () => {
+      const interleaved = getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], ''));
+      const flat = getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '', 'text'));
+
+      // The interleaved lane keeps the full list next to its image labels.
+      expect(interleaved).toContain('No leaking source background');
+      // Gone on the flat lane: four restatements of the ownership sections.
+      ['No leaking source background', 'No transferring source model identity',
+        'No blending or residual visual attributes', "No altering the destination scene's background"]
+        .forEach((bullet) => expect(flat).not.toContain(bullet));
+      // Kept: the artifact list (no earlier statement) and the positive rules.
+      expect(flat).toContain('No compositing artifacts, edge halos, mismatched shadows, or perspective discrepancies.');
+      expect(flat).toContain('Do NOT transfer any source background, furniture, hangers, shoes, bags, jewelry');
+      expect(flat).toContain("Do NOT transfer any source person's identity, face, body, or pose.");
+      expect(flat).toContain('Zero blending: completely replace the destination clothing');
+      expect(flat).toContain('The DESTINATION image defines the entire environment');
+    });
+
+    it('carries user instructions into the flat format too', () => {
+      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], 'keep vintage belt', 'text');
+
+      expect(parts[0].text).toContain('USER INSTRUCTIONS:\nkeep vintage belt');
+    });
+  });
 });

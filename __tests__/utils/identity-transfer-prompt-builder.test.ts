@@ -17,6 +17,9 @@ const defaultInput: IdentityTransferPromptInput = {
 
 const taskText = (parts: Part[]) => parts.at(-1)?.text ?? '';
 
+/** The flat lane's single text part: role map first, then the (compacted) instruction block. */
+const flatTaskText = (parts: Part[]) => (parts.at(0)?.text ?? '').split('\n\n').slice(1).join('\n\n');
+
 describe('buildIdentityTransferParts', () => {
   it('interleaves destination, face, and body roles in authority order', () => {
     const parts = buildIdentityTransferParts(defaultInput);
@@ -180,5 +183,53 @@ describe('buildIdentityTransferParts', () => {
 
     expect(parts[2].text).toContain('never reproduce any text, labels, numbers, captions, watermarks, or UI chrome');
     expect(text).toContain('no text, label, or watermark from any reference may appear in the result');
+  });
+
+  describe('flat prompt format', () => {
+    it('maps each role to its image position and keeps the same task text', () => {
+      const parts = buildIdentityTransferParts(defaultInput, 'text');
+
+      expect(parts).toHaveLength(4);
+      expect(parts[0].text).toContain('IMAGE 1 = DESTINATION IMAGE');
+      expect(parts[0].text).toContain('IMAGE 2 = FACE REFERENCE');
+      expect(parts[0].text).toContain('IMAGE 3 = BODY REFERENCE');
+      expect(parts[0].text).toContain('## TASK');
+      expect(parts[1].inlineData?.data).toBe('base64-destination');
+      expect(parts[2].inlineData?.data).toBe('base64-face');
+      expect(parts[3].inlineData?.data).toBe('base64-body');
+      // The instruction block travels on the flat lane too, in its compacted form.
+      expect(parts[0].text).toContain('## DESTINATION IMAGE AUTHORITY');
+      expect(parts[0].text).toContain('## FINAL INVARIANTS');
+    });
+
+    it('cuts the sentences that only restate an earlier section, keeping every rule', () => {
+      const instructions = taskText(buildIdentityTransferParts(defaultInput));
+      const compacted = flatTaskText(buildIdentityTransferParts(defaultInput, 'text'));
+
+      // Gone: the anti-list, the authority repeat, the makeup repeat, the grade
+      // repeat, and the reference wrap the role map already carries.
+      expect(compacted).not.toContain('Do not copy head pose');
+      expect(compacted).not.toContain('Preserve destination pose, skeleton placement, spatial performance');
+      expect(compacted).not.toContain('The worn makeup look — lashes, brows');
+      expect(compacted).not.toContain('The destination expression and colour grade win');
+      expect(compacted).not.toContain('A multi-panel Face Reference supplies one single identity');
+      // Kept: every rule that has no earlier statement of its own.
+      ['## DESTINATION IMAGE AUTHORITY', '## FACE REFERENCE ROLE', '## SKIN AND SURFACE', '## BACKGROUND',
+        'Do not paste the reference face as a rigid mask', 'Do not beautify, slim, reshape',
+        'One destination produces one edited image.', 'Allow body morphology and silhouette to change',
+        'Body Reference, when present, controls morphology only', 'Avoid plastic or waxy skin'].forEach((rule) => {
+        expect(compacted).toContain(rule);
+      });
+      // The compaction must actually shrink the block, not silently no-op.
+      expect(compacted.length).toBeLessThan(instructions.length - 1000);
+    });
+
+    it('drops the body role and its image when no Body Reference is supplied', () => {
+      const parts = buildIdentityTransferParts({ ...defaultInput, bodyReference: null }, 'text');
+
+      expect(parts).toHaveLength(3);
+      expect(parts[0].text).not.toContain('IMAGE 3 =');
+      expect(parts[0].text).toContain('No Body Reference is provided');
+    });
   });
 });

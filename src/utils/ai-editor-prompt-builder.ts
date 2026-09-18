@@ -23,7 +23,7 @@ ${userPrompt}
 3. Reproduce text, logos, labels, and watermarks already in the image exactly as they appear. Never invent new ones, and never garble existing ones.
 
 ## OUTPUT:
-Return the edited image as the final result.`;
+Return the edited image as the final result — exactly one image, not a grid, collage, or multi-panel sheet.`;
 
 /**
  * Multi-image edit instruction. `imageRoles` maps each sent image to its
@@ -46,4 +46,4 @@ ${userPrompt}
 4. Reproduce text, logos, labels, and watermarks already in the image exactly as they appear. Never invent new ones.
 
 ## OUTPUT:
-Return the final edited image as the single result.`;
+Return the final edited image as the single result — exactly one image, not a grid, collage, or multi-panel sheet.`;

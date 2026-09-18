@@ -63,6 +63,12 @@ export const buildLookbookPrompt = (
 
   const sections: string[] = [];
 
+  // Every presentation style is one standalone product photo. Without this rule
+  // the models drift into collage / contact-sheet boards (same guard the
+  // variation prompt already carries).
+  sections.push(`## OUTPUT
+Render exactly one complete, standalone photograph. Do NOT generate a collage, grid, diptych, split-screen, contact sheet, or multi-panel composition.`);
+
   const effectiveFabricTextureImage = fabricTextureImage ?? formState.fabricTextureImage ?? null;
 
   // Multi-view and multi-piece reference evidence instruction

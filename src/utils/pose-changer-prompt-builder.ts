@@ -21,7 +21,7 @@ export const buildTextPosePrompt = (promptText: string, framingInstruction: stri
   3.  **Apply New Pose**: Re-render the model in a new, physically plausible pose that accurately matches the **New Pose Description**.
   4.  **Realistic Draping**: This is the most important step. Re-drape the *exact same* clothing onto the model in their new pose. The draping must be physically accurate, showing how the specific fabric would naturally fold, stretch, and hang based on the new body position and gravity. The fit must remain consistent with the original garment.
   5.  **Camera Framing**: ${framingInstruction}
-  **Final Goal**: A high-resolution (2K), photorealistic image.
+  **Final Goal**: A high-resolution, photorealistic image.
 `.trim();
 
 /**
@@ -42,5 +42,5 @@ export const buildReferencePosePrompt = (customPosePrompt: string, framingInstru
   5.  **Camera Framing**: ${framingInstruction}
   ${customPosePrompt.trim() ? `**Additional Text Instruction**: While applying the pose from the reference image, also incorporate this detail: "${customPosePrompt.trim()}".` : ''}
   **Strict Negative Constraints**: DO NOT copy clothing, background, or identity from the 'Pose Reference Image'.
-  **Final Goal**: A high-resolution (2K), photorealistic image where the model from the 'Subject Image' is now in the pose from the 'Pose Reference Image'.
+  **Final Goal**: A high-resolution, photorealistic image where the model from the 'Subject Image' is now in the pose from the 'Pose Reference Image'.
 `.trim();
