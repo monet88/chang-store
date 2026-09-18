@@ -5,6 +5,7 @@ import { editImage } from '../services/imageEditingService';
 import { getErrorMessage } from '../utils/imageUtils';
 import { buildPhotoAlbumPrompt } from '../utils/photo-album-prompt-builder';
 import { PHOTO_ALBUM_POSES } from '../utils/photoAlbumConfig';
+import { getEnglishFramingInstruction } from '../utils/framingInstructions';
 
 /**
  * Image driver seam for Photo Album generation.
@@ -104,9 +105,7 @@ export const usePhotoAlbumEngine = (config: UsePhotoAlbumEngineConfig): UsePhoto
       imageRolesPrompt = "**Image Roles**:\n- **Image 1 ('Face Reference')**: Provides the model's face, hair, and skin tone. This is the source of truth for identity.\n- **Image 2 ('Outfit Image')**: Provides the clothing and footwear to be worn by the model.";
     }
 
-    const framingInstruction = cameraView !== 'default'
-      ? t(`framingInstructions.${cameraView}`)
-      : 'Use default framing provided by the model.';
+    const framingInstruction = getEnglishFramingInstruction(cameraView);
 
     const prompt = buildPhotoAlbumPrompt({
       imageRolesPrompt,

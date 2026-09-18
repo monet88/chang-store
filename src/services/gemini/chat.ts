@@ -13,7 +13,7 @@ export interface ImageChatSession {
  * Create a chat session for iterative image refinement using Gemini.
  * Maintains conversation history client-side since Gemini API doesn't have native chat support for image generation.
  */
-export function createImageChatSession(model: string = 'gemini-2.5-flash-image'): ImageChatSession {
+export function createImageChatSession(model: string = 'gemini-3.1-flash-image'): ImageChatSession {
   const ai = getGeminiClient();
   let history: RefinementHistoryItem[] = [];
   let conversationParts: Part[] = []; // Track all parts (images + prompts) for context

@@ -120,6 +120,6 @@ describe('buildGptImageEngine', () => {
     );
 
     const [params] = editGptImage.mock.calls[0];
-    expect(params.prompt).toBe('flat lay of a linen shirt Negative prompt: strictly avoid including blurry logos.');
+    expect(params.prompt).toBe('flat lay of a linen shirt Ensure the output contains only the intended subject and scene, strictly excluding blurry logos.');
   });
 });

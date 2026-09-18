@@ -9,6 +9,7 @@
 import { useState, useMemo } from 'react';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getEnglishFramingInstruction } from '../utils/framingInstructions';
 
 type CameraView = 'default' | 'fullBody' | 'halfBody' | 'kneesUp';
 
@@ -65,13 +66,7 @@ export const usePoseChangerReferences = (): UsePoseChangerReferencesReturn => {
     { key: 'kneesUp', label: t('cameraView.options.kneesUp') },
   ];
 
-  const getFramingInstruction = () => {
-    if (cameraView === 'default') {
-      return 'Use default framing provided by the model.';
-    }
-    const instructionKey = `framingInstructions.${cameraView}`;
-    return t(instructionKey) || 'Use default framing provided by the model.';
-  };
+  const getFramingInstruction = () => getEnglishFramingInstruction(cameraView);
 
   const handlePoseReferenceUpload = (file: ImageFile | null) => {
     setPoseReferenceImage(file);

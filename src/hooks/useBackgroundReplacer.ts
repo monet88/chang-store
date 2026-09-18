@@ -9,6 +9,7 @@ import { generateImageDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
 import { useImageRefinement } from './useImageRefinement';
 import { buildBackgroundReplacementPrompt } from '../utils/background-replacer-prompt-builder';
+import { getEnglishFramingInstruction } from '../utils/framingInstructions';
 import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 
 export const useBackgroundReplacer = () => {
@@ -87,18 +88,13 @@ export const useBackgroundReplacer = () => {
   }, [backgroundImage, t, textGenerateModel]);
 
   const buildPrompt = useCallback((cameraViewStr: string): string => {
-    let framingInstruction = 'Use default framing provided by the model.';
-    if (cameraViewStr !== 'default') {
-      const instructionKey = `framingInstructions.${cameraViewStr}`;
-      const instructionText = t(instructionKey);
-      if (instructionText) framingInstruction = instructionText;
-    }
+    const framingInstruction = getEnglishFramingInstruction(cameraViewStr);
     return buildBackgroundReplacementPrompt({
       framingInstruction,
       hasBackgroundImage: backgroundImage !== null,
       promptText,
     });
-  }, [backgroundImage, promptText, t]);
+  }, [backgroundImage, promptText]);
 
   const handleGenerate = useCallback(async () => {
     if (!subjectImage) {

@@ -34,6 +34,16 @@ describe('buildPatternGeneratorParts', () => {
     expect(getTextParts(parts)).toContain(TASK_PROMPT);
     expect(parts[parts.length - 1]).toEqual({ text: TASK_PROMPT });
   });
+  it('assembles flat text format with positional role map and images in order', () => {
+    const parts = buildPatternGeneratorParts([mockImage('a'), mockImage('b')], 'CUSTOM TASK', 'text');
+
+    expect(parts).toHaveLength(3);
+    expect(parts[0].text).toContain('IMAGE 1 = REFERENCE IMAGE 1');
+    expect(parts[0].text).toContain('IMAGE 2 = REFERENCE IMAGE 2');
+    expect(parts[0].text).toContain('CUSTOM TASK');
+    expect(parts[1]).toEqual({ inlineData: { data: 'mock-base64-a', mimeType: 'image/png' } });
+    expect(parts[2]).toEqual({ inlineData: { data: 'mock-base64-b', mimeType: 'image/png' } });
+  });
 
   it('locks the extraction prompt to seamless flat textile requirements', () => {
     expect(TASK_PROMPT).toContain('tileable textile pattern repeat unit');

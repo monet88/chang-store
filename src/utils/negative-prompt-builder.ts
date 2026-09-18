@@ -11,7 +11,7 @@
 /** The avoid-sentence alone, or `null` when nothing was requested. */
 export const negativePromptSentence = (negativePrompt?: string): string | null => {
   const avoid = negativePrompt?.trim();
-  return avoid ? `Negative prompt: strictly avoid including ${avoid}.` : null;
+  return avoid ? `Ensure the output contains only the intended subject and scene, strictly excluding ${avoid}.` : null;
 };
 
 /** Append the avoid-sentence; an empty/blank negative prompt changes nothing. */

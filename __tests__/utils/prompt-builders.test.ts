@@ -135,6 +135,6 @@ describe('resolution belongs to the API parameter, not the prompt', () => {
     prompts.forEach((prompt) => expect(prompt).not.toMatch(/\(2K\)|\b2K\b/));
     // The resolution-free goal line still states the quality intent.
     expect(prompts[0]).toContain('**Final Goal**: A high-resolution, photorealistic image.');
-    expect(photoAlbum).toContain('Generate a single, hyper-realistic, professional-grade fashion photograph');
+    expect(photoAlbum).toContain('Generate a single, high-resolution, photorealistic fashion photograph');
   });
 });

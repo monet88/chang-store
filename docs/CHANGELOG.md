@@ -55,6 +55,11 @@
   restatements of ROLE 1/2 and PLACEMENT). Both Gemini prompts are byte-identical
   (4,035 and 3,197 characters), and every dropped bullet's rule stays stated in
   the prompt.
+- Gemini prompt optimizations: Pattern Generator supports lane-specific
+  `PromptFormat`; negative prompts use semantic scene framing; camera framing
+  instructions in Background Replacer, Pose Changer and Photo Album are locked
+  to English to prevent bilingual prompt leakage; buzzword bloat removed; default
+  Watermark Remover and chat refinement model updated to `gemini-3.1-flash-image`.
 
 ### Fixed
 

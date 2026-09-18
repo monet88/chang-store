@@ -11,15 +11,15 @@
 
 /** Available models for watermark removal */
 export const WATERMARK_MODELS = [
-  { id: 'gemini-2.5-flash-image', name: 'Nano Banana' },
-  { id: 'gemini-3-pro-image', name: 'Nano Banana Pro' },
   { id: 'gemini-3.1-flash-image', name: 'Nano Banana 2' },
+  { id: 'gemini-3-pro-image', name: 'Nano Banana Pro' },
+  { id: 'gemini-2.5-flash-image', name: 'Nano Banana' },
 ] as const;
 
 export type WatermarkModel = typeof WATERMARK_MODELS[number]['id'];
 
 /** Default model for watermark removal */
-export const DEFAULT_WATERMARK_MODEL: WatermarkModel = 'gemini-2.5-flash-image';
+export const DEFAULT_WATERMARK_MODEL: WatermarkModel = 'gemini-3.1-flash-image';
 
 // ============================================
 // PROMPT CONFIGURATION
