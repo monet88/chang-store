@@ -109,8 +109,7 @@ Rows still marked `re-verify` ship **disabled** (visible in the picker, not sele
 ### Gateway quirks the catalog must encode
 
 > Full measured contract for the image-lane reference gateway (endpoints, accepted body
-> shapes, error table, re-verify recipes): `docs/api/xompet-image-api-guide.md`. Gemini-lane
-> counterpart: `docs/api/cliproxy-vertex-ai-api-guide.md`.
+> shapes, error table, re-verify recipes): `docs/api/xompet-image-api-guide.md`.
 
 1. **User-Agent sensitivity.** `api.xompet.io.vn` answers `403 error code: 1010` (Cloudflare) for a non-browser User-Agent and `200` for `curl`/Chrome with the same key — verified on `/v1/models` and on generation. The app is a browser so it is unaffected; **probe tooling must send a browser UA**, and discovery must map `403` to its own status (`forbidden`) instead of reporting a bad key.
 2. **The 400 tells you the supported set.** An unsupported id on the CPA images route returns `400 … "Model X is not supported on /v1/images/generations or /v1/images/edits. Use <list>…"`. Log it and show it in the discovery panel as a hint — informational only, never parsed as a source of truth (the wording is gateway-build specific).

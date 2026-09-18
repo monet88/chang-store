@@ -45,7 +45,6 @@ Each profile has its own **Kiểm tra** action (`GET {baseUrl}/v1/models`) repor
 
 - `docs/product/provider-studios.md`
 - `docs/product/identity-transfer.md` (model + size selection)
-- `docs/api/gpt-image-2-api-guide.md`
 - `docs/decisions/0008-image-model-driver-and-gateway-discovery.md` (new)
 
 ## Non-Goals

@@ -2,7 +2,6 @@
 
 Story: `US-001-three-provider-studios`
 Lane: high-risk
-Plan: `plans/260530-1351-three-provider-studios/`
 
 ## Current Behavior
 
@@ -30,8 +29,6 @@ Provider studios must keep results local-only, avoid Gallery writes, avoid Gemin
 - `docs/product/overview.md`
 - `docs/deployment-guide.md`
 - `docs/api/README.md`
-- `docs/api/grok-image-api-guide.md`
-- `docs/api/gpt-image-2-api-guide.md`
 - `docs/project-roadmap.md`
 - `docs/system-architecture.md`
 - `docs/CHANGELOG.md`

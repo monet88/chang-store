@@ -74,7 +74,7 @@ scripts/e2e-live/output/
 .tokensave
 release-manifest.json
 .neuralmemory
-
+.omp
 .kiro
 .planning
 .github/skills/
