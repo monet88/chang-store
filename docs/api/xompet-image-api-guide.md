@@ -10,8 +10,7 @@
 
 This gateway is the **reference implementation of the app's image lane** (`openai-images`
 driver): it honours the OpenAI Images contract for pixel `size`, real transparency, and
-reference edits. The CPA gateway is *not* interchangeable with it — see
-`docs/api/cliproxy-vertex-ai-api-guide.md`.
+reference edits. The CPA gateway is *not* interchangeable with it.
 
 ## Connection
 
@@ -144,3 +143,36 @@ curl -sS -X POST "https://api.xompet.io.vn/v1/images/generations" \
   `responseShapes: ['b64_json','url','echo_fields']`.
 - The dimension guard (`getImageDimensions`) is mandatory for this gateway, not a nicety.
 - Discovery maps `403 model_not_allowed` separately from `403 error code: 1010`.
+
+## Re-verify 2026-09-18 — Identity Transfer edit path
+
+The app's real Identity Transfer request (`buildIdentityTransferParts`: destination + the bundled
+`docs/images/FACE_ANGLES.png` face sheet + `docs/images/BODY.png`) was sent through the exact
+multipart shape `editGptImage` builds (`model`, `prompt`, `n=1`, `response_format=b64_json`,
+`size`, repeated `image[]`):
+
+| Observation | Result |
+| --- | --- |
+| `POST /v1/images/edits` with three `image[]` parts | **200** |
+| Latency | **47.1 s** — inside the 22–122 s band, faster than the 62–97 s edits measured in September |
+| Prompt | 3705 chars / 11 blocks accepted, no truncation signal |
+| `size: "1024x1536"` | **honoured exactly** (PNG IHDR 1024x1536 for a 1024x1536 request), and nothing was echoed |
+| Envelope | shape 1: `{created, data:[{b64_json, revised_prompt}], usage}` — clean, no `size`/`quality` echo |
+| `n: 1` | one image |
+| Output | pose, outfit, accessories, framing and scene preserved; facial identity taken from the face sheet |
+
+This adds a second honoured data point for `1024x1536` (the ratio-`3:4` mapping) and confirms the
+app's own multipart reference shape works with three images. It does not change the `flaky` verdict:
+one honoured call is not a rate.
+
+### Second call, same request (2026-09-18, after the prompt-authority fix)
+
+| Observation | Result |
+| --- | --- |
+| Status / latency | **200** in **20.0 s** — latency on this gateway varies widely (20 s vs 47 s for the same request) |
+| `size: "1024x1536"` | honoured again (IHDR 1024x1536) — 2/2 for this size on this key |
+| Envelope | `{created, data, usage, image_poll}` with items carrying **only** `b64_json` — no `revised_prompt` |
+
+⇒ The envelope varies between calls even within the same shape family (extra keys appear, item keys
+come and go). A parser must read `data[].b64_json` or `data[].url` and ignore every other key —
+never key off `usage`, `image_poll`, or `revised_prompt`.

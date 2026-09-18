@@ -1,19 +1,22 @@
 # Deployment Guide
 
 Chang Store deploys as a static Vite SPA. There is no custom backend server.
-Gemini calls go directly from the browser to Google Gemini; optional provider
-studios call Grok and GPT Image REST endpoints from the browser as well.
+Every Gemini call goes from the browser to the CPA gateway
+(`https://cliproxy.monet.uno`); the Grok and GPT Image studios call their own
+REST endpoints from the browser as well. There is no direct-Google route: no
+code path reads or injects a Google API key.
 
 ## Prerequisites
 
 - Node.js and npm available locally.
-- Google Gemini API key for the default studio.
+- CPA gateway key for the default studio.
 - Optional Grok and GPT Image keys for provider-studio defaults.
 
 ## Environment Variables
 
 Vite only exposes variables with the `VITE_` prefix. This project also supports
-non-prefixed `GEMINI_API_KEY` through explicit injection in `vite.config.ts`.
+non-prefixed names such as `CLIPROXY_API_KEY` and `GPT_IMAGE_API_KEY` through
+explicit injection in `vite.config.ts`.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
@@ -23,11 +26,15 @@ non-prefixed `GEMINI_API_KEY` through explicit injection in `vite.config.ts`.
 | `VITE_GROK_API_KEY` | Alternative | Vite-prefixed fallback for the Grok key |
 | `GROK_BASE_URL` | Optional | Override the Grok base URL (default `https://api.x.ai/v1`) |
 | `VITE_GROK_BASE_URL` | Alternative | Vite-prefixed fallback for the Grok base URL |
-| `GPT_IMAGE_API_KEY` | For GPT Image studio | OpenAI API key injected into the client build |
+| `XOMPET_API_KEY` | For the GPT Image studio | XomPet gateway key (the measured reference gateway for the image lane); wins over `GPT_IMAGE_API_KEY` |
+| `VITE_XOMPET_API_KEY` | Alternative | Vite-prefixed fallback for the XomPet key |
+| `XOMPET_BASE_URL` | Optional | Override the XomPet base URL (default `https://api.xompet.io.vn/v1`) |
+| `VITE_XOMPET_BASE_URL` | Alternative | Vite-prefixed fallback for the XomPet base URL |
+| `GPT_IMAGE_API_KEY` | Fallback | OpenAI API key injected into the client build; used only when `XOMPET_API_KEY` is unset |
 | `VITE_GPT_IMAGE_API_KEY` | Alternative | Vite-prefixed fallback for the GPT Image key |
 | `GPT_IMAGE_BASE_URL` | Optional | Override the GPT Image base URL (default `https://api.openai.com/v1`) |
 | `VITE_GPT_IMAGE_BASE_URL` | Alternative | Vite-prefixed fallback for the GPT Image base URL |
-| `GEMINI_API_KEY` | Legacy | Direct Google Gemini key. No longer used for routing — every Gemini call goes through the CPA gateway |
+| `GEMINI_API_KEY` | Removed | No longer read or injected: every Gemini call goes through the CPA gateway, and no client code path accepts a Google key |
 
 Production hosting must set `CLIPROXY_API_KEY` or `VITE_CLIPROXY_API_KEY` in the
 hosting dashboard. The Grok and GPT Image studios are usable without build-time

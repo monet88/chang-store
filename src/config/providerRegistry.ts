@@ -39,8 +39,10 @@ export const PROVIDER_REGISTRY: Record<ProviderId, ProviderMetadata> = {
     id: 'gptImage',
     label: 'GPT',
     defaultBaseUrl: GPT_IMAGE_DEFAULT_BASE_URL,
-    envApiKey: readEnv(process.env.GPT_IMAGE_API_KEY),
-    envBaseUrl: readEnv(process.env.GPT_IMAGE_BASE_URL),
+    // XomPet is the measured reference gateway for the image lane, so its injected env
+    // values win when both are present (docs/api/xompet-image-api-guide.md).
+    envApiKey: readEnv(process.env.XOMPET_API_KEY) || readEnv(process.env.GPT_IMAGE_API_KEY),
+    envBaseUrl: readEnv(process.env.XOMPET_BASE_URL) || readEnv(process.env.GPT_IMAGE_BASE_URL),
   },
 };
 

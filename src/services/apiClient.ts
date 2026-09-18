@@ -52,11 +52,6 @@ const getGeminiClientDebugState = (client: GoogleGenAI): Record<string, unknown>
   };
 };
 
-const getEnvGeminiApiKey = (): string | null => {
-  const envApiKey = process.env.GEMINI_API_KEY?.trim();
-  return envApiKey ? envApiKey : null;
-};
-
 const buildGeminiClient = (apiKey: string, baseUrl: string | null): GoogleGenAI => {
   const client = new GoogleGenAI({
     apiKey,
@@ -96,22 +91,8 @@ export function isProxyEnabled(): boolean {
 }
 
 export function getActiveApiKey(): string {
-  if (customBaseUrl) {
-    if (activeApiKeyOverride) {
-      return activeApiKeyOverride;
-    }
-
-    throw new Error("API_KEY is not configured. Please set it in the settings or environment.");
-  }
-
-  // Direct mode (no gateway URL configured) keeps the env-key precedence. The app's own
-  // wiring always configures a gateway (ApiProviderContext), so today only an explicit
-  // `baseUrl: null` caller reaches this.
-  const envApiKey = getEnvGeminiApiKey();
-  if (envApiKey) {
-    return envApiKey;
-  }
-
+  // The gateway key is the only accepted credential: there is no direct-Google fallback,
+  // so a build without a configured key fails loudly instead of reaching Google.
   if (activeApiKeyOverride) {
     return activeApiKeyOverride;
   }

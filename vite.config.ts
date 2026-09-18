@@ -58,7 +58,6 @@ export default defineConfig(({ mode }) => {
       // API keys are injected in ALL build modes and exposed in the client
       // bundle. This is accepted for v1 — plan a serverless proxy for v2.
       // See docs/deployment.md and the three-provider-studios plan.
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY),
       // CPA gateway key: the app always routes Gemini through the gateway, so
       // this default removes the need to paste the key into Settings.
       'process.env.CLIPROXY_API_KEY': JSON.stringify(env.CLIPROXY_API_KEY || env.VITE_CLIPROXY_API_KEY),
@@ -68,6 +67,10 @@ export default defineConfig(({ mode }) => {
       'process.env.GROK_BASE_URL': JSON.stringify(env.GROK_BASE_URL || env.VITE_GROK_BASE_URL),
       'process.env.GPT_IMAGE_API_KEY': JSON.stringify(env.GPT_IMAGE_API_KEY || env.VITE_GPT_IMAGE_API_KEY),
       'process.env.GPT_IMAGE_BASE_URL': JSON.stringify(env.GPT_IMAGE_BASE_URL || env.VITE_GPT_IMAGE_BASE_URL),
+      // XomPet is the measured reference gateway for the image lane: when both are set,
+      // its values win for the GPT Image provider (docs/api/xompet-image-api-guide.md).
+      'process.env.XOMPET_API_KEY': JSON.stringify(env.XOMPET_API_KEY || env.VITE_XOMPET_API_KEY),
+      'process.env.XOMPET_BASE_URL': JSON.stringify(env.XOMPET_BASE_URL || env.VITE_XOMPET_BASE_URL),
     },
     resolve: {
       alias: {

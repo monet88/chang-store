@@ -39,9 +39,10 @@ describe('provider isolation regression', () => {
         }
     });
 
-    it('injects all five image API env vars in vite.config.ts define block', () => {
+    it('injects the gateway and provider env vars in vite.config.ts define block', () => {
         const viteConfig = fs.readFileSync(path.join(PROJECT_ROOT, 'vite.config.ts'), 'utf-8');
-        expect(viteConfig).toMatch(/process\.env\.GEMINI_API_KEY/);
+        expect(viteConfig).toMatch(/process\.env\.CLIPROXY_API_KEY/);
+        expect(viteConfig).not.toMatch(/process\.env\.GEMINI_API_KEY/);
         expect(viteConfig).toMatch(/process\.env\.GROK_API_KEY/);
         expect(viteConfig).toMatch(/process\.env\.GROK_BASE_URL/);
         expect(viteConfig).toMatch(/process\.env\.GPT_IMAGE_API_KEY/);

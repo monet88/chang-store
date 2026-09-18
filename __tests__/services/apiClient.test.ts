@@ -43,22 +43,10 @@ import {
 const GATEWAY_URL = 'https://cliproxy.monet.uno';
 
 describe('apiClient', () => {
-  /** Store original env value to restore after tests */
-  const originalApiKey = process.env.GEMINI_API_KEY;
-
   beforeEach(() => {
     configureGeminiClient({ apiKey: null, baseUrl: null });
     reinitializeGeminiClient();
     constructorCalls.length = 0;
-    delete process.env.GEMINI_API_KEY;
-  });
-
-  afterEach(() => {
-    if (originalApiKey !== undefined) {
-      process.env.GEMINI_API_KEY = originalApiKey;
-    } else {
-      delete process.env.GEMINI_API_KEY;
-    }
   });
 
   // ============================================================
@@ -91,10 +79,9 @@ describe('apiClient', () => {
       expect(getActiveApiKey()).toBe('gateway-key');
     });
 
-    it('should not fall back to a Google key when the gateway key is missing', () => {
-      // Arrange - a stray Google key must never leak past the gateway
+    it('should throw when the gateway is configured without a key', () => {
+      // Arrange — a key that trims away is no key at all
       configureGeminiClient({ apiKey: '   ', baseUrl: GATEWAY_URL });
-      process.env.GEMINI_API_KEY = 'google-key';
 
       // Act & Assert
       expect(() => getActiveApiKey()).toThrow(
@@ -102,29 +89,19 @@ describe('apiClient', () => {
       );
     });
 
-    it('should use the environment key when no gateway is configured', () => {
-      // Arrange
-      process.env.GEMINI_API_KEY = 'env-api-key-456';
-
-      // Act & Assert
-      expect(getActiveApiKey()).toBe('env-api-key-456');
-    });
-
-    it('should prefer the environment key over a configured key in direct mode', () => {
-      // Arrange
-      configureGeminiClient({ apiKey: 'direct-key', baseUrl: null });
-      process.env.GEMINI_API_KEY = 'env-wins';
-
-      // Act & Assert
-      expect(getActiveApiKey()).toBe('env-wins');
-    });
-
-    it('should fall back to the configured key when the environment key is absent', () => {
+    it('should use the configured key in direct mode', () => {
       // Arrange
       configureGeminiClient({ apiKey: 'direct-key', baseUrl: null });
 
       // Act & Assert
       expect(getActiveApiKey()).toBe('direct-key');
+    });
+
+    it('should throw when no key is configured at all', () => {
+      // Act & Assert
+      expect(() => getActiveApiKey()).toThrow(
+        'API_KEY is not configured. Please set it in the settings or environment.'
+      );
     });
 
     it('should throw when nothing is configured', () => {
