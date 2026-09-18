@@ -59,10 +59,6 @@ export const GPT_IMAGE_OUTPUT_COUNT = 1;
 /** Rough response-time guidance for UI warnings (seconds). */
 export const GPT_IMAGE_ESTIMATED_RESPONSE_SECONDS = '60-90';
 
-export function isKnownGptImageQuality(value: string): value is GptImageQuality {
-  return (GPT_IMAGE_QUALITIES as readonly string[]).includes(value);
-}
-
 /**
  * Capability facts of the (gateway, model) pair the studio is about to use. No host ⇒ the
  * model's own documented contract. `null` for an unverified model the gateway serves.
@@ -97,8 +93,4 @@ export function resolveGptImageSizeObservations(
 /** Measured: both gateways echo a quality they chose (`high` in, `medium` out). */
 export function resolveGptImageSupportsQuality(modelId: string, gatewayHost?: string): boolean {
   return resolveGptImageCapabilities(modelId, gatewayHost)?.honorsQuality !== false;
-}
-
-export function isKnownGptImageSize(value: string): value is GptImageSize {
-  return (GPT_IMAGE_SIZES as readonly string[]).includes(value);
 }

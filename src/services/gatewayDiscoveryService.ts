@@ -43,14 +43,12 @@ export const GATEWAY_MODELS_TTL_MS = 10 * 60 * 1000;
 /** Measured budget is 0.23–0.36 s; this is the abort ceiling. */
 export const GATEWAY_PROBE_TIMEOUT_MS = 10_000;
 
-const trimSlashes = (baseUrl: string): string => baseUrl.replace(/\/+$/, '');
-
 /**
  * `https://host`, `https://host/` and `https://host/v1` address the same API root: the
  * image lanes document the versioned form (`…/v1/images/generations`), so the probe must
  * accept it instead of asking for `/v1/v1/models`.
  */
-const toApiRoot = (baseUrl: string): string => trimSlashes(baseUrl).replace(/\/v1$/, '');
+const toApiRoot = (baseUrl: string): string => baseUrl.replace(/\/+$/, '').replace(/\/v1$/, '');
 
 /** FNV-1a over the key: enough to tell two keys apart, useless for recovering one. */
 const keyIdentity = (apiKey: string): string => {

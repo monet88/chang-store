@@ -50,7 +50,3 @@ export const GROK_MAX_OUTPUTS = 10;
 
 /** Official multi-image edit source cap. */
 export const GROK_MAX_REFERENCE_IMAGES = 3;
-
-export function isKnownGrokModel(modelId: string): modelId is GrokModelId {
-  return GROK_MODELS.some((model) => model.modelId === modelId);
-}
