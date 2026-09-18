@@ -1014,6 +1014,7 @@ Do not include any other text or markdown.
       removeProfile: 'Remove',
       unnamedProfile: 'New gateway',
       activeBadge: 'in use',
+      activateButton: 'Use this',
       labelField: 'Name',
       driverField: 'API shape',
       baseUrlField: 'Base URL',

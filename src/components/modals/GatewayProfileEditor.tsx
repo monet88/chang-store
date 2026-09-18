@@ -109,6 +109,7 @@ export const GatewayProfileEditor: React.FC<GatewayProfileEditorProps> = ({
               isActive={profile.id === editor.activeImageProfileId}
               probeState={editor.probeStates[profile.id]}
               onPatch={(patch) => editor.updateImageProfile(profile.id, patch)}
+              onSelect={() => editor.selectImageProfile(profile.id)}
               onRemove={() => editor.removeImageProfile(profile.id)}
               onProbe={() => void editor.probeProfile(profile.id, profile.baseUrl, profile.apiKey)}
             />

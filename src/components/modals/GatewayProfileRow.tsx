@@ -37,6 +37,7 @@ export interface GatewayProfileRowProps {
   isActive: boolean;
   probeState?: ProfileProbeState;
   onPatch: (patch: Partial<EditorProfile>) => void;
+  onSelect?: () => void;
   onRemove: () => void;
   onProbe: () => void;
 }
@@ -47,6 +48,7 @@ export const GatewayProfileRow: React.FC<GatewayProfileRowProps> = ({
   isActive,
   probeState,
   onPatch,
+  onSelect,
   onRemove,
   onProbe,
 }) => {
@@ -54,10 +56,24 @@ export const GatewayProfileRow: React.FC<GatewayProfileRowProps> = ({
   return (
     <div className="space-y-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
       <div className="flex items-center justify-between gap-3">
-        <p className={fieldLabelClassName}>
-          {profile.label || t('settingsModal.gatewayProfiles.unnamedProfile')}
-          {isActive && <span className="ml-2 text-emerald-400">· {t('settingsModal.gatewayProfiles.activeBadge')}</span>}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className={fieldLabelClassName}>
+            {profile.label || t('settingsModal.gatewayProfiles.unnamedProfile')}
+          </p>
+          {isActive ? (
+            <span className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+              ● {t('settingsModal.gatewayProfiles.activeBadge')}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onSelect}
+              className="rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
+            >
+              {t('settingsModal.gatewayProfiles.activateButton')}
+            </button>
+          )}
+        </div>
         <button onClick={onRemove} className="text-xs text-red-300 hover:text-red-200">
           {t('settingsModal.gatewayProfiles.removeProfile')}
         </button>
@@ -95,7 +111,7 @@ export const GatewayProfileRow: React.FC<GatewayProfileRowProps> = ({
           type="url"
           value={profile.baseUrl}
           onChange={(e) => onPatch({ baseUrl: e.target.value })}
-          placeholder="https://api.xompet.io.vn"
+          placeholder="https://api.xompet.io.vn/v1"
           className={inputClassName}
         />
       </label>
@@ -106,6 +122,7 @@ export const GatewayProfileRow: React.FC<GatewayProfileRowProps> = ({
           aria-label={t('settingsModal.gatewayProfiles.apiKeyField')}
           type="password"
           autoComplete="off"
+          placeholder="sk-..."
           value={profile.apiKey}
           onChange={(e) => onPatch({ apiKey: e.target.value })}
           className={inputClassName}

@@ -1016,6 +1016,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       removeProfile: 'Xoá',
       unnamedProfile: 'Gateway mới',
       activeBadge: 'đang dùng',
+      activateButton: 'Chọn dùng',
       labelField: 'Tên',
       driverField: 'Kiểu API',
       baseUrlField: 'Địa chỉ',

@@ -30,6 +30,7 @@ export interface UseGatewayProfileEditorReturn {
   probeStates: Record<string, ProfileProbeState | undefined>;
   updateImageProfile: (id: string, patch: Partial<GatewayProfile>) => void;
   addImageProfile: () => void;
+  selectImageProfile: (id: string) => void;
   removeImageProfile: (id: string) => void;
   probeProfile: (id: string, baseUrl: string, apiKey: string) => Promise<void>;
 }
@@ -56,6 +57,10 @@ export const useGatewayProfileEditor = (): UseGatewayProfileEditorReturn => {
     };
     api.saveGatewayProfiles([...api.gatewayProfiles, profile]);
     api.selectImageProfile(profile.id);
+  }, [api]);
+
+  const selectImageProfile = useCallback((id: string) => {
+    api.selectImageProfile(id);
   }, [api]);
 
   const removeImageProfile = useCallback((id: string) => {
@@ -93,6 +98,7 @@ export const useGatewayProfileEditor = (): UseGatewayProfileEditorReturn => {
     probeStates,
     updateImageProfile,
     addImageProfile,
+    selectImageProfile,
     removeImageProfile,
     probeProfile,
   };

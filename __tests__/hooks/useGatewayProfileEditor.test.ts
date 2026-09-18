@@ -54,4 +54,12 @@ describe('useGatewayProfileEditor.probeProfile', () => {
     expect(result.current.probeStates['image-2']).toMatchObject({ phase: 'done' });
     expect(notifyServedModelsChanged).toHaveBeenCalled();
   });
+
+  it('selects an active image profile', () => {
+    const { result } = renderHook(() => useGatewayProfileEditor());
+    act(() => {
+      result.current.selectImageProfile('image-99');
+    });
+    expect(selectImageProfile).toHaveBeenCalledWith('image-99');
+  });
 });
