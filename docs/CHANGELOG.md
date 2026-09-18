@@ -1,5 +1,43 @@
 # Changelog
 
+## [Unreleased] — 2026-09-18
+
+### Added
+
+- A studio-scoped image engine (`src/contexts/ImageEngineContext.tsx`): feature
+  hooks take their driver, model and generation options from it, so the same
+  Try-On, Lookbook, Clothing Transfer, AI Editor and Identity Transfer engines
+  run on either lane. The GPT lane implements the contract in
+  `src/services/providers/gpt-image/gptImageEngine.ts` — a requested ratio maps
+  to the pixel size the active (gateway, model) pair actually honors, and a
+  refine becomes one stateless preservation-wrapped edit.
+- A dedicated GPT studio (`src/components/studios/GptStudio.tsx` plus five
+  cloned views) with its own generation panel: the ratios the product offers on
+  that lane, the pixel size each resolves to, and the quality — each shown only
+  when the capability says the gateway honors it.
+- Gallery results carry the feature that produced them and the engine that ran
+  it, so a GPT result can be routed into another workflow like a Gemini one.
+- A fresh install seeds one image-lane profile from the `XOMPET_*` /
+  `GPT_IMAGE_*` build-time values (default base URL `https://api.openai.com/v1`).
+
+### Removed
+
+- The Grok (xAI) provider: model registry, service, studio view, driver entry,
+  locale keys, env vars, and every live-documentation reference. The app ships
+  two engines.
+- The provider-studio shell (16 components, 12 hooks, its tests) and the legacy
+  provider settings layer — `src/config/providerRegistry.ts`, the
+  `providerSettings` slice, and the `provider:*` localStorage mirror. Image
+  credentials live only in gateway profiles; stored `provider:grok:*` /
+  `provider:gptImage:*` keys and profiles whose driver no longer exists are
+  dropped on load.
+
+### Changed
+
+- GPT refinements are stateless: consecutive refines do not carry prior turns,
+  and lookbook variation/close-up consistency is weaker than Gemini's chat.
+  The refine control stays visible on both lanes.
+
 ## [Unreleased] — 2026-09-17
 
 ### Added

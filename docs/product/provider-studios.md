@@ -1,83 +1,116 @@
-# Provider Studios (Gemini / GPT Image)
+# Studios (Gemini / GPT Image)
 
 ## Purpose
 
-Chang Store is not Gemini-only. A header-level studio switch lets the user move
-between three isolated studios that all produce fashion imagery but use
-different AI providers and request contracts:
+Chang Store ships two studios behind a header-level switch. Both produce fashion
+imagery through the same workflows; they differ in which image engine runs the
+request:
 
-- **Gemini** — the default, full-featured studio (all ten `Feature`
-  workflows + Gallery + model selectors).
-- **GPT Image** — isolated OpenAI image studio for five workflows.
+- **Gemini** — the default studio, all ten `Feature` workflows.
+- **GPT Image** — the OpenAI-compatible image lane, five workflows.
 
 This doc is the product contract for the studio split. The authoritative
-technical description lives in `docs/ARCHITECTURE.md` ("Studio Modes" and
-"Provider Studio Parity Matrix"); this doc states the user-visible behavior.
+technical description lives in `docs/ARCHITECTURE.md` ("Studio Modes" and the
+workflow matrix); this doc states the user-visible behavior.
 
 ## Studio Mode
 
-`StudioMode = 'gemini' | 'gptImage'` (in `src/types.ts`). `AppContent`
-holds it in state, default `'gemini'`. The header `StudioModeSwitch` (a
-three-segment radio group) toggles it.
+`StudioMode = 'gemini' | 'gptImage'` (in `src/types.ts`). `AppContent` holds it
+in state, default `'gemini'`. The header `StudioModeSwitch` (a two-segment radio
+group) toggles it.
 
 Switching studios:
 
-- Unmounts the previous studio (no state preserved between studios).
-- Clamps `activeFeature` to a provider-supported feature when leaving Gemini,
-  so Gemini-only features never leak into a provider studio.
-- Provider studios render their own content area — they do **not** share the
-  Gemini workspace header, global model selector, or Gallery.
+- Unmounts the previous studio (no state is preserved between studios).
+- Clamps `activeFeature` to a supported workflow when leaving Gemini, so
+  Gemini-only features never leak into the GPT studio.
+- Mounts the engine of the selected mode, so every feature view underneath
+  talks to the right image lane without knowing which one it is.
 
 ## Supported Workflows
 
-Provider studios support five of the ten workflows
-(`PROVIDER_SUPPORTED_FEATURES` in `src/types.ts`):
+| Workflow | Gemini | GPT Image |
+| --- | --- | --- |
+| Virtual Try-On | Yes | Yes |
+| Lookbook | Yes | Yes |
+| Clothing Transfer | Yes | Yes |
+| AI Editor | Yes | Yes |
+| Identity Transfer | Yes | Yes |
+| Background Replacer | Yes | No |
+| Pose Changer | Yes | No |
+| Photo Album | Yes | No |
+| Watermark Remover | Yes | No |
+| Pattern Generator | Yes | No |
 
-| Workflow | GPT Image | Notes |
-| --- | --- | --- | --- |
-| Virtual Try-On | Yes | Yes | Source-item types/notes, background + extra fields, multi-person marker. |
-| Lookbook | Yes | Yes | Full style/garment/fabric/negative controls; no variations/close-ups. |
-| Clothing Transfer | Yes | Yes | Reference-outfit note per source item. |
-| Pattern Generator | Yes | Yes | Prompt-driven; images optional. |
-| AI Editor | Yes | Yes | Prompt + required source image. |
+`PROVIDER_SUPPORTED_FEATURES` (`src/types.ts`) lists the five GPT workflows; the
+remaining five are phase 2 of the consolidation — their hooks already take their
+driver from the shared engine context, they simply have no GPT view yet. The GPT
+views live in `src/components/studios/Gpt*.tsx` and are deliberate twins of the
+Gemini views: the workflow is the same, only the generation controls differ.
 
-Gemini-only workflows **not** available in provider studios: Background
-Replacer, Pose Changer, Photo Album, Watermark Remover, Identity Transfer.
+## The Engine Seam
 
-Per-workflow UI descriptors live in
-`src/components/studios/provider-studio/providerWorkflows.ts`.
+`src/contexts/ImageEngineContext.tsx` exposes, for the active mode:
+
+```ts
+{ id, model, editImage, upscaleImage, createImageChatSession, modelOptions, setModel, noSelectableModel, options }
+```
+
+- The **Gemini lane** implements it with `src/services/imageEditingService.ts`
+  (a real chat session, so refinement keeps conversation history).
+- The **GPT lane** implements it with
+  `src/services/providers/gpt-image/gptImageEngine.ts` over `gptImageService`:
+  it maps the requested ratio to the pixel size the active `(gateway, model)`
+  pair actually honors, and a refine becomes **one stateless edit** carrying the
+  current image plus a preservation wrapper — there is no server-side history to
+  continue.
+
+Consequence to expect: consecutive GPT refinements do not accumulate context, so
+lookbook variation/close-up consistency is weaker than Gemini's chat. The refine
+control stays visible in the GPT views.
+
+## Generation Controls
+
+- Gemini views render aspect ratio + resolution (`ImageOptionsPanel`).
+- GPT views render ratio, the pixel size that ratio resolves to, and quality
+  (`src/components/studios/GptImageOptionsPanel.tsx`). Only the ratios the
+  product offers on that lane appear, and both the size and the quality control
+  are capability-driven: a gateway measured to ignore `quality` shows no
+  selector, and a `flaky` size shows its measured honor rate.
 
 ## Provider Configuration
 
-Provider keys and base URLs come from `ApiProviderContext` (per-provider
-settings). Each provider resolves to the active **image-lane gateway profile**
-(`GatewayProfile`, `src/config/gatewayProfiles.ts`); with no image profile it
-falls back to the legacy per-provider localStorage override and then to the
-provider's built-in default seeded from build-time env values in
-`src/config/providerRegistry.ts`.
+Settings → **Gateway** edits two lanes: the Gemini (CPA) profile and any number
+of image-gateway profiles. The image lane is multi-profile; the active profile
+supplies the GPT lane's base URL and key, and `gateway_profiles_v1` is the only
+credential store — the legacy per-provider `provider:*` settings and their
+`providerRegistry` metadata were removed.
 
-| Provider | Default base URL | Env key | Env base URL |
-| --- | --- | --- | --- |
-| GPT Image | `https://api.openai.com/v1` | `GPT_IMAGE_API_KEY` | `GPT_IMAGE_BASE_URL` |
-
-Profiles live in Settings → **Gateway**: one Gemini (CPA) profile plus any number
-of image-gateway profiles, each with its own name, API shape (`openai-images` or
-`openai-images`), base URL, key, enable toggle, and a **Check** button that probes
-`GET {baseUrl}/v1/models`. A check refuses an unusable address client-side, maps
-401 to "the gateway rejected this key" and 403 to an edge/User-Agent block, and
-its answer is cached for 10 minutes (`gatewayDiscoveryService.ts`).
+- **Env seed**: a fresh install with no stored profiles gets one image profile
+  built from `XOMPET_BASE_URL` / `GPT_IMAGE_BASE_URL` and
+  `XOMPET_API_KEY` / `GPT_IMAGE_API_KEY` (build-time defines in
+  `vite.config.ts`), defaulting the base URL to `https://api.openai.com/v1`.
+- **Fail closed**: a profile with an empty base URL is never paired with a
+  default address — the request fails instead of sending a gateway key to
+  OpenAI.
+- **Orphan cleanup**: stored `provider:grok:*` / `provider:gptImage:*` keys, and
+  stored profiles whose driver no longer exists (`grok-images`), are dropped on
+  load.
+- **Check**: probes `GET {baseUrl}/v1/models` (10-minute cache), refuses an
+  unusable address client-side, maps 401 to "gateway rejected this key" and 403
+  to an edge/User-Agent block.
 
 ## Models and Capabilities
 
 Model ids, sizes, and response shapes come from the capability catalog
 (`src/config/imageModelCatalog.ts`), which is evidence-dated: each entry records
 what was measured for a `(model, gateway)` pair, with per-gateway overrides keyed
-by bare host. The studios list `catalog ∩ served(profile)` — models the gateway
+by bare host. Studios list `catalog ∩ served(profile)` — models the gateway
 actually answers for the configured key — and show served-but-unmeasured ids in a
 separate group.
 
 Controls follow capabilities rather than assumption: a model whose gateway is
-measured to ignore `size` offers no size dropdown, a `flaky` size shows the
+measured to ignore `size` offers no size control, a `flaky` size shows the
 measured honor rate, and a gateway that answers a different size than requested
 marks the result tile with `requested → returned` (the image is kept). A `url`
 response is downloaded and converted rather than rejected. Base URLs pass
@@ -85,90 +118,75 @@ response is downloaded and converted rather than rejected. Base URLs pass
 
 ## Service Contracts
 
-Provider studios route through their own stateless services — never through
+The GPT lane routes through its own service and adapter — never through
 `imageEditingService.ts` or any Gemini module.
-
-### GPT Image (`src/services/providers/gpt-image/gptImageService.ts`)
 
 - `generateGptImage` → `POST {baseUrl}/images/generations` (JSON),
   `n = GPT_IMAGE_OUTPUT_COUNT`.
 - `editGptImage` → `POST {baseUrl}/images/edits` (multipart/form-data) with
-  repeated `image[]` fields; `Content-Type` is **not** set manually (browser
+  repeated `image[]` fields; `Content-Type` is **not** set manually (the browser
   adds the multipart boundary). Max sources: `MAX_GPT_REFERENCE_IMAGES`.
-- No native resolution flag — upscale uses a preservation prompt at
+- No native resolution flag — upscale is a preservation-prompted edit at
   `quality: 'high'`.
 
-Both services normalize responses to `ImageFile[]` via the shared
-OpenAI-compatible parser (`shared/openaiCompatibleResponse.ts`) and use the
-shared `withRetry` (exponential backoff + jitter, `AbortSignal`),
-`validatePrompt`, `safeFetch`, and typed `ProviderApiError`.
+Both normalize responses to `ImageFile[]` via the shared OpenAI-compatible parser
+(`shared/openaiCompatibleResponse.ts`) and use the shared `withRetry`
+(exponential backoff + jitter, `AbortSignal`), `validatePrompt`, `safeFetch`,
+and typed `ProviderApiError`.
 
-## Prompt Builder Reuse (read-only)
+## Gallery
 
-Provider studios reuse the Gemini prompt **builders** but not the Gemini
-**pipeline**. `src/utils/provider-studio-prompt-adapter.ts` extracts the text
-segments from `buildVirtualTryOnParts`, `buildClothingTransferParts`,
-`buildPatternGeneratorParts`, and `buildLookbookPrompt`, then passes images to
-the provider service separately. No Gemini hook, service, context, or
-`imageEditingService.ts` call is made from a provider studio.
+Both studios persist results to the same IndexedDB gallery, tagged with the
+workflow that produced them and the engine that ran it, so a GPT result can be
+sent into another workflow exactly like a Gemini one. The gallery keeps the most
+recent 20 images (`GALLERY_SIZE_LIMIT`).
 
-## Isolation Rules (Contract)
+## Deliberate GPT Caps
 
-- Provider results are **local-only**: no Gallery writes, no IndexedDB gallery
-  persistence, no cross-studio result sharing.
-- Provider studios do not import Gemini prompt builders directly; they go
-  through the adapter.
-  `gptImageModelRegistry.ts`, both projections of `imageModelCatalog.ts`) and
-  provider services. Which models a studio lists is `catalog ∩ served(profile)`.
-
-## Parity vs Gemini
-
-See the full "Provider Studio Parity Matrix" in `docs/ARCHITECTURE.md`. Summary
-of deferred items (GPT Image): Lookbook variations, Lookbook close-ups,
-and auto-describe-clothing (no provider text endpoint wired). GPT Image upscale
-is prompt-based rather than a native resolution flag.
+Parity means the five workflows exist, not that every cap is raised: one output
+per request (`n` is ignored), lookbook variations capped at one, wardrobe sets
+bounded to two with `maxItemsPerSet: 4`, serial batches, and the documented
+"multipart edits are slow and tunnel-timeout-prone" reason (~60-90s measured per
+edit).
 
 ## Key Files
 
+- `src/contexts/ImageEngineContext.tsx` — the studio-scoped engine seam.
+- `src/hooks/useGptImageEngine.ts` — resolves profile, capabilities, model,
+  quality and size for the GPT lane.
+- `src/services/providers/gpt-image/gptImageEngine.ts` — the GPT implementation
+  of the engine contract (ratio → size, single-shot refine).
+- `src/utils/single-shot-refine-session.ts` — the stateless refine session used
+  when the engine has no chat.
 - `src/components/studios/StudioModeSwitch.tsx` — header switcher.
-- `src/components/studios/GptImageStudio.tsx` — GPT Image studio shell.
-- `src/components/studios/GptImageStudio.tsx` — GPT Image studio shell.
-- `src/components/studios/provider-studio/*` — shared provider UI
-  (settings panel, results grid/tile, source fields, try-on extras, lookbook
-  controls) and `providerWorkflows.ts`.
-- `src/hooks/useProviderStudioFields.ts`, `useProviderResultActions.ts`,
-  `useProviderTryOnBatch.ts`, `useProviderLookbookFields.ts` — shared hooks.
-  `gptImageModelRegistry.ts` — provider metadata (both registries project the
-  catalog).
+- `src/components/studios/GptStudio.tsx` + `Gpt*.tsx` — the GPT studio and its
+  five cloned views; `GptImageOptionsPanel.tsx` — its generation controls.
 - `src/config/imageModelCatalog.ts` — the capability catalog (drivers,
   capabilities, evidence dates, per-gateway overrides).
 - `src/config/gatewayProfiles.ts`, `src/hooks/useGatewayProfiles.ts`,
-  `useGatewayProfileEditor.ts`, `useServedModels.ts` — profile storage,
-  migration, and the served-model cache.
+  `useGatewayProfileEditor.ts`, `useServedModels.ts` — profile storage, the env
+  seed, orphan cleanup, and the served-model cache.
 - `src/services/gatewayDiscoveryService.ts` — `GET {baseUrl}/v1/models` with
   401/403/unreachable/malformed mapping and a 10-minute TTL cache.
 - `src/components/modals/GatewayProfileEditor.tsx`, `GatewayProfileRow.tsx` —
-  the two-lane profile editor; `ProviderProfileSelector.tsx` +
-  `ModelOptionGroups.tsx` — the studio-side profile and model pickers.
-- `src/services/providers/{gpt-image,shared}/*` — provider services
-  (`shared/imageDriverPolicy.ts` owns field discipline and the size guard).
-- `src/utils/provider-studio-prompt-adapter.ts`,
-  `provider-refine-prompt.ts`, `provider-url-validation.ts`.
+  the two-lane profile editor.
+- `src/services/providers/gpt-image/*`, `src/services/providers/shared/*` —
+  the GPT service (`shared/imageDriverPolicy.ts` owns field discipline and the
+  size guard).
+- `src/utils/provider-refine-prompt.ts`, `provider-url-validation.ts`.
 
 ## Validation Path
 
-- Switch studio in header → previous studio unmounts, feature clamps to a
-  supported workflow.
-- Configure provider key/base URL → invalid base URL is rejected before any
-  request (including from a profile's **Check**).
+- Switch studio in the header → the previous studio unmounts and the feature
+  clamps to a supported workflow.
+- Configure an image profile → an invalid base URL is rejected before any
+  request (including from the profile's **Check**).
 - Settings → Gateway → add an image profile, **Check** it → the served list
-  appears, and the studio's model dropdown narrows to `catalog ∩ served`; a
+  appears and the studio's model dropdown narrows to `catalog ∩ served`; a
   reload keeps the profile and its selection.
-- Try-On on GPT Image with default composed prompt → outfit applied,
-  result rendered locally (not written to Gallery).
-- Current automated proof: provider service and isolation tests under
-  `__tests__/services/providers/`, `__tests__/services/gatewayDiscoveryService.test.ts`,
-  `__tests__/config/{imageModelCatalog,gatewayProfiles,modelSelectionRules}.test.ts`,
-  `__tests__/hooks/use{ModelSelection,GptImageStudio,GatewayProfileEditor}*`,
-  and `__tests__/contexts/ApiProviderContext.test.tsx`. The former
-  `scripts/provider-tryon-smoke.ts` helper is not present in this checkout.
+- Try-On on GPT Image with the default composed prompt → outfit applied, result
+  rendered and written to the gallery with its feature + engine tag.
+- Automated proof: `__tests__/services/providers/gpt-image/gptImageEngine.test.ts`,
+  `__tests__/components/studios/{GptStudio,GptImageOptionsPanel}.test.tsx`,
+  `__tests__/config/{gatewayProfiles,imageModelCatalog,providerIsolation}.test.ts`,
+  `__tests__/contexts/ApiProviderContext.test.tsx`.

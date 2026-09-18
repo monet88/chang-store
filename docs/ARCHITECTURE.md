@@ -160,28 +160,46 @@ LanguageProvider
 
 AppContent owns the Feature routing and StudioMode switch. Feature values and
 provider support are defined in src/types.ts; route/component wiring is in
-src/App.tsx. Gemini is the default full-featured studio. GPT Image
-are isolated provider studios using src/services/providers/ and the shared
-provider-studio hooks. Provider results remain local-only and do not write to
-the Gemini gallery pipeline.
+src/App.tsx. Two engines ship: the Gemini studio (default, ten workflows) and
+the GPT Image studio.
 
-#### Provider Studio Parity Matrix
+Both studios run the same workflow hooks and the same prompt builders; the
+engine underneath is what changes. `src/contexts/ImageEngineContext.tsx` is that
+seam — it exposes `{ id, model, editImage, upscaleImage,
+createImageChatSession, options }` for the active mode, the Gemini lane backed
+by `src/services/imageEditingService.ts` and the GPT lane by
+`src/services/providers/gpt-image/gptImageEngine.ts`. The GPT adapter maps the
+requested ratio to the pixel size the active (gateway, model) pair actually
+honors, and turns a refine into one stateless preservation-wrapped edit, because
+OpenAI-style edit endpoints keep no conversation.
 
-| Workflow | Gemini | GPT Image | Current notes |
-| --- | --- | --- | --- |
-| Virtual Try-On | Yes | Yes | Provider studios support source-item types/notes and multi-person targeting. |
-| Lookbook | Yes | Yes | Provider studios support core controls; variations and close-ups remain deferred. |
-| Clothing Transfer | Yes | Yes | Uses the provider prompt adapter and provider REST service. |
-| Identity Transfer | Yes | No | Gemini-only batch edit using shared identity references and per-destination jobs. |
-| Pattern Generator | Yes | Yes | Provider studios support prompt-driven generation. |
-| AI Editor | Yes | Yes | Requires a source image in provider studios. |
-| Background Replacer | Yes | No | Gemini-only workflow. |
-| Pose Changer | Yes | No | Gemini-only workflow. |
-| Photo Album | Yes | No | Gemini-only workflow. |
-| Watermark Remover | Yes | No | Gemini-only workflow. |
+Generation controls follow the engine: the Gemini views render aspect ratio and
+resolution (`ImageOptionsPanel`), the GPT views render ratio, the resolved pixel
+size, and quality (`src/components/studios/GptImageOptionsPanel.tsx`) — both
+derived from the capability catalog, never from a hardcoded table. Every result
+is persisted to the shared IndexedDB gallery tagged with its feature and the
+engine that produced it.
 
-Provider studios defer Lookbook variations, Lookbook close-ups, and automatic
-clothing description because no provider text endpoint is wired for those paths.
+#### Workflow Matrix
+
+| Workflow | Gemini | GPT Image |
+| --- | --- | --- |
+| Virtual Try-On | Yes | Yes |
+| Lookbook | Yes | Yes |
+| Clothing Transfer | Yes | Yes |
+| AI Editor | Yes | Yes |
+| Identity Transfer | Yes | Yes |
+| Background Replacer | Yes | No |
+| Pose Changer | Yes | No |
+| Photo Album | Yes | No |
+| Watermark Remover | Yes | No |
+| Pattern Generator | Yes | No |
+
+The five Gemini-only workflows are phase 2 of the studio consolidation: they
+already take their driver from the same context, they simply have no GPT view
+yet. GPT caps stay deliberate — one output per request, lookbook variations
+capped at one, wardrobe sets bounded to two, serial batches, and no native
+upscale (upscale is a preservation-prompted edit at the largest quality).
 
 The current source tree has no server-side request, session, or audit-log
 layer. The generic server layering and observability sections above are

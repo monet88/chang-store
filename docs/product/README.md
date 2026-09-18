@@ -9,7 +9,7 @@ depth so agents can plan or review work without reverse-engineering every hook.
 | File | Scope |
 | --- | --- |
 | overview.md | Product summary, tech stack, architecture summary, persistence |
-| provider-studios.md | Three-provider studio split (Gemini / GPT Image) |
+| provider-studios.md | Two-studio split (Gemini / GPT Image) and the engine seam |
 | try-on.md | Virtual Try-On and Wardrobe Mode |
 | lookbook.md | Lookbook Generator |
 | background.md | Background Replacer |

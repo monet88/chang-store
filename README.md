@@ -3,9 +3,9 @@
 AI-powered virtual fashion studio built with React 19, TypeScript, and Vite.
 Chang Store lets users generate fashion imagery: virtual try-ons, lookbooks,
 background swaps, pose changes, photo albums, image edits, watermark removal,
-clothing transfer, identity transfer, and textile pattern generation. The default studio uses
-Google Gemini; two isolated provider studios (GPT Image / OpenAI)
-cover five workflows each.
+clothing transfer, identity transfer, and textile pattern generation. The default
+studio runs Google Gemini; the GPT Image studio (OpenAI-compatible) runs five of
+those workflows on the same views with its own size and quality controls.
 
 ## Features
 
@@ -29,7 +29,7 @@ cover five workflows each.
 - Vite
 - Tailwind CSS
 - Google Gemini SDK (`@google/genai`)
-- GPT Image (OpenAI) REST in the provider studios
+- GPT Image (OpenAI) REST in the GPT studio
 - IndexedDB via `idb-keyval`
 
 ## Architecture
@@ -40,14 +40,14 @@ Component (thin UI) → Hook (state + logic) → Service Facade → Gemini API
 
 No React Router. `src/App.tsx` switches on the `Feature` enum and lazy-loads
 feature components. `AppContent` also holds a `StudioMode`
-(`gemini | gptImage`) that swaps between the Gemini studio and the
-isolated GPT Image provider studios.
+(`gemini | gptImage`); `ImageEngineContext` gives every feature view the image
+transport of the active studio, so the same workflows run on either engine.
 
 Key docs:
 
 - `AGENTS.md` — project-specific agent instructions and Harness entrypoints.
 - `docs/product/overview.md` — product overview.
-- `docs/product/provider-studios.md` — the three-provider studio split.
+- `docs/product/provider-studios.md` — the studio split and the engine seam.
 - `docs/product/identity-transfer.md` — Identity Transfer role and batch contract.
 - `docs/ARCHITECTURE.md` — actual app architecture.
 
@@ -79,13 +79,16 @@ GEMINI_API_KEY=your_key_here
 VITE_GEMINI_API_KEY=your_key_here
 ```
 
-Optional provider studios:
+Optional GPT Image lane:
 
 ```bash
 GPT_IMAGE_API_KEY=your_openai_key_here
 # Optional custom/local proxies
 GPT_IMAGE_BASE_URL=https://api.openai.com/v1
 ```
+
+A fresh install with no stored image profile seeds one from those values, and an
+empty base URL fails closed rather than defaulting to a vendor address.
 
 For production deployments, set the same variables in the hosting dashboard.
 
