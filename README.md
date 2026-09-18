@@ -108,7 +108,6 @@ npm run build
 ## Documentation
 
 - Product contracts: `docs/product/`
-- Decisions: `docs/decisions/`
 - API reference policy: one measured contract per gateway in `docs/api/`
 
 ## License

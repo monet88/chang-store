@@ -2,7 +2,7 @@
  * Shared Tailwind class vocabulary for provider studios, mirroring Gemini's
  * `VirtualTryOn.tsx` constants so the two studios match the Gemini visual
  * language exactly. Single source of truth — no ad-hoc class drift. Tailwind
- * only (per AGENTS.md): no inline styles, no CSS modules.
+ * only (per docs/design-guidelines.md): no inline styles, no CSS modules.
  */
 export const panelClass = 'rounded-[28px] border border-white/10 bg-white/[0.04] p-6 sm:p-8';
 export const eyebrowClass = 'text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400';

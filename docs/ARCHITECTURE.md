@@ -18,9 +18,6 @@ Before proposing implementation shape, identify:
   provider payloads, and environment configuration.
 - Validation ladder: the smallest checks that can prove the selected stack.
 
-Record stack choices in `docs/decisions/` when they meaningfully constrain
-future work.
-
 ## Default Layering
 
 ```text

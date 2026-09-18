@@ -33,11 +33,7 @@ When product docs conflict with code, verify the current implementation first:
 
 ## Update Rule
 
-When user-visible behavior changes:
-
-1. Update the affected product doc.
-2. Record a decision in docs/decisions/ if architecture, scope, risk, or a
-   previously settled product rule changes.
+When user-visible behavior changes, update the affected product doc.
 
 ## Validation Checklist
 

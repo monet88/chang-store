@@ -12,7 +12,7 @@ Five canonical triage roles (`needs-triage`, `needs-info`, `ready-for-agent`, `r
 
 ### Domain docs
 
-Single-context layout (`CONTEXT.md` at root, ADRs in `docs/decisions/`). See `docs/agents/domain.md`.
+Single-context layout (`CONTEXT.md` at root). See `docs/agents/domain.md`.
 
 ### Gateway and provider contracts
 
