@@ -3,7 +3,7 @@
  *
  * Extracted from `useProviderStudioGeneration` to keep that hook file under
  * the 200 LOC limit. The generation hook owns the driver contract; provider
- * studio hooks (useGrokStudio, useGptImageStudio) build a driver from their
+ * studio hooks (useGptImageStudio) build a driver from their
  * service + options and inject it -- the engine and generation hooks never
  * import provider services directly.
  */
@@ -16,7 +16,7 @@ import { UseProviderLookbookFieldsReturn } from './useProviderLookbookFields';
 export type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
 /**
- * `count` is the requested output count. Grok honours it (maps to `n`);
+ * `count` is the requested output count. 
  * GPT ignores it (its endpoints always emit a fixed count).
  */
 export interface ProviderImageDriver {
@@ -30,7 +30,7 @@ export interface ProviderImageDriver {
 
 /**
  * Public surface of `useProviderStudioGeneration`, folded as-is into the
- * combined `UseProviderStudioEngineReturn` for Grok and GPT studios.
+ * combined `UseProviderStudioEngineReturn` for GPT studios.
  */
 export interface UseProviderStudioGenerationReturn extends UseProviderResultActionsReturn {
   prompt: string;

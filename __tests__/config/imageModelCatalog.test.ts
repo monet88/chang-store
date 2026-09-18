@@ -8,17 +8,13 @@ import {
   DEFAULT_GPT_IMAGE_MODEL, DEFAULT_GPT_IMAGE_QUALITY, DEFAULT_GPT_IMAGE_SIZE,
   GPT_IMAGE_MODELS, GPT_IMAGE_QUALITIES, GPT_IMAGE_SIZES,
 } from '@/config/gptImageModelRegistry';
-import {
-  DEFAULT_GROK_ASPECT_RATIO, DEFAULT_GROK_MODEL, DEFAULT_GROK_RESOLUTION,
-  GROK_ASPECT_RATIOS, GROK_MODELS, GROK_RESOLUTIONS,
-} from '@/config/grokModelRegistry';
 import { DEFAULT_MODEL_BY_SELECTION_TYPE, MODEL_REGISTRY, getModelCapabilities } from '@/config/modelRegistry';
 
 const SUNBURST = requireImageModelDescriptor('gpt-image-2.5-sunburst');
 const GEMINI_IMAGE = requireImageModelDescriptor('gemini-3.1-flash-image');
 const GPT_IMAGE_2 = requireImageModelDescriptor('gpt-image-2');
 const UNMEASURED = requireImageModelDescriptor('gpt-image-1.5');
-const ratiosOnly: ImageDriverId[] = ['gemini-native', 'grok-images'];
+const ratiosOnly: ImageDriverId[] = ['gemini-native'];
 
 /** Every capability set a consumer can reach for a row: its defaults plus one per override host. */
 const reachableCapabilities = (descriptor: ImageModelDescriptor) => [
@@ -61,9 +57,6 @@ describe('image model catalog invariants', () => {
     expect(sizeObservations?.honored ?? 0).toBeGreaterThan(0);
     expect(sizeObservations?.honored ?? 0).toBeLessThan(sizeObservations?.total ?? 0);
 
-    const never = IMAGE_MODEL_CATALOG.filter((entry) => resolveCapabilities(entry).honorsSize === 'no');
-    expect(never.length).toBeGreaterThan(0);
-    expect(never.every((entry) => resolveCapabilities(entry).sizeObservations === undefined)).toBe(true);
   });
 
   it('invariant 5: dates every row with a live probe or the re-verify sentinel', () => {
@@ -82,10 +75,9 @@ describe('image model catalog invariants', () => {
     expect(IMAGE_DRIVERS).toEqual({
       'gemini-native': { lane: 'gemini', seam: 'gemini-adapter' },
       'openai-images': { lane: 'image', seam: 'provider-driver' },
-      'grok-images': { lane: 'image', seam: 'provider-driver' },
     });
     const catalogDrivers = new Set(IMAGE_MODEL_CATALOG.map((entry) => resolveCapabilities(entry).driver));
-    expect([...catalogDrivers].sort()).toEqual(['gemini-native', 'grok-images', 'openai-images']);
+    expect([...catalogDrivers].sort()).toEqual(['gemini-native', 'openai-images']);
   });
 
   it('invariant 7: every openai-images row stays inside its one adapter tolerance', () => {
@@ -156,19 +148,9 @@ describe('registry projections keep phase 1 behavior', () => {
     expect(GPT_IMAGE_QUALITIES).toEqual(['low', 'medium', 'high', 'auto']);
     expect(DEFAULT_GPT_IMAGE_QUALITY).toBe('high');
 
-    expect(GROK_MODELS).toEqual([
-      { modelId: 'grok-imagine-image-quality', label: 'Grok Imagine Image (Quality)' },
-      { modelId: 'grok-imagine-image', label: 'Grok Imagine Image' },
-    ]);
-    expect(DEFAULT_GROK_MODEL).toBe('grok-imagine-image-quality');
-    expect(GROK_ASPECT_RATIOS).toEqual(['1:1', '2:3', '3:2', '9:16', '16:9']);
-    expect(DEFAULT_GROK_ASPECT_RATIO).toBe('2:3');
-    expect(GROK_RESOLUTIONS).toEqual(['1k', '2k']);
-    expect(DEFAULT_GROK_RESOLUTION).toBe('1k');
 
     const listed = [
       ...GPT_IMAGE_MODELS.map((model) => model.modelId),
-      ...GROK_MODELS.map((model) => model.modelId),
       ...MODEL_REGISTRY.map((model) => model.modelId),
     ];
     expect(listed).not.toContain('gpt-image-2.5-sunburst');

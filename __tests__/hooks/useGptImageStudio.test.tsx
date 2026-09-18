@@ -18,7 +18,6 @@ const mockImageProfiles: Array<typeof PROFILE> = [];
 vi.mock('@/contexts/ApiProviderContext', () => ({
     useApi: () => ({
         providerSettings: {
-            grok: { apiKey: '', baseUrl: 'https://api.x.ai/v1' },
             gptImage: { apiKey: 'oai-key', baseUrl: 'https://api.openai.com/v1' },
         },
         setProviderSettings: mockSetProviderSettings,

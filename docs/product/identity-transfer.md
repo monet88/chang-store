@@ -17,15 +17,15 @@ as an independent job and produces one result.
 - **Extra Instructions** — optional shared detail instructions.
 - Standard image-edit aspect ratio and resolution controls.
 
-The built-in references are `docs/images/FACE_ANGLES.png` and
+The built-in references are `docs/images/FACE.png` and
 `docs/images/BODY.png`, loaded once per page session through the same
 compression pipeline as a user upload
 (`src/utils/identity-transfer-defaults.ts`). A user upload or clear made before
 the default resolves always wins over the late default.
 
-The built-in Face Reference is a 3x3 sheet of one person at nine head angles:
-left profile, 60/30 degrees left, frontal, 30/60 degrees right, right profile,
-and frontal from above and below.
+The built-in Face Reference is a 3x3 labelled contact sheet of one person:
+front view, left and right profile (90°), left and right three-quarter, slight
+downward and upward gaze, and serious and neutral expressions.
 
 ## Authority Contract
 
@@ -70,7 +70,7 @@ Instructions are subordinate to all role and preservation rules above.
 ## Provider Scope
 
 Identity Transfer is available only in the Gemini studio. It is intentionally
-absent from Grok and GPT Image provider workflows.
+absent from GPT Image provider workflows.
 
 ## Key Files
 

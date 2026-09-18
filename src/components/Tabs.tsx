@@ -24,7 +24,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature, studioMode
     [Feature.IdentityTransfer]: t('tabs.identityTransfer'),
   };
 
-  const isProviderMode = studioMode === 'grok' || studioMode === 'gptImage';
+  const isProviderMode = studioMode === 'gptImage';
 
   const groups = isProviderMode
     ? [

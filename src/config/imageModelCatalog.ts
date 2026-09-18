@@ -10,7 +10,7 @@
  */
 import type { ProviderId } from './providerRegistry';
 
-export type ImageDriverId = 'gemini-native' | 'openai-images' | 'grok-images';
+export type ImageDriverId = 'gemini-native' | 'openai-images';
 export type ImageSizeMode = 'ratio' | 'pixel';
 export type ImageHonorsSize = 'yes' | 'no' | 'flaky';
 export type ImageResponseShape = 'b64_json' | 'url' | 'echo_fields';
@@ -29,7 +29,7 @@ export interface ImageModelCapabilities {
   /** Pixels ('1080x1920') when `sizeMode === 'pixel'`, ratios ('9:16') otherwise. */
   sizes: readonly string[];
   defaultSize: string;
-  /** Scale knob where one exists: ImageResolution ('1K'|'2K'|'4K') for `gemini-native`, xAI's '1k'|'2k' for `grok-images`. */
+  /** Scale knob where one exists: ImageResolution ('1K'|'2K'|'4K') for `gemini-native`. */
   resolutions?: readonly string[];
   /** Measured, never assumed: `flaky` keeps the size control and mandates the dimension guard. */
   honorsSize: ImageHonorsSize;
@@ -60,7 +60,6 @@ export interface ImageModelDescriptor {
 export const IMAGE_DRIVERS: Record<ImageDriverId, { lane: GatewayLane; seam: 'provider-driver' | 'gemini-adapter' }> = {
   'gemini-native': { lane: 'gemini', seam: 'gemini-adapter' },
   'openai-images': { lane: 'image', seam: 'provider-driver' },
-  'grok-images': { lane: 'image', seam: 'provider-driver' },
 };
 
 const MEASURED_AT = '2026-09-17';
@@ -70,15 +69,11 @@ export const CPA_GATEWAY_HOST = 'cliproxy.monet.uno';
 export const XOMPET_GATEWAY_HOST = 'api.xompet.io.vn';
 /** OpenAI Images pixel vocabulary — the `openai-images` driver's own contract. */
 export const OPENAI_IMAGE_SIZES = ['1024x1024', '1536x1024', '1024x1536'] as const;
-/** xAI vocabulary — the `grok-images` driver's own contract. */
-export const GROK_IMAGE_ASPECT_RATIOS = ['1:1', '2:3', '3:2', '9:16', '16:9'] as const;
-export const GROK_IMAGE_RESOLUTIONS = ['1k', '2k'] as const;
 /** The one `openai-images` adapter tolerates all three; no model may claim a shape outside them. */
 const OPENAI_IMAGE_SHAPES = ['b64_json', 'url', 'echo_fields'] as const;
 /** Sizes the image lane's reference gateway returned at pixel precision. */
 const XOMPET_HONORED_SIZES = ['1080x1920', '1536x1024', '1024x1024', '1024x1536'] as const;
 export type OpenAiImageSize = (typeof OPENAI_IMAGE_SIZES)[number];
-export type GrokImageAspectRatio = (typeof GROK_IMAGE_ASPECT_RATIOS)[number];
 
 interface OpenAiCapabilitiesInput {
   honorsSize?: ImageHonorsSize;
@@ -122,26 +117,11 @@ const geminiCapabilities = (): ImageModelCapabilities => ({
   verifiedAt: MEASURED_AT,
 });
 
-/** xAI rows: not driven this session, so they stay `RE_VERIFY` and fail closed. */
-const grokCapabilities = (): ImageModelCapabilities => ({
-  driver: 'grok-images',
-  sizeMode: 'ratio',
-  sizes: GROK_IMAGE_ASPECT_RATIOS,
-  defaultSize: '2:3',
-  resolutions: GROK_IMAGE_RESOLUTIONS,
-  honorsSize: 'no', // unmeasured: the aspect-ratio control stays hidden until a live xAI call
-  honorsQuality: false,
-  supportsTransparentBackground: false,
-  responseShapes: ['b64_json'],
-  verifiedAt: RE_VERIFY,
-});
 
 const openAiRow = (modelId: string, label: string, capabilities: ImageModelCapabilities, gatewayOverrides?: Record<string, ImageCapabilityOverride>, notes?: string): ImageModelDescriptor =>
   ({ modelId, label, providerId: 'gptImage', capabilities, gatewayOverrides, notes });
 const geminiRow = (modelId: string, label: string, notes: string): ImageModelDescriptor =>
   ({ modelId, label, providerId: 'google', capabilities: geminiCapabilities(), notes });
-const grokRow = (modelId: string, label: string, notes: string): ImageModelDescriptor =>
-  ({ modelId, label, providerId: 'grok', capabilities: grokCapabilities(), notes });
 
 const CPA_IMAGE_FACTS: ImageCapabilityOverride = {
   honorsSize: 'no', // measured: 1254x1254 whatever `size` asked for
@@ -151,7 +131,7 @@ const CPA_IMAGE_FACTS: ImageCapabilityOverride = {
   verifiedAt: MEASURED_AT,
 };
 
-/** Image lane (all documented 2026-09-17), then the Gemini lane, then the unmeasured xAI rows. */
+/** Image lane (all documented 2026-09-17), then the Gemini lane. */
 export const IMAGE_MODEL_CATALOG: readonly ImageModelDescriptor[] = [
   openAiRow('gpt-image-2.5-sunburst', 'GPT Image 2.5 Sunburst', openAiCapabilities({
     honorsSize: 'flaky', sizeObservations: { honored: 2, total: 3 }, sizes: XOMPET_HONORED_SIZES,
@@ -170,9 +150,6 @@ export const IMAGE_MODEL_CATALOG: readonly ImageModelDescriptor[] = [
   geminiRow('gemini-3.1-flash-image', 'Nano Banana 2',
     'aspectRatio + imageSize honoured exactly; without imageConfig the model answers landscape (1408x768), so a request always sends an explicit ratio.'),
   geminiRow('agy/gemini-3.1-flash-image', 'Nano Banana 2 (agy alias)', 'The agy/ alias answers 200 on the same generateContent route.'),
-  grokRow('grok-imagine-image', 'Grok Imagine Image', 'Not re-measured this session: honorsSize stays no until a live xAI call says otherwise.'),
-  grokRow('grok-imagine-image-quality', 'Grok Imagine Image (Quality)', 'Not re-measured this session; the studio keeps its own vocabulary until phase 5 re-measures the xAI route.'),
-  grokRow('grok-imagine-image-2.0', 'Grok Imagine Image 2.0', 'Listed as supported on the CPA images route, never driven.'),
 ];
 
 export function getImageModelDescriptor(modelId: string): ImageModelDescriptor | undefined {

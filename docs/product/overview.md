@@ -5,8 +5,8 @@ people and clothing, then use AI image models to generate styled outputs:
 virtual try-ons, lookbooks, background replacements, pose changes, and more.
 
 The app ships **three isolated provider studios** behind a header switch:
-**Gemini** (default, full-featured), **Grok** (xAI), and **GPT Image** (OpenAI).
-Gemini is the primary studio with all ten workflows; the Grok and GPT Image
+**Gemini** (default, full-featured), **GPT Image** (OpenAI).
+Gemini is the primary studio with all ten workflows; the GPT Image
 studios cover five workflows each. See `provider-studios.md` for the studio
 split contract.
 
@@ -43,7 +43,7 @@ aspect ratios, and quality settings.
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite |
 | Styling | Tailwind CSS |
-| AI Backend | Google Gemini SDK (`@google/genai`); plus Grok (xAI) and GPT Image (OpenAI) REST in provider studios |
+| AI Backend | Google Gemini SDK (`@google/genai`); plus GPT Image (OpenAI) REST in provider studios |
 | Storage | IndexedDB (idb-keyval) |
 | Build/Deploy | Vite, Vercel |
 
@@ -57,8 +57,8 @@ No React Router. `App.tsx` switches on `Feature` enum with lazy-loading.
 Provider nesting: `LanguageProvider → ToastProvider → ApiProvider →
 ImageGalleryProvider → ImageViewerProvider → AppContent`.
 
-`AppContent` also holds a `StudioMode` (`gemini | grok | gptImage`). The Gemini
-studio uses the pipeline above; Grok and GPT Image studios are isolated and call
+`AppContent` also holds a `StudioMode` (`gemini | gptImage`). The Gemini
+studio uses the pipeline above; GPT Image studios are isolated and call
 their own provider services (`src/services/providers/*`). See
 `provider-studios.md`.
 

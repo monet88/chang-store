@@ -34,7 +34,7 @@ import ProviderSourceItemGrid from '@/components/studios/provider-studio/Provide
 const img = (tag: string): ImageFile => ({ base64: tag, mimeType: 'image/png' });
 
 const baseProps = {
-  idPrefix: 'grok',
+  idPrefix: 'gpt-image',
   subjectLabelKey: 'studio.workflows.tryOn.upload',
   maxImages: 5,
   showType: true,
@@ -52,7 +52,7 @@ const baseProps = {
 describe('ProviderSourceItemGrid', () => {
   it('hides the add slot until a subject is uploaded', () => {
     render(<ProviderSourceItemGrid {...baseProps} images={[]} />);
-    expect(screen.queryByRole('button', { name: 'upload-grok-source-add' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'upload-gpt-image-source-add' })).not.toBeInTheDocument();
   });
 
   it('shows the add slot once a subject exists and forwards add', async () => {
@@ -60,7 +60,7 @@ describe('ProviderSourceItemGrid', () => {
     const user = userEvent.setup();
     render(<ProviderSourceItemGrid {...baseProps} images={[img('subject')]} onAddItem={onAddItem} />);
 
-    await user.click(screen.getByRole('button', { name: 'upload-grok-source-add' }));
+    await user.click(screen.getByRole('button', { name: 'upload-gpt-image-source-add' }));
     expect(onAddItem).toHaveBeenCalledWith({ base64: 'NEW', mimeType: 'image/png' });
   });
 
@@ -90,6 +90,6 @@ describe('ProviderSourceItemGrid', () => {
         images={[img('subject'), img('src0')]}
       />,
     );
-    expect(screen.queryByRole('button', { name: 'upload-grok-source-add' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'upload-gpt-image-source-add' })).not.toBeInTheDocument();
   });
 });

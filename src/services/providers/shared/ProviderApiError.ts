@@ -1,5 +1,5 @@
 /**
- * Typed error for provider (Grok / GPT Image) API failures.
+ * Typed error for provider (GPT Image) API failures.
  *
  * Services throw this on any non-2xx response so that retry logic and UI can
  * evaluate the error by type and status code rather than string matching.

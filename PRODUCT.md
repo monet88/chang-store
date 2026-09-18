@@ -28,7 +28,7 @@ the studio has to feel direct and unpadded.
 Replace physical photoshoots with AI-generated fashion imagery. One subject
 photo plus one garment photo equals a styled output in seconds, with
 configurable models, aspect ratios, and quality. Three studio modes (Gemini,
-Grok, GPT Image) sit behind a single switcher so the user picks the engine
+GPT Image) sit behind a single switcher so the user picks the engine
 once and keeps the same workflow vocabulary across providers (Try-On, Lookbook,
 Background, Pose, Photo Album, AI Editor, Watermark Remover, Clothing Transfer,
 Identity Transfer, Pattern Generator).

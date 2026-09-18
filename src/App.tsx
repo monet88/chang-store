@@ -24,7 +24,6 @@ const ClothingTransfer = lazy(() => import('./components/ClothingTransfer'));
 const IdentityTransfer = lazy(() => import('./components/IdentityTransfer'));
 const PatternGenerator = lazy(() => import('./components/PatternGenerator'));
 
-const GrokStudio = lazy(() => import('./components/studios/GrokStudio'));
 const GptImageStudio = lazy(() => import('./components/studios/GptImageStudio'));
 
 const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
@@ -298,9 +297,6 @@ const AppContent: React.FC = () => {
             <main id="main-content" className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
               <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
                 <Suspense fallback={<FeatureLoadingFallback />}>
-                  {studioMode === 'grok' && (
-                    <GrokStudio activeFeature={activeFeature} studioMode={studioMode} />
-                  )}
                   {studioMode === 'gptImage' && (
                     <GptImageStudio activeFeature={activeFeature} studioMode={studioMode} />
                   )}

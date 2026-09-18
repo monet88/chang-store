@@ -50,14 +50,12 @@ describe('gateway profiles (US-006 Lớp 2b)', () => {
     const storage = memoryStorage({
       'provider:gptImage:baseUrl': 'https://api.xompet.io.vn',
       'provider:gptImage:apiKey': 'xompet-key',
-      'provider:grok:baseUrl': 'https://api.x.ai/v1',
-      'provider:grok:apiKey': 'xai-key',
     });
 
     const profiles = loadGatewayProfiles(storage, GEMINI);
     const imageProfiles = profiles.filter((profile) => profile.lane === 'image');
 
-    expect(imageProfiles).toHaveLength(2);
+    expect(imageProfiles).toHaveLength(1);
     expect(imageProfiles.find((profile) => profile.driver === 'openai-images')).toEqual({
       id: imageProfileIdForProvider('gptImage'),
       label: 'GPT',
@@ -65,15 +63,6 @@ describe('gateway profiles (US-006 Lớp 2b)', () => {
       apiKey: 'xompet-key',
       lane: 'image',
       driver: 'openai-images',
-      enabled: true,
-    });
-    expect(imageProfiles.find((profile) => profile.driver === 'grok-images')).toEqual({
-      id: imageProfileIdForProvider('grok'),
-      label: 'Grok',
-      baseUrl: 'https://api.x.ai/v1',
-      apiKey: 'xai-key',
-      lane: 'image',
-      driver: 'grok-images',
       enabled: true,
     });
   });
@@ -129,9 +118,7 @@ describe('gateway profiles (US-006 Lớp 2b)', () => {
   });
 
   it('maps providers onto drivers both ways', () => {
-    expect(driverForProvider('grok')).toBe('grok-images');
     expect(driverForProvider('gptImage')).toBe('openai-images');
-    expect(providerIdForDriver('grok-images')).toBe('grok');
     expect(providerIdForDriver('openai-images')).toBe('gptImage');
     expect(providerIdForDriver('gemini-native')).toBeNull();
   });
@@ -144,17 +131,15 @@ describe('resolveActiveProfile', () => {
     lane: 'image' as const, driver: 'openai-images' as const, enabled: true,
   };
   const disabled = { ...xompet, id: 'off', enabled: false };
-  const grok = { ...xompet, id: 'grok1', driver: 'grok-images' as const };
-  const profiles = [gemini, xompet, disabled, grok];
+  const profiles = [gemini, xompet, disabled];
 
   it('honors the selected id when it is usable', () => {
-    expect(resolveActiveProfile(profiles, 'image', 'grok1', 'grok-images')?.id).toBe('grok1');
+    expect(resolveActiveProfile(profiles, 'image', 'xompet', 'openai-images')?.id).toBe('xompet');
     expect(resolveActiveProfile(profiles, 'gemini', DEFAULT_GEMINI_PROFILE_ID)?.id).toBe(DEFAULT_GEMINI_PROFILE_ID);
   });
 
   it('falls back to the first usable profile of the requested driver', () => {
     expect(resolveActiveProfile(profiles, 'image', 'missing', 'openai-images')?.id).toBe('xompet');
-    expect(resolveActiveProfile(profiles, 'image', null, 'grok-images')?.id).toBe('grok1');
   });
 
   it('never returns a disabled profile and never mixes drivers', () => {

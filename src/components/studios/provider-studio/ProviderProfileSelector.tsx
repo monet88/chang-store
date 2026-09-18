@@ -4,7 +4,7 @@ import { useApi } from '../../../contexts/ApiProviderContext';
 import { useServedModels } from '../../../hooks/useServedModels';
 
 /** Driver ids the provider studios can be pointed at (mirrors `ImageDriverId`). */
-export type StudioDriverId = 'openai-images' | 'grok-images';
+export type StudioDriverId = 'openai-images';
 
 /**
  * Which image-lane gateway this studio uses, and whether its served models are known.

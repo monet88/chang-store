@@ -16,7 +16,7 @@ export interface GatewayProfileEditorProps {
 
 /**
  * Two lists: the single Gemini-lane profile (the CPA route, saved with the modal) and the
- * image lane (GPT Image / Grok gateways, each saved as it is edited).
+ * image lane (GPT Image gateways, each saved as it is edited).
  */
 export const GatewayProfileEditor: React.FC<GatewayProfileEditorProps> = ({
   geminiProfileId,

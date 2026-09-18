@@ -15,11 +15,11 @@ export enum Feature {
 // STUDIO MODE (Three Provider Studios)
 // ============================================
 
-/** Studio mode for the three-provider split. Gemini is default. */
-export type StudioMode = 'gemini' | 'grok' | 'gptImage';
+/** Studio mode for the provider split. Gemini is default. */
+export type StudioMode = 'gemini' | 'gptImage';
 
 /**
- * Subset of features available inside Grok and GPT Image provider studios.
+ * Subset of features available inside the GPT Image provider studio.
  * Provider studios only support these five workflows.
  */
 export const PROVIDER_SUPPORTED_FEATURES: Feature[] = [

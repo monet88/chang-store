@@ -16,7 +16,7 @@ type TranslateFn = (key: string, options?: { [key: string]: string | number }) =
 /**
  * Provider image primitives the engine orchestrates.
  * The generation hook owns the driver contract; re-export the type here so
- * callers (useGrokStudio, useGptImageStudio) keep a stable import path.
+ * callers (useGptImageStudio) keep a stable import path.
  */
 export type { ProviderImageDriver } from './useProviderStudioGeneration';
 
@@ -24,13 +24,13 @@ export interface ProviderStudioEngineConfig {
   activeFeature: Feature;
   driver: ProviderImageDriver;
   wardrobeConfig: ProviderWardrobeConfig;
-  /** Lookbook variation cap (Grok 4, GPT 1). */
+  /** Lookbook variation cap (GPT 1). */
   maxVariations: number;
-  /** Requested output count for main/batch/set generation (Grok `n`, GPT 1). */
+  /** Requested output count for main/batch/set generation (GPT 1). */
   mainCount: number;
   /**
    * When true, variations are produced one call at a time (GPT: slow multipart
-   * edits). When false, a single request asks for all variations at once (Grok).
+   * edits). When false, a single request asks for all variations at once.
    */
   serialVariations: boolean;
 }
@@ -60,7 +60,7 @@ export interface UseProviderStudioEngineReturn
 }
 
 /**
- * Shared orchestration for Grok and GPT Image provider studios.
+ * Shared orchestration for GPT Image provider studios.
  *
  * Delegates prompt/images/results + generation + per-tile actions to
  * `useProviderStudioGeneration`. Owns wardrobe wiring, lookbook handlers/output,

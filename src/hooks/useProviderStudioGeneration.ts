@@ -10,7 +10,7 @@ import type {
   UseProviderStudioGenerationConfig,
 } from './providerStudioGenerationTypes';
 
-// Re-export so existing imports (useProviderStudioEngine, useGrokStudio,
+// Re-export so existing imports (useProviderStudioEngine, 
 // useGptImageStudio) keep working without changes.
 export type {
   ProviderImageDriver,
@@ -18,7 +18,7 @@ export type {
 } from './providerStudioGenerationTypes';
 
 /**
- * Shared generation engine for provider studios (Grok + GPT Image).
+ * Shared generation engine for provider studios (GPT Image).
  *
  * The parent `useProviderStudioEngine` creates the sub-hooks (fields, batch,
  * lookbook) and passes them in so this hook can build prompts and drive the

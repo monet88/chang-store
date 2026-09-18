@@ -4,7 +4,7 @@
  * Provider API keys are sent to whatever base URL the user configures, so an
  * attacker-controlled URL could exfiltrate the key. The app therefore warns
  * whenever the host is not a known first-party provider, but it accepts any
- * valid `http:` or `https:` URL so users can point Gemini, Grok, and GPT Image
+ * valid `http:` or `https:` URL so users can point Gemini and GPT Image
  * at arbitrary gateways, proxies, or IP-based endpoints.
  */
 

@@ -13,7 +13,6 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'header.description': 'A cinematic AI workspace.',
         'studio.switch.label': 'Studio',
         'studio.switch.gemini': 'Gemini',
-        'studio.switch.grok': 'Grok',
         'studio.switch.gptImage': 'GPT',
       };
 

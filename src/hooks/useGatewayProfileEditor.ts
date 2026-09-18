@@ -17,7 +17,6 @@ export type EditorProfile = GatewayProfile;
 /** API shapes an image-lane profile can speak; the label keys stay in the locale files. */
 export const IMAGE_DRIVER_OPTIONS: readonly { value: string; labelKey: string }[] = [
   { value: 'openai-images', labelKey: 'settingsModal.gatewayProfiles.drivers.openaiImages' },
-  { value: 'grok-images', labelKey: 'settingsModal.gatewayProfiles.drivers.grokImages' },
 ];
 
 export type ProfileProbeState =

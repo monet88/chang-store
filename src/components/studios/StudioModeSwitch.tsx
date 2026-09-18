@@ -9,13 +9,12 @@ interface StudioModeSwitchProps {
 
 const STUDIO_SEGMENTS: Array<{ mode: StudioMode; labelKey: string }> = [
   { mode: 'gemini', labelKey: 'studio.switch.gemini' },
-  { mode: 'grok', labelKey: 'studio.switch.grok' },
   { mode: 'gptImage', labelKey: 'studio.switch.gptImage' },
 ];
 
 /**
- * Three-segment studio switcher. Lets the user move between the Gemini studio
- * (default) and the isolated Grok / GPT Image provider studios.
+ * Studio switcher. Lets the user move between the Gemini studio
+ * (default) and the isolated GPT Image provider studio.
  */
 const StudioModeSwitch: React.FC<StudioModeSwitchProps> = ({ studioMode, onChange }) => {
   const { t } = useLanguage();

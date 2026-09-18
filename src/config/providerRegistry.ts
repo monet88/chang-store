@@ -1,13 +1,13 @@
 /**
  * Provider registry for the three-studio split.
  *
- * Holds metadata for the non-Gemini provider studios (Grok, GPT Image),
+ * Holds metadata for the non-Gemini provider studios (GPT Image),
  * including default base URLs and the injected env variable values. Env values
- * are wired in `vite.config.ts` (`process.env.GROK_*`, `process.env.GPT_IMAGE_*`)
+ * are wired in `vite.config.ts` (`process.env.GPT_IMAGE_*`)
  * with a VITE_-prefixed fallback for local `.env` files.
  */
 
-export type ProviderId = 'grok' | 'gptImage';
+export type ProviderId = 'gptImage';
 
 export interface ProviderMetadata {
   id: ProviderId;
@@ -24,17 +24,9 @@ export interface ProviderMetadata {
 const readEnv = (value: string | undefined | null): string =>
   typeof value === 'string' ? value : '';
 
-const GROK_DEFAULT_BASE_URL = 'https://api.x.ai/v1';
 const GPT_IMAGE_DEFAULT_BASE_URL = 'https://api.openai.com/v1';
 
 export const PROVIDER_REGISTRY: Record<ProviderId, ProviderMetadata> = {
-  grok: {
-    id: 'grok',
-    label: 'Grok',
-    defaultBaseUrl: GROK_DEFAULT_BASE_URL,
-    envApiKey: readEnv(process.env.GROK_API_KEY),
-    envBaseUrl: readEnv(process.env.GROK_BASE_URL),
-  },
   gptImage: {
     id: 'gptImage',
     label: 'GPT',
@@ -46,7 +38,7 @@ export const PROVIDER_REGISTRY: Record<ProviderId, ProviderMetadata> = {
   },
 };
 
-export const PROVIDER_IDS: ProviderId[] = ['grok', 'gptImage'];
+export const PROVIDER_IDS: ProviderId[] = ['gptImage'];
 
 export function getProviderMetadata(id: ProviderId): ProviderMetadata {
   return PROVIDER_REGISTRY[id];

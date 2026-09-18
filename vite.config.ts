@@ -63,8 +63,6 @@ export default defineConfig(({ mode }) => {
       'process.env.CLIPROXY_API_KEY': JSON.stringify(env.CLIPROXY_API_KEY || env.VITE_CLIPROXY_API_KEY),
       // Provider studio keys/base URLs use non-prefixed hosting names with a
       // VITE_-prefixed fallback for local .env files.
-      'process.env.GROK_API_KEY': JSON.stringify(env.GROK_API_KEY || env.VITE_GROK_API_KEY),
-      'process.env.GROK_BASE_URL': JSON.stringify(env.GROK_BASE_URL || env.VITE_GROK_BASE_URL),
       'process.env.GPT_IMAGE_API_KEY': JSON.stringify(env.GPT_IMAGE_API_KEY || env.VITE_GPT_IMAGE_API_KEY),
       'process.env.GPT_IMAGE_BASE_URL': JSON.stringify(env.GPT_IMAGE_BASE_URL || env.VITE_GPT_IMAGE_BASE_URL),
       // XomPet is the measured reference gateway for the image lane: when both are set,

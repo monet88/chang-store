@@ -137,7 +137,6 @@ export const en = {
     switch: {
       label: 'Studio',
       gemini: 'Gemini',
-      grok: 'Grok',
       gptImage: 'GPT',
     },
     provider: {
@@ -1149,7 +1148,7 @@ Do not include any other text or markdown.
       },
       gatewayProfiles: {
         title: 'Gateways',
-        description: 'One Gemini gateway (the CPA route) plus any number of OpenAI Images / Grok gateways for the provider studios.',
+        description: 'One Gemini gateway (the CPA route) plus any number of OpenAI Images gateways for the provider studios.',
       },
       data: {
         title: 'Application data',
@@ -1163,9 +1162,9 @@ Do not include any other text or markdown.
     gatewayProfiles: {
       geminiLane: 'Gemini gateway (CPA)',
       geminiLaneHint: 'Every Gemini request goes through this gateway. Saved with this panel.',
-      imageLane: 'Image providers (GPT / Grok)',
-      imageLaneHint: 'Saved as you edit. The GPT Image and Grok studios pick from this list and from the models it serves.',
-      emptyLane: 'No image gateway yet. Add the OpenAI Images / Grok gateway the provider studios should use.',
+      imageLane: 'Image providers (GPT)',
+      imageLaneHint: 'Saved as you edit. The GPT Image studios pick from this list and from the models it serves.',
+      emptyLane: 'No image gateway yet. Add the OpenAI Images gateway the provider studios should use.',
       addProfile: 'Add gateway',
       removeProfile: 'Remove',
       unnamedProfile: 'New gateway',
@@ -1178,7 +1177,6 @@ Do not include any other text or markdown.
       testButton: 'Check',
       drivers: {
         openaiImages: 'GPT Image (OpenAI Images)',
-        grokImages: 'Grok (xAI)',
       },
       status: {
         probing: 'Checking…',

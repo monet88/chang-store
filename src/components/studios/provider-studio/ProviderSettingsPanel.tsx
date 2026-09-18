@@ -4,7 +4,7 @@ import { validateProviderBaseUrl } from '../../../utils/provider-url-validation'
 import { panelClass } from './provider-studio-styles';
 
 interface ProviderSettingsPanelProps {
-  /** Provider display label (e.g. "Grok", "GPT Image"). */
+  /** Provider display label (e.g. "GPT Image"). */
   providerLabel: string;
   apiKey: string;
   baseUrl: string;

@@ -62,7 +62,7 @@ entitlement**, not the gateway's catalogue:
 | `response_format` | **unreliable** | `"b64_json"` → b64; `"url"` → usually a URL, but one call returned `b64_json` anyway ⇒ handle both |
 | `quality` | **no** | sent `high`, echoed `medium` (once `low`); the image does not change with it |
 | `n` | **no** | `n: 2` ⇒ HTTP 200 with **one** image |
-| `aspect_ratio`, `resolution`, `input_urls` | **no** | silently ignored (kie/grok-style vocabulary is not this contract) |
+| `aspect_ratio`, `resolution`, `input_urls` | **no** | silently ignored (kie-style vocabulary is not this contract) |
 
 Observed latency: **22 s → 122 s** per image, 0.3–6.3 MB PNG. Use a request timeout of
 **≥180 s**; the vendor example's 60/90 s will cut real generations off.
@@ -147,7 +147,7 @@ curl -sS -X POST "https://api.xompet.io.vn/v1/images/generations" \
 ## Re-verify 2026-09-18 — Identity Transfer edit path
 
 The app's real Identity Transfer request (`buildIdentityTransferParts`: destination + the bundled
-`docs/images/FACE_ANGLES.png` face sheet + `docs/images/BODY.png`) was sent through the exact
+`docs/images/FACE.png` face sheet + `docs/images/BODY.png`) was sent through the exact
 multipart shape `editGptImage` builds (`model`, `prompt`, `n=1`, `response_format=b64_json`,
 `size`, repeated `image[]`):
 

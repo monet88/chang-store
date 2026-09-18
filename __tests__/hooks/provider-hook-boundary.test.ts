@@ -7,13 +7,13 @@ const HOOKS_DIR = path.join(PROJECT_ROOT, 'src', 'hooks');
 
 /**
  * Shared provider helper hooks (`useProvider*.ts`) must stay service-agnostic:
- * the provider-SPECIFIC studio hooks (`useGrokStudio` / `useGptImageStudio`)
+ * the provider-SPECIFIC studio hooks (`useGptImageStudio`)
  * intentionally own provider service/config imports, but the reusable helpers
  * they compose must NOT — they take injected callbacks instead (Red Team #2).
  *
  * Scope is `useProvider*.ts` only (Validation Session 2 confirmed decision).
  */
-const STUDIO_HOOKS = new Set(['useGrokStudio.ts', 'useGptImageStudio.ts']);
+const STUDIO_HOOKS = new Set(['useGptImageStudio.ts']);
 
 const FORBIDDEN = [
   { reason: 'imports from src/services are forbidden in shared provider helper hooks', pattern: /from\s+['"](?:@\/services|(?:\.\.\/)+services)/ },

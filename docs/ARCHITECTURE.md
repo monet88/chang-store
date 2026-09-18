@@ -160,25 +160,25 @@ LanguageProvider
 
 AppContent owns the Feature routing and StudioMode switch. Feature values and
 provider support are defined in src/types.ts; route/component wiring is in
-src/App.tsx. Gemini is the default full-featured studio. Grok and GPT Image
+src/App.tsx. Gemini is the default full-featured studio. GPT Image
 are isolated provider studios using src/services/providers/ and the shared
 provider-studio hooks. Provider results remain local-only and do not write to
 the Gemini gallery pipeline.
 
 #### Provider Studio Parity Matrix
 
-| Workflow | Gemini | Grok | GPT Image | Current notes |
-| --- | --- | --- | --- | --- |
-| Virtual Try-On | Yes | Yes | Yes | Provider studios support source-item types/notes and multi-person targeting. |
-| Lookbook | Yes | Yes | Yes | Provider studios support core controls; variations and close-ups remain deferred. |
-| Clothing Transfer | Yes | Yes | Yes | Uses the provider prompt adapter and provider REST service. |
-| Identity Transfer | Yes | No | No | Gemini-only batch edit using shared identity references and per-destination jobs. |
-| Pattern Generator | Yes | Yes | Yes | Provider studios support prompt-driven generation. |
-| AI Editor | Yes | Yes | Yes | Requires a source image in provider studios. |
-| Background Replacer | Yes | No | No | Gemini-only workflow. |
-| Pose Changer | Yes | No | No | Gemini-only workflow. |
-| Photo Album | Yes | No | No | Gemini-only workflow. |
-| Watermark Remover | Yes | No | No | Gemini-only workflow. |
+| Workflow | Gemini | GPT Image | Current notes |
+| --- | --- | --- | --- |
+| Virtual Try-On | Yes | Yes | Provider studios support source-item types/notes and multi-person targeting. |
+| Lookbook | Yes | Yes | Provider studios support core controls; variations and close-ups remain deferred. |
+| Clothing Transfer | Yes | Yes | Uses the provider prompt adapter and provider REST service. |
+| Identity Transfer | Yes | No | Gemini-only batch edit using shared identity references and per-destination jobs. |
+| Pattern Generator | Yes | Yes | Provider studios support prompt-driven generation. |
+| AI Editor | Yes | Yes | Requires a source image in provider studios. |
+| Background Replacer | Yes | No | Gemini-only workflow. |
+| Pose Changer | Yes | No | Gemini-only workflow. |
+| Photo Album | Yes | No | Gemini-only workflow. |
+| Watermark Remover | Yes | No | Gemini-only workflow. |
 
 Provider studios defer Lookbook variations, Lookbook close-ups, and automatic
 clothing description because no provider text endpoint is wired for those paths.

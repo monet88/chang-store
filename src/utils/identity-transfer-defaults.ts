@@ -1,4 +1,4 @@
-import faceDefaultUrl from '../../docs/images/FACE_ANGLES.png';
+import faceDefaultUrl from '../../docs/images/FACE.png';
 import bodyDefaultUrl from '../../docs/images/BODY.png';
 import type { ImageFile } from '../types';
 import { compressImage } from './imageUtils';

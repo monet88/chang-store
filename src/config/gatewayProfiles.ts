@@ -3,7 +3,7 @@
  *
  * One profile = one lane = one driver (design invariant 10): the `gemini` lane is the CPA
  * route the app already drives and holds exactly one profile, the `image` lane holds any
- * number of OpenAI-Images / Grok gateways. The legacy `cpa_gateway_*` / `provider:*` keys
+ * number of OpenAI-Images gateways. The legacy `cpa_gateway_*` / `provider:*` keys
  * are read once and folded into profiles; `gateway_profiles_v1` is the store from then on.
  */
 import {
@@ -47,7 +47,6 @@ export const legacyProviderApiKeyKey = (provider: ProviderId): string => `provid
 export const imageProfileIdForProvider = (provider: ProviderId): string => `${provider}-default`;
 
 const DRIVER_BY_PROVIDER: Record<ProviderId, ImageDriverId> = {
-  grok: 'grok-images',
   gptImage: 'openai-images',
 };
 
@@ -61,7 +60,7 @@ export function providerIdForDriver(driver: ImageDriverId): ProviderId | null {
 const isLane = (value: unknown): value is GatewayLane => value === 'gemini' || value === 'image';
 
 export const isImageDriverId = (value: unknown): value is ImageDriverId =>
-  value === 'gemini-native' || value === 'openai-images' || value === 'grok-images';
+  value === 'gemini-native' || value === 'openai-images';
 
 /** Every field checked before a stored record is trusted. */
 export function isGatewayProfile(value: unknown): value is GatewayProfile {

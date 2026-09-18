@@ -137,7 +137,6 @@ export const vi: Translation = {
     switch: {
       label: 'Studio',
       gemini: 'Gemini',
-      grok: 'Grok',
       gptImage: 'GPT',
     },
     provider: {
@@ -1151,7 +1150,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       },
       gatewayProfiles: {
         title: 'Gateway',
-        description: 'Một gateway Gemini (tuyến CPA) và bao nhiêu gateway ảnh (OpenAI Images / Grok) tuỳ ý cho hai studio.',
+        description: 'Một gateway Gemini (tuyến CPA) và bao nhiêu gateway ảnh (OpenAI Images) tuỳ ý cho hai studio.',
       },
       data: {
         title: 'Dữ liệu ứng dụng',
@@ -1165,9 +1164,9 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     gatewayProfiles: {
       geminiLane: 'Gateway Gemini (CPA)',
       geminiLaneHint: 'Mọi request Gemini đều đi qua gateway này. Lưu cùng panel này.',
-      imageLane: 'Nhà cung cấp ảnh (GPT / Grok)',
-      imageLaneHint: 'Sửa tới đâu lưu tới đó. Studio GPT Image và Grok chọn từ danh sách này và các model nó cung cấp.',
-      emptyLane: 'Chưa có gateway ảnh. Thêm gateway OpenAI Images / Grok mà hai studio sẽ dùng.',
+      imageLane: 'Nhà cung cấp ảnh (GPT)',
+      imageLaneHint: 'Sửa tới đâu lưu tới đó. Studio GPT Image chọn từ danh sách này và các model nó cung cấp.',
+      emptyLane: 'Chưa có gateway ảnh. Thêm gateway OpenAI Images mà hai studio sẽ dùng.',
       addProfile: 'Thêm gateway',
       removeProfile: 'Xoá',
       unnamedProfile: 'Gateway mới',
@@ -1180,7 +1179,6 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       testButton: 'Kiểm tra',
       drivers: {
         openaiImages: 'GPT Image (OpenAI Images)',
-        grokImages: 'Grok (xAI)',
       },
       status: {
         probing: 'Đang kiểm tra…',

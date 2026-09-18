@@ -8,10 +8,10 @@ import { UseProviderLookbookOutputReturn } from '../../../hooks/useProviderLookb
 import { VirtualTryOnMode } from '../../../types';
 
 /**
- * Shared control surface both provider studio hooks (`useGrokStudio`,
- * `useGptImageStudio`) satisfy. `ProviderStudioShell` is typed against this so
- * it renders either provider without knowing the provider-specific options
- * (model/aspect/resolution/n for Grok; quality/size for GPT), which are passed
+ * Shared control surface provider studio hooks (`useGptImageStudio`)
+ * satisfy. `ProviderStudioShell` is typed against this so
+ * it renders the provider without knowing the provider-specific options
+ * (quality/size for GPT), which are passed
  * in as `optionsSlot`. Derived from the existing sub-hook return intersections
  * so it stays in sync with no field re-declaration.
  */

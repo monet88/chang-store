@@ -2,7 +2,7 @@
  * Provider Studio Prompt Adapter
  *
  * Bridges the Gemini prompt builders (which return interleaved `Part[]`) to the
- * provider services (Grok / GPT Image), which take a `prompt: string` plus a
+ * provider services (GPT Image), which take a `prompt: string` plus a
  * separate `images: ImageFile[]` array.
  *
  * Strategy: reuse each Gemini builder, then extract ONLY the text segments from

@@ -448,15 +448,13 @@ describe('ApiProviderContext', () => {
   });
 
   describe('provider settings', () => {
-    it('exposes grok and gptImage default settings with built-in base URLs', () => {
+    it('exposes gptImage default settings with built-in base URLs', () => {
       const { result } = renderHook(() => useApi(), {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.providerSettings.grok.baseUrl).toBe('https://api.x.ai/v1');
       expect(result.current.providerSettings.gptImage.baseUrl).toBe('https://api.openai.com/v1');
       // No env injection in test env → empty key defaults.
-      expect(result.current.providerSettings.grok.apiKey).toBe('');
       expect(result.current.providerSettings.gptImage.apiKey).toBe('');
     });
 
@@ -466,12 +464,12 @@ describe('ApiProviderContext', () => {
       });
 
       act(() => {
-        result.current.setProviderSettings('grok', { apiKey: 'xai-key', baseUrl: 'https://api.x.ai/v1' });
+        result.current.setProviderSettings('gptImage', { apiKey: 'xai-key', baseUrl: 'https://api.openai.com/v1' });
       });
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('provider:grok:apiKey', 'xai-key');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('provider:grok:baseUrl', 'https://api.x.ai/v1');
-      expect(result.current.providerSettings.grok.apiKey).toBe('xai-key');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('provider:gptImage:apiKey', 'xai-key');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('provider:gptImage:baseUrl', 'https://api.openai.com/v1');
+      expect(result.current.providerSettings.gptImage.apiKey).toBe('xai-key');
     });
 
     it('rehydrates persisted provider settings after remount', () => {
@@ -493,18 +491,18 @@ describe('ApiProviderContext', () => {
       });
 
       act(() => {
-        result.current.setProviderSettings('grok', { apiKey: 'temp-key', baseUrl: 'https://custom.example.com/v1' });
+        result.current.setProviderSettings('gptImage', { apiKey: 'temp-key', baseUrl: 'https://custom.example.com/v1' });
       });
-      expect(result.current.providerSettings.grok.apiKey).toBe('temp-key');
+      expect(result.current.providerSettings.gptImage.apiKey).toBe('temp-key');
 
       act(() => {
-        result.current.resetProviderSettings('grok');
+        result.current.resetProviderSettings('gptImage');
       });
 
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('provider:grok:apiKey');
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('provider:grok:baseUrl');
-      expect(result.current.providerSettings.grok.apiKey).toBe('');
-      expect(result.current.providerSettings.grok.baseUrl).toBe('https://api.x.ai/v1');
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('provider:gptImage:apiKey');
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('provider:gptImage:baseUrl');
+      expect(result.current.providerSettings.gptImage.apiKey).toBe('');
+      expect(result.current.providerSettings.gptImage.baseUrl).toBe('https://api.openai.com/v1');
     });
   });
 });

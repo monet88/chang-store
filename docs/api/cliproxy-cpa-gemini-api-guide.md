@@ -61,7 +61,7 @@ curl -sS -X POST "https://cliproxy.monet.uno/v1beta/models/gemini-3.1-flash-imag
 | `imageConfig.aspectRatio` + `imageSize` | **honoured exactly** — 9:16 @ 1K/2K/4K ⇒ 768x1376 / 1536x2752 / 3072x5504; 1:1 @ 2K ⇒ 2048x2048; 3:4 @ 2K ⇒ 1792x2400 |
 | Response shape | image arrives in `parts[].inlineData`, mime **`image/jpeg`** (no alpha, regardless of the request) |
 | `imageConfig` omitted | the gateway returns **1408x768** (landscape) ⇒ always send `aspectRatio` explicitly |
-| `POST /v1/images/generations` here | accepts only `gpt-image-*` / `grok-imagine-*`; `gemini-3.1-flash-image` answers **400** with the supported list. For `gpt-image-*` the **`size` and `quality` fields are ignored** (always 1254x1254; `gpt-image-2.5` answers 1369x1149) — which is why the image lane does not use this route |
+| `POST /v1/images/generations` here | accepts only `gpt-image-*`; `gemini-3.1-flash-image` answers **400** with the supported list. For `gpt-image-*` the **`size` and `quality` fields are ignored** (always 1254x1254; `gpt-image-2.5` answers 1369x1149) — which is why the image lane does not use this route |
 
 Capability flags derived from these measurements live in `src/config/imageModelCatalog.ts`
 under the `cliproxy.monet.uno` gateway override, and every consumer reads them through

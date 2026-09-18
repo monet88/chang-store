@@ -19,18 +19,18 @@ interface ProviderStudioShellProps {
   studio: ProviderStudioController;
   workflow: ProviderWorkflowConfig;
   activeFeature: Feature;
-  /** i18n key for the provider name (e.g. 'studio.switch.grok'). */
+  /** i18n key for the provider name (e.g. 'studio.switch.gptImage'). */
   providerLabelKey: string;
-  /** Prefix for element ids + download filenames (e.g. 'grok', 'gpt-image'). */
+  /** Prefix for element ids + download filenames (e.g. 'gpt-image'). */
   idPrefix: string;
-  /** Provider-specific generation options block (Grok vs GPT differ here). */
+  /** Provider-specific generation options block (GPT Image specific options). */
   optionsSlot: React.ReactNode;
   /** Show the ~60-90s slow-response warning (GPT Image). */
   showSlowWarning?: boolean;
 }
 
 /**
- * Shared layout for both provider studios. Holds every piece of JSX that Grok
+ * Shared layout for the provider studio. Holds every piece of JSX that
  * and GPT have in common; the only provider-specific surface is `optionsSlot`
  * (model/aspect/resolution/n vs quality/size) and the slow-response warning.
  */
