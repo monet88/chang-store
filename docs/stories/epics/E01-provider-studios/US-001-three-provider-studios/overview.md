@@ -28,7 +28,6 @@ Provider studios must keep results local-only, avoid Gallery writes, avoid Gemin
 - `docs/ARCHITECTURE.md`
 - `docs/product/overview.md`
 - `docs/deployment-guide.md`
-- `docs/api/README.md`
 - `docs/project-roadmap.md`
 - `docs/system-architecture.md`
 - `docs/CHANGELOG.md`

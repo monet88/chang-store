@@ -115,7 +115,7 @@ npm run build
 - Stories and backlog: `docs/stories/`
 - Decisions: `docs/decisions/`
 - Templates: `docs/templates/`
-- API reference policy: `docs/api/README.md`
+- API reference policy: one measured contract per gateway in `docs/api/`
 
 ## License
 
