@@ -19,6 +19,7 @@
 
 import { vi } from 'vitest';
 import { Feature } from '../../src/types';
+import type { ImageEngine } from '../../src/contexts/ImageEngineContext';
 
 // ============================================================================
 // Type Definitions
@@ -227,6 +228,46 @@ export const mockUseImageViewer = (
 
   return {
     useImageViewer: () => ({
+      ...defaults,
+      ...overrides,
+    }),
+  };
+};
+
+/**
+ * Creates a mock for useImageEngine — the studio-scoped image transport.
+ *
+ * Feature hooks read their driver, model and generation options from that
+ * context, so a hook or component test mocks this module instead of mounting
+ * the provider (which would need the real ApiProvider).
+ *
+ * @example
+ * vi.mock('@/contexts/ImageEngineContext', () => mockUseImageEngine({
+ *   editImage: mockedEditImage,
+ *   model: 'gemini-3.1-flash-image',
+ * }));
+ */
+export const mockUseImageEngine = (
+  overrides: Partial<ImageEngine> = {}
+): { useImageEngine: () => ImageEngine } => {
+  const defaults: ImageEngine = {
+    id: 'gemini',
+    model: 'gemini-2.5-flash-image',
+    editImage: vi.fn(),
+    upscaleImage: vi.fn(),
+    createImageChatSession: vi.fn(() => ({
+      sendRefinement: vi.fn(),
+      getHistory: () => [],
+      reset: () => {},
+    })),
+    modelOptions: null,
+    setModel: null,
+    noSelectableModel: false,
+    options: null,
+  };
+
+  return {
+    useImageEngine: () => ({
       ...defaults,
       ...overrides,
     }),

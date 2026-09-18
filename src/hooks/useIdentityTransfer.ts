@@ -7,10 +7,9 @@ import {
   type ImageFile,
   type ImageResolution,
 } from '../types';
-import { useApi } from '../contexts/ApiProviderContext';
+import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { editImage } from '../services/imageEditingService';
 import { buildIdentityTransferParts } from '../utils/identity-transfer-prompt-builder';
 import { getErrorMessage } from '../utils/imageUtils';
 import { loadDefaultIdentityReferences } from '../utils/identity-transfer-defaults';
@@ -33,7 +32,7 @@ export const useIdentityTransfer = () => {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const { imageEditModel } = useApi();
+  const { editImage, model: imageEditModel } = useImageEngine();
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
 
@@ -123,7 +122,7 @@ export const useIdentityTransfer = () => {
         error: getErrorMessage(itemError, t),
       });
     }
-  }, [addImage, aspectRatio, backgroundPrompt, extraPrompt, imageEditModel, resolution, t, updateDestinationItem]);
+  }, [addImage, aspectRatio, backgroundPrompt, editImage, extraPrompt, imageEditModel, resolution, t, updateDestinationItem]);
 
   const canGenerate = destinationItems.length > 0 && faceReference !== null;
 

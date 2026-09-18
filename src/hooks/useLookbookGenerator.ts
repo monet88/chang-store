@@ -2,8 +2,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
+import { useImageEngine } from '../contexts/ImageEngineContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, upscaleImage, createImageChatSession } from '../services/imageEditingService';
 import { generateClothingDescription } from '../services/textService';
 import { useLookbookDraft } from './useLookbookDraft';
 import {
@@ -41,10 +41,14 @@ export const useLookbookGenerator = () => {
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
   const { t } = useLanguage();
-  const { imageEditModel, textGenerateModel } = useApi();
+  const { textGenerateModel } = useApi();
+  const { editImage, upscaleImage, createImageChatSession, model: imageEditModel } = useImageEngine();
 
-  // Default driver wraps the real Gemini service; tests can inject a mock.
-  const driver = useMemo<GeminiImageDriver>(() => ({ editImage, upscaleImage, createImageChatSession }), []);
+  // Driver over the studio-scoped engine; tests can inject a mock.
+  const driver = useMemo<GeminiImageDriver>(
+    () => ({ editImage, upscaleImage, createImageChatSession: createImageChatSession ?? undefined }),
+    [editImage, upscaleImage, createImageChatSession],
+  );
 
   const buildImageServiceConfig = useCallback(
     (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),

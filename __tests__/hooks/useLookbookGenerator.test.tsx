@@ -25,6 +25,7 @@ import {
   mockUseLanguage,
   mockUseImageGallery,
   mockUseApi,
+  mockUseImageEngine,
 } from '../__mocks__/contexts';
 
 // ============================================================================
@@ -57,6 +58,14 @@ vi.mock('../../src/utils/zipDownload', () => ({
 vi.mock('../../src/contexts/LanguageContext', () => mockUseLanguage());
 vi.mock('../../src/contexts/ImageGalleryContext', () => mockUseImageGallery());
 vi.mock('../../src/contexts/ApiProviderContext', () => mockUseApi());
+// The hook takes its transport from the studio-scoped engine (issue #152
+// Decision 3), so the same service spies feed the engine mock.
+vi.mock('../../src/contexts/ImageEngineContext', () => mockUseImageEngine({
+  editImage,
+  upscaleImage,
+  createImageChatSession,
+  model: 'gemini-3.1-flash-image',
+}));
 
 /** Mock prompts */
 vi.mock('../../src/components/LookbookGenerator.prompts', () => ({
@@ -71,11 +80,17 @@ vi.mock('../../src/components/LookbookGenerator.prompts', () => ({
   MannequinBackgroundStyleKey: {},
 }));
 
-// Import hook and mocked services after mocking
-import { useLookbookGenerator } from '../../src/hooks/useLookbookGenerator';
-import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
+// Import hook and mocked services after mocking. The service spies must be
+// initialized before the hook module loads, because that load runs the
+// ImageEngineContext factory above.
+import {
+  createImageChatSession,
+  editImage,
+  upscaleImage,
+} from '../../src/services/imageEditingService';
 import { generateClothingDescription } from '../../src/services/textService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
+import { useLookbookGenerator } from '../../src/hooks/useLookbookGenerator';
 
 // ============================================================================
 // Test Constants

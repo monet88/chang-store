@@ -5,9 +5,8 @@ import {
   ImageResolution,
 } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageRefinement } from './useImageRefinement';
 import { useClothingTransferReferences } from './useClothingTransferReferences';
 import { useClothingTransferConcepts } from './useClothingTransferConcepts';
@@ -31,8 +30,8 @@ export const useClothingTransfer = () => {
   const [upscalingStates, setUpscalingStates] = useState<Record<string, boolean>>({});
 
   const { t } = useLanguage();
-  const { imageEditModel } = useApi();
   const { addImage } = useImageGallery();
+  const { editImage, upscaleImage, model: imageEditModel } = useImageEngine();
 
   const refinement = useImageRefinement({ imageEditModel, setError, t });
   const { refinePrompts, setRefinePrompts, isRefining } = refinement;
@@ -41,7 +40,10 @@ export const useClothingTransfer = () => {
   const concepts = useClothingTransferConcepts({ setError });
 
   // Default driver wraps the real Gemini service; tests can inject a mock.
-  const driver = useMemo<GeminiImageDriver>(() => ({ editImage, upscaleImage }), []);
+  const driver = useMemo<GeminiImageDriver>(
+    () => ({ editImage, upscaleImage }),
+    [editImage, upscaleImage],
+  );
 
   const buildImageServiceConfig = useCallback(
     (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),

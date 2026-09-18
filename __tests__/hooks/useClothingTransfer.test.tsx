@@ -41,9 +41,19 @@ vi.mock('../../src/utils/zipDownload', () => ({
   downloadImagesAsZip: vi.fn(),
 }));
 
-import { useClothingTransfer } from '../../src/hooks/useClothingTransfer';
+vi.mock('../../src/contexts/ImageEngineContext', () =>
+  mockUseImageEngine({
+    editImage,
+    upscaleImage,
+    createImageChatSession,
+    model: 'gemini-2.5-flash-image',
+  }),
+);
+
+import { mockUseImageEngine } from '../__mocks__/contexts';
 import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
+import { useClothingTransfer } from '../../src/hooks/useClothingTransfer';
 
 const CONCEPT_A = { base64: 'concept-a', mimeType: 'image/png' };
 const CONCEPT_B = { base64: 'concept-b', mimeType: 'image/png' };

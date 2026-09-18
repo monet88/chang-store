@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockUseImageEngine } from '../__mocks__/contexts';
 
 const { sendRefinement, createImageChatSession } = vi.hoisted(() => {
   const sendRefinement = vi.fn();
@@ -15,6 +16,13 @@ const { sendRefinement, createImageChatSession } = vi.hoisted(() => {
 vi.mock('@/services/imageEditingService', () => ({
   createImageChatSession: (model: string) => createImageChatSession(model),
 }));
+
+vi.mock('@/contexts/ImageEngineContext', () =>
+  mockUseImageEngine({
+    createImageChatSession: (model: string) => createImageChatSession(model),
+    model: 'gemini-3.1-flash-image',
+  }),
+);
 
 import { useImageRefinement } from '@/hooks/useImageRefinement';
 import { ImageFile } from '@/types';

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { mockUseImageEngine } from '../__mocks__/contexts';
 
 const addImageMock = vi.fn();
 
@@ -44,9 +45,18 @@ vi.mock('../../src/utils/zipDownload', () => ({
   downloadImagesAsZip: vi.fn(),
 }));
 
+vi.mock('../../src/contexts/ImageEngineContext', () =>
+  mockUseImageEngine({
+    editImage,
+    upscaleImage,
+    createImageChatSession,
+    model: 'gemini-2.5-flash-image',
+  }),
+);
+
+import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { useVirtualTryOn } from '../../src/hooks/useVirtualTryOn';
 import { compositeMarkerOnImage } from '../../src/utils/imageUtils';
-import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 
 const SUBJECT_A = { base64: 'subject-a', mimeType: 'image/png' };

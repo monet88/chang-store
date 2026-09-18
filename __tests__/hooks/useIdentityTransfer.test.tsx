@@ -11,9 +11,16 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
   useLanguage: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock('../../src/contexts/ApiProviderContext', () => ({
-  useApi: () => ({ imageEditModel: 'gemini-3.1-flash-image' }),
-}));
+// The hook takes its transport from the studio-scoped engine (issue #152
+// Decision 3), so the same service spy feeds the engine mock.
+vi.mock('../../src/contexts/ImageEngineContext', async () => {
+  const { mockUseImageEngine: createEngineMock } = await import('../__mocks__/contexts');
+  const services = await import('../../src/services/imageEditingService');
+  return createEngineMock({
+    editImage: services.editImage,
+    model: 'gemini-3.1-flash-image',
+  });
+});
 
 vi.mock('../../src/contexts/ImageGalleryContext', () => ({
   useImageGallery: () => ({ addImage: addImageMock }),

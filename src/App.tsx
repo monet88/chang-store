@@ -6,6 +6,7 @@ import { ImageGalleryProvider } from './contexts/ImageGalleryContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ApiProvider, useApi } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
+import { ImageEngineProvider } from './contexts/ImageEngineContext';
 import { ToastProvider } from './components/Toast';
 import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
@@ -240,6 +241,7 @@ const AppContent: React.FC = () => {
         <MobileOverlay isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
 
         <div className="min-h-dvh lg:pl-[22rem]">
+          <ImageEngineProvider mode={studioMode}>
           {studioMode === 'gemini' ? (
             <main id="main-content" className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
               <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
@@ -304,6 +306,7 @@ const AppContent: React.FC = () => {
               </div>
             </main>
           )}
+          </ImageEngineProvider>
 
         </div>
 

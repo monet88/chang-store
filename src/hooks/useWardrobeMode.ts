@@ -2,13 +2,14 @@
  * Wardrobe Mode Hook (orchestrator)
  *
  * Composes list management (useWardrobeModeList) and generation engine (useWardrobeModeEngine).
- * Builds driver seam for editImage. Preserves exact public return surface.
+ * Builds the editImage driver seam from the studio-scoped image engine.
+ * Preserves exact public return surface.
  */
 
 import { useState, useMemo, useCallback } from 'react';
 import type { ImageFile, ImageResolution, AspectRatio, ImageEditModel } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { editImage } from '../services/imageEditingService';
+import { useImageEngine } from '../contexts/ImageEngineContext';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import { getErrorMessage } from '../utils/imageUtils';
 import { Feature } from '../types';
@@ -25,6 +26,7 @@ interface UseWardrobeModeParams {
 
 export const useWardrobeMode = (params: UseWardrobeModeParams) => {
   const { t } = useLanguage();
+  const { editImage } = useImageEngine();
 
   const list = useWardrobeModeList();
 
@@ -33,7 +35,7 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
   const [error, setError] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('');
 
-  const driver = useMemo<WardrobeImageDriver>(() => ({ editImage }), []);
+  const driver = useMemo<WardrobeImageDriver>(() => ({ editImage }), [editImage]);
 
   const engine = useWardrobeModeEngine({
     driver,

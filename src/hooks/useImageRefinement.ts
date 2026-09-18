@@ -1,7 +1,9 @@
 import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { ImageFile } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
-import { createImageChatSession, ImageChatSession } from '../services/imageEditingService';
+import { useImageEngine } from '../contexts/ImageEngineContext';
+import { createSingleShotRefineSession } from '../utils/single-shot-refine-session';
+import type { ImageChatSession } from '../services/imageEditingService';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
@@ -54,6 +56,7 @@ export const useImageRefinement = ({
   setError,
   t,
 }: UseImageRefinementParams): UseImageRefinementReturn => {
+  const { editImage, createImageChatSession } = useImageEngine();
   const chatSessionsRef = useRef<Record<string, ImageChatSession>>({});
   const [refinePrompts, setRefinePrompts] = useState<Record<string, string>>({});
   const [isRefining, setIsRefining] = useState<Record<string, boolean>>({});
@@ -91,9 +94,11 @@ export const useImageRefinement = ({
 
       if (!chatSessionsRef.current[key]) {
         try {
-          chatSessionsRef.current[key] = createImageChatSession(imageEditModel, {
-            onStatusUpdate: () => {},
-          });
+          // A GPT lane has no server-side chat, so its refine is a stateless
+          // single-shot edit wrapped in the same session shape.
+          chatSessionsRef.current[key] = createImageChatSession
+            ? createImageChatSession(imageEditModel, { onStatusUpdate: () => {} })
+            : createSingleShotRefineSession(editImage, imageEditModel);
         } catch (sessionErr) {
           setError(getErrorMessage(sessionErr, t));
           return;
@@ -114,7 +119,7 @@ export const useImageRefinement = ({
         setIsRefining((prev) => ({ ...prev, [key]: false }));
       }
     },
-    [imageEditModel, setError, t],
+    [imageEditModel, editImage, createImageChatSession, setError, t],
   );
 
   return {

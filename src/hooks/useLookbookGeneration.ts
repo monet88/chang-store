@@ -5,7 +5,7 @@ import {
   ImageResolution,
 } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
-import { editImage, upscaleImage, createImageChatSession } from '../services/imageEditingService';
+import type { editImage, upscaleImage, createImageChatSession } from '../services/imageEditingService';
 import {
   buildLookbookPrompt,
   buildVariationPrompt,
@@ -20,13 +20,15 @@ type TranslateFn = (key: string, options?: { [key: string]: string | number }) =
 /**
  * Gemini image primitives the engine orchestrates, mirroring the provider
  * `ProviderImageDriver` seam. The main hook builds the default driver from the
- * real `imageEditingService`; tests can inject a mock driver to exercise the
- * generation core without hitting the Gemini API.
+ * studio-scoped engine context; tests can inject a mock driver to exercise the
+ * generation core without hitting the Gemini API. The chat session is
+ * Gemini-only: a GPT-lane refine is a single-shot edit (issue #152 Decision 5),
+ * so callers fall back to `createSingleShotRefineSession` when it is absent.
  */
 export interface GeminiImageDriver {
   editImage: typeof editImage;
   upscaleImage: typeof upscaleImage;
-  createImageChatSession: typeof createImageChatSession;
+  createImageChatSession?: typeof createImageChatSession;
 }
 
 export interface LookbookSet {

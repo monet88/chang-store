@@ -1,0 +1,105 @@
+import type { editImage, upscaleImage } from '../../imageEditingService';
+import type { ImageAspectRatio, ImageFile, UpscaleQuality } from '../../../types';
+import { DEFAULT_GPT_IMAGE_SIZE, type GptImageQuality } from '../../../config/gptImageModelRegistry';
+import { PROVIDER_UPSCALE_PROMPTS } from '../../../utils/provider-refine-prompt';
+import { editGptImage, type GptImageServiceConfig } from './gptImageService';
+
+/**
+ * The GPT lane's implementation of the shared image engine contract
+ * (`imageEditingService` is the Gemini one). Feature hooks take either
+ * implementation from `ImageEngineContext`, so those hooks never learn which
+ * engine is behind them (issue #152, Decision 3).
+ */
+export interface GptImageEngine {
+  editImage: typeof editImage;
+  upscaleImage: typeof upscaleImage;
+}
+
+/** Ratios the GPT studio offers, in the product's priority order (issue #152, Decision 4). */
+export const GPT_STUDIO_ASPECT_RATIOS: readonly ImageAspectRatio[] = ['1:1', '3:4', '9:16'];
+
+const ratioValue = (value: string): number | null => {
+  const [width, height] = value.split(/[:x]/).map(Number);
+  return width > 0 && height > 0 ? width / height : null;
+};
+
+/**
+ * Closest advertised pixel size to `ratio`. The size set comes from
+ * `resolveGptImageSizeOptions` (the (gateway, model) capability), never from a
+ * literal table, so a gateway that honors different sizes still maps correctly.
+ */
+export const resolveSizeForRatio = (
+  sizes: readonly string[],
+  ratio: ImageAspectRatio,
+): string => {
+  const advertised = sizes.filter((size) => size !== 'auto');
+  const target = ratioValue(ratio);
+  if (advertised.length === 0 || !target) {
+    return advertised[0] ?? (sizes.includes(DEFAULT_GPT_IMAGE_SIZE) ? DEFAULT_GPT_IMAGE_SIZE : 'auto');
+  }
+  return advertised.reduce((best, size) => {
+    const bestValue = ratioValue(best);
+    const value = ratioValue(size);
+    if (!value) return best;
+    if (!bestValue) return size;
+    return Math.abs(Math.log(value / target)) < Math.abs(Math.log(bestValue / target)) ? size : best;
+  }, advertised[0]);
+};
+
+export interface GptImageEngineParams {
+  /** Model id sent verbatim; the catalog decides which ids a gateway can serve. */
+  model: string;
+  quality: GptImageQuality;
+  /** Pixel sizes the active (gateway, model) pair advertises. */
+  sizeOptions: readonly string[];
+  /** Fail-closed credentials of the resolved image-lane profile. */
+  credentials: GptImageServiceConfig;
+}
+
+/**
+ * OpenAI Images edits are stateless: a refine is one edit request carrying the
+ * current image, and there is no chat session to expose (Decision 5). Upscale
+ * has no native flag either, so it uses the preservation prompt at the largest
+ * quality, exactly like the retired provider studio.
+ */
+export const buildGptImageEngine = ({
+  model,
+  quality,
+  sizeOptions,
+  credentials,
+}: GptImageEngineParams): GptImageEngine => {
+  const sizeForRatio = (ratio: ImageAspectRatio): string => resolveSizeForRatio(sizeOptions, ratio);
+  const upscaleSize = sizeForRatio('Default');
+
+  return {
+    editImage: async (params, _model, _config): Promise<ImageFile[]> =>
+      editGptImage(
+        {
+          model,
+          prompt: params.prompt,
+          images: params.images,
+          size: sizeForRatio(params.aspectRatio ?? 'Default'),
+          quality,
+        },
+        credentials,
+      ),
+    upscaleImage: async (
+      image,
+      _model,
+      _config,
+      qualityLevel: UpscaleQuality = '2K',
+    ): Promise<ImageFile> => {
+      const [upscaled] = await editGptImage(
+        {
+          model,
+          prompt: PROVIDER_UPSCALE_PROMPTS[qualityLevel],
+          images: [image],
+          size: upscaleSize,
+          quality: 'high',
+        },
+        credentials,
+      );
+      return upscaled;
+    },
+  };
+};

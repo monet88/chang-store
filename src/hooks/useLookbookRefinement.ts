@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImageFile, RefinementHistoryItem } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import type { ImageChatSession } from '../services/imageEditingService';
+import { createSingleShotRefineSession } from '../utils/single-shot-refine-session';
 import type { GeminiImageDriver, LookbookSet } from './useLookbookGeneration';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
@@ -54,7 +55,9 @@ export const useLookbookRefinement = (
   // (e.g. after resetRefinement nulls the session).
   useEffect(() => {
     if (generatedLookbook && !chatSession) {
-      const session = driver.createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
+      const session = driver.createImageChatSession
+        ? driver.createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}))
+        : createSingleShotRefineSession(driver.editImage, imageEditModel);
       setChatSession(session);
     }
   }, [generatedLookbook, chatSession, imageEditModel, buildImageServiceConfig, driver]);
@@ -63,7 +66,9 @@ export const useLookbookRefinement = (
     originalImageRef.current = image;
     setRefinementVersions([]);
     setSelectedVersionIndex(-1);
-    const session = driver.createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}));
+    const session = driver.createImageChatSession
+      ? driver.createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}))
+      : createSingleShotRefineSession(driver.editImage, imageEditModel);
     setChatSession(session);
     setRefinementHistory([]);
   }, [imageEditModel, buildImageServiceConfig, driver]);

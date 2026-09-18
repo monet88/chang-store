@@ -1,12 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/contexts/ApiProviderContext', () => ({
-  useApi: () => ({
-    imageEditModel: 'gemini-2.5-flash-image',
-  }),
-}));
-
 vi.mock('@/contexts/LanguageContext', () => ({
   useLanguage: () => ({
     t: (key: string, params?: Record<string, string>) => (
@@ -18,6 +12,17 @@ vi.mock('@/contexts/LanguageContext', () => ({
 vi.mock('@/services/imageEditingService', () => ({
   editImage: vi.fn(),
 }));
+
+// The hook takes its transport from the studio-scoped engine (issue #152
+// Decision 3), so the same service spy feeds the engine mock.
+vi.mock('@/contexts/ImageEngineContext', async () => {
+  const { mockUseImageEngine: createEngineMock } = await import('../__mocks__/contexts');
+  const services = await import('@/services/imageEditingService');
+  return createEngineMock({
+    editImage: services.editImage,
+    model: 'gemini-2.5-flash-image',
+  });
+});
 
 import { useAIEditor } from '@/hooks/useAIEditor';
 import { editImage } from '@/services/imageEditingService';

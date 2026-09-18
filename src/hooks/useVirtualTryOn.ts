@@ -8,8 +8,7 @@ import {
 } from '../types';
 import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useApi } from '../contexts/ApiProviderContext';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageRefinement } from './useImageRefinement';
 import { useVirtualTryOnSubjects } from './useVirtualTryOnSubjects';
 import { useVirtualTryOnEngine, GeminiImageDriver } from './useVirtualTryOnEngine';
@@ -31,7 +30,7 @@ export const useVirtualTryOn = () => {
   const [isMultiPersonMode, setIsMultiPersonModeState] = useState<boolean>(false);
 
   const { t } = useLanguage();
-  const { imageEditModel } = useApi();
+  const { editImage, upscaleImage, model: imageEditModel } = useImageEngine();
 
   // Refine lifecycle (chat sessions + per-slot state) lives in a shared deep
   // module; slot key = `itemId:index`.
@@ -54,8 +53,8 @@ export const useVirtualTryOn = () => {
   // Subject batch management extracted to its own focused hook.
   const subjects = useVirtualTryOnSubjects(setError, setUpscalingStates);
 
-  // Default driver wraps the real Gemini service; tests can inject a mock.
-  const driver = useMemo<GeminiImageDriver>(() => ({ editImage, upscaleImage }), []);
+  // Default driver comes from the studio-scoped image engine; tests can inject a mock.
+  const driver = useMemo<GeminiImageDriver>(() => ({ editImage, upscaleImage }), [editImage, upscaleImage]);
 
   const buildImageServiceConfig = useCallback(
     (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),

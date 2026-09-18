@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { useApi } from '../contexts/ApiProviderContext';
+import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { editImage } from '../services/imageEditingService';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { buildSingleImageEditPrompt, buildMultiImageEditPrompt } from '../utils/ai-editor-prompt-builder';
@@ -33,7 +32,7 @@ export interface UseAIEditorReturn {
 
 export const useAIEditor = (): UseAIEditorReturn => {
   const { t } = useLanguage();
-  const { imageEditModel } = useApi();
+  const { editImage, model: imageEditModel } = useImageEngine();
 
   const [images, setImages] = useState<ImageFile[]>([]);
   const [prompt, setPrompt] = useState('');
@@ -140,6 +139,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
     prompt,
     aspectRatio,
     resolution,
+    editImage,
     imageEditModel,
     extractMentionedImages,
     buildApiPrompt,

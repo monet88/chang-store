@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { mockUseImageEngine } from '../__mocks__/contexts';
 
 vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
@@ -27,8 +28,12 @@ vi.mock('../../src/utils/run-bounded-workers', () => ({
   },
 }));
 
-import { useWardrobeMode } from '../../src/hooks/useWardrobeMode';
+vi.mock('../../src/contexts/ImageEngineContext', () =>
+  mockUseImageEngine({ editImage, model: 'gemini-2.5-flash-image' }),
+);
+
 import { editImage } from '../../src/services/imageEditingService';
+import { useWardrobeMode } from '../../src/hooks/useWardrobeMode';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 
 const SUBJECT = { base64: 'subject-image', mimeType: 'image/png' };
