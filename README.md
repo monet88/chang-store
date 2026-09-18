@@ -46,12 +46,10 @@ isolated Grok / GPT Image provider studios.
 Key docs:
 
 - `AGENTS.md` — project-specific agent instructions and Harness entrypoints.
-- `docs/README.md` — documentation map.
 - `docs/product/overview.md` — product overview.
 - `docs/product/provider-studios.md` — the three-provider studio split.
 - `docs/product/identity-transfer.md` — Identity Transfer role and batch contract.
 - `docs/ARCHITECTURE.md` — actual app architecture.
-- `docs/code-standards.md` — code conventions and quality gates.
 
 ## Getting Started
 
@@ -92,11 +90,9 @@ GPT_IMAGE_BASE_URL=https://api.openai.com/v1
 ```
 
 For production deployments, set the same variables in the hosting dashboard.
-See `docs/deployment-guide.md`.
 
 If you switch this checkout between Linux and Windows, rebuild dependencies for
-the active OS before running Vite/Vitest/tsx flows. See
-`docs/dev/windows-linux-node-modules.md`.
+the active OS before running Vite/Vitest/tsx flows.
 
 ## Quality Gates
 
@@ -112,9 +108,7 @@ npm run build
 ## Documentation
 
 - Product contracts: `docs/product/`
-- Stories and backlog: `docs/stories/`
 - Decisions: `docs/decisions/`
-- Templates: `docs/templates/`
 - API reference policy: one measured contract per gateway in `docs/api/`
 
 ## License

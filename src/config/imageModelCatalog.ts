@@ -6,8 +6,7 @@
  * `resolveCapabilities`, never straight off `descriptor.capabilities`. Every row dates the
  * live probe behind it; a row still awaiting one carries `RE_VERIFY` and never reaches a picker.
  *
- * Evidence: docs/stories/epics/E04-provider-gateways/US-006-gateway-image-model-routing/design.md,
- * docs/api/xompet-image-api-guide.md.
+ * Evidence: docs/api/xompet-image-api-guide.md and the per-row probes it records.
  */
 import type { ProviderId } from './providerRegistry';
 

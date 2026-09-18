@@ -187,9 +187,3 @@ is prompt-based rather than a native resolution flag.
   `__tests__/hooks/use{ModelSelection,GptImageStudio,GrokStudio,GatewayProfileEditor}*`,
   and `__tests__/contexts/ApiProviderContext.test.tsx`. The former
   `scripts/provider-tryon-smoke.ts` helper is not present in this checkout.
-
-## Related Story
-
-`docs/stories/epics/E01-provider-studios/US-001-three-provider-studios/` for the
-studio split; `docs/stories/epics/E04-provider-gateways/US-006-gateway-image-model-routing/`
-for the capability catalog, gateway discovery, and profiles.

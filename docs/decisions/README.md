@@ -3,7 +3,7 @@
 Decision records explain why important product, architecture, or harness choices
 were made.
 
-Use `docs/templates/decision.md` when adding a new decision.
+Follow the structure of an existing record when adding a new decision.
 
 Add a decision when:
 

@@ -36,9 +36,7 @@ When product docs conflict with code, verify the current implementation first:
 When user-visible behavior changes:
 
 1. Update the affected product doc.
-2. Update docs/README.md if a product doc is added or removed.
-3. Update or create a story packet under docs/stories/ for normal/high-risk work.
-4. Record a decision in docs/decisions/ if architecture, scope, risk, or a
+2. Record a decision in docs/decisions/ if architecture, scope, risk, or a
    previously settled product rule changes.
 
 ## Validation Checklist

@@ -90,4 +90,3 @@ curl -sS -X POST "https://cliproxy.monet.uno/v1beta/models/gemini-3.1-flash-imag
 
 - Image lane reference gateway: `docs/api/xompet-image-api-guide.md`
 - Capability model and gateway profiles: `docs/decisions/0008-image-model-driver-and-gateway-discovery.md`
-- Full US-006 evidence: `docs/stories/epics/E04-provider-gateways/US-006-gateway-image-model-routing/`
