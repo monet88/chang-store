@@ -22,6 +22,8 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'tabs.watermarkRemover': 'Watermark Remover',
         'tabs.photoAlbum': 'Photo Album',
         'tabs.identityTransfer': 'Identity Transfer',
+        'studio.provider.featuresLabel': 'Features',
+        'studio.provider.featuresDescription': 'Features description',
       };
 
       return translations[key] ?? key;
@@ -59,5 +61,18 @@ describe('Tabs', () => {
 
     await user.click(screen.getByRole('button', { name: /Watermark Remover/i }));
     expect(setActiveFeature).toHaveBeenCalledWith(Feature.WatermarkRemover);
+  });
+
+  it('lists the five GPT studio workflows and no Gemini-only one', () => {
+    render(<Tabs activeFeature={Feature.TryOn} setActiveFeature={vi.fn()} studioMode="gptImage" />);
+
+    const labels = screen.getAllByRole('button').map((button) => button.textContent);
+    expect(labels).toEqual([
+      'Virtual Try-On',
+      'Lookbook AI',
+      'Clothing Transfer',
+      'Identity Transfer',
+      'AI Editor',
+    ]);
   });
 });

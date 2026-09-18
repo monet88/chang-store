@@ -170,8 +170,9 @@ createImageChatSession, options }` for the active mode, the Gemini lane backed
 by `src/services/imageEditingService.ts` and the GPT lane by
 `src/services/providers/gpt-image/gptImageEngine.ts`. The GPT adapter maps the
 requested ratio to the pixel size the active (gateway, model) pair actually
-honors, and turns a refine into one stateless preservation-wrapped edit, because
-OpenAI-style edit endpoints keep no conversation.
+honors, turns a refine into one stateless preservation-wrapped edit (because
+OpenAI-style edit endpoints keep no conversation), and flattens Gemini-style
+interleaved parts into one prompt and ordered reference images.
 
 Generation controls follow the engine: the Gemini views render aspect ratio and
 resolution (`ImageOptionsPanel`), the GPT views render ratio, the resolved pixel

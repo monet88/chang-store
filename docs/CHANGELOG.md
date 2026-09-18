@@ -38,6 +38,16 @@
   and lookbook variation/close-up consistency is weaker than Gemini's chat.
   The refine control stays visible on both lanes.
 
+### Fixed
+
+- GPT Studio navigation: replaced Pattern Generator with Identity Transfer in
+  `PROVIDER_SUPPORTED_FEATURES` so the studio renders all five shipped workflows
+  and navigation never routes to an unbacked view.
+- GPT image engine parts adapter: flattened Gemini-style `interleavedParts`
+  into the single prompt and ordered reference images required by OpenAI-style
+  `/images/edits`, unblocking parts-based workflows (Virtual Try-On, Clothing
+  Transfer, Identity Transfer).
+
 ## [Unreleased] — 2026-09-17
 
 ### Added

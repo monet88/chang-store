@@ -1,4 +1,4 @@
-import type { editImage, upscaleImage } from '../../imageEditingService';
+import type { editImage, upscaleImage, EditImageParams } from '../../imageEditingService';
 import type { ImageAspectRatio, ImageFile, UpscaleQuality } from '../../../types';
 import { DEFAULT_GPT_IMAGE_SIZE, type GptImageQuality } from '../../../config/gptImageModelRegistry';
 import { PROVIDER_UPSCALE_PROMPTS } from '../../../utils/provider-refine-prompt';
@@ -58,6 +58,26 @@ export interface GptImageEngineParams {
 }
 
 /**
+ * The shared workflow hooks hand both lanes the same interleaved `Part[]`
+ * (role labels + images) that `editImage` documents as overriding prompt and
+ * images. OpenAI's edit endpoint has no interleaved content: the text parts
+ * become the one `prompt`, the inline parts become the ordered `image[]` files.
+ */
+const flattenInterleavedParts = (
+  parts: EditImageParams['interleavedParts'],
+): { prompt: string; images: ImageFile[] } | null => {
+  if (!parts?.length) return null;
+  return {
+    prompt: parts.flatMap((part) => (part.text ? [part.text] : [])).join('\n\n'),
+    images: parts.flatMap((part) =>
+      part.inlineData?.data
+        ? [{ base64: part.inlineData.data, mimeType: part.inlineData.mimeType ?? 'image/png' }]
+        : [],
+    ),
+  };
+};
+
+/**
  * OpenAI Images edits are stateless: a refine is one edit request carrying the
  * current image, and there is no chat session to expose (Decision 5). Upscale
  * has no native flag either, so it uses the preservation prompt at the largest
@@ -73,17 +93,19 @@ export const buildGptImageEngine = ({
   const upscaleSize = sizeForRatio('Default');
 
   return {
-    editImage: async (params, _model, _config): Promise<ImageFile[]> =>
-      editGptImage(
+    editImage: async (params, _model, _config): Promise<ImageFile[]> => {
+      const interleaved = flattenInterleavedParts(params.interleavedParts);
+      return editGptImage(
         {
           model,
-          prompt: params.prompt,
-          images: params.images,
+          prompt: interleaved?.prompt || params.prompt,
+          images: interleaved?.images.length ? interleaved.images : params.images,
           size: sizeForRatio(params.aspectRatio ?? 'Default'),
           quality,
         },
         credentials,
-      ),
+      );
+    },
     upscaleImage: async (
       image,
       _model,

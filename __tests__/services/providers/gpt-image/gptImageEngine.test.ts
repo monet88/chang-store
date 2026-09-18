@@ -73,4 +73,35 @@ describe('buildGptImageEngine', () => {
     expect(params.prompt).toBe(PROVIDER_UPSCALE_PROMPTS['4K']);
     expect(params.quality).toBe('high');
   });
+
+  it('carries a parts-based workflow onto the wire as one prompt and ordered images', async () => {
+    const engine = buildGptImageEngine({
+      model: 'gpt-image-2',
+      quality: 'high',
+      sizeOptions: XOMPET_SIZES,
+      credentials: CREDENTIALS,
+    });
+    const subject = { base64: 'U1VCSkVDVA==', mimeType: 'image/jpeg' };
+    const shirt = { base64: 'U0hJUlQ=', mimeType: 'image/png' };
+
+    await engine.editImage(
+      {
+        images: [],
+        prompt: '',
+        aspectRatio: '3:4',
+        interleavedParts: [
+          { text: 'SUBJECT: authority for pose.' },
+          { inlineData: { data: subject.base64, mimeType: subject.mimeType } },
+          { text: 'GARMENT: authority for the outfit.' },
+          { inlineData: { data: shirt.base64, mimeType: shirt.mimeType } },
+        ],
+      },
+      'ignored',
+      apiConfig,
+    );
+
+    const [params] = editGptImage.mock.calls[0];
+    expect(params.prompt).toBe('SUBJECT: authority for pose.\n\nGARMENT: authority for the outfit.');
+    expect(params.images).toEqual([subject, shirt]);
+  });
 });

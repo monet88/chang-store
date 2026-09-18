@@ -28,7 +28,7 @@ export const PROVIDER_SUPPORTED_FEATURES: Feature[] = [
   Feature.TryOn,
   Feature.Lookbook,
   Feature.ClothingTransfer,
-  Feature.PatternGenerator,
+  Feature.IdentityTransfer,
   Feature.AIEditor,
 ];
 
