@@ -20,13 +20,15 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { ImageFile } from '../../src/types';
+import { Feature, ImageFile } from '../../src/types';
 import {
   mockUseLanguage,
   mockUseImageGallery,
   mockUseApi,
   mockUseImageEngine,
 } from '../__mocks__/contexts';
+
+const addImageMock = vi.hoisted(() => vi.fn());
 
 // ============================================================================
 // Mock Setup - Must be before imports
@@ -56,7 +58,7 @@ vi.mock('../../src/utils/zipDownload', () => ({
 
 /** Mock contexts */
 vi.mock('../../src/contexts/LanguageContext', () => mockUseLanguage());
-vi.mock('../../src/contexts/ImageGalleryContext', () => mockUseImageGallery());
+vi.mock('../../src/contexts/ImageGalleryContext', () => mockUseImageGallery({ addImage: addImageMock }));
 vi.mock('../../src/contexts/ApiProviderContext', () => mockUseApi());
 // The hook takes its transport from the studio-scoped engine (issue #152
 // Decision 3), so the same service spies feed the engine mock.
@@ -176,6 +178,7 @@ describe('useLookbookGenerator', () => {
     refineSessionMock.getHistory.mockReset();
     refineSessionMock.reset.mockReset();
     refineSessionMock.getHistory.mockReturnValue([]);
+    addImageMock.mockReset();
   });
 
   afterEach(() => {
@@ -476,8 +479,8 @@ describe('useLookbookGenerator', () => {
       expect(result.current.generatedLookbook).not.toBeNull();
       expect(result.current.generatedLookbook?.main).toEqual(GENERATED_IMAGE);
       expect(result.current.activeOutputTab).toBe('main');
+      expect(addImageMock).toHaveBeenCalledWith(GENERATED_IMAGE, Feature.Lookbook, 'gemini');
     });
-
     /**
      * Test: Handles generation error
      */
@@ -497,8 +500,8 @@ describe('useLookbookGenerator', () => {
 
       expect(result.current.error).toBe('Generation failed');
       expect(result.current.isLoading).toBe(false);
+      expect(addImageMock).not.toHaveBeenCalled();
     });
-
     /**
      * Test: Shows loading state during generation
      */
@@ -615,6 +618,8 @@ describe('useLookbookGenerator', () => {
       expect(variationCall.prompt).toContain('No collages, grids, split images, multi-panel layouts, or contact sheets');
       expect(variationCall.prompt).not.toContain('Generate 2 professional variations');
       expect(variationCall.numberOfImages).toBe(2);
+      expect(addImageMock).toHaveBeenCalledWith(variation1, Feature.Lookbook, 'gemini');
+      expect(addImageMock).toHaveBeenCalledWith(variation2, Feature.Lookbook, 'gemini');
     });
 
     /**
@@ -695,6 +700,7 @@ describe('useLookbookGenerator', () => {
       expect(closeupCalls.length).toBeGreaterThanOrEqual(1);
       expect(closeupCalls[0][0].prompt).toContain('DETAIL CLOSE-UP');
       expect(closeupCalls[0][0].numberOfImages).toBe(1);
+      expect(addImageMock).toHaveBeenCalledWith(closeup1, Feature.Lookbook, 'gemini');
     });
   });
 
@@ -732,8 +738,8 @@ describe('useLookbookGenerator', () => {
         expect.any(Object)
       );
       expect(result.current.generatedLookbook?.main).toEqual(UPSCALED_IMAGE);
+      expect(addImageMock).toHaveBeenCalledWith(UPSCALED_IMAGE, Feature.Lookbook, 'gemini');
     });
-
     /**
      * Test: Tracks upscaling state correctly
      */

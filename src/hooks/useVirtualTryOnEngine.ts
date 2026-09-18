@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import {
   AspectRatio,
+  Feature,
+  ImageEngineId,
   ImageFile,
   ImageResolution,
   VirtualTryOnClothingItem,
@@ -42,6 +44,8 @@ export interface UseVirtualTryOnEngineConfig {
   isWardrobeGenerating: boolean;
   refinement: UseImageRefinementReturn;
   buildImageServiceConfig: (onStatusUpdate: (message: string) => void) => { onStatusUpdate: (message: string) => void };
+  addImage?: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
+  engineId?: ImageEngineId;
   setIsLoading: (value: boolean) => void;
   setLoadingMessage: (message: string) => void;
   setError: (message: string | null) => void;
@@ -65,8 +69,8 @@ export const useVirtualTryOnEngine = (
   const {
     driver, subjects, validClothingItems, isMultiPersonMode, backgroundPrompt,
     extraPrompt, numImages, aspectRatio, resolution, imageEditModel, canGenerate,
-    isWardrobeGenerating, refinement, buildImageServiceConfig, setIsLoading,
-    setLoadingMessage, setError, setUpscalingStates, t,
+    isWardrobeGenerating, refinement, buildImageServiceConfig, addImage, engineId,
+    setIsLoading, setLoadingMessage, setError, setUpscalingStates, t,
   } = config;
 
   // Shared per-subject generation: marker compositing + prompt build + driver
@@ -104,6 +108,7 @@ export const useVirtualTryOnEngine = (
           buildImageServiceConfig(setLoadingMessage),
         );
         subjects.updateSubjectItem(itemId, { status: 'completed', results, error: undefined });
+        results.forEach((image) => addImage?.(image, Feature.TryOn, engineId));
       } catch (itemError) {
         subjects.updateSubjectItem(itemId, {
           status: 'error',
@@ -114,7 +119,7 @@ export const useVirtualTryOnEngine = (
     },
     [driver, subjects.markerPosition, subjects.updateSubjectItem, isMultiPersonMode,
       extraPrompt, backgroundPrompt, numImages, aspectRatio, resolution, imageEditModel,
-      buildImageServiceConfig, setLoadingMessage, t],
+      buildImageServiceConfig, setLoadingMessage, addImage, engineId, t],
   );
 
   const handleGenerateImage = useCallback(async () => {

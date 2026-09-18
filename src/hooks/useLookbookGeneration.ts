@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import {
   AspectRatio,
+  Feature,
+  ImageEngineId,
   ImageFile,
   ImageResolution,
 } from '../types';
@@ -54,6 +56,8 @@ export interface UseLookbookGenerationConfig {
   setIsGeneratingVariations: (value: boolean) => void;
   setIsGeneratingCloseUp: (value: boolean) => void;
   setActiveOutputTab: (tab: 'main' | 'variations' | 'closeup') => void;
+  addImage?: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
+  engineId?: ImageEngineId;
   t: TranslateFn;
 }
 
@@ -78,7 +82,7 @@ export const useLookbookGeneration = (
     buildImageServiceConfig, onMainImageGenerated,
     setIsLoading, setLoadingMessage, setError,
     setIsGeneratingVariations, setIsGeneratingCloseUp,
-    setActiveOutputTab, t,
+    setActiveOutputTab, addImage, engineId, t,
   } = config;
 
   const handleGenerate = useCallback(async () => {
@@ -119,6 +123,7 @@ export const useLookbookGeneration = (
         setGeneratedLookbook({ main: generatedImage, variations: [], closeups: [] });
         setActiveOutputTab('main');
         onMainImageGenerated(generatedImage);
+        addImage?.(generatedImage, Feature.Lookbook, engineId);
       }
     } catch (err) {
       setError(getErrorMessage(err, t));
@@ -127,7 +132,7 @@ export const useLookbookGeneration = (
       setLoadingMessage('');
     }
   }, [driver, formState, imageEditModel, buildImageServiceConfig, aspectRatio, resolution,
-    t, setError, setIsLoading, setLoadingMessage, setGeneratedLookbook, setActiveOutputTab, onMainImageGenerated]);
+    t, setError, setIsLoading, setLoadingMessage, setGeneratedLookbook, setActiveOutputTab, onMainImageGenerated, addImage, engineId]);
 
   const handleGenerateVariations = useCallback(async () => {
     if (!generatedLookbook) {
@@ -150,6 +155,7 @@ export const useLookbookGeneration = (
         resolution,
       }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
       setGeneratedLookbook((prev) => prev ? { ...prev, variations: newVariations } : null);
+      newVariations.forEach((image) => addImage?.(image, Feature.Lookbook, engineId));
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -158,7 +164,7 @@ export const useLookbookGeneration = (
     }
   }, [driver, generatedLookbook, formState.negativePrompt, formState.lookbookStyle,
     variationCount, imageEditModel, buildImageServiceConfig, aspectRatio, resolution,
-    t, setError, setIsGeneratingVariations, setLoadingMessage, setGeneratedLookbook]);
+    t, setError, setIsGeneratingVariations, setLoadingMessage, setGeneratedLookbook, addImage, engineId]);
 
   const handleGenerateCloseUp = useCallback(async () => {
     if (!generatedLookbook) {
@@ -188,6 +194,7 @@ export const useLookbookGeneration = (
         if (results.length > 0) {
           closeups.push(results[0]);
           setGeneratedLookbook((prev) => prev ? { ...prev, closeups: [...closeups] } : null);
+          addImage?.(results[0], Feature.Lookbook, engineId);
         }
       }
     } catch (err) {
@@ -198,7 +205,7 @@ export const useLookbookGeneration = (
     }
   }, [driver, generatedLookbook, formState.negativePrompt, imageEditModel,
     buildImageServiceConfig, aspectRatio, resolution,
-    t, setError, setIsGeneratingCloseUp, setLoadingMessage, setGeneratedLookbook]);
+    t, setError, setIsGeneratingCloseUp, setLoadingMessage, setGeneratedLookbook, addImage, engineId]);
 
   return {
     handleGenerate,

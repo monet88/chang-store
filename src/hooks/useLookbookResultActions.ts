@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Feature, ImageFile } from '../types';
+import { Feature, ImageEngineId, ImageFile } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import type { GeminiImageDriver, LookbookSet } from './useLookbookGeneration';
@@ -16,6 +16,8 @@ export interface UseLookbookResultActionsConfig {
   setUpscalingStates: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   setError: (message: string | null) => void;
   t: TranslateFn;
+  addImage?: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
+  engineId?: ImageEngineId;
 }
 
 export interface UseLookbookResultActionsReturn {
@@ -33,7 +35,7 @@ export const useLookbookResultActions = (
   config: UseLookbookResultActionsConfig,
 ): UseLookbookResultActionsReturn => {
   const { driver, generatedLookbook, setGeneratedLookbook, imageEditModel,
-    buildImageServiceConfig, setUpscalingStates, setError, t } = config;
+    buildImageServiceConfig, upscalingStates, setUpscalingStates, addImage, engineId, setError, t } = config;
 
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, imageKey: string) => {
     setUpscalingStates((prev) => ({ ...prev, [imageKey]: true }));
@@ -65,12 +67,13 @@ export const useLookbookResultActions = (
         }
         return newState;
       });
+      addImage?.(result, Feature.Lookbook, engineId);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
       setUpscalingStates((prev) => ({ ...prev, [imageKey]: false }));
     }
-  }, [driver, imageEditModel, buildImageServiceConfig, t, setError, setGeneratedLookbook, setUpscalingStates]);
+  }, [driver, imageEditModel, buildImageServiceConfig, t, setError, setGeneratedLookbook, setUpscalingStates, addImage, engineId]);
 
   const handleDownloadAll = useCallback(async () => {
     if (!generatedLookbook) return;

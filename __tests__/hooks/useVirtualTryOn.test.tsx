@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { mockUseImageEngine } from '../__mocks__/contexts';
 
-const addImageMock = vi.fn();
+const addImageMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
@@ -58,6 +58,7 @@ import { createImageChatSession, editImage, upscaleImage } from '../../src/servi
 import { useVirtualTryOn } from '../../src/hooks/useVirtualTryOn';
 import { compositeMarkerOnImage } from '../../src/utils/imageUtils';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
+import { Feature } from '../../src/types';
 
 const SUBJECT_A = { base64: 'subject-a', mimeType: 'image/png' };
 const SUBJECT_B = { base64: 'subject-b', mimeType: 'image/png' };
@@ -253,6 +254,9 @@ describe('useVirtualTryOn', () => {
     expect(result.current.subjectItems[1].status).toBe('completed');
     expect(result.current.subjectItems[0].results).toEqual([RESULT_A]);
     expect(result.current.subjectItems[1].results).toEqual([RESULT_B]);
+    expect(addImageMock).toHaveBeenCalledTimes(2);
+    expect(addImageMock).toHaveBeenNthCalledWith(1, RESULT_A, Feature.TryOn, 'gemini');
+    expect(addImageMock).toHaveBeenNthCalledWith(2, RESULT_B, Feature.TryOn, 'gemini');
   });
 
   it('keeps successful items when one batch item fails', async () => {
@@ -276,6 +280,33 @@ describe('useVirtualTryOn', () => {
     expect(result.current.subjectItems[0].status).toBe('completed');
     expect(result.current.subjectItems[1].status).toBe('error');
     expect(result.current.subjectItems[1].error).toBe('subject failed');
+    expect(addImageMock).toHaveBeenCalledTimes(1);
+    expect(addImageMock).toHaveBeenCalledWith(RESULT_A, Feature.TryOn, 'gemini');
+  });
+
+  it('persists wardrobe mode generated results to gallery as Feature.TryOn', async () => {
+    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.setMode('wardrobe');
+      result.current.wardrobe.setSubject(SUBJECT_A);
+      result.current.wardrobe.addItem(result.current.wardrobe.sets[0].id);
+    });
+
+    act(() => {
+      result.current.wardrobe.updateItem(
+        result.current.wardrobe.sets[0].id,
+        result.current.wardrobe.sets[0].items[0].id,
+        { image: OUTFIT_A },
+      );
+    });
+
+    await act(async () => {
+      await result.current.wardrobe.generate();
+    });
+
+    expect(addImageMock).toHaveBeenCalledWith(RESULT_A, Feature.TryOn, 'gemini');
   });
 
   it('caps subject image request concurrency during batch generation', async () => {

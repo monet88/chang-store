@@ -1,3 +1,14 @@
+const addImageMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@/contexts/ImageGalleryContext', () => ({
+  useImageGallery: () => ({
+    images: [],
+    addImage: addImageMock,
+    deleteImage: vi.fn(),
+    clearImages: vi.fn(),
+  }),
+}));
+
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,7 +37,7 @@ vi.mock('@/contexts/ImageEngineContext', async () => {
 
 import { useAIEditor } from '@/hooks/useAIEditor';
 import { editImage } from '@/services/imageEditingService';
-import { ImageFile } from '@/types';
+import { Feature, ImageFile } from '@/types';
 
 const FIRST_IMAGE: ImageFile = {
   base64: 'Zmlyc3Q=',
@@ -46,6 +57,7 @@ const OUTPUT_IMAGE: ImageFile = {
 describe('useAIEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    addImageMock.mockReset();
     vi.mocked(editImage).mockResolvedValue([OUTPUT_IMAGE]);
   });
 
@@ -109,8 +121,9 @@ describe('useAIEditor', () => {
       expect.objectContaining({ onStatusUpdate: expect.any(Function) }),
     );
     expect(vi.mocked(editImage).mock.calls[0][0].prompt).not.toContain('MULTI-IMAGE EDITING');
+    expect(result.current.resultImage).toEqual(OUTPUT_IMAGE);
+    expect(addImageMock).toHaveBeenCalledWith(OUTPUT_IMAGE, Feature.AIEditor, 'gemini');
   });
-
   it('reports an error when the image edit service returns no image', async () => {
     vi.mocked(editImage).mockResolvedValueOnce([]);
     const { result } = renderHook(() => useAIEditor());
@@ -127,6 +140,7 @@ describe('useAIEditor', () => {
     expect(result.current.resultImage).toBeNull();
     expect(result.current.error).toBe('error.api.noImageGenerated');
     expect(result.current.isLoading).toBe(false);
+    expect(addImageMock).not.toHaveBeenCalled();
   });
 
   it('ignores re-entrant generate calls while a request is pending', async () => {
@@ -207,6 +221,7 @@ describe('useAIEditor', () => {
     expect(result.current.resultImage).toBeNull();
     expect(result.current.error).toBe('error.api.safetyBlock');
     expect(result.current.isLoading).toBe(false);
+    expect(addImageMock).not.toHaveBeenCalled();
   });
 
   it('sends only in-range mentioned images when some refs are invalid', async () => {

@@ -1,7 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
+import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { buildSingleImageEditPrompt, buildMultiImageEditPrompt } from '../utils/ai-editor-prompt-builder';
 
@@ -32,7 +33,8 @@ export interface UseAIEditorReturn {
 
 export const useAIEditor = (): UseAIEditorReturn => {
   const { t } = useLanguage();
-  const { editImage, model: imageEditModel } = useImageEngine();
+  const { editImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const { addImage } = useImageGallery();
 
   const [images, setImages] = useState<ImageFile[]>([]);
   const [prompt, setPrompt] = useState('');
@@ -128,6 +130,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
       }
 
       setResultImage(result);
+      addImage(result, Feature.AIEditor, engineId);
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
@@ -144,6 +147,8 @@ export const useAIEditor = (): UseAIEditorReturn => {
     extractMentionedImages,
     buildApiPrompt,
     t,
+    addImage,
+    engineId,
   ]);
 
   return {

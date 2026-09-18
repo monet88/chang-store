@@ -8,6 +8,7 @@ import {
 } from '../types';
 import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageRefinement } from './useImageRefinement';
 import { useVirtualTryOnSubjects } from './useVirtualTryOnSubjects';
@@ -30,7 +31,8 @@ export const useVirtualTryOn = () => {
   const [isMultiPersonMode, setIsMultiPersonModeState] = useState<boolean>(false);
 
   const { t } = useLanguage();
-  const { editImage, upscaleImage, model: imageEditModel } = useImageEngine();
+  const { addImage } = useImageGallery();
+  const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
 
   // Refine lifecycle (chat sessions + per-slot state) lives in a shared deep
   // module; slot key = `itemId:index`.
@@ -43,6 +45,8 @@ export const useVirtualTryOn = () => {
     aspectRatio,
     resolution,
     isParentGenerating: isLoading,
+    addImage,
+    engineId,
   });
 
   const isAnyGenerating = isLoading || wardrobe.isGenerating;
@@ -99,6 +103,8 @@ export const useVirtualTryOn = () => {
     isWardrobeGenerating: wardrobe.isGenerating,
     refinement,
     buildImageServiceConfig,
+    addImage,
+    engineId,
     setIsLoading,
     setLoadingMessage,
     setError,

@@ -6,7 +6,16 @@
  */
 
 import { useCallback } from 'react';
-import type { ImageFile, ImageResolution, AspectRatio, WardrobeSet, WardrobeResultSet, ImageEditModel } from '../types';
+import {
+  Feature,
+  type AspectRatio,
+  type ImageEditModel,
+  type ImageEngineId,
+  type ImageFile,
+  type ImageResolution,
+  type WardrobeResultSet,
+  type WardrobeSet,
+} from '../types';
 import { editImage } from '../services/imageEditingService';
 import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
@@ -33,6 +42,8 @@ export interface UseWardrobeModeEngineConfig {
   setIsGenerating: (v: boolean) => void;
   setError: (e: string | null) => void;
   setLoadingMessage: (m: string) => void;
+  addImage?: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
+  engineId?: ImageEngineId;
 }
 
 export interface UseWardrobeModeEngineReturn {
@@ -59,6 +70,8 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
     setIsGenerating,
     setError,
     setLoadingMessage,
+    addImage,
+    engineId,
   } = config;
 
   const generate = useCallback(async () => {
@@ -130,6 +143,7 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
               r.setId === job.setId ? { ...r, status: 'completed', results: images } : r,
             ),
           );
+          images.forEach((image) => addImage?.(image, Feature.TryOn, engineId));
         } catch (jobErr) {
           setResults((prev) =>
             prev.map((r) =>
@@ -163,6 +177,8 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
     setIsGenerating,
     setError,
     setLoadingMessage,
+    addImage,
+    engineId,
   ]);
 
   return { generate };

@@ -7,7 +7,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import type { ImageFile, ImageResolution, AspectRatio, ImageEditModel } from '../types';
+import type { ImageFile, ImageResolution, AspectRatio, ImageEditModel, ImageEngineId } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { downloadImagesAsZip } from '../utils/zipDownload';
@@ -22,6 +22,8 @@ interface UseWardrobeModeParams {
   aspectRatio: AspectRatio;
   resolution: ImageResolution;
   isParentGenerating: boolean;
+  addImage?: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
+  engineId?: ImageEngineId;
 }
 
 export const useWardrobeMode = (params: UseWardrobeModeParams) => {
@@ -54,6 +56,8 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
     setIsGenerating,
     setError,
     setLoadingMessage,
+    addImage: params.addImage,
+    engineId: params.engineId,
   });
 
   const download = useCallback(async () => {

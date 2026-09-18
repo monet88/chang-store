@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
+import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { generateClothingDescription } from '../services/textService';
@@ -42,7 +43,8 @@ export const useLookbookGenerator = () => {
 
   const { t } = useLanguage();
   const { textGenerateModel } = useApi();
-  const { editImage, upscaleImage, createImageChatSession, model: imageEditModel } = useImageEngine();
+  const { addImage } = useImageGallery();
+  const { editImage, upscaleImage, createImageChatSession, model: imageEditModel, id: engineId } = useImageEngine();
 
   // Driver over the studio-scoped engine; tests can inject a mock.
   const driver = useMemo<GeminiImageDriver>(
@@ -76,6 +78,8 @@ export const useLookbookGenerator = () => {
     imageEditModel,
     buildImageServiceConfig,
     onMainImageGenerated: refinement.onMainImageGenerated,
+    addImage,
+    engineId,
     setIsLoading,
     setLoadingMessage,
     setError,
@@ -91,6 +95,8 @@ export const useLookbookGenerator = () => {
     setGeneratedLookbook,
     imageEditModel,
     buildImageServiceConfig,
+    addImage,
+    engineId,
     upscalingStates,
     setUpscalingStates,
     setError,
