@@ -25,7 +25,7 @@ const ClothingTransfer = lazy(() => import('./components/ClothingTransfer'));
 const IdentityTransfer = lazy(() => import('./components/IdentityTransfer'));
 const PatternGenerator = lazy(() => import('./components/PatternGenerator'));
 
-const GptImageStudio = lazy(() => import('./components/studios/GptImageStudio'));
+const GptStudio = lazy(() => import('./components/studios/GptStudio'));
 
 const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
 const PromptLibraryModal = lazy(() => import('./components/modals/PromptLibraryModal'));
@@ -300,7 +300,7 @@ const AppContent: React.FC = () => {
               <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
                 <Suspense fallback={<FeatureLoadingFallback />}>
                   {studioMode === 'gptImage' && (
-                    <GptImageStudio activeFeature={activeFeature} studioMode={studioMode} />
+                    <GptStudio activeFeature={activeFeature} onSendToFeature={handleSendToFeature} />
                   )}
                 </Suspense>
               </div>

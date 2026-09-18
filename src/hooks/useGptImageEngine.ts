@@ -5,6 +5,7 @@ import {
   GPT_IMAGE_MODELS,
   GPT_IMAGE_QUALITIES,
   MAX_GPT_REFERENCE_IMAGES,
+  resolveGptImageSizeObservations,
   resolveGptImageSizeOptions,
   resolveGptImageSupportsQuality,
   type GptImageQuality,
@@ -52,6 +53,7 @@ export const useGptImageEngine = (): ImageEngine => {
 
   const sizeOptions = useMemo(() => resolveGptImageSizeOptions(model, gatewayHost), [model, gatewayHost]);
   const supportsQuality = resolveGptImageSupportsQuality(model, gatewayHost);
+  const sizeObservation = resolveGptImageSizeObservations(model, gatewayHost);
 
   // Fail closed: an address-less profile makes the service throw instead of
   // pairing a gateway key with a provider default (issue #152, Decision 8).
@@ -73,10 +75,11 @@ export const useGptImageEngine = (): ImageEngine => {
         setQuality,
         qualityOptions: GPT_IMAGE_QUALITIES,
         sizeFor: (ratio) => resolveSizeForRatio(sizeOptions, ratio),
+        sizeObservation,
         supportsQuality,
         maxReferenceImages: MAX_GPT_REFERENCE_IMAGES,
       },
     }),
-    [model, quality, sizeOptions, apiKey, baseUrl, modelOptions, noSelectableModel, supportsQuality],
+    [model, quality, sizeOptions, sizeObservation, apiKey, baseUrl, modelOptions, noSelectableModel, supportsQuality],
   );
 };

@@ -35,7 +35,8 @@ export const resolveSizeForRatio = (
   const advertised = sizes.filter((size) => size !== 'auto');
   const target = ratioValue(ratio);
   if (advertised.length === 0 || !target) {
-    return advertised[0] ?? (sizes.includes(DEFAULT_GPT_IMAGE_SIZE) ? DEFAULT_GPT_IMAGE_SIZE : 'auto');
+    // A ratio the lane cannot express ('Default') keeps the product's default pixel size.
+    return advertised.includes(DEFAULT_GPT_IMAGE_SIZE) ? DEFAULT_GPT_IMAGE_SIZE : advertised[0] ?? 'auto';
   }
   return advertised.reduce((best, size) => {
     const bestValue = ratioValue(best);

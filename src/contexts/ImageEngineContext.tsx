@@ -21,6 +21,8 @@ export interface ImageEngineOptions {
   qualityOptions: readonly GptImageQuality[];
   /** Pixel size the active gateway honors for a ratio; `auto` when it advertises none. */
   sizeFor: (ratio: ImageAspectRatio) => string;
+  /** Measured honor rate of a `flaky` size on this (gateway, model) pair, when recorded. */
+  sizeObservation?: { honored: number; total: number };
   supportsQuality: boolean;
   maxReferenceImages: number;
 }

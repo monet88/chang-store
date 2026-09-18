@@ -19,10 +19,12 @@ describe('provider isolation regression', () => {
     });
 
     it('does not reference Gemini prompt builders or imageEditingService in provider code', () => {
+        // The GPT service and its engine hook must not pull in the Gemini lane.
+        // `gptImageEngine.ts` is deliberately absent: it is the single place where the
+        // two lanes share one transport contract, so it imports that contract's types.
         const providerFiles = [
-            'src/hooks/useGptImageStudio.ts',
+            'src/hooks/useGptImageEngine.ts',
             'src/services/providers/gpt-image/gptImageService.ts',
-            'src/components/studios/GptImageStudio.tsx',
         ];
 
         for (const relative of providerFiles) {

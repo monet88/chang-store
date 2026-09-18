@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "src/components/studios/GptLookbookForm.tsx"
+        ],
+        "createdAt": "2026-09-18T08:50:14.311Z",
+        "reason": "false positive: the only border on a rounded element in this file is the loading spinner (animate-spin rounded-full border-b-2 border-current), cloned verbatim from src/components/LookbookForm.tsx; that border is the spinner stroke, not a card accent"
+      }
+    ]
+  }
+}
