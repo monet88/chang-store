@@ -1,14 +1,20 @@
 {
   "name": "chang-store",
   "private": true,
+  "description": "AI Fashion Photography Studio Desktop App",
+  "author": "Chang Store",
   "version": "1.0.4",
   "type": "module",
+  "main": "electron/main.mjs",
   "scripts": {
     "dev": "vite",
     "dev:turbo": "vite --force",
     "build": "vite build",
     "build:analyze": "vite build --mode analyze",
     "preview": "vite preview",
+    "desktop": "npm run build && electron .",
+    "desktop:dev": "electron . --dev",
+    "dist:win": "npm run build && node scripts/build-win-portable.mjs",
     "lint": "node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx",
     "test": "vitest --run --passWithNoTests",
     "test:ui": "vitest --ui"
@@ -37,6 +43,8 @@
     "@vitejs/plugin-react-swc": "^4.2.2",
     "@vitest/coverage-v8": "^4.0.17",
     "autoprefixer": "^10.4.23",
+    "electron": "^44.4.2",
+    "electron-builder": "^26.15.3",
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -54,5 +62,31 @@
     "@swc/core",
     "esbuild",
     "protobufjs"
-  ]
+  ],
+  "build": {
+    "appId": "com.changstore.desktop",
+    "productName": "Chang Store",
+    "asar": true,
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
+  }
 }
