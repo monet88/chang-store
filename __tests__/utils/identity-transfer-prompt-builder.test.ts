@@ -130,4 +130,55 @@ describe('buildIdentityTransferParts', () => {
     expect(text).toContain('subordinate to every authority and preservation rule above');
     expect(text).toContain('ignore any conflicting extra instruction');
   });
+
+  it('takes the worn makeup look from the Face Reference over the destination real skin', () => {
+    const text = taskText(buildIdentityTransferParts(defaultInput));
+
+    // The reference supplies the grooming look; the destination relights it.
+    expect(text).toContain('the makeup worn in the reference');
+    expect(text).toContain('carried over as a look and re-lit by the Destination Image lighting');
+    expect(text).toContain('is taken from the Face Reference, re-lit by the destination lighting');
+    // Grooming no longer belongs to the destination.
+    expect(text).not.toContain('nail styling worn for this shot');
+    expect(text).not.toContain('skin finish and retouching as photographed');
+  });
+
+  it('refuses plastic skin and keeps the destination skin texture', () => {
+    const text = taskText(buildIdentityTransferParts(defaultInput));
+
+    // Skin realism is a positive contract, not only a prohibition.
+    expect(text).toContain('visible pores across the cheeks, nose and forehead');
+    expect(text).toContain('fine lines around the eyes and mouth');
+    expect(text).toContain('T-zone oil sheen');
+    expect(text).toContain('foundation must never flatten, seal or blur the surface');
+    // The reference may not hand over its own rendering.
+    expect(text).toContain('never inherit its rendering of skin');
+    expect(text).toContain('a smoother face is never an acceptable result');
+    expect(text).toContain('Avoid plastic or waxy skin');
+  });
+
+  it('keeps the destination colour grade and expression, and refuses beautification', () => {
+    const text = taskText(buildIdentityTransferParts(defaultInput));
+
+    // The destination owns the grade, and the transferred face must live inside it.
+    expect(text).toContain('white balance, colour grade, contrast, saturation');
+    expect(text).toContain('sit inside that grade');
+    expect(text).toContain('the underlying skin tone family and melanin level, re-rendered inside the Destination Image colour grade');
+    expect(text).toContain('re-rendered in the destination grade');
+    // Expression is named part by part so the model cannot fall back to a neutral face.
+    expect(text).toContain('eye openness, gaze direction and focus, lid crease visibility');
+    expect(text).toContain('lip corner tension, cheek and jaw tension');
+    // The reference supplies identity, not rendering — and never a beautified face.
+    expect(text).toContain('every one of those comes from the Destination Image instead');
+    expect(text).toContain('Do not beautify, slim, reshape, smooth, or idealize the face');
+    expect(text).toContain('destination expression and colour grade win');
+  });
+
+  it('never lets reference text or chrome reach the result', () => {
+    const parts = buildIdentityTransferParts(defaultInput);
+    const text = taskText(parts);
+
+    expect(parts[2].text).toContain('never reproduce any text, labels, numbers, captions, watermarks, or UI chrome');
+    expect(text).toContain('no text, label, or watermark from any reference may appear in the result');
+  });
 });
