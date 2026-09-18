@@ -15,7 +15,7 @@ The dedicated studio interface for Google Gemini, hosting 10 fashion creation/ed
 _Avoid_: Default studio, Google tab.
 
 **GPT Studio**:
-The dedicated studio interface tailored for OpenAI GPT Image models, mirroring the 10 fashion features while adapting controls to pixel dimensions and generation qualities.
+The dedicated studio interface tailored for OpenAI GPT Image models. It hosts five features today - Virtual Try-On, Lookbook, Clothing Transfer, AI Editor and Identity Transfer - mirroring their Gemini twins while adapting the controls to pixel dimensions and generation qualities. The remaining five features follow in phase 2.
 _Avoid_: Provider studio, OpenAI wizard.
 
 **Image Driver**:
