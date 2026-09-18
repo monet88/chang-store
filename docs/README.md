@@ -2,25 +2,6 @@
 
 Project documentation for chang-store, an AI-powered virtual fashion studio.
 
-## Harness and operating rules
-
-- HARNESS.md: how humans and agents collaborate.
-- FEATURE_INTAKE.md: how prompts become tiny, normal, or high-risk work.
-- CONTEXT_RULES.md: phase-by-lane context engineering rules.
-- TRACE_SPEC.md: execution trace fields, quality tiers, and friction capture.
-- HARNESS_COMPONENTS.md: responsibility map and current repository inventory.
-- HARNESS_MATURITY.md: maturity ladder and current assessment.
-- HARNESS_BACKLOG.md: missing Harness capabilities and follow-up proposals.
-- TEST_MATRIX.md: human-readable proof map; durable status comes from SQLite.
-- GLOSSARY.md: shared terms.
-- contracts/: versioned machine-readable contracts for external orchestrators.
-
-On Windows, run Harness with the native executable:
-
-~~~powershell
-& '.\\scripts\\bin\\harness-cli.exe' <command>
-~~~
-
 ## Project documentation
 
 - ARCHITECTURE.md: Harness boundaries plus the current Chang Store app architecture.

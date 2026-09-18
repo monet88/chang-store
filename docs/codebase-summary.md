@@ -137,10 +137,6 @@ is no direct-Google mode.
 
 ## Known Documentation Notes
 
-- Harness operating docs and the Windows CLI are present under `docs/` and
-  `scripts/`.
-- `harness.db` is local state; `scripts/bin/harness-cli.exe` is the current
-  Windows entrypoint.
 - The three-provider studio split (Gemini/Grok/GPT Image) is live; see
   `docs/product/provider-studios.md`.
 - `useSwapFace` / `useInpainting` were removed as unwired dead code (backlog #2).

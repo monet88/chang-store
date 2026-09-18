@@ -1,14 +1,7 @@
 # Architecture
 
-This repository is the Chang Store React/Vite application with an installed
-Harness operating layer. The current application source is under src/ and the
-current Harness runtime is the prebuilt Windows executable at
-scripts/bin/harness-cli.exe. The upstream Harness Rust workspace and its
-crates/harness-cli source are not part of this checkout.
-
-The architecture below separates reusable Harness guidance from the actual
-Chang Store application. Product behavior is always derived from the current
-source tree, not from the generic candidate structure.
+This repository is the Chang Store React/Vite application. The application source
+is under `src/`. Product behavior is always derived from the current source tree.
 
 The generic discovery and layering guidance below is planning guidance for
 future application boundaries; it is not a claim that this SPA already has

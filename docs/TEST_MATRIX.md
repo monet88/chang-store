@@ -1,11 +1,6 @@
 # Test Matrix
 
-This file is the human-readable proof map. Durable story proof is stored in
-SQLite and queried with the Windows Harness executable:
-
-~~~powershell
-.\\scripts\\bin\\harness-cli.exe query matrix --active --summary
-~~~
+This file is the human-readable proof map and validation commands for the project.
 
 ## Validation commands
 
