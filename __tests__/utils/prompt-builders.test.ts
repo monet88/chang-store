@@ -73,12 +73,14 @@ describe('ai-editor prompt builders', () => {
     const out = buildSingleImageEditPrompt('make it brighter');
     expect(out).toContain('# INSTRUCTION: IMAGE EDITING');
     expect(out).toContain('make it brighter');
+    expect(out).toContain('## EDIT RULES:');
   });
 
   it('includes image roles for a multi-image edit', () => {
     const out = buildMultiImageEditPrompt('blend them', '- Image 1 is @img2');
     expect(out).toContain('# INSTRUCTION: MULTI-IMAGE EDITING');
     expect(out).toContain('- Image 1 is @img2');
+    expect(out).toContain('## EDIT RULES:');
     expect(out).toContain('blend them');
   });
 });

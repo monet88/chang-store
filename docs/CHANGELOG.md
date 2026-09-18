@@ -51,6 +51,15 @@
   engine and was dropped, because `/images/edits` has no negative field. Both
   lanes now append it to the request prompt through
   `src/utils/negative-prompt-builder.ts`, so the wording cannot drift apart.
+- The Gemini lane dropped the negative prompt whenever a request carried
+  interleaved parts; the avoid-sentence now travels as one more part.
+- AI Editor prompts state the edit invariants on both lanes: apply only the
+  named change, keep identity/framing/lighting intact, never invent or garble
+  text and logos, and blend referenced images as one photograph.
+- The GPT studio offered a 1-4 image-count slider that its lane cannot honour
+  (`n` is measured-ignored on the reference gateway), so the control is gone
+  from the Virtual Try-On and Clothing Transfer views; one request still returns
+  one image.
 
 ## [Unreleased] — 2026-09-17
 

@@ -20,14 +20,12 @@ const GptClothingTransfer: React.FC<GptClothingTransferProps> = ({ onSendToFeatu
     conceptItems,
     conceptImages,
     extraPrompt,
-    numImages,
     aspectRatio,
     isLoading,
     loadingMessage,
     error,
     upscalingStates,
     setExtraPrompt,
-    setNumImages,
     setAspectRatio,
     setError,
     handleReferenceUpload,
@@ -156,30 +154,6 @@ const GptClothingTransfer: React.FC<GptClothingTransferProps> = ({ onSendToFeatu
               </div>
 
               <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm text-zinc-400">
-                  <span>{t('clothingTransfer.numberOfImages')}</span>
-                  <span className="rounded-full border border-white/10 bg-[var(--workspace-accent)] px-2.5 py-1 text-xs font-semibold text-[var(--workspace-accent-text)]">
-                    {numImages}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={1}
-                  max={4}
-                  step={1}
-                  value={numImages}
-                  onChange={(e) => setNumImages(Number(e.target.value))}
-                  className="w-full cursor-pointer"
-                />
-                <div className="flex justify-between text-xs text-zinc-600 select-none">
-                  <span>1</span>
-                  <span>2</span>
-                  <span>3</span>
-                  <span>4</span>
-                </div>
-              </div>
 
               <button
                 type="button"
