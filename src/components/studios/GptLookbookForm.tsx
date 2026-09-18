@@ -13,11 +13,6 @@ import {
 } from '../LookbookGenerator.prompts';
 import { LookbookFormState } from '../../utils/lookbookPromptBuilder';
 
-export interface ClothingItem {
-  id: string;
-  image: ImageFile | null;
-}
-
 interface GptLookbookFormProps {
   formState: LookbookFormState;
   onFormChange: (updates: Partial<LookbookFormState>) => void;

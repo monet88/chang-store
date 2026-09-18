@@ -44,7 +44,6 @@ const GptClothingTransfer: React.FC<GptClothingTransferProps> = ({ onSendToFeatu
     failedCount,
     canGenerate,
     anyUpscaling,
-    imageEditModel,
     refinePrompts,
     setRefinePrompts,
     isRefining,

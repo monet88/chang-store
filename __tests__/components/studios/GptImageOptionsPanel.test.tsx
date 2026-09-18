@@ -20,7 +20,6 @@ vi.mock('@/contexts/ImageEngineContext', () => mockUseImageEngine({
     qualityOptions: ['low', 'medium', 'high', 'auto'],
     sizeFor,
     supportsQuality: true,
-    maxReferenceImages: 10,
   },
 }));
 

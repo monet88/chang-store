@@ -23,7 +23,6 @@ export interface ImageEngineOptions {
   /** Measured honor rate of a `flaky` size on this (gateway, model) pair, when recorded. */
   sizeObservation?: { honored: number; total: number };
   supportsQuality: boolean;
-  maxReferenceImages: number;
 }
 
 export interface ImageEngine {
