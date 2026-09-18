@@ -47,6 +47,10 @@
   into the single prompt and ordered reference images required by OpenAI-style
   `/images/edits`, unblocking parts-based workflows (Virtual Try-On, Clothing
   Transfer, Identity Transfer).
+- Negative prompts on the GPT lane: the Lookbook negative prompt reached the
+  engine and was dropped, because `/images/edits` has no negative field. Both
+  lanes now append it to the request prompt through
+  `src/utils/negative-prompt-builder.ts`, so the wording cannot drift apart.
 
 ## [Unreleased] — 2026-09-17
 

@@ -4,6 +4,7 @@ import { ImageFile, ImageAspectRatio, ImageResolution, ImageEditModel, UpscaleQu
 import { getGeminiClient, isProxyEnabled } from '../apiClient';
 import { getModelCapabilities, resolveImageSizeConfig } from '../../config/modelRegistry';
 import { runBoundedWorkers } from '../../utils/run-bounded-workers';
+import { appendNegativePrompt } from '../../utils/negative-prompt-builder';
 
 const PROXY_IMAGE_TIMEOUT_MS = 30_000;
 const MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS = 3;
@@ -163,7 +164,6 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
   const ai = getGeminiClient();
   try {
     let contentParts: Part[];
-    let finalPrompt = prompt;
     if (interleavedParts && interleavedParts.length > 0) {
       contentParts = interleavedParts;
     } else {
@@ -174,11 +174,7 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
         },
       }));
 
-      if (negativePrompt?.trim()) {
-        finalPrompt += ` Negative prompt: strictly avoid including ${negativePrompt.trim()}.`;
-      }
-
-      contentParts = [{ text: finalPrompt }, ...imageParts];
+      contentParts = [{ text: appendNegativePrompt(prompt, negativePrompt) }, ...imageParts];
     }
 
     const generateSingleImage = async (): Promise<ImageFile> => {

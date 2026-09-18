@@ -172,7 +172,9 @@ by `src/services/imageEditingService.ts` and the GPT lane by
 requested ratio to the pixel size the active (gateway, model) pair actually
 honors, turns a refine into one stateless preservation-wrapped edit (because
 OpenAI-style edit endpoints keep no conversation), and flattens Gemini-style
-interleaved parts into one prompt and ordered reference images.
+interleaved parts into one prompt and ordered reference images. Neither endpoint
+has a negative field, so both lanes append the user's negative prompt to the
+request prompt with the shared wording in `src/utils/negative-prompt-builder.ts`.
 
 Generation controls follow the engine: the Gemini views render aspect ratio and
 resolution (`ImageOptionsPanel`), the GPT views render ratio, the resolved pixel
