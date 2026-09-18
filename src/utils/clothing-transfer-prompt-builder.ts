@@ -1,17 +1,12 @@
 import type { Part } from '@google/genai';
 import { ImageFile } from '../types';
 import type { PromptFormat } from './promptFormat';
-import { dropRestatedLines } from './promptFormat';
+import { dropRestatedLines, imagePart } from './promptFormat';
 
 export interface ClothingTransferReferenceInput {
   image: ImageFile;
   label: string;
 }
-
-const imagePart = (image: ImageFile): Part => ({
-  inlineData: { data: image.base64, mimeType: image.mimeType },
-});
-
 const destinationRoleLabel = 'DESTINATION SCENE (owns background, scene composition, lighting, display method, and any subject person)';
 
 const AVOID_BULLETS = [

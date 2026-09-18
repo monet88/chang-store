@@ -11,7 +11,13 @@
  * the flattened prompt would otherwise carry a second time.
  */
 
-import type { ImageEngineId } from '../types';
+import type { Part } from '@google/genai';
+import type { ImageEngineId, ImageFile } from '../types';
+
+/** Common inline image part helper for interleaved Gemini/GPT requests. */
+export const imagePart = (image: ImageFile): Part => ({
+  inlineData: { data: image.base64, mimeType: image.mimeType },
+});
 
 /** How a builder assembles a request: interleaved parts, or one text block plus ordered images. */
 export type PromptFormat = 'parts' | 'text';

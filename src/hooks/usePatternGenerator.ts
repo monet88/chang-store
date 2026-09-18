@@ -7,7 +7,6 @@ import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { createImageChatSession, editImage, ImageChatSession } from '../services/imageEditingService';
 import { buildPatternGeneratorParts, REFINE_CORRECTION, TASK_PROMPT } from '../utils/pattern-generator-prompt-builder';
-import { promptFormatFor } from '../utils/promptFormat';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
 export function usePatternGenerator() {
@@ -84,7 +83,6 @@ export function usePatternGenerator() {
           interleavedParts: buildPatternGeneratorParts(
             referenceImages,
             trimmedPrompt ? `${TASK_PROMPT}\n\n${trimmedPrompt}` : TASK_PROMPT,
-            promptFormatFor(engineId),
           ),
         },
         imageEditModel,

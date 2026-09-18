@@ -10,16 +10,11 @@
 import type { Part } from '@google/genai';
 import { ImageFile, VirtualTryOnSourceItemType } from '../types';
 import type { PromptFormat } from './promptFormat';
-import { dropRestatedLines } from './promptFormat';
+import { dropRestatedLines, imagePart } from './promptFormat';
 
 const MAX_SOURCE_ITEMS = 4;
 
 const normalizeSourcePrompt = (value?: string) => value?.replace(/\s+/g, ' ').trim() ?? '';
-
-const imagePart = (image: ImageFile): Part => ({
-  inlineData: { data: image.base64, mimeType: image.mimeType },
-});
-
 export interface VirtualTryOnPromptSourceItem {
   image: ImageFile;
   sourceItemType: VirtualTryOnSourceItemType;

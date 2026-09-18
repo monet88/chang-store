@@ -1,6 +1,7 @@
 import type { Part } from '@google/genai';
 import type { ImageFile } from '../types';
 import type { PromptFormat } from './promptFormat';
+import { imagePart } from './promptFormat';
 
 export interface IdentityTransferPromptInput {
   destinationImage: ImageFile;
@@ -41,11 +42,6 @@ const slimFinalInvariants = (text: string, finalBodyRule: string): string => {
   if (firstSentenceAt < 0 || closingAt < 0) return text;
   return `${text.slice(0, firstSentenceAt + 2)}${finalBodyRule} ${text.slice(closingAt)}`;
 };
-
-const imagePart = (image: ImageFile): Part => ({
-  inlineData: { data: image.base64, mimeType: image.mimeType },
-});
-
 const destinationRoleLabel = 'DESTINATION IMAGE: Authority for pose, performance, outfit, framing, camera, lighting, composition, and scene.';
 
 const faceRoleLabel = 'FACE REFERENCE: Authority for stable facial identity, skin tone, stable facial marks/beauty marks/identity-specific marks, hair, and the worn makeup and grooming look. It is not a pose, gaze, expression, mouth state, framing, or camera reference. The reference may be a single photograph or a multi-panel contact sheet of one person at several head angles: read it as one single identity, take identity and hair from the panel whose head angle is closest to the Destination Image head angle, and never reproduce its panel layout, panel borders, gutters, repeated frames, or panel count. Ignore and never reproduce any text, labels, numbers, captions, watermarks, or UI chrome the reference carries.';

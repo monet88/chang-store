@@ -1,10 +1,6 @@
 import type { Part } from '@google/genai';
 import { ImageFile } from '../types';
-import type { PromptFormat } from './promptFormat';
-
-const imagePart = (image: ImageFile): Part => ({
-  inlineData: { data: image.base64, mimeType: image.mimeType },
-});
+import { imagePart } from './promptFormat';
 
 export const TASK_PROMPT = `TASK:
 Generate a seamless, square, tileable textile pattern repeat unit from the reference image(s).
@@ -78,18 +74,7 @@ export const REFINE_CORRECTION = `\n\nIMPORTANT: Maintain the exact same tile si
 export function buildPatternGeneratorParts(
   referenceImages: ImageFile[],
   taskPrompt: string = TASK_PROMPT,
-  format: PromptFormat = 'parts',
 ): Part[] {
-  if (format === 'text') {
-    const roleMap = referenceImages
-      .map((_, index) => `IMAGE ${index + 1} = REFERENCE IMAGE ${index + 1}`)
-      .join('\n');
-    return [
-      { text: roleMap ? `${roleMap}\n\n${taskPrompt}` : taskPrompt },
-      ...referenceImages.map(imagePart),
-    ];
-  }
-
   const parts: Part[] = [];
 
   referenceImages.forEach((image, index) => {
