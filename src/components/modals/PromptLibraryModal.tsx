@@ -95,7 +95,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
             {!isCreating && (
               <button
                 onClick={() => setIsCreating(true)}
-                className="px-3 py-1.5 bg-[#818CF8]/10 hover:bg-[#818CF8]/20 text-[#818CF8] text-sm font-medium rounded-lg transition-colors flex items-center gap-2 active:scale-95"
+                className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 active:scale-95"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 {t('promptLibrary.createNew') || 'New Prompt'}
@@ -123,7 +123,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder={t('promptLibrary.newTitlePlaceholder') || 'e.g. Remove Hand from Pocket'}
-                  className="w-full bg-zinc-800/50 border border-zinc-700/50 text-white rounded-xl px-4 py-3 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#818CF8]/50 transition-all"
+                  className="w-full bg-zinc-800/50 border border-zinc-700/50 text-white rounded-xl px-4 py-3 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
                   autoFocus
                 />
               </div>
@@ -135,7 +135,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                   value={newText}
                   onChange={(e) => setNewText(e.target.value)}
                   placeholder={t('promptLibrary.newTextPlaceholder') || 'Enter the detailed instructions here...'}
-                  className="w-full bg-zinc-800/50 border border-zinc-700/50 text-white rounded-xl px-4 py-3 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#818CF8]/50 min-h-[160px] resize-y transition-all"
+                  className="w-full bg-zinc-800/50 border border-zinc-700/50 text-white rounded-xl px-4 py-3 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 min-h-[160px] resize-y transition-all"
                 />
               </div>
               <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-zinc-800/50">
@@ -148,7 +148,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                 <button
                   onClick={handleSaveNew}
                   disabled={!newText.trim()}
-                  className="px-5 py-2.5 bg-[#818CF8] hover:bg-[#6366F1] disabled:bg-zinc-800 disabled:text-zinc-500 text-white text-sm font-medium rounded-xl transition-colors disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:brightness-110 disabled:bg-zinc-800 disabled:text-zinc-500 text-black font-semibold text-sm rounded-xl transition-all active:scale-95 disabled:cursor-not-allowed"
                 >
                   {t('common.save') || 'Save Prompt'}
                 </button>
@@ -164,8 +164,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
                 <input
                   type="text"
-                  className="w-full bg-zinc-800/50 border border-zinc-700/50 text-white rounded-xl pl-10 pr-4 py-3 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#818CF8]/50 focus:border-[#818CF8] transition-all"
-                  placeholder={t('promptLibrary.searchPlaceholder')}
+                  className="w-full bg-zinc-800/50 border border-zinc-700/50 text-white rounded-xl pl-10 pr-4 py-3 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -192,13 +191,12 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                       <div className="flex justify-between items-start gap-4">
                         <button
                           type="button"
-                          className="flex min-w-0 flex-1 cursor-pointer flex-col gap-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#818CF8]"
-                          onClick={() => setExpandedPromptId(expandedPromptId === prompt.id ? null : prompt.id)}
+                          className="flex min-w-0 flex-1 cursor-pointer flex-col gap-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
                           aria-expanded={expandedPromptId === prompt.id}
                         >
                           <span className="flex gap-2 items-center min-h-6">
                             {prompt.isCurated && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-[#818CF8]/10 text-[#818CF8] border border-[#818CF8]/20 flex-shrink-0">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 flex-shrink-0">
                                 {t('promptLibrary.curatedBadge')}
                               </span>
                             )}
@@ -220,8 +218,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                             className={`p-1.5 rounded-md transition-all flex-shrink-0
                           ${prompt.isCurated
                                 ? 'text-zinc-600 cursor-not-allowed hidden'
-                                : 'text-zinc-500 hover:text-[#818CF8] hover:bg-[#818CF8]/20 active:scale-95'}`}
-                            aria-label={t('promptLibrary.editPrompt') || "Edit"}
+                                : 'text-zinc-500 hover:text-amber-400 hover:bg-amber-500/10 active:scale-95'}`}
                             disabled={prompt.isCurated}
                           >
                             {!prompt.isCurated && <EditIcon className="w-4 h-4" />}
@@ -254,11 +251,11 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                                 showToast(t('promptLibrary.copiedPrompt') || "Copied to clipboard");
                                 setTimeout(() => setCopiedId(null), 2000);
                               }}
-                              className="absolute top-2 right-2 p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-md transition-all sm:opacity-0 group-hover/text:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#818CF8] active:scale-95"
+                              className="absolute top-2 right-2 p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-md transition-all sm:opacity-0 group-hover/text:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 active:scale-90"
                               aria-label={t('promptLibrary.copyPrompt') || "Copy prompt"}
                               title={t('promptLibrary.copyPrompt') || "Copy prompt"}
                             >
-                              {copiedId === prompt.id ? <CheckIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
+                              {copiedId === prompt.id ? <CheckIcon className="w-4 h-4 text-emerald-400 animate-fade-in" /> : <CopyIcon className="w-4 h-4 text-zinc-400 hover:text-amber-400" />}
                             </button>
                           </div>
 
@@ -267,13 +264,29 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigator.clipboard.writeText(prompt.text);
+                                setCopiedId(prompt.id);
                                 showToast(t('promptLibrary.copiedPrompt') || 'Copied to clipboard');
-                                onClose();
+                                setTimeout(() => {
+                                  onClose();
+                                }, 450);
                               }}
-                              className="px-4 py-2 bg-[#818CF8]/10 hover:bg-[#818CF8]/20 text-[#818CF8] hover:text-white font-medium text-sm rounded-lg transition-colors flex items-center gap-2"
+                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 border active:scale-95 ${
+                                copiedId === prompt.id
+                                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                                  : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20 text-amber-300 hover:text-white'
+                              }`}
                             >
-                              <CopyIcon className="w-4 h-4" />
-                              {t('promptLibrary.copyPrompt') || 'Copy'}
+                              {copiedId === prompt.id ? (
+                                <>
+                                  <CheckIcon className="w-4 h-4 text-emerald-400 animate-fade-in" />
+                                  <span className="font-semibold">{t('common.copied') || 'Đã sao chép'}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <CopyIcon className="w-4 h-4" />
+                                  <span>{t('promptLibrary.copyPrompt') || 'Copy'}</span>
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>

@@ -138,11 +138,10 @@ labels, `font-bold` (700) reserved for primary CTAs and selected-state pills.
 
 ### Frame
 
-- Sidebar: fixed 22rem (`w-[22rem]`) on `lg+`, full-width drawer below.
-- Main content: `max-w-[1760px]`, `px-4 sm:px-6 lg:px-10 xl:px-12`,
-  `pb-8 pt-20 lg:pt-10`.
+- Sidebar: fixed 16rem (`w-64`, content margin `lg:pl-64`) on `lg+`, full-width drawer overlay on mobile.
+- Main content wrapper: `px-4 pb-6 pt-16 sm:px-6 lg:px-8 lg:pt-6` (standardized across Gemini and GPT studios).
+- Studio content container: `max-w-[1760px] mx-auto flex flex-col gap-5`.
 - Sections separated by `border-b border-white/10` (no card-in-card).
-
 ### Spacing scale
 
 The codebase uses Tailwind defaults. Frequent steps: `gap-2`, `gap-3`, `gap-4`,
@@ -211,18 +210,25 @@ prompt copy.
 Vertical list. Active state swaps to `bg-white/[0.06] text-zinc-50`; idle is
 `text-zinc-300 hover:bg-white/[0.04]`.
 
-### Modal
+### Modal (ARIA Dialog Standard)
 
-`bg-black/90 backdrop-blur-2xl` scrim, `rounded-2xl border border-white/10`
-container. Header has `border-b border-white/10`, footer has `border-t`.
+Standardized WAI-ARIA 1.2 modal pattern across `SettingsModal`, `GalleryModal`, `PromptLibraryModal`, and `PoseLibraryModal`:
+
+- Scrim / Overlay: `fixed inset-0 z-modal flex items-center justify-center bg-black/85 p-4 backdrop-blur-md`.
+- Dialog Container: `role="dialog"`, `aria-modal="true"`, `aria-labelledby="[modal-id]-title"`.
+- Shell Surface: `.workspace-shell` class with `rounded-[2rem] border border-white/10 max-h-[90vh] flex flex-col overflow-hidden`.
+- Header: `border-b border-white/10 px-5 py-5 sm:px-6`, containing `<h2 id="[modal-id]-title">`.
+- Footer: `border-t border-white/10 px-5 py-4 sm:px-6`.
+- Interaction: Dismiss on Escape key press, click on backdrop (inner dialog calls `e.stopPropagation()`).
 
 ### Loading spinner
 
-CSS spinner pattern: `animate-spin rounded-full border-b-2 border-amber-400
-h-8 w-8`. The `border-b-2 + rounded-full` pair is intentional and
-`Spinner.tsx` is the canonical source. Detector regex flags it as
-`border-accent-on-rounded`; that rule does not apply to spinners.
+Standardized CSS spinner in `src/components/Spinner.tsx`:
+`animate-spin rounded-full border-b-2 border-amber-400 h-8 w-8`.
 
+- Default geometry: `h-8 w-8` with amber accent (`border-amber-400`).
+- Overrides: Dynamic regex detection (`hasHeightClass`, `hasWidthClass`) allows partial size and color overrides without CSS specificity fighting.
+- False positive guidance: The `border-b-2 + rounded-full` combination is an intentional 2px single-edge arc spinner stroke, not a card accent border. The design detector rule `border-accent-on-rounded` is waived for this component.
 ## Motion
 
 Implemented motion is restrained:
@@ -231,9 +237,11 @@ Implemented motion is restrained:
 - Modal enter: `animate-fade-in` (custom keyframes in index.html, 0.3s ease-out).
 - Sidebar drawer: `transition-transform duration-300 ease-out`.
 
-No `bounce`, no `elastic`, no GSAP/anime. **No `prefers-reduced-motion` media
-query is currently declared** — flagging this for the harden pass.
+### Reduced Motion Standard (`prefers-reduced-motion: reduce`)
 
+Declared globally in `src/index.css`:
+- Full resets for general animations and transforms (`animation-duration: 0.01ms !important`, `scroll-behavior: auto !important`).
+- **Intentional 150ms Soft-Fade Rule**: Critical state feedback transitions (`.animate-fade-in`, `.transition-opacity`, `.transition-colors`) preserve a gentle `150ms` duration instead of abrupt, jarring cuts, ensuring state feedback remains visible and calm for vestibular-sensitive users.
 ## Iconography
 
 Custom icon set in `src/components/Icons.tsx`. Outline style, 1.5–2 stroke,
