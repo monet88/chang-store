@@ -234,7 +234,7 @@ export const GptLookbookForm = React.memo<GptLookbookFormProps>(({
                 aria-label={t('lookbook.generateDescriptionAria')}
               >
                 {isGeneratingDescription ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                  <Spinner className="h-4 w-4 border-current" />
                 ) : (
                   <>
                     <MagicWandIcon className="mr-2 h-4 w-4" />

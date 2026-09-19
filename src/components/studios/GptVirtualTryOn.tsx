@@ -508,7 +508,7 @@ const GptVirtualTryOn: React.FC = () => {
                               }`}
                           >
                             {item.status === 'processing' ? (
-                              <div className="animate-spin rounded-full border-b-2 border-white h-8 w-8" />
+                              <Spinner className="h-8 w-8 border-white" />
                             ) : (
                               <p className="text-sm text-zinc-500">{t('virtualTryOn.waitingStatus')}</p>
                             )}
@@ -691,7 +691,7 @@ const GptVirtualTryOn: React.FC = () => {
                       )}
                       {(resultSet.status === 'processing' || resultSet.status === 'pending') && (
                         <div className="flex aspect-[3/4] max-h-48 items-center justify-center rounded-[24px] border border-white/10 bg-black/30 animate-pulse">
-                          <div className="animate-spin rounded-full border-b-2 border-white h-8 w-8" />
+                          <Spinner className="h-8 w-8 border-white" />
                         </div>
                       )}
                       {resultSet.status === 'completed' && resultSet.results.length > 0 && (

@@ -194,7 +194,7 @@ const BackgroundReplacer: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                 {Array.from({ length: 2 }).map((_, index) => (
                   <div key={index} className="aspect-[4/5] bg-zinc-800/50 rounded-lg flex items-center justify-center animate-pulse">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-200"></div>
+                    <Spinner className="h-8 w-8 border-zinc-200" />
                   </div>
                 ))}
               </div>

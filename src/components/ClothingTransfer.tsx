@@ -328,7 +328,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                     ? [
                       <div key={`${item.id}-skeleton`} className={`relative flex aspect-[3/4] flex-col items-center justify-center gap-2 rounded-[1.5rem] border border-white/8 ${item.status === 'processing' ? 'animate-pulse bg-white/5' : 'bg-white/[0.03]'}`}>
                         {item.status === 'processing' ? (
-                          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-100" />
+                          <Spinner className="h-8 w-8 border-zinc-100" />
                         ) : (
                           <p className="text-xs text-zinc-500">{t('clothingTransfer.waitingStatus')}</p>
                         )}

@@ -295,8 +295,8 @@ const AppContent: React.FC = () => {
               </div>
             </main>
           ) : (
-            <main id="main-content" className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
-              <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
+            <main id="main-content" className="px-4 pb-6 pt-16 sm:px-6 lg:px-8 lg:pt-6">
+              <div className="mx-auto flex max-w-[1760px] flex-col gap-5">
                 <Suspense fallback={<FeatureLoadingFallback />}>
                   {studioMode === 'gptImage' && (
                     <GptStudio activeFeature={activeFeature} onSendToFeature={handleSendToFeature} />

@@ -101,7 +101,7 @@ const IdentityTransfer: React.FC = () => {
                 );
                 return (
                   <div key={item.id} className={`flex aspect-[3/4] flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-white/8 ${item.status === 'processing' ? 'animate-pulse bg-white/5' : 'bg-white/[0.03]'}`}>
-                    {item.status === 'processing' && <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-zinc-100" />}
+                    {item.status === 'processing' && <Spinner className="h-8 w-8 border-zinc-100" />}
                     <p className="text-xs text-zinc-500">{item.status === 'processing' ? t('identityTransfer.processingStatus') : t('identityTransfer.waitingStatus')}</p>
                     <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-600">{label}</p>
                   </div>
