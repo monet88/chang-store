@@ -206,6 +206,21 @@ describe('buildLookbookPrompt', () => {
       expect(prompt.indexOf('## OUTPUT')).toBeLessThan(prompt.indexOf('## PRESENTATION'));
     });
   });
+
+  it('binds image roles for the flat GPT lane when multiple images or fabric texture are provided', () => {
+    const multiPrompt = buildLookbookPrompt(
+      createFormState(),
+      [mockImage('front'), mockImage('back'), mockImage('texture')],
+      mockImage('texture'),
+      'text',
+    );
+
+    expect(multiPrompt).toContain('## IMAGE ROLES');
+    expect(multiPrompt).toContain('IMAGE 1 = Clothing garment reference view #1');
+    expect(multiPrompt).toContain('IMAGE 2 = Clothing garment reference view #2');
+    expect(multiPrompt).toContain('IMAGE 3 = Fabric texture reference (material surface and texture swatch only)');
+    expect(multiPrompt).toContain('The fabric texture reference (IMAGE 3) controls material surface and texture only.');
+  });
 });
 
 describe('buildVariationPrompt', () => {

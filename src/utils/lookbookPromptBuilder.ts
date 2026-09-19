@@ -18,6 +18,7 @@ import {
   ProductShotSubType
 } from '../components/LookbookGenerator.prompts';
 import { ImageFile, AspectRatio } from '../types';
+import type { PromptFormat } from './promptFormat';
 
 /**
  * Form state interface for prompt building
@@ -50,7 +51,8 @@ export interface LookbookFormState {
 export const buildLookbookPrompt = (
   formState: LookbookFormState,
   images: ImageFile[],
-  fabricTextureImage: ImageFile | null
+  fabricTextureImage: ImageFile | null,
+  format: PromptFormat = 'parts',
 ): string => {
   const {
     lookbookStyle,
@@ -71,6 +73,17 @@ Render exactly one complete, standalone photograph. Do NOT generate a collage, g
 
   const effectiveFabricTextureImage = fabricTextureImage ?? formState.fabricTextureImage ?? null;
 
+  if (format === 'text' && images.length > 1) {
+    const roleLines: string[] = [];
+    const clothingCount = effectiveFabricTextureImage ? images.length - 1 : images.length;
+    for (let i = 0; i < clothingCount; i++) {
+      roleLines.push(`IMAGE ${i + 1} = Clothing garment reference ${clothingCount > 1 ? `view #${i + 1}` : ''} (primary visual evidence for silhouette, construction, and cut)`);
+    }
+    if (effectiveFabricTextureImage) {
+      roleLines.push(`IMAGE ${images.length} = Fabric texture reference (material surface and texture swatch only)`);
+    }
+    sections.push(`## IMAGE ROLES\n${roleLines.join('\n')}`);
+  }
   // Multi-view and multi-piece reference evidence instruction
   const isMultiImage = images.length > (effectiveFabricTextureImage ? 2 : 1);
   const garmentEvidenceSection = isMultiImage
@@ -87,9 +100,10 @@ Render exactly one complete, standalone photograph. Do NOT generate a collage, g
 
   // Fabric texture section
   if (effectiveFabricTextureImage) {
+    const textureRefLabel = format === 'text' ? ` (IMAGE ${images.length})` : '';
     const fabricLines: string[] = [
       '## FABRIC TEXTURE APPLICATION',
-      '- The fabric texture reference controls material surface and texture only.',
+      `- The fabric texture reference${textureRefLabel} controls material surface and texture only.`,
       '- Wrap the texture realistically across the garment\'s folds, seams, drape, and contours under the scene lighting, maintaining physical depth rather than appearing flat or pasted on.',
       '- Strictly preserve the garment\'s supported silhouette, cut, seams, and non-fabric construction details (such as buttons, zippers, fasteners, and hardware).',
     ];

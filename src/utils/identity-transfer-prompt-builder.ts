@@ -21,7 +21,7 @@ const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
  * dropping a rule.
  */
 const FACE_RESTATEMENT_ANCHOR = 'Do not paste the reference face as a rigid mask';
-const FINAL_CLOSING_ANCHOR = 'Body Reference, when present, controls morphology only.';
+const FINAL_CLOSING_ANCHOR = 'Body Reference, when present, controls morphology and silhouette, replacing destination body proportions.';
 
 /** Drop the sentence that ends where `anchor` begins, keeping the paragraph break. */
 const dropSentenceBefore = (text: string, anchor: string): string => {
@@ -42,11 +42,11 @@ const slimFinalInvariants = (text: string, finalBodyRule: string): string => {
   if (firstSentenceAt < 0 || closingAt < 0) return text;
   return `${text.slice(0, firstSentenceAt + 2)}${finalBodyRule} ${text.slice(closingAt)}`;
 };
-const destinationRoleLabel = 'DESTINATION IMAGE: Authority for pose, performance, outfit, framing, camera, lighting, composition, and scene.';
+const destinationRoleLabel = 'DESTINATION IMAGE: Authority for pose, performance, outfit design, framing, camera, lighting, composition, and scene. It is not the authority for facial identity or body morphology.';
 
 const faceRoleLabel = 'FACE REFERENCE: Authority for stable facial identity, skin tone, stable facial marks/beauty marks/identity-specific marks, hair, and the worn makeup and grooming look. It is not a pose, gaze, expression, mouth state, framing, or camera reference. The reference may be a single photograph or a multi-panel contact sheet of one person at several head angles: read it as one single identity, take identity and hair from the panel whose head angle is closest to the Destination Image head angle, and never reproduce its panel layout, panel borders, gutters, repeated frames, or panel count. Ignore and never reproduce any text, labels, numbers, captions, watermarks, or UI chrome the reference carries.';
 
-const bodyRoleLabel = 'BODY REFERENCE: Authority only for body morphology and proportions. It is not a pose or posture reference.';
+const bodyRoleLabel = 'BODY REFERENCE: Authority for body morphology, bust size and chest volume, curves, build, silhouette, and physical mass (full bust, shoulders, waist, hips, and limbs). The output subject must take the body shape, full bust proportions, and curves of this reference, not the Destination Image.';
 
 /** Image roles in authority order: destination first, then face, then body when supplied. */
 const rolesOf = (input: IdentityTransferPromptInput): { label: string; image: ImageFile }[] => {
@@ -99,9 +99,8 @@ const buildTaskText = (
   const extraPrompt = normalize(input.extraPrompt);
 
   const bodyRule = input.bodyReference
-    ? `Use the Body Reference only for body morphology and proportions: overall body mass, shoulder/torso proportions, bust-waist-hip proportions, limb proportions, and silhouette. Do not copy body pose or posture, stance, skeleton orientation, shoulder angle, hip angle, limb placement, or camera relationship from the Body Reference. Reconstruct that morphology inside the exact Destination Image pose.`
+    ? `Transfer and enforce the body morphology and proportions from the Body Reference: full bust size and chest volume, overall body mass, shoulder width, torso proportions, bust-waist-hip proportions, waistline, limb thickness, and silhouette. The subject must adopt the fuller, larger bust proportions and body curves from the Body Reference rather than the Destination Image. Do not preserve the original Destination Image body shape or bust size. Do not copy body pose or posture, stance, skeleton orientation, shoulder angle, hip angle, limb placement, or camera relationship from the Body Reference. Reconstruct that morphology inside the exact Destination Image pose, and adjust clothing fit, neckline/bustier drape, and natural cleavage to wrap the new body contours.`
     : `No Body Reference is provided. Preserve the Destination Image body morphology and proportions. Do not infer body shape from the Face Reference.`;
-
   const backgroundRule = backgroundPrompt
     ? `Replace the background entirely with: "${backgroundPrompt}". Keep the Destination Image subject pose, expression, gaze, outfit, crop, composition, and camera relationship unchanged. Integrate the replacement naturally and harmonize subject and background lighting without changing the subject's defining lighting direction.`
     : 'No background replacement was requested. Preserve the Destination Image background exactly, including scene layout, visible objects, depth, and framing.';
@@ -111,14 +110,14 @@ const buildTaskText = (
     : 'No extra instructions were provided.';
 
   const finalBodyRule = input.bodyReference
-    ? 'Allow body morphology and silhouette to change to match the Body Reference, including necessary clothing drape and fit adjustments caused by that morphology, while preserving the destination outfit design and accessories.'
+    ? 'Always reshape body morphology and silhouette to match the Body Reference instead of preserving the destination body shape, including necessary clothing drape and fit adjustments caused by that morphology, while preserving the destination outfit design and accessories.'
     : 'Preserve the Destination Image body morphology, silhouette, clothing drape, and fit.';
 
   const taskText = `## TASK
-Create one photorealistic edit of the Destination Image. Transfer the person identity from the Face Reference, and when supplied transfer only the body morphology from the Body Reference. The Destination Image remains the authority for the photographed moment.
+Create one photorealistic edit of the Destination Image. Transfer the person identity from the Face Reference, and transfer the body shape, morphology, silhouette, and proportions from the Body Reference. Do not preserve the original Destination Image body shape or proportions when a Body Reference is provided. The Destination Image remains the authority for the photographed pose, outfit design, and scene.
 
 ## DESTINATION IMAGE AUTHORITY
-Preserve the Destination Image exactly for body pose and skeleton placement; torso, shoulder, and hip orientation; arms, hands, legs, and stance; head yaw, pitch, and roll; chin position; facial orientation; gaze and eye direction; eyelid and eyebrow state; mouth state; expression; outfit and accessories; nails; crop and composition; camera perspective and framing; lighting, shadows, depth of field, and color treatment; and the scene unless the background rule below explicitly replaces it.
+Preserve the Destination Image for the photographed pose, gesture, stance, and action (arms, hands, legs, and body angle); head yaw, pitch, and roll; chin position; facial orientation; gaze and eye direction; eyelid and eyebrow state; mouth state; expression; outfit and accessories; nails; crop and composition; camera perspective and framing; lighting, shadows, depth of field, and color treatment; and the scene unless the background rule below explicitly replaces it. When a Body Reference is provided, do NOT preserve the Destination Image body shape or bust proportions — reshape the body build, bust volume, shoulders, waist, and limbs to match the Body Reference while keeping the destination pose.
 
 Reproduce the destination expression exactly as photographed: eye openness, gaze direction and focus, lid crease visibility, brow height and shape, lip parting, lip corner tension, cheek and jaw tension. Reproduce the destination colour treatment as well: white balance, colour grade, contrast, saturation, grain, and the rendered skin tone of the photographed subject. The transferred identity must sit inside that grade rather than bring its own rendering.
 
@@ -140,7 +139,7 @@ ${backgroundRule}
 ${extraRule}
 
 ## FINAL INVARIANTS
-One destination produces one edited image. Preserve destination pose, skeleton placement, spatial performance, and camera relationships, plus composition, lighting, and all unrelated details. The worn makeup look — lashes, brows, eye and lip styling, lip colour and finish, blush, contour — is taken from the Face Reference, re-lit by the destination lighting and laid thinly over real skin; nails, outfit and the scene stay with the Destination Image. The destination expression and colour grade win over the Face Reference's own expression, lighting and rendering: the transferred identity is lit, graded, and performing exactly as the Destination Image. ${finalBodyRule} Face Reference controls stable facial identity, the underlying skin tone family (re-rendered in the destination grade), identity-specific marks, hair, and the worn makeup look. A multi-panel Face Reference supplies one single identity and never its panel layout, and no text, label, or watermark from any reference may appear in the result. Body Reference, when present, controls morphology only. Destination pose and posture always win. Avoid plastic or waxy skin, poreless porcelain finish, airbrushed beauty-filter smoothing, smeared foundation, painted-on hair, and dead eyes; keep pores, fine lines and small blemishes visible.`;
+One destination produces one edited image. Preserve destination pose, skeleton placement, spatial performance, and camera relationships, plus composition, lighting, and all unrelated details. The worn makeup look — lashes, brows, eye and lip styling, lip colour and finish, blush, contour — is taken from the Face Reference, re-lit by the destination lighting and laid thinly over real skin; nails, outfit and the scene stay with the Destination Image. The destination expression and colour grade win over the Face Reference's own expression, lighting and rendering: the transferred identity is lit, graded, and performing exactly as the Destination Image. ${finalBodyRule} Face Reference controls stable facial identity, the underlying skin tone family (re-rendered in the destination grade), identity-specific marks, hair, and the worn makeup look. A multi-panel Face Reference supplies one single identity and never its panel layout, and no text, label, or watermark from any reference may appear in the result. ${FINAL_CLOSING_ANCHOR} Destination pose and posture always win. Avoid plastic or waxy skin, poreless porcelain finish, airbrushed beauty-filter smoothing, smeared foundation, painted-on hair, and dead eyes; keep pores, fine lines and small blemishes visible.`;
 
   return options.compactRestatements
     ? slimFinalInvariants(dropSentenceBefore(taskText, FACE_RESTATEMENT_ANCHOR), finalBodyRule)

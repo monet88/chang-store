@@ -79,12 +79,12 @@ describe('buildIdentityTransferParts', () => {
     expect(text).toContain('A multi-panel Face Reference supplies one single identity and never its panel layout');
   });
 
-  it('preserves destination spatial performance while allowing body morphology and fit to change', () => {
+  it('preserves destination spatial performance while reshaping body morphology and fit to match reference', () => {
     const text = taskText(buildIdentityTransferParts(defaultInput));
 
     expect(text).not.toContain('Preserve destination geometry');
     expect(text).toContain('Preserve destination pose, skeleton placement, spatial performance, and camera relationships');
-    expect(text).toContain('Allow body morphology and silhouette to change');
+    expect(text).toContain('Always reshape body morphology and silhouette to match the Body Reference');
     expect(text).toContain('necessary clothing drape and fit adjustments');
   });
 
@@ -216,8 +216,8 @@ describe('buildIdentityTransferParts', () => {
       // Kept: every rule that has no earlier statement of its own.
       ['## DESTINATION IMAGE AUTHORITY', '## FACE REFERENCE ROLE', '## SKIN AND SURFACE', '## BACKGROUND',
         'Do not paste the reference face as a rigid mask', 'Do not beautify, slim, reshape',
-        'One destination produces one edited image.', 'Allow body morphology and silhouette to change',
-        'Body Reference, when present, controls morphology only', 'Avoid plastic or waxy skin'].forEach((rule) => {
+        'One destination produces one edited image.', 'Always reshape body morphology and silhouette to match the Body Reference',
+        'Body Reference, when present, controls morphology and silhouette, replacing destination body proportions.', 'Avoid plastic or waxy skin'].forEach((rule) => {
         expect(compacted).toContain(rule);
       });
       // The compaction must actually shrink the block, not silently no-op.

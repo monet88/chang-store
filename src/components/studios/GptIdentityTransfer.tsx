@@ -5,12 +5,13 @@ import ImageUploader from '../ImageUploader';
 import MultiImageUploader from '../MultiImageUploader';
 import ResultPlaceholder from '../shared/ResultPlaceholder';
 import Spinner from '../Spinner';
+import { IdentityTransferPresets } from '../IdentityTransferPresets';
 import { useIdentityTransfer } from '../../hooks/useIdentityTransfer';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Feature } from '../../types';
 
 const GptIdentityTransfer: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const {
     destinationItems, destinationImages, faceReference, bodyReference,
     backgroundPrompt, extraPrompt, aspectRatio, isLoading,
@@ -62,11 +63,23 @@ const GptIdentityTransfer: React.FC = () => {
             <textarea value={backgroundPrompt} onChange={(event) => setBackgroundPrompt(event.target.value)} rows={2} placeholder={t('identityTransfer.backgroundPromptPlaceholder')} className="workspace-input p-3" />
             <span className="block text-xs leading-5 text-zinc-500">{t('identityTransfer.backgroundPromptHint')}</span>
           </label>
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-zinc-200">{t('identityTransfer.extraPromptLabel')}</span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-zinc-200">{t('identityTransfer.extraPromptLabel')}</span>
+              {extraPrompt && (
+                <button
+                  type="button"
+                  onClick={() => setExtraPrompt('')}
+                  className="text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+                >
+                  {language === 'vi' ? 'Xóa trắng' : 'Clear'}
+                </button>
+              )}
+            </div>
             <textarea value={extraPrompt} onChange={(event) => setExtraPrompt(event.target.value)} rows={2} placeholder={t('identityTransfer.extraPromptPlaceholder')} className="workspace-input p-3" />
+            <IdentityTransferPresets value={extraPrompt} onChange={setExtraPrompt} />
             <span className="block text-xs leading-5 text-zinc-500">{t('identityTransfer.extraPromptHint')}</span>
-          </label>
+          </div>
           <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
           <button type="button" onClick={handleGenerate} disabled={isLoading || !canGenerate} className="flex min-h-[48px] w-full items-center justify-center rounded-[1.25rem] bg-[var(--workspace-accent)] px-4 py-3.5 text-base font-semibold text-[var(--workspace-accent-text)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500">
             {isLoading ? <Spinner /> : t('identityTransfer.generateButton')}

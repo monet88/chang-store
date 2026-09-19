@@ -46,8 +46,9 @@ the destination head angle, and the panel layout, borders, gutters, repeated
 frames, and panel count are never reproduced. One destination still returns one
 image.
 
-When supplied, the Body Reference owns **body morphology and proportions only**.
-It must not drive pose, posture, stance, skeleton orientation, or limb placement.
+When supplied, the Body Reference owns **body morphology, silhouette, and proportions**.
+The subject is actively reshaped to match the reference body rather than preserving the
+destination body shape. It must not drive pose, posture, stance, or limb placement.
 When omitted, the destination body morphology is preserved and body shape is not
 inferred from the Face Reference.
 

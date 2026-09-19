@@ -15,6 +15,7 @@ import {
   buildCloseUpNegativePrompt,
   LookbookFormState as PromptFormState,
 } from '../utils/lookbookPromptBuilder';
+import { promptFormatFor } from '../utils/promptFormat';
 import { LookbookFormState } from './useLookbookDraft';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
@@ -107,6 +108,7 @@ export const useLookbookGeneration = (
       formState as PromptFormState,
       imagesForApi,
       fabricTextureImage,
+      promptFormatFor(engineId),
     );
 
     try {
