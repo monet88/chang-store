@@ -273,13 +273,13 @@ describe('buildBrandModelParts', () => {
 
     // destination (label + img) + face (label + img) + body (label + img) + task prompt = 7 parts
     expect(parts).toHaveLength(7);
-    expect(parts[0].text).toContain('DESTINATION IMAGE: Authority for pose, performance, outfit design, framing, camera, lighting, composition, and scene');
+    expect(parts[0].text).toContain('DESTINATION PHOTO');
     expect(parts[1].inlineData?.data).toBe('mock-base64-source-outfit');
-    expect(parts[2].text).toContain('FACE REFERENCE: Authority for stable facial identity');
+    expect(parts[2].text).toContain('BRAND MODEL FACE (Linh');
     expect(parts[3].inlineData?.data).toBe('mock-base64-linh-face');
-    expect(parts[4].text).toContain('BODY REFERENCE: Authority for body morphology');
+    expect(parts[4].text).toContain('BRAND MODEL BODY (Linh');
     expect(parts[5].inlineData?.data).toBe('mock-base64-linh-body');
-    expect(parts[6].text).toContain('TASK');
-    expect(parts[6].text).toContain('Preserve the Destination Image for the photographed pose');
+    expect(parts[6].text).toContain('TASK: Replace the model\'s head and face');
+    expect(parts[6].text).toContain('BRAND MODEL (Linh)');
   });
 });

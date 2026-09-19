@@ -78,6 +78,8 @@ REFERENCE OWNERSHIP & ROLES:
 PLACEMENT & PHYSICAL INTEGRATION:
 - Map each source garment to its corresponding location in the DESTINATION arrangement (e.g. source top to destination top position, source bottom to destination bottom position).
 - Adapt the garment drape to the DESTINATION display method: natural gravity drape for hanging clothes, natural spread and realistic folds for flat lays, and natural anatomical fit and body folds when worn by a person.
+- Preserve 3D garment silhouette: For voluminous, peplum, ruffled, or flared garments, preserve their authentic full 3D volume, flared drape, and silhouette rather than flattening or compressing them against the destination subject.
+- Maintain accessory & object boundaries: If the destination subject holds a phone, camera, or bag, the hands and held objects remain in the foreground in front of the clothing, with clean occlusion edges and zero texture smearing or blending artifacts.
 - Zero blending: completely replace the destination clothing without retaining old colors, silhouettes, or pattern remnants. Replaced clothing areas must have zero visual influence from the old garment.
 - Lighting and contact: match the DESTINATION scene's light direction, intensity, color temperature, contact shadows, and occlusion so the transferred garment integrates believably as a single photograph.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
 
@@ -134,19 +136,29 @@ export function buildProductStagingParts(
     ? `Display the extracted garment realistically hanging, laid out, or staged matching the EXACT setting, hanger, surface, and lighting visible in the STAGING REFERENCE image.${template.prompt ? ` ${template.prompt}` : ''}`
     : template.prompt;
 
-  const taskPrompt = `TASK: Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo.
+  const taskPrompt = `TASK: Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged into the STAGING REFERENCE setting.
 
 STAGING SPECIFICATION:
 ${stagingSpec}
 
-EXTRACTION AND FIDELITY RULES:
-1. Extract ONLY the ${scopeDesc} from the SOURCE OUTFIT. Do NOT transfer the source model's face, hair, body, or pose.
-2. Completely remove any person from the scene. The final image must contain ZERO human beings or mannequins; show ONLY the clothing item cleanly arranged or hung${hasStagingImage ? ' according to the STAGING REFERENCE' : ''}.
-3. Faithfully reproduce the source garment's exact silhouette, collar, sleeves, hems, buttons, zippers, textures, stitching, colors, fabric patterns, and supported graphics.
-4. Natural gravity drape, authentic fabric folds, and soft realistic contact shadows on the staging surface.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
+GARMENT EXTRACTION & SPATIAL ARRANGEMENT:
+1. SEPARATE TOP AND BOTTOM PLACEMENT (WHEN MULTI-PIECE OUTFIT):
+- If the SOURCE OUTFIT contains multiple pieces (e.g. top and bottom, blouse and skirt) and the STAGING REFERENCE displays separated items (such as a top hanging above and pants/skirt laid out on a lower counter/shelf):
+- Map and stage each garment separately according to the STAGING REFERENCE layout.
+- The top garment hangs naturally from the upper hanger.
+- The bottom garment (skirt/pants/shorts) is placed distinctly on the lower surface/counter or clipped to the lower hanger, separated from the top.
+- Do NOT merge top and bottom garments together into one overlapping piece when the reference shows separated staging.
+2. GARMENT FIDELITY & DETAILS:
+- Faithfully reproduce each garment's exact silhouette, construction, collars, sleeves, hems, buttons, zippers, textures, stitching, fabric patterns, scalloped lace trims, and tiered ruffles.
+- Accurately render fabric drape, natural gravity folds, and soft realistic contact shadows on the staging surface.
+3. ENVIRONMENT PRESERVATION & ZERO HUMANS:
+- Preserve the exact staging surface, background cabinetry, hanger types, lighting, and ambient props from the STAGING REFERENCE.
+- Completely remove any person from the scene. The final image must contain ZERO human beings or mannequins; show ONLY the clothing item cleanly arranged or hung.
+${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
 
 AVOID:
 - No human models, heads, faces, arms, legs, or body parts in the scene.
+- No merging separated garments into a single piece when staging references show distinct items.
 - No cluttered background props or unrelated furniture.
 - No altered colors, distorted patterns, or synthetic CGI gloss.`;
 
@@ -190,14 +202,57 @@ export function buildBrandModelParts(
     return [imagePart(sourceImage), { text: 'Preserve destination image.' }];
   }
 
-  return buildIdentityTransferParts(
+  const taskPrompt = `TASK: Replace the model's head and face in the DESTINATION PHOTO with the BRAND MODEL (${model.name}), producing a high-end fashion catalog photo.
+
+CRITICAL INSTRUCTIONS:
+1. FACE REPLACEMENT & IDENTITY TRANSFER:
+- Replace the face and head in the DESTINATION PHOTO so it is unmistakably the BRAND MODEL (${model.name}) shown in the reference photo.
+- The face must clearly adopt ${model.name}'s distinctive features: eye shape and gaze, delicate nose contour, lip shape, and signature facial beauty aesthetics (${model.metadata.facialFeatures || ''}).
+- Do NOT retain the original facial features or expression of the woman in the DESTINATION PHOTO. Her face must be completely replaced by ${model.name}.
+- Seamlessly blend ${model.name}'s head onto the body matching the photographed head angle, gaze direction, and natural lighting of the scene.
+${model.bodyImage ? `- Reshape body morphology and proportions to match the BRAND MODEL BODY reference (${model.metadata.bodyType || 'slender feminine build'}).` : ''}
+
+2. OUTFIT, POSE & SCENE PRESERVATION (100%):
+- Preserve the exact clothing down to the smallest detail: colors, fabric textures, seams, ties, lace patterns, and hemlines.
+- Preserve the exact body pose, stance, hand placement, and gesture from the DESTINATION PHOTO.
+- Preserve the entire background scene, camera perspective, lighting geometry, and ambiance.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
+
+AVOID:
+- No keeping the original person's face or facial features.
+- No altering the clothing design, fabric textures, or color.
+- No altering the background scene, furniture, or camera perspective.`;
+
+  const roles = [
     {
-      destinationImage: sourceImage,
-      faceReference: model.faceImage,
-      bodyReference: model.bodyImage,
-      backgroundPrompt: '',
-      extraPrompt: extraInstructions,
+      label: 'DESTINATION PHOTO (Preserve this exact outfit, body pose, hand placement, background room, and lighting):',
+      image: sourceImage,
     },
-    format,
-  );
+    {
+      label: `BRAND MODEL FACE (${model.name} - Authority for facial identity, eyes, nose, lips, facial bone structure, hairstyle, and beauty aesthetics):`,
+      image: model.faceImage,
+    },
+  ];
+
+  if (model.bodyImage) {
+    roles.push({
+      label: `BRAND MODEL BODY (${model.name} - Authority for body morphology, build, silhouette, and proportions):`,
+      image: model.bodyImage,
+    });
+  }
+
+  if (format === 'text') {
+    const roleMap = roles.map((r, i) => `IMAGE ${i + 1} = ${r.label}`).join('\n');
+    return [
+      { text: `${roleMap}\n\n${taskPrompt}` },
+      ...roles.map((r) => imagePart(r.image)),
+    ];
+  }
+
+  const parts: Part[] = [];
+  roles.forEach((r) => {
+    parts.push({ text: r.label });
+    parts.push(imagePart(r.image));
+  });
+  parts.push({ text: taskPrompt });
+  return parts;
 }
