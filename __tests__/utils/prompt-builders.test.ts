@@ -76,6 +76,14 @@ describe('ai-editor prompt builders', () => {
     expect(out).toContain('## EDIT RULES:');
   });
 
+  it('lets an explicit user request override preservation for objects or existing text', () => {
+    const single = buildSingleImageEditPrompt('remove the watermark and add a necklace');
+    const multi = buildMultiImageEditPrompt('replace the logo on @img1', '- Image 1 is @img1');
+
+    expect(single).toContain('unless the user request explicitly asks');
+    expect(multi).toContain('unless the user request explicitly asks');
+  });
+
   it('includes image roles for a multi-image edit', () => {
     const out = buildMultiImageEditPrompt('blend them', '- Image 1 is @img2');
     expect(out).toContain('# INSTRUCTION: MULTI-IMAGE EDITING');
