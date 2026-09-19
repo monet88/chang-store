@@ -10,7 +10,10 @@ interface GlobalModelSelectorProps {
   onChange: (modelId: string) => void;
 }
 
-export const GlobalModelSelector: React.FC<GlobalModelSelectorProps> = ({
+// ⚡ Bolt: Wrapped pure UI component in React.memo() to prevent unnecessary
+// re-renders when parent components (like App.tsx) re-render frequently,
+// since its props (like options arrays and callbacks) are referentially stable.
+export const GlobalModelSelector: React.FC<GlobalModelSelectorProps> = React.memo(({
   label,
   ariaLabel,
   selectedModel,
@@ -33,4 +36,6 @@ export const GlobalModelSelector: React.FC<GlobalModelSelectorProps> = ({
       </div>
     </div>
   </div>
-);
+));
+
+GlobalModelSelector.displayName = 'GlobalModelSelector';
