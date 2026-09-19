@@ -51,6 +51,7 @@ __tests__/images-test/
 docs/image-test/*
 !docs/image-test/.gitkeep
 
+docs/architecture/*.visual-check.*
 # Local plans and smoke outputs
 nul
 opencode.json

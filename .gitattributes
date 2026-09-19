@@ -4,3 +4,6 @@
 
 # Use bd merge for beads JSONL files
 .beads/issues.jsonl merge=beads
+
+# Generated Archify diagrams (suppress massive diffs in git and collapse in GitHub PR review)
+docs/architecture/*.html -diff linguist-generated=true

@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Kiến trúc Hệ thống chang-store",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "full-overview",
+        "label": "Tổng quan toàn bộ hệ thống",
+        "focus": ["browser_client", "studio_modules", "local_cache", "api_context", "catalog_policy", "gemini_driver", "openai_driver", "cpa_gateway", "xompet_gateway", "gemini_api", "openai_api"],
+        "note": "Luồng từ giao diện Studios qua State & Policy tới Gateway Mesh và Cloud APIs."
+      },
+      {
+        "id": "gemini-lane",
+        "label": "Luồng Gemini Native",
+        "focus": ["studio_modules", "api_context", "gemini_driver", "cpa_gateway", "gemini_api"],
+        "note": "Tác vụ Gemini định tuyến qua CPA Cliproxy Gateway tới Google Cloud."
+      },
+      {
+        "id": "image-lane",
+        "label": "Luồng OpenAI-Images (US-006)",
+        "focus": ["studio_modules", "catalog_policy", "api_context", "openai_driver", "xompet_gateway", "openai_api"],
+        "note": "Định tuyến model ảnh độc lập với Catalog policy và Gateway envelope."
+      }
+    ]
+  },
+  "components": [
+    { "id": "browser_client", "type": "frontend", "brand": "react", "label": "Client Shell", "sublabel": "React 19 Vite SPA", "pos": [40, 110], "size": [130, 56] },
+    { "id": "studio_modules", "type": "frontend", "label": "Feature Studios", "sublabel": "Try-On & Lookbook", "pos": [40, 260], "size": [130, 56] },
+    { "id": "local_cache", "type": "database", "label": "Local Storage", "sublabel": "Profiles & Cache", "pos": [240, 110], "size": [130, 56] },
+    { "id": "api_context", "type": "frontend", "label": "API Context", "sublabel": "Profile State Store", "pos": [240, 260], "size": [130, 56] },
+    { "id": "catalog_policy", "type": "backend", "label": "Model Catalog", "sublabel": "imageModelCatalog", "pos": [240, 390], "size": [130, 56], "tag": "US-006" },
+    { "id": "gemini_driver", "type": "backend", "label": "Gemini Driver", "sublabel": "gemini-native seam", "pos": [450, 180], "size": [130, 56], "tag": "Lane: gemini" },
+    { "id": "openai_driver", "type": "backend", "label": "OpenAI Driver", "sublabel": "openai-images seam", "pos": [450, 330], "size": [130, 56], "tag": "Lane: image" },
+    { "id": "cpa_gateway", "type": "cloud", "label": "CPA Gateway", "sublabel": "cliproxy.monet.uno", "pos": [660, 180], "size": [130, 56] },
+    { "id": "xompet_gateway", "type": "cloud", "label": "Image Gateway", "sublabel": "api.xompet.io.vn", "pos": [660, 330], "size": [130, 56] },
+    { "id": "gemini_api", "type": "external", "brand": "google-gemini", "label": "Google Gemini", "sublabel": "Flash & Pro Models", "pos": [870, 180], "size": [130, 56] },
+    { "id": "openai_api", "type": "external", "brand": "openai", "label": "OpenAI Cloud", "sublabel": "gpt-image Models", "pos": [870, 330], "size": [130, 56] }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Trình duyệt Client (Vite + React)",
+      "wraps": ["browser_client", "studio_modules", "local_cache", "api_context", "catalog_policy", "gemini_driver", "openai_driver"]
+    },
+    {
+      "kind": "security-group",
+      "label": "Gateway Routing Mesh",
+      "wraps": ["cpa_gateway", "xompet_gateway"]
+    }
+  ],
+  "connections": [
+    { "id": "client-to-studios", "from": "browser_client", "to": "studio_modules", "label": "UI Events", "fromSide": "bottom", "toSide": "top", "labelDy": 24 },
+    { "id": "studios-to-context", "from": "studio_modules", "to": "api_context", "label": "Session", "fromSide": "right", "toSide": "left" },
+    { "id": "context-to-cache", "from": "api_context", "to": "local_cache", "label": "Persist", "fromSide": "top", "toSide": "bottom", "labelDy": -24 },
+    { "id": "studios-to-policy", "from": "studio_modules", "to": "catalog_policy", "label": "Capabilities", "fromSide": "bottom", "toSide": "left" },
+    { "id": "context-to-gemini", "from": "api_context", "to": "gemini_driver", "label": "Gemini Lane", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "context-to-openai", "from": "api_context", "to": "openai_driver", "label": "Image Lane", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "policy-to-driver", "from": "catalog_policy", "to": "openai_driver", "label": "Size Guard", "fromSide": "right", "toSide": "bottom", "labelDy": 18 },
+    { "id": "gemini-to-cpa", "from": "gemini_driver", "to": "cpa_gateway", "label": "HTTPS", "variant": "security", "fromSide": "right", "toSide": "left" },
+    { "id": "openai-to-xompet", "from": "openai_driver", "to": "xompet_gateway", "label": "Bearer Auth", "variant": "security", "fromSide": "right", "toSide": "left" },
+    { "id": "cpa-to-gemini", "from": "cpa_gateway", "to": "gemini_api", "label": "Google API", "fromSide": "right", "toSide": "left" },
+    { "id": "xompet-to-openai", "from": "xompet_gateway", "to": "openai_api", "label": "OpenAI API", "fromSide": "right", "toSide": "left" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Client & Studio Layer",
+      "items": [
+        "React 19 SPA điều phối Try-On, Lookbook & Studio tools",
+        "ApiProviderContext quản lý profiles và active model selection"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Driver & Policy (US-006)",
+      "items": [
+        "imageModelCatalog chuẩn hóa năng lực model và sizeMode",
+        "Tách biệt 2 lane độc lập: gemini-native và openai-images"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Gateway & Cloud Mesh",
+      "items": [
+        "CPA Gateway bảo mật proxy cho toàn bộ Gemini lane",
+        "Image Gateway chuẩn hóa OpenAI-compatible image APIs"
+      ]
+    }
+  ]
+}
