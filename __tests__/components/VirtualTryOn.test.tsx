@@ -147,6 +147,18 @@ describe('VirtualTryOn component', () => {
     expect(screen.getAllByText('virtualTryOn.outputPanelDescription').length).toBeGreaterThan(0);
   });
 
+  it('standardizes primary CTA to brand-button and restores Step 1-2-3 progression without duplication', () => {
+    render(<VirtualTryOn />);
+
+    const generateBtn = screen.getByRole('button', { name: 'virtualTryOn.generateButton' });
+    expect(generateBtn).toHaveClass('brand-button');
+
+    // Clean 1-2-3 step progression without duplicate step 2
+    expect(screen.getByText('virtualTryOn.step1')).toBeInTheDocument();
+    expect(screen.getAllByText('virtualTryOn.step2')).toHaveLength(1);
+    expect(screen.getByText('virtualTryOn.step3')).toBeInTheDocument();
+  });
+
   it('renders source controls below each source image and forwards changes', () => {
     render(<VirtualTryOn />);
 
@@ -187,6 +199,31 @@ describe('VirtualTryOn component', () => {
     expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'sm:grid-cols-2');
   });
 
+  it('renders clothing slot delete button with aria-label, touch target >= 44px and touch viewport visibility', () => {
+    const removeClothingUploaderMock = vi.fn();
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [
+        { id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 2, image: null, sourceItemType: 'shoes', sourcePrompt: '' },
+      ],
+      removeClothingUploader: removeClothingUploaderMock,
+    });
+
+    render(<VirtualTryOn />);
+
+    const deleteButtons = screen.getAllByRole('button', { name: 'common.remove' });
+    expect(deleteButtons.length).toBe(2);
+
+    const firstDeleteBtn = deleteButtons[0];
+    expect(firstDeleteBtn).toHaveAttribute('aria-label', 'common.remove');
+    expect(firstDeleteBtn).toHaveClass('min-h-[44px]', 'min-w-[44px]');
+    expect(firstDeleteBtn).toHaveClass('opacity-100', 'sm:opacity-0', 'sm:group-hover:opacity-100');
+
+    fireEvent.click(firstDeleteBtn);
+    expect(removeClothingUploaderMock).toHaveBeenCalledWith(1);
+  });
+
   it('renders batch results when subject items exist', () => {
     useVirtualTryOnMock.mockReturnValue({
       ...baseHookState,
@@ -211,6 +248,58 @@ describe('VirtualTryOn component', () => {
     expect(screen.getByText(/generatedImage.altText/)).toBeInTheDocument();
   });
 
+  it('shows placeholder instead of premature skeletons when subjects are uploaded before generation starts', () => {
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      canGenerate: true,
+      isAnyGenerating: false,
+      subjectItems: [
+        {
+          id: 'vto-1',
+          subjectImage: { base64: 'subject', mimeType: 'image/png' },
+          status: 'pending',
+          results: [],
+        },
+      ],
+      subjectImages: [{ base64: 'subject', mimeType: 'image/png' }],
+    });
+
+    render(<VirtualTryOn />);
+
+    expect(screen.getAllByText('virtualTryOn.outputPanelDescription').length).toBe(2);
+    expect(screen.queryByText('virtualTryOn.waitingStatus')).not.toBeInTheDocument();
+  });
+
+  it('renders dedicated error card with retry button when batch item fails', () => {
+    const handleRegenerateSingleMock = vi.fn();
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      canGenerate: true,
+      isAnyGenerating: false,
+      subjectItems: [
+        {
+          id: 'vto-1',
+          subjectImage: { base64: 'subject', mimeType: 'image/png' },
+          status: 'error',
+          results: [],
+          error: 'Content policy violation',
+        },
+      ],
+      subjectImages: [{ base64: 'subject', mimeType: 'image/png' }],
+      failedCount: 1,
+      handleRegenerateSingle: handleRegenerateSingleMock,
+    });
+
+    render(<VirtualTryOn />);
+
+    expect(screen.getByText('Content policy violation')).toBeInTheDocument();
+    const retryButton = screen.getByRole('button', { name: 'common.retry' });
+    expect(retryButton).toBeInTheDocument();
+
+    fireEvent.click(retryButton);
+    expect(handleRegenerateSingleMock).toHaveBeenCalledWith('vto-1');
+  });
+
   it('keeps the multi-person target marker transparent to pointer events', () => {
     useVirtualTryOnMock.mockReturnValue({
       ...baseHookState,
@@ -222,6 +311,66 @@ describe('VirtualTryOn component', () => {
     const { container } = render(<VirtualTryOn />);
 
     expect(container.querySelector('#multi-person-marker')).toHaveClass('pointer-events-none');
+  });
+
+  it('calculates letterboxed marker coordinates on overlay click and updates markerPosition', () => {
+    const setMarkerPositionMock = vi.fn();
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      isMultiPersonMode: true,
+      subjectImages: [{ base64: 'subject', mimeType: 'image/png' }],
+      setMarkerPosition: setMarkerPositionMock,
+    });
+
+    const { container } = render(<VirtualTryOn />);
+    const overlay = container.querySelector('#multi-person-overlay');
+    expect(overlay).toBeInTheDocument();
+
+    // Mock container rect: 300x400
+    vi.spyOn(overlay!, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: 300,
+      height: 400,
+      right: 300,
+      bottom: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    });
+
+    fireEvent.click(overlay!, { clientX: 150, clientY: 200 });
+
+    expect(setMarkerPositionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        relX: 0.5,
+        relY: 0.5,
+      }),
+    );
+  });
+
+  it('supports keyboard navigation with arrow keys to adjust marker position', () => {
+    const setMarkerPositionMock = vi.fn();
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      isMultiPersonMode: true,
+      subjectImages: [{ base64: 'subject', mimeType: 'image/png' }],
+      markerPosition: { x: 150, y: 200, relX: 0.5, relY: 0.5 },
+      setMarkerPosition: setMarkerPositionMock,
+    });
+
+    const { container } = render(<VirtualTryOn />);
+    const overlay = container.querySelector('#multi-person-overlay') as HTMLElement;
+    expect(overlay).toBeInTheDocument();
+
+    fireEvent.keyDown(overlay, { key: 'ArrowRight' });
+
+    expect(setMarkerPositionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        relX: 0.51,
+        relY: 0.5,
+      }),
+    );
   });
 
   describe('Wardrobe Mode', () => {

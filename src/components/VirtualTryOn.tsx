@@ -10,7 +10,7 @@ import Tooltip from './Tooltip';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
-import { compressImage } from '../utils/imageUtils';
+import { compressImage, calculateLetterboxedMarkerCoordinates, computeLetterboxBounds } from '../utils/imageUtils';
 import WardrobeSetCard from './WardrobeSetCard';
 
 const panelClass = 'rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:p-5';
@@ -18,7 +18,7 @@ const labelClass = 'text-[10px] font-semibold uppercase tracking-[0.16em] text-z
 const sectionTitleClass = 'text-lg font-semibold tracking-[-0.02em] text-zinc-50';
 const helperClass = 'text-xs leading-5 text-zinc-400';
 const secondaryButtonClass = 'inline-flex min-h-[34px] items-center justify-center rounded-lg border border-white/12 bg-white/[0.05] px-3.5 py-1.5 text-xs font-medium text-zinc-100 transition-colors hover:border-white/25 hover:bg-white/[0.1] hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
-const primaryButtonClass = 'inline-flex min-h-[38px] items-center justify-center rounded-lg bg-[#f4f4f2] px-5 py-2 text-xs font-semibold tracking-[-0.01em] text-[#09090b] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40';
+const primaryButtonClass = 'brand-button active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50';
 const textareaClass = 'w-full rounded-lg border border-white/10 bg-black/30 px-3.5 py-2.5 text-xs leading-5 text-zinc-100 placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20';
 
 const VirtualTryOn: React.FC = () => {
@@ -74,6 +74,86 @@ const VirtualTryOn: React.FC = () => {
 
   const { t } = useLanguage();
   const [refineOpen, setRefineOpen] = React.useState<Record<string, boolean>>({});
+  const subjectContainerRef = React.useRef<HTMLDivElement>(null);
+  const subjectImgRef = React.useRef<HTMLImageElement>(null);
+  const [imageDimensions, setImageDimensions] = React.useState<{ naturalWidth: number; naturalHeight: number } | null>(null);
+
+  const markerStyle: React.CSSProperties = React.useMemo(() => {
+    if (!markerPosition) return {};
+    const container = subjectContainerRef.current;
+    const cWidth = container?.clientWidth || 0;
+    const cHeight = container?.clientHeight || 0;
+    const nWidth = imageDimensions?.naturalWidth || subjectImgRef.current?.naturalWidth || 0;
+    const nHeight = imageDimensions?.naturalHeight || subjectImgRef.current?.naturalHeight || 0;
+
+    if (cWidth > 0 && cHeight > 0 && nWidth > 0 && nHeight > 0) {
+      const bounds = computeLetterboxBounds(cWidth, cHeight, nWidth, nHeight);
+      const leftPct = ((bounds.left + markerPosition.relX * bounds.width) / cWidth) * 100;
+      const topPct = ((bounds.top + markerPosition.relY * bounds.height) / cHeight) * 100;
+      return {
+        left: `${leftPct}%`,
+        top: `${topPct}%`,
+      };
+    }
+
+    return {
+      left: `${markerPosition.relX * 100}%`,
+      top: `${markerPosition.relY * 100}%`,
+    };
+  }, [markerPosition, imageDimensions]);
+
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const img = subjectImgRef.current;
+    const naturalWidth = imageDimensions?.naturalWidth || img?.naturalWidth || rect.width;
+    const naturalHeight = imageDimensions?.naturalHeight || img?.naturalHeight || rect.height;
+
+    const coords = calculateLetterboxedMarkerCoordinates({
+      clickX,
+      clickY,
+      containerWidth: rect.width,
+      containerHeight: rect.height,
+      naturalWidth,
+      naturalHeight,
+    });
+    setMarkerPosition(coords);
+  };
+
+  const handleOverlayKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' '].includes(e.key)) return;
+    e.preventDefault();
+    const currentRelX = markerPosition?.relX ?? 0.5;
+    const currentRelY = markerPosition?.relY ?? 0.5;
+    const step = e.shiftKey ? 0.05 : 0.01;
+    let nextRelX = currentRelX;
+    let nextRelY = currentRelY;
+
+    if (e.key === 'ArrowLeft') nextRelX = Math.max(0, currentRelX - step);
+    if (e.key === 'ArrowRight') nextRelX = Math.min(1, currentRelX + step);
+    if (e.key === 'ArrowUp') nextRelY = Math.max(0, currentRelY - step);
+    if (e.key === 'ArrowDown') nextRelY = Math.min(1, currentRelY + step);
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (!markerPosition) {
+        nextRelX = 0.5;
+        nextRelY = 0.5;
+      }
+    }
+
+    const container = subjectContainerRef.current;
+    const cWidth = container?.clientWidth || 300;
+    const cHeight = container?.clientHeight || 400;
+    const img = subjectImgRef.current;
+    const nWidth = imageDimensions?.naturalWidth || img?.naturalWidth || cWidth;
+    const nHeight = imageDimensions?.naturalHeight || img?.naturalHeight || cHeight;
+
+    const bounds = computeLetterboxBounds(cWidth, cHeight, nWidth, nHeight);
+    const x = bounds.left + nextRelX * bounds.width;
+    const y = bounds.top + nextRelY * bounds.height;
+
+    setMarkerPosition({ x, y, relX: nextRelX, relY: nextRelY });
+  };
   const sourceItemsGridClass = clothingItems.length === 1
     ? 'space-y-3'
     : 'grid gap-4 sm:grid-cols-2 2xl:grid-cols-3';
@@ -164,33 +244,37 @@ const VirtualTryOn: React.FC = () => {
                     <p className="text-base font-semibold text-zinc-100">{t('virtualTryOn.subjectImagesTitle')}</p>
                     <div className="relative">
                       {isMultiPersonMode && subjectImages.length > 0 ? (
-                        <div className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-[24px] border border-white/10 bg-black/40">
+                        <div
+                          ref={subjectContainerRef}
+                          className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-[24px] border border-white/10 bg-black/40"
+                        >
                           <img
+                            ref={subjectImgRef}
                             src={`data:${subjectImages[0].mimeType};base64,${subjectImages[0].base64}`}
                             alt="Target subject"
                             className="max-h-full max-w-full object-contain pointer-events-none"
+                            onLoad={(e) => {
+                              setImageDimensions({
+                                naturalWidth: e.currentTarget.naturalWidth,
+                                naturalHeight: e.currentTarget.naturalHeight,
+                              });
+                            }}
                           />
                           <div
                             id="multi-person-overlay"
-                            className="absolute inset-0 z-10 cursor-crosshair"
-                            onClick={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              const x = e.clientX - rect.left;
-                              const y = e.clientY - rect.top;
-                              const relX = x / rect.width;
-                              const relY = y / rect.height;
-                              setMarkerPosition({ x, y, relX, relY });
-                            }}
+                            tabIndex={0}
+                            role="region"
+                            aria-label={t('virtualTryOn.targetMarkerOverlay')}
+                            className="absolute inset-0 z-10 cursor-crosshair focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
+                            onClick={handleOverlayClick}
+                            onKeyDown={handleOverlayKeyDown}
                           />
                           {markerPosition && (
                             <div
                               id="multi-person-marker"
                               className="pointer-events-none absolute z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-red-500"
-                              style={{
-                                left: `${markerPosition.relX * 100}%`,
-                                top: `${markerPosition.relY * 100}%`,
-                              }}
-                              aria-label="Multi-person target marker"
+                              style={markerStyle}
+                              aria-label={t('virtualTryOn.targetMarker')}
                             />
                           )}
                           <label className="absolute right-3 top-3 z-30 inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-black/65 px-3 py-2 text-xs text-zinc-200 transition-colors hover:border-white/20 hover:bg-black/80">
@@ -240,7 +324,7 @@ const VirtualTryOn: React.FC = () => {
                     )}
 
                     {isMultiPersonMode && (
-                      <p className="text-base leading-7 text-zinc-400">
+                      <p className="text-xs leading-5 text-zinc-400">
                         {t('virtualTryOn.multiPersonModeHint')}
                       </p>
                     )}
@@ -250,7 +334,7 @@ const VirtualTryOn: React.FC = () => {
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <p className="text-base font-semibold text-zinc-100">{t('virtualTryOn.step2')}</p>
-                    <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.sharedOutfitHint')}</p>
+                    <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.sharedOutfitHint')}</p>
                   </div>
                   <div data-testid="source-items-grid" className={sourceItemsGridClass}>
                     {clothingItems.map((item, index) => (
@@ -303,7 +387,8 @@ const VirtualTryOn: React.FC = () => {
                             type="button"
                             onClick={() => removeClothingUploader(item.id)}
                             disabled={isLoading}
-                            className="absolute right-3 top-9 z-10 rounded-full border border-red-500/30 bg-black/70 p-1.5 text-red-200 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+                            aria-label={t('common.remove')}
+                            className="absolute right-2 top-8 z-10 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-red-500/30 bg-black/70 text-red-200 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             <DeleteIcon className="h-4 w-4" />
                           </button>
@@ -322,7 +407,7 @@ const VirtualTryOn: React.FC = () => {
                       <span>{t('virtualTryOn.addItem')}</span>
                     </button>
                   </Tooltip>
-                  <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.clothingUploadHint')}</p>
+                  <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.clothingUploadHint')}</p>
                 </div>
               </div>
             </section>
@@ -330,7 +415,7 @@ const VirtualTryOn: React.FC = () => {
             <section className={`${panelClass} space-y-5`}>
               <div className="space-y-2">
                 <p className={labelClass}>{t('workspace.panels.stylingInputs')}</p>
-                <h3 className={sectionTitleClass}>{t('virtualTryOn.step2')}</h3>
+                <h3 className={sectionTitleClass}>{t('virtualTryOn.step3')}</h3>
                 <p className={helperClass}>{t('workspace.flows.tryOn')}</p>
               </div>
 
@@ -348,7 +433,7 @@ const VirtualTryOn: React.FC = () => {
                       rows={3}
                       className={textareaClass}
                     />
-                    <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.backgroundPromptDescription')}</p>
+                    <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.backgroundPromptDescription')}</p>
                   </div>
                 </Tooltip>
 
@@ -365,7 +450,7 @@ const VirtualTryOn: React.FC = () => {
                       rows={3}
                       className={textareaClass}
                     />
-                    <p className="text-base leading-7 text-zinc-400">{t('virtualTryOn.extraPromptDescription')}</p>
+                    <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.extraPromptDescription')}</p>
                   </div>
                 </Tooltip>
 
@@ -415,7 +500,7 @@ const VirtualTryOn: React.FC = () => {
           </div>
 
           <section className={`${panelClass} sticky top-8 min-h-[70vh]`}>
-            {subjectItems.length === 0 ? (
+            {!isAnyGenerating && !subjectItems.some((item) => item.results.length > 0 || item.status === 'processing' || item.status === 'error') || subjectItems.length === 0 ? (
               <div className="flex h-full min-h-[64vh] items-center justify-center">
                 <ResultPlaceholder description={t('virtualTryOn.outputPanelDescription')} />
               </div>
@@ -425,7 +510,7 @@ const VirtualTryOn: React.FC = () => {
                   <div className="space-y-2">
                     <p className={labelClass}>{t('workspace.panels.resultStage')}</p>
                     <h3 className={sectionTitleClass}>{t('virtualTryOn.batchResultsTitle')}</h3>
-                    <p className="text-base leading-7 text-zinc-400">
+                    <p className="text-xs leading-5 text-zinc-400">
                       {t('virtualTryOn.batchProgress', {
                         completed: completedCount,
                         total: subjectItems.length,
@@ -525,7 +610,7 @@ const VirtualTryOn: React.FC = () => {
                                   type="button"
                                   onClick={() => handleRefine(image, index, item.id, refinePrompts[key] || '')}
                                   disabled={isCurrentlyRefining || !(refinePrompts[key] || '').trim()}
-                                  className={primaryButtonClass}
+                                  className="inline-flex min-h-[34px] items-center justify-center rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold text-zinc-100 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                   {isCurrentlyRefining ? <Spinner /> : t('imageActions.refineButton')}
                                 </button>
@@ -534,7 +619,7 @@ const VirtualTryOn: React.FC = () => {
                           </div>
                         );
                       })
-                      : item.status === 'processing' || item.status === 'pending'
+                      : (isAnyGenerating || item.status === 'processing') && (item.status === 'processing' || item.status === 'pending')
                         ? [
                           <div
                             key={`${item.id}-skeleton`}
@@ -554,6 +639,55 @@ const VirtualTryOn: React.FC = () => {
                             </div>
                           </div>,
                         ]
+                        : item.status === 'error'
+                          ? [
+                            <div
+                              key={`${item.id}-error`}
+                              className="flex aspect-[3/4] flex-col justify-between rounded-[24px] border border-red-500/30 bg-red-500/10 p-4"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/70 px-2 py-1 text-[10px] text-zinc-300">
+                                  <div className="h-4 w-4 overflow-hidden rounded-full border border-white/10">
+                                    <img
+                                      src={`data:${item.subjectImage.mimeType};base64,${item.subjectImage.base64}`}
+                                      alt=""
+                                      loading="lazy"
+                                      decoding="async"
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                  <span>#{itemIdx + 1}</span>
+                                </div>
+                                <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red-300">
+                                  {t('common.failed')}
+                                </span>
+                              </div>
+
+                              <div className="my-auto space-y-2 text-center">
+                                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20 text-red-400">
+                                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                </div>
+                                <p className="line-clamp-3 text-xs text-red-200" title={item.error}>
+                                  {item.error || t('common.generationFailed')}
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleRegenerateSingle(item.id)}
+                                disabled={isLoading || isAnyGenerating}
+                                className="inline-flex min-h-[34px] w-full items-center justify-center rounded-xl border border-red-500/40 bg-red-500/20 px-3 py-1.5 text-xs font-medium text-red-100 transition-colors hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {t('common.retry')}
+                              </button>
+                            </div>,
+                          ]
                         : []
                   )}
                 </div>
@@ -688,7 +822,7 @@ const VirtualTryOn: React.FC = () => {
                   <div className="space-y-2">
                     <p className={labelClass}>{t('workspace.panels.resultStage')}</p>
                     <h3 className={sectionTitleClass}>{t('virtualTryOn.wardrobeResultsTitle')}</h3>
-                    <p className="text-base leading-7 text-zinc-400">
+                    <p className="text-xs leading-5 text-zinc-400">
                       {t('virtualTryOn.wardrobeProgress', {
                         completed: wardrobe.results.filter((r) => r.status === 'completed').length,
                         total: wardrobe.results.length,

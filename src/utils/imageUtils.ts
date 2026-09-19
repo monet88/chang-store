@@ -318,3 +318,93 @@ export const compositeMarkerOnImage = (image: ImageFile, marker: MarkerPosition)
     img.src = `data:${image.mimeType || 'image/jpeg'};base64,${image.base64}`;
   });
 };
+
+export interface LetterboxImageBounds {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  containerWidth: number;
+  containerHeight: number;
+}
+
+/**
+ * Computes the rendered image box inside an object-contain container.
+ * Accounts for letterboxing (top/bottom margins) and pillarboxing (left/right margins).
+ */
+export function computeLetterboxBounds(
+  containerWidth: number,
+  containerHeight: number,
+  naturalWidth: number,
+  naturalHeight: number,
+): LetterboxImageBounds {
+  if (containerWidth <= 0 || containerHeight <= 0 || naturalWidth <= 0 || naturalHeight <= 0) {
+    return {
+      left: 0,
+      top: 0,
+      width: Math.max(0, containerWidth),
+      height: Math.max(0, containerHeight),
+      containerWidth: Math.max(0, containerWidth),
+      containerHeight: Math.max(0, containerHeight),
+    };
+  }
+
+  const containerAspect = containerWidth / containerHeight;
+  const imageAspect = naturalWidth / naturalHeight;
+
+  let width = containerWidth;
+  let height = containerHeight;
+  let left = 0;
+  let top = 0;
+
+  if (imageAspect > containerAspect) {
+    // Image is wider than container -> letterbox top & bottom
+    width = containerWidth;
+    height = containerWidth / imageAspect;
+    top = (containerHeight - height) / 2;
+  } else if (imageAspect < containerAspect) {
+    // Image is taller than container -> pillarbox left & right
+    height = containerHeight;
+    width = containerHeight * imageAspect;
+    left = (containerWidth - width) / 2;
+  }
+
+  return {
+    left,
+    top,
+    width,
+    height,
+    containerWidth,
+    containerHeight,
+  };
+}
+
+/**
+ * Calculates normalized coordinates (0-1) relative to the actual rendered image,
+ * clamping clicks on letterbox/pillarbox margins to the nearest image boundary.
+ */
+export function calculateLetterboxedMarkerCoordinates(params: {
+  clickX: number;
+  clickY: number;
+  containerWidth: number;
+  containerHeight: number;
+  naturalWidth: number;
+  naturalHeight: number;
+}): MarkerPosition {
+  const { clickX, clickY, containerWidth, containerHeight, naturalWidth, naturalHeight } = params;
+  const bounds = computeLetterboxBounds(containerWidth, containerHeight, naturalWidth, naturalHeight);
+
+  const clampedX = Math.max(bounds.left, Math.min(bounds.left + bounds.width, clickX));
+  const clampedY = Math.max(bounds.top, Math.min(bounds.top + bounds.height, clickY));
+
+  const relX = bounds.width > 0 ? (clampedX - bounds.left) / bounds.width : 0;
+  const relY = bounds.height > 0 ? (clampedY - bounds.top) / bounds.height : 0;
+
+  return {
+    x: clampedX,
+    y: clampedY,
+    relX: Math.max(0, Math.min(1, relX)),
+    relY: Math.max(0, Math.min(1, relY)),
+  };
+}
+
