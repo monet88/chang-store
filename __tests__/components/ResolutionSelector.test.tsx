@@ -18,7 +18,7 @@ describe('ResolutionSelector', () => {
       { wrapper: LanguageProvider },
     );
 
-    expect(screen.getByRole('radiogroup', { name: 'Chất lượng:' })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Quality:' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: '2K', checked: true })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: '1K', checked: false })).toBeInTheDocument();
 

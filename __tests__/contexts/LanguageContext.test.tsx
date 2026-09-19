@@ -6,9 +6,9 @@
  * missing key fallback, and provider requirement validation.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
+import { LanguageProvider, useLanguage, LANGUAGE_STORAGE_KEY } from '@/contexts/LanguageContext';
 import React, { type ReactNode } from 'react';
 
 /**
@@ -35,6 +35,38 @@ const wrapper = ({ children }: { children: ReactNode }) => {
 };
 
 describe('LanguageContext', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  describe('default language & persistence', () => {
+    it('defaults to en when no stored preference exists', () => {
+      const { result } = renderHook(() => useLanguage(), { wrapper: LanguageProvider });
+      expect(result.current.language).toBe('en');
+    });
+
+    it('initializes from localStorage when a valid preference exists', () => {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, 'vi');
+      const { result } = renderHook(() => useLanguage(), { wrapper: LanguageProvider });
+      expect(result.current.language).toBe('vi');
+    });
+
+    it('falls back to en when localStorage has an invalid value', () => {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, 'fr');
+      const { result } = renderHook(() => useLanguage(), { wrapper: LanguageProvider });
+      expect(result.current.language).toBe('en');
+    });
+
+    it('persists language change to localStorage', () => {
+      const { result } = renderHook(() => useLanguage(), { wrapper: LanguageProvider });
+      act(() => {
+        result.current.setLanguage('vi');
+      });
+      expect(result.current.language).toBe('vi');
+      expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('vi');
+    });
+  });
+
   describe('useLanguage hook', () => {
     it('throws error when used outside LanguageProvider', () => {
       // Suppress console.error for expected error

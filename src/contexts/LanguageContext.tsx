@@ -5,6 +5,18 @@ import { vi } from '../locales/vi';
 
 export type Language = 'en' | 'vi';
 
+export const LANGUAGE_STORAGE_KEY = 'cs_language';
+
+const getInitialLanguage = (): Language => {
+  try {
+    const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (saved === 'en' || saved === 'vi') return saved;
+  } catch {
+    // Ignore storage errors (e.g. sandboxed iframe or disabled cookies)
+  }
+  return 'en';
+};
+
 const get = (obj: any, path: string): any => {
   if (!obj || !path) return undefined;
 
@@ -36,16 +48,22 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('vi');
+  const [language, setLanguageState] = useState<Language>(getInitialLanguage);
 
-  // Mirror the active locale onto <html lang> so screen readers pronounce
-  // Vietnamese strings with Vietnamese phonemes. Without this, the index.html
-  // fixed `lang="en"` bakes English pronunciation onto the default VI surface.
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.lang = language;
     }
   }, [language]);
+
+  const setLanguage = useCallback((lang: Language) => {
+    setLanguageState(lang);
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+    } catch {
+      // Ignore storage errors
+    }
+  }, []);
 
   const t = useCallback((key: string, options?: { [key: string]: string | number } | { returnObjects: true }): any => {
     const langDict = translations[language];
@@ -75,8 +93,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     setLanguage,
     t,
     translations: translations[language]
-  }), [language, t]);
-  // setLanguage is from useState and has stable identity, so we don't need to add it to dependency array
+  }), [language, setLanguage, t]);
   // translations is defined outside the component, so we only need to depend on `language`
 
   return (
