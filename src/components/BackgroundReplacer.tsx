@@ -16,6 +16,7 @@ const BackgroundReplacer: React.FC = () => {
   const {
     subjectImage,
     setSubjectImage,
+    aiScanSources,
     backgroundImage,
     setBackgroundImage,
     promptText,
@@ -171,7 +172,7 @@ const BackgroundReplacer: React.FC = () => {
             resolution={resolution} setResolution={setResolution}
             model={imageEditModel}
           />
-          <AiScanPanel sources={subjectImage ? [subjectImage] : []} />
+          <AiScanPanel sources={aiScanSources} />
         </div>
 
         <div className="text-center pt-2">

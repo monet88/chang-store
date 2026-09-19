@@ -16,7 +16,7 @@ import { analyzeOutfitBlueprint } from '../services/textService';
 const AI_SCAN_ENABLED_KEY = 'ai_scan_enabled';
 
 /** Source images analyzed per scan; beyond this the report repeats itself. */
-export const AI_SCAN_MAX_SOURCES = 4;
+const AI_SCAN_MAX_SOURCES = 4;
 
 /**
  * Model standard for the analytical pass (issue #162): one vision model for
@@ -73,6 +73,25 @@ const readEnabledPreference = (): boolean => {
 
 const isUsableImage = (image: ImageFile | null | undefined): image is ImageFile =>
   Boolean(image?.base64 && image?.mimeType);
+
+/**
+ * The scan source set of ONE generation: the feature's own images first, then
+ * the shared reference images (the subject / model the issue asks to
+ * deconstruct too).
+ *
+ * One slot of `AI_SCAN_MAX_SOURCES` is reserved for a shared reference, so a
+ * full item list can never crowd the subject out of the analysis it appears in.
+ * Callers on both sides of the layer — the panel's pre-scan and the generation
+ * call — must pass the SAME ImageFile objects: object identity is the cache key.
+ */
+export const aiScanSourceSet = (
+  items: Array<ImageFile | null>,
+  shared: Array<ImageFile | null> = [],
+): ImageFile[] => {
+  const sharedSources = shared.filter(isUsableImage).slice(0, 1);
+  const itemSlots = AI_SCAN_MAX_SOURCES - sharedSources.length;
+  return [...items.filter(isUsableImage).slice(0, itemSlots), ...sharedSources];
+};
 
 const sameSourceSet = (a: ImageFile[], b: ImageFile[]): boolean =>
   a.length === b.length && a.every((image, index) => image === b[index]);

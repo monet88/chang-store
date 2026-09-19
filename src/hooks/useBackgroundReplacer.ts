@@ -89,6 +89,10 @@ export const useBackgroundReplacer = () => {
     }
   }, [backgroundImage, t, textGenerateModel]);
 
+  // One ImageFile array for the panel and the generation call: object identity
+  // is the scan cache key, so the pre-scan is reused instead of re-run.
+  const aiScanSources = useMemo(() => (subjectImage ? [subjectImage] : []), [subjectImage]);
+
   const buildPrompt = useCallback((cameraViewStr: string, blueprint: string): string => {
     const framingInstruction = getEnglishFramingInstruction(cameraViewStr);
     return buildBackgroundReplacementPrompt({
@@ -122,7 +126,7 @@ export const useBackgroundReplacer = () => {
     try {
       // One scan per generation, on the same ImageFile the AiScanPanel
       // pre-scanned, so the analysis is shared rather than repeated.
-      const blueprint = await aiScan.scan([subjectImage]);
+      const blueprint = await aiScan.scan(aiScanSources);
       const results = await editImage({
         images,
         prompt: buildPrompt(cameraView, blueprint ?? ''),
@@ -139,7 +143,7 @@ export const useBackgroundReplacer = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [addImage, aiScan, aspectRatio, backgroundImage, buildImageServiceConfig, buildPrompt, cameraView, engineId, imageEditModel, negativePrompt, promptText, resolution, subjectImage, t]);
+  }, [addImage, aiScan, aiScanSources, aspectRatio, backgroundImage, buildImageServiceConfig, buildPrompt, cameraView, engineId, imageEditModel, negativePrompt, promptText, resolution, t]);
 
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number) => {
     setUpscalingStates((prev) => ({ ...prev, [index]: true }));
@@ -166,6 +170,7 @@ export const useBackgroundReplacer = () => {
   return {
     subjectImage,
     setSubjectImage: handleSubjectUpload,
+    aiScanSources,
     backgroundImage,
     setBackgroundImage: handleBackgroundUpload,
     promptText,

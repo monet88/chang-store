@@ -434,6 +434,28 @@ describe('useIdentityTransfer', () => {
       expect(result.current.completedCount).toBe(2);
     });
 
+    it('deconstructs each destination on its own, never another photo\'s outfit', async () => {
+      const analyze = vi.fn<AiScanAnalyzer>(async (image) =>
+        image === DESTINATION_A ? 'DESTINATION A BLUEPRINT: silk satin' : 'DESTINATION B BLUEPRINT: raw denim');
+      vi.mocked(editImage).mockResolvedValue([RESULT_A]);
+
+      const { result } = renderHook(() => useIdentityTransfer(), { wrapper: scanWrapper(analyze, true) });
+      act(() => {
+        result.current.handleDestinationImagesUpload([DESTINATION_A, DESTINATION_B]);
+        result.current.setFaceReference(FACE);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      const prompts = [textData(0), textData(1)];
+
+      // A destination prompt must carry its own fabrics only.
+      expect(prompts.filter((prompt) => prompt.includes('DESTINATION A BLUEPRINT'))).toHaveLength(1);
+      expect(prompts.filter((prompt) => prompt.includes('DESTINATION B BLUEPRINT'))).toHaveLength(1);
+    });
+
     it('leaves the prompts untouched when the layer is off', async () => {
       const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue(BLUEPRINT);
       vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);

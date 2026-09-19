@@ -11,6 +11,7 @@ import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { aiScanSourceSet } from '../contexts/AiScanContext';
 import { useImageRefinement } from './useImageRefinement';
 import { useVirtualTryOnSubjects } from './useVirtualTryOnSubjects';
 import { useVirtualTryOnEngine, GeminiImageDriver } from './useVirtualTryOnEngine';
@@ -68,13 +69,14 @@ export const useVirtualTryOn = () => {
 
   const canGenerate = subjects.subjectItems.length > 0 && clothing.validClothingItems.length > 0;
 
-  // Source set the AI Scan layer deconstructs: the same ImageFile objects the
+  // Source set the AI Scan layer deconstructs: the target garments, then the
+  // subject photo (issue #162 asks for both). The same ImageFile objects the
   // generation path scans, so one analysis serves both the panel and the prompt.
   const aiScanSources = useMemo(
-    () => [
-      ...clothing.validClothingItems.map((item) => item.image as ImageFile),
-      ...subjects.subjectItems.map((item) => item.subjectImage),
-    ],
+    () => aiScanSourceSet(
+      clothing.validClothingItems.map((item) => item.image),
+      subjects.subjectItems.map((item) => item.subjectImage),
+    ),
     [clothing.validClothingItems, subjects.subjectItems],
   );
 

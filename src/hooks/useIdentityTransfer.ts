@@ -89,21 +89,27 @@ export const useIdentityTransfer = () => {
     setError(null);
   }, [createDestinationItem]);
 
-  // Declared ahead of the generation callbacks: the scan runs over this exact
-  // array, the same one the feature's `AiScanPanel` receives.
   const destinationImages = useMemo(
     () => destinationItems.map((item) => item.destinationImage),
     [destinationItems],
   );
 
+  // What the panel's badge shows: the first destination, i.e. exactly the set
+  // its own job scans. Every later destination is analyzed with its own photo at
+  // generation time, so the badge never claims one photo's fabrics for another.
+  const aiScanSources = useMemo(() => destinationImages.slice(0, 1), [destinationImages]);
+
   const generateForDestination = useCallback(async (
     item: Pick<IdentityTransferBatchItem, 'id' | 'destinationImage'>,
     refs: { face: ImageFile; body: ImageFile | null },
-    blueprint: string | null,
   ) => {
     updateDestinationItem(item.id, { status: 'processing', results: [], error: undefined });
 
     try {
+      // One analysis per destination, over that destination's own photo: every
+      // destination is an independent job, and a batch-wide blueprint would
+      // describe another photo's outfit inside this prompt.
+      const blueprint = await scan([item.destinationImage]);
       const interleavedParts = buildIdentityTransferParts({
         destinationImage: item.destinationImage,
         faceReference: refs.face,
@@ -157,11 +163,8 @@ export const useIdentityTransfer = () => {
     })));
 
     try {
-      // One scan per run, over the destination photos — they are the images that
-      // actually show the outfit. The panel pre-scan shares this analysis.
-      const blueprint = await scan(destinationImages);
       await runBoundedWorkers(destinationItems, IDENTITY_TRANSFER_BATCH_CONCURRENCY, (item) =>
-        generateForDestination(item, { face: faceReference, body: bodyReference }, blueprint));
+        generateForDestination(item, { face: faceReference, body: bodyReference }));
     } catch (batchError) {
       setError(getErrorMessage(batchError, t));
     } finally {
@@ -169,7 +172,7 @@ export const useIdentityTransfer = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [bodyReference, destinationImages, destinationItems, faceReference, generateForDestination, scan, t]);
+  }, [bodyReference, destinationItems, faceReference, generateForDestination, t]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
     if (generationInFlight.current) return;
@@ -180,13 +183,11 @@ export const useIdentityTransfer = () => {
     generationInFlight.current = true;
     setError(null);
     try {
-      // Served from the context cache whenever the destination set is unchanged.
-      const blueprint = await scan(destinationImages);
-      await generateForDestination(item, { face: faceReference, body: bodyReference }, blueprint);
+      await generateForDestination(item, { face: faceReference, body: bodyReference });
     } finally {
       generationInFlight.current = false;
     }
-  }, [bodyReference, destinationImages, destinationItems, faceReference, generateForDestination, scan]);
+  }, [bodyReference, destinationItems, faceReference, generateForDestination]);
 
   const completedCount = useMemo(
     () => destinationItems.filter((item) => item.status === 'completed').length,
@@ -198,7 +199,7 @@ export const useIdentityTransfer = () => {
   );
 
   return {
-    destinationItems, destinationImages, faceReference, bodyReference,
+    destinationItems, destinationImages, aiScanSources, faceReference, bodyReference,
     backgroundPrompt, extraPrompt, aspectRatio, resolution, isLoading,
     loadingMessage, error, canGenerate, completedCount, failedCount, imageEditModel,
     setFaceReference: updateFaceReference, setBodyReference: updateBodyReference, setBackgroundPrompt, setExtraPrompt,

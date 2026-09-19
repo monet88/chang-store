@@ -27,12 +27,18 @@ and drape survive a single-pass image model that would otherwise flatten them.
 
 | Feature | Sources analyzed | Where the prompt carries the blueprint |
 | --- | --- | --- |
-| Virtual Try-On (multi-model) | clothing items, subject photos | interleaved task text, both lanes |
-| Virtual Try-On (wardrobe) | subject, wardrobe set items | interleaved task text, both lanes |
+| Virtual Try-On (multi-model) | target garments, then the subject photo | interleaved task text, both lanes |
+| Virtual Try-On (wardrobe) | one analysis per set: that set's garments, then the subject | interleaved task text, both lanes |
 | Lookbook | clothing images, fabric texture image | main, variation and close-up prompts |
-| Identity Transfer | destination photos | destination-side rules, both lanes |
+| Identity Transfer | one analysis per destination photo | destination-side rules, both lanes |
 | Pose Changer | subject photo | text and reference pose prompts |
 | Background Replacer | subject photo | composed background prompt |
+
+Analysis follows the generation: a wardrobe run analyzes each set against its
+own garments, and a multi-destination Identity Transfer run analyzes each photo
+separately, so no prompt is ever handed another photo's fabrics. The panel badge
+previews the first source set (the subject plus the first set's garments, or the
+first destination) and the generation reuses that analysis from cache.
 
 The E-Com Pack (Clothing Transfer) runs the same analysis through its own
 always-on lane and shares the analyzer prompt and the block formatter.
@@ -44,7 +50,9 @@ AI Editor, which gain nothing from textile semantics.
 
 - Model standard: `gemini-3.8-flash` for every scan.
 - Analysis limit: the first four usable source images per scan; each source set
-  is analyzed once and reused by the panel and the generation call.
+  is analyzed once and reused by the panel and the generation call. One slot is
+  reserved for the shared reference (the subject or model), so a full garment
+  list still scans the subject it is worn on.
 - Per-image failures are tolerated: the reports that answered are kept, and the
   scan only falls back to `null` when every source failed.
 

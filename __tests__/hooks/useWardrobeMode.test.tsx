@@ -516,5 +516,44 @@ describe('useWardrobeMode', () => {
       expect(textSent()).toContain('## TASK');
       expect(result.current.results[0].status).toBe('completed');
     });
+
+    it('analyses each set on its own, never another set\'s garments', async () => {
+      vi.mocked(editImage).mockResolvedValue([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>(async (image) => {
+        if (image === OUTFIT_A) return 'SET A BLUEPRINT: silk satin';
+        if (image === OUTFIT_B) return 'SET B BLUEPRINT: raw denim';
+        return 'SUBJECT BLUEPRINT: standing body';
+      });
+
+      const { result } = renderHook(() => useWardrobeMode(defaultParams), {
+        wrapper: wrapperFor(analyze, true),
+      });
+
+      act(() => result.current.setSubject(SUBJECT));
+      const setAId = result.current.sets[0].id;
+      act(() => result.current.addItem(setAId));
+      act(() => result.current.updateItem(setAId, result.current.sets[0].items[0].id, { image: OUTFIT_A }));
+      act(() => result.current.addSet());
+      const setBId = result.current.sets[1].id;
+      act(() => result.current.addItem(setBId));
+      act(() => result.current.updateItem(setBId, result.current.sets[1].items[0].id, { image: OUTFIT_B }));
+
+      await act(async () => {
+        await result.current.generate();
+      });
+
+      const prompts = vi.mocked(editImage).mock.calls.map((call) =>
+        (call[0].interleavedParts ?? [])
+          .filter((part) => part.text)
+          .map((part) => part.text)
+          .join('\n'),
+      );
+
+      // Each outfit's deconstruction lands in exactly its own set's prompt.
+      expect(prompts.filter((prompt) => prompt.includes('SET A BLUEPRINT'))).toHaveLength(1);
+      expect(prompts.filter((prompt) => prompt.includes('SET B BLUEPRINT'))).toHaveLength(1);
+      expect(prompts[0]).not.toContain('SET B BLUEPRINT');
+      expect(prompts[1]).not.toContain('SET A BLUEPRINT');
+    });
   });
 });

@@ -10,6 +10,7 @@ import { useState, useMemo, useCallback } from 'react';
 import type { ImageFile, ImageResolution, AspectRatio, ImageEditModel, ImageEngineId } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { aiScanSourceSet } from '../contexts/AiScanContext';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import { getErrorMessage } from '../utils/imageUtils';
 import { Feature } from '../types';
@@ -39,23 +40,22 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
 
   const driver = useMemo<WardrobeImageDriver>(() => ({ editImage }), [editImage]);
 
-  // AI Scan source set: the subject plus every uploaded set item, in the same
-  // order the prompt consumes them. The context de-dupes and caps at 4.
+  // AI Scan source set for the panel's badge: the first set's garments plus the
+  // subject, i.e. exactly what that set's generation will deconstruct. Every
+  // other set scans its own items at generation time, so no set is labelled with
+  // another set's fabrics.
   const aiScanSources = useMemo(
-    () => [
-      ...(list.subject ? [list.subject] : []),
-      ...list.sets.flatMap((set) =>
-        set.items.map((item) => item.image).filter((image): image is ImageFile => image !== null),
-      ),
-    ],
-    [list.subject, list.sets],
+    () => aiScanSourceSet(
+      (list.sets[0]?.items ?? []).map((item) => item.image),
+      [list.subject],
+    ),
+    [list.sets, list.subject],
   );
 
   const engine = useWardrobeModeEngine({
     driver,
     sets: list.sets,
     subject: list.subject,
-    aiScanSources,
     extraPrompt: list.extraPrompt,
     backgroundPrompt: list.backgroundPrompt,
     numImages: params.numImages,

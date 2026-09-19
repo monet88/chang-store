@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { ReactNode } from 'react';
-import { AiScanProvider, useAiScan, AI_SCAN_MODEL } from '@/contexts/AiScanContext';
+import { AiScanProvider, useAiScan, aiScanSourceSet, AI_SCAN_MODEL } from '@/contexts/AiScanContext';
 import type { ImageFile } from '@/types';
 
 const IMAGE_A: ImageFile = { base64: 'aaa', mimeType: 'image/png' };
@@ -18,6 +18,30 @@ const wrapperFor = (
       </AiScanProvider>
     );
   };
+
+describe('aiScanSourceSet', () => {
+  const subject: ImageFile = { base64: 'subject', mimeType: 'image/png' };
+  const items = (count: number): ImageFile[] =>
+    Array.from({ length: count }, (_, index) => ({ base64: `item-${index}`, mimeType: 'image/jpeg' }));
+
+  it('keeps the feature images first and reserves a slot for the shared reference', () => {
+    const garments = items(4);
+
+    expect(aiScanSourceSet(garments, [subject])).toEqual([garments[0], garments[1], garments[2], subject]);
+  });
+
+  it('scans every item when there is no shared reference', () => {
+    const garments = items(6);
+
+    expect(aiScanSourceSet(garments, [])).toEqual(garments.slice(0, 4));
+  });
+
+  it('counts only usable images and one shared reference', () => {
+    const legacy = { base64: 'legacy', mimeType: 'image/png' };
+
+    expect(aiScanSourceSet([legacy, null, undefined], [subject, IMAGE_B])).toEqual([legacy, subject]);
+  });
+});
 
 describe('AiScanContext', () => {
   beforeEach(() => {

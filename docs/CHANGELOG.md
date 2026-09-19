@@ -21,6 +21,13 @@
   generation call; changing or clearing the images drops the blueprint; a
   disabled, failed or cancelled analysis resolves to `null` so generation
   always ships its base prompt, with no extra latency or tokens.
+- The scan follows the generation, not the batch: Virtual Try-On analyzes the
+  target garments plus the subject photo, every wardrobe set analyzes its own
+  garments plus the subject, and Identity Transfer analyzes each destination
+  photo separately — a blueprint never describes one photo inside another
+  photo's prompt. One of the four source slots is reserved for that shared
+  reference, so a full garment list cannot crowd the subject out of its own
+  analysis; the panel badge previews the first source set it is given.
 - `formatAiScanBlock` (`src/utils/ai-scan-blueprint.ts`) is the single splice
   point, so every prompt builder emits the identical block heading.
 

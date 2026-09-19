@@ -72,7 +72,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
                 <button
                   type="button"
                   onClick={() => setIsExpanded((prev) => !prev)}
-                  className="text-[11px] text-zinc-400 underline transition-colors hover:text-white"
+                  className="rounded text-[11px] text-zinc-400 underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                 >
                   {isExpanded ? t('studio.aiScan.hide') : t('studio.aiScan.view')}
                 </button>

@@ -151,9 +151,10 @@ App-wide providers are ordered as:
 LanguageProvider
   -> ToastProvider
     -> ApiProvider
-      -> ImageGalleryProvider
-        -> ImageViewerProvider
-          -> AppContent
+      -> AiScanProvider
+        -> ImageGalleryProvider
+          -> ImageViewerProvider
+            -> AppContent
 ~~~
 
 ### Studio Modes
