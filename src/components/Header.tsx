@@ -27,24 +27,24 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-sidebar flex w-[22rem] flex-col border-r border-white/10 bg-black/90 px-6 pb-6 pt-7 backdrop-blur-md transition-transform duration-300 ease-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : 'max-lg:-translate-x-full'}`}
+      className={`fixed inset-y-0 left-0 z-sidebar flex w-64 flex-col border-r border-white/10 bg-black/90 px-4 pb-4 pt-4 backdrop-blur-md transition-transform duration-300 ease-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : 'max-lg:-translate-x-full'}`}
     >
-      <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-100">
-              <GalleryIcon className="h-5 w-5" />
+      <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] text-zinc-100">
+              <GalleryIcon className="h-3.5 w-3.5" />
             </span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
                 {t('navigation.workspaceEyebrow')}
               </p>
-              <h1 className="text-xl font-medium tracking-[-0.03em] text-zinc-50">
+              <h1 className="text-sm font-semibold tracking-[-0.02em] text-zinc-50">
                 {t('header.title')}
               </h1>
             </div>
           </div>
-          <p className="max-w-xs text-base leading-7 text-zinc-300">
+          <p className="max-w-xs text-xs leading-4 text-zinc-400">
             {t('header.description')}
           </p>
         </div>

@@ -126,9 +126,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
   return (
     <>
       <div className="w-full">
-        <label htmlFor={id} className={hideTitle ? 'sr-only' : 'mb-2 block text-base font-semibold text-zinc-100'}>{title}</label>
+        <label htmlFor={id} className={hideTitle ? 'sr-only' : 'mb-1.5 block text-xs font-semibold text-zinc-100'}>{title}</label>
         <div
-          className={`relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[24px] border border-dashed bg-black/35 transition-colors duration-300 ${isDragging ? 'border-white/40 bg-white/[0.08]' : 'border-white/12'
+          className={`relative flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-xl border border-dashed bg-black/35 transition-colors duration-200 ${isDragging ? 'border-white/40 bg-white/[0.08]' : 'border-white/12'
             } ${!image ? 'cursor-pointer hover:border-white/30 hover:bg-white/[0.04]' : ''}`}
           onDragOver={handleDragOver}
           onDragEnter={handleDragEnter}
@@ -149,31 +149,31 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
               <img src={preview} alt="Preview" className="object-contain h-full w-full" />
               <button
                 onClick={handleClear}
-                className="absolute top-3 right-3 rounded-full border border-white/10 bg-black/60 p-2 text-white transition-all duration-200 hover:bg-red-500/80"
+                className="absolute top-2 right-2 rounded-full border border-white/10 bg-black/60 p-1.5 text-white transition-all duration-150 hover:bg-red-500/80"
                 aria-label={t('imageUploader.removeAria')}
               >
-                <DeleteIcon className="w-5 h-5" />
+                <DeleteIcon className="w-4 h-4" />
               </button>
             </>
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-3 text-center text-zinc-400">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-2.5 text-center text-zinc-400">
               <div
-                className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] p-3 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+                className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] p-2 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
                 role="img"
                 aria-label={isDragging ? t('imageUploader.drop') : t('imageUploader.upload')}
               >
-                <CloudUploadIcon className="mx-auto h-10 w-10 text-zinc-300" />
+                <CloudUploadIcon className="mx-auto h-6 w-6 text-zinc-300" />
               </div>
-              <div className="flex w-full justify-center border-t border-white/10 pt-2">
+              <div className="flex w-full justify-center border-t border-white/10 pt-1.5">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsGallerySelectionOpen(true);
                   }}
-                  className="flex min-h-[44px] items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-zinc-100 transition-colors duration-200 hover:border-white/20 hover:bg-white/[0.1]"
+                  className="flex min-h-[28px] items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-zinc-100 transition-colors duration-150 hover:border-white/20 hover:bg-white/[0.1]"
                 >
-                  <GalleryIcon className="h-3.5 w-3.5" />
+                  <GalleryIcon className="h-3 w-3" />
                   <span>{t('imageUploader.selectFromGallery')}</span>
                 </button>
               </div>

@@ -37,6 +37,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ imageUrl, onClose, onNext, onPr
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-label={t('imageViewer.fullScreen')}
     >
       <button
         onClick={onClose}
@@ -72,6 +73,8 @@ const ImageModal: React.FC<ImageModalProps> = ({ imageUrl, onClose, onNext, onPr
         <img
           src={imageUrl}
           alt={t('imageViewer.fullScreen')}
+          loading="lazy"
+          decoding="async"
           className="object-contain max-w-full max-h-[90vh] w-auto h-auto rounded-lg shadow-2xl"
         />
       </div>

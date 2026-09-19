@@ -30,14 +30,14 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
 
   if (isFixedResolution) {
     return (
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <span id={labelId} className="font-medium text-zinc-300">{t('virtualTryOn.quality')}:</span>
+      <div className="flex flex-wrap items-center justify-center gap-1.5 text-xs">
+        <span id={labelId} className="font-medium text-zinc-400">{t('virtualTryOn.quality')}:</span>
         <div
           role="radiogroup"
           aria-labelledby={labelId}
-          className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5"
+          className="flex items-center gap-1 rounded-lg border border-white/8 bg-white/[0.03] p-1"
         >
-          <label className="flex min-h-[44px] min-w-[44px] cursor-not-allowed items-center justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-zinc-950">
+          <label className="flex min-h-[28px] min-w-[32px] cursor-not-allowed items-center justify-center rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-zinc-950">
             <input
               type="radio"
               name={groupName}
@@ -49,19 +49,19 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
             />
             {effectiveResolution}
           </label>
-          <span className="pr-2 text-xs text-zinc-400">{t('virtualTryOn.modelLimit')}</span>
+          <span className="pr-1.5 text-[10px] text-zinc-400">{t('virtualTryOn.modelLimit')}</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2">
-      <span id={labelId} className="font-medium text-zinc-300">{t('virtualTryOn.quality')}:</span>
+    <div className="flex flex-wrap items-center justify-center gap-1.5 text-xs">
+      <span id={labelId} className="font-medium text-zinc-400">{t('virtualTryOn.quality')}:</span>
       <div
         role="radiogroup"
         aria-labelledby={labelId}
-        className="flex flex-wrap justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5"
+        className="flex flex-wrap justify-center gap-1 rounded-lg border border-white/8 bg-white/[0.03] p-1"
       >
         {supportedResolutions.map(res => {
           const isSelected = effectiveResolution === res;
@@ -69,7 +69,7 @@ const ResolutionSelector: React.FC<ResolutionSelectorProps> = React.memo(({ reso
           return (
             <label
               key={res}
-              className={`flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-amber-500 ${isSelected ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
+              className={`flex min-h-[28px] min-w-[32px] cursor-pointer items-center justify-center rounded-md px-2.5 py-1 text-xs font-semibold transition-colors duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-1 has-[:focus-visible]:outline-amber-500 ${isSelected ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
                 }`}
             >
               <input

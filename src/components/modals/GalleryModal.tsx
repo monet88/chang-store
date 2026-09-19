@@ -58,14 +58,14 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="gallery-modal-title"
     >
       {/* Header */}
       <div className="flex justify-between items-center p-4 text-white w-full max-w-7xl mx-auto flex-shrink-0">
         <div className="flex items-center gap-3">
-          <h2 className="text-xl md:text-2xl font-bold">
+          <h2 id="gallery-modal-title" className="text-xl md:text-2xl font-bold">
             {t('gallery.title')} ({images.length})
           </h2>
-
           {images.length > 0 && (
             <button
               onClick={handleClearAll}

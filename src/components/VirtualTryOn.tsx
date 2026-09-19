@@ -13,13 +13,13 @@ import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
 import { compressImage } from '../utils/imageUtils';
 import WardrobeSetCard from './WardrobeSetCard';
 
-const panelClass = 'rounded-[28px] border border-white/10 bg-white/[0.04] p-6 sm:p-8';
-const labelClass = 'text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400';
-const sectionTitleClass = 'text-2xl font-medium tracking-[-0.03em] text-zinc-50';
-const helperClass = 'text-base leading-7 text-zinc-300';
-const secondaryButtonClass = 'inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-white/12 bg-white/[0.05] px-5 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-white/25 hover:bg-white/[0.1] hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
-const primaryButtonClass = 'inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[#f4f4f2] px-6 py-3.5 text-base font-semibold tracking-[-0.01em] text-[#09090b] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40';
-const textareaClass = 'w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-base leading-7 text-zinc-100 placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20';
+const panelClass = 'rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:p-5';
+const labelClass = 'text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400';
+const sectionTitleClass = 'text-lg font-semibold tracking-[-0.02em] text-zinc-50';
+const helperClass = 'text-xs leading-5 text-zinc-400';
+const secondaryButtonClass = 'inline-flex min-h-[34px] items-center justify-center rounded-lg border border-white/12 bg-white/[0.05] px-3.5 py-1.5 text-xs font-medium text-zinc-100 transition-colors hover:border-white/25 hover:bg-white/[0.1] hover:text-white disabled:cursor-not-allowed disabled:opacity-50';
+const primaryButtonClass = 'inline-flex min-h-[38px] items-center justify-center rounded-lg bg-[#f4f4f2] px-5 py-2 text-xs font-semibold tracking-[-0.01em] text-[#09090b] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40';
+const textareaClass = 'w-full rounded-lg border border-white/10 bg-black/30 px-3.5 py-2.5 text-xs leading-5 text-zinc-100 placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20';
 
 const VirtualTryOn: React.FC = () => {
   const {
@@ -101,14 +101,14 @@ const VirtualTryOn: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-8">
       {/* Mode Toggle */}
       <div className="flex justify-center">
-        <div className="inline-flex rounded-full border border-white/10 bg-black/40 p-1">
+        <div className="inline-flex rounded-lg border border-white/10 bg-black/40 p-0.5">
           <button
             type="button"
             onClick={() => setMode('multi-model')}
-            className={`flex min-h-[44px] items-center justify-center rounded-full px-5 py-3 text-sm font-medium transition-colors ${mode === 'multi-model' ? 'bg-white text-black' : 'text-zinc-400 hover:text-zinc-100'
+            className={`flex min-h-[30px] items-center justify-center rounded-md px-3.5 py-1 text-xs font-medium transition-colors ${mode === 'multi-model' ? 'bg-white text-black' : 'text-zinc-400 hover:text-zinc-100'
               }`}
           >
             {t('virtualTryOn.modeMultiModel')}
@@ -116,7 +116,7 @@ const VirtualTryOn: React.FC = () => {
           <button
             type="button"
             onClick={() => setMode('wardrobe')}
-            className={`flex min-h-[44px] items-center justify-center rounded-full px-5 py-3 text-sm font-medium transition-colors ${mode === 'wardrobe' ? 'bg-white text-black' : 'text-zinc-400 hover:text-zinc-100'
+            className={`flex min-h-[30px] items-center justify-center rounded-md px-3.5 py-1 text-xs font-medium transition-colors ${mode === 'wardrobe' ? 'bg-white text-black' : 'text-zinc-400 hover:text-zinc-100'
               }`}
           >
             {t('virtualTryOn.modeWardrobe')}
@@ -125,8 +125,8 @@ const VirtualTryOn: React.FC = () => {
       </div>
 
       {mode === 'multi-model' && (
-        <div className="grid gap-8 xl:grid-cols-[minmax(620px,1fr)_minmax(0,0.85fr)]">
-          <div className="space-y-6">
+        <div className="grid gap-5 xl:grid-cols-[minmax(520px,1fr)_minmax(0,0.95fr)]">
+          <div className="space-y-4">
             <section className={`${panelClass} space-y-5`}>
               <div className="space-y-3">
                 <p className={labelClass}>{t('workspace.panels.subjectStage')}</p>
@@ -542,7 +542,7 @@ const VirtualTryOn: React.FC = () => {
                               }`}
                           >
                             {item.status === 'processing' ? (
-                              <div className="animate-spin rounded-full border-b-2 border-white h-8 w-8" />
+                              <Spinner className="h-8 w-8 border-white" />
                             ) : (
                               <p className="text-sm text-zinc-500">{t('virtualTryOn.waitingStatus')}</p>
                             )}
@@ -730,8 +730,8 @@ const VirtualTryOn: React.FC = () => {
                         <p className="text-sm text-red-300">{resultSet.error}</p>
                       )}
                       {(resultSet.status === 'processing' || resultSet.status === 'pending') && (
-                        <div className="flex aspect-[3/4] max-h-48 items-center justify-center rounded-[24px] border border-white/10 bg-black/30 animate-pulse">
-                          <div className="animate-spin rounded-full border-b-2 border-white h-8 w-8" />
+                        <div className="flex aspect-[3/4] max-h-48 items-center justify-center rounded-xl border border-white/10 bg-black/30 animate-pulse">
+                          <Spinner className="h-8 w-8 border-white" />
                         </div>
                       )}
                       {resultSet.status === 'completed' && resultSet.results.length > 0 && (

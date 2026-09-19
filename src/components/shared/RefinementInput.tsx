@@ -93,7 +93,7 @@ export const RefinementInput: React.FC<RefinementInputProps> = ({
             <button
               onClick={handleSubmit}
               disabled={disabled || isRefining || !prompt.trim()}
-              className="px-6 py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-500 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg hover:shadow-amber-900/20 min-w-[100px] h-[48px] flex items-center justify-center"
+              className="px-6 py-3 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-500 disabled:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg hover:shadow-amber-900/20 min-w-[100px] h-[48px] flex items-center justify-center"
             >
               {isRefining ? <Spinner className="h-5 w-5 border-white" /> : t('generatedImage.refineButton')}
             </button>

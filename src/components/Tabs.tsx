@@ -70,11 +70,11 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature, studioMode
       ];
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-4">
       {groups.map((group) => (
-        <section key={group.key} className="space-y-3">
-          <div className="space-y-1 px-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+        <section key={group.key} className="space-y-1.5">
+          <div className="px-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
               {group.title}
             </p>
             <p className="sr-only">
@@ -82,7 +82,7 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature, studioMode
             </p>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-0.5">
             {group.items.map((tab) => {
               const isActive = activeFeature === tab.id;
 
@@ -92,13 +92,13 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature, studioMode
                   type="button"
                   onClick={() => setActiveFeature(tab.id)}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`w-full rounded-2xl border px-5 py-3.5 text-left text-[15px] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
+                  className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                     isActive
-                      ? 'border-white/25 bg-white/[0.12] text-zinc-50'
-                      : 'border-transparent bg-transparent text-zinc-300 hover:border-white/10 hover:bg-white/[0.06] hover:text-zinc-50'
+                      ? 'border-white/20 bg-white/[0.1] font-semibold text-zinc-50'
+                      : 'border-transparent bg-transparent text-zinc-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-zinc-200'
                   }`}
                 >
-                  <span className="block font-medium tracking-[-0.01em]">{tab.label}</span>
+                  <span className="block tracking-[-0.01em]">{tab.label}</span>
                 </button>
               );
             })}

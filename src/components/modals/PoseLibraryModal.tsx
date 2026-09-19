@@ -78,15 +78,15 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-modal flex flex-col p-4 sm:p-6 lg:p-8 animate-fade-in" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-modal flex flex-col p-4 sm:p-6 lg:p-8 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="pose-modal-title">
             <header className="flex-shrink-0 flex items-center justify-between pb-4 border-b border-zinc-700">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-white">{t('poseModal.title')}</h2>
+                    <h2 id="pose-modal-title" className="text-xl md:text-2xl font-bold text-white">{t('poseModal.title')}</h2>
                     <p className="text-sm text-zinc-400">{t('poseModal.description')}</p>
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     aria-label={t('poseModal.closeAria')}
                 >
                     <CloseIcon className="w-7 h-7" />
@@ -100,8 +100,8 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                             <button
                                 key={collection.title}
                                 onClick={() => handleCollectionChange(collection.title)}
-                                className={`w-full text-left p-3 rounded-lg text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${activeCollectionTitle === collection.title
-                                        ? 'bg-amber-600 text-white'
+                                className={`flex min-h-[44px] w-full items-center p-3 rounded-lg text-sm font-semibold transition-colors duration-200 whitespace-nowrap ${activeCollectionTitle === collection.title
+                                        ? 'bg-amber-600 text-white font-bold'
                                         : 'text-zinc-300 hover:bg-zinc-700/50'
                                     }`}
                             >
@@ -114,16 +114,36 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                 <div className="flex-grow flex flex-col lg:flex-row gap-6 overflow-hidden min-w-0 min-h-0">
                     <div className="flex-grow flex flex-col items-center justify-center gap-4 overflow-hidden relative">
                         <div className="relative w-full h-full max-h-[50vh] lg:max-h-[70vh] flex items-center justify-center">
-                            {currentPose && <img src={currentPose.imageUrl} alt={currentPose.title} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />}
+                            {currentPose && (
+                                <img
+                                    src={currentPose.imageUrl}
+                                    alt={currentPose.title}
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                                />
+                            )}
 
-                            <button onClick={handlePrev} className="absolute left-0 sm:left-4 top-1/2 -translate-y-1/2 p-3 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label={t('poseModal.prevAria')}><ChevronLeftIcon className="w-6 h-6" /></button>
-                            <button onClick={handleNext} className="absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 p-3 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label={t('poseModal.nextAria')}><ChevronRightIcon className="w-6 h-6" /></button>
+                            <button
+                                onClick={handlePrev}
+                                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 flex min-h-[44px] min-w-[44px] items-center justify-center p-2.5 bg-black/60 backdrop-blur-sm rounded-full text-white hover:bg-black/80 transition-colors shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                aria-label={t('poseModal.prevAria')}
+                            >
+                                <ChevronLeftIcon className="w-6 h-6" />
+                            </button>
+                            <button
+                                onClick={handleNext}
+                                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 flex min-h-[44px] min-w-[44px] items-center justify-center p-2.5 bg-black/60 backdrop-blur-sm rounded-full text-white hover:bg-black/80 transition-colors shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                aria-label={t('poseModal.nextAria')}
+                            >
+                                <ChevronRightIcon className="w-6 h-6" />
+                            </button>
 
                             {currentPose && (
                                 <button
                                     onClick={() => togglePoseSelection(currentPose.label)}
-                                    className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 font-bold py-2 px-6 rounded-full transition-all duration-200 text-sm shadow-lg ${selectedPoses.includes(currentPose.label)
-                                            ? 'bg-amber-500 text-zinc-900'
+                                    className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex min-h-[44px] items-center gap-2 font-bold py-2.5 px-6 rounded-full transition-all duration-200 text-sm shadow-lg ${selectedPoses.includes(currentPose.label)
+                                            ? 'bg-amber-500 text-black font-bold'
                                             : 'bg-zinc-800/80 text-white hover:bg-zinc-700'
                                         }`}
                                 >
@@ -174,7 +194,7 @@ const PoseLibraryModal: React.FC<PoseLibraryModalProps> = ({ isOpen, onClose, on
                     <span className="text-white font-medium">{t('poseModal.posesSelectedCount', { count: selectedPoses.length })}</span>
                     <button
                         onClick={() => onConfirm(selectedPoses)}
-                        className="bg-amber-600 text-white font-bold py-2.5 px-8 rounded-full hover:bg-amber-500 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        className="brand-button focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     >
                         {t('poseModal.confirmButton')}
                     </button>

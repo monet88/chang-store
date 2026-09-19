@@ -80,6 +80,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="prompt-library-modal-title"
     >
       <div
         className="w-full max-w-2xl bg-zinc-900/90 border border-zinc-700/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[80vh]"
@@ -87,7 +88,7 @@ const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({ isOpen, onClose
       >
         {/* Header */}
         <div className="flex justify-between items-center p-4 sm:px-6 sm:py-5 border-b border-zinc-700/50 flex-shrink-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          <h2 id="prompt-library-modal-title" className="text-xl sm:text-2xl font-bold text-white tracking-tight">
             {t('promptLibrary.title') || 'Prompt Library'}
           </h2>
           <div className="flex items-center gap-3">

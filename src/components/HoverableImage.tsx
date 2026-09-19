@@ -91,7 +91,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
     return (
         <>
             <div className={containerClassName ?? defaultClassName}>
-                <img src={imageUrl} alt={altText} className="object-cover h-full w-full cursor-pointer" onClick={handleImageClick} />
+                <img src={imageUrl} alt={altText} loading="lazy" decoding="async" className="object-cover h-full w-full cursor-pointer" onClick={handleImageClick} />
 
                 {isUpscaling && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
@@ -155,7 +155,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                                 className="p-2.5 bg-zinc-700/80 rounded-full text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                                 aria-label={t('imageActions.regenerate')}
                             >
-                                {isGenerating ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-100"></div> : <RegenerateIcon className="w-5 h-5" />}
+                                {isGenerating ? <Spinner className="h-5 w-5" /> : <RegenerateIcon className="w-5 h-5" />}
                             </button>
                         )}
                         {onUpscale && (
@@ -165,7 +165,7 @@ const HoverableImage: React.FC<HoverableImageProps> = React.memo(({
                                 className="p-2.5 bg-zinc-700/80 rounded-full text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                                 aria-label={t('imageActions.upscale')}
                             >
-                                {isUpscaling ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-100"></div> : <CloudUploadIcon className="w-5 h-5" />}
+                                {isUpscaling ? <Spinner className="h-5 w-5" /> : <CloudUploadIcon className="w-5 h-5" />}
                             </button>
                         )}
                         <button

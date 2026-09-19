@@ -37,9 +37,10 @@ const ImageSelectionModal: React.FC<ImageSelectionModalProps> = ({ isOpen, onClo
             onClick={onClose}
             role="dialog"
             aria-modal="true"
+            aria-labelledby="image-selection-modal-title"
         >
             <div className="flex justify-between items-center p-4 text-white w-full max-w-7xl mx-auto flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                <h2 className="text-xl md:text-2xl font-bold">{t('imageSelectionModal.title')} ({images.length})</h2>
+                <h2 id="image-selection-modal-title" className="text-xl md:text-2xl font-bold">{t('imageSelectionModal.title')} ({images.length})</h2>
                 <button onClick={onClose} className="p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors" aria-label={t('gallery.closeAria')}>
                     <CloseIcon className="w-8 h-8" />
                 </button>

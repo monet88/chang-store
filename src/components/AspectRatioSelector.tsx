@@ -16,12 +16,12 @@ const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = React.memo(({ as
   const groupName = useId();
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2">
-      <span id={labelId} className="font-medium text-zinc-300">{t('studio.workflows.aspectRatioLabel')}:</span>
+    <div className="flex flex-wrap items-center justify-center gap-1.5 text-xs">
+      <span id={labelId} className="font-medium text-zinc-400">{t('studio.workflows.aspectRatioLabel')}:</span>
       <div
         role="radiogroup"
         aria-labelledby={labelId}
-        className="flex flex-wrap justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-1.5"
+        className="flex flex-wrap justify-center gap-1 rounded-lg border border-white/8 bg-white/[0.03] p-1"
       >
         {RATIOS.map(ratio => {
           const isSelected = aspectRatio === ratio;
@@ -29,7 +29,7 @@ const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = React.memo(({ as
           return (
             <label
               key={ratio}
-              className={`flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-amber-500 ${isSelected ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
+              className={`flex min-h-[28px] min-w-[32px] cursor-pointer items-center justify-center rounded-md px-2.5 py-1 text-xs font-semibold transition-colors duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-1 has-[:focus-visible]:outline-amber-500 ${isSelected ? 'bg-white text-zinc-950' : 'text-zinc-300 hover:bg-white/6'
                 }`}
             >
               <input

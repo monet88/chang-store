@@ -225,7 +225,7 @@ const AppContent: React.FC = () => {
       <div className="min-h-dvh bg-transparent text-zinc-100">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-toast focus:rounded-md focus:bg-amber-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-zinc-950 focus:shadow-lg focus:outline-none"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-toast focus:rounded-md focus:bg-amber-500 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-black focus:shadow-lg focus:outline-none"
         >
           {t('navigation.skipToContent')}
         </a>
@@ -240,26 +240,25 @@ const AppContent: React.FC = () => {
         <MobileMenuButton onClick={handleToggleSidebar} />
         <MobileOverlay isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
 
-        <div className="min-h-dvh lg:pl-[22rem]">
+        <div className="min-h-dvh lg:pl-64">
           <ImageEngineProvider mode={studioMode}>
           {studioMode === 'gemini' ? (
-            <main id="main-content" className="px-4 pb-8 pt-20 sm:px-6 lg:px-10 lg:pt-10 xl:px-12">
-              <div className="mx-auto flex max-w-[1760px] flex-col gap-8">
-                <section className="flex flex-col gap-5 border-b border-white/10 pb-7 sm:flex-row sm:items-end sm:justify-between">
-                  <div className="space-y-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
+            <main id="main-content" className="px-4 pb-6 pt-16 sm:px-6 lg:px-8 lg:pt-6">
+              <div className="mx-auto flex max-w-[1760px] flex-col gap-5">
+                <section className="flex flex-col gap-3 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
                       {currentFeatureMeta.group}
                     </p>
-                    <div className="space-y-2">
-                      <h2 className="text-4xl font-medium tracking-[-0.045em] text-zinc-50 sm:text-5xl">
+                    <div className="space-y-0.5">
+                      <h2 className="text-xl font-semibold tracking-[-0.03em] text-zinc-50 sm:text-2xl">
                         {currentFeatureMeta.label}
                       </h2>
-                      <p className="max-w-4xl text-base leading-7 text-zinc-300 sm:text-lg">
+                      <p className="max-w-3xl text-xs leading-5 text-zinc-400">
                         {currentFeatureMeta.description}
                       </p>
                     </div>
                   </div>
-
                   <div className="flex w-full flex-col gap-3 sm:max-w-2xl sm:items-end">
                     <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
                       {activeModelSelectionScope && (

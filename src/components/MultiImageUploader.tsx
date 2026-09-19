@@ -184,13 +184,13 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
 
   return (
     <div className="w-full">
-      <label htmlFor={id} className={hideTitle ? 'sr-only' : 'mb-2 block text-base font-semibold text-zinc-100'}>
+      <label htmlFor={id} className={hideTitle ? 'sr-only' : 'mb-1.5 block text-xs font-semibold text-zinc-100'}>
         {title}
       </label>
 
       {/* Upload Area */}
       <div
-        className={`relative flex min-h-[11rem] w-full cursor-pointer items-center justify-center overflow-hidden rounded-[24px] border border-dashed bg-black/35 transition-colors duration-300 ${
+        className={`relative flex min-h-[6.5rem] w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed bg-black/35 transition-colors duration-200 ${
           isDragging ? 'border-white/40 bg-white/[0.08]' : 'border-white/12'
         } hover:border-white/30 hover:bg-white/[0.04]`}
         onDragOver={handleDragOver}
@@ -208,14 +208,14 @@ const MultiImageUploader: React.FC<MultiImageUploaderProps> = React.memo(({
           className="hidden"
           onChange={handleFileChange}
         />
-        <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-4 text-center text-zinc-400">
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-center text-zinc-400">
           <div
-            className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] p-3 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+            className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] p-2 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
             aria-label={isDragging ? t('imageUploader.drop') : t('imageUploader.upload')}
           >
-            <CloudUploadIcon className="mx-auto h-10 w-10 text-zinc-300" />
+            <CloudUploadIcon className="mx-auto h-6 w-6 text-zinc-300" />
           </div>
-          <p className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+          <p className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
             {maxImages
               ? t('common.selectMultipleImagesMax', { max: maxImages, count: images.length })
               : t('common.selectMultipleImages')}

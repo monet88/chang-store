@@ -72,6 +72,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
       className="fixed inset-0 z-modal flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="settings-modal-title"
       onClick={onClose}
     >
       <div
@@ -82,7 +83,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
           <div className="space-y-2">
             <p className="workspace-label">{t('settingsModal.eyebrow')}</p>
             <div className="space-y-2">
-              <h2 className="workspace-title text-3xl font-medium text-zinc-50 sm:text-4xl">{t('settingsModal.title')}</h2>
+              <h2 id="settings-modal-title" className="workspace-title text-3xl font-medium text-zinc-50 sm:text-4xl">{t('settingsModal.title')}</h2>
               <p className="max-w-2xl text-sm leading-6 text-zinc-400 sm:text-base">
                 {t('settingsModal.description')}
               </p>
