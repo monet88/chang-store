@@ -74,7 +74,7 @@ REFERENCE OWNERSHIP & ROLES:
 - Do NOT transfer any source person's identity, face, body, or pose.
 - Do NOT transfer any source background, furniture, hangers, shoes, bags, jewelry, or non-garment props into the result.
 - Faithfully reproduce the source garment's silhouette, construction, collar style, sleeve length, waistband, seams, closures, buttons, zippers, hardware, colors, materials, textures, pattern scale, pattern orientation, graphics, and visible supported branding.
-
+- Bottom garment & structural fidelity: For two-piece sets or layered outfits, faithfully extract each garment component (such as tops, bottoms, skirts, pants, shorts, or skorts). For bottom garments, preserve their authentic silhouette, structural construction (such as tiers, flounces, pleats, or ruffles), and all visible hemline edge finishing (such as lace borders, scalloped trims, sheer mesh bands, raw edges, fringes, or cuffs). Never simplify or collapse the bottom garment into a generic shape.
 PLACEMENT & PHYSICAL INTEGRATION:
 - Map each source garment to its corresponding location in the DESTINATION arrangement (e.g. source top to destination top position, source bottom to destination bottom position).
 - Adapt the garment drape to the DESTINATION display method: natural gravity drape for hanging clothes, natural spread and realistic folds for flat lays, and natural anatomical fit and body folds when worn by a person.
@@ -142,16 +142,17 @@ STAGING SPECIFICATION:
 ${stagingSpec}
 
 GARMENT EXTRACTION & SPATIAL ARRANGEMENT:
-1. SEPARATE TOP AND BOTTOM PLACEMENT (WHEN MULTI-PIECE OUTFIT):
-- If the SOURCE OUTFIT contains multiple pieces (e.g. top and bottom, blouse and skirt) and the STAGING REFERENCE displays separated items (such as a top hanging above and pants/skirt laid out on a lower counter/shelf):
-- Map and stage each garment separately according to the STAGING REFERENCE layout.
-- The top garment hangs naturally from the upper hanger.
-- The bottom garment (skirt/pants/shorts) is placed distinctly on the lower surface/counter or clipped to the lower hanger, separated from the top.
-- Do NOT merge top and bottom garments together into one overlapping piece when the reference shows separated staging.
-2. GARMENT FIDELITY & DETAILS:
-- Faithfully reproduce each garment's exact silhouette, construction, collars, sleeves, hems, buttons, zippers, textures, stitching, fabric patterns, scalloped lace trims, and tiered ruffles.
+1. MULTI-PIECE OUTFIT DECOMPOSITION & SPATIAL SEPARATION:
+- When the SOURCE OUTFIT contains multiple pieces (e.g. top and bottom, two-piece set, layered garments) and the STAGING REFERENCE displays separated items (such as an upper hanging area and a lower counter, shelf, or surface):
+- Distribute and stage each garment component according to the staging reference layout:
+  * Upper garments (blouses, shirts, jackets, tops) hang naturally from the primary upper hanger.
+  * Lower garments (skirts, skorts, pants, shorts) are arranged distinctly on the lower display surface, shelf, or pants hanger.
+- Maintain clear spatial separation between distinct garments as shown in the staging reference. Do NOT merge separated garments into a single overlapping piece.
+- For single-piece garments (such as a one-piece dress or jumpsuit), hang the complete garment from the primary hanger.
+2. STRUCTURAL AND EDGE FIDELITY (ALL GARMENTS):
+- Faithfully preserve each garment's authentic structural construction, fabric weight, drape, and silhouette.
+- For bottom garments (skirts, skorts, pants, shorts): Accurately reproduce all structural layers, pleats, tiered ruffles, waistband details, and especially the exact hemline finishing (such as lace borders, scalloped trims, sheer mesh bands, fringes, or cuffs) visible in the source photo.
 - Accurately render fabric drape, natural gravity folds, and soft realistic contact shadows on the staging surface.
-3. ENVIRONMENT PRESERVATION & ZERO HUMANS:
 - Preserve the exact staging surface, background cabinetry, hanger types, lighting, and ambient props from the STAGING REFERENCE.
 - Completely remove any person from the scene. The final image must contain ZERO human beings or mannequins; show ONLY the clothing item cleanly arranged or hung.
 ${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
