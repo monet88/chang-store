@@ -154,6 +154,17 @@ export const vi: Translation = {
       sizeObservation: 'Đo được: kích thước này trả về đúng {{honored}}/{{total}} lần.',
       qualityLabel: 'Chất lượng',
     },
+    aiScan: {
+      label: 'AI Scan',
+      on: 'BẬT',
+      off: 'TẮT',
+      hint: 'Phân tích kết cấu vải của ảnh gốc thành bản đặc tả kỹ thuật trước khi tạo ảnh.',
+      analyzing: 'AI Scan đang phân tích kết cấu vải...',
+      ready: 'Đã có bản đặc tả kết cấu vải',
+      view: 'Xem chi tiết',
+      hide: 'Thu gọn',
+      unavailable: 'AI Scan không khả dụng — vẫn tạo ảnh bằng prompt gốc.',
+    },
   },
 
   imageUploader: {

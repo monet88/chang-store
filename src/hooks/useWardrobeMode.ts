@@ -39,10 +39,23 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
 
   const driver = useMemo<WardrobeImageDriver>(() => ({ editImage }), [editImage]);
 
+  // AI Scan source set: the subject plus every uploaded set item, in the same
+  // order the prompt consumes them. The context de-dupes and caps at 4.
+  const aiScanSources = useMemo(
+    () => [
+      ...(list.subject ? [list.subject] : []),
+      ...list.sets.flatMap((set) =>
+        set.items.map((item) => item.image).filter((image): image is ImageFile => image !== null),
+      ),
+    ],
+    [list.subject, list.sets],
+  );
+
   const engine = useWardrobeModeEngine({
     driver,
     sets: list.sets,
     subject: list.subject,
+    aiScanSources,
     extraPrompt: list.extraPrompt,
     backgroundPrompt: list.backgroundPrompt,
     numImages: params.numImages,
@@ -85,6 +98,8 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
   return {
     sets: list.sets,
     subject: list.subject,
+    /** Subject + set items: the sources the AI Scan panel displays for this mode. */
+    aiScanSources,
     extraPrompt: list.extraPrompt,
     setExtraPrompt: list.setExtraPrompt,
     backgroundPrompt: list.backgroundPrompt,

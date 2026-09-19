@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   AspectRatio,
   Feature,
@@ -7,12 +7,14 @@ import {
   ImageResolution,
 } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
+import { useAiScan } from '../contexts/AiScanContext';
 import type { editImage, upscaleImage, createImageChatSession } from '../services/imageEditingService';
 import {
   buildLookbookPrompt,
   buildVariationPrompt,
   buildCloseUpPrompts,
   buildCloseUpNegativePrompt,
+  lookbookAiScanSources,
   LookbookFormState as PromptFormState,
 } from '../utils/lookbookPromptBuilder';
 import { promptFormatFor } from '../utils/promptFormat';
@@ -86,6 +88,15 @@ export const useLookbookGeneration = (
     setActiveOutputTab, addImage, engineId, t,
   } = config;
 
+  const aiScan = useAiScan();
+
+  // Same ImageFile objects the panel pre-scans (object identity is the scan
+  // cache key), so generation reuses the one analysis already running.
+  const aiScanSources = useMemo<ImageFile[]>(
+    () => lookbookAiScanSources(formState.clothingImages, formState.fabricTextureImage),
+    [formState.clothingImages, formState.fabricTextureImage],
+  );
+
   const handleGenerate = useCallback(async () => {
     const { clothingImages, fabricTextureImage, negativePrompt } = formState;
     const validClothingImages = clothingImages.filter((item) => item.image !== null);
@@ -104,11 +115,13 @@ export const useLookbookGeneration = (
       imagesForApi.push(fabricTextureImage);
     }
 
+    const blueprint = await aiScan.scan(aiScanSources);
     const prompt = buildLookbookPrompt(
       formState as PromptFormState,
       imagesForApi,
       fabricTextureImage,
       promptFormatFor(engineId),
+      blueprint ?? '',
     );
 
     try {
@@ -134,7 +147,7 @@ export const useLookbookGeneration = (
       setLoadingMessage('');
     }
   }, [driver, formState, imageEditModel, buildImageServiceConfig, aspectRatio, resolution,
-    t, setError, setIsLoading, setLoadingMessage, setGeneratedLookbook, setActiveOutputTab, onMainImageGenerated, addImage, engineId]);
+    t, setError, setIsLoading, setLoadingMessage, setGeneratedLookbook, setActiveOutputTab, onMainImageGenerated, addImage, engineId, aiScan, aiScanSources]);
 
   const handleGenerateVariations = useCallback(async () => {
     if (!generatedLookbook) {
@@ -145,7 +158,8 @@ export const useLookbookGeneration = (
     setError(null);
 
     const baseImage = generatedLookbook.main;
-    const prompt = buildVariationPrompt(formState.lookbookStyle);
+    const blueprint = await aiScan.scan(aiScanSources);
+    const prompt = buildVariationPrompt(formState.lookbookStyle, blueprint ?? '');
 
     try {
       const newVariations = await driver.editImage({
@@ -166,7 +180,7 @@ export const useLookbookGeneration = (
     }
   }, [driver, generatedLookbook, formState.negativePrompt, formState.lookbookStyle,
     variationCount, imageEditModel, buildImageServiceConfig, aspectRatio, resolution,
-    t, setError, setIsGeneratingVariations, setLoadingMessage, setGeneratedLookbook, addImage, engineId]);
+    t, setError, setIsGeneratingVariations, setLoadingMessage, setGeneratedLookbook, addImage, engineId, aiScan, aiScanSources]);
 
   const handleGenerateCloseUp = useCallback(async () => {
     if (!generatedLookbook) {
@@ -178,7 +192,8 @@ export const useLookbookGeneration = (
     setGeneratedLookbook((prev) => prev ? { ...prev, closeups: [] } : null);
 
     const baseImage = generatedLookbook.main;
-    const closeUpPrompts = buildCloseUpPrompts();
+    const blueprint = await aiScan.scan(aiScanSources);
+    const closeUpPrompts = buildCloseUpPrompts(blueprint ?? '');
     const combinedNegativePrompt = buildCloseUpNegativePrompt(formState.negativePrompt);
 
     try {
@@ -207,7 +222,7 @@ export const useLookbookGeneration = (
     }
   }, [driver, generatedLookbook, formState.negativePrompt, imageEditModel,
     buildImageServiceConfig, aspectRatio, resolution,
-    t, setError, setIsGeneratingCloseUp, setLoadingMessage, setGeneratedLookbook, addImage, engineId]);
+    t, setError, setIsGeneratingCloseUp, setLoadingMessage, setGeneratedLookbook, addImage, engineId, aiScan, aiScanSources]);
 
   return {
     handleGenerate,

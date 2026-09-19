@@ -21,6 +21,7 @@ import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { promptFormatFor } from '../utils/promptFormat';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
+import { useAiScan } from '../contexts/AiScanContext';
 
 export interface WardrobeImageDriver {
   editImage: typeof editImage;
@@ -30,6 +31,8 @@ export interface UseWardrobeModeEngineConfig {
   driver: WardrobeImageDriver;
   sets: WardrobeSet[];
   subject: ImageFile | null;
+  /** Source set the AI Scan pass deconstructs; object identity is the cache key. */
+  aiScanSources: ImageFile[];
   extraPrompt: string;
   backgroundPrompt: string;
   numImages: number;
@@ -58,6 +61,7 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
     driver,
     sets,
     subject,
+    aiScanSources,
     extraPrompt,
     backgroundPrompt,
     numImages,
@@ -74,6 +78,10 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
     addImage,
     engineId,
   } = config;
+
+  // AI Scan (issue #162): the wardrobe lane builds the same try-on prompt, so it
+  // consumes the same blueprint; a disabled or failed scan leaves it unchanged.
+  const { scan } = useAiScan();
 
   const generate = useCallback(async () => {
     if (isParentGenerating || isGenerating) return;
@@ -105,6 +113,8 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
       items: s.items.filter((i) => i.image !== null),
     }));
 
+    const blueprint = await scan(aiScanSources);
+
     try {
       await runBoundedWorkers(jobs, WARDROBE_CONCURRENCY, async (job) => {
         setResults((prev) =>
@@ -124,6 +134,7 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
             extraPrompt,
             backgroundPrompt,
             isMultiPersonMode: false,
+            outfitBlueprint: blueprint ?? undefined,
           }, promptFormatFor(engineId));
 
           const images = await driver.editImage(
@@ -164,6 +175,8 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
   }, [
     subject,
     sets,
+    aiScanSources,
+    scan,
     extraPrompt,
     backgroundPrompt,
     numImages,

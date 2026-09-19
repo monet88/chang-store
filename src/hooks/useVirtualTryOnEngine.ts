@@ -14,6 +14,7 @@ import { promptFormatFor } from '../utils/promptFormat';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { UseVirtualTryOnSubjectsReturn } from './useVirtualTryOnSubjects';
 import { UseImageRefinementReturn } from './useImageRefinement';
+import { useAiScan } from '../contexts/AiScanContext';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
@@ -34,6 +35,8 @@ export interface UseVirtualTryOnEngineConfig {
   driver: GeminiImageDriver;
   subjects: UseVirtualTryOnSubjectsReturn;
   validClothingItems: VirtualTryOnClothingItem[];
+  /** Source set the AI Scan pass deconstructs; object identity is the cache key. */
+  aiScanSources: ImageFile[];
   isMultiPersonMode: boolean;
   backgroundPrompt: string;
   extraPrompt: string;
@@ -68,11 +71,16 @@ export const useVirtualTryOnEngine = (
   config: UseVirtualTryOnEngineConfig,
 ): UseVirtualTryOnEngineReturn => {
   const {
-    driver, subjects, validClothingItems, isMultiPersonMode, backgroundPrompt,
+    driver, subjects, validClothingItems, aiScanSources, isMultiPersonMode, backgroundPrompt,
     extraPrompt, numImages, aspectRatio, resolution, imageEditModel, canGenerate,
     isWardrobeGenerating, refinement, buildImageServiceConfig, addImage, engineId,
     setIsLoading, setLoadingMessage, setError, setUpscalingStates, t,
   } = config;
+
+  // AI Scan (issue #162): optional analytical pre-pass over the source set. The
+  // blueprint it returns rides in the prompt; a disabled or failed scan yields
+  // null and the base prompt is unchanged.
+  const { scan } = useAiScan();
 
   // Shared per-subject generation: marker compositing + prompt build + driver
   // edit + status commit. Used by both the batch run and single regenerate so
@@ -82,7 +90,7 @@ export const useVirtualTryOnEngine = (
       image: ImageFile;
       sourceItemType: VirtualTryOnClothingItem['sourceItemType'];
       sourcePrompt: string;
-    }[]) => {
+    }[], blueprint: string | null) => {
       subjects.updateSubjectItem(itemId, { status: 'processing', results: [], error: undefined });
       try {
         let finalSubjectImage = subjectImage;
@@ -95,6 +103,7 @@ export const useVirtualTryOnEngine = (
           extraPrompt,
           backgroundPrompt,
           isMultiPersonMode: isMultiPersonMode && subjects.markerPosition !== null,
+          outfitBlueprint: blueprint ?? undefined,
         }, promptFormatFor(engineId));
         const results = await driver.editImage(
           {
@@ -150,9 +159,12 @@ export const useVirtualTryOnEngine = (
       prev.map((item) => ({ ...item, status: 'pending', results: [], error: undefined })),
     );
 
+    // One analysis for the whole batch: the panel's pre-scan reuses this run.
+    const blueprint = await scan(aiScanSources);
+
     try {
       await runBoundedWorkers(jobs, batchConcurrency, (job) =>
-        generateForSubject(job.subjectImage, job.id, sourceItems),
+        generateForSubject(job.subjectImage, job.id, sourceItems, blueprint),
       );
     } catch (err) {
       setError(getErrorMessage(err, t));
@@ -160,7 +172,7 @@ export const useVirtualTryOnEngine = (
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [isWardrobeGenerating, canGenerate, validClothingItems, subjects, refinement,
+  }, [isWardrobeGenerating, canGenerate, validClothingItems, aiScanSources, scan, subjects, refinement,
     setIsLoading, setLoadingMessage, setError, setUpscalingStates, t, generateForSubject]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
@@ -175,8 +187,9 @@ export const useVirtualTryOnEngine = (
 
     setError(null);
     refinement.clearSessionsForPrefix(itemId);
-    await generateForSubject(targetItem.subjectImage, itemId, sourceItems);
-  }, [subjects.subjectItems, validClothingItems, refinement, setError, generateForSubject]);
+    const blueprint = await scan(aiScanSources);
+    await generateForSubject(targetItem.subjectImage, itemId, sourceItems, blueprint);
+  }, [subjects.subjectItems, validClothingItems, aiScanSources, scan, refinement, setError, generateForSubject]);
 
   return { handleGenerateImage, handleRegenerateSingle };
 };

@@ -1,17 +1,18 @@
-import React, { useCallback, useId, useState } from 'react';
+import React, { useCallback, useId, useMemo, useState } from 'react';
 import { ImageFile, AspectRatio } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
 import ImageUploader from '../ImageUploader';
 import MultiImageUploader from '../MultiImageUploader';
 import Spinner from '../Spinner';
 import GptImageOptionsPanel from './GptImageOptionsPanel';
+import AiScanPanel from '../AiScanPanel';
 import { AddIcon, DeleteIcon, MagicWandIcon } from '../Icons';
 import {
   LookbookStyle,
   GarmentType,
   MannequinBackgroundStyleKey,
 } from '../LookbookGenerator.prompts';
-import { LookbookFormState } from '../../utils/lookbookPromptBuilder';
+import { LookbookFormState, lookbookAiScanSources } from '../../utils/lookbookPromptBuilder';
 
 interface GptLookbookFormProps {
   formState: LookbookFormState;
@@ -103,6 +104,13 @@ export const GptLookbookForm = React.memo<GptLookbookFormProps>(({
   const validClothingImages = clothingImages.filter((item) => item.image !== null);
   const anyLoading = isLoading || isGeneratingDescription;
   const hasFabricOverride = Boolean(fabricTextureImage || fabricTexturePrompt.trim());
+
+  // Same ImageFile objects useLookbookGeneration scans, so the panel's pre-scan
+  // and the generation-time scan share one analysis.
+  const aiScanSources = useMemo<ImageFile[]>(
+    () => lookbookAiScanSources(clothingImages, fabricTextureImage),
+    [clothingImages, fabricTextureImage],
+  );
 
   const lookbookStyles: { key: LookbookStyle; label: string }[] = [
     { key: 'flat lay', label: t('lookbook.styleFlatLay') },
@@ -389,6 +397,8 @@ export const GptLookbookForm = React.memo<GptLookbookFormProps>(({
             )}
 
             <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+
+            <AiScanPanel sources={aiScanSources} />
           </div>
         </div>
 

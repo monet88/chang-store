@@ -33,8 +33,12 @@ vi.mock('../../src/contexts/ImageEngineContext', () =>
 );
 
 import { editImage } from '../../src/services/imageEditingService';
-import { useWardrobeMode } from '../../src/hooks/useWardrobeMode';
+import { useWardrobeMode, type WardrobeModeReturn } from '../../src/hooks/useWardrobeMode';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
+import { AiScanProvider } from '../../src/contexts/AiScanContext';
+import type { AiScanAnalyzer } from '../../src/contexts/AiScanContext';
+import { AI_SCAN_BLOCK_HEADER } from '../../src/utils/ai-scan-blueprint';
+import type { ReactNode } from 'react';
 
 const SUBJECT = { base64: 'subject-image', mimeType: 'image/png' };
 const OUTFIT_A = { base64: 'outfit-a', mimeType: 'image/jpeg' };
@@ -439,6 +443,78 @@ describe('useWardrobeMode', () => {
       const { result } = renderHook(() => useWardrobeMode(defaultParams));
 
       expect(downloadImagesAsZip).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('AI Scan blueprint', () => {
+    const BLUEPRINT = 'DRAPE PHYSICS: fluid fall with a matte hand.';
+
+    const wrapperFor =
+      (analyze: AiScanAnalyzer, enabled: boolean) =>
+      function AiScanWrapper({ children }: { children: ReactNode }) {
+        return (
+          <AiScanProvider analyze={analyze} initialEnabled={enabled}>
+            {children}
+          </AiScanProvider>
+        );
+      };
+
+    const setUpWardrobe = (result: { current: WardrobeModeReturn }) => {
+      const setId = result.current.sets[0].id;
+      act(() => {
+        result.current.setSubject(SUBJECT);
+        result.current.addItem(setId);
+      });
+      const itemId = result.current.sets[0].items[0].id;
+      act(() => {
+        result.current.updateItem(setId, itemId, { image: OUTFIT_A });
+      });
+    };
+
+    const textSent = () =>
+      (vi.mocked(editImage).mock.calls[0][0].interleavedParts ?? [])
+        .filter((part) => part.text)
+        .map((part) => part.text)
+        .join('\n');
+
+    it('splices the scanned blueprint into the wardrobe prompt', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue(BLUEPRINT);
+
+      const { result } = renderHook(() => useWardrobeMode(defaultParams), {
+        wrapper: wrapperFor(analyze, true),
+      });
+
+      setUpWardrobe(result);
+
+      await act(async () => {
+        await result.current.generate();
+      });
+
+      expect(analyze).toHaveBeenCalled();
+      expect(textSent()).toContain(AI_SCAN_BLOCK_HEADER);
+      expect(textSent()).toContain(BLUEPRINT);
+      expect(result.current.results[0].status).toBe('completed');
+    });
+
+    it('never analyses and keeps the base prompt when the layer is switched off', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue('unused blueprint');
+
+      const { result } = renderHook(() => useWardrobeMode(defaultParams), {
+        wrapper: wrapperFor(analyze, false),
+      });
+
+      setUpWardrobe(result);
+
+      await act(async () => {
+        await result.current.generate();
+      });
+
+      expect(analyze).not.toHaveBeenCalled();
+      expect(textSent()).not.toContain('AI SCAN');
+      expect(textSent()).toContain('## TASK');
+      expect(result.current.results[0].status).toBe('completed');
     });
   });
 });

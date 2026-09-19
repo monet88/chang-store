@@ -34,8 +34,10 @@ vi.mock('../../src/utils/identity-transfer-defaults', () => ({
 }));
 
 import { editImage } from '../../src/services/imageEditingService';
+import { AiScanProvider, type AiScanAnalyzer } from '../../src/contexts/AiScanContext';
 import { useIdentityTransfer } from '../../src/hooks/useIdentityTransfer';
 import type { DefaultIdentityReferences } from '../../src/utils/identity-transfer-defaults';
+import type { ReactNode } from 'react';
 
 const DESTINATION_A = { base64: 'destination-a', mimeType: 'image/png' };
 const DESTINATION_B = { base64: 'destination-b', mimeType: 'image/png' };
@@ -395,5 +397,81 @@ describe('useIdentityTransfer', () => {
 
     expect(result.current.bodyReference).toBeNull();
     expect(result.current.faceReference).toEqual(FACE);
+  });
+
+  describe('AI scan', () => {
+    const BLUEPRINT = 'WEAVE & MATERIAL: plissé accordion pleats; satin facing at the neckline.';
+
+    const scanWrapper = (analyze: AiScanAnalyzer, enabled: boolean) =>
+      function Wrapper({ children }: { children: ReactNode }) {
+        return (
+          <AiScanProvider analyze={analyze} initialEnabled={enabled}>
+            {children}
+          </AiScanProvider>
+        );
+      };
+
+    it('scans the destination photos and splices the blueprint into every prompt', async () => {
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue(BLUEPRINT);
+      vi.mocked(editImage)
+        .mockResolvedValueOnce([RESULT_A])
+        .mockResolvedValueOnce([RESULT_B]);
+
+      const { result } = renderHook(() => useIdentityTransfer(), { wrapper: scanWrapper(analyze, true) });
+      act(() => {
+        result.current.handleDestinationImagesUpload([DESTINATION_A, DESTINATION_B]);
+        result.current.setFaceReference(FACE);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      expect(analyze).toHaveBeenCalledTimes(2);
+      expect(textData(0)).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION');
+      expect(textData(0)).toContain(BLUEPRINT);
+      expect(textData(1)).toContain(BLUEPRINT);
+      expect(result.current.completedCount).toBe(2);
+    });
+
+    it('leaves the prompts untouched when the layer is off', async () => {
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue(BLUEPRINT);
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+
+      const { result } = renderHook(() => useIdentityTransfer(), { wrapper: scanWrapper(analyze, false) });
+      act(() => {
+        result.current.handleDestinationImagesUpload([DESTINATION_A]);
+        result.current.setFaceReference(FACE);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      expect(analyze).not.toHaveBeenCalled();
+      expect(textData(0)).not.toContain('AI SCAN');
+      expect(result.current.destinationItems[0].results).toEqual([RESULT_A]);
+    });
+
+    it('still generates when the analysis fails', async () => {
+      const analyze = vi.fn<AiScanAnalyzer>().mockRejectedValue(new Error('scan down'));
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+
+      const { result } = renderHook(() => useIdentityTransfer(), { wrapper: scanWrapper(analyze, true) });
+      act(() => {
+        result.current.handleDestinationImagesUpload([DESTINATION_A]);
+        result.current.setFaceReference(FACE);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      expect(result.current.destinationItems[0].status).toBe('completed');
+      expect(result.current.destinationItems[0].results).toEqual([RESULT_A]);
+      expect(textData(0)).not.toContain('AI SCAN');
+      warn.mockRestore();
+    });
   });
 });

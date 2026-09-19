@@ -283,3 +283,56 @@ describe('buildBrandModelParts', () => {
     expect(parts[6].text).toContain('BRAND MODEL (Linh)');
   });
 });
+
+/**
+ * The AI Scan blueprint is the shared analytical layer (issue #162): all three
+ * E-Com Pack lanes splice the same block, and an absent blueprint must leave the
+ * lane prompt exactly as it was.
+ */
+describe('AI Scan blueprint injection', () => {
+  const blueprint = 'WEAVE & MATERIAL: plissé accordion pleats. DRAPE PHYSICS: fluid fall.';
+  const template: DisplayTemplate = {
+    id: 'hanger-wood',
+    name: 'Móc Gỗ',
+    category: 'hanger',
+    modality: 'text',
+    prompt: 'Hang on a natural wood hanger against an off-white wall.',
+  };
+
+  it('splices the blueprint into every E-Com Pack lane', () => {
+    const sourceImage = mockImage('source-outfit');
+    const model: BrandModelProfile = {
+      id: 'linh',
+      name: 'Linh',
+      faceImage: mockImage('linh-face'),
+      bodyImage: null,
+      metadata: {
+        age: 22,
+        height: '1m66',
+        weight: '48kg',
+        bodyType: 'slender hourglass',
+        skinTone: 'fair porcelain',
+        facialFeatures: 'almond eyes',
+        styleVibe: 'muse',
+      },
+    };
+
+    const transfer = getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '', 'parts', blueprint));
+    const staging = getTaskText(buildProductStagingParts(sourceImage, template, 'top', '', 'parts', blueprint));
+    const brandModel = getTaskText(buildBrandModelParts(sourceImage, model, 'full-set', '', 'parts', blueprint));
+
+    for (const taskText of [transfer, staging, brandModel]) {
+      expect(taskText).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION');
+      expect(taskText).toContain(blueprint);
+    }
+  });
+
+  it('leaves the lane prompt untouched when no blueprint was scanned', () => {
+    const sourceImage = mockImage('source-outfit');
+
+    expect(getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '')))
+      .toBe(getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '', 'parts', '   ')));
+    expect(getTaskText(buildProductStagingParts(sourceImage, template, 'top')))
+      .toBe(getTaskText(buildProductStagingParts(sourceImage, template, 'top', '', 'parts', undefined)));
+  });
+});

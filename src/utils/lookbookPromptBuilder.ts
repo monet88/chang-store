@@ -18,6 +18,7 @@ import {
   ProductShotSubType
 } from '../components/LookbookGenerator.prompts';
 import { ImageFile, AspectRatio } from '../types';
+import { formatAiScanBlock } from './ai-scan-blueprint';
 import type { PromptFormat } from './promptFormat';
 
 /**
@@ -40,12 +41,31 @@ export interface LookbookFormState {
 }
 
 /**
+ * The AI Scan source set of a lookbook run: the garment images in slot order,
+ * then the fabric texture image.
+ *
+ * One definition for the form's panel and the generation hook, because the two
+ * must pass the SAME ImageFile objects — object identity is the scan cache key,
+ * and a drifted list would label the run with a stale blueprint and pay for a
+ * second analysis.
+ */
+export const lookbookAiScanSources = (
+  clothingImages: Array<{ image: ImageFile | null }>,
+  fabricTextureImage: ImageFile | null,
+): ImageFile[] => [
+  ...clothingImages.filter((item) => item.image !== null).map((item) => item.image as ImageFile),
+  ...(fabricTextureImage ? [fabricTextureImage] : []),
+];
+
+/**
  * Builds the main lookbook generation prompt based on form state
  * Pure function - no side effects, deterministic output
  *
  * @param formState - Current form state
  * @param images - Array of clothing images for API
  * @param fabricTextureImage - Optional fabric texture image
+ * @param format - Prompt layout mode for the active image driver
+ * @param outfitBlueprint - Optional AI Scan textile deconstruction of the sources
  * @returns Complete prompt string for image generation
  */
 export const buildLookbookPrompt = (
@@ -53,6 +73,7 @@ export const buildLookbookPrompt = (
   images: ImageFile[],
   fabricTextureImage: ImageFile | null,
   format: PromptFormat = 'parts',
+  outfitBlueprint: string = '',
 ): string => {
   const {
     lookbookStyle,
@@ -165,7 +186,7 @@ Render exactly one complete, standalone photograph. Do NOT generate a collage, g
     sections.push(descriptionInstruction);
   }
 
-  return sections.join('\n\n');
+  return sections.join('\n\n') + formatAiScanBlock(outfitBlueprint);
 };
 
 /**
@@ -394,10 +415,12 @@ const buildProductShotPrompt = (
 /**
  * Build variation generation prompt
  * @param lookbookStyle - Current lookbook style
+ * @param outfitBlueprint - Optional AI Scan textile deconstruction of the sources
  * @returns Variation prompt string
  */
 export const buildVariationPrompt = (
-  lookbookStyle: LookbookStyle
+  lookbookStyle: LookbookStyle,
+  outfitBlueprint: string = '',
 ): string => {
   return `## TASK: PRODUCT LOOKBOOK VARIATION SHOT
 Generate a single alternate photograph of the exact same clothing product shown in the reference image, maintaining the '${lookbookStyle}' presentation style.
@@ -415,14 +438,16 @@ Generate a single alternate photograph of the exact same clothing product shown 
 - No collages, grids, split images, multi-panel layouts, or contact sheets.
 - No altering or redesigning the garment, colors, patterns, or construction details.
 - No changing the core '${lookbookStyle}' presentation concept.
-- No blurry details, distortion, or artificial compositing artifacts.`;
+- No blurry details, distortion, or artificial compositing artifacts.` + formatAiScanBlock(outfitBlueprint);
 };
 
 /**
  * Build close-up generation prompts
+ * @param outfitBlueprint - Optional AI Scan textile deconstruction of the sources
  * @returns Array of close-up prompt strings
  */
-export const buildCloseUpPrompts = (): string[] => {
+export const buildCloseUpPrompts = (outfitBlueprint: string = ''): string[] => {
+  const aiScanBlock = formatAiScanBlock(outfitBlueprint);
   return [
     `## TASK: DETAIL CLOSE-UP — NECKLINE / COLLAR
 Generate a high-end e-commerce macro detail photograph focusing on the neckline or collar of the garment from the reference image.
@@ -441,7 +466,7 @@ Generate a high-end e-commerce macro detail photograph focusing on the lower sec
 - Grounding: capture visible waistband construction, front hemline, pleats, pockets, or closures exactly as shown in the reference.
 - Conservative fallback: if waist fastenings, drawstrings, or pockets are not present in the reference, emphasize the clean fabric surface, authentic drape, and hem finishing without inventing pockets, buttons, zippers, or ornamental details.
 - Photography: sharp macro focus on textile texture and stitching quality, clean overhead soft studio lighting, softly blurred catalog background. Preserve true garment design and structure.`
-  ];
+  ].map((prompt) => prompt + aiScanBlock);
 };
 
 /**

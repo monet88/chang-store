@@ -263,3 +263,50 @@ describe('buildCloseUpPrompts & buildCloseUpNegativePrompt', () => {
     expect(combined).toContain('invented buttons, invented pockets, invented trims, invented collars');
   });
 });
+
+describe('AI Scan blueprint injection', () => {
+  const blueprint = 'Material: 92% silk crepe. Bias-cut bodice, French seams, covered placket.';
+
+  it('splices the deconstruction into the main lookbook prompt', () => {
+    const prompt = buildLookbookPrompt(
+      createFormState(),
+      [mockImage('front')],
+      null,
+      'parts',
+      blueprint,
+    );
+
+    expect(prompt).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):');
+    expect(prompt).toContain(blueprint);
+  });
+
+  it('splices the deconstruction into the variation prompt', () => {
+    const prompt = buildVariationPrompt('flat lay', blueprint);
+
+    expect(prompt).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):');
+    expect(prompt).toContain(blueprint);
+  });
+
+  it('splices the deconstruction into every close-up prompt', () => {
+    const prompts = buildCloseUpPrompts(blueprint);
+
+    expect(prompts).toHaveLength(3);
+    prompts.forEach((prompt) => {
+      expect(prompt).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):');
+      expect(prompt).toContain(blueprint);
+    });
+  });
+
+  it('leaves every builder byte-identical when the blueprint is absent or blank', () => {
+    const expectedMain = buildLookbookPrompt(createFormState(), [mockImage('front')], null);
+    const expectedVariation = buildVariationPrompt('flat lay');
+    const expectedCloseUps = buildCloseUpPrompts();
+
+    expect(buildLookbookPrompt(createFormState(), [mockImage('front')], null, 'parts', '')).toBe(expectedMain);
+    expect(buildLookbookPrompt(createFormState(), [mockImage('front')], null, 'parts', '   \n ')).toBe(expectedMain);
+    expect(buildVariationPrompt('flat lay', '')).toBe(expectedVariation);
+    expect(buildVariationPrompt('flat lay', '  ')).toBe(expectedVariation);
+    expect(buildCloseUpPrompts('')).toEqual(expectedCloseUps);
+    expect(buildCloseUpPrompts('\n\t ')).toEqual(expectedCloseUps);
+  });
+});

@@ -10,6 +10,7 @@ import {
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAiScan } from '../contexts/AiScanContext';
 import { buildIdentityTransferParts } from '../utils/identity-transfer-prompt-builder';
 import { promptFormatFor } from '../utils/promptFormat';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -36,6 +37,7 @@ export const useIdentityTransfer = () => {
   const { editImage, model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
+  const { scan } = useAiScan();
 
   const faceReferenceOverridden = useRef(false);
   const bodyReferenceOverridden = useRef(false);
@@ -87,9 +89,17 @@ export const useIdentityTransfer = () => {
     setError(null);
   }, [createDestinationItem]);
 
+  // Declared ahead of the generation callbacks: the scan runs over this exact
+  // array, the same one the feature's `AiScanPanel` receives.
+  const destinationImages = useMemo(
+    () => destinationItems.map((item) => item.destinationImage),
+    [destinationItems],
+  );
+
   const generateForDestination = useCallback(async (
     item: Pick<IdentityTransferBatchItem, 'id' | 'destinationImage'>,
     refs: { face: ImageFile; body: ImageFile | null },
+    blueprint: string | null,
   ) => {
     updateDestinationItem(item.id, { status: 'processing', results: [], error: undefined });
 
@@ -100,6 +110,7 @@ export const useIdentityTransfer = () => {
         bodyReference: refs.body,
         backgroundPrompt,
         extraPrompt,
+        outfitBlueprint: blueprint,
       }, promptFormatFor(engineId));
       const [result] = await editImage({
         images: [],
@@ -123,7 +134,7 @@ export const useIdentityTransfer = () => {
         error: getErrorMessage(itemError, t),
       });
     }
-  }, [addImage, aspectRatio, backgroundPrompt, editImage, engineId, extraPrompt, imageEditModel, resolution, t, updateDestinationItem]);
+  }, [addImage, aspectRatio, backgroundPrompt, editImage, engineId, extraPrompt, imageEditModel, resolution, scan, t, updateDestinationItem]);
 
   const canGenerate = destinationItems.length > 0 && faceReference !== null;
 
@@ -146,8 +157,11 @@ export const useIdentityTransfer = () => {
     })));
 
     try {
+      // One scan per run, over the destination photos — they are the images that
+      // actually show the outfit. The panel pre-scan shares this analysis.
+      const blueprint = await scan(destinationImages);
       await runBoundedWorkers(destinationItems, IDENTITY_TRANSFER_BATCH_CONCURRENCY, (item) =>
-        generateForDestination(item, { face: faceReference, body: bodyReference }));
+        generateForDestination(item, { face: faceReference, body: bodyReference }, blueprint));
     } catch (batchError) {
       setError(getErrorMessage(batchError, t));
     } finally {
@@ -155,7 +169,7 @@ export const useIdentityTransfer = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [bodyReference, destinationItems, faceReference, generateForDestination, t]);
+  }, [bodyReference, destinationImages, destinationItems, faceReference, generateForDestination, scan, t]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
     if (generationInFlight.current) return;
@@ -166,16 +180,14 @@ export const useIdentityTransfer = () => {
     generationInFlight.current = true;
     setError(null);
     try {
-      await generateForDestination(item, { face: faceReference, body: bodyReference });
+      // Served from the context cache whenever the destination set is unchanged.
+      const blueprint = await scan(destinationImages);
+      await generateForDestination(item, { face: faceReference, body: bodyReference }, blueprint);
     } finally {
       generationInFlight.current = false;
     }
-  }, [bodyReference, destinationItems, faceReference, generateForDestination]);
+  }, [bodyReference, destinationImages, destinationItems, faceReference, generateForDestination, scan]);
 
-  const destinationImages = useMemo(
-    () => destinationItems.map((item) => item.destinationImage),
-    [destinationItems],
-  );
   const completedCount = useMemo(
     () => destinationItems.filter((item) => item.status === 'completed').length,
     [destinationItems],

@@ -3,6 +3,7 @@ import { useVirtualTryOnClothing } from './useVirtualTryOnClothing';
 import {
   AspectRatio,
   DEFAULT_IMAGE_RESOLUTION,
+  ImageFile,
   ImageResolution,
   VirtualTryOnMode,
 } from '../types';
@@ -67,6 +68,16 @@ export const useVirtualTryOn = () => {
 
   const canGenerate = subjects.subjectItems.length > 0 && clothing.validClothingItems.length > 0;
 
+  // Source set the AI Scan layer deconstructs: the same ImageFile objects the
+  // generation path scans, so one analysis serves both the panel and the prompt.
+  const aiScanSources = useMemo(
+    () => [
+      ...clothing.validClothingItems.map((item) => item.image as ImageFile),
+      ...subjects.subjectItems.map((item) => item.subjectImage),
+    ],
+    [clothing.validClothingItems, subjects.subjectItems],
+  );
+
   // Cuando se desactiva el modo multi-persona, limpiar el marcador automáticamente
   const setIsMultiPersonMode = useCallback((value: boolean) => {
     setIsMultiPersonModeState(value);
@@ -92,6 +103,7 @@ export const useVirtualTryOn = () => {
     driver,
     subjects,
     validClothingItems: clothing.validClothingItems,
+    aiScanSources,
     isMultiPersonMode,
     backgroundPrompt,
     extraPrompt,
@@ -159,6 +171,7 @@ export const useVirtualTryOn = () => {
     setError,
     generatedImages: subjects.generatedImages,
     validClothingItems: clothing.validClothingItems,
+    aiScanSources,
     completedCount: subjects.completedCount,
     failedCount: subjects.failedCount,
     canGenerate,

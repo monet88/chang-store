@@ -6,6 +6,7 @@ import { Feature } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePoseChanger } from '../hooks/usePoseChanger';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import AiScanPanel from './AiScanPanel';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 
 const PhotoAlbumIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -30,6 +31,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
   const {
     subjectImage,
     setSubjectImage,
+    aiScanSources,
     poseReferenceImage,
     customPosePrompt,
     selectedLibraryPoses,
@@ -162,6 +164,7 @@ const PoseChanger: React.FC<PoseChangerProps> = ({ onOpenPoseLibrary }) => {
               resolution={resolution} setResolution={setResolution}
               model={imageEditModel}
             />
+            <AiScanPanel sources={aiScanSources} />
           </div>
 
           <div className="text-center">

@@ -9,6 +9,7 @@ import { AddIcon, DeleteIcon, CloudUploadIcon } from '../Icons';
 import Tooltip from '../Tooltip';
 import ResultPlaceholder from '../shared/ResultPlaceholder';
 import GptImageOptionsPanel from './GptImageOptionsPanel';
+import AiScanPanel from '../AiScanPanel';
 import { useVirtualTryOn } from '../../hooks/useVirtualTryOn';
 import { compressImage, calculateLetterboxedMarkerCoordinates, computeLetterboxBounds } from '../../utils/imageUtils';
 import WardrobeSetCard from '../WardrobeSetCard';
@@ -68,6 +69,7 @@ const GptVirtualTryOn: React.FC = () => {
     markerPosition,
     setMarkerPosition,
     clearMarker,
+    aiScanSources,
   } = useVirtualTryOn();
 
   const { t } = useLanguage();
@@ -456,6 +458,8 @@ const GptVirtualTryOn: React.FC = () => {
                 <div className="space-y-4">
                   <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} numImages={numImages} setNumImages={setNumImages} />
 
+                  <AiScanPanel sources={aiScanSources} />
+
                   <button
                     type="button"
                     onClick={handleGenerateImage}
@@ -763,6 +767,8 @@ const GptVirtualTryOn: React.FC = () => {
                 </div>
 
                 <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+
+                <AiScanPanel sources={wardrobe.aiScanSources} />
 
                 <button
                   type="button"

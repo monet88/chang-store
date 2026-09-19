@@ -93,6 +93,9 @@ import {
 import { generateClothingDescription } from '../../src/services/textService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 import { useLookbookGenerator } from '../../src/hooks/useLookbookGenerator';
+import { AiScanProvider, type AiScanAnalyzer } from '../../src/contexts/AiScanContext';
+import { AI_SCAN_BLOCK_HEADER } from '../../src/utils/ai-scan-blueprint';
+import type { ReactNode } from 'react';
 
 // ============================================================================
 // Test Constants
@@ -524,6 +527,11 @@ describe('useLookbookGenerator', () => {
       });
 
       expect(result.current.isLoading).toBe(true);
+
+      // Generation now awaits the AI Scan pre-pass before it reaches the driver.
+      await waitFor(() => {
+        expect(editImage).toHaveBeenCalled();
+      });
 
       await act(async () => {
         resolvePromise!([GENERATED_IMAGE]);
@@ -1164,6 +1172,124 @@ describe('useLookbookGenerator', () => {
 
       const callArgs = vi.mocked(editImage).mock.calls[0][0];
       expect(callArgs.images).toHaveLength(1);
+    });
+  });
+
+  // ============================================================================
+  // Test Suite: AI Scan Blueprint
+  // ============================================================================
+
+  describe('AI Scan blueprint', () => {
+    const BLUEPRINT = 'WEAVE & MATERIAL: plissé accordion pleats on a dry silk hand.';
+
+    const wrapperFor =
+      (analyze: AiScanAnalyzer, initialEnabled?: boolean) =>
+      function AiScanWrapper({ children }: { children: ReactNode }) {
+        return (
+          <AiScanProvider analyze={analyze} initialEnabled={initialEnabled}>
+            {children}
+          </AiScanProvider>
+        );
+      };
+
+    /** The prompt each driver call carried, in request order. */
+    const promptSent = (callIndex = 0) => vi.mocked(editImage).mock.calls[callIndex][0].prompt;
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('injects the scanned blueprint into the main prompt the driver receives', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue(BLUEPRINT);
+      const { result } = renderHook(() => useLookbookGenerator(), { wrapper: wrapperFor(analyze) });
+
+      act(() => {
+        result.current.updateForm({ clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }] });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      expect(analyze).toHaveBeenCalled();
+      expect(promptSent()).toContain(AI_SCAN_BLOCK_HEADER);
+      expect(promptSent()).toContain(BLUEPRINT);
+      expect(result.current.generatedLookbook?.main).toEqual(GENERATED_IMAGE);
+    });
+
+    it('carries the same blueprint into variations and every close-up', async () => {
+      vi.mocked(editImage).mockResolvedValue([GENERATED_IMAGE]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue(BLUEPRINT);
+      const { result } = renderHook(() => useLookbookGenerator(), { wrapper: wrapperFor(analyze) });
+
+      act(() => {
+        result.current.updateForm({
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
+          fabricTextureImage: TEST_FABRIC_IMAGE,
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+      await act(async () => {
+        await result.current.handleGenerateVariations();
+      });
+      await act(async () => {
+        await result.current.handleGenerateCloseUp();
+      });
+
+      // Main, one variations request (2 images), then the three close-up shots.
+      expect(vi.mocked(editImage).mock.calls).toHaveLength(5);
+      expect(promptSent(1)).toContain(BLUEPRINT);
+      [2, 3, 4].forEach((callIndex) => {
+        expect(promptSent(callIndex)).toContain(AI_SCAN_BLOCK_HEADER);
+        expect(promptSent(callIndex)).toContain(BLUEPRINT);
+      });
+      // One analysis per source image serves the whole run — a fresh scan per
+      // handler would analyse 6 times.
+      expect(analyze).toHaveBeenCalledTimes(2);
+    });
+
+    it('never analyses and keeps the base prompt when the layer is switched off', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue('unused blueprint');
+      const { result } = renderHook(() => useLookbookGenerator(), { wrapper: wrapperFor(analyze, false) });
+
+      act(() => {
+        result.current.updateForm({ clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }] });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      expect(analyze).not.toHaveBeenCalled();
+      expect(promptSent()).not.toContain('AI SCAN');
+      expect(promptSent()).toContain('REFERENCE EVIDENCE & RECONCILIATION');
+      expect(result.current.generatedLookbook?.main).toEqual(GENERATED_IMAGE);
+    });
+
+    it('still generates the image when the analysis fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockRejectedValue(new Error('analyzer down'));
+      const { result } = renderHook(() => useLookbookGenerator(), { wrapper: wrapperFor(analyze) });
+
+      act(() => {
+        result.current.updateForm({ clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }] });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      expect(analyze).toHaveBeenCalled();
+      expect(promptSent()).not.toContain('AI SCAN');
+      expect(result.current.error).toBeNull();
+      expect(result.current.generatedLookbook?.main).toEqual(GENERATED_IMAGE);
+      consoleSpy.mockRestore();
     });
   });
 });

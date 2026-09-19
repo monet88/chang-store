@@ -62,6 +62,10 @@ vi.mock('../../src/contexts/ImageEngineContext', () =>
 
 import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { useVirtualTryOn } from '../../src/hooks/useVirtualTryOn';
+import { AiScanProvider } from '../../src/contexts/AiScanContext';
+import type { AiScanAnalyzer } from '../../src/contexts/AiScanContext';
+import { AI_SCAN_BLOCK_HEADER } from '../../src/utils/ai-scan-blueprint';
+import type { ReactNode } from 'react';
 import { compositeMarkerOnImage } from '../../src/utils/imageUtils';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 import { Feature } from '../../src/types';
@@ -873,5 +877,96 @@ describe('useVirtualTryOn', () => {
     });
 
     expect(downloadImagesAsZip).not.toHaveBeenCalled();
+  });
+
+  describe('AI Scan blueprint', () => {
+    const BLUEPRINT = 'WEAVE & MATERIAL: plissé accordion pleats with a dry hand.';
+
+    const wrapperFor =
+      (analyze: AiScanAnalyzer, initialEnabled?: boolean) =>
+      function AiScanWrapper({ children }: { children: ReactNode }) {
+        return (
+          <AiScanProvider analyze={analyze} initialEnabled={initialEnabled}>
+            {children}
+          </AiScanProvider>
+        );
+      };
+
+    // Everything the image driver received as text, in request order.
+    const textSent = (callIndex = 0) =>
+      (vi.mocked(editImage).mock.calls[callIndex][0].interleavedParts ?? [])
+        .filter((part) => part.text)
+        .map((part) => part.text)
+        .join('\n');
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('injects the scanned blueprint into the prompt the image driver receives', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue(BLUEPRINT);
+
+      const { result } = renderHook(() => useVirtualTryOn(), { wrapper: wrapperFor(analyze) });
+
+      act(() => {
+        result.current.handleSubjectImagesUpload([SUBJECT_A]);
+        result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerateImage();
+      });
+
+      expect(analyze).toHaveBeenCalled();
+      expect(textSent()).toContain(AI_SCAN_BLOCK_HEADER);
+      expect(textSent()).toContain(BLUEPRINT);
+      expect(result.current.subjectItems[0].status).toBe('completed');
+    });
+
+    it('never analyses and keeps the base prompt when the layer is switched off', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue('unused blueprint');
+
+      const { result } = renderHook(() => useVirtualTryOn(), { wrapper: wrapperFor(analyze, false) });
+
+      act(() => {
+        result.current.handleSubjectImagesUpload([SUBJECT_A]);
+        result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerateImage();
+      });
+
+      expect(analyze).not.toHaveBeenCalled();
+      expect(editImage).toHaveBeenCalledTimes(1);
+      expect(textSent()).not.toContain('AI SCAN');
+      expect(textSent()).toContain('## TASK');
+      expect(result.current.subjectItems[0].status).toBe('completed');
+    });
+
+    it('still generates and reports no error when the analysis fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockRejectedValue(new Error('analyzer down'));
+
+      const { result } = renderHook(() => useVirtualTryOn(), { wrapper: wrapperFor(analyze) });
+
+      act(() => {
+        result.current.handleSubjectImagesUpload([SUBJECT_A]);
+        result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerateImage();
+      });
+
+      expect(editImage).toHaveBeenCalledTimes(1);
+      expect(textSent()).not.toContain('AI SCAN');
+      expect(result.current.error).toBeNull();
+      expect(result.current.subjectItems[0].status).toBe('completed');
+      consoleSpy.mockRestore();
+    });
   });
 });

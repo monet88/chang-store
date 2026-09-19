@@ -154,6 +154,17 @@ export const en = {
       sizeObservation: 'Measured: this size came back as requested in {{honored}} of {{total}} calls.',
       qualityLabel: 'Quality',
     },
+    aiScan: {
+      label: 'AI Scan',
+      on: 'ON',
+      off: 'OFF',
+      hint: 'Deconstructs the source garments into a textile blueprint before generating.',
+      analyzing: 'AI Scan is deconstructing the fabrics...',
+      ready: 'Textile blueprint ready',
+      view: 'View blueprint',
+      hide: 'Hide',
+      unavailable: 'AI Scan unavailable — generating from the base prompt.',
+    },
   },
   imageUploader: {
     removeAria: 'Remove image',

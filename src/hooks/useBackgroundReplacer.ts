@@ -8,6 +8,7 @@ import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generateImageDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
 import { useImageRefinement } from './useImageRefinement';
+import { useAiScan } from '../contexts/AiScanContext';
 import { buildBackgroundReplacementPrompt } from '../utils/background-replacer-prompt-builder';
 import { getEnglishFramingInstruction } from '../utils/framingInstructions';
 import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
@@ -17,6 +18,7 @@ export const useBackgroundReplacer = () => {
   const { imageEditModel, textGenerateModel } = useApi();
   const { addImage } = useImageGallery();
   const { id: engineId } = useImageEngine();
+  const aiScan = useAiScan();
 
   const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }), []);
 
@@ -87,12 +89,13 @@ export const useBackgroundReplacer = () => {
     }
   }, [backgroundImage, t, textGenerateModel]);
 
-  const buildPrompt = useCallback((cameraViewStr: string): string => {
+  const buildPrompt = useCallback((cameraViewStr: string, blueprint: string): string => {
     const framingInstruction = getEnglishFramingInstruction(cameraViewStr);
     return buildBackgroundReplacementPrompt({
       framingInstruction,
       hasBackgroundImage: backgroundImage !== null,
       promptText,
+      outfitBlueprint: blueprint,
     });
   }, [backgroundImage, promptText]);
 
@@ -117,9 +120,12 @@ export const useBackgroundReplacer = () => {
     if (backgroundImage) images.push(backgroundImage);
 
     try {
+      // One scan per generation, on the same ImageFile the AiScanPanel
+      // pre-scanned, so the analysis is shared rather than repeated.
+      const blueprint = await aiScan.scan([subjectImage]);
       const results = await editImage({
         images,
-        prompt: buildPrompt(cameraView),
+        prompt: buildPrompt(cameraView, blueprint ?? ''),
         negativePrompt,
         numberOfImages: 2,
         aspectRatio,
@@ -133,7 +139,7 @@ export const useBackgroundReplacer = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [addImage, aspectRatio, backgroundImage, buildImageServiceConfig, buildPrompt, cameraView, engineId, imageEditModel, negativePrompt, promptText, resolution, subjectImage, t]);
+  }, [addImage, aiScan, aspectRatio, backgroundImage, buildImageServiceConfig, buildPrompt, cameraView, engineId, imageEditModel, negativePrompt, promptText, resolution, subjectImage, t]);
 
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number) => {
     setUpscalingStates((prev) => ({ ...prev, [index]: true }));

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { AspectRatio, ImageFile, ImageResolution } from '../types';
 import { editImage, upscaleImage } from '../services/imageEditingService';
+import { useAiScan } from '../contexts/AiScanContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { buildTextPosePrompt, buildReferencePosePrompt } from '../utils/pose-changer-prompt-builder';
 
@@ -20,6 +21,8 @@ export interface UsePoseChangerEngineConfig {
   aspectRatio: AspectRatio;
   resolution: ImageResolution;
   imageEditModel: string;
+  /** Subject-owned source images the AI Scan layer deconstructs. */
+  aiScanSources: ImageFile[];
   t: (key: string, options?: any) => string;
   allPrompts: string[];
   getFramingInstruction: () => string;
@@ -71,6 +74,7 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
     aspectRatio,
     resolution,
     imageEditModel,
+    aiScanSources,
     t,
     allPrompts,
     getFramingInstruction,
@@ -82,12 +86,15 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
     setError,
   } = config;
 
+  const { scan } = useAiScan();
+
   const handleGenerate = useCallback(async () => {
     if (!subjectImage) {
       setError(t('pose.subjectError'));
       return;
     }
 
+    const blueprint = (await scan(aiScanSources)) ?? '';
     const framingInstruction = getFramingInstruction();
 
     if (poseReferenceImage) {
@@ -98,7 +105,7 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
       setGenerationStatus({ active: true, progress: 1, total: 1, message: t('pose.generatingStatusOne') });
 
       try {
-        const result = await performEdit(driver, buildReferencePosePrompt(customPosePrompt, framingInstruction), [subjectImage, poseReferenceImage], imageEditModel, negativePrompt, aspectRatio, resolution, (message) => setGenerationStatus((prev) => ({ ...prev, message })));
+        const result = await performEdit(driver, buildReferencePosePrompt(customPosePrompt, framingInstruction, blueprint), [subjectImage, poseReferenceImage], imageEditModel, negativePrompt, aspectRatio, resolution, (message) => setGenerationStatus((prev) => ({ ...prev, message })));
         setGeneratedImages([result]);
       } catch (err) {
         setError(getErrorMessage(err, t));
@@ -128,7 +135,7 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
       }));
 
       try {
-        const result = await performEdit(driver, buildTextPosePrompt(promptText, framingInstruction), [subjectImage], imageEditModel, negativePrompt, aspectRatio, resolution);
+        const result = await performEdit(driver, buildTextPosePrompt(promptText, framingInstruction, blueprint), [subjectImage], imageEditModel, negativePrompt, aspectRatio, resolution);
         results = [...results, result];
         setGeneratedImages(results);
       } catch (err) {
@@ -152,6 +159,8 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
     aspectRatio,
     resolution,
     imageEditModel,
+    aiScanSources,
+    scan,
     t,
     allPrompts,
     getFramingInstruction,
@@ -174,7 +183,8 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
     setError(null);
 
     try {
-      const result = await performEdit(driver, buildTextPosePrompt(promptText, getFramingInstruction()), [subjectImage], imageEditModel, negativePrompt, aspectRatio, resolution);
+      const blueprint = (await scan(aiScanSources)) ?? '';
+      const result = await performEdit(driver, buildTextPosePrompt(promptText, getFramingInstruction(), blueprint), [subjectImage], imageEditModel, negativePrompt, aspectRatio, resolution);
       setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
     } catch (err) {
       setError(getErrorMessage(err, t));
@@ -187,6 +197,8 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
     poseReferenceImage,
     driver,
     imageEditModel,
+    aiScanSources,
+    scan,
     negativePrompt,
     aspectRatio,
     resolution,

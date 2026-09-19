@@ -1,5 +1,46 @@
 # Changelog
 
+## [Unreleased] — 2026-09-19
+
+### Added
+
+- AI Scan (`✨ AI Scan`, issue #162): an analytical pre-pass that deconstructs
+  the source garments into a textile blueprint (weave and material, optical
+  finish, weight and drape physics, micro-edge details) before synthesis, and
+  splices that blueprint into the image prompt as a subordinate technical
+  specification. A toggle with an analysis badge and an expandable blueprint
+  viewer sits in the options column of Virtual Try-On (both modes: multi-model
+  and wardrobe), Lookbook, Identity Transfer, Pose Changer and Background
+  Replacer — the four features that gain nothing from textile semantics
+  (Watermark Remover, Pattern Generator, Photo Album, AI Editor) are untouched.
+  The preference persists in `ai_scan_enabled` and defaults to ON.
+- `AiScanContext` (`src/contexts/AiScanContext.tsx`) owns the layer: the
+  persisted preference, the blueprint of the current source set, and the
+  analysis itself. Each source set is analyzed once (capped at four images,
+  `gemini-3.8-flash`) and reused by both the panel's pre-scan and the
+  generation call; changing or clearing the images drops the blueprint; a
+  disabled, failed or cancelled analysis resolves to `null` so generation
+  always ships its base prompt, with no extra latency or tokens.
+- `formatAiScanBlock` (`src/utils/ai-scan-blueprint.ts`) is the single splice
+  point, so every prompt builder emits the identical block heading.
+
+### Changed
+
+- The garment/outfit analysis prompt is shared: it now also asks for textile
+  engineering (weave and material, optical properties and finish, weight and
+  drape physics, micro-edge and hemline details), which the E-Com Pack
+  blueprint benefits from unchanged.
+- The E-Com Pack's three prompt lanes build their blueprint block through
+  `formatAiScanBlock`; the block heading is now
+  `AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images)`
+  instead of the former E-Com-Pack-only wording.
+- Prompt builders accept the blueprint as an optional field and a blank or
+  absent value leaves the built prompt byte-identical: Virtual Try-On
+  (`outfitBlueprint` on the input), Identity Transfer (same), Background
+  Replacer (same), Pose Changer (`buildTextPosePrompt` /
+  `buildReferencePosePrompt` third argument), Lookbook (`buildLookbookPrompt`,
+  `buildVariationPrompt`, `buildCloseUpPrompts` trailing argument).
+
 ## [Unreleased] — 2026-09-18
 
 ### Added

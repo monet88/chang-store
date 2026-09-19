@@ -1,5 +1,6 @@
 import React from 'react';
 import HoverableImage from '../HoverableImage';
+import AiScanPanel from '../AiScanPanel';
 import GptImageOptionsPanel from './GptImageOptionsPanel';
 import ImageUploader from '../ImageUploader';
 import MultiImageUploader from '../MultiImageUploader';
@@ -80,6 +81,7 @@ const GptIdentityTransfer: React.FC = () => {
             <IdentityTransferPresets value={extraPrompt} onChange={setExtraPrompt} />
             <span className="block text-xs leading-5 text-zinc-500">{t('identityTransfer.extraPromptHint')}</span>
           </div>
+          <AiScanPanel sources={destinationImages} />
           <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
           <button type="button" onClick={handleGenerate} disabled={isLoading || !canGenerate} className="flex min-h-[48px] w-full items-center justify-center rounded-[1.25rem] bg-[var(--workspace-accent)] px-4 py-3.5 text-base font-semibold text-[var(--workspace-accent-text)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500">
             {isLoading ? <Spinner /> : t('identityTransfer.generateButton')}
