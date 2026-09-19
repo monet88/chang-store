@@ -174,4 +174,34 @@ describe('useClothingTransferEComPack', () => {
     expect(result.current.brandModels.find((m) => m.name === 'Trang Muse')).toBeUndefined();
     expect(result.current.selectedBrandModelIds).not.toContain(added!.id);
   });
+
+  it('analyzes outfit blueprint on source outfit upload', async () => {
+    const analyzeMock = vi.fn().mockResolvedValue('Mock Blueprint: Top & Tiered Skirt');
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gemini-2.5-flash-image',
+        textGenerateModel: 'gemini-3.8-flash',
+        engineId: 'gemini',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        analyzeOutfitBlueprintFn: analyzeMock,
+      }),
+    );
+
+    await act(async () => {
+      result.current.setSourceOutfitImage(mockImage('my-outfit'));
+    });
+
+    expect(analyzeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ base64: 'data-my-outfit' }),
+      'gemini-3.8-flash',
+    );
+    expect(result.current.outfitBlueprint).toBe('Mock Blueprint: Top & Tiered Skirt');
+  });
 });

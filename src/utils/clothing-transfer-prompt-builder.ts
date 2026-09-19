@@ -43,6 +43,7 @@ export function buildClothingTransferParts(
   references: ClothingTransferReferenceInput[],
   extraInstructions: string,
   format: PromptFormat = 'parts',
+  outfitBlueprint: string = '',
 ): Part[] {
   const roles = [
     { label: destinationRoleLabel, image: conceptImage },
@@ -56,9 +57,11 @@ export function buildClothingTransferParts(
   const avoidSection = format === 'text'
     ? dropRestatedLines(avoidBlock, RESTATED_AVOID_BULLETS)
     : avoidBlock;
+  const blueprintBlock = outfitBlueprint?.trim()
+    ? `\n\nAI OUTFIT DECONSTRUCTION & TECHNICAL BLUEPRINT:\n${outfitBlueprint.trim()}\n`
+    : '';
 
-  const taskPrompt = `TASK: Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.
-
+  const taskPrompt = `TASK: Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.${blueprintBlock}
 REFERENCE OWNERSHIP & ROLES:
 
 1. DESTINATION SCENE OWNS THE ENVIRONMENT AND COMPOSITION
@@ -129,15 +132,18 @@ export function buildProductStagingParts(
   scope: GarmentScope,
   extraInstructions: string = '',
   format: PromptFormat = 'parts',
+  outfitBlueprint: string = '',
 ): Part[] {
   const scopeDesc = formatGarmentScope(scope);
   const hasStagingImage = Boolean(template.image);
   const stagingSpec = hasStagingImage
     ? `Display the extracted garment realistically hanging, laid out, or staged matching the EXACT setting, hanger, surface, and lighting visible in the STAGING REFERENCE image.${template.prompt ? ` ${template.prompt}` : ''}`
     : template.prompt;
+  const blueprintBlock = outfitBlueprint?.trim()
+    ? `\n\nAI OUTFIT DECONSTRUCTION & TECHNICAL BLUEPRINT:\n${outfitBlueprint.trim()}\n`
+    : '';
 
-  const taskPrompt = `TASK: Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged into the STAGING REFERENCE setting.
-
+  const taskPrompt = `TASK: Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged into the STAGING REFERENCE setting.${blueprintBlock}
 STAGING SPECIFICATION:
 ${stagingSpec}
 
@@ -198,13 +204,16 @@ export function buildBrandModelParts(
   _scope: GarmentScope,
   extraInstructions: string = '',
   format: PromptFormat = 'parts',
+  outfitBlueprint: string = '',
 ): Part[] {
   if (!model.faceImage) {
     return [imagePart(sourceImage), { text: 'Preserve destination image.' }];
   }
+  const blueprintBlock = outfitBlueprint?.trim()
+    ? `\n\nAI OUTFIT DECONSTRUCTION & TECHNICAL BLUEPRINT:\n${outfitBlueprint.trim()}\n`
+    : '';
 
-  const taskPrompt = `TASK: Replace the model's head and face in the DESTINATION PHOTO with the BRAND MODEL (${model.name}), producing a high-end fashion catalog photo.
-
+  const taskPrompt = `TASK: Replace the model's head and face in the DESTINATION PHOTO with the BRAND MODEL (${model.name}), producing a high-end fashion catalog photo.${blueprintBlock}
 CRITICAL INSTRUCTIONS:
 1. FACE REPLACEMENT & IDENTITY TRANSFER:
 - Replace the face and head in the DESTINATION PHOTO so it is unmistakably the BRAND MODEL (${model.name}) shown in the reference photo.

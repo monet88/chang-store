@@ -8,6 +8,7 @@ import {
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { useApi } from '../contexts/ApiProviderContext';
 import { useImageRefinement } from './useImageRefinement';
 import { useClothingTransferReferences } from './useClothingTransferReferences';
 import { useClothingTransferConcepts } from './useClothingTransferConcepts';
@@ -35,6 +36,7 @@ export const useClothingTransfer = () => {
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
   const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const { textGenerateModel } = useApi();
 
   const refinement = useImageRefinement({ imageEditModel, setError, t });
   const { refinePrompts, setRefinePrompts, isRefining } = refinement;
@@ -99,6 +101,7 @@ export const useClothingTransfer = () => {
     resolution,
     numImages,
     imageEditModel,
+    textGenerateModel,
     engineId,
     extraPrompt,
     addImage,

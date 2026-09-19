@@ -29,6 +29,7 @@ import {
 import { promptFormatFor } from '../utils/promptFormat';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
+import { analyzeOutfitBlueprint } from '../services/textService';
 
 export interface UseClothingTransferEComPackConfig {
   driver: GeminiImageDriver;
@@ -36,11 +37,13 @@ export interface UseClothingTransferEComPackConfig {
   resolution: ImageResolution;
   numImages: number;
   imageEditModel: string;
+  textGenerateModel?: string;
   engineId?: ImageEngineId;
   extraPrompt: string;
   addImage: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
   setError: (msg: string | null) => void;
   t: (key: string, options?: Record<string, string | number>) => string;
+  analyzeOutfitBlueprintFn?: (image: ImageFile, model?: string) => Promise<string>;
 }
 
 export interface UseClothingTransferEComPackReturn {
@@ -71,6 +74,10 @@ export interface UseClothingTransferEComPackReturn {
   handleCustomDestinationsUpload: (files: ImageFile[]) => void;
   handleRemoveCustomDestination: (index: number) => void;
   packItems: EComPackItem[];
+  outfitBlueprint: string | null;
+  isAnalyzingOutfit: boolean;
+  setOutfitBlueprint: (blueprint: string | null) => void;
+  handleReanalyzeOutfit: () => Promise<void>;
   isGenerating: boolean;
   handleGeneratePack: () => Promise<void>;
   handleRegeneratePackItem: (itemId: string) => Promise<void>;
@@ -85,15 +92,54 @@ export const useClothingTransferEComPack = (
     resolution,
     numImages,
     imageEditModel,
+    textGenerateModel = 'gemini-3.8-flash',
     engineId,
     extraPrompt,
     addImage,
     setError,
     t,
+    analyzeOutfitBlueprintFn,
   } = config;
 
   const [sourceOutfitImage, setSourceOutfitImage] = useState<ImageFile | null>(null);
   const [garmentScope, setGarmentScope] = useState<GarmentScope>('full-set');
+  const [outfitBlueprint, setOutfitBlueprint] = useState<string | null>(null);
+  const [isAnalyzingOutfit, setIsAnalyzingOutfit] = useState(false);
+
+  const analyzeBlueprint = useCallback(
+    async (image: ImageFile): Promise<string | null> => {
+      setIsAnalyzingOutfit(true);
+      try {
+        const fn = analyzeOutfitBlueprintFn || analyzeOutfitBlueprint;
+        const blueprint = await fn(image, textGenerateModel);
+        setOutfitBlueprint(blueprint);
+        return blueprint;
+      } catch (err) {
+        console.warn('Outfit blueprint analysis skipped/failed:', err);
+        return null;
+      } finally {
+        setIsAnalyzingOutfit(false);
+      }
+    },
+    [analyzeOutfitBlueprintFn, textGenerateModel],
+  );
+
+  const handleSetSourceOutfitImage = useCallback(
+    (img: ImageFile | null) => {
+      setSourceOutfitImage(img);
+      setOutfitBlueprint(null);
+      if (img) {
+        analyzeBlueprint(img).catch(() => {});
+      }
+    },
+    [analyzeBlueprint],
+  );
+
+  const handleReanalyzeOutfit = useCallback(async () => {
+    if (sourceOutfitImage) {
+      await analyzeBlueprint(sourceOutfitImage);
+    }
+  }, [sourceOutfitImage, analyzeBlueprint]);
 
   const [brandModels, setBrandModels] = useState<BrandModelProfile[]>(() => {
     const defaultProfiles: BrandModelProfile[] = DEFAULT_BRAND_MODEL_DEFINITIONS.map((def) => ({
@@ -234,24 +280,25 @@ export const useClothingTransferEComPack = (
   }, []);
 
   const runItemGeneration = useCallback(
-    async (item: EComPackItem) => {
+    async (item: EComPackItem, activeBlueprint?: string | null) => {
       if (!sourceOutfitImage) return;
       updatePackItem(item.id, { status: 'processing', results: [], error: undefined });
 
       try {
         let parts;
         const format = promptFormatFor(engineId);
+        const blueprintToUse = activeBlueprint ?? outfitBlueprint ?? '';
 
         if (item.category === 'product') {
           const templateId = item.id.replace('template-', '');
           const template = displayTemplates.find((t) => t.id === templateId);
           if (!template) throw new Error('Template not found');
-          parts = buildProductStagingParts(sourceOutfitImage, template, garmentScope, extraPrompt, format);
+          parts = buildProductStagingParts(sourceOutfitImage, template, garmentScope, extraPrompt, format, blueprintToUse);
         } else if (item.category === 'brand-models') {
           const modelId = item.id.replace('brand-', '');
           const model = brandModels.find((m) => m.id === modelId);
           if (!model) throw new Error('Model profile not found');
-          parts = buildBrandModelParts(sourceOutfitImage, model, garmentScope, extraPrompt, format);
+          parts = buildBrandModelParts(sourceOutfitImage, model, garmentScope, extraPrompt, format, blueprintToUse);
         } else {
           // custom destinations
           const destIndex = parseInt(item.id.replace('custom-', ''), 10);
@@ -262,9 +309,9 @@ export const useClothingTransferEComPack = (
             [{ image: sourceOutfitImage, label: formatGarmentScope(garmentScope) }],
             extraPrompt,
             format,
+            blueprintToUse,
           );
         }
-
         const results = await driver.editImage(
           {
             images: [],
@@ -303,6 +350,7 @@ export const useClothingTransferEComPack = (
       imageEditModel,
       addImage,
       updatePackItem,
+      outfitBlueprint,
       t,
     ],
   );
@@ -328,10 +376,13 @@ export const useClothingTransferEComPack = (
       setError(t('clothingTransfer.ecomPack.inputError'));
       return;
     }
-
     setError(null);
     setIsGenerating(true);
 
+    let activeBlueprint = outfitBlueprint;
+    if (!activeBlueprint && sourceOutfitImage) {
+      activeBlueprint = await analyzeBlueprint(sourceOutfitImage);
+    }
     const initialItems: EComPackItem[] = [
       ...selectedTemplates.map((tpl) => ({
         id: `template-${tpl.id}`,
@@ -363,7 +414,7 @@ export const useClothingTransferEComPack = (
 
     try {
       await runBoundedWorkers(initialItems, 3, async (item) => {
-        await runItemGeneration(item);
+        await runItemGeneration(item, activeBlueprint);
       });
     } finally {
       setIsGenerating(false);
@@ -384,14 +435,18 @@ export const useClothingTransferEComPack = (
     async (itemId: string) => {
       const targetItem = packItems.find((it) => it.id === itemId);
       if (!targetItem) return;
-      await runItemGeneration(targetItem);
+      await runItemGeneration(targetItem, outfitBlueprint);
     },
-    [packItems, runItemGeneration],
+    [packItems, runItemGeneration, outfitBlueprint],
   );
 
   return {
     sourceOutfitImage,
-    setSourceOutfitImage,
+    setSourceOutfitImage: handleSetSourceOutfitImage,
+    outfitBlueprint,
+    isAnalyzingOutfit,
+    setOutfitBlueprint,
+    handleReanalyzeOutfit,
     garmentScope,
     setGarmentScope,
     brandModels,

@@ -41,6 +41,9 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
   const {
     sourceOutfitImage,
     setSourceOutfitImage,
+    outfitBlueprint,
+    isAnalyzingOutfit,
+    handleReanalyzeOutfit,
     garmentScope,
     setGarmentScope,
     brandModels,
@@ -66,6 +69,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
   const [newModelAge, setNewModelAge] = React.useState('22');
   const [newModelHeight, setNewModelHeight] = React.useState('1m65');
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [showBlueprint, setShowBlueprint] = React.useState(false);
 
   const handleSaveModel = () => {
     if (!newModelName.trim() || !newModelFace) {
@@ -118,6 +122,54 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                 title="Outfit Gốc"
                 onImageUpload={setSourceOutfitImage}
               />
+              {sourceOutfitImage && (
+                <div className="mt-3">
+                  {isAnalyzingOutfit && (
+                    <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3.5 py-2 text-xs text-amber-300">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                      </span>
+                      <span>{t('clothingTransfer.ecomPack.blueprintAnalyzing')}</span>
+                    </div>
+                  )}
+                  {!isAnalyzingOutfit && outfitBlueprint && (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                          <span>✨</span>
+                          <span>{t('clothingTransfer.ecomPack.blueprintReady')}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowBlueprint(!showBlueprint)}
+                            className="text-zinc-400 hover:text-white transition-colors underline text-[11px]"
+                          >
+                            {showBlueprint
+                              ? t('clothingTransfer.ecomPack.blueprintHide')
+                              : t('clothingTransfer.ecomPack.blueprintView')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleReanalyzeOutfit}
+                            disabled={isAnalyzingOutfit}
+                            className="text-zinc-400 hover:text-amber-400 transition-colors text-xs ml-1"
+                            title={t('clothingTransfer.ecomPack.blueprintReanalyze')}
+                          >
+                            🔄
+                          </button>
+                        </div>
+                      </div>
+                      {showBlueprint && (
+                        <div className="mt-2.5 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-black/40 p-2.5 font-mono text-[11px] leading-relaxed text-zinc-300">
+                          {outfitBlueprint}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Garment Scope Selector */}

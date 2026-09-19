@@ -250,3 +250,37 @@ export const analyzeScene = async (
     throw error;
   }
 };
+
+export const analyzeOutfitBlueprint = async (
+  image: ImageFile,
+  model: string = 'gemini-3.8-flash',
+): Promise<string> => {
+  const startTime = Date.now();
+
+  try {
+    const result = await geminiTextService.analyzeOutfitBlueprint(image, model);
+
+    logApiCall({
+      provider: 'Gemini',
+      model,
+      feature: 'Outfit Blueprint Analysis',
+      prompt: 'Deconstruct outfit components into technical blueprint',
+      duration: Date.now() - startTime,
+      status: 'success',
+      responseSize: result.length,
+    });
+
+    return result;
+  } catch (error) {
+    logApiCall({
+      provider: 'Gemini',
+      model,
+      feature: 'Outfit Blueprint Analysis',
+      prompt: 'Deconstruct outfit components into technical blueprint',
+      duration: Date.now() - startTime,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+};

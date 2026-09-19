@@ -279,3 +279,61 @@ Do not include stylistic opinions or hypothetical scenes.`;
   }
   throw new Error('error.api.noTextDescription');
 };
+
+export const analyzeOutfitBlueprint = async (
+  image: ImageFile,
+  model: string = 'gemini-3.8-flash',
+): Promise<string> => {
+  const ai = getGeminiClient();
+  try {
+    const imagePart: Part = {
+      inlineData: {
+        data: image.base64,
+        mimeType: image.mimeType,
+      },
+    };
+    const prompt = `You are an expert haute couture and commercial fashion analyst.
+Deconstruct the fashion outfit in this photo into an exhaustive, highly technical specification for an AI image generation pipeline.
+
+Provide concise, highly accurate bullet points covering:
+1. SEPARATE GARMENT COMPONENTS:
+- List every distinct garment (e.g. Upper garment/top, Lower garment/skirt/pants/shorts, Dress, Layered inner tops/bustiers, Outerwear).
+2. TOP GARMENT DETAILS:
+- Category, silhouette, fit, collar/neckline, sleeve cut, cuffs, front closures, ties/ribbons, peplum/flounce.
+- Fabric composition, transparency (sheer/opaque), inner linings/bustiers, lace panels, color & luster.
+3. BOTTOM GARMENT DETAILS:
+- Exact category (skirt, skort, pants, shorts, etc.).
+- Silhouette, cut, length, waistline, pleating, tiers/ruffles.
+- Fabric composition, color, opacity, lining.
+- EXACT HEMLINE & EDGE FINISHES: (e.g. scalloped lace edges, sheer mesh bands, polka-dot plumetis trim, raw fringes, cuffs).
+4. ACCESSORIES & LEGWEAR (if visible):
+- Tights/stockings/hosiery, bags, jewelry, hair accessories.
+
+Keep the output factual, structured, and focused strictly on the clothing construction to guide photorealistic reproduction.`;
+
+    const textPart: Part = { text: prompt };
+    const response = await ai.models.generateContent({
+      model,
+      contents: [{ role: 'user', parts: [imagePart, textPart] }],
+    });
+
+    if (response.promptFeedback?.blockReason) {
+      throw new Error('error.api.safetyBlock');
+    }
+    if (!response.candidates || response.candidates.length === 0) {
+      throw new Error('error.api.noContent');
+    }
+
+    const description = response.text;
+    if (description) {
+      return description.trim();
+    }
+    throw new Error('error.api.noTextDescription');
+  } catch (error) {
+    console.error('Error analyzing outfit blueprint with Gemini API:', error);
+    const errorMessage = error instanceof Error ? error.message : 'error.unknown';
+    throw new Error(
+      errorMessage.startsWith('error.') ? errorMessage : `error.api.descriptionFailed:${errorMessage}`,
+    );
+  }
+};
