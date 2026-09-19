@@ -69,7 +69,7 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
           {images.length > 0 && (
             <button
               onClick={handleClearAll}
-              className="text-sm text-red-400 hover:text-red-300 bg-red-900/50 hover:bg-red-900/80 px-3 py-1.5 rounded-md transition-colors"
+              className="text-sm text-red-400 hover:text-red-300 bg-red-900/50 hover:bg-red-900/80 px-3 py-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
             >
               {t('gallery.clearAll')}
             </button>
@@ -77,7 +77,7 @@ const GalleryModal: React.FC<GalleryModalProps> = ({ onClose }) => {
         </div>
         <button
           onClick={onClose}
-          className="p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors"
+          className="p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           aria-label={t('gallery.closeAria')}
         >
           <CloseIcon className="w-8 h-8" />
