@@ -68,12 +68,12 @@ describe('useClothingTransferEComPack', () => {
     expect(result.current.selectedBrandModelIds).toEqual([]);
 
     act(() => {
-      result.current.toggleDisplayTemplate('hanger-wood');
+      result.current.toggleDisplayTemplate('custom-staging-0');
     });
-    expect(result.current.selectedTemplateIds).toEqual(['hanger-wood']);
+    expect(result.current.selectedTemplateIds).toEqual(['custom-staging-0']);
 
     act(() => {
-      result.current.toggleDisplayTemplate('hanger-wood');
+      result.current.toggleDisplayTemplate('custom-staging-0');
     });
     expect(result.current.selectedTemplateIds).toEqual([]);
   });
@@ -119,7 +119,7 @@ describe('useClothingTransferEComPack', () => {
     act(() => {
       result.current.setSourceOutfitImage(mockImage('outfit'));
       result.current.setGarmentScope('top');
-      result.current.toggleDisplayTemplate('hanger-wood');
+      result.current.handleCustomStagingUpload([mockImage('staging-wood')]);
     });
 
     await act(async () => {
@@ -136,7 +136,7 @@ describe('useClothingTransferEComPack', () => {
     );
   });
 
-  it('manages custom staging references upload, auto-unchecks presets, and handles removal', () => {
+  it('manages custom staging references upload and handles removal', () => {
     const { result } = setupHook();
 
     act(() => {
@@ -144,11 +144,7 @@ describe('useClothingTransferEComPack', () => {
     });
 
     expect(result.current.customStagingImages).toHaveLength(2);
-    // Preset templates must be auto-unchecked to prevent clutter
     expect(result.current.selectedTemplateIds).toEqual(['custom-staging-0', 'custom-staging-1']);
-    expect(result.current.selectedTemplateIds).not.toContain('hanger-wood');
-    expect(result.current.selectedTemplateIds).not.toContain('flatlay-linen');
-
     act(() => {
       result.current.handleRemoveCustomStaging(0);
     });

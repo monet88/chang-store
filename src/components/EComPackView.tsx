@@ -49,12 +49,8 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
     handleAddCustomModel,
     handleRemoveCustomModel,
     isCustomBrandModel,
-    displayTemplates,
-    selectedTemplateIds,
-    toggleDisplayTemplate,
     customStagingImages,
     handleCustomStagingUpload,
-    handleRemoveCustomStaging,
     customDestinations,
     handleCustomDestinationsUpload,
     packItems,
@@ -152,7 +148,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
           </div>
         </section>
 
-        {/* 2. Product Staging (Hanger & Flat Lay) */}
+        {/* 2. Product Staging (Hanger & Flat Lay - Upload Only) */}
         <section className="workspace-stage rounded-[2rem] p-5 sm:p-6">
           <div className="mb-3">
             <h4 className="workspace-title text-lg font-medium text-white">
@@ -163,86 +159,14 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            {displayTemplates.map((tpl) => {
-              const isSelected = selectedTemplateIds.includes(tpl.id);
-              const isCustomStaging = tpl.id.startsWith('custom-staging-');
-              const customIndex = isCustomStaging ? parseInt(tpl.id.replace('custom-staging-', ''), 10) : -1;
-
-              return (
-                <div
-                  key={tpl.id}
-                  className={`group relative flex items-center justify-between rounded-xl border p-3.5 transition-all ${
-                    isSelected
-                      ? 'border-amber-500/50 bg-amber-500/10 ring-1 ring-amber-500/40'
-                      : 'border-white/10 bg-black/25 hover:border-white/20'
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleDisplayTemplate(tpl.id)}
-                    className="flex flex-1 items-center gap-3 text-left"
-                  >
-                    {tpl.image ? (
-                      <img
-                        src={`data:${tpl.image.mimeType};base64,${tpl.image.base64}`}
-                        alt={tpl.name}
-                        className="h-11 w-11 rounded-lg object-cover ring-1 ring-white/10"
-                      />
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-zinc-100 truncate">{tpl.name}</p>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                        {isCustomStaging ? t('clothingTransfer.ecomPack.customBadge') : tpl.category === 'hanger' ? 'Hanger' : 'Flat Lay'}
-                      </span>
-                    </div>
-                    <div
-                      className={`flex h-5 w-5 items-center justify-center rounded-md border text-xs font-bold ${
-                        isSelected
-                          ? 'border-amber-500 bg-amber-500 text-black'
-                          : 'border-white/20 bg-transparent text-transparent'
-                      }`}
-                    >
-                      ✓
-                    </div>
-                  </button>
-                  {isCustomStaging && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveCustomStaging(customIndex);
-                      }}
-                      className="ml-2 rounded-lg p-1.5 text-zinc-500 hover:bg-white/10 hover:text-red-400 transition-all"
-                      title={t('common.delete')}
-                    >
-                      <DeleteIcon className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Upload Custom Staging Images */}
-          <div className="mt-4 border-t border-white/10 pt-4">
-            <div className="mb-2.5">
-              <p className="text-xs font-semibold text-zinc-200 uppercase tracking-wider">
-                {t('clothingTransfer.ecomPack.customStagingUploadTitle')}
-              </p>
-              <p className="text-[11px] leading-4 text-zinc-400 mt-0.5">
-                {t('clothingTransfer.ecomPack.customStagingUploadHint')}
-              </p>
-            </div>
-            <MultiImageUploader
-              images={customStagingImages}
-              id="custom-staging-uploader"
-              title={t('clothingTransfer.ecomPack.customStagingUploadTitle')}
-              hideTitle
-              maxImages={4}
-              onImagesUpload={handleCustomStagingUpload}
-            />
-          </div>
+          <MultiImageUploader
+            images={customStagingImages}
+            id="custom-staging-uploader"
+            title={t('clothingTransfer.ecomPack.productStagingTitle')}
+            hideTitle
+            maxImages={4}
+            onImagesUpload={handleCustomStagingUpload}
+          />
         </section>
 
         {/* 3. Brand Models */}

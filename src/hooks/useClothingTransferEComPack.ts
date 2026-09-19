@@ -123,7 +123,7 @@ export const useClothingTransferEComPack = (
       prompt: 'A professional e-commerce staging photo reproducing the exact staging surface, hanger, or backdrop shown in the STAGING REFERENCE image.',
       image: img,
     }));
-    return [...DEFAULT_DISPLAY_TEMPLATES, ...customTemplates];
+    return customTemplates;
   }, [customStagingImages, t]);
 
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
@@ -191,16 +191,9 @@ export const useClothingTransferEComPack = (
 
   const handleCustomStagingUpload = useCallback((files: ImageFile[]) => {
     setCustomStagingImages((prev) => {
-      const startIdx = prev.length;
-      const next = [...prev, ...files].slice(0, 4);
-      const newIds: string[] = [];
-      for (let i = startIdx; i < next.length; i++) {
-        newIds.push(`custom-staging-${i}`);
-      }
-      if (newIds.length > 0) {
-        // Auto-uncheck all presets and exclusively select the newly uploaded staging photos
-        setSelectedTemplateIds(newIds);
-      }
+      const isAppend = prev.length > 0 && files.length > 0 && !files.includes(prev[0]);
+      const next = isAppend ? [...prev, ...files].slice(0, 4) : files.slice(0, 4);
+      setSelectedTemplateIds(next.map((_, i) => `custom-staging-${i}`));
       return next;
     });
   }, []);
