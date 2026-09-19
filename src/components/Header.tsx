@@ -51,7 +51,7 @@ const Header: React.FC<HeaderProps> = ({
 
         <button
           onClick={onClose}
-          className="lg:hidden rounded-full border border-white/10 bg-white/[0.04] p-2 text-zinc-400 transition-colors hover:text-white"
+          className="lg:hidden rounded-full border border-white/10 bg-white/[0.04] p-2 text-zinc-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
           aria-label={t('navigation.closeMenu')}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
