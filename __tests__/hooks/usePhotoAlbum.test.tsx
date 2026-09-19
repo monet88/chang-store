@@ -257,7 +257,7 @@ describe('usePhotoAlbum', () => {
     });
 
     expect(editImageMock).toHaveBeenCalledTimes(1);
-    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('framingInstructions.halfBody');
+    expect(editImageMock.mock.calls[0]?.[0]?.prompt).toContain('For half-body shots, crop tightly at the thigh/hip level');
   });
 
   it('inserts background prompt when background is not none', async () => {

@@ -37,9 +37,44 @@
 - GPT refinements are stateless: consecutive refines do not carry prior turns,
   and lookbook variation/close-up consistency is weaker than Gemini's chat.
   The refine control stays visible on both lanes.
+- Prompt builders take the lane's format (`src/utils/promptFormat.ts`). The
+  interleaved builders (Virtual Try-On, Identity Transfer, Clothing Transfer)
+  now assemble one role map for the GPT lane — each image named by position,
+  with its user note, instead of the labels a flattened prompt carried a second
+  time. The task text, invariants and prohibitions stay one shared source, so
+  the Gemini prompts are unchanged.
+- The Identity Transfer prompt on the GPT lane drops the sentences that only
+  restate an earlier section (the anti-list, the authority/makeup/grade repeats,
+  and the reference wrap its role map already carries): 6,135 → 4,827 characters
+  of instructions with every rule kept. The Gemini prompt is byte-identical;
+  the compaction is anchored to substrings of the shared text, so a missing
+  anchor leaves it whole instead of dropping a rule.
+- Virtual Try-On and Clothing Transfer use the same lane compaction: the GPT
+  prompt drops the prohibition bullets and avoid bullets that only restate a
+  section above them (the lower-body, pockets, and tucking rules; four
+  restatements of ROLE 1/2 and PLACEMENT). Both Gemini prompts are byte-identical
+  (4,035 and 3,197 characters), and every dropped bullet's rule stays stated in
+  the prompt.
+- Gemini prompt optimizations: Pattern Generator keeps its interleaved Gemini
+  prompt assembly; negative prompts use semantic scene framing; camera framing
+  instructions in Background Replacer, Pose Changer and Photo Album are locked
+  to English to prevent bilingual prompt leakage; buzzword bloat removed; default
+  Watermark Remover and chat refinement model updated to `gemini-3.1-flash-image`.
 
 ### Fixed
 
+- Prompts no longer pin a resolution. Five prompt strings asked for "2K" while
+  the UI's resolution control (1K/2K/4K, default 2K) is the real parameter —
+  `editImage` sends it as `imageConfig.imageSize` — so a 1K or 4K request
+  carried a contradictory instruction. Pose Changer (both prompts), Background
+  Replacer, Photo Album, and the Face-Fusion prompt in `imageEditingService`
+  now state the quality intent without naming a resolution.
+- A multi-person Virtual Try-On now tells the model to erase the red targeting
+  dot and its white ring from the result. The dot is composited onto the image
+  sent to the model, and no prompt asked for its removal on either lane.
+- The main Lookbook prompt and both AI Editor prompts demand exactly one
+  standalone image, so a generation cannot come back as a collage, grid, or
+  contact sheet.
 - GPT Studio navigation: replaced Pattern Generator with Identity Transfer in
   `PROVIDER_SUPPORTED_FEATURES` so the studio renders all five shipped workflows
   and navigation never routes to an unbacked view.
@@ -47,6 +82,19 @@
   into the single prompt and ordered reference images required by OpenAI-style
   `/images/edits`, unblocking parts-based workflows (Virtual Try-On, Clothing
   Transfer, Identity Transfer).
+- Negative prompts on the GPT lane: the Lookbook negative prompt reached the
+  engine and was dropped, because `/images/edits` has no negative field. Both
+  lanes now append it to the request prompt through
+  `src/utils/negative-prompt-builder.ts`, so the wording cannot drift apart.
+- The Gemini lane dropped the negative prompt whenever a request carried
+  interleaved parts; the avoid-sentence now travels as one more part.
+- AI Editor prompts state the edit invariants on both lanes: apply only the
+  named change, keep identity/framing/lighting intact, never invent or garble
+  text and logos, and blend referenced images as one photograph.
+- The GPT studio offered a 1-4 image-count slider that its lane cannot honour
+  (`n` is measured-ignored on the reference gateway), so the control is gone
+  from the Virtual Try-On and Clothing Transfer views; one request still returns
+  one image.
 
 ## [Unreleased] — 2026-09-17
 

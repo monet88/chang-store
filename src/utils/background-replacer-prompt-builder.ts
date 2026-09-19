@@ -27,7 +27,7 @@ const buildCoreInstruction = (framingInstruction: string): string => `
       4. **Lighting and Shadow Harmony**: Match lighting, add shadows, and apply consistent color grading.
       5. **Perspective and Proportion**: Scale the subject naturally to match the environment.
       6. **Framing**: ${framingInstruction}
-      **Goal**: A high-resolution (2K), photorealistic image where the subject is seamlessly integrated into the new background.
+      **Goal**: A high-resolution, photorealistic image where the subject is seamlessly integrated into the new background.
     `;
 
 /**

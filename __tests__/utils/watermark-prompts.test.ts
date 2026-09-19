@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_PROMPT_ID,
+  DEFAULT_WATERMARK_MODEL,
+  WATERMARK_MODELS,
   WATERMARK_PROMPTS,
   getPromptText,
 } from '@/utils/watermark-prompts';
@@ -24,5 +26,10 @@ describe('watermark prompts', () => {
     expect(getPromptText('missing-id')).toBe(
       WATERMARK_PROMPTS.find((prompt) => prompt.id === DEFAULT_PROMPT_ID)?.prompt,
     );
+  });
+
+  it('defaults to gemini-3.1-flash-image and only includes contracted models', () => {
+    expect(DEFAULT_WATERMARK_MODEL).toBe('gemini-3.1-flash-image');
+    expect(WATERMARK_MODELS.map((m) => m.id)).toEqual(['gemini-3.1-flash-image']);
   });
 });

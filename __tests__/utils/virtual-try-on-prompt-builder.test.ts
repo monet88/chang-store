@@ -262,4 +262,97 @@ describe('buildVirtualTryOnParts', () => {
       expect(fullText).not.toContain('## 1.');
     });
   });
+
+  describe('flat prompt format', () => {
+    const promptText = (parts: Part[]) =>
+      parts.filter((p) => p.text).map((p) => p.text).join('\n');
+
+    it('sends one prompt that names every image by position, then the images in input order', () => {
+      const parts = buildVirtualTryOnParts(mixedSourceInput, 'text');
+
+      expect(parts).toHaveLength(6);
+      expect(parts[0].text).toContain('IMAGE 1 = SUBJECT');
+      expect(parts[0].text).toContain('IMAGE 2 = SOURCE ITEM #1 (clothing)');
+      expect(parts[0].text).toContain('IMAGE 5 = SOURCE ITEM #4 (bag)');
+      expect(parts[0].text).toContain('## APPLICATION RULES');
+      expect(parts[1].inlineData?.data).toBe('mock-base64-subject');
+      expect(parts[2].inlineData?.data).toBe('mock-base64-shirt');
+      expect(parts[5].inlineData?.data).toBe('mock-base64-bag');
+    });
+
+    it('names each source item once instead of repeating a source-type list', () => {
+      const text = promptText(buildVirtualTryOnParts(mixedSourceInput, 'text'));
+
+      expect(text).not.toContain('## SOURCE ITEM TYPES');
+      expect(text.match(/SOURCE ITEM #1 \(clothing\)/g)).toHaveLength(1);
+      expect(text.match(/SOURCE ITEM #4 \(bag\)/g)).toHaveLength(1);
+      expect(text).toContain('Treat each source image as its listed type');
+    });
+
+    it('carries each normalized user note on the image it belongs to', () => {
+      const text = promptText(buildVirtualTryOnParts({
+        ...defaultInput,
+        sourceItems: [{ image: mockImage('pants'), sourceItemType: 'clothing', sourcePrompt: '  wide pants,\nno hand   in pocket  ' }],
+      }, 'text'));
+
+      expect(text).toContain('IMAGE 2 = SOURCE ITEM #1 (clothing): Apply this item. User note: wide pants, no hand in pocket');
+      expect(text).not.toContain('  wide pants');
+    });
+
+    it('keeps the shared editing rules when the labels collapse into one prompt', () => {
+      const text = promptText(buildVirtualTryOnParts({ ...defaultInput, extraPrompt: 'keep the shoes' }, 'text'));
+
+      expect(text).toContain('## TASK');
+      expect(text).toContain('## APPLICATION RULES');
+      expect(text).toContain('Zero original elements in replaced clothing areas may remain');
+      expect(text).toContain('## PROHIBITIONS');
+      expect(text).toContain('## ADDITIONAL INSTRUCTIONS');
+    });
+    it('drops the prohibition bullets that only restate an earlier section', () => {
+      const flat = promptText(buildVirtualTryOnParts(defaultInput, 'text'));
+
+      // Gone: the lower-body and tucking rules (## APPLICATION RULES) and the
+      // pockets rule (## POSE) are already stated earlier in this same prompt.
+      expect(flat).not.toContain("Do not keep the subject's original lower-body garment");
+      expect(flat).not.toContain('No tucking tops into pants or skirts.');
+      expect(flat).not.toContain('Do not put hands into pants pockets or hide hands unless');
+      // Upstream statements of those same rules must survive.
+      expect(flat).toContain("Do not preserve the subject's original pants, skirt, shorts, or jeans");
+      expect(flat).toContain('never tucked in');
+      expect(flat).toContain('Do not insert hands into pants pockets or hide fingers');
+      // Every prohibition with no earlier statement stays.
+      ['Do not change unrelated clothing when applying shoes, bag, or accessory items.',
+        "Do not alter the subject's face, features, expressions, age, or body proportions.",
+        'do not invent new logos, text, graphics, or watermarks',
+        'Do not add or remove people.'].forEach((rule) => expect(flat).toContain(rule));
+    });
+
+    it('keeps every prohibition on the interleaved lane, dots included', () => {
+      const interleaved = promptText(buildVirtualTryOnParts(defaultInput));
+      const flat = promptText(buildVirtualTryOnParts({ ...defaultInput, isMultiPersonMode: true }, 'text'));
+
+      expect(interleaved).toContain('No tucking tops into pants or skirts.');
+      expect(flat).toContain('Remove the red targeting dot and its white ring completely');
+    });
+  });
+
+  describe('multi-person marker', () => {
+    const multiPersonInput: VirtualTryOnPromptInput = { ...defaultInput, isMultiPersonMode: true };
+
+    it('asks for the targeting dot to be erased in the interleaved format', () => {
+      const text = getTaskText(buildVirtualTryOnParts(multiPersonInput));
+
+      expect(text).toContain('The dot and its white ring are targeting marks only: remove them completely from the result');
+      expect(text).toContain('Remove the red targeting dot and its white ring completely; no dot, ring, or halo may remain on the person');
+    });
+
+    it('asks for the targeting dot to be erased in the flat format too', () => {
+      const parts = buildVirtualTryOnParts(multiPersonInput, 'text');
+      const text = parts[0].text ?? '';
+
+      expect(text).toContain('The dot and its white ring are targeting marks only: remove them completely from the result');
+      expect(text).toContain('Remove the red targeting dot and its white ring completely');
+      expect(text).toContain('Modify ONLY the person with the red dot');
+    });
+  });
 });

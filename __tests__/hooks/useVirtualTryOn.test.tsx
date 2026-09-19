@@ -4,6 +4,8 @@ import { mockUseImageEngine } from '../__mocks__/contexts';
 
 const addImageMock = vi.hoisted(() => vi.fn());
 
+const engineIdState = vi.hoisted(() => ({ id: 'gemini' as ImageEngineId }));
+
 vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
   upscaleImage: vi.fn(),
@@ -51,6 +53,10 @@ vi.mock('../../src/contexts/ImageEngineContext', () =>
     upscaleImage,
     createImageChatSession,
     model: 'gemini-2.5-flash-image',
+    // Read per render, so a test can move the hook between the two studios.
+    get id() {
+      return engineIdState.id;
+    },
   }),
 );
 
@@ -59,6 +65,7 @@ import { useVirtualTryOn } from '../../src/hooks/useVirtualTryOn';
 import { compositeMarkerOnImage } from '../../src/utils/imageUtils';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 import { Feature } from '../../src/types';
+import type { ImageEngineId } from '../../src/types';
 
 const SUBJECT_A = { base64: 'subject-a', mimeType: 'image/png' };
 const SUBJECT_B = { base64: 'subject-b', mimeType: 'image/png' };
@@ -88,6 +95,7 @@ describe('useVirtualTryOn', () => {
     vi.clearAllMocks();
     addImageMock.mockReset();
     mockModelName = 'gemini-2.5-flash-image';
+    engineIdState.id = 'gemini';
     refineSessionMock.sendRefinement.mockReset();
   });
 
@@ -189,6 +197,47 @@ describe('useVirtualTryOn', () => {
     expect(taskText).toContain('untucked relaxed styling');
     expect(taskText).toContain('- Source item #1: clothing. User note: casual linen shirt');
     expect(taskText).toContain('Modify ONLY the person with the red dot');
+  });
+
+  it('sends interleaved labels on Gemini and one indexed role map on the OpenAI-compatible lane', async () => {
+    vi.mocked(editImage).mockResolvedValue([RESULT_A]);
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.handleSubjectImagesUpload([SUBJECT_A]);
+      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+      result.current.handleSourcePromptChange(result.current.clothingItems[0].id, 'linen shirt');
+    });
+
+    await act(async () => {
+      await result.current.handleGenerateImage();
+    });
+
+    const geminiParts = vi.mocked(editImage).mock.calls[0][0].interleavedParts ?? [];
+    expect(geminiParts[0].text).toContain('SUBJECT');
+    expect(geminiParts[1].inlineData?.data).toBe('subject-a');
+    expect(geminiParts[2].text).toContain('SOURCE ITEM #1 (clothing)');
+    expect(geminiParts[3].inlineData?.data).toBe('outfit-a');
+    expect(geminiParts[4].text).toContain('## TASK');
+
+    engineIdState.id = 'gptImage';
+    act(() => {
+      // Re-render so the hook reads the new lane before generating again.
+      result.current.setExtraPrompt('untucked styling');
+    });
+
+    await act(async () => {
+      await result.current.handleGenerateImage();
+    });
+
+    const flatParts = vi.mocked(editImage).mock.calls[1][0].interleavedParts ?? [];
+    expect(flatParts).toHaveLength(3);
+    expect(flatParts[0].text).toContain('IMAGE 1 = SUBJECT');
+    expect(flatParts[0].text).toContain('IMAGE 2 = SOURCE ITEM #1 (clothing): Apply this item. User note: linen shirt');
+    expect(flatParts[0].text).toContain('untucked styling');
+    expect(flatParts[0].text).not.toContain('## SOURCE ITEM TYPES');
+    expect(flatParts[1].inlineData?.data).toBe('subject-a');
+    expect(flatParts[2].inlineData?.data).toBe('outfit-a');
   });
   it('tracks multiple subject images as batch items', () => {
     const { result } = renderHook(() => useVirtualTryOn());

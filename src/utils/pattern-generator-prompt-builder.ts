@@ -1,5 +1,6 @@
 import type { Part } from '@google/genai';
 import { ImageFile } from '../types';
+import { imagePart } from './promptFormat';
 
 export const TASK_PROMPT = `TASK:
 Generate a seamless, square, tileable textile pattern repeat unit from the reference image(s).
@@ -78,7 +79,7 @@ export function buildPatternGeneratorParts(
 
   referenceImages.forEach((image, index) => {
     parts.push({ text: `REFERENCE IMAGE ${index + 1}:` });
-    parts.push({ inlineData: { data: image.base64, mimeType: image.mimeType } });
+    parts.push(imagePart(image));
   });
 
   parts.push({ text: taskPrompt });

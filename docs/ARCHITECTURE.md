@@ -172,12 +172,25 @@ by `src/services/imageEditingService.ts` and the GPT lane by
 requested ratio to the pixel size the active (gateway, model) pair actually
 honors, turns a refine into one stateless preservation-wrapped edit (because
 OpenAI-style edit endpoints keep no conversation), and flattens Gemini-style
-interleaved parts into one prompt and ordered reference images.
+interleaved parts into one prompt and ordered reference images. The builders
+themselves take the lane's format (`src/utils/promptFormat.ts`, from the
+engine's `id`): Gemini gets interleaved `[label, image, …]` parts, the GPT lane
+gets one role map that names each image by position plus the same task text and
+prohibitions — one wording, two assemblies. Because the flat lane is read as one
+block, it also drops the lines that only restate an earlier section of that same
+prompt (`dropRestatedLines` in the same module, anchored on the full line so a
+reworded bullet survives); the interleaved lane keeps them beside its labels.
+Neither endpoint
+has a negative field, so both lanes append the user's negative prompt to the
+request prompt with the shared wording in `src/utils/negative-prompt-builder.ts`.
 
 Generation controls follow the engine: the Gemini views render aspect ratio and
 resolution (`ImageOptionsPanel`), the GPT views render ratio, the resolved pixel
 size, and quality (`src/components/studios/GptImageOptionsPanel.tsx`) — both
-derived from the capability catalog, never from a hardcoded table. Every result
+derived from the capability catalog, never from a hardcoded table. Resolution is
+a request parameter, not a prompt line: `editImage` maps it to
+`imageConfig.imageSize` (`src/services/gemini/image.ts`), so no builder pins a
+resolution in its text. Every result
 is persisted to the shared IndexedDB gallery tagged with its feature and the
 engine that produced it.
 

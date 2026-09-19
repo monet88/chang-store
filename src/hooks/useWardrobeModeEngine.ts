@@ -18,6 +18,7 @@ import {
 } from '../types';
 import { editImage } from '../services/imageEditingService';
 import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
+import { promptFormatFor } from '../utils/promptFormat';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
 
@@ -123,7 +124,7 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
             extraPrompt,
             backgroundPrompt,
             isMultiPersonMode: false,
-          });
+          }, promptFormatFor(engineId));
 
           const images = await driver.editImage(
             {

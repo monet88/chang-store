@@ -11,6 +11,7 @@ import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { buildIdentityTransferParts } from '../utils/identity-transfer-prompt-builder';
+import { promptFormatFor } from '../utils/promptFormat';
 import { getErrorMessage } from '../utils/imageUtils';
 import { loadDefaultIdentityReferences } from '../utils/identity-transfer-defaults';
 import { remapImageBatchItems } from '../utils/batch-image-session';
@@ -99,7 +100,7 @@ export const useIdentityTransfer = () => {
         bodyReference: refs.body,
         backgroundPrompt,
         extraPrompt,
-      });
+      }, promptFormatFor(engineId));
       const [result] = await editImage({
         images: [],
         prompt: '',

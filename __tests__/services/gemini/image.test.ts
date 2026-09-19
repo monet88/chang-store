@@ -358,7 +358,27 @@ describe('services/gemini/image.ts', () => {
       const textPart = callArgs.contents[0].parts.find(
         (p: { text?: string }) => p.text
       );
-      expect(textPart.text).toContain('strictly avoid including blur, low quality');
+      expect(textPart.text).toContain('strictly excluding blur, low quality');
+    });
+
+    it('should carry the negative prompt onto a parts-based request', async () => {
+      mockGenerateContent.mockResolvedValueOnce(createSuccessImageResponse());
+      const params: EditImageParams = {
+        images: [],
+        prompt: '',
+        negativePrompt: 'blur, low quality',
+        interleavedParts: [
+          { text: 'SUBJECT: authority for pose.' },
+          { inlineData: { data: 'AAAA', mimeType: 'image/png' } },
+        ],
+      };
+
+      await editImage(params);
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      const parts = callArgs.contents[0].parts;
+      expect(parts[0].text).toBe('SUBJECT: authority for pose.');
+      expect(parts[parts.length - 1].text).toContain('strictly excluding blur, low quality');
     });
 
     it('should throw error.api.safetyBlock on promptFeedback block', async () => {

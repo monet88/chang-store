@@ -144,10 +144,11 @@ recent 20 images (`GALLERY_SIZE_LIMIT`).
 ## Deliberate GPT Caps
 
 Parity means the five workflows exist, not that every cap is raised: one output
-per request (`n` is ignored), lookbook variations capped at one, wardrobe sets
-bounded to two with `maxItemsPerSet: 4`, serial batches, and the documented
-"multipart edits are slow and tunnel-timeout-prone" reason (~60-90s measured per
-edit).
+per request (`n` is measured-ignored on the reference gateway, so the GPT views
+expose no count control and a user who wants more runs the request again),
+lookbook variations capped at one, wardrobe sets bounded to two with
+`maxItemsPerSet: 4`, serial batches, and the documented "multipart edits are slow
+and tunnel-timeout-prone" reason (~60-90s measured per edit).
 
 ## Key Files
 

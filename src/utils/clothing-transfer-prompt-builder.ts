@@ -1,13 +1,38 @@
 import type { Part } from '@google/genai';
 import { ImageFile } from '../types';
+import type { PromptFormat } from './promptFormat';
+import { dropRestatedLines, imagePart } from './promptFormat';
 
 export interface ClothingTransferReferenceInput {
   image: ImageFile;
   label: string;
 }
+const destinationRoleLabel = 'DESTINATION SCENE (owns background, scene composition, lighting, display method, and any subject person)';
+
+const AVOID_BULLETS = [
+  'No leaking source background, furniture, hangers, accessories, or props into the scene.',
+  'No transferring source model identity, face, hair, skin, or pose.',
+  'No blending or residual visual attributes from the replaced destination clothing.',
+  "No altering the destination scene's background, camera perspective, lighting geometry, or destination person identity.",
+  'No compositing artifacts, edge halos, mismatched shadows, or perspective discrepancies.',
+] as const;
+
 /**
- * Build interleaved parts for clothing transfer.
- * Structure: [label_concept, img_concept, label_ref1, img_ref1, ..., task_instructions]
+ * Bullets 1-4 restate what `ROLE 1`, `ROLE 2`, and `PLACEMENT` already say in the
+ * same prompt. The flat lane drops them because it is read as one block; only
+ * the artifact list has no earlier statement, so both lanes keep that one.
+ */
+const RESTATED_AVOID_BULLETS = AVOID_BULLETS.slice(0, 4);
+
+const sourceOutfitRoleLabel = (index: number, label: string): string =>
+  `SOURCE OUTFIT ${index + 1} (extract this clothing — ${label})`;
+
+/**
+ * Build the parts for clothing transfer in the requested lane format.
+ *
+ * Structure (`parts`): [label_concept, img_concept, label_ref1, img_ref1, ..., task_instructions]
+ * Structure (`text`): [role-map + task_instructions, img_concept, img_ref1, ...]
+ *
  * Establishes a clear ownership model: destination owns scene/composition/display/person,
  * while source references own garment design and construction only.
  */
@@ -15,17 +40,20 @@ export function buildClothingTransferParts(
   conceptImage: ImageFile,
   references: ClothingTransferReferenceInput[],
   extraInstructions: string,
+  format: PromptFormat = 'parts',
 ): Part[] {
-  const parts: Part[] = [];
+  const roles = [
+    { label: destinationRoleLabel, image: conceptImage },
+    ...references.map((ref, index) => ({
+      label: sourceOutfitRoleLabel(index, ref.label?.trim() || 'auto-detect clothing type'),
+      image: ref.image,
+    })),
+  ];
 
-  parts.push({ text: 'DESTINATION SCENE (owns background, scene composition, lighting, display method, and any subject person):' });
-  parts.push({ inlineData: { data: conceptImage.base64, mimeType: conceptImage.mimeType } });
-
-  references.forEach((ref, index) => {
-    const label = ref.label?.trim() || 'auto-detect clothing type';
-    parts.push({ text: `SOURCE OUTFIT ${index + 1} (extract this clothing — ${label}):` });
-    parts.push({ inlineData: { data: ref.image.base64, mimeType: ref.image.mimeType } });
-  });
+  const avoidBlock = AVOID_BULLETS.map((bullet) => `- ${bullet}`).join('\n');
+  const avoidSection = format === 'text'
+    ? dropRestatedLines(avoidBlock, RESTATED_AVOID_BULLETS)
+    : avoidBlock;
 
   const taskPrompt = `TASK: Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.
 
@@ -52,12 +80,21 @@ PLACEMENT & PHYSICAL INTEGRATION:
 - Lighting and contact: match the DESTINATION scene's light direction, intensity, color temperature, contact shadows, and occlusion so the transferred garment integrates believably as a single photograph.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
 
 AVOID:
-- No leaking source background, furniture, hangers, accessories, or props into the scene.
-- No transferring source model identity, face, hair, skin, or pose.
-- No blending or residual visual attributes from the replaced destination clothing.
-- No altering the destination scene's background, camera perspective, lighting geometry, or destination person identity.
-- No compositing artifacts, edge halos, mismatched shadows, or perspective discrepancies.`;
+${avoidSection}`;
 
+  if (format === 'text') {
+    const roleMap = roles.map((role, index) => `IMAGE ${index + 1} = ${role.label}`).join('\n');
+    return [
+      { text: `${roleMap}\n\n${taskPrompt}` },
+      ...roles.map((role) => imagePart(role.image)),
+    ];
+  }
+
+  const parts: Part[] = [];
+  roles.forEach((role) => {
+    parts.push({ text: `${role.label}:` });
+    parts.push(imagePart(role.image));
+  });
   parts.push({ text: taskPrompt });
 
   return parts;

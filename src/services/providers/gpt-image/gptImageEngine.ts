@@ -2,6 +2,7 @@ import type { editImage, upscaleImage, EditImageParams } from '../../imageEditin
 import type { ImageAspectRatio, ImageFile, UpscaleQuality } from '../../../types';
 import { DEFAULT_GPT_IMAGE_SIZE, type GptImageQuality } from '../../../config/gptImageModelRegistry';
 import { PROVIDER_UPSCALE_PROMPTS } from '../../../utils/provider-refine-prompt';
+import { appendNegativePrompt } from '../../../utils/negative-prompt-builder';
 import { editGptImage, type GptImageServiceConfig } from './gptImageService';
 
 /**
@@ -98,7 +99,9 @@ export const buildGptImageEngine = ({
       return editGptImage(
         {
           model,
-          prompt: interleaved?.prompt || params.prompt,
+          // `/images/edits` has no negative field, so the avoid-sentence rides
+          // inside the one prompt — same wording as the Gemini lane.
+          prompt: appendNegativePrompt(interleaved?.prompt || params.prompt, params.negativePrompt),
           images: interleaved?.images.length ? interleaved.images : params.images,
           size: sizeForRatio(params.aspectRatio ?? 'Default'),
           quality,

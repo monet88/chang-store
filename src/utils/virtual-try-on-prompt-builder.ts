@@ -1,17 +1,20 @@
 /**
- * Virtual Try-On Prompt Builder — Interleaved Part[] for Gemini
+ * Virtual Try-On Prompt Builder
  *
- * Returns interleaved [text-label, image, text-label, image, ..., task-text] parts
+ * `parts` (Gemini): interleaved [text-label, image, text-label, image, ..., task-text]
  * so Gemini knows the role of each image in context.
+ * `text` (OpenAI-compatible lane): one role map that names every image by
+ * position, followed by the same task text, plus the images in the same order.
  */
 
 import type { Part } from '@google/genai';
 import { ImageFile, VirtualTryOnSourceItemType } from '../types';
+import type { PromptFormat } from './promptFormat';
+import { dropRestatedLines, imagePart } from './promptFormat';
 
 const MAX_SOURCE_ITEMS = 4;
 
 const normalizeSourcePrompt = (value?: string) => value?.replace(/\s+/g, ' ').trim() ?? '';
-
 export interface VirtualTryOnPromptSourceItem {
   image: ImageFile;
   sourceItemType: VirtualTryOnSourceItemType;
@@ -30,16 +33,55 @@ export interface VirtualTryOnPromptInput {
   isMultiPersonMode?: boolean;
 }
 
+const SUBJECT_ROLE_LABEL = 'SUBJECT: The person/model to dress. Preserve identity, face, body proportions, and pose.';
+
+const PROHIBITION_BULLETS = [
+  'Do not change unrelated clothing when applying shoes, bag, or accessory items.',
+  "Do not keep the subject's original lower-body garment when a clothing source image includes its own lower-body garment.",
+  'Do not put hands into pants pockets or hide hands unless the subject image already shows that exact pose.',
+  'No tucking tops into pants or skirts.',
+  "Do not alter the subject's face, features, expressions, age, or body proportions.",
+  'Preserve source-supported garment graphics and text, but do not invent new logos, text, graphics, or watermarks.',
+] as const;
+
 /**
- * Build interleaved Part[] for a single Virtual Try-On job.
+ * Bullets 2-4 restate sentences the same prompt already carries: the lower-body
+ * rule and the tucking rule live in `## APPLICATION RULES`, the pockets rule in
+ * `## POSE`. The flat lane drops them because it is read as one block; the
+ * interleaved lane keeps them beside the image labels.
+ */
+const RESTATED_PROHIBITIONS = PROHIBITION_BULLETS.slice(1, 4);
+
+const sourceItemRoleLabel = (item: VirtualTryOnPromptSourceItem, index: number): string =>
+  `SOURCE ITEM #${index + 1} (${item.sourceItemType}): Apply this item.`;
+
+/**
+ * Flat-lane role map: names every image by position, so the one prompt the
+ * OpenAI-compatible lane receives still binds each image to its role. The
+ * per-item user notes ride here so the task text needs no second listing.
+ */
+const buildRoleMap = (input: VirtualTryOnPromptInput): string =>
+  [
+    `IMAGE 1 = ${SUBJECT_ROLE_LABEL}`,
+    ...input.sourceItems.map((item, index) => {
+      const sourcePrompt = normalizeSourcePrompt(item.sourcePrompt);
+      const label = `IMAGE ${index + 2} = ${sourceItemRoleLabel(item, index)}`;
+      return sourcePrompt ? `${label} User note: ${sourcePrompt}` : label;
+    }),
+    'Treat each source image as its listed type. Only edit the matching category or target area for that specific image.',
+  ].join('\n');
+
+/**
+ * Build the Part[] for a single Virtual Try-On job in the requested lane format.
  *
- * Structure:
- * - N source items → [subject-label, subject-img, source-label, source-img..., task-text]
+ * Structure (`parts`): N source items → [subject-label, subject-img, source-label, source-img..., task-text]
+ * Structure (`text`): [role-map + task-text, subject-img, source-img...]
  *
  * @throws Error if subjectImage is missing, sourceItems empty or >4
  */
 export const buildVirtualTryOnParts = (
-  input: VirtualTryOnPromptInput
+  input: VirtualTryOnPromptInput,
+  format: PromptFormat = 'parts',
 ): Part[] => {
   const { subjectImage, sourceItems } = input;
 
@@ -58,17 +100,25 @@ export const buildVirtualTryOnParts = (
     }
   });
 
+  if (format === 'text') {
+    return [
+      { text: `${buildRoleMap(input)}\n\n${buildTaskText(input, { includeSourceTypeList: false, compactRestatements: true })}` },
+      imagePart(subjectImage),
+      ...sourceItems.map((item) => imagePart(item.image)),
+    ];
+  }
+
   const parts: Part[] = [];
 
-  parts.push({ text: 'SUBJECT: The person/model to dress. Preserve identity, face, body proportions, and pose.' });
-  parts.push({ inlineData: { data: subjectImage.base64, mimeType: subjectImage.mimeType } });
+  parts.push({ text: SUBJECT_ROLE_LABEL });
+  parts.push(imagePart(subjectImage));
 
   sourceItems.forEach((item, index) => {
-    parts.push({ text: `SOURCE ITEM #${index + 1} (${item.sourceItemType}): Apply this item.` });
-    parts.push({ inlineData: { data: item.image.base64, mimeType: item.image.mimeType } });
+    parts.push({ text: sourceItemRoleLabel(item, index) });
+    parts.push(imagePart(item.image));
   });
 
-  parts.push({ text: buildTaskText(input) });
+  parts.push({ text: buildTaskText(input, { includeSourceTypeList: true }) });
 
   return parts;
 };
@@ -76,8 +126,16 @@ export const buildVirtualTryOnParts = (
 /**
  * Build the consolidated task-text block with optimized prompt content.
  * Private helper — not exported.
+ *
+ * `includeSourceTypeList` is false for the flat lane, whose role map already
+ * names each image, its type, and its user note. `compactRestatements` is the
+ * flat lane's form: it drops the prohibition bullets that only repeat an
+ * earlier section (see `RESTATED_PROHIBITIONS`).
  */
-function buildTaskText(input: VirtualTryOnPromptInput): string {
+function buildTaskText(
+  input: VirtualTryOnPromptInput,
+  options: { includeSourceTypeList: boolean; compactRestatements?: boolean },
+): string {
   const { sourceItems, extraPrompt, backgroundPrompt, isMultiPersonMode } = input;
   const sourceTypeLines = sourceItems
     .map((item, index) => {
@@ -106,23 +164,32 @@ function buildTaskText(input: VirtualTryOnPromptInput): string {
     ? `\n\n## ADDITIONAL INSTRUCTIONS\n${extraPrompt.trim()}`
     : '';
 
-  const multiPersonSection = isMultiPersonMode
-    ? '\n\nTargeting: The input image contains multiple people. A highly visible red dot with a white outline marks ONE specific person. Modify ONLY the person with the red dot. Preserve all other people (without the red dot) in the image exactly as they are, with no changes to their clothing, faces, or pose. Do not add or remove any people.'
-    : '';
-
-  const multiPersonProhibition = isMultiPersonMode
-    ? '\n- Do not modify anyone except the person with the red dot; do not add or remove people.'
-    : '\n- Do not add or remove people.';
-
-  return `## TASK
-Apply all provided fashion source items to the subject while preserving their face, facial features, expressions, hair, skin tone, exact age, body proportions, and overall pose. Only the target fashion items change.${multiPersonSection}
-
-## SOURCE ITEM TYPES
+  const sourceTypeSection = options.includeSourceTypeList
+    ? `## SOURCE ITEM TYPES
 User-selected source types by image:
 ${sourceTypeLines}
 Treat each source image as its listed type. Only edit the matching category or target area for that specific image.
 
-## APPLICATION RULES
+`
+    : '';
+
+  const multiPersonSection = isMultiPersonMode
+    ? '\n\nTargeting: The input image contains multiple people. A highly visible red dot with a white outline marks ONE specific person. The dot and its white ring are targeting marks only: remove them completely from the result, leaving the clothing and the skin clean. Modify ONLY the person with the red dot. Preserve all other people (without the red dot) in the image exactly as they are, with no changes to their clothing, faces, or pose. Do not add or remove any people.'
+    : '';
+
+  const multiPersonProhibition = isMultiPersonMode
+    ? '\n- Remove the red targeting dot and its white ring completely; no dot, ring, or halo may remain on the person.\n- Do not modify anyone except the person with the red dot; do not add or remove people.'
+    : '\n- Do not add or remove people.';
+
+  const prohibitionBlock = PROHIBITION_BULLETS.map((bullet) => `- ${bullet}`).join('\n');
+  const prohibitions = options.compactRestatements
+    ? dropRestatedLines(prohibitionBlock, RESTATED_PROHIBITIONS)
+    : prohibitionBlock;
+
+  return `## TASK
+Apply all provided fashion source items to the subject while preserving their face, facial features, expressions, hair, skin tone, exact age, body proportions, and overall pose. Only the target fashion items change.${multiPersonSection}
+
+${sourceTypeSection}## APPLICATION RULES
 ${[clothingRule, nonClothingRule].filter(Boolean).join('\n\n')}
 
 Applied items must fit naturally to the subject's existing body, aligned with their stance, contours, and physical proportions, with physically correct fabric folds and contact points. Replicate construction details: silhouette, collar, sleeves, hems, straps, hardware, sole, texture, material, and color. Maintain correct pattern scale and orientation without distortion or mirroring. Match the lighting direction, shadows, and color temperature of the subject image so the clothing looks photographed in the same environment. Preserve occlusions: hands, fingers, hair, existing accessories, and foreground objects stay in front where physically appropriate. Preserve visible graphics, logos, and text that are supported by the source clothing references; do not invent new or unsupported logos, text, graphics, or watermarks.
@@ -134,10 +201,5 @@ Keep the subject's overall pose and stance. Minor natural adjustments to posture
 ${backgroundSection}${extraSection}
 
 ## PROHIBITIONS
-- Do not change unrelated clothing when applying shoes, bag, or accessory items.
-- Do not keep the subject's original lower-body garment when a clothing source image includes its own lower-body garment.
-- Do not put hands into pants pockets or hide hands unless the subject image already shows that exact pose.
-- No tucking tops into pants or skirts.
-- Do not alter the subject's face, features, expressions, age, or body proportions.
-- Preserve source-supported garment graphics and text, but do not invent new logos, text, graphics, or watermarks.${multiPersonProhibition}`;
+${prohibitions}${multiPersonProhibition}`;
 }

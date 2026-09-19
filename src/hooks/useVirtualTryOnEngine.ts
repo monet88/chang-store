@@ -10,6 +10,7 @@ import {
 import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
+import { promptFormatFor } from '../utils/promptFormat';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { UseVirtualTryOnSubjectsReturn } from './useVirtualTryOnSubjects';
 import { UseImageRefinementReturn } from './useImageRefinement';
@@ -94,7 +95,7 @@ export const useVirtualTryOnEngine = (
           extraPrompt,
           backgroundPrompt,
           isMultiPersonMode: isMultiPersonMode && subjects.markerPosition !== null,
-        });
+        }, promptFormatFor(engineId));
         const results = await driver.editImage(
           {
             images: [],

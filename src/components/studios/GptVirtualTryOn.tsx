@@ -34,8 +34,6 @@ const GptVirtualTryOn: React.FC = () => {
     setBackgroundPrompt,
     extraPrompt,
     setExtraPrompt,
-    numImages,
-    setNumImages,
     aspectRatio,
     setAspectRatio,
     isLoading,
@@ -368,29 +366,6 @@ const GptVirtualTryOn: React.FC = () => {
 
                 <div className="space-y-4">
                   <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
-
-                  <Tooltip content={t('tooltips.tryOnImageCount')} position="top">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm text-zinc-300">
-                        <label htmlFor="num-images-slider" className="font-medium">
-                          {t('virtualTryOn.numberOfImages')}
-                        </label>
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-zinc-100">
-                          {numImages}
-                        </span>
-                      </div>
-                      <input
-                        id="num-images-slider"
-                        type="range"
-                        min="1"
-                        max="4"
-                        step="1"
-                        value={numImages}
-                        onChange={(e) => setNumImages(Number(e.target.value))}
-                        className="w-full cursor-pointer"
-                      />
-                    </div>
-                  </Tooltip>
 
                   <button
                     type="button"

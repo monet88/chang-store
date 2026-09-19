@@ -73,12 +73,22 @@ describe('ai-editor prompt builders', () => {
     const out = buildSingleImageEditPrompt('make it brighter');
     expect(out).toContain('# INSTRUCTION: IMAGE EDITING');
     expect(out).toContain('make it brighter');
+    expect(out).toContain('## EDIT RULES:');
+  });
+
+  it('lets an explicit user request override preservation for objects or existing text', () => {
+    const single = buildSingleImageEditPrompt('remove the watermark and add a necklace');
+    const multi = buildMultiImageEditPrompt('replace the logo on @img1', '- Image 1 is @img1');
+
+    expect(single).toContain('unless the user request explicitly asks');
+    expect(multi).toContain('unless the user request explicitly asks');
   });
 
   it('includes image roles for a multi-image edit', () => {
     const out = buildMultiImageEditPrompt('blend them', '- Image 1 is @img2');
     expect(out).toContain('# INSTRUCTION: MULTI-IMAGE EDITING');
     expect(out).toContain('- Image 1 is @img2');
+    expect(out).toContain('## EDIT RULES:');
     expect(out).toContain('blend them');
   });
 });
@@ -101,5 +111,38 @@ describe('photo-album prompt builder', () => {
     expect(out).toContain('**Hair Style**: long straight');
     expect(out).toContain('**Skin Tone**: fair');
     expect(out).toContain('neutral studio');
+  });
+});
+
+describe('resolution belongs to the API parameter, not the prompt', () => {
+  // `editImage` passes `resolution` as `imageConfig.imageSize` (services/gemini/image.ts),
+  // so a prompt that also asks for "2K" contradicts a 1K or 4K request.
+  it('leaves the resolution out of the pose, background, and photo-album prompts', () => {
+    const photoAlbum = buildPhotoAlbumPrompt({
+      imageRolesPrompt: '**Image Role**: source',
+      framingInstruction: 'Full body.',
+      poseInstruction: 'standing straight',
+      hairStyle: 'long straight',
+      skinTone: 'fair',
+      footwearInstruction: 'keep original shoes',
+      backgroundInstruction: 'neutral studio',
+      frameInstruction: 'Do not add any frame or border.',
+      additionalNotesInstruction: '- No additional notes.',
+    });
+    const prompts = [
+      buildTextPosePrompt('sitting on a stool', 'Full body shot.'),
+      buildReferencePosePrompt('', 'Full body shot.'),
+      buildBackgroundReplacementPrompt({
+        framingInstruction: 'Eye level.',
+        hasBackgroundImage: false,
+        promptText: 'a sunny beach',
+      }),
+      photoAlbum,
+    ];
+
+    prompts.forEach((prompt) => expect(prompt).not.toMatch(/\(2K\)|\b2K\b/));
+    // The resolution-free goal line still states the quality intent.
+    expect(prompts[0]).toContain('**Final Goal**: A high-resolution, photorealistic image.');
+    expect(photoAlbum).toContain('Generate a single, high-resolution, photorealistic fashion photograph');
   });
 });

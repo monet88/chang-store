@@ -104,4 +104,22 @@ describe('buildGptImageEngine', () => {
     expect(params.prompt).toBe('SUBJECT: authority for pose.\n\nGARMENT: authority for the outfit.');
     expect(params.images).toEqual([subject, shirt]);
   });
+
+  it('folds the negative prompt into the one prompt the edit endpoint takes', async () => {
+    const engine = buildGptImageEngine({
+      model: 'gpt-image-2',
+      quality: 'high',
+      sizeOptions: XOMPET_SIZES,
+      credentials: CREDENTIALS,
+    });
+
+    await engine.editImage(
+      { images: [IMAGE], prompt: 'flat lay of a linen shirt', negativePrompt: ' blurry logos ', aspectRatio: '3:4' },
+      'ignored',
+      apiConfig,
+    );
+
+    const [params] = editGptImage.mock.calls[0];
+    expect(params.prompt).toBe('flat lay of a linen shirt Ensure the output contains only the intended subject and scene, strictly excluding blurry logos.');
+  });
 });

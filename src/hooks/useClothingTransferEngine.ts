@@ -10,6 +10,7 @@ import {
 import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildClothingTransferParts } from '../utils/clothing-transfer-prompt-builder';
+import { promptFormatFor } from '../utils/promptFormat';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { UseClothingTransferConceptsReturn } from './useClothingTransferConcepts';
 import { UseImageRefinementReturn } from './useImageRefinement';
@@ -86,6 +87,7 @@ export const useClothingTransferEngine = (
           conceptImage,
           refsWithImages,
           extraPrompt.trim(),
+          promptFormatFor(engineId),
         );
         const results = await driver.editImage(
           {

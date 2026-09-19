@@ -80,7 +80,10 @@ export function usePatternGenerator() {
           numberOfImages: numImages,
           aspectRatio: '1:1',
           resolution: '4K',
-          interleavedParts: buildPatternGeneratorParts(referenceImages, trimmedPrompt ? `${TASK_PROMPT}\n\n${trimmedPrompt}` : TASK_PROMPT),
+          interleavedParts: buildPatternGeneratorParts(
+            referenceImages,
+            trimmedPrompt ? `${TASK_PROMPT}\n\n${trimmedPrompt}` : TASK_PROMPT,
+          ),
         },
         imageEditModel,
         buildImageServiceConfig(handleStatusUpdate),
