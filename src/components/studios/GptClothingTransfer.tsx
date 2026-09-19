@@ -20,6 +20,8 @@ const GptClothingTransfer: React.FC<GptClothingTransferProps> = ({ onSendToFeatu
     conceptItems,
     conceptImages,
     extraPrompt,
+    numImages,
+    setNumImages,
     aspectRatio,
     isLoading,
     loadingMessage,
@@ -153,7 +155,7 @@ const GptClothingTransfer: React.FC<GptClothingTransferProps> = ({ onSendToFeatu
                 <h4 className="text-xl font-medium tracking-[-0.03em] text-white">{t('clothingTransfer.generateButton')}</h4>
               </div>
 
-              <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+              <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} numImages={numImages} setNumImages={setNumImages} />
 
               <button
                 type="button"

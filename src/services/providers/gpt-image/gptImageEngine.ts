@@ -3,6 +3,7 @@ import type { ImageAspectRatio, ImageFile, UpscaleQuality } from '../../../types
 import { DEFAULT_GPT_IMAGE_SIZE, type GptImageQuality } from '../../../config/gptImageModelRegistry';
 import { PROVIDER_UPSCALE_PROMPTS } from '../../../utils/provider-refine-prompt';
 import { appendNegativePrompt } from '../../../utils/negative-prompt-builder';
+import { runBoundedWorkers } from '../../../utils/run-bounded-workers';
 import { editGptImage, type GptImageServiceConfig } from './gptImageService';
 
 /**
@@ -96,18 +97,39 @@ export const buildGptImageEngine = ({
   return {
     editImage: async (params, _model, _config): Promise<ImageFile[]> => {
       const interleaved = flattenInterleavedParts(params.interleavedParts);
-      return editGptImage(
-        {
-          model,
-          // `/images/edits` has no negative field, so the avoid-sentence rides
-          // inside the one prompt — same wording as the Gemini lane.
-          prompt: appendNegativePrompt(interleaved?.prompt || params.prompt, params.negativePrompt),
-          images: interleaved?.images.length ? interleaved.images : params.images,
-          size: sizeForRatio(params.aspectRatio ?? 'Default'),
-          quality,
-        },
-        credentials,
-      );
+      const editParams = {
+        model,
+        // `/images/edits` has no negative field, so the avoid-sentence rides
+        // inside the one prompt — same wording as the Gemini lane.
+        prompt: appendNegativePrompt(interleaved?.prompt || params.prompt, params.negativePrompt),
+        images: interleaved?.images.length ? interleaved.images : params.images,
+        size: sizeForRatio(params.aspectRatio ?? 'Default'),
+        quality,
+      };
+
+      const count = Math.max(1, Math.min(params.numberOfImages ?? 1, 4));
+      if (count === 1) {
+        return editGptImage(editParams, credentials);
+      }
+
+      const slots = Array.from({ length: count }, (_, index) => index);
+      const results: ImageFile[] = new Array(count);
+      await runBoundedWorkers(slots, count, async (index) => {
+        try {
+          const [result] = await editGptImage(editParams, credentials);
+          if (result) {
+            results[index] = result;
+          }
+        } catch (err) {
+          console.error(`Parallel GPT image request ${index + 1} failed:`, err);
+        }
+      });
+
+      const successfulResults = results.filter(Boolean);
+      if (successfulResults.length === 0) {
+        return editGptImage(editParams, credentials);
+      }
+      return successfulResults;
     },
     upscaleImage: async (
       image,

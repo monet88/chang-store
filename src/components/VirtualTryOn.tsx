@@ -12,6 +12,7 @@ import ImageOptionsPanel from './ImageOptionsPanel';
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
 import { compressImage, calculateLetterboxedMarkerCoordinates, computeLetterboxBounds } from '../utils/imageUtils';
 import WardrobeSetCard from './WardrobeSetCard';
+import { ExtraPromptPresets } from './IdentityTransferPresets';
 
 const panelClass = 'rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:p-5';
 const labelClass = 'text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400';
@@ -450,6 +451,7 @@ const VirtualTryOn: React.FC = () => {
                       rows={3}
                       className={textareaClass}
                     />
+                    <ExtraPromptPresets value={extraPrompt} onChange={setExtraPrompt} />
                     <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.extraPromptDescription')}</p>
                   </div>
                 </Tooltip>
@@ -789,6 +791,7 @@ const VirtualTryOn: React.FC = () => {
                     rows={3}
                     className={textareaClass}
                   />
+                  <ExtraPromptPresets value={wardrobe.extraPrompt} onChange={wardrobe.setExtraPrompt} />
                 </div>
 
                 <ImageOptionsPanel

@@ -122,4 +122,30 @@ describe('buildGptImageEngine', () => {
     const [params] = editGptImage.mock.calls[0];
     expect(params.prompt).toBe('flat lay of a linen shirt Ensure the output contains only the intended subject and scene, strictly excluding blurry logos.');
   });
+
+  it('fires parallel requests when numberOfImages is greater than 1', async () => {
+    const engine = buildGptImageEngine({
+      model: 'gpt-image-2',
+      quality: 'high',
+      sizeOptions: XOMPET_SIZES,
+      credentials: CREDENTIALS,
+    });
+
+    editGptImage
+      .mockResolvedValueOnce([{ base64: 'img1', mimeType: 'image/png' }])
+      .mockResolvedValueOnce([{ base64: 'img2', mimeType: 'image/png' }])
+      .mockResolvedValueOnce([{ base64: 'img3', mimeType: 'image/png' }])
+      .mockResolvedValueOnce([{ base64: 'img4', mimeType: 'image/png' }]);
+
+    const results = await engine.editImage(
+      { images: [IMAGE], prompt: 'dress the model', numberOfImages: 4 },
+      'ignored',
+      apiConfig,
+    );
+
+    expect(editGptImage).toHaveBeenCalledTimes(4);
+    expect(results).toHaveLength(4);
+    expect(results[0].base64).toBe('img1');
+    expect(results[3].base64).toBe('img4');
+  });
 });

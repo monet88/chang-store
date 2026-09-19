@@ -12,6 +12,7 @@ import GptImageOptionsPanel from './GptImageOptionsPanel';
 import { useVirtualTryOn } from '../../hooks/useVirtualTryOn';
 import { compressImage, calculateLetterboxedMarkerCoordinates, computeLetterboxBounds } from '../../utils/imageUtils';
 import WardrobeSetCard from '../WardrobeSetCard';
+import { ExtraPromptPresets } from '../IdentityTransferPresets';
 
 const panelClass = 'rounded-[28px] border border-white/10 bg-white/[0.04] p-6 sm:p-8';
 const labelClass = 'text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400';
@@ -34,6 +35,8 @@ const GptVirtualTryOn: React.FC = () => {
     setBackgroundPrompt,
     extraPrompt,
     setExtraPrompt,
+    numImages,
+    setNumImages,
     aspectRatio,
     setAspectRatio,
     isLoading,
@@ -445,12 +448,13 @@ const GptVirtualTryOn: React.FC = () => {
                       rows={3}
                       className={textareaClass}
                     />
+                    <ExtraPromptPresets value={extraPrompt} onChange={setExtraPrompt} />
                     <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.extraPromptDescription')}</p>
                   </div>
                 </Tooltip>
 
                 <div className="space-y-4">
-                  <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+                  <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} numImages={numImages} setNumImages={setNumImages} />
 
                   <button
                     type="button"
@@ -755,6 +759,7 @@ const GptVirtualTryOn: React.FC = () => {
                     rows={3}
                     className={textareaClass}
                   />
+                  <ExtraPromptPresets value={wardrobe.extraPrompt} onChange={wardrobe.setExtraPrompt} />
                 </div>
 
                 <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />

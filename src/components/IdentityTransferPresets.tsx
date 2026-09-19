@@ -288,3 +288,5 @@ export const IdentityTransferPresets: React.FC<IdentityTransferPresetsProps> = (
     </div>
   );
 };
+
+export { IdentityTransferPresets as ExtraPromptPresets };

@@ -7,6 +7,8 @@ interface GptImageOptionsPanelProps {
   /** Ratio chosen by the feature hook; the engine maps it to a pixel size. */
   aspectRatio: AspectRatio;
   setAspectRatio: (ratio: AspectRatio) => void;
+  numImages?: number;
+  setNumImages?: (count: number) => void;
 }
 
 /**
@@ -15,7 +17,7 @@ interface GptImageOptionsPanelProps {
  * and the quality — each hidden when the (gateway, model) capability says the
  * field is meaningless there (issue #152, Decision 4).
  */
-const GptImageOptionsPanel: React.FC<GptImageOptionsPanelProps> = ({ aspectRatio, setAspectRatio }) => {
+const GptImageOptionsPanel: React.FC<GptImageOptionsPanelProps> = ({ aspectRatio, setAspectRatio, numImages, setNumImages }) => {
   const { options } = useImageEngine();
   const { t } = useLanguage();
   const labelId = useId();
@@ -92,6 +94,26 @@ const GptImageOptionsPanel: React.FC<GptImageOptionsPanelProps> = ({ aspectRatio
           </span>
         )}
       </div>
+
+      {numImages !== undefined && setNumImages !== undefined && (
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between text-xs text-zinc-400">
+            <span className="font-medium text-zinc-300">{t('virtualTryOn.numberOfImages')}</span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-xs font-semibold text-zinc-100">
+              {numImages}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={4}
+            step={1}
+            value={numImages}
+            onChange={(e) => setNumImages(Number(e.target.value))}
+            className="w-full cursor-pointer accent-[var(--workspace-accent)]"
+          />
+        </div>
+      )}
     </div>
   );
 };

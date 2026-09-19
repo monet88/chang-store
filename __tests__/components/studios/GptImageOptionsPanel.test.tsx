@@ -50,4 +50,20 @@ describe('GptImageOptionsPanel', () => {
 
     expect(setQuality).toHaveBeenCalledWith('low');
   });
+
+  it('renders a slider when numImages and setNumImages are provided', async () => {
+    const setNumImages = vi.fn();
+    render(
+      <GptImageOptionsPanel
+        aspectRatio="3:4"
+        setAspectRatio={setAspectRatio}
+        numImages={2}
+        setNumImages={setNumImages}
+      />,
+    );
+
+    const slider = screen.getByRole('slider');
+    expect(slider).toBeInTheDocument();
+    expect(slider).toHaveValue('2');
+  });
 });
