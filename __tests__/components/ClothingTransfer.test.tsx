@@ -59,6 +59,7 @@ const baseHookState = {
     toggleBrandModel: vi.fn(),
     handleAddCustomModel: vi.fn(),
     handleRemoveCustomModel: vi.fn(),
+    isCustomBrandModel: vi.fn().mockReturnValue(false),
     displayTemplates: [],
     selectedTemplateIds: [],
     toggleDisplayTemplate: vi.fn(),

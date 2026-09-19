@@ -6,7 +6,6 @@ import HoverableImage from './HoverableImage';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import { AddIcon, DeleteIcon, CloseIcon } from './Icons';
-import { isCustomBrandModel } from '../config/brandModelRoster';
 import { AspectRatio, GarmentScope, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { UseClothingTransferEComPackReturn } from '../hooks/useClothingTransferEComPack';
@@ -49,6 +48,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
     selectBrandModel,
     handleAddCustomModel,
     handleRemoveCustomModel,
+    isCustomBrandModel,
     displayTemplates,
     selectedTemplateIds,
     toggleDisplayTemplate,

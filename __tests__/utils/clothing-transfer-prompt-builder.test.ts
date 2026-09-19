@@ -267,20 +267,19 @@ describe('buildBrandModelParts', () => {
     },
   };
 
-  it('structures parts with model face, body, source outfit, and model invariants', () => {
+  it('structures parts preserving destination pose, outfit and scene while transferring brand model identity', () => {
     const sourceImage = mockImage('source-outfit');
     const parts = buildBrandModelParts(sourceImage, model, 'full-set');
 
-    // face (label + img) + body (label + img) + source (label + img) + task prompt = 7 parts
+    // destination (label + img) + face (label + img) + body (label + img) + task prompt = 7 parts
     expect(parts).toHaveLength(7);
-    expect(parts[0].text).toContain('BRAND MODEL FACE: Linh');
-    expect(parts[0].text).toContain('fair porcelain');
-    expect(parts[1].inlineData?.data).toBe('mock-base64-linh-face');
-    expect(parts[2].text).toContain('BRAND MODEL BODY: Linh');
-    expect(parts[3].inlineData?.data).toBe('mock-base64-linh-body');
-    expect(parts[4].text).toContain('SOURCE OUTFIT');
-    expect(parts[5].inlineData?.data).toBe('mock-base64-source-outfit');
-    expect(parts[6].text).toContain('TASK: Dress the BRAND MODEL (Linh)');
-    expect(parts[6].text).toContain('Preserve the exact facial identity');
+    expect(parts[0].text).toContain('DESTINATION IMAGE: Authority for pose, performance, outfit design, framing, camera, lighting, composition, and scene');
+    expect(parts[1].inlineData?.data).toBe('mock-base64-source-outfit');
+    expect(parts[2].text).toContain('FACE REFERENCE: Authority for stable facial identity');
+    expect(parts[3].inlineData?.data).toBe('mock-base64-linh-face');
+    expect(parts[4].text).toContain('BODY REFERENCE: Authority for body morphology');
+    expect(parts[5].inlineData?.data).toBe('mock-base64-linh-body');
+    expect(parts[6].text).toContain('TASK');
+    expect(parts[6].text).toContain('Preserve the Destination Image for the photographed pose');
   });
 });

@@ -4,6 +4,7 @@ import type { BrandModelProfile } from '../config/brandModelRoster';
 import type { DisplayTemplate } from '../config/displayTemplates';
 import type { PromptFormat } from './promptFormat';
 import { dropRestatedLines, imagePart } from './promptFormat';
+import { buildIdentityTransferParts } from './identity-transfer-prompt-builder';
 export interface ClothingTransferReferenceInput {
   image: ImageFile;
   label: string;
@@ -174,67 +175,29 @@ AVOID:
 }
 
 /**
- * Build prompt parts for dressing a Brand Model (Linh, Mai) in the extracted outfit.
+ * Build prompt parts for dressing a Brand Model (Linh, Mai, Custom) in the outfit photo.
+ * Preserves the exact pose, expression, gesture, outfit, lighting, and scene from the source photo,
+ * transferring the face identity and body morphology of the selected brand model.
  */
 export function buildBrandModelParts(
   sourceImage: ImageFile,
   model: BrandModelProfile,
-  scope: GarmentScope,
+  _scope: GarmentScope,
   extraInstructions: string = '',
   format: PromptFormat = 'parts',
 ): Part[] {
-  const scopeDesc = formatGarmentScope(scope);
-  const roles: { label: string; image: ImageFile }[] = [];
-
-  if (model.faceImage) {
-    roles.push({
-      label: `BRAND MODEL FACE: ${model.name} (Authority for facial identity, eyes, nose, lips, jawline, skin undertone: ${model.metadata.skinTone}, features: ${model.metadata.facialFeatures})`,
-      image: model.faceImage,
-    });
+  if (!model.faceImage) {
+    return [imagePart(sourceImage), { text: 'Preserve destination image.' }];
   }
 
-  if (model.bodyImage) {
-    roles.push({
-      label: `BRAND MODEL BODY: ${model.name} (Authority for body silhouette, proportions, and frame)`,
-      image: model.bodyImage,
-    });
-  }
-
-  roles.push({
-    label: `SOURCE OUTFIT: Extract and dress the model in this ${scopeDesc}`,
-    image: sourceImage,
-  });
-
-  const bodyRule = model.bodyImage
-    ? `2. Replicate the exact body proportions, bone structure, and silhouette directly from the BODY reference image.`
-    : `2. Maintain balanced, natural model proportions complementing the subject's identity.`;
-
-  const taskPrompt = `TASK: Dress the BRAND MODEL (${model.name}) in the ${scopeDesc} extracted from the SOURCE OUTFIT image, producing a professional fashion catalog photo.
-
-MODEL IDENTITY & INVARIANTS:
-1. Preserve the exact facial identity, eyes, nose, lips, facial contours, and natural skin tone of ${model.name} from the FACE reference.
-${bodyRule}
-3. Extract the ${scopeDesc} faithfully from the SOURCE OUTFIT (silhouette, colors, fabric textures, patterns, and construction details) and fit it believably onto ${model.name}.
-4. High-end commercial fashion studio photography, soft balanced studio lighting, neutral solid cyclorama backdrop.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
-
-AVOID:
-- No altering the facial identity or skin tone of ${model.name}.
-- No warped limbs, distorted fingers, or anatomical anomalies.
-- No blending old clothing from the body reference into the new outfit.`;
-
-  if (format === 'text') {
-    const roleMap = roles.map((role, idx) => `IMAGE ${idx + 1} = ${role.label}`).join('\n');
-    return [
-      { text: `${roleMap}\n\n${taskPrompt}` },
-      ...roles.map((r) => imagePart(r.image)),
-    ];
-  }
-
-  const parts: Part[] = [];
-  roles.forEach((r) => {
-    parts.push({ text: `${r.label}:` });
-    parts.push(imagePart(r.image));
-  });
-  parts.push({ text: taskPrompt });
-  return parts;
+  return buildIdentityTransferParts(
+    {
+      destinationImage: sourceImage,
+      faceReference: model.faceImage,
+      bodyReference: model.bodyImage,
+      backgroundPrompt: '',
+      extraPrompt: extraInstructions,
+    },
+    format,
+  );
 }

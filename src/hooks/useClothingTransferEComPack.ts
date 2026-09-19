@@ -60,6 +60,7 @@ export interface UseClothingTransferEComPackReturn {
     metadata?: Partial<BrandModelMetadata>;
   }) => void;
   handleRemoveCustomModel: (id: string) => void;
+  isCustomBrandModel: (id: string) => boolean;
   displayTemplates: DisplayTemplate[];
   selectedTemplateIds: string[];
   toggleDisplayTemplate: (id: string) => void;
@@ -407,6 +408,7 @@ export const useClothingTransferEComPack = (
     toggleBrandModel,
     handleAddCustomModel,
     handleRemoveCustomModel,
+    isCustomBrandModel,
     displayTemplates,
     selectedTemplateIds,
     toggleDisplayTemplate,
