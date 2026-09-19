@@ -968,5 +968,35 @@ describe('useVirtualTryOn', () => {
       expect(result.current.subjectItems[0].status).toBe('completed');
       consoleSpy.mockRestore();
     });
+
+    it('deconstructs each subject with the garments, never another subject\'s photo', async () => {
+      vi.mocked(editImage).mockResolvedValue([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>(async (image) => {
+        if (image === SUBJECT_A) return 'SUBJECT A BLUEPRINT: silk satin';
+        if (image === SUBJECT_B) return 'SUBJECT B BLUEPRINT: raw denim';
+        return 'GARMENT BLUEPRINT: ribbed knit';
+      });
+
+      const { result } = renderHook(() => useVirtualTryOn(), { wrapper: wrapperFor(analyze) });
+
+      act(() => {
+        result.current.handleSubjectImagesUpload([SUBJECT_A, SUBJECT_B]);
+        result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerateImage();
+      });
+
+      expect(vi.mocked(editImage)).toHaveBeenCalledTimes(2);
+      // Subject A's job carries the garments it wears plus its own photo.
+      expect(textSent(0)).toContain('GARMENT BLUEPRINT');
+      expect(textSent(0)).toContain('SUBJECT A BLUEPRINT');
+      expect(textSent(0)).not.toContain('SUBJECT B BLUEPRINT');
+      // Subject B's job scans subject B, not the batch's first subject.
+      expect(textSent(1)).toContain('GARMENT BLUEPRINT');
+      expect(textSent(1)).toContain('SUBJECT B BLUEPRINT');
+      expect(textSent(1)).not.toContain('SUBJECT A BLUEPRINT');
+    });
   });
 });

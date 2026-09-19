@@ -12,22 +12,51 @@ interface AiScanPanelProps {
   sources: ImageFile[];
 }
 
+/** What this panel shows: the analysis of its OWN source set. */
+interface PanelReport {
+  blueprint: string | null;
+  isAnalyzing: boolean;
+  failed: boolean;
+}
+
+const IDLE_REPORT: PanelReport = { blueprint: null, isAnalyzing: false, failed: false };
+
 /**
  * AI Scan control (issue #162): the ON/OFF switch, the status badge, and the
  * expandable technical blueprint viewer. Rendered in a feature's action bar;
- * the scan itself is owned by `AiScanContext` and consumed again at generation
- * time, so the panel never has to hand the blueprint on.
+ * the analysis itself is owned by `AiScanContext` and consumed again at
+ * generation time, so the panel never has to hand the blueprint on.
+ *
+ * The badge state is the panel's own, never the provider's: a batch scans one
+ * source set per job (Virtual Try-On multi-model, wardrobe, Identity Transfer),
+ * so another job's blueprint, spinner or failure must not surface here.
  */
 const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
   const { t } = useLanguage();
-  const { enabled, setEnabled, blueprint, isAnalyzing, error, scan } = useAiScan();
+  const { enabled, setEnabled, scan } = useAiScan();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [report, setReport] = useState<PanelReport>(IDLE_REPORT);
 
   // Pre-scan as soon as the sources change. Repeat runs are free: `scan` reuses
   // the analysis already running or finished for the same source set.
   useEffect(() => {
-    void scan(sources);
+    if (!enabled || sources.length === 0) {
+      setReport(IDLE_REPORT);
+      return;
+    }
+
+    let isCurrent = true;
+    setReport({ blueprint: null, isAnalyzing: true, failed: false });
+    void scan(sources).then((blueprint) => {
+      if (!isCurrent) return;
+      setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
+    });
+    return () => {
+      isCurrent = false;
+    };
   }, [enabled, sources, scan]);
+
+  const { blueprint, isAnalyzing, failed } = report;
 
   return (
     <div className="space-y-2">
@@ -85,7 +114,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
             </div>
           )}
 
-          {!isAnalyzing && !blueprint && error && (
+          {!isAnalyzing && !blueprint && failed && (
             <p className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-300/90">
               {t('studio.aiScan.unavailable')}
             </p>

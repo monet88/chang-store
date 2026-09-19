@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { useEffect } from 'react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import AiScanPanel from '@/components/AiScanPanel';
-import { AiScanProvider } from '@/contexts/AiScanContext';
+import { AiScanProvider, useAiScan } from '@/contexts/AiScanContext';
 import type { ImageFile } from '@/types';
 
 vi.mock('@/contexts/LanguageContext', () => ({
@@ -9,6 +10,21 @@ vi.mock('@/contexts/LanguageContext', () => ({
 }));
 
 const SOURCE: ImageFile = { base64: 'c291cmNl', mimeType: 'image/png' };
+const OTHER_SOURCE: ImageFile = { base64: 'b3RoZXI=', mimeType: 'image/png' };
+
+/**
+ * Another job of the same batch: it scans its OWN source set while the panel
+ * under test watches its own.
+ */
+const ScanTrigger = ({ sources }: { sources: ImageFile[] }) => {
+  const { scan } = useAiScan();
+
+  useEffect(() => {
+    void scan(sources);
+  }, [scan, sources]);
+
+  return null;
+};
 
 const renderPanel = (
   analyze: (image: ImageFile, model?: string) => Promise<string>,
@@ -89,5 +105,99 @@ describe('AiScanPanel', () => {
 
     expect(analyze).not.toHaveBeenCalled();
     expect(screen.queryByText('studio.aiScan.ready')).not.toBeInTheDocument();
+  });
+
+  it('keeps showing its own blueprint while another source set is analyzed', async () => {
+    const analyze = vi.fn(async (image: ImageFile) => {
+      if (image === OTHER_SOURCE) return new Promise<string>(() => {});
+      return 'PANEL BLUEPRINT: silk satin on a dry hand.';
+    });
+
+    render(
+      <AiScanProvider analyze={analyze}>
+        <AiScanPanel sources={[SOURCE]} />
+        <ScanTrigger sources={[OTHER_SOURCE]} />
+      </AiScanProvider>,
+    );
+
+    // The other job is still analyzing; this panel is done and stays done.
+    await waitFor(() => expect(screen.getByText('studio.aiScan.ready')).toBeInTheDocument());
+    expect(screen.queryByText('studio.aiScan.analyzing')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'studio.aiScan.view' }));
+    expect(screen.getByText('PANEL BLUEPRINT: silk satin on a dry hand.')).toBeInTheDocument();
+  });
+
+  it('never reports another source set\'s failure as its own', async () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const analyze = vi.fn(async (image: ImageFile) => {
+      if (image === OTHER_SOURCE) throw new Error('foreign source failed');
+      return 'PANEL BLUEPRINT: matte twill.';
+    });
+
+    render(
+      <AiScanProvider analyze={analyze}>
+        <AiScanPanel sources={[SOURCE]} />
+        <ScanTrigger sources={[OTHER_SOURCE]} />
+      </AiScanProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText('studio.aiScan.ready')).toBeInTheDocument());
+    expect(screen.queryByText('studio.aiScan.unavailable')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'studio.aiScan.view' }));
+    expect(screen.getByText('PANEL BLUEPRINT: matte twill.')).toBeInTheDocument();
+    consoleSpy.mockRestore();
+  });
+
+  it('drops the previous blueprint while the new sources are analyzed', async () => {
+    let resolveSecond: (value: string) => void = () => {};
+    const analyze = vi.fn(async (image: ImageFile) => {
+      if (image === SOURCE) return 'FIRST BLUEPRINT';
+      return new Promise<string>((resolve) => { resolveSecond = resolve; });
+    });
+
+    const { rerender } = render(
+      <AiScanProvider analyze={analyze}>
+        <AiScanPanel sources={[SOURCE]} />
+      </AiScanProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText('studio.aiScan.ready')).toBeInTheDocument());
+
+    rerender(
+      <AiScanProvider analyze={analyze}>
+        <AiScanPanel sources={[OTHER_SOURCE]} />
+      </AiScanProvider>,
+    );
+
+    // The superseded set's blueprint is gone, not shown next to the analysis of
+    // the images the user just replaced.
+    expect(screen.getByText('studio.aiScan.analyzing')).toBeInTheDocument();
+    expect(screen.queryByText('FIRST BLUEPRINT')).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveSecond('SECOND BLUEPRINT');
+    });
+
+    await waitFor(() => expect(screen.getByText('studio.aiScan.ready')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'studio.aiScan.view' }));
+    expect(screen.getByText('SECOND BLUEPRINT')).toBeInTheDocument();
+  });
+
+  it('clears the badge when the sources are emptied', async () => {
+    const analyze = vi.fn().mockResolvedValue('FIRST BLUEPRINT');
+
+    const { rerender } = renderPanel(analyze, [SOURCE]);
+    await waitFor(() => expect(screen.getByText('studio.aiScan.ready')).toBeInTheDocument());
+
+    rerender(
+      <AiScanProvider analyze={analyze}>
+        <AiScanPanel sources={[]} />
+      </AiScanProvider>,
+    );
+
+    expect(screen.queryByText('studio.aiScan.ready')).not.toBeInTheDocument();
+    expect(screen.queryByText('studio.aiScan.analyzing')).not.toBeInTheDocument();
   });
 });

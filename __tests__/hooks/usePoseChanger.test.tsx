@@ -43,6 +43,15 @@ const POSE_REFERENCE_IMAGE = { base64: 'pose-reference', mimeType: 'image/jpeg' 
 const GENERATED_IMAGE = { base64: 'generated-image', mimeType: 'image/png' };
 const UPSCALED_IMAGE = { base64: 'upscaled-image', mimeType: 'image/png' };
 
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+
+  return { promise, resolve };
+};
+
 describe('usePoseChanger', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -269,6 +278,45 @@ describe('usePoseChanger', () => {
 
       expect(analyze).not.toHaveBeenCalled();
       expect(vi.mocked(editImage).mock.calls[0][0].prompt).not.toContain('AI SCAN');
+    });
+
+    it('goes busy before the scan and never submits twice while it is pending', async () => {
+      const scan = createDeferred<string>();
+      const analyze = vi.fn(() => scan.promise);
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      const { result } = renderWithAiScan(analyze, true);
+
+      act(() => {
+        result.current.setSubjectImage(SUBJECT_IMAGE);
+        result.current.handleConfirmSelection(['standing tall']);
+      });
+
+      let pending: Promise<void> | null = null;
+      await act(async () => {
+        pending = result.current.handleGenerate();
+        await Promise.resolve();
+      });
+
+      // The scan is still in flight and the feature already reads as busy, so
+      // the Generate button cannot be clicked a second time.
+      expect(analyze).toHaveBeenCalled();
+      expect(result.current.generationStatus.active).toBe(true);
+      expect(result.current.isGenerateDisabled).toBe(true);
+      expect(result.current.buttonText).toBe('pose.generatingMultiple:{"progress":0,"total":1}');
+
+      // A click that slips through anyway must not start a duplicate run.
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      await act(async () => {
+        scan.resolve('SUBJECT BLUEPRINT MARKER');
+        await pending;
+      });
+
+      expect(vi.mocked(editImage)).toHaveBeenCalledTimes(1);
+      expect(result.current.generatedImages).toEqual([GENERATED_IMAGE]);
+      expect(result.current.isGenerateDisabled).toBe(false);
     });
   });
 });

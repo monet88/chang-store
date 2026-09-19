@@ -18,7 +18,7 @@ import {
   ProductShotSubType
 } from '../components/LookbookGenerator.prompts';
 import { ImageFile, AspectRatio } from '../types';
-import { formatAiScanBlock } from './ai-scan-blueprint';
+import { aiScanSourceSet, formatAiScanBlock } from './ai-scan-blueprint';
 import type { PromptFormat } from './promptFormat';
 
 /**
@@ -47,15 +47,14 @@ export interface LookbookFormState {
  * One definition for the form's panel and the generation hook, because the two
  * must pass the SAME ImageFile objects — object identity is the scan cache key,
  * and a drifted list would label the run with a stale blueprint and pay for a
- * second analysis.
+ * second analysis. `aiScanSourceSet` reserves a slot for the shared reference,
+ * so a full garment list can never crowd the fabric texture swatch out of the
+ * analysis — the swatch would otherwise be silently dropped.
  */
 export const lookbookAiScanSources = (
   clothingImages: Array<{ image: ImageFile | null }>,
   fabricTextureImage: ImageFile | null,
-): ImageFile[] => [
-  ...clothingImages.filter((item) => item.image !== null).map((item) => item.image as ImageFile),
-  ...(fabricTextureImage ? [fabricTextureImage] : []),
-];
+): ImageFile[] => aiScanSourceSet(clothingImages.map((item) => item.image), [fabricTextureImage]);
 
 /**
  * Builds the main lookbook generation prompt based on form state

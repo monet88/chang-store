@@ -8,6 +8,7 @@ import {
   VirtualTryOnClothingItem,
 } from '../types';
 import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
+import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { promptFormatFor } from '../utils/promptFormat';
@@ -35,8 +36,6 @@ export interface UseVirtualTryOnEngineConfig {
   driver: GeminiImageDriver;
   subjects: UseVirtualTryOnSubjectsReturn;
   validClothingItems: VirtualTryOnClothingItem[];
-  /** Source set the AI Scan pass deconstructs; object identity is the cache key. */
-  aiScanSources: ImageFile[];
   isMultiPersonMode: boolean;
   backgroundPrompt: string;
   extraPrompt: string;
@@ -71,15 +70,15 @@ export const useVirtualTryOnEngine = (
   config: UseVirtualTryOnEngineConfig,
 ): UseVirtualTryOnEngineReturn => {
   const {
-    driver, subjects, validClothingItems, aiScanSources, isMultiPersonMode, backgroundPrompt,
+    driver, subjects, validClothingItems, isMultiPersonMode, backgroundPrompt,
     extraPrompt, numImages, aspectRatio, resolution, imageEditModel, canGenerate,
     isWardrobeGenerating, refinement, buildImageServiceConfig, addImage, engineId,
     setIsLoading, setLoadingMessage, setError, setUpscalingStates, t,
   } = config;
 
-  // AI Scan (issue #162): optional analytical pre-pass over the source set. The
-  // blueprint it returns rides in the prompt; a disabled or failed scan yields
-  // null and the base prompt is unchanged.
+  // AI Scan (issue #162): optional analytical pre-pass over each job's own
+  // source set. The blueprint it returns rides in the prompt; a disabled or
+  // failed scan yields null and the base prompt is unchanged.
   const { scan } = useAiScan();
 
   // Shared per-subject generation: marker compositing + prompt build + driver
@@ -90,9 +89,13 @@ export const useVirtualTryOnEngine = (
       image: ImageFile;
       sourceItemType: VirtualTryOnClothingItem['sourceItemType'];
       sourcePrompt: string;
-    }[], blueprint: string | null) => {
+    }[]) => {
       subjects.updateSubjectItem(itemId, { status: 'processing', results: [], error: undefined });
       try {
+        // One analysis per subject, over that subject's own photo: every
+        // subject is an independent job, so a batch-wide blueprint would
+        // deconstruct one subject's garments inside another subject's prompt.
+        const blueprint = await scan(aiScanSourceSet(sourceItems.map((item) => item.image), [subjectImage]));
         let finalSubjectImage = subjectImage;
         if (isMultiPersonMode && subjects.markerPosition) {
           finalSubjectImage = await compositeMarkerOnImage(subjectImage, subjects.markerPosition);
@@ -129,7 +132,7 @@ export const useVirtualTryOnEngine = (
     },
     [driver, subjects.markerPosition, subjects.updateSubjectItem, isMultiPersonMode,
       extraPrompt, backgroundPrompt, numImages, aspectRatio, resolution, imageEditModel,
-      buildImageServiceConfig, setLoadingMessage, addImage, engineId, t],
+      buildImageServiceConfig, setLoadingMessage, addImage, engineId, t, scan],
   );
 
   const handleGenerateImage = useCallback(async () => {
@@ -159,12 +162,9 @@ export const useVirtualTryOnEngine = (
       prev.map((item) => ({ ...item, status: 'pending', results: [], error: undefined })),
     );
 
-    // One analysis for the whole batch: the panel's pre-scan reuses this run.
-    const blueprint = await scan(aiScanSources);
-
     try {
       await runBoundedWorkers(jobs, batchConcurrency, (job) =>
-        generateForSubject(job.subjectImage, job.id, sourceItems, blueprint),
+        generateForSubject(job.subjectImage, job.id, sourceItems),
       );
     } catch (err) {
       setError(getErrorMessage(err, t));
@@ -172,7 +172,7 @@ export const useVirtualTryOnEngine = (
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [isWardrobeGenerating, canGenerate, validClothingItems, aiScanSources, scan, subjects, refinement,
+  }, [isWardrobeGenerating, canGenerate, validClothingItems, subjects, refinement,
     setIsLoading, setLoadingMessage, setError, setUpscalingStates, t, generateForSubject]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
@@ -187,9 +187,10 @@ export const useVirtualTryOnEngine = (
 
     setError(null);
     refinement.clearSessionsForPrefix(itemId);
-    const blueprint = await scan(aiScanSources);
-    await generateForSubject(targetItem.subjectImage, itemId, sourceItems, blueprint);
-  }, [subjects.subjectItems, validClothingItems, aiScanSources, scan, refinement, setError, generateForSubject]);
+    // The subject's own source set again: a regenerate of subject B must scan
+    // subject B, even when subject A was the most recent job.
+    await generateForSubject(targetItem.subjectImage, itemId, sourceItems);
+  }, [subjects.subjectItems, validClothingItems, refinement, setError, generateForSubject]);
 
   return { handleGenerateImage, handleRegenerateSingle };
 };

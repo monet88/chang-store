@@ -15,19 +15,18 @@
   (Watermark Remover, Pattern Generator, Photo Album, AI Editor) are untouched.
   The preference persists in `ai_scan_enabled` and defaults to ON.
 - `AiScanContext` (`src/contexts/AiScanContext.tsx`) owns the layer: the
-  persisted preference, the blueprint of the current source set, and the
-  analysis itself. Each source set is analyzed once (capped at four images,
-  `gemini-3.8-flash`) and reused by both the panel's pre-scan and the
-  generation call; changing or clearing the images drops the blueprint; a
-  disabled, failed or cancelled analysis resolves to `null` so generation
-  always ships its base prompt, with no extra latency or tokens.
-- The scan follows the generation, not the batch: Virtual Try-On analyzes the
-  target garments plus the subject photo, every wardrobe set analyzes its own
-  garments plus the subject, and Identity Transfer analyzes each destination
-  photo separately — a blueprint never describes one photo inside another
-  photo's prompt. One of the four source slots is reserved for that shared
-  reference, so a full garment list cannot crowd the subject out of its own
-  analysis; the panel badge previews the first source set it is given.
+  persisted preference and the analysis itself, while `AiScanPanel` shows the
+  state of the source set it was given. Each source set is analyzed once
+  (capped at four images, `gemini-3.8-flash`) and reused by both the panel's
+  pre-scan and the generation call; a disabled, failed or cancelled analysis
+  resolves to `null` so generation always ships its base prompt, with no extra
+  latency or tokens.
+- The scan follows the generation, not the batch: Virtual Try-On analyzes each
+  subject with the target garments, every wardrobe set analyzes its own garments
+  plus the subject, and Identity Transfer analyzes each destination photo
+  separately — a blueprint never describes one photo inside another photo's
+  prompt. One of the four source slots is reserved for that shared reference, so
+  a full garment list cannot crowd the subject out of its own analysis.
 - `formatAiScanBlock` (`src/utils/ai-scan-blueprint.ts`) is the single splice
   point, so every prompt builder emits the identical block heading.
 
@@ -47,6 +46,31 @@
   Replacer (same), Pose Changer (`buildTextPosePrompt` /
   `buildReferencePosePrompt` third argument), Lookbook (`buildLookbookPrompt`,
   `buildVariationPrompt`, `buildCloseUpPrompts` trailing argument).
+
+### Fixed
+
+- Virtual Try-On (multi-model) analyzes each subject's own source set inside its
+  batch job — the garments plus that subject's photo — so subject B is no longer
+  generated from subject A's blueprint; regenerate-single scans the same way.
+  Batch concurrency still bounds the generation.
+- The Lookbook reserves one scan slot for `fabricTextureImage`, so four or more
+  clothing images can no longer crowd the texture swatch out of its own
+  analysis; source order stays garment slots first, texture last.
+- The AI Scan badge is panel state again: `AiScanContext` keeps the preference,
+  the analysis and its one-set cache, while `AiScanPanel` renders the
+  blueprint / spinner / "unavailable" note of the sources it was given. A batch
+  job's analysis can no longer label another job's panel.
+- Pose Changer establishes its busy state (`isLoading`,
+  `generationStatus.active`) before awaiting the scan and guards the run behind
+  an in-flight ref, so Generate is no longer clickable for the whole analysis
+  and a second click cannot start a duplicate run.
+- Lookbook variations and close-ups reuse the blueprint stored on the generated
+  main instead of re-scanning the form, so editing the sources towards outfit B
+  after generating from outfit A no longer injects B's fresh analysis into A's
+  derived shots.
+- AI Scan fails closed: one failed or unusable source report resolves the scan
+  to `null` and injects no partial blueprint, instead of keeping the reports
+  that answered and renumbering them.
 
 ## [Unreleased] — 2026-09-18
 

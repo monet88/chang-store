@@ -5,6 +5,7 @@ import {
   buildVariationPrompt,
   buildCloseUpPrompts,
   buildCloseUpNegativePrompt,
+  lookbookAiScanSources,
   type LookbookFormState,
 } from '@/utils/lookbookPromptBuilder';
 
@@ -308,5 +309,38 @@ describe('AI Scan blueprint injection', () => {
     expect(buildVariationPrompt('flat lay', '  ')).toBe(expectedVariation);
     expect(buildCloseUpPrompts('')).toEqual(expectedCloseUps);
     expect(buildCloseUpPrompts('\n\t ')).toEqual(expectedCloseUps);
+  });
+});
+
+describe('lookbookAiScanSources', () => {
+  const slots = (count: number): Array<{ id: string; image: ImageFile | null }> =>
+    Array.from({ length: count }, (_, index) => ({ id: String(index), image: mockImage(`garment-${index}`) }));
+  const fabric = mockImage('fabric-texture');
+
+  it('reserves a scan slot for the fabric texture when the clothing list fills the limit', () => {
+    const clothing = slots(6);
+
+    expect(lookbookAiScanSources(clothing, fabric)).toEqual([
+      clothing[0].image,
+      clothing[1].image,
+      clothing[2].image,
+      fabric,
+    ]);
+  });
+
+  it('keeps the slot order and appends the fabric texture last', () => {
+    const clothing = slots(2);
+
+    expect(lookbookAiScanSources(clothing, fabric)).toEqual([
+      clothing[0].image,
+      clothing[1].image,
+      fabric,
+    ]);
+  });
+
+  it('ignores empty slots and a missing fabric texture', () => {
+    const clothing = [{ id: '1', image: mockImage('garment') }, { id: '2', image: null }];
+
+    expect(lookbookAiScanSources(clothing, null)).toEqual([clothing[0].image]);
   });
 });

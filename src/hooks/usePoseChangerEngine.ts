@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { AspectRatio, ImageFile, ImageResolution } from '../types';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { useAiScan } from '../contexts/AiScanContext';
@@ -88,16 +88,21 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
 
   const { scan } = useAiScan();
 
+  // The scan runs before the first image request, so the busy state has to be
+  // established first: otherwise Generate stays clickable for the whole
+  // analysis and a second click starts a duplicate run. The ref guard closes
+  // the gap the disabled button cannot see (two clicks in the same tick).
+  const generationInFlight = useRef(false);
+
   const handleGenerate = useCallback(async () => {
+    if (generationInFlight.current) return;
     if (!subjectImage) {
       setError(t('pose.subjectError'));
       return;
     }
 
-    const blueprint = (await scan(aiScanSources)) ?? '';
-    const framingInstruction = getFramingInstruction();
-
     if (poseReferenceImage) {
+      generationInFlight.current = true;
       setError(null);
       setGeneratedImages([]);
       setRegeneratingStates({});
@@ -105,11 +110,14 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
       setGenerationStatus({ active: true, progress: 1, total: 1, message: t('pose.generatingStatusOne') });
 
       try {
+        const blueprint = (await scan(aiScanSources)) ?? '';
+        const framingInstruction = getFramingInstruction();
         const result = await performEdit(driver, buildReferencePosePrompt(customPosePrompt, framingInstruction, blueprint), [subjectImage, poseReferenceImage], imageEditModel, negativePrompt, aspectRatio, resolution, (message) => setGenerationStatus((prev) => ({ ...prev, message })));
         setGeneratedImages([result]);
       } catch (err) {
         setError(getErrorMessage(err, t));
       } finally {
+        generationInFlight.current = false;
         setIsLoading(false);
         setGenerationStatus(IDLE_GENERATION_STATUS);
       }
@@ -121,36 +129,42 @@ export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePos
       return;
     }
 
+    generationInFlight.current = true;
     setError(null);
     setGeneratedImages([]);
     setRegeneratingStates({});
     setGenerationStatus({ active: true, progress: 0, total: allPrompts.length, message: '' });
 
-    let results: ImageFile[] = [];
-    for (const [index, promptText] of allPrompts.entries()) {
-      setGenerationStatus((prev) => ({
-        ...prev,
-        progress: index + 1,
-        message: t('pose.generatingStatusMultiple', { progress: index + 1, total: allPrompts.length }),
-      }));
+    try {
+      const blueprint = (await scan(aiScanSources)) ?? '';
+      const framingInstruction = getFramingInstruction();
 
-      try {
-        const result = await performEdit(driver, buildTextPosePrompt(promptText, framingInstruction, blueprint), [subjectImage], imageEditModel, negativePrompt, aspectRatio, resolution);
-        results = [...results, result];
-        setGeneratedImages(results);
-      } catch (err) {
-        setError(t('pose.batchError', {
-          index: index + 1,
-          total: allPrompts.length,
-          prompt: promptText.substring(0, 30),
-          error: getErrorMessage(err, t),
+      let results: ImageFile[] = [];
+      for (const [index, promptText] of allPrompts.entries()) {
+        setGenerationStatus((prev) => ({
+          ...prev,
+          progress: index + 1,
+          message: t('pose.generatingStatusMultiple', { progress: index + 1, total: allPrompts.length }),
         }));
-        setGenerationStatus(IDLE_GENERATION_STATUS);
-        return;
-      }
-    }
 
-    setGenerationStatus(IDLE_GENERATION_STATUS);
+        try {
+          const result = await performEdit(driver, buildTextPosePrompt(promptText, framingInstruction, blueprint), [subjectImage], imageEditModel, negativePrompt, aspectRatio, resolution);
+          results = [...results, result];
+          setGeneratedImages(results);
+        } catch (err) {
+          setError(t('pose.batchError', {
+            index: index + 1,
+            total: allPrompts.length,
+            prompt: promptText.substring(0, 30),
+            error: getErrorMessage(err, t),
+          }));
+          return;
+        }
+      }
+    } finally {
+      generationInFlight.current = false;
+      setGenerationStatus(IDLE_GENERATION_STATUS);
+    }
   }, [
     subjectImage,
     poseReferenceImage,

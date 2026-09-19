@@ -40,6 +40,12 @@ export interface LookbookSet {
   main: ImageFile;
   variations: ImageFile[];
   closeups: ImageFile[];
+  /**
+   * Blueprint of the source set the `main` was generated from. Variations and
+   * close-ups are derived from `main`, so they reuse this exact analysis — the
+   * form may already describe a different outfit by then.
+   */
+  blueprint: string | null;
 }
 
 export interface UseLookbookGenerationConfig {
@@ -135,7 +141,7 @@ export const useLookbookGeneration = (
       }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
       if (results.length > 0) {
         const generatedImage = results[0];
-        setGeneratedLookbook({ main: generatedImage, variations: [], closeups: [] });
+        setGeneratedLookbook({ main: generatedImage, variations: [], closeups: [], blueprint });
         setActiveOutputTab('main');
         onMainImageGenerated(generatedImage);
         addImage?.(generatedImage, Feature.Lookbook, engineId);
@@ -158,8 +164,10 @@ export const useLookbookGeneration = (
     setError(null);
 
     const baseImage = generatedLookbook.main;
-    const blueprint = await aiScan.scan(aiScanSources);
-    const prompt = buildVariationPrompt(formState.lookbookStyle, blueprint ?? '');
+    // The blueprint belongs to the generated main, not to the current form:
+    // editing the outfit after generating must not re-analyze the new garments
+    // into the variations of the old main.
+    const prompt = buildVariationPrompt(formState.lookbookStyle, generatedLookbook.blueprint ?? '');
 
     try {
       const newVariations = await driver.editImage({
@@ -180,7 +188,7 @@ export const useLookbookGeneration = (
     }
   }, [driver, generatedLookbook, formState.negativePrompt, formState.lookbookStyle,
     variationCount, imageEditModel, buildImageServiceConfig, aspectRatio, resolution,
-    t, setError, setIsGeneratingVariations, setLoadingMessage, setGeneratedLookbook, addImage, engineId, aiScan, aiScanSources]);
+    t, setError, setIsGeneratingVariations, setLoadingMessage, setGeneratedLookbook, addImage, engineId]);
 
   const handleGenerateCloseUp = useCallback(async () => {
     if (!generatedLookbook) {
@@ -192,8 +200,9 @@ export const useLookbookGeneration = (
     setGeneratedLookbook((prev) => prev ? { ...prev, closeups: [] } : null);
 
     const baseImage = generatedLookbook.main;
-    const blueprint = await aiScan.scan(aiScanSources);
-    const closeUpPrompts = buildCloseUpPrompts(blueprint ?? '');
+    // Same source of truth as the variations: the analysis of the outfit the
+    // main was generated from.
+    const closeUpPrompts = buildCloseUpPrompts(generatedLookbook.blueprint ?? '');
     const combinedNegativePrompt = buildCloseUpNegativePrompt(formState.negativePrompt);
 
     try {
@@ -222,7 +231,7 @@ export const useLookbookGeneration = (
     }
   }, [driver, generatedLookbook, formState.negativePrompt, imageEditModel,
     buildImageServiceConfig, aspectRatio, resolution,
-    t, setError, setIsGeneratingCloseUp, setLoadingMessage, setGeneratedLookbook, addImage, engineId, aiScan, aiScanSources]);
+    t, setError, setIsGeneratingCloseUp, setLoadingMessage, setGeneratedLookbook, addImage, engineId]);
 
   return {
     handleGenerate,

@@ -11,7 +11,7 @@ import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
-import { aiScanSourceSet } from '../contexts/AiScanContext';
+import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { useImageRefinement } from './useImageRefinement';
 import { useVirtualTryOnSubjects } from './useVirtualTryOnSubjects';
 import { useVirtualTryOnEngine, GeminiImageDriver } from './useVirtualTryOnEngine';
@@ -69,9 +69,9 @@ export const useVirtualTryOn = () => {
 
   const canGenerate = subjects.subjectItems.length > 0 && clothing.validClothingItems.length > 0;
 
-  // Source set the AI Scan layer deconstructs: the target garments, then the
-  // subject photo (issue #162 asks for both). The same ImageFile objects the
-  // generation path scans, so one analysis serves both the panel and the prompt.
+  // Source set the AI Scan panel displays: the target garments, then the first
+  // subject photo. Each subject job scans its own set at generation time, and
+  // the first subject's set is the one the panel previews.
   const aiScanSources = useMemo(
     () => aiScanSourceSet(
       clothing.validClothingItems.map((item) => item.image),
@@ -105,7 +105,6 @@ export const useVirtualTryOn = () => {
     driver,
     subjects,
     validClothingItems: clothing.validClothingItems,
-    aiScanSources,
     isMultiPersonMode,
     backgroundPrompt,
     extraPrompt,

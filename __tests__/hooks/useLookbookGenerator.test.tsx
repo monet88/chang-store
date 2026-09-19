@@ -1291,5 +1291,69 @@ describe('useLookbookGenerator', () => {
       expect(result.current.generatedLookbook?.main).toEqual(GENERATED_IMAGE);
       consoleSpy.mockRestore();
     });
+
+    it('scans the fabric texture image even when the clothing list fills the scan limit', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue(BLUEPRINT);
+      const { result } = renderHook(() => useLookbookGenerator(), { wrapper: wrapperFor(analyze) });
+
+      act(() => {
+        result.current.updateForm({
+          clothingImages: [1, 2, 3, 4, 5].map((index) => ({
+            id: String(index),
+            image: { base64: `garment-${index}`, mimeType: 'image/png' },
+          })),
+          fabricTextureImage: TEST_FABRIC_IMAGE,
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      // Three garments and the reserved slot for the texture swatch, in form
+      // order: the fabric must not be crowded out of its own analysis.
+      expect(analyze.mock.calls.map(([image]) => image.base64)).toEqual([
+        'garment-1',
+        'garment-2',
+        'garment-3',
+        TEST_FABRIC_IMAGE.base64,
+      ]);
+      expect(promptSent()).toContain(BLUEPRINT);
+    });
+
+    it('keeps the main image\'s blueprint for variations and close-ups after the form moves on', async () => {
+      const outfitA = { base64: 'outfit-a', mimeType: 'image/png' };
+      const outfitB = { base64: 'outfit-b', mimeType: 'image/png' };
+      vi.mocked(editImage).mockResolvedValue([GENERATED_IMAGE]);
+      const analyze = vi.fn<AiScanAnalyzer>(async (image) => `BLUEPRINT OF ${image.base64}`);
+      const { result } = renderHook(() => useLookbookGenerator(), { wrapper: wrapperFor(analyze) });
+
+      act(() => {
+        result.current.updateForm({ clothingImages: [{ id: '1', image: outfitA }] });
+      });
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      // The user keeps editing the form towards another outfit.
+      act(() => {
+        result.current.updateForm({ clothingImages: [{ id: '1', image: outfitB }] });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerateVariations();
+      });
+      await act(async () => {
+        await result.current.handleGenerateCloseUp();
+      });
+
+      // Derived shots belong to the generated main, not to the current form.
+      [1, 2, 3, 4].forEach((callIndex) => {
+        expect(promptSent(callIndex)).toContain(`BLUEPRINT OF ${outfitA.base64}`);
+        expect(promptSent(callIndex)).not.toContain(outfitB.base64);
+      });
+      expect(analyze).toHaveBeenCalledTimes(1);
+    });
   });
 });

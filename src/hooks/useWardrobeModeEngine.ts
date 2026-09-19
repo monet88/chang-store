@@ -21,7 +21,8 @@ import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { promptFormatFor } from '../utils/promptFormat';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
-import { aiScanSourceSet, useAiScan } from '../contexts/AiScanContext';
+import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
+import { useAiScan } from '../contexts/AiScanContext';
 
 export interface WardrobeImageDriver {
   editImage: typeof editImage;

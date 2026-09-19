@@ -10,7 +10,7 @@ import { useState, useMemo, useCallback } from 'react';
 import type { ImageFile, ImageResolution, AspectRatio, ImageEditModel, ImageEngineId } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
-import { aiScanSourceSet } from '../contexts/AiScanContext';
+import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import { getErrorMessage } from '../utils/imageUtils';
 import { Feature } from '../types';
