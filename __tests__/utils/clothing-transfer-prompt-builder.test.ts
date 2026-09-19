@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildClothingTransferParts,
+  buildProductStagingParts,
+  buildBrandModelParts,
+  formatGarmentScope,
   ClothingTransferReferenceInput,
 } from '@/utils/clothing-transfer-prompt-builder';
+import type { DisplayTemplate } from '@/config/displayTemplates';
+import type { BrandModelProfile } from '@/config/brandModelRoster';
 import type { ImageFile } from '@/types';
 import type { Part } from '@google/genai';
 
@@ -190,5 +195,92 @@ describe('buildClothingTransferParts', () => {
 
       expect(parts[0].text).toContain('USER INSTRUCTIONS:\nkeep vintage belt');
     });
+  });
+});
+
+describe('buildProductStagingParts', () => {
+  const template: DisplayTemplate = {
+    id: 'hanger-wood',
+    name: 'Móc Gỗ',
+    category: 'hanger',
+    modality: 'text',
+    prompt: 'Hang on a natural wood hanger against an off-white wall.',
+  };
+
+  it('structures parts with source outfit image and staging task prompt', () => {
+    const sourceImage = mockImage('source-outfit');
+    const parts = buildProductStagingParts(sourceImage, template, 'top');
+
+    expect(parts).toHaveLength(3);
+    expect(parts[0].text).toContain('SOURCE OUTFIT');
+    expect(parts[0].text).toContain('top garment');
+    expect(parts[1].inlineData?.data).toBe('mock-base64-source-outfit');
+    expect(parts[2].text).toContain('TASK: Extract the top garment');
+    expect(parts[2].text).toContain('Hang on a natural wood hanger');
+    expect(parts[2].text).toContain('ZERO human beings or mannequins');
+  });
+
+  it('formats flat text format for OpenAI image lane', () => {
+    const sourceImage = mockImage('source-outfit');
+    const parts = buildProductStagingParts(sourceImage, template, 'dress', '', 'text');
+
+    expect(parts).toHaveLength(2);
+    expect(parts[0].text).toContain('IMAGE 1 = SOURCE OUTFIT');
+    expect(parts[0].text).toContain('one-piece dress');
+    expect(parts[1].inlineData?.data).toBe('mock-base64-source-outfit');
+  });
+
+  it('includes staging reference image when template.image is provided', () => {
+    const sourceImage = mockImage('source-outfit');
+    const stagingImage = mockImage('custom-hanger-photo');
+    const customTemplate: DisplayTemplate = {
+      ...template,
+      id: 'custom-hanger',
+      modality: 'image',
+      image: stagingImage,
+    };
+
+    const parts = buildProductStagingParts(sourceImage, customTemplate, 'top');
+    expect(parts).toHaveLength(5);
+    expect(parts[0].text).toContain('SOURCE OUTFIT');
+    expect(parts[1].inlineData?.data).toBe('mock-base64-source-outfit');
+    expect(parts[2].text).toContain('STAGING REFERENCE');
+    expect(parts[3].inlineData?.data).toBe('mock-base64-custom-hanger-photo');
+    expect(parts[4].text).toContain('STAGING REFERENCE');
+  });
+});
+
+describe('buildBrandModelParts', () => {
+  const model: BrandModelProfile = {
+    id: 'linh',
+    name: 'Linh',
+    faceImage: mockImage('linh-face'),
+    bodyImage: mockImage('linh-body'),
+    metadata: {
+      age: 22,
+      height: '1m66',
+      weight: '48kg',
+      bodyType: 'slender hourglass',
+      skinTone: 'fair porcelain',
+      facialFeatures: 'almond eyes',
+      styleVibe: 'muse',
+    },
+  };
+
+  it('structures parts with model face, body, source outfit, and model invariants', () => {
+    const sourceImage = mockImage('source-outfit');
+    const parts = buildBrandModelParts(sourceImage, model, 'full-set');
+
+    // face (label + img) + body (label + img) + source (label + img) + task prompt = 7 parts
+    expect(parts).toHaveLength(7);
+    expect(parts[0].text).toContain('BRAND MODEL FACE: Linh');
+    expect(parts[0].text).toContain('fair porcelain');
+    expect(parts[1].inlineData?.data).toBe('mock-base64-linh-face');
+    expect(parts[2].text).toContain('BRAND MODEL BODY: Linh');
+    expect(parts[3].inlineData?.data).toBe('mock-base64-linh-body');
+    expect(parts[4].text).toContain('SOURCE OUTFIT');
+    expect(parts[5].inlineData?.data).toBe('mock-base64-source-outfit');
+    expect(parts[6].text).toContain('TASK: Dress the BRAND MODEL (Linh)');
+    expect(parts[6].text).toContain('Preserve the exact facial identity');
   });
 });

@@ -1,8 +1,9 @@
 import type { Part } from '@google/genai';
-import { ImageFile } from '../types';
+import { GarmentScope, ImageFile } from '../types';
+import type { BrandModelProfile } from '../config/brandModelRoster';
+import type { DisplayTemplate } from '../config/displayTemplates';
 import type { PromptFormat } from './promptFormat';
 import { dropRestatedLines, imagePart } from './promptFormat';
-
 export interface ClothingTransferReferenceInput {
   image: ImageFile;
   label: string;
@@ -97,5 +98,143 @@ ${avoidSection}`;
   });
   parts.push({ text: taskPrompt });
 
+  return parts;
+}
+
+export const formatGarmentScope = (scope: GarmentScope): string => {
+  switch (scope) {
+    case 'top':
+      return 'top garment (shirt/blouse/jacket)';
+    case 'bottom':
+      return 'bottom garment (pants/skirt/trousers)';
+    case 'dress':
+      return 'one-piece dress';
+    case 'outerwear':
+      return 'outerwear jacket/coat';
+    case 'full-set':
+    default:
+      return 'entire fashion outfit (complete clothing set)';
+  }
+};
+
+/**
+ * Build prompt parts for Product Staging (Hanger or Flat Lay via text template).
+ */
+export function buildProductStagingParts(
+  sourceImage: ImageFile,
+  template: DisplayTemplate,
+  scope: GarmentScope,
+  extraInstructions: string = '',
+  format: PromptFormat = 'parts',
+): Part[] {
+  const scopeDesc = formatGarmentScope(scope);
+  const hasStagingImage = Boolean(template.image);
+  const stagingSpec = hasStagingImage
+    ? `Display the extracted garment realistically hanging, laid out, or staged matching the EXACT setting, hanger, surface, and lighting visible in the STAGING REFERENCE image.${template.prompt ? ` ${template.prompt}` : ''}`
+    : template.prompt;
+
+  const taskPrompt = `TASK: Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo.
+
+STAGING SPECIFICATION:
+${stagingSpec}
+
+EXTRACTION AND FIDELITY RULES:
+1. Extract ONLY the ${scopeDesc} from the SOURCE OUTFIT. Do NOT transfer the source model's face, hair, body, or pose.
+2. Completely remove any person from the scene. The final image must contain ZERO human beings or mannequins; show ONLY the clothing item cleanly arranged or hung${hasStagingImage ? ' according to the STAGING REFERENCE' : ''}.
+3. Faithfully reproduce the source garment's exact silhouette, collar, sleeves, hems, buttons, zippers, textures, stitching, colors, fabric patterns, and supported graphics.
+4. Natural gravity drape, authentic fabric folds, and soft realistic contact shadows on the staging surface.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
+
+AVOID:
+- No human models, heads, faces, arms, legs, or body parts in the scene.
+- No cluttered background props or unrelated furniture.
+- No altered colors, distorted patterns, or synthetic CGI gloss.`;
+
+  if (format === 'text') {
+    const header = hasStagingImage
+      ? `IMAGE 1 = SOURCE OUTFIT (extract ${scopeDesc})\nIMAGE 2 = STAGING REFERENCE (target surface or hanger)\n\n${taskPrompt}`
+      : `IMAGE 1 = SOURCE OUTFIT (extract ${scopeDesc})\n\n${taskPrompt}`;
+
+    const parts: Part[] = [{ text: header }, imagePart(sourceImage)];
+    if (template.image) {
+      parts.push(imagePart(template.image));
+    }
+    return parts;
+  }
+
+  const parts: Part[] = [
+    { text: `SOURCE OUTFIT (extract ${scopeDesc}):` },
+    imagePart(sourceImage),
+  ];
+  if (template.image) {
+    parts.push({ text: 'STAGING REFERENCE (target surface or hanger):' });
+    parts.push(imagePart(template.image));
+  }
+  parts.push({ text: taskPrompt });
+  return parts;
+}
+
+/**
+ * Build prompt parts for dressing a Brand Model (Linh, Mai) in the extracted outfit.
+ */
+export function buildBrandModelParts(
+  sourceImage: ImageFile,
+  model: BrandModelProfile,
+  scope: GarmentScope,
+  extraInstructions: string = '',
+  format: PromptFormat = 'parts',
+): Part[] {
+  const scopeDesc = formatGarmentScope(scope);
+  const roles: { label: string; image: ImageFile }[] = [];
+
+  if (model.faceImage) {
+    roles.push({
+      label: `BRAND MODEL FACE: ${model.name} (Authority for facial identity, eyes, nose, lips, jawline, skin undertone: ${model.metadata.skinTone}, features: ${model.metadata.facialFeatures})`,
+      image: model.faceImage,
+    });
+  }
+
+  if (model.bodyImage) {
+    roles.push({
+      label: `BRAND MODEL BODY: ${model.name} (Authority for body silhouette, proportions, and frame)`,
+      image: model.bodyImage,
+    });
+  }
+
+  roles.push({
+    label: `SOURCE OUTFIT: Extract and dress the model in this ${scopeDesc}`,
+    image: sourceImage,
+  });
+
+  const bodyRule = model.bodyImage
+    ? `2. Replicate the exact body proportions, bone structure, and silhouette directly from the BODY reference image.`
+    : `2. Maintain balanced, natural model proportions complementing the subject's identity.`;
+
+  const taskPrompt = `TASK: Dress the BRAND MODEL (${model.name}) in the ${scopeDesc} extracted from the SOURCE OUTFIT image, producing a professional fashion catalog photo.
+
+MODEL IDENTITY & INVARIANTS:
+1. Preserve the exact facial identity, eyes, nose, lips, facial contours, and natural skin tone of ${model.name} from the FACE reference.
+${bodyRule}
+3. Extract the ${scopeDesc} faithfully from the SOURCE OUTFIT (silhouette, colors, fabric textures, patterns, and construction details) and fit it believably onto ${model.name}.
+4. High-end commercial fashion studio photography, soft balanced studio lighting, neutral solid cyclorama backdrop.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
+
+AVOID:
+- No altering the facial identity or skin tone of ${model.name}.
+- No warped limbs, distorted fingers, or anatomical anomalies.
+- No blending old clothing from the body reference into the new outfit.`;
+
+  if (format === 'text') {
+    const roleMap = roles.map((role, idx) => `IMAGE ${idx + 1} = ${role.label}`).join('\n');
+    return [
+      { text: `${roleMap}\n\n${taskPrompt}` },
+      ...roles.map((r) => imagePart(r.image)),
+    ];
+  }
+
+  const parts: Part[] = [];
+  roles.forEach((r) => {
+    parts.push({ text: `${r.label}:` });
+    parts.push(imagePart(r.image));
+  });
+  parts.push({ text: taskPrompt });
   return parts;
 }

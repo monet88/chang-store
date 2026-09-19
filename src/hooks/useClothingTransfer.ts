@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   AspectRatio,
+  ClothingTransferMode,
   DEFAULT_IMAGE_RESOLUTION,
   ImageResolution,
 } from '../types';
@@ -12,6 +13,7 @@ import { useClothingTransferReferences } from './useClothingTransferReferences';
 import { useClothingTransferConcepts } from './useClothingTransferConcepts';
 import { useClothingTransferEngine, GeminiImageDriver } from './useClothingTransferEngine';
 import { useClothingTransferResultActions } from './useClothingTransferResultActions';
+import { useClothingTransferEComPack } from './useClothingTransferEComPack';
 
 /**
  * Orchestrator for Clothing Transfer. Owns UI-level state (prompts, settings,
@@ -20,6 +22,7 @@ import { useClothingTransferResultActions } from './useClothingTransferResultAct
  * the pre-split hook so the component needs zero changes.
  */
 export const useClothingTransfer = () => {
+  const [mode, setMode] = useState<ClothingTransferMode>('classic');
   const [extraPrompt, setExtraPrompt] = useState('');
   const [numImages, setNumImages] = useState(1);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
@@ -90,7 +93,23 @@ export const useClothingTransfer = () => {
     t,
   });
 
+  const ecomPack = useClothingTransferEComPack({
+    driver,
+    aspectRatio,
+    resolution,
+    numImages,
+    imageEditModel,
+    engineId,
+    extraPrompt,
+    addImage,
+    setError,
+    t,
+  });
+
   return {
+    mode,
+    setMode,
+    ecomPack,
     referenceItems: references.referenceItems,
     conceptItems: concepts.conceptItems,
     conceptImages: concepts.conceptImages,

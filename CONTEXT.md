@@ -40,3 +40,19 @@ One of the 10 distinct fashion generation workflows:
 8. `ClothingTransfer` (`clothing-transfer`): Garment transfer between photos.
 9. `IdentityTransfer` (`identity-transfer`): Preserving subject facial/body identity into target scenes.
 10. `PatternGenerator` (`pattern-generator`): Seamless fabric and textile pattern generator.
+
+**E-Com Pack**:
+A batch generation workflow within `ClothingTransfer` producing a complete e-commerce asset bundle from a single source model photo: product display assets (Flat Lay, Hanger), brand model shots, and diverse model variations.
+_Avoid_: All-in-one generator, batch wizard, auto lookbook.
+
+**Garment Scope**:
+The explicit classification of clothing items extracted from the source image (`top`, `bottom`, `outerwear`, `dress`, `full-set`). Drives targeted transfer and isolated or coordinated staging.
+_Avoid_: Item tag, clothing label, cut mode.
+
+**Display Template**:
+A target staging specification for non-model product shots, implemented either as an Image Template (visual reference defining surface, lighting, and composition) or a Text Template (prompt-driven staging recipe). Covers Flat Lay, Hanger, and Ghost Mannequin presentations.
+_Avoid_: Mockup, backdrop preset, canvas scene.
+
+**Model Roster**:
+A collection of target model destinations consisting of a persistent Brand Model profile and selectable preset or custom model profiles with varied demographics, body types, and shooting environments.
+_Avoid_: Target gallery, avatar list, mannequin selector.

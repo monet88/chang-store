@@ -208,6 +208,26 @@ export interface ClothingTransferBatchItem {
   error?: string;
 }
 
+/** Operational modes for Clothing Transfer */
+export type ClothingTransferMode = 'classic' | 'ecom-pack';
+
+/** Explicit garment item classification for isolated or coordinated extraction */
+export type GarmentScope = 'top' | 'bottom' | 'dress' | 'outerwear' | 'full-set';
+
+/** E-Com Pack category branches */
+export type EComPackCategory = 'product' | 'brand-models' | 'custom-destinations';
+
+/** Single result card in E-Com Pack view */
+export interface EComPackItem {
+  id: string;
+  category: EComPackCategory;
+  title: string;
+  subtitle?: string;
+  status: BatchImageStatus;
+  results: ImageFile[];
+  error?: string;
+}
+
 /** One destination image job inside an Identity Transfer batch run */
 export interface IdentityTransferBatchItem {
   id: string;

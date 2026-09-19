@@ -9,6 +9,7 @@ import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import { useClothingTransfer } from '../hooks/useClothingTransfer';
 import { Feature, ImageFile } from '../types';
+import EComPackView from './EComPackView';
 
 interface ClothingTransferProps {
   onSendToFeature?: (feature: Feature, image: ImageFile) => void;
@@ -16,6 +17,9 @@ interface ClothingTransferProps {
 
 const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) => {
   const {
+    mode,
+    setMode,
+    ecomPack,
     referenceItems,
     conceptItems,
     conceptImages,
@@ -59,7 +63,45 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
     setRefineOpen((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(520px,0.95fr)_minmax(0,1.05fr)] xl:items-start">
+    <div className="space-y-6">
+      {/* Mode Selector Toggle */}
+      <div className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-black/40 p-1.5 w-fit">
+        <button
+          type="button"
+          onClick={() => setMode('classic')}
+          className={`rounded-xl px-4 py-2 text-xs font-medium transition-all ${
+            mode === 'classic'
+              ? 'bg-amber-500 text-black shadow-md font-semibold'
+              : 'text-zinc-400 hover:text-white'
+          }`}
+        >
+          {t('clothingTransfer.modes.classic')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('ecom-pack')}
+          className={`rounded-xl px-4 py-2 text-xs font-medium transition-all ${
+            mode === 'ecom-pack'
+              ? 'bg-amber-500 text-black shadow-md font-semibold'
+              : 'text-zinc-400 hover:text-white'
+          }`}
+        >
+          {t('clothingTransfer.modes.ecomPack')}
+        </button>
+      </div>
+
+      {mode === 'ecom-pack' ? (
+        <EComPackView
+          ecomPack={ecomPack}
+          aspectRatio={aspectRatio}
+          setAspectRatio={setAspectRatio}
+          resolution={resolution}
+          setResolution={setResolution}
+          imageEditModel={imageEditModel}
+          error={error}
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(520px,0.95fr)_minmax(0,1.05fr)] xl:items-start">
       <div className="flex min-w-0 flex-col gap-6">
         <section className="workspace-stage rounded-[2rem] p-5 sm:p-6">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -346,6 +388,8 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
           </div>
         )}
       </div>
+        </div>
+      )}
     </div>
   );
 };

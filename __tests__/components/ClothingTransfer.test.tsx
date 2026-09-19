@@ -42,7 +42,37 @@ vi.mock('../../src/components/ImageOptionsPanel', () => ({
 
 import ClothingTransfer from '../../src/components/ClothingTransfer';
 
+const setModeMock = vi.fn();
+
 const baseHookState = {
+  mode: 'classic' as const,
+  setMode: setModeMock,
+  ecomPack: {
+    sourceOutfitImage: null,
+    setSourceOutfitImage: vi.fn(),
+    garmentScope: 'full-set' as const,
+    setGarmentScope: vi.fn(),
+    brandModels: [],
+    selectedBrandModelId: null,
+    selectedBrandModelIds: [],
+    selectBrandModel: vi.fn(),
+    toggleBrandModel: vi.fn(),
+    handleAddCustomModel: vi.fn(),
+    handleRemoveCustomModel: vi.fn(),
+    displayTemplates: [],
+    selectedTemplateIds: [],
+    toggleDisplayTemplate: vi.fn(),
+    customStagingImages: [],
+    handleCustomStagingUpload: vi.fn(),
+    handleRemoveCustomStaging: vi.fn(),
+    customDestinations: [],
+    handleCustomDestinationsUpload: vi.fn(),
+    handleRemoveCustomDestination: vi.fn(),
+    packItems: [],
+    isGenerating: false,
+    handleGeneratePack: vi.fn(),
+    handleRegeneratePackItem: vi.fn(),
+  },
   referenceItems: [{ id: 1, image: null, label: '' }],
   conceptItems: [],
   conceptImages: [],
@@ -79,7 +109,6 @@ const baseHookState = {
   setRefinePrompts: vi.fn(),
   isRefining: {},
 };
-
 describe('ClothingTransfer component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -122,5 +151,19 @@ describe('ClothingTransfer component', () => {
     expect(screen.getByRole('button', { name: 'clothingTransfer.generateButton' })).toBeEnabled();
     expect(screen.getByText('clothingTransfer.batchResultsTitle')).toBeInTheDocument();
     expect(screen.getByText('clothingTransfer.conceptBatchLabel - generatedImage.altText 1')).toBeInTheDocument();
+  });
+
+  it('renders mode switch and switches to E-Com Pack mode', () => {
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      mode: 'ecom-pack',
+    });
+
+    render(<ClothingTransfer />);
+
+    expect(screen.getByText('clothingTransfer.modes.classic')).toBeInTheDocument();
+    expect(screen.getByText('clothingTransfer.modes.ecomPack')).toBeInTheDocument();
+    expect(screen.getByText('clothingTransfer.ecomPack.sourceTitle')).toBeInTheDocument();
+    expect(screen.getByText('clothingTransfer.ecomPack.generateButton')).toBeInTheDocument();
   });
 });
