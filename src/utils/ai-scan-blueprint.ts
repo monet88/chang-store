@@ -59,7 +59,8 @@ export const formatAiScanBlock = (blueprint?: string | null): string => {
 
 function parseAccessoriesList(text: string): string[] {
   const trimmed = text.trim();
-  if (!trimmed || /^(?:none|no accessories|n\/a|nil|\(none\))[\s.]*$/i.test(trimmed)) {
+  const negativeRegex = /^(?:none|no accessories(?: detected)?|n\/a|nil|\(none\)|no non-apparel accessories)[\s.]*$/i;
+  if (!trimmed || negativeRegex.test(trimmed)) {
     return [];
   }
 
@@ -71,13 +72,13 @@ function parseAccessoriesList(text: string): string[] {
   const items: string[] = [];
   for (const line of lines) {
     const cleaned = line.replace(/^[-*•\d.)\s]+/, '').trim();
-    if (!cleaned || /^(?:none|no accessories|n\/a|nil|\(none\))[\s.]*$/i.test(cleaned)) {
+    if (!cleaned || negativeRegex.test(cleaned)) {
       continue;
     }
-    if (lines.length === 1 && cleaned.includes(',') && !line.startsWith('-') && !line.startsWith('*')) {
+    if (lines.length === 1 && cleaned.includes(',') && !line.startsWith('-') && !line.startsWith('*') && !line.startsWith('•')) {
       const parts = cleaned.split(',').map((p) => p.trim()).filter(Boolean);
       for (const p of parts) {
-        if (!/^(?:none|no accessories|n\/a|nil|\(none\))[\s.]*$/i.test(p)) {
+        if (!negativeRegex.test(p)) {
           items.push(p);
         }
       }
@@ -137,18 +138,18 @@ export function parseOutfitBlueprint(blueprint?: string | null): ParsedBlueprint
     };
   }
 
-  const coreMatch = raw.match(/(?:\*{0,2}\[?\s*(?:1\.\s*)?CORE_GARMENTS\s*\]?\*{0,2})\s*:?/i);
-  const textileMatch = raw.match(/(?:\*{0,2}\[?\s*(?:2\.\s*)?TEXTILE_PHYSICS\s*\]?\*{0,2})\s*:?/i);
-  const accessoriesMatch = raw.match(/(?:\*{0,2}\[?\s*(?:3\.\s*)?DETECTED_ACCESSORIES\s*\]?\*{0,2})\s*:?/i);
+  const coreMatch = raw.match(/(?:^|[\r\n]+)[ \t]*(?:\*{0,2}\[?\s*(?:1\.\s*)?CORE_GARMENTS\s*\]?\*{0,2})\s*:?/i);
+  const textileMatch = raw.match(/(?:^|[\r\n]+)[ \t]*(?:\*{0,2}\[?\s*(?:2\.\s*)?TEXTILE_PHYSICS\s*\]?\*{0,2})\s*:?/i);
+  const accessoriesMatch = raw.match(/(?:^|[\r\n]+)[ \t]*(?:\*{0,2}\[?\s*(?:3\.\s*)?DETECTED_ACCESSORIES\s*\]?\*{0,2})\s*:?/i);
 
   if (coreMatch || textileMatch || accessoriesMatch) {
     const extracted = extractSectionsFromMatches(raw, { core: coreMatch, textile: textileMatch, accessories: accessoriesMatch });
     return { raw, ...extracted };
   }
 
-  const legCoreMatch = raw.match(/(?:\*{0,2}(?:1\.\s*)?SEPARATE GARMENT COMPONENTS\*{0,2}|(?:\*{0,2}(?:2\.\s*)?TOP GARMENT DETAILS\*{0,2}))\s*:?/i);
-  const legTextileMatch = raw.match(/(?:\*{0,2}(?:4\.\s*)?TEXTILE & FABRIC ENGINEERING\*{0,2}|(?:\*{0,2}WEAVE & MATERIAL\*{0,2}))\s*:?/i);
-  const legAccMatch = raw.match(/(?:\*{0,2}(?:5\.\s*)?ACCESSORIES & LEGWEAR\*{0,2})\s*:?/i);
+  const legCoreMatch = raw.match(/(?:^|[\r\n]+)[ \t]*(?:\*{0,2}(?:1\.\s*)?SEPARATE GARMENT COMPONENTS\*{0,2}|(?:\*{0,2}(?:2\.\s*)?TOP GARMENT DETAILS\*{0,2}))\s*:?/i);
+  const legTextileMatch = raw.match(/(?:^|[\r\n]+)[ \t]*(?:\*{0,2}(?:4\.\s*)?TEXTILE & FABRIC ENGINEERING\*{0,2}|(?:\*{0,2}WEAVE & MATERIAL\*{0,2}))\s*:?/i);
+  const legAccMatch = raw.match(/(?:^|[\r\n]+)[ \t]*(?:\*{0,2}(?:5\.\s*)?ACCESSORIES & LEGWEAR\*{0,2})\s*:?/i);
 
   if (legCoreMatch || legTextileMatch || legAccMatch) {
     const extracted = extractSectionsFromMatches(raw, { core: legCoreMatch, textile: legTextileMatch, accessories: legAccMatch });
@@ -199,12 +200,12 @@ export function formatGeminiBlueprintBlock(
   lines.push(
     `4. OPTICAL PROPERTIES & DRAPE PHYSICS:\nRender realistic light reflection, sheen, translucency, and natural gravity folds.`,
   );
-  const accList =
+  const accInstruction =
     parsed.detectedAccessories.length > 0
-      ? parsed.detectedAccessories.join(', ')
-      : 'None';
+      ? `Exclude detected accessories: ${parsed.detectedAccessories.join(', ')}.`
+      : 'Accessories: None.';
   lines.push(
-    `5. MICRO-EDGE DETAILS & ACCESSORIES:\nPreserve micro-edge trims, hemlines, and stitching. Accessories: ${accList}.`,
+    `5. MICRO-EDGE DETAILS & ACCESSORIES:\nPreserve micro-edge trims, hemlines, and stitching. ${accInstruction}`,
   );
 
   return `${lines.join('\n')}\n`;

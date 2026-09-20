@@ -318,6 +318,18 @@ Pearl necklace, gold clutch`;
       expect(prompt).toContain(blueprint);
     });
   });
+  it('formats blueprint as structured JSON config for variation and close-up when format is text', () => {
+    const variation = buildVariationPrompt('flat lay', blueprint, 'text');
+    expect(variation).toContain('/* AI_SCAN_BLUEPRINT_CONFIG */');
+    expect(variation).toContain('"coreGarments":');
+
+    const closeUps = buildCloseUpPrompts(blueprint, 'text');
+    expect(closeUps).toHaveLength(3);
+    closeUps.forEach((prompt) => {
+      expect(prompt).toContain('/* AI_SCAN_BLUEPRINT_CONFIG */');
+      expect(prompt).toContain('"textilePhysics":');
+    });
+  });
 
   it('leaves every builder byte-identical when the blueprint is absent or blank', () => {
     const expectedMain = buildLookbookPrompt(createFormState(), [mockImage('front')], null);

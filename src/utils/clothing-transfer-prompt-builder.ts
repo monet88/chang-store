@@ -143,14 +143,12 @@ export function buildProductStagingParts(
     ? `Display the extracted garment realistically hanging, laid out, or staged matching the EXACT setting, hanger, surface, and lighting visible in the STAGING REFERENCE image.${template.prompt ? ` ${template.prompt}` : ''}`
     : template.prompt;
   const parsedBlueprint = parseOutfitBlueprint(outfitBlueprint);
-  const blueprintBlock = formatAiScanBlock(outfitBlueprint);
 
   if (format === 'text') {
     const header = hasStagingImage
       ? `IMAGE 1 = SOURCE OUTFIT (extract ${scopeDesc})\nIMAGE 2 = STAGING REFERENCE (target surface or hanger)\n\n`
       : `IMAGE 1 = SOURCE OUTFIT (extract ${scopeDesc})\n\n`;
 
-    const gptBlueprint = formatGptBlueprintConfig(outfitBlueprint, scope);
     const config: Record<string, unknown> = {
       TASK: `Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged into the STAGING REFERENCE setting.`,
       CANVAS_CONTRACT: {
@@ -171,7 +169,6 @@ export function buildProductStagingParts(
         target_scope: scopeDesc,
         apparel_specifications: parsedBlueprint.coreGarments || `Extract ${scopeDesc} with authentic cut, construction, and silhouette`,
         textile_physics: parsedBlueprint.textilePhysics || 'Authentic fabric drape, natural gravity folds, and soft contact shadows',
-        ...gptBlueprint,
       },
       STRICT_INVARIANTS_AND_EXCLUSIONS: [
         'zero human models, heads, faces, arms, legs, or body parts in the scene (contain ZERO human beings or mannequins)',
@@ -220,8 +217,7 @@ ${stagingSpec}`;
 - Preserve the exact staging surface, background cabinetry, hanger types, lighting, and ambient props from the STAGING REFERENCE.`;
 
   const layer3 = `LAYER 3: GARMENT BLUEPRINT
-${parsedBlueprint.coreGarments ? `- Core Garments & Cut Architecture: ${parsedBlueprint.coreGarments}` : `- Authentic Garment Extraction: Extract the exact design, silhouette, collar style, sleeve cut, and construction of the ${scopeDesc}.`}${blueprintBlock}`;
-
+${parsedBlueprint.coreGarments ? `- Core Garments & Cut Architecture: ${parsedBlueprint.coreGarments}` : `- Authentic Garment Extraction: Extract the exact design, silhouette, collar style, sleeve cut, and construction of the ${scopeDesc}.`}`;
   const layer4 = `LAYER 4: TEXTILE PHYSICS
 ${parsedBlueprint.textilePhysics ? `- Textile Weave & Drape Physics: ${parsedBlueprint.textilePhysics}` : `- Fabric & Physics: Accurately render fabric weave, material texture, authentic light reflection, natural gravity drape, and soft contact shadows without synthetic CGI gloss.`}`;
 
@@ -263,7 +259,7 @@ ${accessoriesExclusion}- No altered colors, distorted patterns, or synthetic CGI
 export function buildBrandModelParts(
   sourceImage: ImageFile,
   model: BrandModelProfile,
-  _scope: GarmentScope,
+  scope: GarmentScope,
   extraInstructions: string = '',
   format: PromptFormat = 'parts',
   outfitBlueprint: string = '',
@@ -294,7 +290,7 @@ export function buildBrandModelParts(
 
   if (format === 'text') {
     const roleMap = roles.map((r, i) => `IMAGE ${i + 1} = ${r.label}`).join('\n');
-    const gptBlueprint = formatGptBlueprintConfig(outfitBlueprint, _scope);
+    const gptBlueprint = formatGptBlueprintConfig(outfitBlueprint, scope);
 
     const config: Record<string, unknown> = {
       TASK: `Replace model's head and face in DESTINATION PHOTO with BRAND MODEL (${model.name}) while maintaining a 100% strict lock on clothing and environment.`,

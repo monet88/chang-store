@@ -411,5 +411,21 @@ describe('buildVirtualTryOnParts', () => {
       expect(text).toContain('Olive canvas tote bag');
       expect(text).toContain('Sheer dotted tights');
     });
+    it('does not append non-clothing accessory exclusion when there is no clothing source item', () => {
+      const STRUCTURED_BLUEPRINT = `[1. CORE_GARMENTS]
+- Upper: Silk blouse.
+[2. TEXTILE_PHYSICS]
+- Optical: Sheer.
+[3. DETECTED_ACCESSORIES]
+- Olive canvas tote bag`;
+      const parts = buildVirtualTryOnParts({
+        ...defaultInput,
+        sourceItems: [{ image: mockImage('bag'), sourceItemType: 'bag' }],
+        outfitBlueprint: STRUCTURED_BLUEPRINT,
+      });
+      const text = getTaskText(parts);
+
+      expect(text).not.toContain('Do not transfer non-clothing accessories from the clothing source image');
+    });
   });
 });

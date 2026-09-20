@@ -269,6 +269,17 @@ Leather tote bag, tortoiseshell sunglasses`;
 
     expect(parts[1].inlineData?.data).toBe('mock-base64-source-outfit');
   });
+  it('includes USER_INSTRUCTIONS in product staging text and parts lanes when extraInstructions is supplied', () => {
+    const sourceImage = mockImage('source-outfit');
+    const partsText = buildProductStagingParts(sourceImage, template, 'dress', 'keep vintage belt', 'text');
+    const jsonMatch = partsText[0].text.match(/\/\* PRODUCT_STAGING_CONFIG \*\/\n([\s\S]+)$/);
+    expect(jsonMatch).not.toBeNull();
+    const config = JSON.parse(jsonMatch![1]);
+    expect(config.USER_INSTRUCTIONS).toBe('keep vintage belt');
+
+    const partsGemini = buildProductStagingParts(sourceImage, template, 'dress', 'keep vintage belt', 'parts');
+    expect(partsGemini[2].text).toContain('USER INSTRUCTIONS:\nkeep vintage belt');
+  });
 
   it('outputs 5-layer natural language specification for Gemini lane (format === "parts")', () => {
     const sourceImage = mockImage('source-outfit');
@@ -393,6 +404,17 @@ Diamond drop earrings`;
       ]),
     );
   });
+  it('includes USER_INSTRUCTIONS in brand model text and parts lanes when extraInstructions is supplied', () => {
+    const sourceImage = mockImage('source-outfit');
+    const partsText = buildBrandModelParts(sourceImage, model, 'full-set', 'keep vintage belt', 'text');
+    const jsonMatch = partsText[0].text.match(/\/\* BRAND_MODEL_IDENTITY_CONFIG \*\/\n([\s\S]+)$/);
+    expect(jsonMatch).not.toBeNull();
+    const config = JSON.parse(jsonMatch![1]);
+    expect(config.USER_INSTRUCTIONS).toBe('keep vintage belt');
+
+    const partsGemini = buildBrandModelParts(sourceImage, model, 'full-set', 'keep vintage belt', 'parts');
+    expect(partsGemini[partsGemini.length - 1].text).toContain('USER INSTRUCTIONS:\nkeep vintage belt');
+  });
 });
 
 /**
@@ -432,10 +454,12 @@ describe('AI Scan blueprint injection', () => {
     const staging = getTaskText(buildProductStagingParts(sourceImage, template, 'top', '', 'parts', blueprint));
     const brandModel = getTaskText(buildBrandModelParts(sourceImage, model, 'full-set', '', 'parts', blueprint));
 
-    for (const taskText of [transfer, staging, brandModel]) {
+    for (const taskText of [transfer, brandModel]) {
       expect(taskText).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION');
       expect(taskText).toContain(blueprint);
     }
+    expect(staging).toContain('LAYER 3: GARMENT BLUEPRINT');
+    expect(staging).toContain('plissé accordion pleats');
   });
 
   it('leaves the lane prompt untouched when no blueprint was scanned', () => {

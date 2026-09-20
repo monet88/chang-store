@@ -433,8 +433,9 @@ const buildProductShotPrompt = (
 export const buildVariationPrompt = (
   lookbookStyle: LookbookStyle,
   outfitBlueprint: string = '',
+  format: PromptFormat = 'parts',
 ): string => {
-  return `## TASK: PRODUCT LOOKBOOK VARIATION SHOT
+  const base = `## TASK: PRODUCT LOOKBOOK VARIATION SHOT
 Generate a single alternate photograph of the exact same clothing product shown in the reference image, maintaining the '${lookbookStyle}' presentation style.
 
 ## EDIT & VARIATION RULES
@@ -450,7 +451,16 @@ Generate a single alternate photograph of the exact same clothing product shown 
 - No collages, grids, split images, multi-panel layouts, or contact sheets.
 - No altering or redesigning the garment, colors, patterns, or construction details.
 - No changing the core '${lookbookStyle}' presentation concept.
-- No blurry details, distortion, or artificial compositing artifacts.` + formatAiScanBlock(outfitBlueprint);
+- No blurry details, distortion, or artificial compositing artifacts.`;
+
+  if (outfitBlueprint?.trim()) {
+    if (format === 'text') {
+      const gptConfig = formatGptBlueprintConfig(outfitBlueprint);
+      return `${base}\n\n/* AI_SCAN_BLUEPRINT_CONFIG */\n${JSON.stringify(gptConfig, null, 2)}`;
+    }
+    return base + formatAiScanBlock(outfitBlueprint);
+  }
+  return base;
 };
 
 /**
@@ -458,8 +468,15 @@ Generate a single alternate photograph of the exact same clothing product shown 
  * @param outfitBlueprint - Optional AI Scan textile deconstruction of the sources
  * @returns Array of close-up prompt strings
  */
-export const buildCloseUpPrompts = (outfitBlueprint: string = ''): string[] => {
-  const aiScanBlock = formatAiScanBlock(outfitBlueprint);
+export const buildCloseUpPrompts = (
+  outfitBlueprint: string = '',
+  format: PromptFormat = 'parts',
+): string[] => {
+  const aiScanBlock = outfitBlueprint?.trim()
+    ? (format === 'text'
+      ? `\n\n/* AI_SCAN_BLUEPRINT_CONFIG */\n${JSON.stringify(formatGptBlueprintConfig(outfitBlueprint), null, 2)}`
+      : formatAiScanBlock(outfitBlueprint))
+    : '';
   return [
     `## TASK: DETAIL CLOSE-UP — NECKLINE / COLLAR
 Generate a high-end e-commerce macro detail photograph focusing on the neckline or collar of the garment from the reference image.

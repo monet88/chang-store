@@ -107,6 +107,23 @@ Leather tote bag, sunglasses, silk neck scarf`;
         'silk neck scarf',
       ]);
     });
+    it('does not prematurely slice when section keywords appear mid-sentence in prose', () => {
+      const raw = `[1. CORE_GARMENTS]
+- Top: Silk blouse (matches CORE_GARMENTS specification).
+- Bottom: Pleated wool trousers.
+
+[2. TEXTILE_PHYSICS]
+- WEAVE & MATERIAL: Silk and wool.
+
+[3. DETECTED_ACCESSORIES]
+None`;
+
+      const parsed = parseOutfitBlueprint(raw);
+      expect(parsed.coreGarments).toContain('Silk blouse (matches CORE_GARMENTS specification)');
+      expect(parsed.coreGarments).toContain('Pleated wool trousers');
+      expect(parsed.textilePhysics).toContain('Silk and wool');
+      expect(parsed.detectedAccessories).toEqual([]);
+    });
 
     it('falls back gracefully when legacy unstructured text is passed', () => {
       const legacy = '4. TEXTILE & FABRIC ENGINEERING:\n- WEAVE & MATERIAL: plissé accordion pleats, silk satin.\n- DRAPE PHYSICS: fluid fall.';
@@ -159,7 +176,7 @@ Translucent sheer chiffon with fluid drape.
       expect(block).toContain('Translucent sheer chiffon with fluid drape');
       expect(block).toContain('4. OPTICAL PROPERTIES & DRAPE PHYSICS:');
       expect(block).toContain('5. MICRO-EDGE DETAILS & ACCESSORIES:');
-      expect(block).toContain('Gold drop earrings');
+      expect(block).toContain('Exclude detected accessories: Gold drop earrings.');
     });
 
     it('formats 5 layers gracefully when scope is not provided', () => {
