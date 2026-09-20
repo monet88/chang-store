@@ -497,6 +497,28 @@ describe('useWardrobeMode', () => {
       expect(result.current.results[0].status).toBe('completed');
     });
 
+    it('uses the GPT-owned prompt family for wardrobe jobs in GPT Studio Mode', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue(BLUEPRINT);
+
+      const { result } = renderHook(
+        () => useWardrobeMode({ ...defaultParams, engineId: 'gptImage' }),
+        { wrapper: wrapperFor(analyze, true) },
+      );
+
+      setUpWardrobe(result);
+
+      await act(async () => {
+        await result.current.generate();
+      });
+
+      const prompt = textSent();
+      expect(prompt).toContain('/* VIRTUAL_TRY_ON_CONFIG */');
+      expect(prompt).toContain('"AI_SCAN_BLUEPRINT"');
+      expect(prompt).not.toContain('CRITICAL OUTFIT DECONSTRUCTION (5-LAYER TECHNICAL BRIEF)');
+      expect(result.current.results[0].status).toBe('completed');
+    });
+
     it('never analyses and keeps the base prompt when the layer is switched off', async () => {
       vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
       const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue('unused blueprint');

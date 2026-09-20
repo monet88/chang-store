@@ -4,7 +4,7 @@ import { Feature } from '../../../src/types';
 import { mockUseImageEngine, mockUseLanguage } from '../../__mocks__/contexts';
 
 vi.mock('@/contexts/LanguageContext', () => mockUseLanguage());
-vi.mock('@/components/studios/GptVirtualTryOn', () => ({ default: () => <div data-testid="view-try-on" /> }));
+vi.mock('@/components/VirtualTryOn', () => ({ default: () => <div data-testid="view-try-on" /> }));
 vi.mock('@/components/studios/GptLookbookGenerator', () => ({ default: () => <div data-testid="view-lookbook" /> }));
 vi.mock('@/components/studios/GptClothingTransfer', () => ({ default: () => <div data-testid="view-clothing-transfer" /> }));
 vi.mock('@/components/studios/GptAIEditor', () => ({ default: () => <div data-testid="view-ai-editor" /> }));
@@ -31,7 +31,7 @@ describe('GptStudio', () => {
     [Feature.ClothingTransfer, 'view-clothing-transfer'],
     [Feature.AIEditor, 'view-ai-editor'],
     [Feature.IdentityTransfer, 'view-identity-transfer'],
-  ])('renders the GPT view for %s', (feature, testId) => {
+  ])('renders the active feature for %s', (feature, testId) => {
     render(<GptStudio activeFeature={feature} onSendToFeature={onSendToFeature} />);
 
     expect(screen.getByTestId(testId)).toBeInTheDocument();

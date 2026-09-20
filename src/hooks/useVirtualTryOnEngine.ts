@@ -10,8 +10,8 @@ import {
 import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { editImage, upscaleImage } from '../services/imageEditingService';
-import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
-import { promptFormatFor } from '../utils/promptFormat';
+import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
+import { buildGptVirtualTryOnParts } from '../utils/gpt-virtual-try-on-prompt';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { UseVirtualTryOnSubjectsReturn } from './useVirtualTryOnSubjects';
 import { UseImageRefinementReturn } from './useImageRefinement';
@@ -20,12 +20,12 @@ import { useAiScan } from '../contexts/AiScanContext';
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
 /**
- * Gemini image primitives the engine orchestrates, mirroring the provider
+ * Image primitives the engine orchestrates, mirroring the provider
  * `ProviderImageDriver` seam. The main hook builds the default driver from the
  * real `imageEditingService`; tests can inject a mock driver to exercise the
- * generation core without hitting the Gemini API.
+ * generation core without hitting the active image API.
  */
-export interface GeminiImageDriver {
+export interface VirtualTryOnImageDriver {
   editImage: typeof editImage;
   upscaleImage: typeof upscaleImage;
 }
@@ -33,7 +33,7 @@ export interface GeminiImageDriver {
 const VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY = 3;
 
 export interface UseVirtualTryOnEngineConfig {
-  driver: GeminiImageDriver;
+  driver: VirtualTryOnImageDriver;
   subjects: UseVirtualTryOnSubjectsReturn;
   validClothingItems: VirtualTryOnClothingItem[];
   isMultiPersonMode: boolean;
@@ -100,14 +100,17 @@ export const useVirtualTryOnEngine = (
         if (isMultiPersonMode && subjects.markerPosition) {
           finalSubjectImage = await compositeMarkerOnImage(subjectImage, subjects.markerPosition);
         }
-        const interleavedParts = buildVirtualTryOnParts({
+        const promptInput = {
           subjectImage: finalSubjectImage,
           sourceItems,
           extraPrompt,
           backgroundPrompt,
           isMultiPersonMode: isMultiPersonMode && subjects.markerPosition !== null,
           outfitBlueprint: blueprint ?? undefined,
-        }, promptFormatFor(engineId));
+        };
+        const interleavedParts = engineId === 'gptImage'
+          ? buildGptVirtualTryOnParts(promptInput)
+          : buildGeminiVirtualTryOnParts(promptInput);
         const results = await driver.editImage(
           {
             images: [],

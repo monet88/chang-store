@@ -14,7 +14,7 @@ import { useImageEngine } from '../contexts/ImageEngineContext';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { useImageRefinement } from './useImageRefinement';
 import { useVirtualTryOnSubjects } from './useVirtualTryOnSubjects';
-import { useVirtualTryOnEngine, GeminiImageDriver } from './useVirtualTryOnEngine';
+import { useVirtualTryOnEngine, VirtualTryOnImageDriver } from './useVirtualTryOnEngine';
 import { useVirtualTryOnResultActions } from './useVirtualTryOnResultActions';
 
 export const useVirtualTryOn = () => {
@@ -60,7 +60,7 @@ export const useVirtualTryOn = () => {
   const subjects = useVirtualTryOnSubjects(setError, setUpscalingStates);
 
   // Default driver comes from the studio-scoped image engine; tests can inject a mock.
-  const driver = useMemo<GeminiImageDriver>(() => ({ editImage, upscaleImage }), [editImage, upscaleImage]);
+  const driver = useMemo<VirtualTryOnImageDriver>(() => ({ editImage, upscaleImage }), [editImage, upscaleImage]);
 
   const buildImageServiceConfig = useCallback(
     (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),
@@ -188,6 +188,7 @@ export const useVirtualTryOn = () => {
     removeClothingUploader: clothing.removeClothingUploader,
     handleDownloadAll: resultActions.handleDownloadAll,
     anyUpscaling,
+    engineId,
     imageEditModel,
     refinePrompts,
     setRefinePrompts,

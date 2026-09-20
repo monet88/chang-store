@@ -5,14 +5,14 @@ import { upscaleImage } from '../services/imageEditingService';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import { UseVirtualTryOnSubjectsReturn } from './useVirtualTryOnSubjects';
 import { UseImageRefinementReturn } from './useImageRefinement';
-import type { GeminiImageDriver } from './useVirtualTryOnEngine';
+import type { VirtualTryOnImageDriver } from './useVirtualTryOnEngine';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 
 export interface UseVirtualTryOnResultActionsConfig {
-  driver: GeminiImageDriver;
+  driver: VirtualTryOnImageDriver;
   subjects: UseVirtualTryOnSubjectsReturn;
   imageEditModel: string;
   refinement: UseImageRefinementReturn;
@@ -31,7 +31,7 @@ export interface UseVirtualTryOnResultActionsReturn {
 /**
  * Per-result actions for Virtual Try-On (upscale, refine, download-all),
  * extracted to keep useVirtualTryOn under the line limit. Mirrors the provider
- * `useProviderResultActions` split. Uses the injected GeminiImageDriver so the
+ * `useProviderResultActions` split. Uses the injected VirtualTryOnImageDriver so the
  * same mock-driver seam covers these actions.
  */
 export const useVirtualTryOnResultActions = (
