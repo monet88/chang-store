@@ -136,6 +136,68 @@ describe('useClothingTransferEComPack', () => {
     );
   });
 
+  it('passes runtime canvas values into GPT Product Staging prompt config', async () => {
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '16:9',
+        resolution: '2K',
+        numImages: 1,
+        imageEditModel: 'gpt-image-1.5',
+        engineId: 'gptImage',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        analyzeOutfitBlueprintFn: vi.fn().mockResolvedValue(''),
+      }),
+    );
+
+    await act(async () => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomStagingUpload([mockImage('staging')]);
+    });
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    const request = editImageMock.mock.calls[0][0];
+    const text = request.interleavedParts[0].text as string;
+    expect(text).toContain('"aspect_ratio": "16:9"');
+    expect(text).toContain('"resolution": "2K"');
+  });
+
+  it('uses the structured GPT Clothing Transfer prompt for custom destinations', async () => {
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gpt-image-1.5',
+        engineId: 'gptImage',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        analyzeOutfitBlueprintFn: vi.fn().mockResolvedValue('[CORE_GARMENTS]\nSilk blouse'),
+      }),
+    );
+
+    await act(async () => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomDestinationsUpload([mockImage('destination')]);
+    });
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    const request = editImageMock.mock.calls[0][0];
+    const text = request.interleavedParts[0].text as string;
+    expect(text).toContain('/* CLOTHING_TRANSFER_CONFIG */');
+    expect(text).toContain('"AI_SCAN_BLUEPRINT"');
+  });
+
   it('manages custom staging references upload and handles removal', () => {
     const { result } = setupHook();
 

@@ -1,11 +1,12 @@
 import type { Part } from '@google/genai';
-import { GarmentScope, ImageFile } from '../types';
+import { AspectRatio, GarmentScope, ImageFile, ImageResolution } from '../types';
 import type { BrandModelProfile } from '../config/brandModelRoster';
 import type { DisplayTemplate } from '../config/displayTemplates';
 import type { PromptFormat } from './promptFormat';
 import { dropRestatedLines, imagePart } from './promptFormat';
 import {
   formatAiScanBlock,
+  formatGeminiBlueprintBlock,
   parseOutfitBlueprint,
   formatGptBlueprintConfig,
 } from './ai-scan-blueprint';
@@ -62,7 +63,7 @@ export function buildClothingTransferParts(
   const avoidSection = format === 'text'
     ? dropRestatedLines(avoidBlock, RESTATED_AVOID_BULLETS)
     : avoidBlock;
-  const blueprintBlock = formatAiScanBlock(outfitBlueprint);
+  const blueprintBlock = formatGeminiBlueprintBlock(outfitBlueprint);
 
   const taskPrompt = `TASK: Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.${blueprintBlock}
 REFERENCE OWNERSHIP & ROLES:
@@ -94,8 +95,35 @@ ${avoidSection}`;
 
   if (format === 'text') {
     const roleMap = roles.map((role, index) => `IMAGE ${index + 1} = ${role.label}`).join('\n');
+    const parsedBlueprint = parseOutfitBlueprint(outfitBlueprint);
+    const config: Record<string, unknown> = {
+      TASK: 'Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.',
+      REFERENCE_OWNERSHIP: {
+        destination: 'The DESTINATION image defines the entire environment: background, surfaces, walls, camera angle, perspective, framing, color temperature, ambient lighting, display method, spatial arrangement, and any subject person identity/pose.',
+        sources: "SOURCE OUTFIT images own garment design and construction only. Do NOT transfer any source person's identity, face, body, or pose. Do NOT transfer any source background, furniture, hangers, shoes, bags, jewelry, or non-garment props.",
+      },
+      GARMENT_FIDELITY: [
+        'Extract only the labeled garment/category, or clearly visible fashion garments when unlabeled.',
+        'Faithfully reproduce silhouette, construction, collar, sleeves, waistband, seams, closures, hardware, colors, materials, textures, pattern scale/orientation, graphics, and supported branding.',
+        'For multi-piece outfits preserve every garment component and bottom-garment structure, layers, pleats, ruffles, and hem finishing.',
+      ],
+      PLACEMENT_AND_INTEGRATION: [
+        'Map each source garment to its corresponding location in the DESTINATION arrangement.',
+        'Adapt drape to the destination display method with realistic gravity, folds, anatomical fit, contact shadows, and occlusion.',
+        'Zero blending: completely replace the destination clothing; no old colors, silhouettes, patterns, or residual visual attributes may remain.',
+        'Match destination light direction, intensity, color temperature, contact shadows, camera perspective, and foreground object boundaries.',
+      ],
+      STRICT_INVARIANTS_AND_EXCLUSIONS: [
+        'No compositing artifacts, edge halos, mismatched shadows, or perspective discrepancies.',
+        ...parsedBlueprint.detectedAccessories.map((accessory) => `exclude detected accessory: ${accessory}`),
+      ],
+      ...(parsedBlueprint.raw ? { AI_SCAN_BLUEPRINT: formatGptBlueprintConfig(outfitBlueprint) } : {}),
+    };
+    if (extraInstructions.trim()) {
+      config.USER_INSTRUCTIONS = extraInstructions.trim();
+    }
     return [
-      { text: `${roleMap}\n\n${taskPrompt}` },
+      { text: `${roleMap}\n\n/* CLOTHING_TRANSFER_CONFIG */\n${JSON.stringify(config, null, 2)}` },
       ...roles.map((role) => imagePart(role.image)),
     ];
   }
@@ -136,6 +164,8 @@ export function buildProductStagingParts(
   extraInstructions: string = '',
   format: PromptFormat = 'parts',
   outfitBlueprint: string = '',
+  aspectRatio: AspectRatio = '3:4',
+  resolution: ImageResolution = '1K',
 ): Part[] {
   const scopeDesc = formatGarmentScope(scope);
   const hasStagingImage = Boolean(template.image);
@@ -152,7 +182,8 @@ export function buildProductStagingParts(
     const config: Record<string, unknown> = {
       TASK: `Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged into the STAGING REFERENCE setting.`,
       CANVAS_CONTRACT: {
-        aspect_ratio: '3:4',
+        aspect_ratio: aspectRatio,
+        resolution,
         framing: 'catalog framing',
         presentation: 'commercial e-commerce product photograph',
       },

@@ -814,6 +814,8 @@ describe('services/gemini/text.ts', () => {
       expect(prompt).toContain('OPTICAL PROPERTIES & FINISH');
       expect(prompt).toContain('WEIGHT & DRAPE PHYSICS');
       expect(prompt).toContain('MICRO-EDGE & HEMLINE DETAILS');
+      expect(prompt).toContain('belts are supporting apparel');
+      expect(prompt).not.toContain('hats, belts');
       expect(request.model).toBe('gemini-3.8-flash');
     });
 

@@ -152,7 +152,7 @@ describe('buildClothingTransferParts', () => {
   });
 
   describe('flat prompt format', () => {
-    it('maps every image by position and keeps the same task instructions', () => {
+    it('uses a structured GPT config instead of the Gemini markdown brief', () => {
       const references = [
         { image: mockImage('top'), label: 'blouse' },
         { image: mockImage('bottom'), label: '' },
@@ -164,9 +164,14 @@ describe('buildClothingTransferParts', () => {
       expect(parts[0].text).toContain('IMAGE 1 = DESTINATION SCENE (owns background, scene composition, lighting, display method, and any subject person)');
       expect(parts[0].text).toContain('IMAGE 2 = SOURCE OUTFIT 1 (extract this clothing — blouse)');
       expect(parts[0].text).toContain('IMAGE 3 = SOURCE OUTFIT 2 (extract this clothing — auto-detect clothing type)');
-      expect(parts[0].text).toContain('TASK: Replace the clothing in the DESTINATION SCENE');
-      expect(parts[0].text).toContain('SOURCE OUTFIT REFERENCES OWN GARMENT DESIGN ONLY');
-      expect(parts[0].text).toContain('AVOID:');
+      expect(parts[0].text).toContain('/* CLOTHING_TRANSFER_CONFIG */');
+      expect(parts[0].text).not.toContain('REFERENCE OWNERSHIP & ROLES:');
+      const jsonMatch = parts[0].text?.match(/\/\* CLOTHING_TRANSFER_CONFIG \*\/\n([\s\S]+)$/);
+      expect(jsonMatch).not.toBeNull();
+      const config = JSON.parse(jsonMatch![1]);
+      expect(config.TASK).toContain('Replace the clothing in the DESTINATION SCENE');
+      expect(config.REFERENCE_OWNERSHIP.destination).toContain('background');
+      expect(config.REFERENCE_OWNERSHIP.sources).toContain('garment design');
       expect(parts[1].inlineData?.data).toBe('mock-base64-concept-scene');
       expect(parts[2].inlineData?.data).toBe('mock-base64-top');
       expect(parts[3].inlineData?.data).toBe('mock-base64-bottom');
@@ -193,7 +198,19 @@ describe('buildClothingTransferParts', () => {
     it('carries user instructions into the flat format too', () => {
       const parts = buildClothingTransferParts(defaultConcept, [defaultReference], 'keep vintage belt', 'text');
 
-      expect(parts[0].text).toContain('USER INSTRUCTIONS:\nkeep vintage belt');
+      expect(parts[0].text).toContain('"USER_INSTRUCTIONS": "keep vintage belt"');
+    });
+
+    it('uses engine-specific AI Scan formatting for Gemini and GPT', () => {
+      const blueprint = `[CORE_GARMENTS]\nSilk blouse with shaped waist\n[TEXTILE_PHYSICS]\nSoft satin drape\n[DETECTED_ACCESSORIES]\nPearl bag`;
+      const geminiText = getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '', 'parts', blueprint));
+      const gptText = getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '', 'text', blueprint));
+
+      expect(geminiText).toContain('CRITICAL OUTFIT DECONSTRUCTION (5-LAYER TECHNICAL BRIEF)');
+      expect(geminiText).toContain('1. GARMENT IDENTIFICATION & SCOPE');
+      expect(gptText).toContain('"AI_SCAN_BLUEPRINT"');
+      expect(gptText).toContain('"coreGarments": "Silk blouse with shaped waist"');
+      expect(gptText).not.toContain('CRITICAL OUTFIT DECONSTRUCTION (5-LAYER TECHNICAL BRIEF)');
     });
   });
 });
@@ -229,7 +246,7 @@ Crisp linen weave with sharp structural folds
 [DETECTED_ACCESSORIES]
 Leather tote bag, tortoiseshell sunglasses`;
 
-    const parts = buildProductStagingParts(sourceImage, template, 'dress', '', 'text', blueprint);
+    const parts = buildProductStagingParts(sourceImage, template, 'dress', '', 'text', blueprint, '16:9', '2K');
 
     expect(parts).toHaveLength(2);
     expect(parts[0].text).toContain('IMAGE 1 = SOURCE OUTFIT');
@@ -242,7 +259,8 @@ Leather tote bag, tortoiseshell sunglasses`;
     const config = JSON.parse(jsonMatch![1]);
 
     expect(config.CANVAS_CONTRACT).toBeDefined();
-    expect(config.CANVAS_CONTRACT.aspect_ratio).toBe('3:4');
+    expect(config.CANVAS_CONTRACT.aspect_ratio).toBe('16:9');
+    expect(config.CANVAS_CONTRACT.resolution).toBe('2K');
     expect(config.CANVAS_CONTRACT.framing).toContain('catalog framing');
 
     expect(config.ENVIRONMENT).toBeDefined();

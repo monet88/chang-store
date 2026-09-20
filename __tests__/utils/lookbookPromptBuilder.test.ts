@@ -296,9 +296,13 @@ Pearl necklace, gold clutch`;
       structuredBlueprint,
     );
 
-    expect(prompt).toContain('/* AI_SCAN_BLUEPRINT_CONFIG */');
-    expect(prompt).toContain('"coreGarments": "Silk crepe evening gown with bias-cut bodice"');
-    expect(prompt).toContain('"textilePhysics": "Heavy drape, soft sheen, fluid movement"');
+    expect(prompt).toContain('/* LOOKBOOK_CONFIG */');
+    expect(prompt).not.toContain('## OUTPUT');
+    const jsonMatch = prompt.match(/\/\* LOOKBOOK_CONFIG \*\/\n([\s\S]+)$/);
+    expect(jsonMatch).not.toBeNull();
+    const config = JSON.parse(jsonMatch![1]);
+    expect(config.AI_SCAN_BLUEPRINT.coreGarments).toBe('Silk crepe evening gown with bias-cut bodice');
+    expect(config.AI_SCAN_BLUEPRINT.textilePhysics).toBe('Heavy drape, soft sheen, fluid movement');
     expect(prompt).toContain('"Pearl necklace"');
   });
 

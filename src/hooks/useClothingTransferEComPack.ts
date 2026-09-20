@@ -293,7 +293,7 @@ export const useClothingTransferEComPack = (
           const templateId = item.id.replace('template-', '');
           const template = displayTemplates.find((t) => t.id === templateId);
           if (!template) throw new Error('Template not found');
-          parts = buildProductStagingParts(sourceOutfitImage, template, garmentScope, extraPrompt, format, blueprintToUse);
+          parts = buildProductStagingParts(sourceOutfitImage, template, garmentScope, extraPrompt, format, blueprintToUse, aspectRatio, resolution);
         } else if (item.category === 'brand-models') {
           const modelId = item.id.replace('brand-', '');
           const model = brandModels.find((m) => m.id === modelId);

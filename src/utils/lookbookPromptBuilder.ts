@@ -190,11 +190,16 @@ Render exactly one complete, standalone photograph. Do NOT generate a collage, g
     sections.push(descriptionInstruction);
   }
 
+  if (format === 'text') {
+    const config: Record<string, unknown> = {
+      OUTPUT: sections[0].replace(/^## OUTPUT\n/, ''),
+      INSTRUCTIONS: sections.slice(1),
+      ...(outfitBlueprint?.trim() ? { AI_SCAN_BLUEPRINT: formatGptBlueprintConfig(outfitBlueprint) } : {}),
+    };
+    return `/* LOOKBOOK_CONFIG */\n${JSON.stringify(config, null, 2)}`;
+  }
+
   if (outfitBlueprint?.trim()) {
-    if (format === 'text') {
-      const gptConfig = formatGptBlueprintConfig(outfitBlueprint);
-      return `${sections.join('\n\n')}\n\n/* AI_SCAN_BLUEPRINT_CONFIG */\n${JSON.stringify(gptConfig, null, 2)}`;
-    }
     return sections.join('\n\n') + formatGeminiBlueprintBlock(outfitBlueprint);
   }
 

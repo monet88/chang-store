@@ -299,6 +299,7 @@ Structure your analysis strictly into the following 3 distinct bounded sections 
 
 [1. CORE_GARMENTS]
 - Layer & piece identification (Top, Bottom, One-Piece, Outerwear).
+- Treat belts as supporting apparel when they are part of the outfit; belts are supporting apparel, not generic non-apparel accessories.
 - Exact silhouette, fit, cuts, waistline, neckline/collar, sleeve style, closures.
 - MICRO-EDGE & HEMLINE DETAILS: scalloped lace edges, fringes, cuffs, sheer mesh bands, contrast stitching.
 
@@ -308,7 +309,7 @@ Structure your analysis strictly into the following 3 distinct bounded sections 
 - WEIGHT & DRAPE PHYSICS: fluidity, rigidity, structural hold, gravity folds, tension lines, flare.
 
 [3. DETECTED_ACCESSORIES]
-- Inventory of non-apparel items: bags, footwear, hosiery/tights, jewelry, hair accessories, hats, belts.
+- Inventory of non-apparel items: bags, footwear, hosiery/tights, jewelry, hair accessories, hats.
 (If none detected, state: None).
 
 Keep the output factual, structured, and focused strictly on clothing construction and textile behavior to guide photorealistic reproduction.`;
