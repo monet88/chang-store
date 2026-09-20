@@ -17,8 +17,7 @@ interface GptStudioProps {
 /**
  * The GPT Image studio. Virtual Try-On, Lookbook, Clothing Transfer, and
  * Identity Transfer use shared Feature views and resolve GPT-owned controls
- * from the active image engine; the remaining feature views are still
- * provider-specific until their own migration tickets land.
+ * from the active image engine; AI Editor remains provider-specific.
  */
 const GptStudio: React.FC<GptStudioProps> = ({ activeFeature, onSendToFeature }) => {
   const { t } = useLanguage();

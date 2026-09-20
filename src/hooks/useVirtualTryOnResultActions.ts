@@ -20,8 +20,6 @@ export interface UseVirtualTryOnResultActionsConfig {
   t: (key: string, options?: { [key: string]: string | number }) => string;
 }
 
-export type UseVirtualTryOnResultActionsReturn = UseGeneratedResultActionsReturn;
-
 /**
  * Virtual Try-On's adapter over the shared result actions. Try-On mutates the
  * subject item result slots and does not persist results to the gallery, so its
@@ -29,7 +27,7 @@ export type UseVirtualTryOnResultActionsReturn = UseGeneratedResultActionsReturn
  */
 export const useVirtualTryOnResultActions = (
   config: UseVirtualTryOnResultActionsConfig,
-): UseVirtualTryOnResultActionsReturn => {
+): UseGeneratedResultActionsReturn => {
   const { driver, subjects, ...rest } = config;
 
   const adapter = useMemo<GeneratedResultSlotAdapter>(() => ({

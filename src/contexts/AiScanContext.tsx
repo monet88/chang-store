@@ -71,7 +71,6 @@ interface ScanEntry {
   scan: Promise<string | null>;
 }
 
-
 /** Label each report so the model can tell which image a section came from. */
 const joinReports = (reports: string[]): string =>
   reports.length === 1 ? reports[0] : reports.map((report, index) => `SOURCE IMAGE ${index + 1}:\n${report}`).join('\n\n');
@@ -118,10 +117,6 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
       const cached = scans.current.find((entry) => sameSourceSet(entry.sources, sources));
       if (cached) return cached.scan;
 
-      const forget = () => {
-        scans.current = scans.current.filter((entry) => entry.sources !== sources);
-      };
-
       const run = Promise.all(sources.map((image) => analyze(image, AI_SCAN_MODEL)))
         .then((reports) => {
           // Fail closed: a partial blueprint would state the fabric of one
@@ -138,7 +133,7 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
           // generation, it only drops the layer. Not cached, so the next
           // toggle or source change retries.
           console.warn('[AiScan] Analysis skipped/failed:', err);
-          forget();
+          scans.current = scans.current.filter((entry) => entry.sources !== sources);
           return null;
         });
 

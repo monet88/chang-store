@@ -1,9 +1,8 @@
 /**
- * Shared Part conversion helper.
+ * Common inline image part helper.
  *
- * Feature workflows migrated to independent prompt policies (Virtual Try-On,
- * Clothing Transfer, Identity Transfer, Lookbook) assemble their own requests.
- * This file retains the common inline image part helper.
+ * Feature workflows assemble requests through independent prompt policies at
+ * the engine seam, while sharing this transport helper for inline image parts.
  */
 
 import type { Part } from '@google/genai';

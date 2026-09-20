@@ -5,7 +5,7 @@
  */
 
 import type { Part } from '@google/genai';
-import { imagePart } from './promptFormat';
+import { imagePart } from './imagePart';
 import { formatAiScanBlock } from './ai-scan-blueprint';
 import type { IdentityTransferPromptInput } from './identity-transfer-prompt-types';
 

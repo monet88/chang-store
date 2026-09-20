@@ -22,8 +22,6 @@ export interface UseClothingTransferResultActionsConfig {
   t: (key: string, options?: { [key: string]: string | number }) => string;
 }
 
-export type UseClothingTransferResultActionsReturn = UseGeneratedResultActionsReturn;
-
 /**
  * Clothing Transfer's adapter over the shared result actions. Unlike Try-On it
  * persists every applicable upscale/refine result to the gallery with its own
@@ -31,7 +29,7 @@ export type UseClothingTransferResultActionsReturn = UseGeneratedResultActionsRe
  */
 export const useClothingTransferResultActions = (
   config: UseClothingTransferResultActionsConfig,
-): UseClothingTransferResultActionsReturn => {
+): UseGeneratedResultActionsReturn => {
   const { driver, concepts, addImage, engineId, ...rest } = config;
   const { activeConceptItem, updateConceptItem, conceptItems } = concepts;
 

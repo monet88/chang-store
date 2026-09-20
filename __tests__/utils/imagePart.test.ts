@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { imagePart } from '@/utils/promptFormat';
+import { imagePart } from '@/utils/imagePart';
 
 describe('imagePart', () => {
   it('wraps an ImageFile into inlineData part format', () => {

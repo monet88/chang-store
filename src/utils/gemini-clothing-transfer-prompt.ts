@@ -8,7 +8,7 @@ import type { Part } from '@google/genai';
 import type { GarmentScope, ImageFile } from '../types';
 import type { BrandModelProfile } from '../config/brandModelRoster';
 import type { DisplayTemplate } from '../config/displayTemplates';
-import { imagePart } from './promptFormat';
+import { imagePart } from './imagePart';
 import {
   formatAiScanBlock,
   formatGeminiBlueprintBlock,
