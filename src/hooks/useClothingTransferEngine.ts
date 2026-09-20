@@ -27,7 +27,6 @@ export interface ClothingTransferImageDriver {
   editImage: typeof editImage;
   upscaleImage: typeof upscaleImage;
 }
-export type GeminiImageDriver = ClothingTransferImageDriver;
 
 const CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY = 3;
 

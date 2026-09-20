@@ -19,7 +19,7 @@ interface EComPackViewProps {
   setResolution: (res: ImageResolution) => void;
   imageEditModel: string;
   error: string | null;
-  isGptImageStudio?: boolean;
+  isGptImageStudio: boolean;
 }
 
 const GARMENT_SCOPES: { id: GarmentScope; labelKey: string }[] = [

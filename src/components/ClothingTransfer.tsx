@@ -65,7 +65,6 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
     setRefineOpen((prev) => ({ ...prev, [key]: !prev[key] }));
   const isGptImageStudio = engineId === 'gptImage';
 
-
   return (
     <div className="space-y-6">
       {/* Mode Selector Toggle */}

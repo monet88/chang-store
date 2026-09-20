@@ -9,9 +9,7 @@ import {
   buildGptProductStagingParts,
   buildGptBrandModelParts,
 } from '@/utils/gpt-clothing-transfer-prompt';
-import {
-  type ClothingTransferReferenceInput,
-} from '@/utils/clothing-transfer-prompt-types';
+import type { ClothingTransferReferenceInput } from '@/utils/clothing-transfer-prompt-types';
 import type { DisplayTemplate } from '@/config/displayTemplates';
 import type { BrandModelProfile } from '@/config/brandModelRoster';
 import type { ImageFile } from '@/types';
