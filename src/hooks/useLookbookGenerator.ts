@@ -158,6 +158,7 @@ export const useLookbookGenerator = () => {
     selectedVersionIndex: refinement.selectedVersionIndex,
     setSelectedVersionIndex: refinement.setSelectedVersionIndex,
     originalImageRef: refinement.originalImageRef,
+    engineId,
     imageEditModel,
     handleDownloadAll: resultActions.handleDownloadAll,
   };

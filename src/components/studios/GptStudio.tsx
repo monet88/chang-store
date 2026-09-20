@@ -4,7 +4,7 @@ import { useImageEngine } from '../../contexts/ImageEngineContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { GlobalModelSelector } from '../GlobalModelSelector';
 import VirtualTryOn from '../VirtualTryOn';
-import GptLookbookGenerator from './GptLookbookGenerator';
+import LookbookGenerator from '../LookbookGenerator';
 import ClothingTransfer from '../ClothingTransfer';
 import GptAIEditor from './GptAIEditor';
 import IdentityTransfer from '../IdentityTransfer';
@@ -15,10 +15,10 @@ interface GptStudioProps {
 }
 
 /**
- * The GPT Image studio. Virtual Try-On, Clothing Transfer, and Identity
- * Transfer use shared Feature views and resolve GPT-owned controls from the
- * active image engine; the remaining feature views are still provider-specific
- * until their own migration tickets land.
+ * The GPT Image studio. Virtual Try-On, Lookbook, Clothing Transfer, and
+ * Identity Transfer use shared Feature views and resolve GPT-owned controls
+ * from the active image engine; the remaining feature views are still
+ * provider-specific until their own migration tickets land.
  */
 const GptStudio: React.FC<GptStudioProps> = ({ activeFeature, onSendToFeature }) => {
   const { t } = useLanguage();
@@ -29,7 +29,7 @@ const GptStudio: React.FC<GptStudioProps> = ({ activeFeature, onSendToFeature })
       case Feature.TryOn:
         return <VirtualTryOn key="gpt-try-on" />;
       case Feature.Lookbook:
-        return <GptLookbookGenerator key="gpt-lookbook" onSendToFeature={onSendToFeature} />;
+        return <LookbookGenerator key="gpt-lookbook" onSendToFeature={onSendToFeature} />;
       case Feature.ClothingTransfer:
         return <ClothingTransfer key="gpt-clothing-transfer" onSendToFeature={onSendToFeature} />;
       case Feature.AIEditor:
