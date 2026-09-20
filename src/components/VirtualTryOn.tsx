@@ -9,6 +9,7 @@ import { AddIcon, DeleteIcon, CloudUploadIcon } from './Icons';
 import Tooltip from './Tooltip';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import AiScanPanel from './AiScanPanel';
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
 import { compressImage, calculateLetterboxedMarkerCoordinates, computeLetterboxBounds } from '../utils/imageUtils';
@@ -63,6 +64,7 @@ const VirtualTryOn: React.FC = () => {
     removeClothingUploader,
     handleDownloadAll,
     anyUpscaling,
+    engineId,
     imageEditModel,
     refinePrompts,
     setRefinePrompts,
@@ -80,6 +82,7 @@ const VirtualTryOn: React.FC = () => {
   const subjectContainerRef = React.useRef<HTMLDivElement>(null);
   const subjectImgRef = React.useRef<HTMLImageElement>(null);
   const [imageDimensions, setImageDimensions] = React.useState<{ naturalWidth: number; naturalHeight: number } | null>(null);
+  const isGptImageStudio = engineId === 'gptImage';
 
   const markerStyle: React.CSSProperties = React.useMemo(() => {
     if (!markerPosition) return {};
@@ -459,38 +462,49 @@ const VirtualTryOn: React.FC = () => {
                 </Tooltip>
 
                 <div className="space-y-4">
-                  <ImageOptionsPanel
-                    aspectRatio={aspectRatio}
-                    setAspectRatio={setAspectRatio}
-                    resolution={resolution}
-                    setResolution={setResolution}
-                    model={imageEditModel}
-                  />
+                  {isGptImageStudio ? (
+                    <GptImageOptionsPanel
+                      aspectRatio={aspectRatio}
+                      setAspectRatio={setAspectRatio}
+                      numImages={numImages}
+                      setNumImages={setNumImages}
+                    />
+                  ) : (
+                    <ImageOptionsPanel
+                      aspectRatio={aspectRatio}
+                      setAspectRatio={setAspectRatio}
+                      resolution={resolution}
+                      setResolution={setResolution}
+                      model={imageEditModel}
+                    />
+                  )}
 
                   <AiScanPanel sources={aiScanSources} />
 
-                  <Tooltip content={t('tooltips.tryOnImageCount')} position="top">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm text-zinc-300">
-                        <label htmlFor="num-images-slider" className="font-medium">
-                          {t('virtualTryOn.numberOfImages')}
-                        </label>
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-zinc-100">
-                          {numImages}
-                        </span>
+                  {!isGptImageStudio && (
+                    <Tooltip content={t('tooltips.tryOnImageCount')} position="top">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm text-zinc-300">
+                          <label htmlFor="num-images-slider" className="font-medium">
+                            {t('virtualTryOn.numberOfImages')}
+                          </label>
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-zinc-100">
+                            {numImages}
+                          </span>
+                        </div>
+                        <input
+                          id="num-images-slider"
+                          type="range"
+                          min="1"
+                          max="4"
+                          step="1"
+                          value={numImages}
+                          onChange={(e) => setNumImages(Number(e.target.value))}
+                          className="w-full cursor-pointer"
+                        />
                       </div>
-                      <input
-                        id="num-images-slider"
-                        type="range"
-                        min="1"
-                        max="4"
-                        step="1"
-                        value={numImages}
-                        onChange={(e) => setNumImages(Number(e.target.value))}
-                        className="w-full cursor-pointer"
-                      />
-                    </div>
-                  </Tooltip>
+                    </Tooltip>
+                  )}
 
                   <button
                     type="button"
@@ -798,13 +812,17 @@ const VirtualTryOn: React.FC = () => {
                   <ExtraPromptPresets value={wardrobe.extraPrompt} onChange={wardrobe.setExtraPrompt} />
                 </div>
 
-                <ImageOptionsPanel
-                  aspectRatio={aspectRatio}
-                  setAspectRatio={setAspectRatio}
-                  resolution={resolution}
-                  setResolution={setResolution}
-                  model={imageEditModel}
-                />
+                {isGptImageStudio ? (
+                  <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+                ) : (
+                  <ImageOptionsPanel
+                    aspectRatio={aspectRatio}
+                    setAspectRatio={setAspectRatio}
+                    resolution={resolution}
+                    setResolution={setResolution}
+                    model={imageEditModel}
+                  />
+                )}
 
                 <AiScanPanel sources={wardrobe.aiScanSources} />
 

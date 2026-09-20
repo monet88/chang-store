@@ -17,8 +17,8 @@ import {
   type WardrobeSet,
 } from '../types';
 import { editImage } from '../services/imageEditingService';
-import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
-import { promptFormatFor } from '../utils/promptFormat';
+import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
+import { buildGptVirtualTryOnParts } from '../utils/gpt-virtual-try-on-prompt';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
@@ -129,14 +129,17 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
           // fabrics in this prompt.
           const blueprint = await scan(aiScanSourceSet(sourceItems.map((item) => item.image), [capturedSubject]));
 
-          const interleavedParts = buildVirtualTryOnParts({
+          const promptInput = {
             subjectImage: capturedSubject,
             sourceItems,
             extraPrompt,
             backgroundPrompt,
             isMultiPersonMode: false,
             outfitBlueprint: blueprint ?? undefined,
-          }, promptFormatFor(engineId));
+          };
+          const interleavedParts = engineId === 'gptImage'
+            ? buildGptVirtualTryOnParts(promptInput)
+            : buildGeminiVirtualTryOnParts(promptInput);
 
           const images = await driver.editImage(
             {

@@ -41,6 +41,10 @@ vi.mock('../../src/components/ImageOptionsPanel', () => ({
   default: () => <div>image-options</div>,
 }));
 
+vi.mock('../../src/components/studios/GptImageOptionsPanel', () => ({
+  default: () => <div>gpt-image-options</div>,
+}));
+
 vi.mock('../../src/components/WardrobeSetCard', () => ({
   default: ({ setIndex, items, onAddItem, onRemoveItem, onUpdateItem, onRemoveSet }: any) => (
     <div data-testid={`wardrobe-set-${setIndex}`}>
@@ -124,6 +128,7 @@ const baseHookState = {
   removeClothingUploader: vi.fn(),
   handleDownloadAll: vi.fn(),
   anyUpscaling: false,
+  engineId: 'gemini' as const,
   imageEditModel: 'gemini-2.5-flash-image',
   refinePrompts: {},
   setRefinePrompts: vi.fn(),
@@ -148,6 +153,41 @@ describe('VirtualTryOn component', () => {
     expect(screen.getAllByText('virtualTryOn.subjectImagesTitle').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'virtualTryOn.generateButton' })).toBeDisabled();
     expect(screen.getAllByText('virtualTryOn.outputPanelDescription').length).toBeGreaterThan(0);
+  });
+
+  it('renders Gemini generation controls in Gemini Studio Mode', () => {
+    render(<VirtualTryOn />);
+
+    expect(screen.getByText('image-options')).toBeInTheDocument();
+    expect(screen.queryByText('gpt-image-options')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('virtualTryOn.numberOfImages')).toBeInTheDocument();
+  });
+
+  it('renders GPT generation controls through the same shared UI in GPT Studio Mode', () => {
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'gptImage',
+    });
+
+    render(<VirtualTryOn />);
+
+    expect(screen.getByText('gpt-image-options')).toBeInTheDocument();
+    expect(screen.queryByText('image-options')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('virtualTryOn.numberOfImages')).not.toBeInTheDocument();
+  });
+
+  it('keeps GPT generation controls in the shared wardrobe workflow', () => {
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'gptImage',
+      mode: 'wardrobe',
+    });
+
+    render(<VirtualTryOn />);
+
+    expect(screen.getByText('gpt-image-options')).toBeInTheDocument();
+    expect(screen.queryByText('image-options')).not.toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'studio.aiScan.label' })).toBeInTheDocument();
   });
 
   it('standardizes primary CTA to brand-button and restores Step 1-2-3 progression without duplication', () => {

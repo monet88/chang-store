@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildVirtualTryOnParts, VirtualTryOnPromptInput } from '@/utils/virtual-try-on-prompt-builder';
+import { buildGeminiVirtualTryOnParts } from '@/utils/gemini-virtual-try-on-prompt';
+import { buildGptVirtualTryOnParts } from '@/utils/gpt-virtual-try-on-prompt';
+import type { VirtualTryOnPromptInput } from '@/utils/virtual-try-on-prompt-types';
 import { AI_SCAN_BLOCK_HEADER } from '@/utils/ai-scan-blueprint';
 import type { Part } from '@google/genai';
 
@@ -35,28 +37,28 @@ const getTaskText = (parts: Part[]): string => {
   return textParts[textParts.length - 1]?.text ?? '';
 };
 
-describe('buildVirtualTryOnParts', () => {
+describe('Virtual Try-On prompt policies', () => {
   describe('interleaved structure', () => {
     it('single source item returns exactly 5 parts', () => {
-      expect(buildVirtualTryOnParts(defaultInput)).toHaveLength(5);
+      expect(buildGeminiVirtualTryOnParts(defaultInput)).toHaveLength(5);
     });
 
     it('four source items return exactly 11 parts', () => {
-      expect(buildVirtualTryOnParts(mixedSourceInput)).toHaveLength(11);
+      expect(buildGeminiVirtualTryOnParts(mixedSourceInput)).toHaveLength(11);
     });
 
     it('first part is SUBJECT text label', () => {
-      const parts = buildVirtualTryOnParts(defaultInput);
+      const parts = buildGeminiVirtualTryOnParts(defaultInput);
       expect(parts[0].text).toContain('SUBJECT');
     });
 
     it('second part is subject inlineData', () => {
-      const parts = buildVirtualTryOnParts(defaultInput);
+      const parts = buildGeminiVirtualTryOnParts(defaultInput);
       expect(parts[1].inlineData?.data).toBe('mock-base64-subject');
     });
 
     it('labels every source item with its selected type', () => {
-      const parts = buildVirtualTryOnParts(mixedSourceInput);
+      const parts = buildGeminiVirtualTryOnParts(mixedSourceInput);
       expect(parts[2].text).toContain('SOURCE ITEM #1 (clothing)');
       expect(parts[4].text).toContain('SOURCE ITEM #2 (clothing)');
       expect(parts[6].text).toContain('SOURCE ITEM #3 (shoes)');
@@ -65,7 +67,7 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('keeps source image data in input order', () => {
-      const parts = buildVirtualTryOnParts(mixedSourceInput);
+      const parts = buildGeminiVirtualTryOnParts(mixedSourceInput);
       expect(parts[3].inlineData?.data).toBe('mock-base64-shirt');
       expect(parts[5].inlineData?.data).toBe('mock-base64-pants');
       expect(parts[7].inlineData?.data).toBe('mock-base64-shoes');
@@ -73,7 +75,7 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('last part is task text', () => {
-      const parts = buildVirtualTryOnParts(defaultInput);
+      const parts = buildGeminiVirtualTryOnParts(defaultInput);
       const lastPart = parts[parts.length - 1];
       expect(lastPart).toHaveProperty('text');
       expect(lastPart).not.toHaveProperty('inlineData');
@@ -83,19 +85,19 @@ describe('buildVirtualTryOnParts', () => {
   describe('input validation', () => {
     it('throws on null/falsy subjectImage', () => {
       expect(() =>
-        buildVirtualTryOnParts({ ...defaultInput, subjectImage: null as unknown as typeof defaultInput.subjectImage })
+        buildGeminiVirtualTryOnParts({ ...defaultInput, subjectImage: null as unknown as typeof defaultInput.subjectImage })
       ).toThrow('subjectImage is required');
     });
 
     it('throws on empty sourceItems', () => {
       expect(() =>
-        buildVirtualTryOnParts({ ...defaultInput, sourceItems: [] })
+        buildGeminiVirtualTryOnParts({ ...defaultInput, sourceItems: [] })
       ).toThrow('sourceItems must contain at least one item');
     });
 
     it('throws on more than four sourceItems', () => {
       expect(() =>
-        buildVirtualTryOnParts({
+        buildGeminiVirtualTryOnParts({
           ...defaultInput,
           sourceItems: [
             { image: mockImage('a'), sourceItemType: 'clothing' },
@@ -110,7 +112,7 @@ describe('buildVirtualTryOnParts', () => {
 
     it('throws on sourceItems with invalid image payload', () => {
       expect(() =>
-        buildVirtualTryOnParts({
+        buildGeminiVirtualTryOnParts({
           ...defaultInput,
           sourceItems: [{ image: { base64: '', mimeType: '' }, sourceItemType: 'bag' }],
         })
@@ -120,7 +122,7 @@ describe('buildVirtualTryOnParts', () => {
 
   describe('task text', () => {
     it('contains required sections in order', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      const text = getTaskText(buildGeminiVirtualTryOnParts(defaultInput));
       const sections = [
         '## TASK',
         '## SOURCE ITEM TYPES',
@@ -139,7 +141,7 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('lists each user-selected source type', () => {
-      const text = getTaskText(buildVirtualTryOnParts(mixedSourceInput));
+      const text = getTaskText(buildGeminiVirtualTryOnParts(mixedSourceInput));
       expect(text).toContain('User-selected source types by image');
       expect(text).toContain('- Source item #1: clothing');
       expect(text).toContain('- Source item #2: clothing');
@@ -150,7 +152,7 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('includes normalized per-source user notes', () => {
-      const text = getTaskText(buildVirtualTryOnParts({
+      const text = getTaskText(buildGeminiVirtualTryOnParts({
         ...defaultInput,
         sourceItems: [{ image: mockImage('pants'), sourceItemType: 'clothing', sourcePrompt: '  wide pants,\nno hand   in pocket  ' }],
       }));
@@ -161,7 +163,7 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('keeps clothing replacement rules when clothing exists', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      const text = getTaskText(buildGeminiVirtualTryOnParts(defaultInput));
       expect(text).toContain('may contain one garment or a coordinated outfit with multiple garments');
       expect(text).toContain('replace every visible matching clothing category from that source image');
       expect(text).toContain('use the later source item in list order for that category');
@@ -171,7 +173,7 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('explicitly treats one clothing source image as a full-look reference when it shows both top and bottom', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      const text = getTaskText(buildGeminiVirtualTryOnParts(defaultInput));
       expect(text).toContain('treat it as one full-look reference and transfer every visible garment from that image together');
       expect(text).toContain('remove the subject\'s original top and original bottom together and replace both with the source look in the same result');
       expect(text).toContain('Do not preserve the subject\'s original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment');
@@ -179,14 +181,14 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('makes non-clothing preservation subordinate to clothing replacements in mixed requests', () => {
-      const text = getTaskText(buildVirtualTryOnParts(mixedSourceInput));
+      const text = getTaskText(buildGeminiVirtualTryOnParts(mixedSourceInput));
       expect(text).toContain('Preserve clothing areas not targeted by any clothing source item');
       expect(text).toContain('Never use shoes, bag, or accessory preservation to keep old clothing that a clothing source item should replace');
       expect(text).not.toContain('Preserve the subject\'s existing outfit');
     });
 
     it('keeps non-clothing preservation rules when accessories exist', () => {
-      const text = getTaskText(buildVirtualTryOnParts({
+      const text = getTaskText(buildGeminiVirtualTryOnParts({
         ...defaultInput,
         sourceItems: [{ image: mockImage('bag'), sourceItemType: 'bag' }],
       }));
@@ -196,7 +198,7 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('contains natural fit, occlusion, and lighting requirements', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      const text = getTaskText(buildGeminiVirtualTryOnParts(defaultInput));
       expect(text).toContain('fit naturally');
       expect(text).toContain('physically correct fabric folds and contact points');
       expect(text).toContain('Preserve occlusions: hands, fingers, hair, existing accessories, and foreground objects stay in front where physically appropriate');
@@ -204,7 +206,7 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('preserves original pose and does not invent hands in pockets', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      const text = getTaskText(buildGeminiVirtualTryOnParts(defaultInput));
       expect(text).toContain('Keep the subject\'s overall pose and stance');
       expect(text).toContain('Minor natural adjustments to posture');
       expect(text).toContain('Do not insert hands into pants pockets or hide fingers unless the subject image already shows hands inside pockets');
@@ -213,14 +215,14 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('distinguishes supported logo/graphic preservation from invented text prohibition', () => {
-      const text = getTaskText(buildVirtualTryOnParts(defaultInput));
+      const text = getTaskText(buildGeminiVirtualTryOnParts(defaultInput));
       expect(text).toContain('Preserve visible graphics, logos, and text that are supported by the source clothing references');
       expect(text).toContain('do not invent new or unsupported logos, text, graphics, or watermarks');
       expect(text).toContain('Preserve source-supported garment graphics and text, but do not invent new logos, text, graphics, or watermarks');
     });
 
     it('preserves unmarked people and targets marked person in multi-person mode', () => {
-      const text = getTaskText(buildVirtualTryOnParts({
+      const text = getTaskText(buildGeminiVirtualTryOnParts({
         ...defaultInput,
         isMultiPersonMode: true,
       }));
@@ -233,31 +235,31 @@ describe('buildVirtualTryOnParts', () => {
 
   describe('form state', () => {
     it('appends extraPrompt when provided', () => {
-      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, extraPrompt: 'shirt untucked' }));
+      const text = getTaskText(buildGeminiVirtualTryOnParts({ ...defaultInput, extraPrompt: 'shirt untucked' }));
       expect(text).toContain('shirt untucked');
     });
 
     it('trims whitespace from extraPrompt', () => {
-      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, extraPrompt: '   trimmed instruction   ' }));
+      const text = getTaskText(buildGeminiVirtualTryOnParts({ ...defaultInput, extraPrompt: '   trimmed instruction   ' }));
       expect(text).toContain('trimmed instruction');
       expect(text).not.toContain('   trimmed instruction   ');
     });
 
     it('uses backgroundPrompt when provided', () => {
-      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, backgroundPrompt: 'Minimalist white studio' }));
+      const text = getTaskText(buildGeminiVirtualTryOnParts({ ...defaultInput, backgroundPrompt: 'Minimalist white studio' }));
       expect(text).toContain('Minimalist white studio');
       expect(text).toContain('Replace the background entirely with');
     });
 
     it('keeps original background when empty', () => {
-      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, backgroundPrompt: '' }));
+      const text = getTaskText(buildGeminiVirtualTryOnParts({ ...defaultInput, backgroundPrompt: '' }));
       expect(text).toContain('Keep the original background from the Subject Image exactly as is');
     });
   });
 
   describe('legacy patterns removed', () => {
     it('does NOT contain old negative framing or old headers', () => {
-      const fullText = getFullText(buildVirtualTryOnParts(defaultInput));
+      const fullText = getFullText(buildGeminiVirtualTryOnParts(defaultInput));
       expect(fullText).not.toContain('Do NOT tuck');
       expect(fullText).not.toContain('# INSTRUCTION: VIRTUAL FASHION TRY-ON');
       expect(fullText).not.toContain('## 1.');
@@ -269,7 +271,7 @@ describe('buildVirtualTryOnParts', () => {
       parts.filter((p) => p.text).map((p) => p.text).join('\n');
 
     it('sends one structured GPT config that names every image by position, then the images in input order', () => {
-      const parts = buildVirtualTryOnParts(mixedSourceInput, 'text');
+      const parts = buildGptVirtualTryOnParts(mixedSourceInput);
 
       expect(parts).toHaveLength(6);
       expect(parts[0].text).toContain('IMAGE 1 = SUBJECT');
@@ -283,7 +285,7 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('names each source item once instead of repeating a source-type list', () => {
-      const text = promptText(buildVirtualTryOnParts(mixedSourceInput, 'text'));
+      const text = promptText(buildGptVirtualTryOnParts(mixedSourceInput));
 
       expect(text).not.toContain('## SOURCE ITEM TYPES');
       expect(text.match(/SOURCE ITEM #1 \(clothing\)/g)).toHaveLength(1);
@@ -292,17 +294,17 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('carries each normalized user note on the image it belongs to', () => {
-      const text = promptText(buildVirtualTryOnParts({
+      const text = promptText(buildGptVirtualTryOnParts({
         ...defaultInput,
         sourceItems: [{ image: mockImage('pants'), sourceItemType: 'clothing', sourcePrompt: '  wide pants,\nno hand   in pocket  ' }],
-      }, 'text'));
+      }));
 
       expect(text).toContain('IMAGE 2 = SOURCE ITEM #1 (clothing): Apply this item. User note: wide pants, no hand in pocket');
       expect(text).not.toContain('  wide pants');
     });
 
     it('keeps the shared editing rules when the labels collapse into one prompt', () => {
-      const text = promptText(buildVirtualTryOnParts({ ...defaultInput, extraPrompt: 'keep the shoes' }, 'text'));
+      const text = promptText(buildGptVirtualTryOnParts({ ...defaultInput, extraPrompt: 'keep the shoes' }));
 
       expect(text).toContain('"TASK"');
       expect(text).toContain('"APPLICATION_RULES"');
@@ -311,7 +313,7 @@ describe('buildVirtualTryOnParts', () => {
       expect(text).toContain('"USER_INSTRUCTIONS": "keep the shoes"');
     });
     it('drops the prohibition bullets that only restate an earlier section', () => {
-      const flat = promptText(buildVirtualTryOnParts(defaultInput, 'text'));
+      const flat = promptText(buildGptVirtualTryOnParts(defaultInput));
 
       // Gone: the lower-body and tucking rules (## APPLICATION RULES) and the
       // pockets rule (## POSE) are already stated earlier in this same prompt.
@@ -330,8 +332,8 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('keeps every prohibition on the interleaved lane, dots included', () => {
-      const interleaved = promptText(buildVirtualTryOnParts(defaultInput));
-      const flat = promptText(buildVirtualTryOnParts({ ...defaultInput, isMultiPersonMode: true }, 'text'));
+      const interleaved = promptText(buildGeminiVirtualTryOnParts(defaultInput));
+      const flat = promptText(buildGptVirtualTryOnParts({ ...defaultInput, isMultiPersonMode: true }));
 
       expect(interleaved).toContain('No tucking tops into pants or skirts.');
       expect(flat).toContain('Remove the red targeting dot and its white ring completely');
@@ -342,14 +344,14 @@ describe('buildVirtualTryOnParts', () => {
     const multiPersonInput: VirtualTryOnPromptInput = { ...defaultInput, isMultiPersonMode: true };
 
     it('asks for the targeting dot to be erased in the interleaved format', () => {
-      const text = getTaskText(buildVirtualTryOnParts(multiPersonInput));
+      const text = getTaskText(buildGeminiVirtualTryOnParts(multiPersonInput));
 
       expect(text).toContain('The dot and its white ring are targeting marks only: remove them completely from the result');
       expect(text).toContain('Remove the red targeting dot and its white ring completely; no dot, ring, or halo may remain on the person');
     });
 
     it('asks for the targeting dot to be erased in the flat format too', () => {
-      const parts = buildVirtualTryOnParts(multiPersonInput, 'text');
+      const parts = buildGptVirtualTryOnParts(multiPersonInput);
       const text = parts[0].text ?? '';
 
       expect(text).toContain('The dot and its white ring are targeting marks only: remove them completely from the result');
@@ -362,8 +364,8 @@ describe('buildVirtualTryOnParts', () => {
     const BLUEPRINT = 'WEAVE & MATERIAL: plissé accordion pleats.\nDRAPE PHYSICS: fluid fall.';
 
     it('uses 5-layer natural language for Gemini and structured blueprint config for GPT', () => {
-      const gemini = getFullText(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }, 'parts'));
-      const gpt = getFullText(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }, 'text'));
+      const gemini = getFullText(buildGeminiVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }));
+      const gpt = getFullText(buildGptVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }));
 
       expect(gemini).toContain(AI_SCAN_BLOCK_HEADER);
       expect(gemini).toContain('CRITICAL OUTFIT DECONSTRUCTION (5-LAYER TECHNICAL BRIEF)');
@@ -373,7 +375,7 @@ describe('buildVirtualTryOnParts', () => {
     });
 
     it('carries the blueprint inside the task text, after the TASK paragraph', () => {
-      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }));
+      const text = getTaskText(buildGeminiVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }));
 
       expect(text.indexOf(AI_SCAN_BLOCK_HEADER)).toBeGreaterThan(text.indexOf('## TASK'));
       expect(text.indexOf(AI_SCAN_BLOCK_HEADER)).toBeLessThan(text.indexOf('## SOURCE ITEM TYPES'));
@@ -382,18 +384,19 @@ describe('buildVirtualTryOnParts', () => {
       expect(text).toContain('DRAPE PHYSICS: fluid fall.');
     });
 
-    it('preserves the base behavior when no blueprint is supplied', () => {
-      (['parts', 'text'] as const).forEach((format) => {
-        const base = buildVirtualTryOnParts(defaultInput, format);
-        expect(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: undefined }, format)).toEqual(base);
-        expect(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: '' }, format)).toEqual(base);
+    it('preserves each model family base behavior when no blueprint is supplied', () => {
+      const families = [buildGeminiVirtualTryOnParts, buildGptVirtualTryOnParts];
+      families.forEach((build) => {
+        const base = build(defaultInput);
+        expect(build({ ...defaultInput, outfitBlueprint: undefined })).toEqual(base);
+        expect(build({ ...defaultInput, outfitBlueprint: '' })).toEqual(base);
         expect(getFullText(base)).not.toContain(AI_SCAN_BLOCK_HEADER);
       });
     });
 
     it('ignores a whitespace-only blueprint', () => {
-      const base = buildVirtualTryOnParts(defaultInput);
-      const blank = buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: '  \n ' });
+      const base = buildGeminiVirtualTryOnParts(defaultInput);
+      const blank = buildGeminiVirtualTryOnParts({ ...defaultInput, outfitBlueprint: '  \n ' });
 
       expect(blank).toEqual(base);
     });
@@ -405,7 +408,7 @@ describe('buildVirtualTryOnParts', () => {
 [3. DETECTED_ACCESSORIES]
 - Olive canvas tote bag
 - Sheer dotted tights`;
-      const parts = buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: STRUCTURED_BLUEPRINT });
+      const parts = buildGeminiVirtualTryOnParts({ ...defaultInput, outfitBlueprint: STRUCTURED_BLUEPRINT });
       const text = getTaskText(parts);
 
       expect(text).toContain('Do not transfer non-clothing accessories from the clothing source image:');
@@ -419,7 +422,7 @@ describe('buildVirtualTryOnParts', () => {
 - Optical: Sheer.
 [3. DETECTED_ACCESSORIES]
 - Olive canvas tote bag`;
-      const parts = buildVirtualTryOnParts({
+      const parts = buildGeminiVirtualTryOnParts({
         ...defaultInput,
         sourceItems: [{ image: mockImage('bag'), sourceItemType: 'bag' }],
         outfitBlueprint: STRUCTURED_BLUEPRINT,

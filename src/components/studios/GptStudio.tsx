@@ -3,7 +3,7 @@ import { Feature, ImageFile } from '../../types';
 import { useImageEngine } from '../../contexts/ImageEngineContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { GlobalModelSelector } from '../GlobalModelSelector';
-import GptVirtualTryOn from './GptVirtualTryOn';
+import VirtualTryOn from '../VirtualTryOn';
 import GptLookbookGenerator from './GptLookbookGenerator';
 import GptClothingTransfer from './GptClothingTransfer';
 import GptAIEditor from './GptAIEditor';
@@ -15,10 +15,9 @@ interface GptStudioProps {
 }
 
 /**
- * The GPT Image studio: the phase-1 feature views cloned for the OpenAI-compatible
- * lane, each rendering the size/quality panel the engine's capability describes.
- * The views are Gemini twins on purpose — the engine underneath them is what
- * changes, not the workflow (ADR 0009).
+ * The GPT Image studio. Virtual Try-On uses the shared Feature view and resolves
+ * GPT-owned controls from the active image engine; the remaining feature views
+ * are still provider-specific until their own migration tickets land.
  */
 const GptStudio: React.FC<GptStudioProps> = ({ activeFeature, onSendToFeature }) => {
   const { t } = useLanguage();
@@ -27,7 +26,7 @@ const GptStudio: React.FC<GptStudioProps> = ({ activeFeature, onSendToFeature })
   const renderActiveFeature = () => {
     switch (activeFeature) {
       case Feature.TryOn:
-        return <GptVirtualTryOn key="gpt-try-on" />;
+        return <VirtualTryOn key="gpt-try-on" />;
       case Feature.Lookbook:
         return <GptLookbookGenerator key="gpt-lookbook" onSendToFeature={onSendToFeature} />;
       case Feature.ClothingTransfer:
@@ -37,7 +36,7 @@ const GptStudio: React.FC<GptStudioProps> = ({ activeFeature, onSendToFeature })
       case Feature.IdentityTransfer:
         return <GptIdentityTransfer key="gpt-identity-transfer" />;
       default:
-        return <GptVirtualTryOn key="gpt-try-on" />;
+        return <VirtualTryOn key="gpt-try-on" />;
     }
   };
 
