@@ -174,7 +174,6 @@ ${accessoriesExclusion}- No altered colors, distorted patterns, or synthetic CGI
 export function buildGeminiBrandModelParts(
   sourceImage: ImageFile,
   model: BrandModelProfile,
-  _scope: GarmentScope,
   extraInstructions: string = '',
   outfitBlueprint: string = '',
 ): Part[] {

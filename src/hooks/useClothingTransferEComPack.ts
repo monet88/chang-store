@@ -306,7 +306,7 @@ export const useClothingTransferEComPack = (
           if (!model) throw new Error('Model profile not found');
           parts = isGptImage
             ? buildGptBrandModelParts(sourceOutfitImage, model, garmentScope, extraPrompt, blueprintToUse)
-            : buildGeminiBrandModelParts(sourceOutfitImage, model, garmentScope, extraPrompt, blueprintToUse);
+            : buildGeminiBrandModelParts(sourceOutfitImage, model, extraPrompt, blueprintToUse);
         } else {
           // custom destinations
           const destIndex = parseInt(item.id.replace('custom-', ''), 10);

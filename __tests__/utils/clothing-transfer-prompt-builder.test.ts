@@ -374,7 +374,7 @@ describe('buildBrandModelParts', () => {
 
   it('structures parts preserving destination pose, outfit and scene while transferring brand model identity (Gemini)', () => {
     const sourceImage = mockImage('source-outfit');
-    const parts = buildGeminiBrandModelParts(sourceImage, model, 'full-set');
+    const parts = buildGeminiBrandModelParts(sourceImage, model);
 
     // destination (label + img) + face (label + img) + body (label + img) + task prompt = 7 parts
     expect(parts).toHaveLength(7);
@@ -436,7 +436,7 @@ Diamond drop earrings`;
     const config = JSON.parse(jsonMatch![1]);
     expect(config.USER_INSTRUCTIONS).toBe('keep vintage belt');
 
-    const partsGemini = buildGeminiBrandModelParts(sourceImage, model, 'full-set', 'keep vintage belt');
+    const partsGemini = buildGeminiBrandModelParts(sourceImage, model, 'keep vintage belt');
     expect(partsGemini[partsGemini.length - 1].text).toContain('USER INSTRUCTIONS:\nkeep vintage belt');
   });
 });
@@ -476,7 +476,7 @@ describe('AI Scan blueprint injection', () => {
 
     const transfer = getTaskText(buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '', blueprint));
     const staging = getTaskText(buildGeminiProductStagingParts(sourceImage, template, 'top', '', blueprint));
-    const brandModel = getTaskText(buildGeminiBrandModelParts(sourceImage, model, 'full-set', '', blueprint));
+    const brandModel = getTaskText(buildGeminiBrandModelParts(sourceImage, model, '', blueprint));
 
     for (const taskText of [transfer, brandModel]) {
       expect(taskText).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION');
