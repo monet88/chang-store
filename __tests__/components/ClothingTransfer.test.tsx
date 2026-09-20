@@ -36,9 +36,9 @@ vi.mock('../../src/components/shared/ResultPlaceholder', () => ({
 vi.mock('../../src/components/ImageOptionsPanel', () => ({
   default: () => <div>image-options</div>,
 }));
-
-
-
+vi.mock('../../src/components/studios/GptImageOptionsPanel', () => ({
+  default: () => <div>gpt-image-options</div>,
+}));
 
 import ClothingTransfer from '../../src/components/ClothingTransfer';
 
@@ -113,6 +113,7 @@ const baseHookState = {
   refinePrompts: {},
   setRefinePrompts: vi.fn(),
   isRefining: {},
+  engineId: 'gemini' as const,
 };
 describe('ClothingTransfer component', () => {
   beforeEach(() => {
@@ -170,5 +171,40 @@ describe('ClothingTransfer component', () => {
     expect(screen.getByText('clothingTransfer.modes.ecomPack')).toBeInTheDocument();
     expect(screen.getByText('clothingTransfer.ecomPack.sourceTitle')).toBeInTheDocument();
     expect(screen.getByText('clothingTransfer.ecomPack.generateButton')).toBeInTheDocument();
+  });
+
+  it('renders Gemini generation controls in Gemini Studio Mode', () => {
+    render(<ClothingTransfer />);
+
+    expect(screen.getByText('image-options')).toBeInTheDocument();
+    expect(screen.queryByText('gpt-image-options')).not.toBeInTheDocument();
+    expect(screen.getByText('clothingTransfer.numberOfImages')).toBeInTheDocument();
+  });
+
+  it('renders GPT generation controls through the same shared UI in GPT Studio Mode', () => {
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'gptImage',
+    });
+
+    render(<ClothingTransfer />);
+
+    expect(screen.getByText('gpt-image-options')).toBeInTheDocument();
+    expect(screen.queryByText('image-options')).not.toBeInTheDocument();
+    expect(screen.queryByText('clothingTransfer.numberOfImages')).not.toBeInTheDocument();
+  });
+
+  it('renders GPT generation controls in the shared E-Com Pack workflow', () => {
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'gptImage',
+      mode: 'ecom-pack',
+    });
+
+    render(<ClothingTransfer />);
+
+    expect(screen.getByText('gpt-image-options')).toBeInTheDocument();
+    expect(screen.queryByText('image-options')).not.toBeInTheDocument();
+    expect(screen.getByText('clothingTransfer.ecomPack.sourceTitle')).toBeInTheDocument();
   });
 });

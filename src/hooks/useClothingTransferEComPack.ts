@@ -8,7 +8,7 @@ import {
   ImageFile,
   ImageResolution,
 } from '../types';
-import { GeminiImageDriver } from './useClothingTransferEngine';
+import { ClothingTransferImageDriver } from './useClothingTransferEngine';
 import {
   BrandModelProfile,
   BrandModelMetadata,
@@ -21,18 +21,22 @@ import {
 } from '../config/brandModelRoster';
 import { DEFAULT_DISPLAY_TEMPLATES, DisplayTemplate } from '../config/displayTemplates';
 import {
-  buildBrandModelParts,
-  buildClothingTransferParts,
-  buildProductStagingParts,
-  formatGarmentScope,
-} from '../utils/clothing-transfer-prompt-builder';
-import { promptFormatFor } from '../utils/promptFormat';
+  buildGeminiBrandModelParts,
+  buildGeminiClothingTransferParts,
+  buildGeminiProductStagingParts,
+} from '../utils/gemini-clothing-transfer-prompt';
+import {
+  buildGptBrandModelParts,
+  buildGptClothingTransferParts,
+  buildGptProductStagingParts,
+} from '../utils/gpt-clothing-transfer-prompt';
+import { formatGarmentScope } from '../utils/clothing-transfer-prompt-types';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
 import { analyzeOutfitBlueprint } from '../services/textService';
 
 export interface UseClothingTransferEComPackConfig {
-  driver: GeminiImageDriver;
+  driver: ClothingTransferImageDriver;
   aspectRatio: AspectRatio;
   resolution: ImageResolution;
   numImages: number;
@@ -286,31 +290,41 @@ export const useClothingTransferEComPack = (
 
       try {
         let parts;
-        const format = promptFormatFor(engineId);
+        const isGptImage = engineId === 'gptImage';
         const blueprintToUse = activeBlueprint ?? outfitBlueprint ?? '';
 
         if (item.category === 'product') {
           const templateId = item.id.replace('template-', '');
           const template = displayTemplates.find((t) => t.id === templateId);
           if (!template) throw new Error('Template not found');
-          parts = buildProductStagingParts(sourceOutfitImage, template, garmentScope, extraPrompt, format, blueprintToUse, aspectRatio, resolution);
+          parts = isGptImage
+            ? buildGptProductStagingParts(sourceOutfitImage, template, garmentScope, extraPrompt, blueprintToUse, aspectRatio, resolution)
+            : buildGeminiProductStagingParts(sourceOutfitImage, template, garmentScope, extraPrompt, blueprintToUse);
         } else if (item.category === 'brand-models') {
           const modelId = item.id.replace('brand-', '');
           const model = brandModels.find((m) => m.id === modelId);
           if (!model) throw new Error('Model profile not found');
-          parts = buildBrandModelParts(sourceOutfitImage, model, garmentScope, extraPrompt, format, blueprintToUse);
+          parts = isGptImage
+            ? buildGptBrandModelParts(sourceOutfitImage, model, garmentScope, extraPrompt, blueprintToUse)
+            : buildGeminiBrandModelParts(sourceOutfitImage, model, garmentScope, extraPrompt, blueprintToUse);
         } else {
           // custom destinations
           const destIndex = parseInt(item.id.replace('custom-', ''), 10);
           const destImage = customDestinations[destIndex];
           if (!destImage) throw new Error('Destination image not found');
-          parts = buildClothingTransferParts(
-            destImage,
-            [{ image: sourceOutfitImage, label: formatGarmentScope(garmentScope) }],
-            extraPrompt,
-            format,
-            blueprintToUse,
-          );
+          parts = isGptImage
+            ? buildGptClothingTransferParts(
+                destImage,
+                [{ image: sourceOutfitImage, label: formatGarmentScope(garmentScope) }],
+                extraPrompt,
+                blueprintToUse,
+              )
+            : buildGeminiClothingTransferParts(
+                destImage,
+                [{ image: sourceOutfitImage, label: formatGarmentScope(garmentScope) }],
+                extraPrompt,
+                blueprintToUse,
+              );
         }
         const results = await driver.editImage(
           {

@@ -1,11 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildClothingTransferParts,
-  buildProductStagingParts,
-  buildBrandModelParts,
-  formatGarmentScope,
-  ClothingTransferReferenceInput,
-} from '@/utils/clothing-transfer-prompt-builder';
+  buildGeminiClothingTransferParts,
+  buildGeminiProductStagingParts,
+  buildGeminiBrandModelParts,
+} from '@/utils/gemini-clothing-transfer-prompt';
+import {
+  buildGptClothingTransferParts,
+  buildGptProductStagingParts,
+  buildGptBrandModelParts,
+} from '@/utils/gpt-clothing-transfer-prompt';
+import {
+  type ClothingTransferReferenceInput,
+} from '@/utils/clothing-transfer-prompt-types';
 import type { DisplayTemplate } from '@/config/displayTemplates';
 import type { BrandModelProfile } from '@/config/brandModelRoster';
 import type { ImageFile } from '@/types';
@@ -27,14 +33,14 @@ const getTaskText = (parts: Part[]): string => {
   return textParts[textParts.length - 1]?.text ?? '';
 };
 
-describe('buildClothingTransferParts', () => {
-  describe('interleaved structure', () => {
+describe('Clothing Transfer prompt policies', () => {
+  describe('interleaved structure (Gemini)', () => {
     it('structures parts with destination first, then source outfits, then task prompt', () => {
       const references = [
         { image: mockImage('top'), label: 'blouse' },
         { image: mockImage('bottom'), label: 'skirt' },
       ];
-      const parts = buildClothingTransferParts(defaultConcept, references, '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, references, '');
 
       // 1 destination (label + img) + 2 references (2 * (label + img)) + 1 task text = 7 parts
       expect(parts).toHaveLength(7);
@@ -50,14 +56,14 @@ describe('buildClothingTransferParts', () => {
     });
 
     it('falls back to generic extraction label when reference has no label', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '');
       expect(parts[2].text).toContain('SOURCE OUTFIT 1 (extract this clothing — auto-detect clothing type)');
     });
   });
 
-  describe('ownership contract & task prompt', () => {
+  describe('ownership contract & task prompt (Gemini)', () => {
     it('establishes destination ownership of scene, background, camera, and display geometry', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '');
       const taskText = getTaskText(parts);
 
       expect(taskText).toContain('DESTINATION SCENE OWNS THE ENVIRONMENT AND COMPOSITION');
@@ -67,7 +73,7 @@ describe('buildClothingTransferParts', () => {
     });
 
     it('preserves destination person identity, face, expression, and pose when destination contains a person', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '');
       const taskText = getTaskText(parts);
 
       expect(taskText).toContain('If the DESTINATION contains a person: preserve that person\'s identity, face, hair, skin tone, body proportions, facial expression, and overall pose');
@@ -75,7 +81,7 @@ describe('buildClothingTransferParts', () => {
     });
 
     it('establishes source ownership of garments only and prohibits source person or prop leakage', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '');
       const taskText = getTaskText(parts);
 
       expect(taskText).toContain('SOURCE OUTFIT REFERENCES OWN GARMENT DESIGN ONLY');
@@ -85,7 +91,7 @@ describe('buildClothingTransferParts', () => {
     });
 
     it('distinguishes labeled and unlabeled source extraction semantics', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '');
       const taskText = getTaskText(parts);
 
       expect(taskText).toContain('Labeled sources: extract only the specified garment or category indicated by the label');
@@ -93,7 +99,7 @@ describe('buildClothingTransferParts', () => {
     });
 
     it('preserves source garment construction, silhouette, colors, patterns, and supported branding', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '');
       const taskText = getTaskText(parts);
 
       expect(taskText).toContain('Faithfully reproduce the source garment\'s silhouette, construction');
@@ -101,7 +107,7 @@ describe('buildClothingTransferParts', () => {
     });
 
     it('maps garments to destination layout and enforces zero blending of old clothing', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '');
       const taskText = getTaskText(parts);
 
       expect(taskText).toContain('Map each source garment to its corresponding location in the DESTINATION arrangement');
@@ -110,7 +116,7 @@ describe('buildClothingTransferParts', () => {
     });
 
     it('adapts garment drape to destination display method (hanging, flat lay, or worn)', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '');
       const taskText = getTaskText(parts);
 
       expect(taskText).toContain('natural gravity drape for hanging clothes');
@@ -119,28 +125,28 @@ describe('buildClothingTransferParts', () => {
     });
 
     it('integrates destination lighting, shadows, and contact perspective', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '');
       const taskText = getTaskText(parts);
 
       expect(taskText).toContain('match the DESTINATION scene\'s light direction, intensity, color temperature, contact shadows, and occlusion');
     });
 
     it('appends user instructions when provided', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], 'keep vintage belt');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], 'keep vintage belt');
       const taskText = getTaskText(parts);
 
       expect(taskText).toContain('USER INSTRUCTIONS:\nkeep vintage belt');
     });
 
     it('omits user instructions section when empty or whitespace', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '   ');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '   ');
       const taskText = getTaskText(parts);
 
       expect(taskText).not.toContain('USER INSTRUCTIONS');
     });
 
     it('contains short, targeted, non-contradictory avoid constraints', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], '');
+      const parts = buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '');
       const taskText = getTaskText(parts);
 
       expect(taskText).toContain('AVOID:');
@@ -151,13 +157,13 @@ describe('buildClothingTransferParts', () => {
     });
   });
 
-  describe('flat prompt format', () => {
+  describe('flat prompt format (GPT Image)', () => {
     it('uses a structured GPT config instead of the Gemini markdown brief', () => {
       const references = [
         { image: mockImage('top'), label: 'blouse' },
         { image: mockImage('bottom'), label: '' },
       ];
-      const parts = buildClothingTransferParts(defaultConcept, references, '', 'text');
+      const parts = buildGptClothingTransferParts(defaultConcept, references, '');
 
       // 1 role map + 3 images: the flat lane has no interleaving to carry roles.
       expect(parts).toHaveLength(4);
@@ -178,8 +184,8 @@ describe('buildClothingTransferParts', () => {
     });
 
     it('drops the avoid bullets that only restate ROLE 1/2 and PLACEMENT', () => {
-      const interleaved = getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], ''));
-      const flat = getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '', 'text'));
+      const interleaved = getTaskText(buildGeminiClothingTransferParts(defaultConcept, [defaultReference], ''));
+      const flat = getTaskText(buildGptClothingTransferParts(defaultConcept, [defaultReference], ''));
 
       // The interleaved lane keeps the full list next to its image labels.
       expect(interleaved).toContain('No leaking source background');
@@ -196,15 +202,15 @@ describe('buildClothingTransferParts', () => {
     });
 
     it('carries user instructions into the flat format too', () => {
-      const parts = buildClothingTransferParts(defaultConcept, [defaultReference], 'keep vintage belt', 'text');
+      const parts = buildGptClothingTransferParts(defaultConcept, [defaultReference], 'keep vintage belt');
 
       expect(parts[0].text).toContain('"USER_INSTRUCTIONS": "keep vintage belt"');
     });
 
     it('uses engine-specific AI Scan formatting for Gemini and GPT', () => {
       const blueprint = `[CORE_GARMENTS]\nSilk blouse with shaped waist\n[TEXTILE_PHYSICS]\nSoft satin drape\n[DETECTED_ACCESSORIES]\nPearl bag`;
-      const geminiText = getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '', 'parts', blueprint));
-      const gptText = getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '', 'text', blueprint));
+      const geminiText = getTaskText(buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '', blueprint));
+      const gptText = getTaskText(buildGptClothingTransferParts(defaultConcept, [defaultReference], '', blueprint));
 
       expect(geminiText).toContain('CRITICAL OUTFIT DECONSTRUCTION (5-LAYER TECHNICAL BRIEF)');
       expect(geminiText).toContain('1. GARMENT IDENTIFICATION & SCOPE');
@@ -224,9 +230,9 @@ describe('buildProductStagingParts', () => {
     prompt: 'Hang on a natural wood hanger against an off-white wall.',
   };
 
-  it('structures parts with source outfit image and staging task prompt', () => {
+  it('structures parts with source outfit image and staging task prompt (Gemini)', () => {
     const sourceImage = mockImage('source-outfit');
-    const parts = buildProductStagingParts(sourceImage, template, 'top');
+    const parts = buildGeminiProductStagingParts(sourceImage, template, 'top');
 
     expect(parts).toHaveLength(3);
     expect(parts[0].text).toContain('SOURCE OUTFIT');
@@ -237,7 +243,7 @@ describe('buildProductStagingParts', () => {
     expect(parts[2].text).toContain('ZERO human beings or mannequins');
   });
 
-  it('formats industrial JSON-config format for OpenAI image lane (format === "text")', () => {
+  it('formats industrial JSON-config format for OpenAI image lane (GPT Image)', () => {
     const sourceImage = mockImage('source-outfit');
     const blueprint = `[CORE_GARMENTS]
 Tailored linen blazer and pleated trousers
@@ -246,7 +252,7 @@ Crisp linen weave with sharp structural folds
 [DETECTED_ACCESSORIES]
 Leather tote bag, tortoiseshell sunglasses`;
 
-    const parts = buildProductStagingParts(sourceImage, template, 'dress', '', 'text', blueprint, '16:9', '2K');
+    const parts = buildGptProductStagingParts(sourceImage, template, 'dress', '', blueprint, '16:9', '2K');
 
     expect(parts).toHaveLength(2);
     expect(parts[0].text).toContain('IMAGE 1 = SOURCE OUTFIT');
@@ -287,19 +293,20 @@ Leather tote bag, tortoiseshell sunglasses`;
 
     expect(parts[1].inlineData?.data).toBe('mock-base64-source-outfit');
   });
+
   it('includes USER_INSTRUCTIONS in product staging text and parts lanes when extraInstructions is supplied', () => {
     const sourceImage = mockImage('source-outfit');
-    const partsText = buildProductStagingParts(sourceImage, template, 'dress', 'keep vintage belt', 'text');
+    const partsText = buildGptProductStagingParts(sourceImage, template, 'dress', 'keep vintage belt');
     const jsonMatch = partsText[0].text.match(/\/\* PRODUCT_STAGING_CONFIG \*\/\n([\s\S]+)$/);
     expect(jsonMatch).not.toBeNull();
     const config = JSON.parse(jsonMatch![1]);
     expect(config.USER_INSTRUCTIONS).toBe('keep vintage belt');
 
-    const partsGemini = buildProductStagingParts(sourceImage, template, 'dress', 'keep vintage belt', 'parts');
+    const partsGemini = buildGeminiProductStagingParts(sourceImage, template, 'dress', 'keep vintage belt');
     expect(partsGemini[2].text).toContain('USER INSTRUCTIONS:\nkeep vintage belt');
   });
 
-  it('outputs 5-layer natural language specification for Gemini lane (format === "parts")', () => {
+  it('outputs 5-layer natural language specification for Gemini lane', () => {
     const sourceImage = mockImage('source-outfit');
     const blueprint = `[CORE_GARMENTS]
 Silk evening gown with bias cut
@@ -308,7 +315,7 @@ Heavy fluid drape, soft luster
 [DETECTED_ACCESSORIES]
 Gold chain belt`;
 
-    const parts = buildProductStagingParts(sourceImage, template, 'dress', '', 'parts', blueprint);
+    const parts = buildGeminiProductStagingParts(sourceImage, template, 'dress', '', blueprint);
 
     expect(parts).toHaveLength(3);
     const taskText = parts[2].text;
@@ -340,7 +347,7 @@ Gold chain belt`;
       image: stagingImage,
     };
 
-    const parts = buildProductStagingParts(sourceImage, customTemplate, 'top');
+    const parts = buildGeminiProductStagingParts(sourceImage, customTemplate, 'top');
     expect(parts).toHaveLength(5);
     expect(parts[0].text).toContain('SOURCE OUTFIT');
     expect(parts[1].inlineData?.data).toBe('mock-base64-source-outfit');
@@ -367,9 +374,9 @@ describe('buildBrandModelParts', () => {
     },
   };
 
-  it('structures parts preserving destination pose, outfit and scene while transferring brand model identity', () => {
+  it('structures parts preserving destination pose, outfit and scene while transferring brand model identity (Gemini)', () => {
     const sourceImage = mockImage('source-outfit');
-    const parts = buildBrandModelParts(sourceImage, model, 'full-set');
+    const parts = buildGeminiBrandModelParts(sourceImage, model, 'full-set');
 
     // destination (label + img) + face (label + img) + body (label + img) + task prompt = 7 parts
     expect(parts).toHaveLength(7);
@@ -383,7 +390,7 @@ describe('buildBrandModelParts', () => {
     expect(parts[6].text).toContain('BRAND MODEL (Linh)');
   });
 
-  it('formats structured prompt locking garment and environment for brand model text lane (format === "text")', () => {
+  it('formats structured prompt locking garment and environment for brand model text lane (GPT Image)', () => {
     const sourceImage = mockImage('source-outfit');
     const blueprint = `[CORE_GARMENTS]
 Velvet cocktail dress
@@ -392,7 +399,7 @@ Deep pile velvet with rich light absorption
 [DETECTED_ACCESSORIES]
 Diamond drop earrings`;
 
-    const parts = buildBrandModelParts(sourceImage, model, 'full-set', '', 'text', blueprint);
+    const parts = buildGptBrandModelParts(sourceImage, model, 'full-set', '', blueprint);
 
     // text lane: prompt + 3 images (dest, face, body)
     expect(parts).toHaveLength(4);
@@ -422,15 +429,16 @@ Diamond drop earrings`;
       ]),
     );
   });
+
   it('includes USER_INSTRUCTIONS in brand model text and parts lanes when extraInstructions is supplied', () => {
     const sourceImage = mockImage('source-outfit');
-    const partsText = buildBrandModelParts(sourceImage, model, 'full-set', 'keep vintage belt', 'text');
+    const partsText = buildGptBrandModelParts(sourceImage, model, 'full-set', 'keep vintage belt');
     const jsonMatch = partsText[0].text.match(/\/\* BRAND_MODEL_IDENTITY_CONFIG \*\/\n([\s\S]+)$/);
     expect(jsonMatch).not.toBeNull();
     const config = JSON.parse(jsonMatch![1]);
     expect(config.USER_INSTRUCTIONS).toBe('keep vintage belt');
 
-    const partsGemini = buildBrandModelParts(sourceImage, model, 'full-set', 'keep vintage belt', 'parts');
+    const partsGemini = buildGeminiBrandModelParts(sourceImage, model, 'full-set', 'keep vintage belt');
     expect(partsGemini[partsGemini.length - 1].text).toContain('USER INSTRUCTIONS:\nkeep vintage belt');
   });
 });
@@ -468,9 +476,9 @@ describe('AI Scan blueprint injection', () => {
       },
     };
 
-    const transfer = getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '', 'parts', blueprint));
-    const staging = getTaskText(buildProductStagingParts(sourceImage, template, 'top', '', 'parts', blueprint));
-    const brandModel = getTaskText(buildBrandModelParts(sourceImage, model, 'full-set', '', 'parts', blueprint));
+    const transfer = getTaskText(buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '', blueprint));
+    const staging = getTaskText(buildGeminiProductStagingParts(sourceImage, template, 'top', '', blueprint));
+    const brandModel = getTaskText(buildGeminiBrandModelParts(sourceImage, model, 'full-set', '', blueprint));
 
     for (const taskText of [transfer, brandModel]) {
       expect(taskText).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION');
@@ -483,9 +491,9 @@ describe('AI Scan blueprint injection', () => {
   it('leaves the lane prompt untouched when no blueprint was scanned', () => {
     const sourceImage = mockImage('source-outfit');
 
-    expect(getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '')))
-      .toBe(getTaskText(buildClothingTransferParts(defaultConcept, [defaultReference], '', 'parts', '   ')));
-    expect(getTaskText(buildProductStagingParts(sourceImage, template, 'top')))
-      .toBe(getTaskText(buildProductStagingParts(sourceImage, template, 'top', '', 'parts', undefined)));
+    expect(getTaskText(buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '')))
+      .toBe(getTaskText(buildGeminiClothingTransferParts(defaultConcept, [defaultReference], '', '   ')));
+    expect(getTaskText(buildGeminiProductStagingParts(sourceImage, template, 'top')))
+      .toBe(getTaskText(buildGeminiProductStagingParts(sourceImage, template, 'top', '', undefined)));
   });
 });

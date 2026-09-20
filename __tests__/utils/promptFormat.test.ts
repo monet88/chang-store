@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { promptFormatFor, imagePart, dropRestatedLines } from '@/utils/promptFormat';
+import { promptFormatFor, imagePart } from '@/utils/promptFormat';
 
 describe('promptFormatFor', () => {
   it('asks the OpenAI-compatible lane for the flat text form', () => {
@@ -21,19 +21,5 @@ describe('imagePart', () => {
         mimeType: 'image/jpeg',
       },
     });
-  });
-});
-
-describe('dropRestatedLines', () => {
-  it('filters lines whose text without leading dash matches restated list', () => {
-    const text = '- Bullet 1\n- Bullet 2\n- Bullet 3';
-    const filtered = dropRestatedLines(text, ['Bullet 1', 'Bullet 3']);
-    expect(filtered).toBe('- Bullet 2');
-  });
-
-  it('preserves reworded bullets not present in restated list', () => {
-    const text = '- Original Bullet\n- Modified Bullet';
-    const filtered = dropRestatedLines(text, ['Original Bullet']);
-    expect(filtered).toBe('- Modified Bullet');
   });
 });

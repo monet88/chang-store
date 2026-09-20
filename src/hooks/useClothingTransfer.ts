@@ -12,7 +12,7 @@ import { useApi } from '../contexts/ApiProviderContext';
 import { useImageRefinement } from './useImageRefinement';
 import { useClothingTransferReferences } from './useClothingTransferReferences';
 import { useClothingTransferConcepts } from './useClothingTransferConcepts';
-import { useClothingTransferEngine, GeminiImageDriver } from './useClothingTransferEngine';
+import { useClothingTransferEngine, ClothingTransferImageDriver } from './useClothingTransferEngine';
 import { useClothingTransferResultActions } from './useClothingTransferResultActions';
 import { useClothingTransferEComPack } from './useClothingTransferEComPack';
 
@@ -45,7 +45,7 @@ export const useClothingTransfer = () => {
   const concepts = useClothingTransferConcepts({ setError });
 
   // Default driver wraps the real Gemini service; tests can inject a mock.
-  const driver = useMemo<GeminiImageDriver>(
+  const driver = useMemo<ClothingTransferImageDriver>(
     () => ({ editImage, upscaleImage }),
     [editImage, upscaleImage],
   );
@@ -150,6 +150,7 @@ export const useClothingTransfer = () => {
     completedCount: concepts.completedCount,
     failedCount: concepts.failedCount,
     canGenerate,
+    engineId,
     imageEditModel,
     refinePrompts,
     setRefinePrompts,

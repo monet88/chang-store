@@ -4,14 +4,14 @@ import { getErrorMessage } from '../utils/imageUtils';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import { UseClothingTransferConceptsReturn } from './useClothingTransferConcepts';
 import { UseImageRefinementReturn } from './useImageRefinement';
-import type { GeminiImageDriver } from './useClothingTransferEngine';
+import type { ClothingTransferImageDriver } from './useClothingTransferEngine';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
 const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
 
 export interface UseClothingTransferResultActionsConfig {
-  driver: GeminiImageDriver;
+  driver: ClothingTransferImageDriver;
   concepts: UseClothingTransferConceptsReturn;
   imageEditModel: string;
   refinement: UseImageRefinementReturn;
@@ -32,7 +32,7 @@ export interface UseClothingTransferResultActionsReturn {
 /**
  * Per-result actions for Clothing Transfer (upscale, refine, download-all),
  * extracted to keep useClothingTransfer under the line limit. Mirrors the VTO
- * `useVirtualTryOnResultActions` split. Uses the injected GeminiImageDriver so
+ * `useVirtualTryOnResultActions` split. Uses the injected ClothingTransferImageDriver so
  * the same mock-driver seam covers these actions.
  */
 export const useClothingTransferResultActions = (

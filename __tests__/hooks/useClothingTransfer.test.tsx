@@ -178,6 +178,32 @@ describe('useClothingTransfer', () => {
     expect(addImageMock).toHaveBeenCalledWith(RESULT_A, Feature.ClothingTransfer, 'gptImage');
   });
 
+  it('uses the GPT-owned Clothing Transfer prompt policy in GPT Studio Mode and exposes engineId', async () => {
+    activeEngineId.current = 'gptImage';
+    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+
+    const { result } = renderHook(() => useClothingTransfer());
+    expect(result.current.engineId).toBe('gptImage');
+
+    act(() => {
+      result.current.handleConceptImagesUpload([CONCEPT_A]);
+      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
+      result.current.handleReferenceLabel('top', result.current.referenceItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    const textParts = vi.mocked(editImage).mock.calls[0][0].interleavedParts
+      ?.filter((part: { text?: string }) => part.text)
+      .map((part: { text?: string }) => part.text)
+      .join('\n');
+    expect(textParts).toContain('/* CLOTHING_TRANSFER_CONFIG */');
+    expect(textParts).toContain('IMAGE 1 = DESTINATION SCENE');
+    expect(textParts).not.toContain('DESTINATION SCENE OWNS THE ENVIRONMENT AND COMPOSITION');
+  });
+
   it('stores per-item errors without aborting sibling concept jobs', async () => {
     vi.mocked(editImage)
       .mockResolvedValueOnce([RESULT_A])

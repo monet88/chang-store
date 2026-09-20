@@ -1,20 +1,24 @@
+/**
+ * Gemini Clothing Transfer prompt policy.
+ * Owns Gemini-specific role framing, garment preservation rules, and the
+ * interleaved role/image/task sequence for Clothing Transfer workflows.
+ */
+
 import type { Part } from '@google/genai';
-import { AspectRatio, GarmentScope, ImageFile, ImageResolution } from '../types';
+import type { GarmentScope, ImageFile } from '../types';
 import type { BrandModelProfile } from '../config/brandModelRoster';
 import type { DisplayTemplate } from '../config/displayTemplates';
-import type { PromptFormat } from './promptFormat';
-import { dropRestatedLines, imagePart } from './promptFormat';
+import { imagePart } from './promptFormat';
 import {
   formatAiScanBlock,
   formatGeminiBlueprintBlock,
   parseOutfitBlueprint,
-  formatGptBlueprintConfig,
 } from './ai-scan-blueprint';
-import { buildIdentityTransferParts } from './identity-transfer-prompt-builder';
-export interface ClothingTransferReferenceInput {
-  image: ImageFile;
-  label: string;
-}
+import {
+  formatGarmentScope,
+  type ClothingTransferReferenceInput,
+} from './clothing-transfer-prompt-types';
+
 const destinationRoleLabel = 'DESTINATION SCENE (owns background, scene composition, lighting, display method, and any subject person)';
 
 const AVOID_BULLETS = [
@@ -25,30 +29,20 @@ const AVOID_BULLETS = [
   'No compositing artifacts, edge halos, mismatched shadows, or perspective discrepancies.',
 ] as const;
 
-/**
- * Bullets 1-4 restate what `ROLE 1`, `ROLE 2`, and `PLACEMENT` already say in the
- * same prompt. The flat lane drops them because it is read as one block; only
- * the artifact list has no earlier statement, so both lanes keep that one.
- */
-const RESTATED_AVOID_BULLETS = AVOID_BULLETS.slice(0, 4);
-
 const sourceOutfitRoleLabel = (index: number, label: string): string =>
   `SOURCE OUTFIT ${index + 1} (extract this clothing — ${label})`;
 
 /**
- * Build the parts for clothing transfer in the requested lane format.
+ * Build the interleaved Part[] for a Gemini Clothing Transfer job.
  *
- * Structure (`parts`): [label_concept, img_concept, label_ref1, img_ref1, ..., task_instructions]
- * Structure (`text`): [role-map + task_instructions, img_concept, img_ref1, ...]
- *
+ * Structure: [label_concept, img_concept, label_ref1, img_ref1, ..., task_instructions]
  * Establishes a clear ownership model: destination owns scene/composition/display/person,
  * while source references own garment design and construction only.
  */
-export function buildClothingTransferParts(
+export function buildGeminiClothingTransferParts(
   conceptImage: ImageFile,
   references: ClothingTransferReferenceInput[],
   extraInstructions: string,
-  format: PromptFormat = 'parts',
   outfitBlueprint: string = '',
 ): Part[] {
   const roles = [
@@ -60,9 +54,6 @@ export function buildClothingTransferParts(
   ];
 
   const avoidBlock = AVOID_BULLETS.map((bullet) => `- ${bullet}`).join('\n');
-  const avoidSection = format === 'text'
-    ? dropRestatedLines(avoidBlock, RESTATED_AVOID_BULLETS)
-    : avoidBlock;
   const blueprintBlock = formatGeminiBlueprintBlock(outfitBlueprint);
 
   const taskPrompt = `TASK: Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.${blueprintBlock}
@@ -91,42 +82,7 @@ PLACEMENT & PHYSICAL INTEGRATION:
 - Lighting and contact: match the DESTINATION scene's light direction, intensity, color temperature, contact shadows, and occlusion so the transferred garment integrates believably as a single photograph.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
 
 AVOID:
-${avoidSection}`;
-
-  if (format === 'text') {
-    const roleMap = roles.map((role, index) => `IMAGE ${index + 1} = ${role.label}`).join('\n');
-    const parsedBlueprint = parseOutfitBlueprint(outfitBlueprint);
-    const config: Record<string, unknown> = {
-      TASK: 'Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.',
-      REFERENCE_OWNERSHIP: {
-        destination: 'The DESTINATION image defines the entire environment: background, surfaces, walls, camera angle, perspective, framing, color temperature, ambient lighting, display method, spatial arrangement, and any subject person identity/pose.',
-        sources: "SOURCE OUTFIT images own garment design and construction only. Do NOT transfer any source person's identity, face, body, or pose. Do NOT transfer any source background, furniture, hangers, shoes, bags, jewelry, or non-garment props.",
-      },
-      GARMENT_FIDELITY: [
-        'Extract only the labeled garment/category, or clearly visible fashion garments when unlabeled.',
-        'Faithfully reproduce silhouette, construction, collar, sleeves, waistband, seams, closures, hardware, colors, materials, textures, pattern scale/orientation, graphics, and supported branding.',
-        'For multi-piece outfits preserve every garment component and bottom-garment structure, layers, pleats, ruffles, and hem finishing.',
-      ],
-      PLACEMENT_AND_INTEGRATION: [
-        'Map each source garment to its corresponding location in the DESTINATION arrangement.',
-        'Adapt drape to the destination display method with realistic gravity, folds, anatomical fit, contact shadows, and occlusion.',
-        'Zero blending: completely replace the destination clothing; no old colors, silhouettes, patterns, or residual visual attributes may remain.',
-        'Match destination light direction, intensity, color temperature, contact shadows, camera perspective, and foreground object boundaries.',
-      ],
-      STRICT_INVARIANTS_AND_EXCLUSIONS: [
-        'No compositing artifacts, edge halos, mismatched shadows, or perspective discrepancies.',
-        ...parsedBlueprint.detectedAccessories.map((accessory) => `exclude detected accessory: ${accessory}`),
-      ],
-      ...(parsedBlueprint.raw ? { AI_SCAN_BLUEPRINT: formatGptBlueprintConfig(outfitBlueprint) } : {}),
-    };
-    if (extraInstructions.trim()) {
-      config.USER_INSTRUCTIONS = extraInstructions.trim();
-    }
-    return [
-      { text: `${roleMap}\n\n/* CLOTHING_TRANSFER_CONFIG */\n${JSON.stringify(config, null, 2)}` },
-      ...roles.map((role) => imagePart(role.image)),
-    ];
-  }
+${avoidBlock}`;
 
   const parts: Part[] = [];
   roles.forEach((role) => {
@@ -138,34 +94,15 @@ ${avoidSection}`;
   return parts;
 }
 
-export const formatGarmentScope = (scope: GarmentScope): string => {
-  switch (scope) {
-    case 'top':
-      return 'top garment (shirt/blouse/jacket)';
-    case 'bottom':
-      return 'bottom garment (pants/skirt/trousers)';
-    case 'dress':
-      return 'one-piece dress';
-    case 'outerwear':
-      return 'outerwear jacket/coat';
-    case 'full-set':
-    default:
-      return 'entire fashion outfit (complete clothing set)';
-  }
-};
-
 /**
- * Build prompt parts for Product Staging (Hanger or Flat Lay via text template).
+ * Build Gemini prompt parts for Product Staging (Hanger or Flat Lay via text template).
  */
-export function buildProductStagingParts(
+export function buildGeminiProductStagingParts(
   sourceImage: ImageFile,
   template: DisplayTemplate,
   scope: GarmentScope,
   extraInstructions: string = '',
-  format: PromptFormat = 'parts',
   outfitBlueprint: string = '',
-  aspectRatio: AspectRatio = '3:4',
-  resolution: ImageResolution = '1K',
 ): Part[] {
   const scopeDesc = formatGarmentScope(scope);
   const hasStagingImage = Boolean(template.image);
@@ -173,59 +110,6 @@ export function buildProductStagingParts(
     ? `Display the extracted garment realistically hanging, laid out, or staged matching the EXACT setting, hanger, surface, and lighting visible in the STAGING REFERENCE image.${template.prompt ? ` ${template.prompt}` : ''}`
     : template.prompt;
   const parsedBlueprint = parseOutfitBlueprint(outfitBlueprint);
-
-  if (format === 'text') {
-    const header = hasStagingImage
-      ? `IMAGE 1 = SOURCE OUTFIT (extract ${scopeDesc})\nIMAGE 2 = STAGING REFERENCE (target surface or hanger)\n\n`
-      : `IMAGE 1 = SOURCE OUTFIT (extract ${scopeDesc})\n\n`;
-
-    const config: Record<string, unknown> = {
-      TASK: `Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged into the STAGING REFERENCE setting.`,
-      CANVAS_CONTRACT: {
-        aspect_ratio: aspectRatio,
-        resolution,
-        framing: 'catalog framing',
-        presentation: 'commercial e-commerce product photograph',
-      },
-      ENVIRONMENT: {
-        target_scene: template.prompt || (hasStagingImage ? 'matching staging reference image' : 'studio staging setting'),
-        staging_specification: stagingSpec,
-      },
-      STAGING_ZONES: {
-        upper_hanger: 'upper garments (blouses, shirts, jackets, tops) and single-piece dresses hang naturally from primary upper hanger',
-        lower_surface: 'lower garments (skirts, skorts, pants, shorts) arranged distinctly on lower display surface, shelf, or pants hanger',
-        spatial_separation: 'maintain clear physical separation between distinct garments; zero merging into a single piece',
-      },
-      GARMENT_BLUEPRINT: {
-        target_scope: scopeDesc,
-        apparel_specifications: parsedBlueprint.coreGarments || `Extract ${scopeDesc} with authentic cut, construction, and silhouette`,
-        textile_physics: parsedBlueprint.textilePhysics || 'Authentic fabric drape, natural gravity folds, and soft contact shadows',
-      },
-      STRICT_INVARIANTS_AND_EXCLUSIONS: [
-        'zero human models, heads, faces, arms, legs, or body parts in the scene (contain ZERO human beings or mannequins)',
-        'zero phantom props or unrelated furniture',
-        'clean typography and collar/hemline geometry',
-        'zero merging of separated garments into a single piece',
-        'no altered colors, distorted patterns, or synthetic CGI gloss',
-        ...parsedBlueprint.detectedAccessories.map(
-          (accessory) => `exclude detected accessory: ${accessory}`,
-        ),
-      ],
-    };
-
-    if (extraInstructions.trim()) {
-      config.USER_INSTRUCTIONS = extraInstructions.trim();
-    }
-
-    const jsonPrompt = `/* PRODUCT_STAGING_CONFIG */\n${JSON.stringify(config, null, 2)}`;
-    const fullText = `${header}${jsonPrompt}`;
-
-    const parts: Part[] = [{ text: fullText }, imagePart(sourceImage)];
-    if (template.image) {
-      parts.push(imagePart(template.image));
-    }
-    return parts;
-  }
 
   const layer1 = `LAYER 1: TASK & CANVAS
 - TASK: Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged into the STAGING REFERENCE setting.
@@ -283,21 +167,21 @@ ${accessoriesExclusion}- No altered colors, distorted patterns, or synthetic CGI
 }
 
 /**
- * Build prompt parts for dressing a Brand Model (Linh, Mai, Custom) in the outfit photo.
+ * Build Gemini prompt parts for dressing a Brand Model (Linh, Mai, Custom) in the outfit photo.
  * Preserves the exact pose, expression, gesture, outfit, lighting, and scene from the source photo,
  * transferring the face identity and body morphology of the selected brand model.
  */
-export function buildBrandModelParts(
+export function buildGeminiBrandModelParts(
   sourceImage: ImageFile,
   model: BrandModelProfile,
-  scope: GarmentScope,
+  _scope: GarmentScope,
   extraInstructions: string = '',
-  format: PromptFormat = 'parts',
   outfitBlueprint: string = '',
 ): Part[] {
   if (!model.faceImage) {
     return [imagePart(sourceImage), { text: 'Preserve destination image.' }];
   }
+
   const parsedBlueprint = parseOutfitBlueprint(outfitBlueprint);
   const blueprintBlock = formatAiScanBlock(outfitBlueprint);
 
@@ -317,54 +201,6 @@ export function buildBrandModelParts(
       label: `BRAND MODEL BODY (${model.name} - Authority for body morphology, build, silhouette, and proportions):`,
       image: model.bodyImage,
     });
-  }
-
-  if (format === 'text') {
-    const roleMap = roles.map((r, i) => `IMAGE ${i + 1} = ${r.label}`).join('\n');
-    const gptBlueprint = formatGptBlueprintConfig(outfitBlueprint, scope);
-
-    const config: Record<string, unknown> = {
-      TASK: `Replace model's head and face in DESTINATION PHOTO with BRAND MODEL (${model.name}) while maintaining a 100% strict lock on clothing and environment.`,
-      CANVAS_CONTRACT: {
-        framing: 'preserve destination scene composition and framing exactly',
-        output_format: 'high-end commercial fashion catalog photograph',
-      },
-      IDENTITY_TRANSFER: {
-        target_model: model.name,
-        facial_identity_authority: 'IMAGE 2',
-        facial_features: model.metadata.facialFeatures || 'distinctive eye shape, delicate nose contour, lip shape, and signature facial beauty aesthetics',
-        head_integration: `seamlessly blend ${model.name}'s head onto the body matching photographed head angle, gaze direction, and natural scene lighting`,
-        ...(model.bodyImage
-          ? {
-              body_morphology: `reshape body morphology and proportions to match BRAND MODEL BODY reference (${model.metadata.bodyType || 'slender feminine build'})`,
-            }
-          : {}),
-      },
-      LOCKED_ELEMENTS: {
-        garment_lock: '100% FROZEN: Preserve exact clothing down to smallest detail, including colors, fabric textures, seams, ties, lace patterns, and hemlines. Zero alteration to clothing design.',
-        environment_lock: '100% FROZEN: Preserve entire background scene, camera perspective, room setting, lighting geometry, and ambiance.',
-        pose_lock: '100% FROZEN: Preserve exact body pose, stance, hand placement, and gesture from DESTINATION PHOTO.',
-        ...(parsedBlueprint.raw ? { garment_blueprint: gptBlueprint } : {}),
-      },
-      STRICT_INVARIANTS_AND_EXCLUSIONS: [
-        'Do NOT retain original facial features or expression of person in DESTINATION PHOTO (must be completely replaced by BRAND MODEL)',
-        'Do NOT alter clothing design, fabric textures, or colors (100% garment lock)',
-        'Do NOT alter background scene, furniture, camera perspective, or lighting (100% environment lock)',
-        ...parsedBlueprint.detectedAccessories.map(
-          (acc) => `exclude detected accessory: ${acc}`,
-        ),
-      ],
-    };
-
-    if (extraInstructions.trim()) {
-      config.USER_INSTRUCTIONS = extraInstructions.trim();
-    }
-
-    const jsonPrompt = `/* BRAND_MODEL_IDENTITY_CONFIG */\n${JSON.stringify(config, null, 2)}`;
-    return [
-      { text: `${roleMap}\n\n${jsonPrompt}` },
-      ...roles.map((r) => imagePart(r.image)),
-    ];
   }
 
   const taskPrompt = `TASK: Replace the model's head and face in the DESTINATION PHOTO with the BRAND MODEL (${model.name}), producing a high-end fashion catalog photo.${blueprintBlock}

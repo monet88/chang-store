@@ -7,6 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { AddIcon, DeleteIcon } from './Icons';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import { useClothingTransfer } from '../hooks/useClothingTransfer';
 import { Feature, ImageFile } from '../types';
 import EComPackView from './EComPackView';
@@ -50,6 +51,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
     failedCount,
     canGenerate,
     anyUpscaling,
+    engineId,
     imageEditModel,
     refinePrompts,
     setRefinePrompts,
@@ -61,6 +63,8 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
 
   const toggleRefine = (key: string) =>
     setRefineOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+  const isGptImageStudio = engineId === 'gptImage';
+
 
   return (
     <div className="space-y-6">
@@ -98,6 +102,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
           resolution={resolution}
           setResolution={setResolution}
           imageEditModel={imageEditModel}
+          isGptImageStudio={isGptImageStudio}
           error={error}
         />
       ) : (
@@ -200,37 +205,48 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                 <h4 className="text-xl font-medium tracking-[-0.03em] text-white">{t('clothingTransfer.generateButton')}</h4>
               </div>
 
-              <ImageOptionsPanel
-                aspectRatio={aspectRatio}
-                setAspectRatio={setAspectRatio}
-                resolution={resolution}
-                setResolution={setResolution}
-                model={imageEditModel}
-              />
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm text-zinc-400">
-                  <span>{t('clothingTransfer.numberOfImages')}</span>
-                  <span className="rounded-full border border-white/10 bg-[var(--workspace-accent)] px-2.5 py-1 text-xs font-semibold text-[var(--workspace-accent-text)]">
-                    {numImages}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={1}
-                  max={4}
-                  step={1}
-                  value={numImages}
-                  onChange={(e) => setNumImages(Number(e.target.value))}
-                  className="w-full cursor-pointer"
+              {isGptImageStudio ? (
+                <GptImageOptionsPanel
+                  aspectRatio={aspectRatio}
+                  setAspectRatio={setAspectRatio}
+                  numImages={numImages}
+                  setNumImages={setNumImages}
                 />
-                <div className="flex justify-between text-xs text-zinc-600 select-none">
-                  <span>1</span>
-                  <span>2</span>
-                  <span>3</span>
-                  <span>4</span>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <ImageOptionsPanel
+                    aspectRatio={aspectRatio}
+                    setAspectRatio={setAspectRatio}
+                    resolution={resolution}
+                    setResolution={setResolution}
+                    model={imageEditModel}
+                  />
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm text-zinc-400">
+                      <span>{t('clothingTransfer.numberOfImages')}</span>
+                      <span className="rounded-full border border-white/10 bg-[var(--workspace-accent)] px-2.5 py-1 text-xs font-semibold text-[var(--workspace-accent-text)]">
+                        {numImages}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={4}
+                      step={1}
+                      value={numImages}
+                      onChange={(e) => setNumImages(Number(e.target.value))}
+                      className="w-full cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-zinc-600 select-none">
+                      <span>1</span>
+                      <span>2</span>
+                      <span>3</span>
+                      <span>4</span>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <button
                 type="button"
