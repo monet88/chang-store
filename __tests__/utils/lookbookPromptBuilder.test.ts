@@ -280,6 +280,27 @@ describe('AI Scan blueprint injection', () => {
     expect(prompt).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):');
     expect(prompt).toContain(blueprint);
   });
+  it('formats blueprint as structured JSON config for GPT Image lane (format === "text")', () => {
+    const structuredBlueprint = `[CORE_GARMENTS]
+Silk crepe evening gown with bias-cut bodice
+[TEXTILE_PHYSICS]
+Heavy drape, soft sheen, fluid movement
+[DETECTED_ACCESSORIES]
+Pearl necklace, gold clutch`;
+
+    const prompt = buildLookbookPrompt(
+      createFormState(),
+      [mockImage('front')],
+      null,
+      'text',
+      structuredBlueprint,
+    );
+
+    expect(prompt).toContain('/* AI_SCAN_BLUEPRINT_CONFIG */');
+    expect(prompt).toContain('"coreGarments": "Silk crepe evening gown with bias-cut bodice"');
+    expect(prompt).toContain('"textilePhysics": "Heavy drape, soft sheen, fluid movement"');
+    expect(prompt).toContain('"Pearl necklace"');
+  });
 
   it('splices the deconstruction into the variation prompt', () => {
     const prompt = buildVariationPrompt('flat lay', blueprint);

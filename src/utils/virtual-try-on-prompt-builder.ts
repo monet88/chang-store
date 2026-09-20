@@ -11,7 +11,7 @@ import type { Part } from '@google/genai';
 import { ImageFile, VirtualTryOnSourceItemType } from '../types';
 import type { PromptFormat } from './promptFormat';
 import { dropRestatedLines, imagePart } from './promptFormat';
-import { formatAiScanBlock } from './ai-scan-blueprint';
+import { formatAiScanBlock, parseOutfitBlueprint } from './ai-scan-blueprint';
 
 const MAX_SOURCE_ITEMS = 4;
 
@@ -184,11 +184,14 @@ Treat each source image as its listed type. Only edit the matching category or t
     ? '\n- Remove the red targeting dot and its white ring completely; no dot, ring, or halo may remain on the person.\n- Do not modify anyone except the person with the red dot; do not add or remove people.'
     : '\n- Do not add or remove people.';
 
-  const prohibitionBlock = PROHIBITION_BULLETS.map((bullet) => `- ${bullet}`).join('\n');
+  const parsedBlueprint = parseOutfitBlueprint(input.outfitBlueprint);
+  const accessoryExclusion = parsedBlueprint.detectedAccessories.length > 0 && hasClothing
+    ? `\n- Do not transfer non-clothing accessories from the clothing source image: ${parsedBlueprint.detectedAccessories.join(', ')}.`
+    : '';
+  const prohibitionBlock = PROHIBITION_BULLETS.map((bullet) => `- ${bullet}`).join('\n') + accessoryExclusion;
   const prohibitions = options.compactRestatements
     ? dropRestatedLines(prohibitionBlock, RESTATED_PROHIBITIONS)
     : prohibitionBlock;
-
   return `## TASK
 Apply all provided fashion source items to the subject while preserving their face, facial features, expressions, hair, skin tone, exact age, body proportions, and overall pose. Only the target fashion items change.${multiPersonSection}${formatAiScanBlock(input.outfitBlueprint)}
 

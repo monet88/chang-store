@@ -18,7 +18,12 @@ import {
   ProductShotSubType
 } from '../components/LookbookGenerator.prompts';
 import { ImageFile, AspectRatio } from '../types';
-import { aiScanSourceSet, formatAiScanBlock } from './ai-scan-blueprint';
+import {
+  aiScanSourceSet,
+  formatAiScanBlock,
+  formatGeminiBlueprintBlock,
+  formatGptBlueprintConfig,
+} from './ai-scan-blueprint';
 import type { PromptFormat } from './promptFormat';
 
 /**
@@ -185,7 +190,15 @@ Render exactly one complete, standalone photograph. Do NOT generate a collage, g
     sections.push(descriptionInstruction);
   }
 
-  return sections.join('\n\n') + formatAiScanBlock(outfitBlueprint);
+  if (outfitBlueprint?.trim()) {
+    if (format === 'text') {
+      const gptConfig = formatGptBlueprintConfig(outfitBlueprint);
+      return `${sections.join('\n\n')}\n\n/* AI_SCAN_BLUEPRINT_CONFIG */\n${JSON.stringify(gptConfig, null, 2)}`;
+    }
+    return sections.join('\n\n') + formatGeminiBlueprintBlock(outfitBlueprint);
+  }
+
+  return sections.join('\n\n');
 };
 
 /**

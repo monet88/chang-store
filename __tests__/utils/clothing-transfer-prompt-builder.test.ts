@@ -220,14 +220,85 @@ describe('buildProductStagingParts', () => {
     expect(parts[2].text).toContain('ZERO human beings or mannequins');
   });
 
-  it('formats flat text format for OpenAI image lane', () => {
+  it('formats industrial JSON-config format for OpenAI image lane (format === "text")', () => {
     const sourceImage = mockImage('source-outfit');
-    const parts = buildProductStagingParts(sourceImage, template, 'dress', '', 'text');
+    const blueprint = `[CORE_GARMENTS]
+Tailored linen blazer and pleated trousers
+[TEXTILE_PHYSICS]
+Crisp linen weave with sharp structural folds
+[DETECTED_ACCESSORIES]
+Leather tote bag, tortoiseshell sunglasses`;
+
+    const parts = buildProductStagingParts(sourceImage, template, 'dress', '', 'text', blueprint);
 
     expect(parts).toHaveLength(2);
     expect(parts[0].text).toContain('IMAGE 1 = SOURCE OUTFIT');
     expect(parts[0].text).toContain('one-piece dress');
+    expect(parts[0].text).toContain('/* PRODUCT_STAGING_CONFIG */');
+
+    // Parse the JSON payload following the comment
+    const jsonMatch = parts[0].text.match(/\/\* PRODUCT_STAGING_CONFIG \*\/\n([\s\S]+)$/);
+    expect(jsonMatch).not.toBeNull();
+    const config = JSON.parse(jsonMatch![1]);
+
+    expect(config.CANVAS_CONTRACT).toBeDefined();
+    expect(config.CANVAS_CONTRACT.aspect_ratio).toBe('3:4');
+    expect(config.CANVAS_CONTRACT.framing).toContain('catalog framing');
+
+    expect(config.ENVIRONMENT).toBeDefined();
+    expect(config.ENVIRONMENT.target_scene).toBe(template.prompt);
+
+    expect(config.STAGING_ZONES).toBeDefined();
+    expect(config.STAGING_ZONES.upper_hanger).toContain('upper garments');
+    expect(config.STAGING_ZONES.lower_surface).toContain('lower garments');
+
+    expect(config.GARMENT_BLUEPRINT).toBeDefined();
+    expect(config.GARMENT_BLUEPRINT.apparel_specifications).toContain('Tailored linen blazer');
+    expect(config.GARMENT_BLUEPRINT.textile_physics).toContain('Crisp linen weave');
+
+    expect(config.STRICT_INVARIANTS_AND_EXCLUSIONS).toBeInstanceOf(Array);
+    expect(config.STRICT_INVARIANTS_AND_EXCLUSIONS).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('ZERO human beings or mannequins'),
+        expect.stringContaining('zero phantom props'),
+        expect.stringContaining('clean typography and collar/hemline geometry'),
+        expect.stringContaining('exclude detected accessory: Leather tote bag'),
+        expect.stringContaining('exclude detected accessory: tortoiseshell sunglasses'),
+      ]),
+    );
+
     expect(parts[1].inlineData?.data).toBe('mock-base64-source-outfit');
+  });
+
+  it('outputs 5-layer natural language specification for Gemini lane (format === "parts")', () => {
+    const sourceImage = mockImage('source-outfit');
+    const blueprint = `[CORE_GARMENTS]
+Silk evening gown with bias cut
+[TEXTILE_PHYSICS]
+Heavy fluid drape, soft luster
+[DETECTED_ACCESSORIES]
+Gold chain belt`;
+
+    const parts = buildProductStagingParts(sourceImage, template, 'dress', '', 'parts', blueprint);
+
+    expect(parts).toHaveLength(3);
+    const taskText = parts[2].text;
+
+    expect(taskText).toContain('LAYER 1: TASK & CANVAS');
+    expect(taskText).toContain('CANVAS CONTRACT: 3:4 portrait aspect ratio');
+
+    expect(taskText).toContain('LAYER 2: DYNAMIC SPATIAL ARRANGEMENT');
+    expect(taskText).toContain('MULTI-PIECE OUTFIT DECOMPOSITION & SPATIAL SEPARATION:');
+
+    expect(taskText).toContain('LAYER 3: GARMENT BLUEPRINT');
+    expect(taskText).toContain('Core Garments & Cut Architecture: Silk evening gown with bias cut');
+
+    expect(taskText).toContain('LAYER 4: TEXTILE PHYSICS');
+    expect(taskText).toContain('Textile Weave & Drape Physics: Heavy fluid drape, soft luster');
+
+    expect(taskText).toContain('LAYER 5: INVARIANTS & EXCLUSIONS');
+    expect(taskText).toContain('Exclude detected accessories: Gold chain belt.');
+    expect(taskText).toContain('ZERO human beings or mannequins');
   });
 
   it('includes staging reference image when template.image is provided', () => {
@@ -281,6 +352,46 @@ describe('buildBrandModelParts', () => {
     expect(parts[5].inlineData?.data).toBe('mock-base64-linh-body');
     expect(parts[6].text).toContain('TASK: Replace the model\'s head and face');
     expect(parts[6].text).toContain('BRAND MODEL (Linh)');
+  });
+
+  it('formats structured prompt locking garment and environment for brand model text lane (format === "text")', () => {
+    const sourceImage = mockImage('source-outfit');
+    const blueprint = `[CORE_GARMENTS]
+Velvet cocktail dress
+[TEXTILE_PHYSICS]
+Deep pile velvet with rich light absorption
+[DETECTED_ACCESSORIES]
+Diamond drop earrings`;
+
+    const parts = buildBrandModelParts(sourceImage, model, 'full-set', '', 'text', blueprint);
+
+    // text lane: prompt + 3 images (dest, face, body)
+    expect(parts).toHaveLength(4);
+    expect(parts[0].text).toContain('IMAGE 1 = DESTINATION PHOTO');
+    expect(parts[0].text).toContain('IMAGE 2 = BRAND MODEL FACE (Linh');
+    expect(parts[0].text).toContain('/* BRAND_MODEL_IDENTITY_CONFIG */');
+
+    const jsonMatch = parts[0].text.match(/\/\* BRAND_MODEL_IDENTITY_CONFIG \*\/\n([\s\S]+)$/);
+    expect(jsonMatch).not.toBeNull();
+    const config = JSON.parse(jsonMatch![1]);
+
+    expect(config.IDENTITY_TRANSFER).toBeDefined();
+    expect(config.IDENTITY_TRANSFER.target_model).toBe('Linh');
+    expect(config.IDENTITY_TRANSFER.facial_identity_authority).toBe('IMAGE 2');
+
+    expect(config.LOCKED_ELEMENTS).toBeDefined();
+    expect(config.LOCKED_ELEMENTS.garment_lock).toContain('100% FROZEN');
+    expect(config.LOCKED_ELEMENTS.environment_lock).toContain('100% FROZEN');
+    expect(config.LOCKED_ELEMENTS.pose_lock).toContain('100% FROZEN');
+
+    expect(config.STRICT_INVARIANTS_AND_EXCLUSIONS).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Do NOT retain original facial features'),
+        expect.stringContaining('100% garment lock'),
+        expect.stringContaining('100% environment lock'),
+        expect.stringContaining('exclude detected accessory: Diamond drop earrings'),
+      ]),
+    );
   });
 });
 
