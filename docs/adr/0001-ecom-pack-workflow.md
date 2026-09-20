@@ -18,3 +18,6 @@ Users starting from a single model-wearing-outfit photograph previously had to j
 - Keeps navigation minimal and avoids tab proliferation in Gemini Studio.
 - Maximizes reuse of `imageDriverPolicy`, concurrency workers, and canvas compression.
 - Extends LocalStorage persistence for user-defined templates and brand model profiles.
+- E-Com Pack run state remains ephemeral. Existing user configuration may persist,
+  but this workflow does not become a resumable job engine unless a concrete product
+  requirement later needs resume-after-leave or resume-after-restart behavior.

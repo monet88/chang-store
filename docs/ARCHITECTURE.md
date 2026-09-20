@@ -164,26 +164,31 @@ provider support are defined in src/types.ts; route/component wiring is in
 src/App.tsx. Two engines ship: the Gemini studio (default, ten workflows) and
 the GPT Image studio.
 
-Both studios run the same workflow hooks and the same prompt builders; the
-engine underneath is what changes. `src/contexts/ImageEngineContext.tsx` is that
+The studios may share workflow hooks, UI state and model-agnostic domain data,
+but prompt policy is model-family-specific. Gemini image generation and GPT
+Image generation must be free to use different instructions, role framing,
+preservation rules, negative guidance and prompt structure because the models
+respond differently. `src/contexts/ImageEngineContext.tsx` is the execution
 seam — it exposes `{ id, model, editImage, upscaleImage,
 createImageChatSession, options }` for the active mode, the Gemini lane backed
 by `src/services/imageEditingService.ts` and the GPT lane by
-`src/services/providers/gpt-image/gptImageEngine.ts`. The GPT adapter maps the
-requested ratio to the pixel size the active (gateway, model) pair actually
-honors, turns a refine into one stateless preservation-wrapped edit (because
-OpenAI-style edit endpoints keep no conversation), and flattens Gemini-style
-interleaved parts into one prompt and ordered reference images. The builders
-themselves take the lane's format (`src/utils/promptFormat.ts`, from the
-engine's `id`): Gemini gets interleaved `[label, image, …]` parts, the GPT lane
-gets one role map that names each image by position plus the same task text and
-prohibitions — one wording, two assemblies. Because the flat lane is read as one
-block, it also drops the lines that only restate an earlier section of that same
-prompt (`dropRestatedLines` in the same module, anchored on the full line so a
-reworded bullet survives); the interleaved lane keeps them beside its labels.
-Neither endpoint
-has a negative field, so both lanes append the user's negative prompt to the
-request prompt with the shared wording in `src/utils/negative-prompt-builder.ts`.
+`src/services/providers/gpt-image/gptImageEngine.ts`.
+
+The current source still reuses several prompt builders and selects an assembly
+format through `src/utils/promptFormat.ts`: Gemini receives interleaved
+`[label, image, …]` parts, while the GPT lane is flattened into one role map and
+ordered reference images. Treat that reuse as an implementation detail, not as
+an architectural requirement that the two lanes share wording. When prompt
+behavior diverges, prefer separate Gemini and GPT prompt modules at the engine
+seam rather than forcing "one wording, two assemblies". Transport helpers and
+truly model-agnostic prompt fragments may still be shared when doing so does not
+constrain either model family.
+
+The GPT adapter also maps the requested ratio to the pixel size the active
+`(gateway, model)` pair actually honors and turns a refine into one stateless
+preservation-wrapped edit because OpenAI-style edit endpoints keep no
+conversation. Neither endpoint has a negative field, so user negative guidance
+is appended to the request prompt; the exact framing may differ by model family.
 
 Generation controls follow the engine: the Gemini views render aspect ratio and
 resolution (`ImageOptionsPanel`), the GPT views render ratio, the resolved pixel
@@ -194,6 +199,35 @@ a request parameter, not a prompt line: `editImage` maps it to
 resolution in its text. Every result
 is persisted to the shared IndexedDB gallery tagged with its feature and the
 engine that produced it.
+
+### Deepening decisions
+
+The September 2026 architecture review settled four directions. These describe
+where complexity should concentrate when the affected code is next changed; they
+do not require speculative scaffolding ahead of that work.
+
+1. **Shared Feature UI, separate prompt families.** Gemini and GPT variants may
+   share model-agnostic UI, upload/reference state, batch/result state and Feature
+   workflow. Engine-specific controls stay at the existing engine seam. Prompt
+   policy does not cross that seam: Gemini and GPT Image keep separate deep prompt
+   modules as recorded in ADR-0002.
+2. **AI Scan belongs to the generation job.** Source selection, the analysis
+   promise and the resulting technical blueprint belong to one generation job.
+   The panel may observe that same analysis and the prompt module may consume its
+   blueprint, but no provider-wide blueprint may represent multiple independent
+   batch jobs. The blueprint itself remains model-agnostic; Gemini and GPT prompt
+   modules decide independently how to express it.
+3. **Deepen only the E-Com Pack run.** E-Com Pack stays inside
+   `ClothingTransfer` per ADR-0001. Keep ordinary form and selection state simple;
+   concentrate target planning, blueprint use, bounded batch execution and
+   regenerate-one behavior behind the E-Com Pack run module. Do not introduce a
+   workflow engine or new run persistence without a demonstrated resume need.
+4. **Reuse generated-result mechanics only where the seam is proven.** Virtual
+   Try-On and Clothing Transfer already expose the same upscale/refine/download
+   mechanics with two concrete collection adapters, so that duplicated
+   implementation may be deepened behind one interface. Do not generalize this
+   across Lookbook, Pose, Background or other Features until another Feature
+   proves the same seam rather than merely resembling it.
 
 #### Workflow Matrix
 

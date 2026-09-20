@@ -58,13 +58,14 @@ A collection of target model destinations consisting of a persistent Brand Model
 _Avoid_: Target gallery, avatar list, mannequin selector.
 
 **AI Scan**:
-The optional analytical pre-pass of the studio: a Gemini vision pass
-(`gemini-3.8-flash`) that deconstructs the source garments of a feature —
-weave and material, optical finish, weight and drape physics, micro-edge details
-— into a technical blueprint before synthesis, spliced into the image prompt as
-a subordinate specification. It is a single ON/OFF layer, persisted per install,
-covering Virtual Try-On (both modes), Lookbook, Identity Transfer, Pose Changer
-and Background Replacer; the E-Com Pack runs the same analysis through its own
-lane. A disabled, failed or cancelled scan falls back silently to the base
-prompt.
+The optional analytical pre-pass of the studio that deconstructs source garments
+into a model-agnostic technical blueprint: weave and material, optical finish,
+weight and drape physics, and micro-edge details. The blueprint records observed
+garment facts; Gemini and GPT Image prompt policies decide independently how to
+use those facts during synthesis. Each generation job owns the blueprint for its
+own source set, so one job never inherits another job's garment analysis. AI Scan
+is a single ON/OFF layer persisted per install, covering Virtual Try-On (both
+modes), Lookbook, Identity Transfer, Pose Changer and Background Replacer; the
+E-Com Pack uses the same analysis semantics. A disabled, failed or cancelled scan
+falls back silently to the base prompt.
 _Avoid_: Outfit analysis, garment inspector, deep scan, fabric detection.
