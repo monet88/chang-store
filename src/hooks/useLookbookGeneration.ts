@@ -167,7 +167,7 @@ export const useLookbookGeneration = (
     // The blueprint belongs to the generated main, not to the current form:
     // editing the outfit after generating must not re-analyze the new garments
     // into the variations of the old main.
-    const prompt = buildVariationPrompt(formState.lookbookStyle, generatedLookbook.blueprint ?? '');
+    const prompt = buildVariationPrompt(formState.lookbookStyle, generatedLookbook.blueprint ?? '', promptFormatFor(engineId));
 
     try {
       const newVariations = await driver.editImage({
@@ -202,7 +202,7 @@ export const useLookbookGeneration = (
     const baseImage = generatedLookbook.main;
     // Same source of truth as the variations: the analysis of the outfit the
     // main was generated from.
-    const closeUpPrompts = buildCloseUpPrompts(generatedLookbook.blueprint ?? '');
+    const closeUpPrompts = buildCloseUpPrompts(generatedLookbook.blueprint ?? '', promptFormatFor(engineId));
     const combinedNegativePrompt = buildCloseUpNegativePrompt(formState.negativePrompt);
 
     try {

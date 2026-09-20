@@ -268,14 +268,15 @@ describe('buildVirtualTryOnParts', () => {
     const promptText = (parts: Part[]) =>
       parts.filter((p) => p.text).map((p) => p.text).join('\n');
 
-    it('sends one prompt that names every image by position, then the images in input order', () => {
+    it('sends one structured GPT config that names every image by position, then the images in input order', () => {
       const parts = buildVirtualTryOnParts(mixedSourceInput, 'text');
 
       expect(parts).toHaveLength(6);
       expect(parts[0].text).toContain('IMAGE 1 = SUBJECT');
       expect(parts[0].text).toContain('IMAGE 2 = SOURCE ITEM #1 (clothing)');
       expect(parts[0].text).toContain('IMAGE 5 = SOURCE ITEM #4 (bag)');
-      expect(parts[0].text).toContain('## APPLICATION RULES');
+      expect(parts[0].text).toContain('/* VIRTUAL_TRY_ON_CONFIG */');
+      expect(parts[0].text).not.toContain('## APPLICATION RULES');
       expect(parts[1].inlineData?.data).toBe('mock-base64-subject');
       expect(parts[2].inlineData?.data).toBe('mock-base64-shirt');
       expect(parts[5].inlineData?.data).toBe('mock-base64-bag');
@@ -303,11 +304,11 @@ describe('buildVirtualTryOnParts', () => {
     it('keeps the shared editing rules when the labels collapse into one prompt', () => {
       const text = promptText(buildVirtualTryOnParts({ ...defaultInput, extraPrompt: 'keep the shoes' }, 'text'));
 
-      expect(text).toContain('## TASK');
-      expect(text).toContain('## APPLICATION RULES');
+      expect(text).toContain('"TASK"');
+      expect(text).toContain('"APPLICATION_RULES"');
       expect(text).toContain('Zero original elements in replaced clothing areas may remain');
-      expect(text).toContain('## PROHIBITIONS');
-      expect(text).toContain('## ADDITIONAL INSTRUCTIONS');
+      expect(text).toContain('"PROHIBITIONS"');
+      expect(text).toContain('"USER_INSTRUCTIONS": "keep the shoes"');
     });
     it('drops the prohibition bullets that only restate an earlier section', () => {
       const flat = promptText(buildVirtualTryOnParts(defaultInput, 'text'));
@@ -360,16 +361,15 @@ describe('buildVirtualTryOnParts', () => {
   describe('AI Scan blueprint', () => {
     const BLUEPRINT = 'WEAVE & MATERIAL: plissé accordion pleats.\nDRAPE PHYSICS: fluid fall.';
 
-    it('injects the blueprint under the AI Scan heading on both lanes', () => {
-      const lanes = (['parts', 'text'] as const).map((format) =>
-        getFullText(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }, format)),
-      );
+    it('uses 5-layer natural language for Gemini and structured blueprint config for GPT', () => {
+      const gemini = getFullText(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }, 'parts'));
+      const gpt = getFullText(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }, 'text'));
 
-      lanes.forEach((text) => {
-        expect(text).toContain(AI_SCAN_BLOCK_HEADER);
-        expect(text).toContain('WEAVE & MATERIAL: plissé accordion pleats.');
-        expect(text).toContain('DRAPE PHYSICS: fluid fall.');
-      });
+      expect(gemini).toContain(AI_SCAN_BLOCK_HEADER);
+      expect(gemini).toContain('CRITICAL OUTFIT DECONSTRUCTION (5-LAYER TECHNICAL BRIEF)');
+      expect(gpt).toContain('"AI_SCAN_BLUEPRINT"');
+      expect(gpt).toContain('"coreGarments"');
+      expect(gpt).not.toContain('CRITICAL OUTFIT DECONSTRUCTION (5-LAYER TECHNICAL BRIEF)');
     });
 
     it('carries the blueprint inside the task text, after the TASK paragraph', () => {
@@ -377,13 +377,14 @@ describe('buildVirtualTryOnParts', () => {
 
       expect(text.indexOf(AI_SCAN_BLOCK_HEADER)).toBeGreaterThan(text.indexOf('## TASK'));
       expect(text.indexOf(AI_SCAN_BLOCK_HEADER)).toBeLessThan(text.indexOf('## SOURCE ITEM TYPES'));
-      expect(text).toContain(`AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):\n${BLUEPRINT}`);
+      expect(text).toContain('CRITICAL OUTFIT DECONSTRUCTION (5-LAYER TECHNICAL BRIEF)');
+      expect(text).toContain('WEAVE & MATERIAL: plissé accordion pleats.');
+      expect(text).toContain('DRAPE PHYSICS: fluid fall.');
     });
 
-    it('leaves both lanes byte-identical when no blueprint is supplied', () => {
+    it('preserves the base behavior when no blueprint is supplied', () => {
       (['parts', 'text'] as const).forEach((format) => {
         const base = buildVirtualTryOnParts(defaultInput, format);
-
         expect(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: undefined }, format)).toEqual(base);
         expect(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: '' }, format)).toEqual(base);
         expect(getFullText(base)).not.toContain(AI_SCAN_BLOCK_HEADER);
@@ -395,6 +396,37 @@ describe('buildVirtualTryOnParts', () => {
       const blank = buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: '  \n ' });
 
       expect(blank).toEqual(base);
+    });
+    it('dynamically excludes non-clothing accessories when a structured blueprint contains them', () => {
+      const STRUCTURED_BLUEPRINT = `[1. CORE_GARMENTS]
+- Upper: Silk blouse.
+[2. TEXTILE_PHYSICS]
+- Optical: Sheer.
+[3. DETECTED_ACCESSORIES]
+- Olive canvas tote bag
+- Sheer dotted tights`;
+      const parts = buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: STRUCTURED_BLUEPRINT });
+      const text = getTaskText(parts);
+
+      expect(text).toContain('Do not transfer non-clothing accessories from the clothing source image:');
+      expect(text).toContain('Olive canvas tote bag');
+      expect(text).toContain('Sheer dotted tights');
+    });
+    it('does not append non-clothing accessory exclusion when there is no clothing source item', () => {
+      const STRUCTURED_BLUEPRINT = `[1. CORE_GARMENTS]
+- Upper: Silk blouse.
+[2. TEXTILE_PHYSICS]
+- Optical: Sheer.
+[3. DETECTED_ACCESSORIES]
+- Olive canvas tote bag`;
+      const parts = buildVirtualTryOnParts({
+        ...defaultInput,
+        sourceItems: [{ image: mockImage('bag'), sourceItemType: 'bag' }],
+        outfitBlueprint: STRUCTURED_BLUEPRINT,
+      });
+      const text = getTaskText(parts);
+
+      expect(text).not.toContain('Do not transfer non-clothing accessories from the clothing source image');
     });
   });
 });

@@ -280,6 +280,31 @@ describe('AI Scan blueprint injection', () => {
     expect(prompt).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):');
     expect(prompt).toContain(blueprint);
   });
+  it('formats blueprint as structured JSON config for GPT Image lane (format === "text")', () => {
+    const structuredBlueprint = `[CORE_GARMENTS]
+Silk crepe evening gown with bias-cut bodice
+[TEXTILE_PHYSICS]
+Heavy drape, soft sheen, fluid movement
+[DETECTED_ACCESSORIES]
+Pearl necklace, gold clutch`;
+
+    const prompt = buildLookbookPrompt(
+      createFormState(),
+      [mockImage('front')],
+      null,
+      'text',
+      structuredBlueprint,
+    );
+
+    expect(prompt).toContain('/* LOOKBOOK_CONFIG */');
+    expect(prompt).not.toContain('## OUTPUT');
+    const jsonMatch = prompt.match(/\/\* LOOKBOOK_CONFIG \*\/\n([\s\S]+)$/);
+    expect(jsonMatch).not.toBeNull();
+    const config = JSON.parse(jsonMatch![1]);
+    expect(config.AI_SCAN_BLUEPRINT.coreGarments).toBe('Silk crepe evening gown with bias-cut bodice');
+    expect(config.AI_SCAN_BLUEPRINT.textilePhysics).toBe('Heavy drape, soft sheen, fluid movement');
+    expect(prompt).toContain('"Pearl necklace"');
+  });
 
   it('splices the deconstruction into the variation prompt', () => {
     const prompt = buildVariationPrompt('flat lay', blueprint);
@@ -295,6 +320,18 @@ describe('AI Scan blueprint injection', () => {
     prompts.forEach((prompt) => {
       expect(prompt).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):');
       expect(prompt).toContain(blueprint);
+    });
+  });
+  it('formats blueprint as structured JSON config for variation and close-up when format is text', () => {
+    const variation = buildVariationPrompt('flat lay', blueprint, 'text');
+    expect(variation).toContain('/* AI_SCAN_BLUEPRINT_CONFIG */');
+    expect(variation).toContain('"coreGarments":');
+
+    const closeUps = buildCloseUpPrompts(blueprint, 'text');
+    expect(closeUps).toHaveLength(3);
+    closeUps.forEach((prompt) => {
+      expect(prompt).toContain('/* AI_SCAN_BLUEPRINT_CONFIG */');
+      expect(prompt).toContain('"textilePhysics":');
     });
   });
 

@@ -295,27 +295,24 @@ export const analyzeOutfitBlueprint = async (
     const prompt = `You are an expert haute couture and commercial fashion analyst.
 Deconstruct the fashion outfit in this photo into an exhaustive, highly technical specification for an AI image generation pipeline.
 
-Provide concise, highly accurate bullet points covering:
-1. SEPARATE GARMENT COMPONENTS:
-- List every distinct garment (e.g. Upper garment/top, Lower garment/skirt/pants/shorts, Dress, Layered inner tops/bustiers, Outerwear).
-2. TOP GARMENT DETAILS:
-- Category, silhouette, fit, collar/neckline, sleeve cut, cuffs, front closures, ties/ribbons, peplum/flounce.
-- Fabric composition, transparency (sheer/opaque), inner linings/bustiers, lace panels, color & luster.
-3. BOTTOM GARMENT DETAILS:
-- Exact category (skirt, skort, pants, shorts, etc.).
-- Silhouette, cut, length, waistline, pleating, tiers/ruffles.
-- Fabric composition, color, opacity, lining.
-- EXACT HEMLINE & EDGE FINISHES: (e.g. scalloped lace edges, sheer mesh bands, polka-dot plumetis trim, raw fringes, cuffs).
-4. TEXTILE & FABRIC ENGINEERING:
-- WEAVE & MATERIAL: name the exact fabric and its structure (chiffon, organza, plissé accordion pleats, raw/rigid denim, ribbed knit, silk satin, tweed, lace), plus fibre content when it is visible.
-- OPTICAL PROPERTIES & FINISH: sheer translucency vs opaque lining, matte luster, glazed leather sheen, pile nap, crisp paper-like hand.
-- WEIGHT & DRAPE PHYSICS: how the material behaves on a body — fluid floating drape, crisp tailored stiffness, structural hold, voluminous peplum flare, heavy vertical fall — and the folds, tension lines, or stretch it produces.
-- MICRO-EDGE & HEMLINE DETAILS: scalloped lace borders, Swiss dot (plumetis) mesh, raw frayed hems, contrast topstitching, picot trims, bound edges, cuffs.
-5. ACCESSORIES & LEGWEAR (if visible):
-- Tights/stockings/hosiery, bags, jewelry, hair accessories.
+Structure your analysis strictly into the following 3 distinct bounded sections with these exact headers:
 
-Keep the output factual, structured, and focused strictly on the clothing construction to guide photorealistic reproduction.`;
+[1. CORE_GARMENTS]
+- Layer & piece identification (Top, Bottom, One-Piece, Outerwear).
+- Treat belts as supporting apparel when they are part of the outfit; belts are supporting apparel, not generic non-apparel accessories.
+- Exact silhouette, fit, cuts, waistline, neckline/collar, sleeve style, closures.
+- MICRO-EDGE & HEMLINE DETAILS: scalloped lace edges, fringes, cuffs, sheer mesh bands, contrast stitching.
 
+[2. TEXTILE_PHYSICS]
+- WEAVE & MATERIAL: fabric structure, fiber composition (chiffon, organza, plissé pleats, raw denim, ribbed knit, silk satin, tweed, lace).
+- OPTICAL PROPERTIES & FINISH: sheer translucency vs opaque lining, matte vs satin luster, glazed sheen, hand feel.
+- WEIGHT & DRAPE PHYSICS: fluidity, rigidity, structural hold, gravity folds, tension lines, flare.
+
+[3. DETECTED_ACCESSORIES]
+- Inventory of non-apparel items: bags, footwear, hosiery/tights, jewelry, hair accessories, hats.
+(If none detected, state: None).
+
+Keep the output factual, structured, and focused strictly on clothing construction and textile behavior to guide photorealistic reproduction.`;
     const textPart: Part = { text: prompt };
     const response = await ai.models.generateContent({
       model,
