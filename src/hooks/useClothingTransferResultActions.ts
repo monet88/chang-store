@@ -1,14 +1,13 @@
-import { useCallback } from 'react';
+import { useMemo } from 'react';
 import { Feature, ImageEngineId, ImageFile } from '../types';
-import { getErrorMessage } from '../utils/imageUtils';
-import { downloadImagesAsZip } from '../utils/zipDownload';
 import { UseClothingTransferConceptsReturn } from './useClothingTransferConcepts';
 import { UseImageRefinementReturn } from './useImageRefinement';
 import type { ClothingTransferImageDriver } from './useClothingTransferEngine';
-
-type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
-
-const getUpscaleStateKey = (itemId: string, index: number) => `${itemId}:${index}`;
+import {
+  GeneratedResultSlotAdapter,
+  useGeneratedResultActions,
+  UseGeneratedResultActionsReturn,
+} from './useGeneratedResultActions';
 
 export interface UseClothingTransferResultActionsConfig {
   driver: ClothingTransferImageDriver;
@@ -20,86 +19,40 @@ export interface UseClothingTransferResultActionsConfig {
   engineId?: ImageEngineId;
   setError: (message: string | null) => void;
   setUpscalingStates: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  t: TranslateFn;
+  t: (key: string, options?: { [key: string]: string | number }) => string;
 }
 
-export interface UseClothingTransferResultActionsReturn {
-  handleUpscale: (image: ImageFile, index: number, itemId?: string) => Promise<void>;
-  handleRefine: (image: ImageFile, index: number, itemId: string, prompt: string) => Promise<void>;
-  handleDownloadAll: () => Promise<void>;
-}
+export type UseClothingTransferResultActionsReturn = UseGeneratedResultActionsReturn;
 
 /**
- * Per-result actions for Clothing Transfer (upscale, refine, download-all),
- * extracted to keep useClothingTransfer under the line limit. Mirrors the VTO
- * `useVirtualTryOnResultActions` split. Uses the injected ClothingTransferImageDriver so
- * the same mock-driver seam covers these actions.
+ * Clothing Transfer's adapter over the shared result actions. Unlike Try-On it
+ * persists every applicable upscale/refine result to the gallery with its own
+ * Feature and engine tagging, which lives here in the commit step.
  */
 export const useClothingTransferResultActions = (
   config: UseClothingTransferResultActionsConfig,
 ): UseClothingTransferResultActionsReturn => {
-  const { driver, concepts, imageEditModel, refinement, buildImageServiceConfig,
-    addImage, engineId, setError, setUpscalingStates, t } = config;
+  const { driver, concepts, addImage, engineId, ...rest } = config;
   const { activeConceptItem, updateConceptItem, conceptItems } = concepts;
 
-  const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number, itemId?: string) => {
-    const targetItemId = itemId ?? activeConceptItem?.id;
-    if (!imageToUpscale || !targetItemId) {
-      return;
-    }
-
-    const stateKey = getUpscaleStateKey(targetItemId, index);
-    setUpscalingStates((prev) => ({ ...prev, [stateKey]: true }));
-    setError(null);
-
-    try {
-      const result = await driver.upscaleImage(
-        imageToUpscale,
-        imageEditModel,
-        buildImageServiceConfig(() => {}),
-      );
-
-      updateConceptItem(targetItemId, (item) => ({
-        ...item,
-        results: item.results.map((image, resultIndex) => (
-          resultIndex === index ? result : image
-        )),
-      }));
-      addImage(result, Feature.ClothingTransfer, engineId);
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    } finally {
-      setUpscalingStates((prev) => ({ ...prev, [stateKey]: false }));
-    }
-  }, [driver, activeConceptItem?.id, updateConceptItem, imageEditModel,
-    buildImageServiceConfig, addImage, engineId, setUpscalingStates, setError, t]);
-
-  const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, itemId: string, prompt: string) => {
-    const key = `${itemId}:${index}`;
-    await refinement.runRefine(key, prompt, imageToRefine, (refined) => {
+  const adapter = useMemo<GeneratedResultSlotAdapter>(() => ({
+    activeItemId: activeConceptItem?.id,
+    commitResult: (itemId, index, image) => {
       updateConceptItem(itemId, (item) => ({
         ...item,
-        results: item.results.map((img, i) => (i === index ? refined : img)),
+        results: item.results.map((result, resultIndex) => (resultIndex === index ? image : result)),
       }));
-      addImage(refined, Feature.ClothingTransfer, engineId);
-    });
-  }, [refinement, updateConceptItem, addImage, engineId]);
+      addImage(image, Feature.ClothingTransfer, engineId);
+    },
+    collectDownloadableResults: () => conceptItems
+      .filter((item) => item.status === 'completed' && item.results && item.results.length > 0)
+      .flatMap((item) => item.results),
+  }), [activeConceptItem?.id, updateConceptItem, conceptItems, addImage, engineId]);
 
-  const handleDownloadAll = useCallback(async () => {
-    const successItems = conceptItems.filter(
-      (item) => item.status === 'completed' && item.results && item.results.length > 0,
-    );
-    if (successItems.length === 0) return;
-
-    const allResults = successItems.flatMap((item) => item.results);
-    if (allResults.length === 0) return;
-
-    try {
-      await downloadImagesAsZip(allResults, `${Feature.ClothingTransfer}-batch`);
-    } catch (err) {
-      setError(getErrorMessage(err, t));
-    }
-  }, [conceptItems, setError, t]);
-
-  return { handleUpscale, handleRefine, handleDownloadAll };
+  return useGeneratedResultActions({
+    ...rest,
+    driver,
+    adapter,
+    downloadName: `${Feature.ClothingTransfer}-batch`,
+  });
 };
