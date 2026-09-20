@@ -276,6 +276,49 @@ describe('useClothingTransferEComPack', () => {
     expect(result.current.outfitBlueprint).toBe('Mock Blueprint: Top & Tiered Skirt');
   });
 
+  it('does not label a new source outfit with an earlier analysis still in flight', async () => {
+    const firstDeferred = createDeferred<string>();
+    const analyzeMock = vi.fn()
+      .mockReturnValueOnce(firstDeferred.promise)
+      .mockResolvedValueOnce('Blueprint for outfit 2');
+
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gemini-2.5-flash-image',
+        textGenerateModel: 'gemini-3.8-flash',
+        engineId: 'gemini',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        analyzeOutfitBlueprintFn: analyzeMock,
+      }),
+    );
+
+    // 1. Upload outfit 1 -> starts first analysis (in flight)
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit-1'));
+    });
+    expect(result.current.isAnalyzingOutfit).toBe(true);
+
+    // 2. Quickly replace with outfit 2 before first analysis resolves
+    await act(async () => {
+      result.current.setSourceOutfitImage(mockImage('outfit-2'));
+    });
+    expect(result.current.outfitBlueprint).toBe('Blueprint for outfit 2');
+
+    // 3. Stale first analysis finishes later -> must not overwrite outfit 2's blueprint
+    await act(async () => {
+      firstDeferred.resolve('Stale blueprint for outfit 1');
+    });
+
+    expect(result.current.outfitBlueprint).toBe('Blueprint for outfit 2');
+  });
+
   it('plans product display assets, brand models, and custom destinations into separate pack cards', async () => {
     const { result } = setupHook();
 

@@ -65,6 +65,13 @@ const readEnabledPreference = (): boolean => {
 const sameSourceSet = (a: ImageFile[], b: ImageFile[]): boolean =>
   a.length === b.length && a.every((image, index) => image === b[index]);
 
+/** One analyzed source set, held so its own pre-scan and generation share it. */
+interface ScanEntry {
+  sources: ImageFile[];
+  scan: Promise<string | null>;
+}
+
+
 /** Label each report so the model can tell which image a section came from. */
 const joinReports = (reports: string[]): string =>
   reports.length === 1 ? reports[0] : reports.map((report, index) => `SOURCE IMAGE ${index + 1}:\n${report}`).join('\n\n');
@@ -84,10 +91,12 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
 }) => {
   const [enabled, setEnabledState] = useState<boolean>(() => initialEnabled ?? readEnabledPreference());
 
-  // The last analyzed source set and its promise, so a panel that pre-scans and
-  // a generation call that awaits share one analysis instead of two.
-  const lastSources = useRef<ImageFile[] | null>(null);
-  const lastScan = useRef<Promise<string | null> | null>(null);
+  // One analysis per source set, so a panel that pre-scans and the generation
+  // call that awaits it share one analysis instead of two. Keyed by the set
+  // itself, never by a single provider-wide slot: a batch runs several jobs over
+  // different sets, and a job must neither evict, invalidate nor inherit another
+  // job's analysis.
+  const scans = useRef<ScanEntry[]>([]);
 
   const setEnabled = useCallback((value: boolean) => {
     setEnabledState(value);
@@ -104,19 +113,14 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
       if (!enabled) return Promise.resolve(null);
 
       const sources = aiScanSourceSet(images);
-      if (sources.length === 0) {
-        // No sources, no blueprint: nothing to analyze, and no cache entry for
-        // the next uploaded set to inherit.
-        lastSources.current = null;
-        lastScan.current = null;
-        return Promise.resolve(null);
-      }
+      if (sources.length === 0) return Promise.resolve(null);
 
-      if (lastSources.current && sameSourceSet(lastSources.current, sources) && lastScan.current) {
-        return lastScan.current;
-      }
+      const cached = scans.current.find((entry) => sameSourceSet(entry.sources, sources));
+      if (cached) return cached.scan;
 
-      lastSources.current = sources;
+      const forget = () => {
+        scans.current = scans.current.filter((entry) => entry.sources !== sources);
+      };
 
       const run = Promise.all(sources.map((image) => analyze(image, AI_SCAN_MODEL)))
         .then((reports) => {
@@ -134,12 +138,11 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
           // generation, it only drops the layer. Not cached, so the next
           // toggle or source change retries.
           console.warn('[AiScan] Analysis skipped/failed:', err);
-          lastSources.current = null;
-          lastScan.current = null;
+          forget();
           return null;
         });
 
-      lastScan.current = run;
+      scans.current.push({ sources, scan: run });
       return run;
     },
     [analyze, enabled],

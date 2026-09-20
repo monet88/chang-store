@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AspectRatio,
   EComPackItem,
@@ -97,6 +97,7 @@ export const useClothingTransferEComPack = (
   } = config;
 
   const [sourceOutfitImage, setSourceOutfitImage] = useState<ImageFile | null>(null);
+  const sourceOutfitImageRef = useRef<ImageFile | null>(null);
   const [garmentScope, setGarmentScope] = useState<GarmentScope>('full-set');
   const [outfitBlueprint, setOutfitBlueprint] = useState<string | null>(null);
   const [isAnalyzingOutfit, setIsAnalyzingOutfit] = useState(false);
@@ -107,13 +108,20 @@ export const useClothingTransferEComPack = (
       try {
         const fn = analyzeOutfitBlueprintFn || analyzeOutfitBlueprint;
         const blueprint = await fn(image, textGenerateModel);
-        setOutfitBlueprint(blueprint);
+        // Only publish when this analysis still belongs to the active outfit:
+        // swapping the photo while an earlier analysis is in flight must never
+        // label the new outfit with the old blueprint.
+        if (sourceOutfitImageRef.current === image) {
+          setOutfitBlueprint(blueprint);
+        }
         return blueprint;
       } catch (err) {
         console.warn('Outfit blueprint analysis skipped/failed:', err);
         return null;
       } finally {
-        setIsAnalyzingOutfit(false);
+        if (sourceOutfitImageRef.current === image) {
+          setIsAnalyzingOutfit(false);
+        }
       }
     },
     [analyzeOutfitBlueprintFn, textGenerateModel],
@@ -121,6 +129,7 @@ export const useClothingTransferEComPack = (
 
   const handleSetSourceOutfitImage = useCallback(
     (img: ImageFile | null) => {
+      sourceOutfitImageRef.current = img;
       setSourceOutfitImage(img);
       setOutfitBlueprint(null);
       if (img) {
