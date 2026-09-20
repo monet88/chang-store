@@ -19,20 +19,11 @@ import {
   deleteCustomBrandModel,
   isCustomBrandModel,
 } from '../config/brandModelRoster';
-import { DEFAULT_DISPLAY_TEMPLATES, DisplayTemplate } from '../config/displayTemplates';
+import { DisplayTemplate } from '../config/displayTemplates';
 import {
-  buildGeminiBrandModelParts,
-  buildGeminiClothingTransferParts,
-  buildGeminiProductStagingParts,
-} from '../utils/gemini-clothing-transfer-prompt';
-import {
-  buildGptBrandModelParts,
-  buildGptClothingTransferParts,
-  buildGptProductStagingParts,
-} from '../utils/gpt-clothing-transfer-prompt';
-import { formatGarmentScope } from '../utils/clothing-transfer-prompt-types';
-import { runBoundedWorkers } from '../utils/run-bounded-workers';
-import { getErrorMessage } from '../utils/imageUtils';
+  EComPackPlanInput,
+  useClothingTransferEComPackRun,
+} from './useClothingTransferEComPackRun';
 import { analyzeOutfitBlueprint } from '../services/textService';
 
 export interface UseClothingTransferEComPackConfig {
@@ -178,8 +169,6 @@ export const useClothingTransferEComPack = (
 
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [customDestinations, setCustomDestinations] = useState<ImageFile[]>([]);
-  const [packItems, setPackItems] = useState<EComPackItem[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   // Load starter assets for Linh and Mai on mount, preserving custom models
   useEffect(() => {
@@ -277,182 +266,49 @@ export const useClothingTransferEComPack = (
     setCustomDestinations((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const updatePackItem = useCallback((id: string, patch: Partial<EComPackItem>) => {
-    setPackItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    );
-  }, []);
-
-  const runItemGeneration = useCallback(
-    async (item: EComPackItem, activeBlueprint?: string | null) => {
-      if (!sourceOutfitImage) return;
-      updatePackItem(item.id, { status: 'processing', results: [], error: undefined });
-
-      try {
-        let parts;
-        const isGptImage = engineId === 'gptImage';
-        const blueprintToUse = activeBlueprint ?? outfitBlueprint ?? '';
-
-        if (item.category === 'product') {
-          const templateId = item.id.replace('template-', '');
-          const template = displayTemplates.find((t) => t.id === templateId);
-          if (!template) throw new Error('Template not found');
-          parts = isGptImage
-            ? buildGptProductStagingParts(sourceOutfitImage, template, garmentScope, extraPrompt, blueprintToUse, aspectRatio, resolution)
-            : buildGeminiProductStagingParts(sourceOutfitImage, template, garmentScope, extraPrompt, blueprintToUse);
-        } else if (item.category === 'brand-models') {
-          const modelId = item.id.replace('brand-', '');
-          const model = brandModels.find((m) => m.id === modelId);
-          if (!model) throw new Error('Model profile not found');
-          parts = isGptImage
-            ? buildGptBrandModelParts(sourceOutfitImage, model, garmentScope, extraPrompt, blueprintToUse)
-            : buildGeminiBrandModelParts(sourceOutfitImage, model, extraPrompt, blueprintToUse);
-        } else {
-          // custom destinations
-          const destIndex = parseInt(item.id.replace('custom-', ''), 10);
-          const destImage = customDestinations[destIndex];
-          if (!destImage) throw new Error('Destination image not found');
-          parts = isGptImage
-            ? buildGptClothingTransferParts(
-                destImage,
-                [{ image: sourceOutfitImage, label: formatGarmentScope(garmentScope) }],
-                extraPrompt,
-                blueprintToUse,
-              )
-            : buildGeminiClothingTransferParts(
-                destImage,
-                [{ image: sourceOutfitImage, label: formatGarmentScope(garmentScope) }],
-                extraPrompt,
-                blueprintToUse,
-              );
-        }
-        const results = await driver.editImage(
-          {
-            images: [],
-            prompt: '',
-            numberOfImages: numImages,
-            aspectRatio,
-            resolution,
-            interleavedParts: parts,
-          },
-          imageEditModel,
-          { onStatusUpdate: () => {} },
-        );
-
-        updatePackItem(item.id, { status: 'completed', results, error: undefined });
-        results.forEach((img) => addImage(img, Feature.ClothingTransfer, engineId));
-      } catch (err) {
-        updatePackItem(item.id, {
-          status: 'error',
-          results: [],
-          error: getErrorMessage(err, t),
-        });
-      }
-    },
-    [
-      sourceOutfitImage,
+  const selection = useMemo<EComPackPlanInput>(
+    () => ({
       displayTemplates,
+      selectedTemplateIds,
       brandModels,
+      selectedBrandModelIds,
       customDestinations,
-      garmentScope,
-      extraPrompt,
-      engineId,
-      driver,
-      numImages,
-      aspectRatio,
-      resolution,
-      imageEditModel,
-      addImage,
-      updatePackItem,
-      outfitBlueprint,
-      t,
+    }),
+    [
+      displayTemplates,
+      selectedTemplateIds,
+      brandModels,
+      selectedBrandModelIds,
+      customDestinations,
     ],
   );
 
-  const handleGeneratePack = useCallback(async () => {
-    if (!sourceOutfitImage) {
-      setError(t('clothingTransfer.ecomPack.inputError'));
-      return;
-    }
+  const resolveOutfitBlueprint = useCallback(async (): Promise<string | null> => {
+    if (outfitBlueprint) return outfitBlueprint;
+    return sourceOutfitImage ? analyzeBlueprint(sourceOutfitImage) : null;
+  }, [outfitBlueprint, sourceOutfitImage, analyzeBlueprint]);
 
-    const selectedTemplates = displayTemplates.filter((t) =>
-      selectedTemplateIds.includes(t.id),
-    );
-    const selectedModels = brandModels.filter((m) =>
-      selectedBrandModelIds.includes(m.id),
-    );
-
-    if (
-      selectedTemplates.length === 0 &&
-      selectedModels.length === 0 &&
-      customDestinations.length === 0
-    ) {
-      setError(t('clothingTransfer.ecomPack.inputError'));
-      return;
-    }
-    setError(null);
-    setIsGenerating(true);
-
-    let activeBlueprint = outfitBlueprint;
-    if (!activeBlueprint && sourceOutfitImage) {
-      activeBlueprint = await analyzeBlueprint(sourceOutfitImage);
-    }
-    const initialItems: EComPackItem[] = [
-      ...selectedTemplates.map((tpl) => ({
-        id: `template-${tpl.id}`,
-        category: 'product' as const,
-        title: tpl.name,
-        subtitle: tpl.category === 'hanger' ? 'Hanger' : 'Flat Lay',
-        status: 'pending' as const,
-        results: [],
-      })),
-      ...selectedModels.map((m) => ({
-        id: `brand-${m.id}`,
-        category: 'brand-models' as const,
-        title: m.name,
-        subtitle: m.metadata.styleVibe,
-        status: 'pending' as const,
-        results: [],
-      })),
-      ...customDestinations.map((_, idx) => ({
-        id: `custom-${idx}`,
-        category: 'custom-destinations' as const,
-        title: `Concept #${idx + 1}`,
-        subtitle: 'Custom Scene',
-        status: 'pending' as const,
-        results: [],
-      })),
-    ];
-
-    setPackItems(initialItems);
-
-    try {
-      await runBoundedWorkers(initialItems, 3, async (item) => {
-        await runItemGeneration(item, activeBlueprint);
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [
+  const {
+    packItems,
+    isGenerating,
+    handleGeneratePack,
+    handleRegeneratePackItem,
+  } = useClothingTransferEComPackRun({
+    driver,
     sourceOutfitImage,
-    displayTemplates,
-    selectedTemplateIds,
-    brandModels,
-    selectedBrandModelIds,
-    customDestinations,
+    garmentScope,
+    selection,
+    aspectRatio,
+    resolution,
+    numImages,
+    imageEditModel,
+    engineId,
+    extraPrompt,
+    resolveOutfitBlueprint,
+    addImage,
     setError,
     t,
-    runItemGeneration,
-  ]);
-
-  const handleRegeneratePackItem = useCallback(
-    async (itemId: string) => {
-      const targetItem = packItems.find((it) => it.id === itemId);
-      if (!targetItem) return;
-      await runItemGeneration(targetItem, outfitBlueprint);
-    },
-    [packItems, runItemGeneration, outfitBlueprint],
-  );
+  });
 
   return {
     sourceOutfitImage,
