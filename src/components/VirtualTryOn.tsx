@@ -9,6 +9,7 @@ import { AddIcon, DeleteIcon, CloudUploadIcon } from './Icons';
 import Tooltip from './Tooltip';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import AiScanPanel from './AiScanPanel';
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
 import { compressImage, calculateLetterboxedMarkerCoordinates, computeLetterboxBounds } from '../utils/imageUtils';
 import WardrobeSetCard from './WardrobeSetCard';
@@ -71,6 +72,7 @@ const VirtualTryOn: React.FC = () => {
     markerPosition,
     setMarkerPosition,
     clearMarker,
+    aiScanSources,
   } = useVirtualTryOn();
 
   const { t } = useLanguage();
@@ -465,6 +467,8 @@ const VirtualTryOn: React.FC = () => {
                     model={imageEditModel}
                   />
 
+                  <AiScanPanel sources={aiScanSources} />
+
                   <Tooltip content={t('tooltips.tryOnImageCount')} position="top">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm text-zinc-300">
@@ -801,6 +805,8 @@ const VirtualTryOn: React.FC = () => {
                   setResolution={setResolution}
                   model={imageEditModel}
                 />
+
+                <AiScanPanel sources={wardrobe.aiScanSources} />
 
                 <button
                   type="button"

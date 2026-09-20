@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const useVirtualTryOnMock = vi.fn();
 
@@ -60,6 +60,7 @@ vi.mock('../../src/components/WardrobeSetCard', () => ({
 }));
 
 import VirtualTryOn from '../../src/components/VirtualTryOn';
+import { AiScanProvider } from '../../src/contexts/AiScanContext';
 
 const baseHookState = {
   mode: 'multi-model' as const,
@@ -68,6 +69,7 @@ const baseHookState = {
   wardrobe: {
     sets: [],
     subject: null,
+    aiScanSources: [],
     extraPrompt: '',
     setExtraPrompt: vi.fn(),
     backgroundPrompt: '',
@@ -131,6 +133,7 @@ const baseHookState = {
   markerPosition: null,
   setMarkerPosition: vi.fn(),
   clearMarker: vi.fn(),
+  aiScanSources: [],
 };
 
 describe('VirtualTryOn component', () => {
@@ -656,6 +659,59 @@ describe('VirtualTryOn component', () => {
 
       expect(screen.getByRole('button', { name: 'virtualTryOn.generateButton' })).toBeEnabled();
       expect(screen.getByText('virtualTryOn.batchResultsTitle')).toBeInTheDocument();
+    });
+  });
+
+  describe('AI Scan panel', () => {
+    it('renders the AI Scan toggle in both the multi-model and the wardrobe layout', () => {
+      const { unmount } = render(<VirtualTryOn />);
+
+      expect(screen.getByRole('switch', { name: 'studio.aiScan.label' })).toBeInTheDocument();
+      unmount();
+
+      useVirtualTryOnMock.mockReturnValue({ ...baseHookState, mode: 'wardrobe' });
+      render(<VirtualTryOn />);
+
+      expect(screen.getByRole('switch', { name: 'studio.aiScan.label' })).toBeInTheDocument();
+    });
+
+    it('flips the AI Scan switch through the provider preference', () => {
+      localStorage.clear();
+
+      render(
+        <AiScanProvider initialEnabled={false}>
+          <VirtualTryOn />
+        </AiScanProvider>,
+      );
+
+      expect(screen.getByRole('switch', { name: 'studio.aiScan.label' })).toHaveAttribute('aria-checked', 'false');
+
+      fireEvent.click(screen.getByRole('switch', { name: 'studio.aiScan.label' }));
+
+      expect(screen.getByRole('switch', { name: 'studio.aiScan.label' })).toHaveAttribute('aria-checked', 'true');
+      expect(localStorage.getItem('ai_scan_enabled')).toBe('true');
+    });
+
+    it('deconstructs the wardrobe sources in wardrobe mode, not the multi-model list', async () => {
+      const analyze = vi.fn().mockResolvedValue('WARDROBE BLUEPRINT');
+      const multiModelSource = { base64: 'multi-model-clothing', mimeType: 'image/png' };
+      const wardrobeSource = { base64: 'wardrobe-garment', mimeType: 'image/png' };
+      useVirtualTryOnMock.mockReturnValue({
+        ...baseHookState,
+        mode: 'wardrobe',
+        aiScanSources: [multiModelSource],
+        wardrobe: { ...baseHookState.wardrobe, aiScanSources: [wardrobeSource] },
+      });
+
+      render(
+        <AiScanProvider analyze={analyze}>
+          <VirtualTryOn />
+        </AiScanProvider>,
+      );
+
+      // The badge must describe the images the wardrobe batch will actually use.
+      await waitFor(() => expect(analyze).toHaveBeenCalledWith(wardrobeSource, expect.anything()));
+      expect(analyze).not.toHaveBeenCalledWith(multiModelSource, expect.anything());
     });
   });
 });

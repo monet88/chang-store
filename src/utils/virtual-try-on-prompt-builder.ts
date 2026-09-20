@@ -11,6 +11,7 @@ import type { Part } from '@google/genai';
 import { ImageFile, VirtualTryOnSourceItemType } from '../types';
 import type { PromptFormat } from './promptFormat';
 import { dropRestatedLines, imagePart } from './promptFormat';
+import { formatAiScanBlock } from './ai-scan-blueprint';
 
 const MAX_SOURCE_ITEMS = 4;
 
@@ -31,6 +32,8 @@ export interface VirtualTryOnPromptInput {
   extraPrompt: string;
   backgroundPrompt: string;
   isMultiPersonMode?: boolean;
+  /** AI Scan textile deconstruction of the source items (issue #162). */
+  outfitBlueprint?: string;
 }
 
 const SUBJECT_ROLE_LABEL = 'SUBJECT: The person/model to dress. Preserve identity, face, body proportions, and pose.';
@@ -187,7 +190,7 @@ Treat each source image as its listed type. Only edit the matching category or t
     : prohibitionBlock;
 
   return `## TASK
-Apply all provided fashion source items to the subject while preserving their face, facial features, expressions, hair, skin tone, exact age, body proportions, and overall pose. Only the target fashion items change.${multiPersonSection}
+Apply all provided fashion source items to the subject while preserving their face, facial features, expressions, hair, skin tone, exact age, body proportions, and overall pose. Only the target fashion items change.${multiPersonSection}${formatAiScanBlock(input.outfitBlueprint)}
 
 ${sourceTypeSection}## APPLICATION RULES
 ${[clothingRule, nonClothingRule].filter(Boolean).join('\n\n')}

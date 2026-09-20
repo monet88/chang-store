@@ -66,6 +66,45 @@ describe('background-replacer prompt builder', () => {
     });
     expect(out).toContain('Generate a new photorealistic background: "a sunny beach".');
   });
+
+  it('appends the AI Scan blueprint in the background-image branch', () => {
+    const out = buildBackgroundReplacementPrompt({
+      framingInstruction: 'Eye level.',
+      hasBackgroundImage: true,
+      promptText: '',
+      outfitBlueprint: 'WEAVE & MATERIAL: matte silk twill with a dry hand.',
+    });
+
+    expect(out).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION');
+    expect(out).toContain('WEAVE & MATERIAL: matte silk twill with a dry hand.');
+    expect(out).toContain('Replace with the provided Background Source image.');
+  });
+
+  it('appends the AI Scan blueprint in the text-only branch', () => {
+    const out = buildBackgroundReplacementPrompt({
+      framingInstruction: 'Eye level.',
+      hasBackgroundImage: false,
+      promptText: 'a sunny beach',
+      outfitBlueprint: 'DRAPE PHYSICS: fluid fall, no structure.',
+    });
+
+    expect(out).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION');
+    expect(out).toContain('DRAPE PHYSICS: fluid fall, no structure.');
+    expect(out).toContain('Generate a new photorealistic background: "a sunny beach".');
+  });
+
+  it('leaves the prompt unchanged when the blueprint is absent or blank', () => {
+    const base = {
+      framingInstruction: 'Eye level.',
+      hasBackgroundImage: true,
+      promptText: 'warmer light',
+    };
+    const expected = buildBackgroundReplacementPrompt(base);
+
+    expect(buildBackgroundReplacementPrompt({ ...base, outfitBlueprint: '' })).toBe(expected);
+    expect(buildBackgroundReplacementPrompt({ ...base, outfitBlueprint: '  \n ' })).toBe(expected);
+    expect(expected).not.toContain('AI SCAN');
+  });
 });
 
 describe('ai-editor prompt builders', () => {

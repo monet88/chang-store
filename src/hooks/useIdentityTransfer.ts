@@ -10,6 +10,7 @@ import {
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAiScan } from '../contexts/AiScanContext';
 import { buildIdentityTransferParts } from '../utils/identity-transfer-prompt-builder';
 import { promptFormatFor } from '../utils/promptFormat';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -36,6 +37,7 @@ export const useIdentityTransfer = () => {
   const { editImage, model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
+  const { scan } = useAiScan();
 
   const faceReferenceOverridden = useRef(false);
   const bodyReferenceOverridden = useRef(false);
@@ -87,6 +89,16 @@ export const useIdentityTransfer = () => {
     setError(null);
   }, [createDestinationItem]);
 
+  const destinationImages = useMemo(
+    () => destinationItems.map((item) => item.destinationImage),
+    [destinationItems],
+  );
+
+  // What the panel's badge shows: the first destination, i.e. exactly the set
+  // its own job scans. Every later destination is analyzed with its own photo at
+  // generation time, so the badge never claims one photo's fabrics for another.
+  const aiScanSources = useMemo(() => destinationImages.slice(0, 1), [destinationImages]);
+
   const generateForDestination = useCallback(async (
     item: Pick<IdentityTransferBatchItem, 'id' | 'destinationImage'>,
     refs: { face: ImageFile; body: ImageFile | null },
@@ -94,12 +106,17 @@ export const useIdentityTransfer = () => {
     updateDestinationItem(item.id, { status: 'processing', results: [], error: undefined });
 
     try {
+      // One analysis per destination, over that destination's own photo: every
+      // destination is an independent job, and a batch-wide blueprint would
+      // describe another photo's outfit inside this prompt.
+      const blueprint = await scan([item.destinationImage]);
       const interleavedParts = buildIdentityTransferParts({
         destinationImage: item.destinationImage,
         faceReference: refs.face,
         bodyReference: refs.body,
         backgroundPrompt,
         extraPrompt,
+        outfitBlueprint: blueprint,
       }, promptFormatFor(engineId));
       const [result] = await editImage({
         images: [],
@@ -123,7 +140,7 @@ export const useIdentityTransfer = () => {
         error: getErrorMessage(itemError, t),
       });
     }
-  }, [addImage, aspectRatio, backgroundPrompt, editImage, engineId, extraPrompt, imageEditModel, resolution, t, updateDestinationItem]);
+  }, [addImage, aspectRatio, backgroundPrompt, editImage, engineId, extraPrompt, imageEditModel, resolution, scan, t, updateDestinationItem]);
 
   const canGenerate = destinationItems.length > 0 && faceReference !== null;
 
@@ -172,10 +189,6 @@ export const useIdentityTransfer = () => {
     }
   }, [bodyReference, destinationItems, faceReference, generateForDestination]);
 
-  const destinationImages = useMemo(
-    () => destinationItems.map((item) => item.destinationImage),
-    [destinationItems],
-  );
   const completedCount = useMemo(
     () => destinationItems.filter((item) => item.status === 'completed').length,
     [destinationItems],
@@ -186,7 +199,7 @@ export const useIdentityTransfer = () => {
   );
 
   return {
-    destinationItems, destinationImages, faceReference, bodyReference,
+    destinationItems, destinationImages, aiScanSources, faceReference, bodyReference,
     backgroundPrompt, extraPrompt, aspectRatio, resolution, isLoading,
     loadingMessage, error, canGenerate, completedCount, failedCount, imageEditModel,
     setFaceReference: updateFaceReference, setBodyReference: updateBodyReference, setBackgroundPrompt, setExtraPrompt,

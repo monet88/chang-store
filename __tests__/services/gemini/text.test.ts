@@ -1,13 +1,14 @@
 /**
  * Unit tests for services/gemini/text.ts
  *
- * Tests all 6 exported functions:
+ * Tests all 7 exported functions:
  * - generateText: Text generation with optional model
  * - generateImageDescription: Image description for fashion photoshoot
  * - generateClothingDescription: Clothing item analysis
  * - generatePoseDescription: Pose analysis for AI recreation
  * - generateStylePromptFromImage: Style prompt generation from reference image
  * - analyzeScene: Scene analysis for video generation
+ * - analyzeOutfitBlueprint: Textile blueprint for the AI Scan layer
  *
  * Mock setup:
  * - Mocks getGeminiClient from apiClient
@@ -43,6 +44,7 @@ import {
   generatePoseDescription,
   generateStylePromptFromImage,
   analyzeScene,
+  analyzeOutfitBlueprint,
 } from '@/services/gemini/text';
 
 // ============================================================================
@@ -785,6 +787,43 @@ describe('services/gemini/text.ts', () => {
       // Act & Assert
       await expect(analyzeScene(sampleImage)).rejects.toThrow(
         'Service unavailable'
+      );
+    });
+  });
+
+  // ==========================================================================
+  // analyzeOutfitBlueprint (AI Scan, issue #162)
+  // ==========================================================================
+
+  describe('analyzeOutfitBlueprint', () => {
+    it('should request the textile dimensions the blueprint consumers are told to expect', async () => {
+      // Arrange
+      mockGenerateContent.mockResolvedValueOnce(
+        createSuccessTextResponse('  WEAVE & MATERIAL: silk satin.  ')
+      );
+
+      // Act
+      const result = await analyzeOutfitBlueprint(sampleImage);
+
+      // Assert: the analyzer's own output contract, which the studio prompts
+      // relay verbatim into their generation requests.
+      expect(result).toBe('WEAVE & MATERIAL: silk satin.');
+      const [request] = mockGenerateContent.mock.calls[0];
+      const prompt = request.contents[0].parts[1].text as string;
+      expect(prompt).toContain('WEAVE & MATERIAL');
+      expect(prompt).toContain('OPTICAL PROPERTIES & FINISH');
+      expect(prompt).toContain('WEIGHT & DRAPE PHYSICS');
+      expect(prompt).toContain('MICRO-EDGE & HEMLINE DETAILS');
+      expect(request.model).toBe('gemini-3.8-flash');
+    });
+
+    it('should surface a blocked prompt as error.api.safetyBlock', async () => {
+      // Arrange
+      mockGenerateContent.mockResolvedValueOnce(createPromptBlockedResponse());
+
+      // Act & Assert
+      await expect(analyzeOutfitBlueprint(sampleImage)).rejects.toThrow(
+        'error.api.safetyBlock'
       );
     });
   });

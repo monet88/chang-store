@@ -21,6 +21,8 @@ import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { promptFormatFor } from '../utils/promptFormat';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
+import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
+import { useAiScan } from '../contexts/AiScanContext';
 
 export interface WardrobeImageDriver {
   editImage: typeof editImage;
@@ -75,6 +77,10 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
     engineId,
   } = config;
 
+  // AI Scan (issue #162): the wardrobe lane builds the same try-on prompt, so it
+  // consumes the same blueprint; a disabled or failed scan leaves it unchanged.
+  const { scan } = useAiScan();
+
   const generate = useCallback(async () => {
     if (isParentGenerating || isGenerating) return;
     if (!subject) {
@@ -118,12 +124,18 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
             sourcePrompt: item.sourcePrompt,
           }));
 
+          // One analysis per set, over that set's own garments: each set is its
+          // own outfit, so a shared blueprint would describe another set's
+          // fabrics in this prompt.
+          const blueprint = await scan(aiScanSourceSet(sourceItems.map((item) => item.image), [capturedSubject]));
+
           const interleavedParts = buildVirtualTryOnParts({
             subjectImage: capturedSubject,
             sourceItems,
             extraPrompt,
             backgroundPrompt,
             isMultiPersonMode: false,
+            outfitBlueprint: blueprint ?? undefined,
           }, promptFormatFor(engineId));
 
           const images = await driver.editImage(
@@ -164,6 +176,7 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
   }, [
     subject,
     sets,
+    scan,
     extraPrompt,
     backgroundPrompt,
     numImages,

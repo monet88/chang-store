@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildVirtualTryOnParts, VirtualTryOnPromptInput } from '@/utils/virtual-try-on-prompt-builder';
+import { AI_SCAN_BLOCK_HEADER } from '@/utils/ai-scan-blueprint';
 import type { Part } from '@google/genai';
 
 const mockImage = (id: string) => ({
@@ -353,6 +354,47 @@ describe('buildVirtualTryOnParts', () => {
       expect(text).toContain('The dot and its white ring are targeting marks only: remove them completely from the result');
       expect(text).toContain('Remove the red targeting dot and its white ring completely');
       expect(text).toContain('Modify ONLY the person with the red dot');
+    });
+  });
+
+  describe('AI Scan blueprint', () => {
+    const BLUEPRINT = 'WEAVE & MATERIAL: plissé accordion pleats.\nDRAPE PHYSICS: fluid fall.';
+
+    it('injects the blueprint under the AI Scan heading on both lanes', () => {
+      const lanes = (['parts', 'text'] as const).map((format) =>
+        getFullText(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }, format)),
+      );
+
+      lanes.forEach((text) => {
+        expect(text).toContain(AI_SCAN_BLOCK_HEADER);
+        expect(text).toContain('WEAVE & MATERIAL: plissé accordion pleats.');
+        expect(text).toContain('DRAPE PHYSICS: fluid fall.');
+      });
+    });
+
+    it('carries the blueprint inside the task text, after the TASK paragraph', () => {
+      const text = getTaskText(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: BLUEPRINT }));
+
+      expect(text.indexOf(AI_SCAN_BLOCK_HEADER)).toBeGreaterThan(text.indexOf('## TASK'));
+      expect(text.indexOf(AI_SCAN_BLOCK_HEADER)).toBeLessThan(text.indexOf('## SOURCE ITEM TYPES'));
+      expect(text).toContain(`AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):\n${BLUEPRINT}`);
+    });
+
+    it('leaves both lanes byte-identical when no blueprint is supplied', () => {
+      (['parts', 'text'] as const).forEach((format) => {
+        const base = buildVirtualTryOnParts(defaultInput, format);
+
+        expect(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: undefined }, format)).toEqual(base);
+        expect(buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: '' }, format)).toEqual(base);
+        expect(getFullText(base)).not.toContain(AI_SCAN_BLOCK_HEADER);
+      });
+    });
+
+    it('ignores a whitespace-only blueprint', () => {
+      const base = buildVirtualTryOnParts(defaultInput);
+      const blank = buildVirtualTryOnParts({ ...defaultInput, outfitBlueprint: '  \n ' });
+
+      expect(blank).toEqual(base);
     });
   });
 });

@@ -7,11 +7,17 @@
  * i18n `t` function) and passed in, keeping these builders dependency-free.
  */
 
+import { formatAiScanBlock } from './ai-scan-blueprint';
+
 /**
  * Build the text-driven pose prompt: re-pose the model from a written pose
  * description while preserving identity, outfit, and background.
+ *
+ * The subject image is the authority on the outfit, so an optional AI Scan
+ * blueprint rides along as a textile specification that reinforces the
+ * 'Preserve Identity' rule below without changing it.
  */
-export const buildTextPosePrompt = (promptText: string, framingInstruction: string): string => `
+export const buildTextPosePrompt = (promptText: string, framingInstruction: string, outfitBlueprint = ''): string => `
   **Task**: Photorealistically change the pose of a model based on a text description, while faithfully preserving the model, their clothing, and the background.
   **Source Image**: Contains the model and their clothing.
   **New Pose Description**: "${promptText}".
@@ -22,14 +28,17 @@ export const buildTextPosePrompt = (promptText: string, framingInstruction: stri
   4.  **Realistic Draping**: This is the most important step. Re-drape the *exact same* clothing onto the model in their new pose. The draping must be physically accurate, showing how the specific fabric would naturally fold, stretch, and hang based on the new body position and gravity. The fit must remain consistent with the original garment.
   5.  **Camera Framing**: ${framingInstruction}
   **Final Goal**: A high-resolution, photorealistic image.
-`.trim();
+`.trim() + formatAiScanBlock(outfitBlueprint);
 
 /**
  * Build the reference-driven pose prompt: transfer the pose from a reference
  * image onto the subject, preserving the subject's identity/outfit/background.
  * An optional custom text instruction is appended when provided.
+ *
+ * The pose reference is a pose donor only — the subject image owns the outfit —
+ * so an optional AI Scan blueprint is spliced in as a textile specification.
  */
-export const buildReferencePosePrompt = (customPosePrompt: string, framingInstruction: string): string => `
+export const buildReferencePosePrompt = (customPosePrompt: string, framingInstruction: string, outfitBlueprint = ''): string => `
   **Task**: Photorealistically transfer the pose from a 'Pose Reference Image' onto the model in a 'Subject Image', while faithfully preserving the model, their clothing, and the background.
   **Image Roles**:
   -   **First Image ('Subject Image')**: Contains the model, clothing, and background to be preserved.
@@ -43,4 +52,4 @@ export const buildReferencePosePrompt = (customPosePrompt: string, framingInstru
   ${customPosePrompt.trim() ? `**Additional Text Instruction**: While applying the pose from the reference image, also incorporate this detail: "${customPosePrompt.trim()}".` : ''}
   **Strict Negative Constraints**: DO NOT copy clothing, background, or identity from the 'Pose Reference Image'.
   **Final Goal**: A high-resolution, photorealistic image where the model from the 'Subject Image' is now in the pose from the 'Pose Reference Image'.
-`.trim();
+`.trim() + formatAiScanBlock(outfitBlueprint);

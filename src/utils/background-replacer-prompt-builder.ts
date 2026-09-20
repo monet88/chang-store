@@ -4,8 +4,10 @@
  * Pure text builder extracted from `useBackgroundReplacer` so the wording is a
  * single source of truth, testable in isolation, and the hook keeps only state
  * and orchestration. Framing text is resolved by the caller (it depends on the
- * i18n `t` function) and passed in, keeping this builder dependency-free.
+ * i18n `t` function) and passed in; the builder itself reads no context.
  */
+
+import { formatAiScanBlock } from './ai-scan-blueprint';
 
 export interface BackgroundReplacerPromptInput {
   /** Resolved framing instruction (camera view), already localized. */
@@ -14,6 +16,8 @@ export interface BackgroundReplacerPromptInput {
   hasBackgroundImage: boolean;
   /** Optional free-text background/modification note. */
   promptText: string;
+  /** AI Scan blueprint of the source garments; blank disables the layer. */
+  outfitBlueprint?: string;
 }
 
 const buildCoreInstruction = (framingInstruction: string): string => `
@@ -39,18 +43,22 @@ export const buildBackgroundReplacementPrompt = ({
   framingInstruction,
   hasBackgroundImage,
   promptText,
+  outfitBlueprint,
 }: BackgroundReplacerPromptInput): string => {
   const coreInstruction = buildCoreInstruction(framingInstruction);
   // Trim so whitespace-only input is treated as "no note" (matches the other
   // prompt builders) instead of interpolating blank text into the prompt.
   const trimmedPrompt = promptText.trim();
+  // The subject photo carries the outfit being preserved, so the blueprint
+  // rides along as a subordinate spec reinforcing rule 2.
+  const blueprintBlock = formatAiScanBlock(outfitBlueprint);
 
   if (hasBackgroundImage) {
     if (trimmedPrompt) {
-      return `${coreInstruction}\n**Background Source**: Replace with the provided Background Source image.\n**Modification**: Also apply: "${trimmedPrompt}".`;
+      return `${coreInstruction}\n**Background Source**: Replace with the provided Background Source image.\n**Modification**: Also apply: "${trimmedPrompt}".${blueprintBlock}`;
     }
-    return `${coreInstruction}\n**Background Source**: Replace with the provided Background Source image.`;
+    return `${coreInstruction}\n**Background Source**: Replace with the provided Background Source image.${blueprintBlock}`;
   }
 
-  return `${coreInstruction}\n**Background Source**: Generate a new photorealistic background: "${trimmedPrompt}".`;
+  return `${coreInstruction}\n**Background Source**: Generate a new photorealistic background: "${trimmedPrompt}".${blueprintBlock}`;
 };

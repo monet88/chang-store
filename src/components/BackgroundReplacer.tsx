@@ -6,6 +6,7 @@ import HoverableImage from './HoverableImage';
 import { useLanguage } from '../contexts/LanguageContext';
 import { MagicWandIcon } from './Icons';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import AiScanPanel from './AiScanPanel';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import { useBackgroundReplacer } from '../hooks/useBackgroundReplacer';
 import { Feature } from '../types';
@@ -15,6 +16,7 @@ const BackgroundReplacer: React.FC = () => {
   const {
     subjectImage,
     setSubjectImage,
+    aiScanSources,
     backgroundImage,
     setBackgroundImage,
     promptText,
@@ -170,6 +172,7 @@ const BackgroundReplacer: React.FC = () => {
             resolution={resolution} setResolution={setResolution}
             model={imageEditModel}
           />
+          <AiScanPanel sources={aiScanSources} />
         </div>
 
         <div className="text-center pt-2">

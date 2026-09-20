@@ -33,8 +33,12 @@ vi.mock('../../src/contexts/ImageEngineContext', () =>
 );
 
 import { editImage } from '../../src/services/imageEditingService';
-import { useWardrobeMode } from '../../src/hooks/useWardrobeMode';
+import { useWardrobeMode, type WardrobeModeReturn } from '../../src/hooks/useWardrobeMode';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
+import { AiScanProvider } from '../../src/contexts/AiScanContext';
+import type { AiScanAnalyzer } from '../../src/contexts/AiScanContext';
+import { AI_SCAN_BLOCK_HEADER } from '../../src/utils/ai-scan-blueprint';
+import type { ReactNode } from 'react';
 
 const SUBJECT = { base64: 'subject-image', mimeType: 'image/png' };
 const OUTFIT_A = { base64: 'outfit-a', mimeType: 'image/jpeg' };
@@ -439,6 +443,117 @@ describe('useWardrobeMode', () => {
       const { result } = renderHook(() => useWardrobeMode(defaultParams));
 
       expect(downloadImagesAsZip).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('AI Scan blueprint', () => {
+    const BLUEPRINT = 'DRAPE PHYSICS: fluid fall with a matte hand.';
+
+    const wrapperFor =
+      (analyze: AiScanAnalyzer, enabled: boolean) =>
+      function AiScanWrapper({ children }: { children: ReactNode }) {
+        return (
+          <AiScanProvider analyze={analyze} initialEnabled={enabled}>
+            {children}
+          </AiScanProvider>
+        );
+      };
+
+    const setUpWardrobe = (result: { current: WardrobeModeReturn }) => {
+      const setId = result.current.sets[0].id;
+      act(() => {
+        result.current.setSubject(SUBJECT);
+        result.current.addItem(setId);
+      });
+      const itemId = result.current.sets[0].items[0].id;
+      act(() => {
+        result.current.updateItem(setId, itemId, { image: OUTFIT_A });
+      });
+    };
+
+    const textSent = () =>
+      (vi.mocked(editImage).mock.calls[0][0].interleavedParts ?? [])
+        .filter((part) => part.text)
+        .map((part) => part.text)
+        .join('\n');
+
+    it('splices the scanned blueprint into the wardrobe prompt', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue(BLUEPRINT);
+
+      const { result } = renderHook(() => useWardrobeMode(defaultParams), {
+        wrapper: wrapperFor(analyze, true),
+      });
+
+      setUpWardrobe(result);
+
+      await act(async () => {
+        await result.current.generate();
+      });
+
+      expect(analyze).toHaveBeenCalled();
+      expect(textSent()).toContain(AI_SCAN_BLOCK_HEADER);
+      expect(textSent()).toContain(BLUEPRINT);
+      expect(result.current.results[0].status).toBe('completed');
+    });
+
+    it('never analyses and keeps the base prompt when the layer is switched off', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>().mockResolvedValue('unused blueprint');
+
+      const { result } = renderHook(() => useWardrobeMode(defaultParams), {
+        wrapper: wrapperFor(analyze, false),
+      });
+
+      setUpWardrobe(result);
+
+      await act(async () => {
+        await result.current.generate();
+      });
+
+      expect(analyze).not.toHaveBeenCalled();
+      expect(textSent()).not.toContain('AI SCAN');
+      expect(textSent()).toContain('## TASK');
+      expect(result.current.results[0].status).toBe('completed');
+    });
+
+    it('analyses each set on its own, never another set\'s garments', async () => {
+      vi.mocked(editImage).mockResolvedValue([RESULT_A]);
+      const analyze = vi.fn<AiScanAnalyzer>(async (image) => {
+        if (image === OUTFIT_A) return 'SET A BLUEPRINT: silk satin';
+        if (image === OUTFIT_B) return 'SET B BLUEPRINT: raw denim';
+        return 'SUBJECT BLUEPRINT: standing body';
+      });
+
+      const { result } = renderHook(() => useWardrobeMode(defaultParams), {
+        wrapper: wrapperFor(analyze, true),
+      });
+
+      act(() => result.current.setSubject(SUBJECT));
+      const setAId = result.current.sets[0].id;
+      act(() => result.current.addItem(setAId));
+      act(() => result.current.updateItem(setAId, result.current.sets[0].items[0].id, { image: OUTFIT_A }));
+      act(() => result.current.addSet());
+      const setBId = result.current.sets[1].id;
+      act(() => result.current.addItem(setBId));
+      act(() => result.current.updateItem(setBId, result.current.sets[1].items[0].id, { image: OUTFIT_B }));
+
+      await act(async () => {
+        await result.current.generate();
+      });
+
+      const prompts = vi.mocked(editImage).mock.calls.map((call) =>
+        (call[0].interleavedParts ?? [])
+          .filter((part) => part.text)
+          .map((part) => part.text)
+          .join('\n'),
+      );
+
+      // Each outfit's deconstruction lands in exactly its own set's prompt.
+      expect(prompts.filter((prompt) => prompt.includes('SET A BLUEPRINT'))).toHaveLength(1);
+      expect(prompts.filter((prompt) => prompt.includes('SET B BLUEPRINT'))).toHaveLength(1);
+      expect(prompts[0]).not.toContain('SET B BLUEPRINT');
+      expect(prompts[1]).not.toContain('SET A BLUEPRINT');
     });
   });
 });

@@ -10,6 +10,7 @@ depth so agents can plan or review work without reverse-engineering every hook.
 | --- | --- |
 | overview.md | Product summary, tech stack, architecture summary, persistence |
 | provider-studios.md | Two-studio split (Gemini / GPT Image) and the engine seam |
+| ai-scan.md | AI Scan analytical pre-pass (textile blueprint) and its coverage |
 | try-on.md | Virtual Try-On and Wardrobe Mode |
 | lookbook.md | Lookbook Generator |
 | background.md | Background Replacer |

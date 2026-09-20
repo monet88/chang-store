@@ -306,7 +306,12 @@ Provide concise, highly accurate bullet points covering:
 - Silhouette, cut, length, waistline, pleating, tiers/ruffles.
 - Fabric composition, color, opacity, lining.
 - EXACT HEMLINE & EDGE FINISHES: (e.g. scalloped lace edges, sheer mesh bands, polka-dot plumetis trim, raw fringes, cuffs).
-4. ACCESSORIES & LEGWEAR (if visible):
+4. TEXTILE & FABRIC ENGINEERING:
+- WEAVE & MATERIAL: name the exact fabric and its structure (chiffon, organza, plissé accordion pleats, raw/rigid denim, ribbed knit, silk satin, tweed, lace), plus fibre content when it is visible.
+- OPTICAL PROPERTIES & FINISH: sheer translucency vs opaque lining, matte luster, glazed leather sheen, pile nap, crisp paper-like hand.
+- WEIGHT & DRAPE PHYSICS: how the material behaves on a body — fluid floating drape, crisp tailored stiffness, structural hold, voluminous peplum flare, heavy vertical fall — and the folds, tension lines, or stretch it produces.
+- MICRO-EDGE & HEMLINE DETAILS: scalloped lace borders, Swiss dot (plumetis) mesh, raw frayed hems, contrast topstitching, picot trims, bound edges, cuffs.
+5. ACCESSORIES & LEGWEAR (if visible):
 - Tights/stockings/hosiery, bags, jewelry, hair accessories.
 
 Keep the output factual, structured, and focused strictly on the clothing construction to guide photorealistic reproduction.`;

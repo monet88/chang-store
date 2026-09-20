@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import type { ReactNode } from 'react';
 
 vi.mock('../../src/services/imageEditingService', () => ({
   editImage: vi.fn(),
@@ -8,6 +9,7 @@ vi.mock('../../src/services/imageEditingService', () => ({
 
 vi.mock('../../src/services/textService', () => ({
   generatePoseDescription: vi.fn(),
+  analyzeOutfitBlueprint: vi.fn(),
 }));
 
 vi.mock('../../src/utils/imageUtils', () => ({
@@ -30,13 +32,25 @@ vi.mock('../../src/contexts/ApiProviderContext', () => ({
 }));
 
 import { usePoseChanger } from '../../src/hooks/usePoseChanger';
+import { AiScanProvider } from '../../src/contexts/AiScanContext';
 import { editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { generatePoseDescription } from '../../src/services/textService';
+
+import type { ImageFile } from '../../src/types';
 
 const SUBJECT_IMAGE = { base64: 'subject-image', mimeType: 'image/png' };
 const POSE_REFERENCE_IMAGE = { base64: 'pose-reference', mimeType: 'image/jpeg' };
 const GENERATED_IMAGE = { base64: 'generated-image', mimeType: 'image/png' };
 const UPSCALED_IMAGE = { base64: 'upscaled-image', mimeType: 'image/png' };
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+
+  return { promise, resolve };
+};
 
 describe('usePoseChanger', () => {
   beforeEach(() => {
@@ -168,5 +182,141 @@ describe('usePoseChanger', () => {
     ]);
     expect(result.current.upscalingStates[0]).toBe(false);
     expect(result.current.error).toBeNull();
+  });
+
+  describe('AI Scan blueprint', () => {
+    const renderWithAiScan = (
+      analyze: (image: ImageFile) => Promise<string>,
+      initialEnabled: boolean,
+    ) =>
+      renderHook(() => usePoseChanger(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <AiScanProvider analyze={analyze} initialEnabled={initialEnabled}>
+            {children}
+          </AiScanProvider>
+        ),
+      });
+
+    it('hands the subject-derived blueprint to the image service in the text path', async () => {
+      const analyze = vi.fn(async (image: ImageFile) =>
+        image === SUBJECT_IMAGE ? 'SUBJECT BLUEPRINT MARKER: dry wool gabardine.' : 'OTHER',
+      );
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      const { result } = renderWithAiScan(analyze, true);
+
+      act(() => {
+        result.current.setSubjectImage(SUBJECT_IMAGE);
+        result.current.handleConfirmSelection(['standing tall']);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      const prompt = vi.mocked(editImage).mock.calls[0][0].prompt;
+      expect(prompt).toContain('SUBJECT BLUEPRINT MARKER: dry wool gabardine.');
+      expect(prompt).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION');
+    });
+
+    it('scans the subject image, never the pose reference, in the reference path', async () => {
+      const analyze = vi.fn(async (image: ImageFile) =>
+        image === SUBJECT_IMAGE ? 'SUBJECT BLUEPRINT MARKER' : 'POSE REFERENCE MARKER',
+      );
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      const { result } = renderWithAiScan(analyze, true);
+
+      act(() => {
+        result.current.setSubjectImage(SUBJECT_IMAGE);
+        result.current.handlePoseReferenceUpload(POSE_REFERENCE_IMAGE);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      const prompt = vi.mocked(editImage).mock.calls[0][0].prompt;
+      expect(prompt).toContain('SUBJECT BLUEPRINT MARKER');
+      expect(prompt).not.toContain('POSE REFERENCE MARKER');
+    });
+
+    it('hands the blueprint to the single-pose regeneration as well', async () => {
+      const analyze = vi.fn(async () => 'REGEN BLUEPRINT MARKER');
+      vi.mocked(editImage)
+        .mockResolvedValueOnce([GENERATED_IMAGE])
+        .mockResolvedValueOnce([{ base64: 'regenerated-image', mimeType: 'image/png' }]);
+      const { result } = renderWithAiScan(analyze, true);
+
+      act(() => {
+        result.current.setSubjectImage(SUBJECT_IMAGE);
+        result.current.handleConfirmSelection(['standing tall']);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      await act(async () => {
+        await result.current.handleRegenerateSingle(0);
+      });
+
+      expect(vi.mocked(editImage).mock.calls[1][0].prompt).toContain('REGEN BLUEPRINT MARKER');
+    });
+
+    it('skips the analysis entirely when the layer is toggled off', async () => {
+      const analyze = vi.fn(async () => 'SUBJECT BLUEPRINT MARKER');
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      const { result } = renderWithAiScan(analyze, false);
+
+      act(() => {
+        result.current.setSubjectImage(SUBJECT_IMAGE);
+        result.current.handleConfirmSelection(['standing tall']);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      expect(analyze).not.toHaveBeenCalled();
+      expect(vi.mocked(editImage).mock.calls[0][0].prompt).not.toContain('AI SCAN');
+    });
+
+    it('goes busy before the scan and never submits twice while it is pending', async () => {
+      const scan = createDeferred<string>();
+      const analyze = vi.fn(() => scan.promise);
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+      const { result } = renderWithAiScan(analyze, true);
+
+      act(() => {
+        result.current.setSubjectImage(SUBJECT_IMAGE);
+        result.current.handleConfirmSelection(['standing tall']);
+      });
+
+      let pending: Promise<void> | null = null;
+      await act(async () => {
+        pending = result.current.handleGenerate();
+        await Promise.resolve();
+      });
+
+      // The scan is still in flight and the feature already reads as busy, so
+      // the Generate button cannot be clicked a second time.
+      expect(analyze).toHaveBeenCalled();
+      expect(result.current.generationStatus.active).toBe(true);
+      expect(result.current.isGenerateDisabled).toBe(true);
+      expect(result.current.buttonText).toBe('pose.generatingMultiple:{"progress":0,"total":1}');
+
+      // A click that slips through anyway must not start a duplicate run.
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      await act(async () => {
+        scan.resolve('SUBJECT BLUEPRINT MARKER');
+        await pending;
+      });
+
+      expect(vi.mocked(editImage)).toHaveBeenCalledTimes(1);
+      expect(result.current.generatedImages).toEqual([GENERATED_IMAGE]);
+      expect(result.current.isGenerateDisabled).toBe(false);
+    });
   });
 });

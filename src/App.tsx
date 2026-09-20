@@ -7,6 +7,7 @@ import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ApiProvider, useApi } from './contexts/ApiProviderContext';
 import { ImageViewerProvider } from './contexts/ImageViewerContext';
 import { ImageEngineProvider } from './contexts/ImageEngineContext';
+import { AiScanProvider } from './contexts/AiScanContext';
 import { ToastProvider } from './components/Toast';
 import Spinner from './components/Spinner';
 import MobileMenuButton from './components/MobileMenuButton';
@@ -342,11 +343,13 @@ const App: React.FC = () => {
     <LanguageProvider>
       <ToastProvider>
         <ApiProvider>
-          <ImageGalleryProvider>
-            <ImageViewerProvider>
-              <AppContent />
-            </ImageViewerProvider>
-          </ImageGalleryProvider>
+          <AiScanProvider>
+            <ImageGalleryProvider>
+              <ImageViewerProvider>
+                <AppContent />
+              </ImageViewerProvider>
+            </ImageGalleryProvider>
+          </AiScanProvider>
         </ApiProvider>
       </ToastProvider>
     </LanguageProvider>

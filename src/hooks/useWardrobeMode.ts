@@ -10,6 +10,7 @@ import { useState, useMemo, useCallback } from 'react';
 import type { ImageFile, ImageResolution, AspectRatio, ImageEditModel, ImageEngineId } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import { getErrorMessage } from '../utils/imageUtils';
 import { Feature } from '../types';
@@ -38,6 +39,18 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
   const [loadingMessage, setLoadingMessage] = useState('');
 
   const driver = useMemo<WardrobeImageDriver>(() => ({ editImage }), [editImage]);
+
+  // AI Scan source set for the panel's badge: the first set's garments plus the
+  // subject, i.e. exactly what that set's generation will deconstruct. Every
+  // other set scans its own items at generation time, so no set is labelled with
+  // another set's fabrics.
+  const aiScanSources = useMemo(
+    () => aiScanSourceSet(
+      (list.sets[0]?.items ?? []).map((item) => item.image),
+      [list.subject],
+    ),
+    [list.sets, list.subject],
+  );
 
   const engine = useWardrobeModeEngine({
     driver,
@@ -85,6 +98,8 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
   return {
     sets: list.sets,
     subject: list.subject,
+    /** Subject + set items: the sources the AI Scan panel displays for this mode. */
+    aiScanSources,
     extraPrompt: list.extraPrompt,
     setExtraPrompt: list.setExtraPrompt,
     backgroundPrompt: list.backgroundPrompt,

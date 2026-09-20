@@ -1,17 +1,18 @@
-import React, { useCallback, useId, useState } from 'react';
+import React, { useCallback, useId, useMemo, useState } from 'react';
 import { ImageFile, AspectRatio, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import ImageUploader from './ImageUploader';
 import MultiImageUploader from './MultiImageUploader';
 import Spinner from './Spinner';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import AiScanPanel from './AiScanPanel';
 import { AddIcon, DeleteIcon, MagicWandIcon } from './Icons';
 import {
   LookbookStyle,
   GarmentType,
   MannequinBackgroundStyleKey,
 } from './LookbookGenerator.prompts';
-import { LookbookFormState } from '../utils/lookbookPromptBuilder';
+import { LookbookFormState, lookbookAiScanSources } from '../utils/lookbookPromptBuilder';
 
 export interface ClothingItem {
   id: string;
@@ -114,6 +115,13 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
   const validClothingImages = clothingImages.filter((item) => item.image !== null);
   const anyLoading = isLoading || isGeneratingDescription;
   const hasFabricOverride = Boolean(fabricTextureImage || fabricTexturePrompt.trim());
+
+  // Same ImageFile objects useLookbookGeneration scans, so the panel's pre-scan
+  // and the generation-time scan share one analysis.
+  const aiScanSources = useMemo<ImageFile[]>(
+    () => lookbookAiScanSources(clothingImages, fabricTextureImage),
+    [clothingImages, fabricTextureImage],
+  );
 
   const lookbookStyles: { key: LookbookStyle; label: string }[] = [
     { key: 'flat lay', label: t('lookbook.styleFlatLay') },
@@ -406,6 +414,8 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
               setResolution={setResolution}
               model={imageEditModel}
             />
+
+            <AiScanPanel sources={aiScanSources} />
           </div>
         </div>
 

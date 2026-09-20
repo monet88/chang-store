@@ -3,6 +3,7 @@ import { useVirtualTryOnClothing } from './useVirtualTryOnClothing';
 import {
   AspectRatio,
   DEFAULT_IMAGE_RESOLUTION,
+  ImageFile,
   ImageResolution,
   VirtualTryOnMode,
 } from '../types';
@@ -10,6 +11,7 @@ import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { useImageRefinement } from './useImageRefinement';
 import { useVirtualTryOnSubjects } from './useVirtualTryOnSubjects';
 import { useVirtualTryOnEngine, GeminiImageDriver } from './useVirtualTryOnEngine';
@@ -66,6 +68,17 @@ export const useVirtualTryOn = () => {
   );
 
   const canGenerate = subjects.subjectItems.length > 0 && clothing.validClothingItems.length > 0;
+
+  // Source set the AI Scan panel displays: the target garments, then the first
+  // subject photo. Each subject job scans its own set at generation time, and
+  // the first subject's set is the one the panel previews.
+  const aiScanSources = useMemo(
+    () => aiScanSourceSet(
+      clothing.validClothingItems.map((item) => item.image),
+      subjects.subjectItems.map((item) => item.subjectImage),
+    ),
+    [clothing.validClothingItems, subjects.subjectItems],
+  );
 
   // Cuando se desactiva el modo multi-persona, limpiar el marcador automáticamente
   const setIsMultiPersonMode = useCallback((value: boolean) => {
@@ -159,6 +172,7 @@ export const useVirtualTryOn = () => {
     setError,
     generatedImages: subjects.generatedImages,
     validClothingItems: clothing.validClothingItems,
+    aiScanSources,
     completedCount: subjects.completedCount,
     failedCount: subjects.failedCount,
     canGenerate,

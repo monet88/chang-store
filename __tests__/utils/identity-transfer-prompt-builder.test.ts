@@ -232,4 +232,28 @@ describe('buildIdentityTransferParts', () => {
       expect(parts[0].text).toContain('No Body Reference is provided');
     });
   });
+
+  describe('AI scan blueprint', () => {
+    const BLUEPRINT = 'WEAVE & MATERIAL: plissé accordion pleats; silk satin facing at the neckline.';
+
+    it('carries the garment deconstruction into both lanes', () => {
+      const input: IdentityTransferPromptInput = { ...defaultInput, outfitBlueprint: BLUEPRINT };
+
+      [taskText(buildIdentityTransferParts(input)), flatTaskText(buildIdentityTransferParts(input, 'text'))]
+        .forEach((text) => {
+          expect(text).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION');
+          expect(text).toContain(BLUEPRINT);
+        });
+    });
+
+    it('leaves an absent or blank blueprint byte-identical to no blueprint at all', () => {
+      const withoutField = buildIdentityTransferParts(defaultInput);
+      const absent = buildIdentityTransferParts({ ...defaultInput, outfitBlueprint: undefined });
+      const blank = buildIdentityTransferParts({ ...defaultInput, outfitBlueprint: '  \n\t ' });
+
+      expect(absent).toEqual(withoutField);
+      expect(blank).toEqual(withoutField);
+      expect(taskText(withoutField)).not.toContain('AI SCAN');
+    });
+  });
 });

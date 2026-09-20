@@ -52,6 +52,7 @@ vi.mock('../../src/services/imageEditingService', () => ({
 
 vi.mock('../../src/services/textService', () => ({
   generatePoseDescription: (...args: unknown[]) => generatePoseDescriptionMock(...args),
+  analyzeOutfitBlueprint: vi.fn(),
 }));
 
 vi.mock('../../src/components/ImageUploader', () => ({
@@ -100,6 +101,7 @@ vi.mock('../../src/components/shared/ResultPlaceholder', () => ({
 }));
 
 import PoseChanger from '../../src/components/PoseChanger';
+import { AiScanProvider } from '../../src/contexts/AiScanContext';
 
 describe('PoseChanger component', () => {
   beforeEach(() => {
@@ -170,5 +172,17 @@ describe('PoseChanger component', () => {
     deferredRegeneration.resolve([{ base64: 'result-1b', mimeType: 'image/png' }]);
 
     await waitFor(() => expect(generateButton).not.toBeDisabled());
+  });
+
+  it('renders the AI Scan switch reflecting the shared preference', () => {
+    render(
+      <AiScanProvider initialEnabled>
+        <PoseChanger onOpenPoseLibrary={vi.fn()} />
+      </AiScanProvider>,
+    );
+
+    const aiScanSwitch = screen.getByRole('switch', { name: 'studio.aiScan.label' });
+    expect(aiScanSwitch).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('studio.aiScan.on')).toBeInTheDocument();
   });
 });

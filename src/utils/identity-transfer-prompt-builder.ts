@@ -2,6 +2,7 @@ import type { Part } from '@google/genai';
 import type { ImageFile } from '../types';
 import type { PromptFormat } from './promptFormat';
 import { imagePart } from './promptFormat';
+import { formatAiScanBlock } from './ai-scan-blueprint';
 
 export interface IdentityTransferPromptInput {
   destinationImage: ImageFile;
@@ -9,6 +10,8 @@ export interface IdentityTransferPromptInput {
   bodyReference?: ImageFile | null;
   backgroundPrompt: string;
   extraPrompt: string;
+  /** AI Scan deconstruction of the outfit in the destination photo (issue #162). */
+  outfitBlueprint?: string | null;
 }
 
 const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
@@ -141,7 +144,11 @@ ${extraRule}
 ## FINAL INVARIANTS
 One destination produces one edited image. Preserve destination pose, skeleton placement, spatial performance, and camera relationships, plus composition, lighting, and all unrelated details. The worn makeup look — lashes, brows, eye and lip styling, lip colour and finish, blush, contour — is taken from the Face Reference, re-lit by the destination lighting and laid thinly over real skin; nails, outfit and the scene stay with the Destination Image. The destination expression and colour grade win over the Face Reference's own expression, lighting and rendering: the transferred identity is lit, graded, and performing exactly as the Destination Image. ${finalBodyRule} Face Reference controls stable facial identity, the underlying skin tone family (re-rendered in the destination grade), identity-specific marks, hair, and the worn makeup look. A multi-panel Face Reference supplies one single identity and never its panel layout, and no text, label, or watermark from any reference may appear in the result. ${FINAL_CLOSING_ANCHOR} Destination pose and posture always win. Avoid plastic or waxy skin, poreless porcelain finish, airbrushed beauty-filter smoothing, smeared foundation, painted-on hair, and dead eyes; keep pores, fine lines and small blemishes visible.`;
 
-  return options.compactRestatements
+  // The outfit is the destination's authority, so the deconstruction rides after
+  // every destination-side rule. No blueprint leaves the text byte-identical.
+  const instructions = options.compactRestatements
     ? slimFinalInvariants(dropSentenceBefore(taskText, FACE_RESTATEMENT_ANCHOR), finalBodyRule)
     : taskText;
+
+  return `${instructions}${formatAiScanBlock(input.outfitBlueprint)}`;
 };

@@ -4,6 +4,7 @@ import type { BrandModelProfile } from '../config/brandModelRoster';
 import type { DisplayTemplate } from '../config/displayTemplates';
 import type { PromptFormat } from './promptFormat';
 import { dropRestatedLines, imagePart } from './promptFormat';
+import { formatAiScanBlock } from './ai-scan-blueprint';
 import { buildIdentityTransferParts } from './identity-transfer-prompt-builder';
 export interface ClothingTransferReferenceInput {
   image: ImageFile;
@@ -57,9 +58,7 @@ export function buildClothingTransferParts(
   const avoidSection = format === 'text'
     ? dropRestatedLines(avoidBlock, RESTATED_AVOID_BULLETS)
     : avoidBlock;
-  const blueprintBlock = outfitBlueprint?.trim()
-    ? `\n\nAI OUTFIT DECONSTRUCTION & TECHNICAL BLUEPRINT:\n${outfitBlueprint.trim()}\n`
-    : '';
+  const blueprintBlock = formatAiScanBlock(outfitBlueprint);
 
   const taskPrompt = `TASK: Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.${blueprintBlock}
 REFERENCE OWNERSHIP & ROLES:
@@ -139,9 +138,7 @@ export function buildProductStagingParts(
   const stagingSpec = hasStagingImage
     ? `Display the extracted garment realistically hanging, laid out, or staged matching the EXACT setting, hanger, surface, and lighting visible in the STAGING REFERENCE image.${template.prompt ? ` ${template.prompt}` : ''}`
     : template.prompt;
-  const blueprintBlock = outfitBlueprint?.trim()
-    ? `\n\nAI OUTFIT DECONSTRUCTION & TECHNICAL BLUEPRINT:\n${outfitBlueprint.trim()}\n`
-    : '';
+  const blueprintBlock = formatAiScanBlock(outfitBlueprint);
 
   const taskPrompt = `TASK: Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged into the STAGING REFERENCE setting.${blueprintBlock}
 STAGING SPECIFICATION:
@@ -209,9 +206,7 @@ export function buildBrandModelParts(
   if (!model.faceImage) {
     return [imagePart(sourceImage), { text: 'Preserve destination image.' }];
   }
-  const blueprintBlock = outfitBlueprint?.trim()
-    ? `\n\nAI OUTFIT DECONSTRUCTION & TECHNICAL BLUEPRINT:\n${outfitBlueprint.trim()}\n`
-    : '';
+  const blueprintBlock = formatAiScanBlock(outfitBlueprint);
 
   const taskPrompt = `TASK: Replace the model's head and face in the DESTINATION PHOTO with the BRAND MODEL (${model.name}), producing a high-end fashion catalog photo.${blueprintBlock}
 CRITICAL INSTRUCTIONS:

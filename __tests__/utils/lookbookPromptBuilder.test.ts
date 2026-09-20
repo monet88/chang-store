@@ -5,6 +5,7 @@ import {
   buildVariationPrompt,
   buildCloseUpPrompts,
   buildCloseUpNegativePrompt,
+  lookbookAiScanSources,
   type LookbookFormState,
 } from '@/utils/lookbookPromptBuilder';
 
@@ -261,5 +262,85 @@ describe('buildCloseUpPrompts & buildCloseUpNegativePrompt', () => {
     const combined = buildCloseUpNegativePrompt('no blur, no grain');
     expect(combined).toContain('no blur, no grain');
     expect(combined).toContain('invented buttons, invented pockets, invented trims, invented collars');
+  });
+});
+
+describe('AI Scan blueprint injection', () => {
+  const blueprint = 'Material: 92% silk crepe. Bias-cut bodice, French seams, covered placket.';
+
+  it('splices the deconstruction into the main lookbook prompt', () => {
+    const prompt = buildLookbookPrompt(
+      createFormState(),
+      [mockImage('front')],
+      null,
+      'parts',
+      blueprint,
+    );
+
+    expect(prompt).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):');
+    expect(prompt).toContain(blueprint);
+  });
+
+  it('splices the deconstruction into the variation prompt', () => {
+    const prompt = buildVariationPrompt('flat lay', blueprint);
+
+    expect(prompt).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):');
+    expect(prompt).toContain(blueprint);
+  });
+
+  it('splices the deconstruction into every close-up prompt', () => {
+    const prompts = buildCloseUpPrompts(blueprint);
+
+    expect(prompts).toHaveLength(3);
+    prompts.forEach((prompt) => {
+      expect(prompt).toContain('AI SCAN — TEXTILE & GARMENT DECONSTRUCTION (observed in the source images):');
+      expect(prompt).toContain(blueprint);
+    });
+  });
+
+  it('leaves every builder byte-identical when the blueprint is absent or blank', () => {
+    const expectedMain = buildLookbookPrompt(createFormState(), [mockImage('front')], null);
+    const expectedVariation = buildVariationPrompt('flat lay');
+    const expectedCloseUps = buildCloseUpPrompts();
+
+    expect(buildLookbookPrompt(createFormState(), [mockImage('front')], null, 'parts', '')).toBe(expectedMain);
+    expect(buildLookbookPrompt(createFormState(), [mockImage('front')], null, 'parts', '   \n ')).toBe(expectedMain);
+    expect(buildVariationPrompt('flat lay', '')).toBe(expectedVariation);
+    expect(buildVariationPrompt('flat lay', '  ')).toBe(expectedVariation);
+    expect(buildCloseUpPrompts('')).toEqual(expectedCloseUps);
+    expect(buildCloseUpPrompts('\n\t ')).toEqual(expectedCloseUps);
+  });
+});
+
+describe('lookbookAiScanSources', () => {
+  const slots = (count: number): Array<{ id: string; image: ImageFile | null }> =>
+    Array.from({ length: count }, (_, index) => ({ id: String(index), image: mockImage(`garment-${index}`) }));
+  const fabric = mockImage('fabric-texture');
+
+  it('reserves a scan slot for the fabric texture when the clothing list fills the limit', () => {
+    const clothing = slots(6);
+
+    expect(lookbookAiScanSources(clothing, fabric)).toEqual([
+      clothing[0].image,
+      clothing[1].image,
+      clothing[2].image,
+      fabric,
+    ]);
+  });
+
+  it('keeps the slot order and appends the fabric texture last', () => {
+    const clothing = slots(2);
+
+    expect(lookbookAiScanSources(clothing, fabric)).toEqual([
+      clothing[0].image,
+      clothing[1].image,
+      fabric,
+    ]);
+  });
+
+  it('ignores empty slots and a missing fabric texture', () => {
+    const clothing = [{ id: '1', image: mockImage('garment') }, { id: '2', image: null }];
+
+    expect(lookbookAiScanSources(clothing, null)).toEqual([clothing[0].image]);
   });
 });

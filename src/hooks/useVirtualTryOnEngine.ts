@@ -8,12 +8,14 @@ import {
   VirtualTryOnClothingItem,
 } from '../types';
 import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
+import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildVirtualTryOnParts } from '../utils/virtual-try-on-prompt-builder';
 import { promptFormatFor } from '../utils/promptFormat';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { UseVirtualTryOnSubjectsReturn } from './useVirtualTryOnSubjects';
 import { UseImageRefinementReturn } from './useImageRefinement';
+import { useAiScan } from '../contexts/AiScanContext';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
@@ -74,6 +76,11 @@ export const useVirtualTryOnEngine = (
     setIsLoading, setLoadingMessage, setError, setUpscalingStates, t,
   } = config;
 
+  // AI Scan (issue #162): optional analytical pre-pass over each job's own
+  // source set. The blueprint it returns rides in the prompt; a disabled or
+  // failed scan yields null and the base prompt is unchanged.
+  const { scan } = useAiScan();
+
   // Shared per-subject generation: marker compositing + prompt build + driver
   // edit + status commit. Used by both the batch run and single regenerate so
   // the two paths cannot drift apart.
@@ -85,6 +92,10 @@ export const useVirtualTryOnEngine = (
     }[]) => {
       subjects.updateSubjectItem(itemId, { status: 'processing', results: [], error: undefined });
       try {
+        // One analysis per subject, over that subject's own photo: every
+        // subject is an independent job, so a batch-wide blueprint would
+        // deconstruct one subject's garments inside another subject's prompt.
+        const blueprint = await scan(aiScanSourceSet(sourceItems.map((item) => item.image), [subjectImage]));
         let finalSubjectImage = subjectImage;
         if (isMultiPersonMode && subjects.markerPosition) {
           finalSubjectImage = await compositeMarkerOnImage(subjectImage, subjects.markerPosition);
@@ -95,6 +106,7 @@ export const useVirtualTryOnEngine = (
           extraPrompt,
           backgroundPrompt,
           isMultiPersonMode: isMultiPersonMode && subjects.markerPosition !== null,
+          outfitBlueprint: blueprint ?? undefined,
         }, promptFormatFor(engineId));
         const results = await driver.editImage(
           {
@@ -120,7 +132,7 @@ export const useVirtualTryOnEngine = (
     },
     [driver, subjects.markerPosition, subjects.updateSubjectItem, isMultiPersonMode,
       extraPrompt, backgroundPrompt, numImages, aspectRatio, resolution, imageEditModel,
-      buildImageServiceConfig, setLoadingMessage, addImage, engineId, t],
+      buildImageServiceConfig, setLoadingMessage, addImage, engineId, t, scan],
   );
 
   const handleGenerateImage = useCallback(async () => {
@@ -175,6 +187,8 @@ export const useVirtualTryOnEngine = (
 
     setError(null);
     refinement.clearSessionsForPrefix(itemId);
+    // The subject's own source set again: a regenerate of subject B must scan
+    // subject B, even when subject A was the most recent job.
     await generateForSubject(targetItem.subjectImage, itemId, sourceItems);
   }, [subjects.subjectItems, validClothingItems, refinement, setError, generateForSubject]);
 

@@ -38,6 +38,8 @@ interface CameraViewOption {
 export interface UsePoseChangerReturn {
   subjectImage: ImageFile | null;
   setSubjectImage: (image: ImageFile | null) => void;
+  /** Subject-owned sources the AI Scan layer scans and the panel displays. */
+  aiScanSources: ImageFile[];
   poseReferenceImage: ImageFile | null;
   customPosePrompt: string;
   selectedLibraryPoses: string[];
@@ -87,6 +89,14 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
 
   const refs = usePoseChangerReferences();
 
+  // The garment lives on the subject photo; the pose reference is a pose donor
+  // only, so it is never scanned. Stable identity keeps the panel's pre-scan and
+  // the generation-time scan on the same cached analysis.
+  const aiScanSources = useMemo(
+    () => (refs.subjectImage ? [refs.subjectImage] : []),
+    [refs.subjectImage],
+  );
+
   // Default driver from real service; tests inject mock here
   const driver = useMemo<PoseImageDriver>(() => ({ editImage, upscaleImage }), []);
 
@@ -99,6 +109,7 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     aspectRatio: refs.aspectRatio,
     resolution: refs.resolution,
     imageEditModel,
+    aiScanSources,
     t,
     allPrompts: refs.allPrompts,
     getFramingInstruction: refs.getFramingInstruction,
@@ -163,6 +174,7 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     // from references
     subjectImage: refs.subjectImage,
     setSubjectImage: refs.setSubjectImage,
+    aiScanSources,
     poseReferenceImage: refs.poseReferenceImage,
     customPosePrompt: refs.customPosePrompt,
     negativePrompt: refs.negativePrompt,
