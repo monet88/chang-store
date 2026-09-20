@@ -7,7 +7,7 @@ import VirtualTryOn from '../VirtualTryOn';
 import GptLookbookGenerator from './GptLookbookGenerator';
 import ClothingTransfer from '../ClothingTransfer';
 import GptAIEditor from './GptAIEditor';
-import GptIdentityTransfer from './GptIdentityTransfer';
+import IdentityTransfer from '../IdentityTransfer';
 
 interface GptStudioProps {
   activeFeature: Feature;
@@ -15,10 +15,10 @@ interface GptStudioProps {
 }
 
 /**
- * The GPT Image studio. Virtual Try-On and Clothing Transfer use shared Feature
- * views and resolve GPT-owned controls from the active image engine; the
- * remaining feature views are still provider-specific until their own
- * migration tickets land.
+ * The GPT Image studio. Virtual Try-On, Clothing Transfer, and Identity
+ * Transfer use shared Feature views and resolve GPT-owned controls from the
+ * active image engine; the remaining feature views are still provider-specific
+ * until their own migration tickets land.
  */
 const GptStudio: React.FC<GptStudioProps> = ({ activeFeature, onSendToFeature }) => {
   const { t } = useLanguage();
@@ -35,7 +35,7 @@ const GptStudio: React.FC<GptStudioProps> = ({ activeFeature, onSendToFeature })
       case Feature.AIEditor:
         return <GptAIEditor key="gpt-ai-editor" />;
       case Feature.IdentityTransfer:
-        return <GptIdentityTransfer key="gpt-identity-transfer" />;
+        return <IdentityTransfer key="gpt-identity-transfer" />;
       default:
         return <VirtualTryOn key="gpt-try-on" />;
     }

@@ -11,8 +11,9 @@ import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAiScan } from '../contexts/AiScanContext';
-import { buildIdentityTransferParts } from '../utils/identity-transfer-prompt-builder';
-import { promptFormatFor } from '../utils/promptFormat';
+import { buildGeminiIdentityTransferParts } from '../utils/gemini-identity-transfer-prompt';
+import { buildGptIdentityTransferParts } from '../utils/gpt-identity-transfer-prompt';
+import type { IdentityTransferPromptInput } from '../utils/identity-transfer-prompt-types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { loadDefaultIdentityReferences } from '../utils/identity-transfer-defaults';
 import { remapImageBatchItems } from '../utils/batch-image-session';
@@ -110,14 +111,17 @@ export const useIdentityTransfer = () => {
       // destination is an independent job, and a batch-wide blueprint would
       // describe another photo's outfit inside this prompt.
       const blueprint = await scan([item.destinationImage]);
-      const interleavedParts = buildIdentityTransferParts({
+      const promptInput: IdentityTransferPromptInput = {
         destinationImage: item.destinationImage,
         faceReference: refs.face,
         bodyReference: refs.body,
         backgroundPrompt,
         extraPrompt,
         outfitBlueprint: blueprint,
-      }, promptFormatFor(engineId));
+      };
+      const interleavedParts = engineId === 'gptImage'
+        ? buildGptIdentityTransferParts(promptInput)
+        : buildGeminiIdentityTransferParts(promptInput);
       const [result] = await editImage({
         images: [],
         prompt: '',
@@ -201,7 +205,7 @@ export const useIdentityTransfer = () => {
   return {
     destinationItems, destinationImages, aiScanSources, faceReference, bodyReference,
     backgroundPrompt, extraPrompt, aspectRatio, resolution, isLoading,
-    loadingMessage, error, canGenerate, completedCount, failedCount, imageEditModel,
+    loadingMessage, error, canGenerate, completedCount, failedCount, imageEditModel, engineId,
     setFaceReference: updateFaceReference, setBodyReference: updateBodyReference, setBackgroundPrompt, setExtraPrompt,
     setAspectRatio, setResolution, setError, handleDestinationImagesUpload,
     handleGenerate, handleRegenerateSingle,

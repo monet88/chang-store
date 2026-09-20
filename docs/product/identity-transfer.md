@@ -70,15 +70,19 @@ Instructions are subordinate to all role and preservation rules above.
 
 ## Provider Scope
 
-Identity Transfer is available only in the Gemini studio. It is intentionally
-absent from GPT Image provider workflows.
+Identity Transfer uses a shared, model-agnostic Feature view available in both
+the Gemini and GPT Image studios, while maintaining independently owned prompt
+policies for each model family.
 
 ## Key Files
 
 - `src/components/IdentityTransfer.tsx`
 - `src/hooks/useIdentityTransfer.ts`
 - `src/utils/identity-transfer-defaults.ts`
-- `src/utils/identity-transfer-prompt-builder.ts`
+- `src/utils/identity-transfer-prompt-types.ts`
+- `src/utils/gemini-identity-transfer-prompt.ts`
+- `src/utils/gpt-identity-transfer-prompt.ts`
+- `__tests__/components/IdentityTransfer.test.tsx`
 - `__tests__/hooks/useIdentityTransfer.test.tsx`
 - `__tests__/utils/identity-transfer-prompt-builder.test.ts`
 
