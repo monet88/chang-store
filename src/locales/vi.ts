@@ -166,6 +166,23 @@ export const vi: Translation = {
       hide: 'Thu gọn',
       unavailable: 'AI Scan không khả dụng — vẫn tạo ảnh bằng prompt gốc.',
     },
+    localQwenStatus: {
+      starting: 'Đang khởi động ComfyUI...',
+      startingSubtext: 'Đang khởi tạo runtime ComfyUI cục bộ tại 127.0.0.1:8188...',
+      ready: 'ComfyUI Sẵn sàng',
+      readySubtext: 'Qwen-Image 2.1 đã sẵn sàng',
+      appOwned: 'Ứng dụng quản lý',
+      external: 'Tiến trình ngoài',
+      generating: 'Đang tạo ảnh',
+      generatingSubtext: 'Đang lấy mẫu với Qwen-Image 2.1 cục bộ trên ComfyUI...',
+      stopped: 'ComfyUI Đã dừng',
+      stoppedSubtext: 'ComfyUI cục bộ chưa chạy tại 127.0.0.1:8188.',
+      retry: 'Thử lại',
+      openSettings: 'Mở Cài đặt',
+      cancel: 'Hủy',
+      cancelling: 'Đang hủy...',
+      startServer: 'Khởi động ComfyUI',
+    },
   },
 
   imageUploader: {

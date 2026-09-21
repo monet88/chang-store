@@ -9,6 +9,7 @@ import {
   type DesktopLocalQwenStopResult,
   type LocalQwenGenerateParams,
   type LocalQwenGenerateResult,
+  type LocalQwenProgress,
 } from '../src/platform/desktopLocalQwen';
 import { KNOWN_PORTABLE_COMFYUI_PATH } from '../src/config/localQwenSettings';
 import { trustedBridge } from './gateway';
@@ -48,6 +49,15 @@ export const defaultProbeFn = async (endpoint: string, timeoutMs = 2000): Promis
     return false;
   }
 };
+export interface WebSocketLike {
+  addEventListener?(type: string, listener: (event: unknown) => void): void;
+  removeEventListener?(type: string, listener: (event: unknown) => void): void;
+  on?(event: string, listener: (data: unknown) => void): void;
+  onmessage?: ((event: { data: unknown }) => void) | null;
+  close(): void;
+}
+
+export type WebSocketConstructor = new (url: string) => WebSocketLike;
 
 export interface LocalQwenManagerOptions {
   port?: number;
@@ -56,6 +66,7 @@ export interface LocalQwenManagerOptions {
   readinessTimeoutMs?: number;
   readinessPollIntervalMs?: number;
   fetchFn?: typeof fetch;
+  wsConstructor?: WebSocketConstructor;
 }
 
 export class LocalQwenManager {
@@ -65,7 +76,11 @@ export class LocalQwenManager {
   public childProcess?: ChildProcess;
   public childPid?: number;
   public lastError?: string;
+  public currentProgress?: LocalQwenProgress;
+  public isCancelled = false;
 
+  private activeAbortController?: AbortController;
+  private wsConstructor?: WebSocketConstructor;
   private probeFn: (endpoint: string) => Promise<boolean>;
   private spawnFn: (command: string, args: readonly string[], options: Record<string, unknown>) => ChildProcess;
   private fetchFn: typeof fetch;
@@ -81,6 +96,7 @@ export class LocalQwenManager {
     this.fetchFn = options.fetchFn ?? ((url, init) => fetch(url, init));
     this.readinessTimeoutMs = options.readinessTimeoutMs ?? 60_000;
     this.readinessPollIntervalMs = options.readinessPollIntervalMs ?? 500;
+    this.wsConstructor = options.wsConstructor;
   }
 
   public async probe(endpoint?: string): Promise<boolean> {
@@ -92,14 +108,12 @@ export class LocalQwenManager {
   }
 
   public async getStatus(): Promise<DesktopLocalQwenStatus> {
-    const isResponding = await this.probe();
-    if (isResponding) {
-      this.state = 'ready';
-      this.lastError = undefined;
+    if (this.state === 'generating') {
       return {
-        state: 'ready',
+        state: 'generating',
         isAppOwned: this.isAppOwned,
         port: this.port,
+        progress: this.currentProgress,
       };
     }
 
@@ -120,6 +134,17 @@ export class LocalQwenManager {
       };
     }
 
+    const isResponding = await this.probe();
+    if (isResponding) {
+      this.state = 'ready';
+      this.lastError = undefined;
+      return {
+        state: 'ready',
+        isAppOwned: this.isAppOwned,
+        port: this.port,
+      };
+    }
+
     this.state = 'stopped';
     this.isAppOwned = false;
     return {
@@ -127,6 +152,51 @@ export class LocalQwenManager {
       isAppOwned: false,
       port: this.port,
     };
+  }
+
+  public clearError(): void {
+    this.lastError = undefined;
+    if (this.state === 'error') {
+      this.state = 'stopped';
+    }
+  }
+
+  public async cancelJob(): Promise<{ cancelled: boolean }> {
+    this.isCancelled = true;
+    this.activeAbortController?.abort();
+
+    try {
+      const baseUrl = `http://127.0.0.1:${this.port}`;
+      await this.fetchFn(`${baseUrl}/interrupt`, {
+        method: 'POST',
+      });
+    } catch {
+      // Ignore network errors when interrupting ComfyUI
+    }
+
+    if (this.state === 'generating') {
+      this.state = 'error';
+      this.lastError = 'Generation cancelled by user';
+      this.currentProgress = undefined;
+    }
+
+    return { cancelled: true };
+  }
+
+  public async handleBeforeQuit(): Promise<void> {
+    if (!this.isAppOwned) {
+      return;
+    }
+
+    if (this.state === 'generating') {
+      try {
+        await this.cancelJob();
+      } catch {
+        // Ignore
+      }
+    }
+
+    await this.stopServer();
   }
 
   public resolveLaunchCommand(folder: string): { executable: string; args: string[] } {
@@ -334,209 +404,288 @@ export class LocalQwenManager {
   public async generateImage(params: LocalQwenGenerateParams): Promise<LocalQwenGenerateResult> {
     const isReady = await this.probe();
     if (!isReady) {
-      throw new Error(`ComfyUI server is not running on 127.0.0.1:${this.port}. Please start it first.`);
+      this.state = 'error';
+      this.lastError = `ComfyUI server is not running on 127.0.0.1:${this.port}. Please start it first.`;
+      throw new Error(this.lastError);
     }
+
+    this.state = 'generating';
+    this.isCancelled = false;
+    this.lastError = undefined;
+    const steps = params.steps ?? 16;
+    this.currentProgress = { step: 0, maxSteps: steps };
+    const abortController = new AbortController();
+    this.activeAbortController = abortController;
 
     const host = `127.0.0.1:${this.port}`;
     const baseUrl = `http://${host}`;
 
-    const uploadedFileNames: string[] = [];
-    if (params.images && params.images.length > 0) {
-      for (let i = 0; i < params.images.length; i++) {
-        const img = params.images[i];
-        const buffer = Buffer.from(img.base64, 'base64');
-        const mimeType = img.mimeType || 'image/png';
-        const ext = mimeType.includes('jpeg') || mimeType.includes('jpg') ? 'jpg' : 'png';
-        const filename = `input_${Date.now()}_${i}.${ext}`;
-
-        const formData = new FormData();
-        const blob = new Blob([buffer], { type: mimeType });
-        formData.append('image', blob, filename);
-        formData.append('overwrite', 'true');
-
-        const uploadRes = await this.fetchFn(`${baseUrl}/upload/image`, {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!uploadRes.ok) {
-          const errText = await uploadRes.text().catch(() => uploadRes.statusText);
-          throw new Error(`Failed to upload reference image ${i + 1} to ComfyUI: ${errText}`);
-        }
-
-        const uploadData = (await uploadRes.json()) as { name?: string };
-        uploadedFileNames.push(uploadData.name || filename);
-      }
-    }
-
-    const samplerMap: Record<string, string> = {
-      Euler: 'euler',
-      'Euler a': 'euler_ancestral',
-      'DPM++ 2M': 'dpmpp_2m',
-      'DPM++ 2M SDE': 'dpmpp_2m_sde',
-    };
-    const schedulerMap: Record<string, string> = {
-      Simple: 'simple',
-      Normal: 'normal',
-      Karras: 'karras',
-    };
-
-    const samplerName = (params.sampler && samplerMap[params.sampler]) || 'euler';
-    const schedulerName = (params.scheduler && schedulerMap[params.scheduler]) || 'simple';
-    const resolution = params.resolution ?? 512;
-    const steps = params.steps ?? 16;
-    const cfg = params.cfg ?? 1.0;
-    const seed = params.seed ?? Math.floor(Math.random() * 1_000_000_000);
-
-    const workflow: Record<string, unknown> = {
-      '1': {
-        class_type: 'UnetLoaderGGUF',
-        inputs: {
-          unet_name: 'qwen-image-2.1-Q4_K_M.gguf',
-        },
-      },
-      '2': {
-        class_type: 'CLIPLoader',
-        inputs: {
-          clip_name: 'qwen3vl_8b_w4a8.safetensors',
-          type: 'qwen_image',
-        },
-      },
-      '3': {
-        class_type: 'VAELoader',
-        inputs: {
-          vae_name: 'qwen_image_2.1_vae_bf16.safetensors',
-        },
-      },
-    };
-
-    const textEncodeInputs: Record<string, unknown> = {
-      clip: ['2', 0],
-      vae: ['3', 0],
-      prompt: params.prompt,
-      negative_prompt: params.negativePrompt ?? '',
-      resolution,
-    };
-
-    uploadedFileNames.forEach((fileName, index) => {
-      const nodeId = String(10 + index);
-      workflow[nodeId] = {
-        class_type: 'LoadImage',
-        inputs: {
-          image: fileName,
-        },
-      };
-      textEncodeInputs[`images.image_${index + 1}`] = [nodeId, 0];
-    });
-
-    workflow['4'] = {
-      class_type: 'TextEncodeQwenImage21',
-      inputs: textEncodeInputs,
-    };
-
-    workflow['7'] = {
-      class_type: 'KSampler',
-      inputs: {
-        model: ['1', 0],
-        positive: ['4', 0],
-        negative: ['4', 1],
-        latent_image: ['4', 2],
-        seed,
-        steps,
-        cfg,
-        sampler_name: samplerName,
-        scheduler: schedulerName,
-        denoise: 1.0,
-      },
-    };
-
-    workflow['8'] = {
-      class_type: 'VAEDecode',
-      inputs: {
-        samples: ['7', 0],
-        vae: ['3', 0],
-      },
-    };
-
-    workflow['9'] = {
-      class_type: 'SaveImage',
-      inputs: {
-        filename_prefix: 'Qwen_VTO',
-        images: ['8', 0],
-      },
-    };
-
+    let ws: WebSocketLike | null = null;
     const clientId = `chang-store-${Date.now()}`;
-    const promptRes = await this.fetchFn(`${baseUrl}/prompt`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: workflow, client_id: clientId }),
-    });
 
-    if (!promptRes.ok) {
-      const errText = await promptRes.text().catch(() => promptRes.statusText);
-      throw new Error(`ComfyUI prompt rejected (${promptRes.status}): ${errText}`);
+    try {
+      const WsClass = this.wsConstructor ?? (typeof WebSocket !== 'undefined' ? (WebSocket as unknown as WebSocketConstructor) : undefined);
+      if (WsClass) {
+        ws = new WsClass(`ws://${host}/ws?clientId=${clientId}`);
+        const onWsMsg = (eventOrData: unknown) => {
+          try {
+            const raw =
+              typeof eventOrData === 'string'
+                ? eventOrData
+                : eventOrData?.data
+                  ? eventOrData.data.toString()
+                  : eventOrData.toString();
+            const msg = JSON.parse(raw);
+            if (msg.type === 'progress' && msg.data) {
+              const { value, max } = msg.data;
+              if (typeof value === 'number' && typeof max === 'number') {
+                this.currentProgress = { step: value, maxSteps: max };
+              }
+            } else if (msg.type === 'execution_interrupted') {
+              this.isCancelled = true;
+            }
+          } catch {
+            // Ignore malformed WS message
+          }
+        };
+        if (typeof ws.addEventListener === 'function') {
+          ws.addEventListener('message', onWsMsg);
+        } else if (typeof ws.on === 'function') {
+          ws.on('message', onWsMsg);
+        } else {
+          ws.onmessage = onWsMsg;
+        }
+      }
+    } catch {
+      // WS connect failed, proceed with polling
     }
 
-    const promptData = (await promptRes.json()) as { prompt_id: string };
-    const promptId = promptData.prompt_id;
-    if (!promptId) {
-      throw new Error('ComfyUI did not return a prompt_id.');
-    }
+    try {
+      const uploadedFileNames: string[] = [];
+      if (params.images && params.images.length > 0) {
+        for (let i = 0; i < params.images.length; i++) {
+          if (this.isCancelled || abortController.signal.aborted) {
+            throw new Error('Generation cancelled by user');
+          }
+          const img = params.images[i];
+          const buffer = Buffer.from(img.base64, 'base64');
+          const mimeType = img.mimeType || 'image/png';
+          const ext = mimeType.includes('jpeg') || mimeType.includes('jpg') ? 'jpg' : 'png';
+          const filename = `input_${Date.now()}_${i}.${ext}`;
 
-    const timeoutMs = 600_000;
-    const pollIntervalMs = 500;
-    const startTime = Date.now();
+          const formData = new FormData();
+          const blob = new Blob([buffer], { type: mimeType });
+          formData.append('image', blob, filename);
+          formData.append('overwrite', 'true');
 
-    while (Date.now() - startTime < timeoutMs) {
-      const historyRes = await this.fetchFn(`${baseUrl}/history/${promptId}`);
-      if (historyRes.ok) {
-        const historyData = (await historyRes.json()) as Record<string, {
-          outputs?: Record<string, { images?: Array<{ filename: string; subfolder?: string; type?: string }> }>;
-          status?: { status_str?: string; messages?: unknown };
-        }>;
+          const uploadRes = await this.fetchFn(`${baseUrl}/upload/image`, {
+            method: 'POST',
+            body: formData,
+          });
 
-        const item = historyData[promptId];
-        if (item) {
-          if (item.status?.status_str === 'error') {
-            throw new Error(`ComfyUI execution failed: ${JSON.stringify(item.status.messages || 'Unknown error')}`);
+          if (!uploadRes.ok) {
+            const errText = await uploadRes.text().catch(() => uploadRes.statusText);
+            throw new Error(`Failed to upload reference image ${i + 1} to ComfyUI: ${errText}`);
           }
 
-          if (item.outputs) {
-            for (const nodeId of Object.keys(item.outputs)) {
-              const nodeOut = item.outputs[nodeId];
-              if (nodeOut?.images && nodeOut.images.length > 0) {
-                const imgInfo = nodeOut.images[0];
-                const viewUrl = `${baseUrl}/view?filename=${encodeURIComponent(imgInfo.filename)}&subfolder=${encodeURIComponent(imgInfo.subfolder || '')}&type=${encodeURIComponent(imgInfo.type || 'output')}`;
-                const viewRes = await this.fetchFn(viewUrl);
-                if (!viewRes.ok) {
-                  throw new Error(`Failed to fetch rendered image from ComfyUI: ${viewRes.statusText}`);
+          const uploadData = (await uploadRes.json()) as { name?: string };
+          uploadedFileNames.push(uploadData.name || filename);
+        }
+      }
+
+      if (this.isCancelled || abortController.signal.aborted) {
+        throw new Error('Generation cancelled by user');
+      }
+
+      const samplerMap: Record<string, string> = {
+        Euler: 'euler',
+        'Euler a': 'euler_ancestral',
+        'DPM++ 2M': 'dpmpp_2m',
+        'DPM++ 2M SDE': 'dpmpp_2m_sde',
+      };
+      const schedulerMap: Record<string, string> = {
+        Simple: 'simple',
+        Normal: 'normal',
+        Karras: 'karras',
+      };
+
+      const samplerName = (params.sampler && samplerMap[params.sampler]) || 'euler';
+      const schedulerName = (params.scheduler && schedulerMap[params.scheduler]) || 'simple';
+      const resolution = params.resolution ?? 512;
+      const cfg = params.cfg ?? 1.0;
+      const seed = params.seed ?? Math.floor(Math.random() * 1_000_000_000);
+
+      const workflow: Record<string, unknown> = {
+        '1': {
+          class_type: 'UnetLoaderGGUF',
+          inputs: {
+            unet_name: 'qwen-image-2.1-Q4_K_M.gguf',
+          },
+        },
+        '2': {
+          class_type: 'CLIPLoader',
+          inputs: {
+            clip_name: 'qwen3vl_8b_w4a8.safetensors',
+            type: 'qwen_image',
+          },
+        },
+        '3': {
+          class_type: 'VAELoader',
+          inputs: {
+            vae_name: 'qwen_image_2.1_vae_bf16.safetensors',
+          },
+        },
+      };
+
+      const textEncodeInputs: Record<string, unknown> = {
+        clip: ['2', 0],
+        vae: ['3', 0],
+        prompt: params.prompt,
+        negative_prompt: params.negativePrompt ?? '',
+        resolution,
+      };
+
+      uploadedFileNames.forEach((fileName, index) => {
+        const nodeId = String(10 + index);
+        workflow[nodeId] = {
+          class_type: 'LoadImage',
+          inputs: {
+            image: fileName,
+          },
+        };
+        textEncodeInputs[`images.image_${index + 1}`] = [nodeId, 0];
+      });
+
+      workflow['4'] = {
+        class_type: 'TextEncodeQwenImage21',
+        inputs: textEncodeInputs,
+      };
+
+      workflow['7'] = {
+        class_type: 'KSampler',
+        inputs: {
+          model: ['1', 0],
+          positive: ['4', 0],
+          negative: ['4', 1],
+          latent_image: ['4', 2],
+          seed,
+          steps,
+          cfg,
+          sampler_name: samplerName,
+          scheduler: schedulerName,
+          denoise: 1.0,
+        },
+      };
+
+      workflow['8'] = {
+        class_type: 'VAEDecode',
+        inputs: {
+          samples: ['7', 0],
+          vae: ['3', 0],
+        },
+      };
+
+      workflow['9'] = {
+        class_type: 'SaveImage',
+        inputs: {
+          filename_prefix: 'Qwen_VTO',
+          images: ['8', 0],
+        },
+      };
+
+      const promptRes = await this.fetchFn(`${baseUrl}/prompt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: workflow, client_id: clientId }),
+      });
+
+      if (!promptRes.ok) {
+        const errText = await promptRes.text().catch(() => promptRes.statusText);
+        throw new Error(`ComfyUI prompt rejected (${promptRes.status}): ${errText}`);
+      }
+
+      const promptData = (await promptRes.json()) as { prompt_id: string };
+      const promptId = promptData.prompt_id;
+      if (!promptId) {
+        throw new Error('ComfyUI did not return a prompt_id.');
+      }
+
+      const timeoutMs = 600_000;
+      const pollIntervalMs = 500;
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < timeoutMs) {
+        if (this.isCancelled || abortController.signal.aborted) {
+          throw new Error('Generation cancelled by user');
+        }
+
+        const historyRes = await this.fetchFn(`${baseUrl}/history/${promptId}`);
+        if (historyRes.ok) {
+          const historyData = (await historyRes.json()) as Record<string, {
+            outputs?: Record<string, { images?: Array<{ filename: string; subfolder?: string; type?: string }> }>;
+            status?: { status_str?: string; messages?: unknown };
+          }>;
+
+          const item = historyData[promptId];
+          if (item) {
+            if (item.status?.status_str === 'error') {
+              throw new Error(`ComfyUI execution failed: ${JSON.stringify(item.status.messages || 'Unknown error')}`);
+            }
+
+            if (item.outputs) {
+              for (const nodeId of Object.keys(item.outputs)) {
+                const nodeOut = item.outputs[nodeId];
+                if (nodeOut?.images && nodeOut.images.length > 0) {
+                  const imgInfo = nodeOut.images[0];
+                  const viewUrl = `${baseUrl}/view?filename=${encodeURIComponent(imgInfo.filename)}&subfolder=${encodeURIComponent(imgInfo.subfolder || '')}&type=${encodeURIComponent(imgInfo.type || 'output')}`;
+                  const viewRes = await this.fetchFn(viewUrl);
+                  if (!viewRes.ok) {
+                    throw new Error(`Failed to fetch rendered image from ComfyUI: ${viewRes.statusText}`);
+                  }
+                  const buffer = Buffer.from(await viewRes.arrayBuffer());
+                  const base64 = buffer.toString('base64');
+                  this.state = 'ready';
+                  this.lastError = undefined;
+                  return {
+                    image: {
+                      base64,
+                      mimeType: 'image/png',
+                    },
+                  };
                 }
-                const buffer = Buffer.from(await viewRes.arrayBuffer());
-                const base64 = buffer.toString('base64');
-                return {
-                  image: {
-                    base64,
-                    mimeType: 'image/png',
-                  },
-                };
               }
             }
           }
         }
+
+        const { promise, resolve } = Promise.withResolvers<void>();
+        setTimeout(resolve, pollIntervalMs);
+        await promise;
       }
 
-      const { promise, resolve } = Promise.withResolvers<void>();
-      setTimeout(resolve, pollIntervalMs);
-      await promise;
+      throw new Error('ComfyUI generation timed out.');
+    } catch (err) {
+      this.state = 'error';
+      this.lastError = (err as Error).message || String(err);
+      throw err;
+    } finally {
+      if (ws) {
+        try {
+          if (typeof ws.close === 'function') ws.close();
+        } catch {
+          // Ignore
+        }
+      }
+      this.activeAbortController = undefined;
+      this.currentProgress = undefined;
+      if (this.state === 'generating') {
+        this.state = 'ready';
+      }
     }
-
-    throw new Error('ComfyUI generation timed out.');
   }
 }
 
 export const localQwenManager = new LocalQwenManager();
-
 export const registerDesktopLocalQwenHandlers = (
   manager: LocalQwenManager = localQwenManager,
 ): void => {
@@ -551,5 +700,8 @@ export const registerDesktopLocalQwenHandlers = (
   );
   ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.generateImage, (event, params) =>
     trustedBridge(event, () => manager.generateImage(params as LocalQwenGenerateParams)),
+  );
+  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.cancelJob, (event) =>
+    trustedBridge(event, () => manager.cancelJob()),
   );
 };

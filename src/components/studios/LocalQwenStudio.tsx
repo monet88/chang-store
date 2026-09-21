@@ -6,10 +6,12 @@ import VirtualTryOn from '../VirtualTryOn';
 import ClothingTransfer from '../ClothingTransfer';
 import IdentityTransfer from '../IdentityTransfer';
 import AIEditor from '../AIEditor';
+import LocalQwenStatusBanner from './LocalQwenStatusBanner';
 
 interface LocalQwenStudioProps {
   activeFeature: Feature;
   onSendToFeature: (feature: Feature, image: ImageFile) => void;
+  onOpenSettings?: () => void;
 }
 
 /**
@@ -17,7 +19,7 @@ interface LocalQwenStudioProps {
  * Clothing Transfer, Identity Transfer, and AI Editor running locally
  * via ComfyUI.
  */
-const LocalQwenStudio: React.FC<LocalQwenStudioProps> = ({ activeFeature, onSendToFeature }) => {
+const LocalQwenStudio: React.FC<LocalQwenStudioProps> = ({ activeFeature, onSendToFeature, onOpenSettings }) => {
   const { t } = useLanguage();
 
   const renderActiveFeature = () => {
@@ -47,6 +49,8 @@ const LocalQwenStudio: React.FC<LocalQwenStudioProps> = ({ activeFeature, onSend
           </h2>
         </div>
       </section>
+
+      <LocalQwenStatusBanner onOpenSettings={onOpenSettings} />
 
       {renderActiveFeature()}
     </div>
