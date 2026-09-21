@@ -6,6 +6,8 @@ import { CloseIcon } from '../Icons';
 import { GatewayProfileEditor } from './GatewayProfileEditor';
 import { ModelOptionGroups } from '../ModelOptionGroups';
 import { SectionCard, SettingsDataSection, sectionTitleClassName } from './SettingsDataSection';
+import { getDesktopGatewayApi } from '../../platform/desktopGateway';
+import { LocalQwenSettingsSection } from './LocalQwenSettingsSection';
 
 const ModelSelector: React.FC<{
   label: string;
@@ -64,6 +66,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
     isOpen,
     onClose,
   });
+  const isDesktop = Boolean(getDesktopGatewayApi());
 
   if (!isOpen) return null;
 
@@ -142,6 +145,8 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> =
                   onGeminiApiKeyChange={setLocalCpaGatewayApiKey}
                 />
               </SectionCard>
+
+              {isDesktop && <LocalQwenSettingsSection />}
             </div>
 
             <div className="space-y-4">
