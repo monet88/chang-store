@@ -17,7 +17,7 @@ interface GptImageOptionsPanelProps {
  * and the quality — each hidden when the (gateway, model) capability says the
  * field is meaningless there (issue #152, Decision 4).
  */
-const GptImageOptionsPanel: React.FC<GptImageOptionsPanelProps> = ({ aspectRatio, setAspectRatio, numImages, setNumImages }) => {
+const GptImageOptionsPanel: React.FC<GptImageOptionsPanelProps> = React.memo(({ aspectRatio, setAspectRatio, numImages, setNumImages }) => {
   const { options } = useImageEngine();
   const { t } = useLanguage();
   const labelId = useId();
@@ -116,6 +116,8 @@ const GptImageOptionsPanel: React.FC<GptImageOptionsPanelProps> = ({ aspectRatio
       )}
     </div>
   );
-};
+});
+
+GptImageOptionsPanel.displayName = 'GptImageOptionsPanel';
 
 export default GptImageOptionsPanel;
