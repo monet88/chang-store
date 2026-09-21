@@ -11,6 +11,7 @@ import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildGeminiClothingTransferParts } from '../utils/gemini-clothing-transfer-prompt';
 import { buildGptClothingTransferParts } from '../utils/gpt-clothing-transfer-prompt';
+import { buildQwenClothingTransferParts } from '../utils/qwen-clothing-transfer-prompt';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { UseClothingTransferConceptsReturn } from './useClothingTransferConcepts';
 import { UseImageRefinementReturn } from './useImageRefinement';
@@ -83,7 +84,9 @@ export const useClothingTransferEngine = (
     ) => {
       updateConceptItem(itemId, { status: 'processing', results: [], error: undefined });
       try {
-        const interleavedParts = engineId === 'gptImage'
+        const interleavedParts = engineId === 'localQwen'
+          ? buildQwenClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim())
+          : engineId === 'gptImage'
           ? buildGptClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim())
           : buildGeminiClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim());
         const results = await driver.editImage(
@@ -127,7 +130,9 @@ export const useClothingTransferEngine = (
       id: item.id,
       conceptImage: item.conceptImage,
     }));
-    const batchConcurrency = Math.min(CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY, jobs.length);
+    const batchConcurrency = engineId === 'localQwen'
+      ? 1
+      : Math.min(CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY, jobs.length);
 
     setIsLoading(true);
     setLoadingMessage(t('clothingTransfer.generatingStatus'));
@@ -147,7 +152,7 @@ export const useClothingTransferEngine = (
       setLoadingMessage('');
     }
   }, [canGenerate, validReferences, conceptItems, resetAllStatus, refinement,
-    setIsLoading, setLoadingMessage, setError, setUpscalingStates, t, generateForItem]);
+    setIsLoading, setLoadingMessage, setError, setUpscalingStates, t, generateForItem, engineId]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
     const targetItem = conceptItems.find((item) => item.id === itemId);
