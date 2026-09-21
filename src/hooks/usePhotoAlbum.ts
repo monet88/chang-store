@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { editImage } from '../services/imageEditingService';
 import { PHOTO_ALBUM_POSES, PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
-
+import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import {
   usePhotoAlbumEngine,
   type PhotoAlbumImageDriver,
@@ -35,6 +35,15 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
   const [cameraView, setCameraView] = useState<string>('fullBody');
   const [frame, setFrame] = useState('none');
   const [background, setBackground] = useState('none');
+
+  const handleOriginalPhotoUpload = useCallback((image: ImageFile | null) => {
+    setOriginalPhoto(image);
+    if (image) {
+      void detectImageAspectRatio(image, '9:16').then((detected) => {
+        setAspectRatio(detected);
+      });
+    }
+  }, []);
   const [selectedPoses, setSelectedPoses] = useState<string[]>([]);
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [hairStyle, setHairStyle] = useState('long_straight_black');
@@ -101,6 +110,9 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
 
     consumedTransferredImageRef.current = transferredImage;
     setOutfitImage(transferredImage);
+    void detectImageAspectRatio(transferredImage, '9:16').then((detected) => {
+      setAspectRatio(detected);
+    });
     setMode('faceAndOutfit');
     onTransferConsumed?.();
   }, [onTransferConsumed, transferredImage]);
@@ -124,7 +136,7 @@ return {
     mode,
     setMode,
     originalPhoto,
-    setOriginalPhoto,
+    setOriginalPhoto: handleOriginalPhotoUpload,
     faceImage,
     setFaceImage,
     outfitImage,

@@ -7,6 +7,8 @@ import type { Part } from '@google/genai';
 import { imagePart } from './imagePart';
 import { formatGeminiBlueprintBlock, parseOutfitBlueprint } from './ai-scan-blueprint';
 import type { VirtualTryOnPromptInput, VirtualTryOnPromptSourceItem } from './virtual-try-on-prompt-types';
+import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION } from './outfitDrapePolicy';
+import { CAMERA_FRAMING_INSTRUCTION, CAMERA_FRAMING_PROHIBITION_LINES } from './cameraFramingPolicy';
 
 const MAX_SOURCE_ITEMS = 4;
 
@@ -20,6 +22,7 @@ const PROHIBITION_BULLETS = [
   'Do not put hands into pants pockets or hide hands unless the subject image already shows that exact pose.',
   'No tucking tops into pants or skirts.',
   "Do not alter the subject's face, features, expressions, age, or body proportions.",
+  ...CAMERA_FRAMING_PROHIBITION_LINES,
   'Preserve source-supported garment graphics and text, but do not invent new logos, text, graphics, or watermarks.',
 ] as const;
 
@@ -79,14 +82,17 @@ function buildTaskText(input: VirtualTryOnPromptInput): string {
     .join('\n');
   const hasClothing = sourceItems.some((item) => item.sourceItemType === 'clothing');
   const hasNonClothing = sourceItems.some((item) => item.sourceItemType !== 'clothing');
+  const tuckingAllowed = isTuckingAllowed(extraPrompt);
 
   const clothingRule = hasClothing
-    ? 'A clothing source item may contain one garment or a coordinated outfit with multiple garments. For each clothing source item, replace every visible matching clothing category from that source image: top, bottom, dress, outerwear, belt, or other wearable garment. If a single clothing source image visibly contains a complete look with both upper-body and lower-body garments, treat it as one full-look reference and transfer every visible garment from that image together: remove the subject\'s original top and original bottom together and replace both with the source look in the same result. Do not preserve the subject\'s original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment. If multiple clothing source items contain the same clothing category, use the later source item in list order for that category. Zero original elements in replaced clothing areas may remain. Tops hang freely outside the waistband with natural hem drape; never tucked in.'
+    ? `A clothing source item may contain one garment or a coordinated outfit with multiple garments. For each clothing source item, replace every visible matching clothing category from that source image: top, bottom, dress, outerwear, belt, or other wearable garment. If a single clothing source image visibly contains a complete look with both upper-body and lower-body garments, treat it as one full-look reference and transfer every visible garment from that image together: remove the subject's original top and original bottom together and replace both with the source look in the same result. Do not preserve the subject's original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment. If multiple clothing source items contain the same clothing category, use the later source item in list order for that category. Zero original elements in replaced clothing areas may remain.${!tuckingAllowed ? ' Tops hang freely outside the waistband with natural hem drape; never tucked in.' : ''}`
     : '';
 
   const nonClothingRule = hasNonClothing
     ? 'For every shoes, bag, or accessory source item, add or replace only that category. Preserve clothing areas not targeted by any clothing source item, plus body, face, hair, background, and all unrelated items exactly. Never use shoes, bag, or accessory preservation to keep old clothing that a clothing source item should replace. Place each item naturally on the body, in the hand, on the shoulder, or on the feet as appropriate for its type.'
     : '';
+
+  const untuckedDrapeRule = !tuckingAllowed ? UNTUCKED_DRAPE_INSTRUCTION : '';
 
   const backgroundSection = backgroundPrompt.trim()
     ? `Replace the background entirely with: "${backgroundPrompt.trim()}". The new background must integrate naturally with the subject and lighting.`
@@ -115,18 +121,23 @@ Treat each source image as its listed type. Only edit the matching category or t
   const accessoryExclusion = parsedBlueprint.detectedAccessories.length > 0 && hasClothing
     ? `\n- Do not transfer non-clothing accessories from the clothing source image: ${parsedBlueprint.detectedAccessories.join(', ')}.`
     : '';
-  const prohibitions = PROHIBITION_BULLETS.map((bullet) => `- ${bullet}`).join('\n') + accessoryExclusion;
+  const activeProhibitions = PROHIBITION_BULLETS.filter((bullet) => {
+    if (tuckingAllowed && bullet === 'No tucking tops into pants or skirts.') {
+      return false;
+    }
+    return true;
+  });
+  const prohibitions = activeProhibitions.map((bullet) => `- ${bullet}`).join('\n') + accessoryExclusion;
   return `## TASK
 Apply all provided fashion source items to the subject while preserving their face, facial features, expressions, hair, skin tone, exact age, body proportions, and overall pose. Only the target fashion items change.${multiPersonSection}${formatGeminiBlueprintBlock(input.outfitBlueprint)}
 
 ${sourceTypeSection}## APPLICATION RULES
-${[clothingRule, nonClothingRule].filter(Boolean).join('\n\n')}
+${[clothingRule, nonClothingRule, untuckedDrapeRule].filter(Boolean).join('\n\n')}
 
 Applied items must fit naturally to the subject's existing body, aligned with their stance, contours, and physical proportions, with physically correct fabric folds and contact points. Replicate construction details: silhouette, collar, sleeves, hems, straps, hardware, sole, texture, material, and color. Maintain correct pattern scale and orientation without distortion or mirroring. Match the lighting direction, shadows, and color temperature of the subject image so the clothing looks photographed in the same environment. Preserve occlusions: hands, fingers, hair, existing accessories, and foreground objects stay in front where physically appropriate. Preserve visible graphics, logos, and text that are supported by the source clothing references; do not invent new or unsupported logos, text, graphics, or watermarks.
 
 ## POSE
-Keep the subject's overall pose and stance. Minor natural adjustments to posture, shoulder angle, or arm position are acceptable only where the applied outfit requires it for realistic fit. Do not insert hands into pants pockets or hide fingers unless the subject image already shows hands inside pockets.
-
+Keep the subject's overall pose and stance. Minor natural adjustments to posture, shoulder angle, or arm position are acceptable only where the applied outfit requires it for realistic fit. Do not insert hands into pants pockets or hide fingers unless the subject image already shows hands inside pockets. ${CAMERA_FRAMING_INSTRUCTION}
 ## BACKGROUND
 ${backgroundSection}${extraSection}
 

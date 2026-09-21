@@ -18,6 +18,7 @@ import { useClothingTransferEngine, ClothingTransferImageDriver } from './useClo
 import { useClothingTransferResultActions } from './useClothingTransferResultActions';
 import { useClothingTransferEComPack } from './useClothingTransferEComPack';
 import { useGeneratedResultActions } from './useGeneratedResultActions';
+import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 
 /**
  * Orchestrator for Clothing Transfer. Owns UI-level state (prompts, settings,
@@ -47,6 +48,23 @@ export const useClothingTransfer = () => {
   const references = useClothingTransferReferences();
   const concepts = useClothingTransferConcepts({ setError });
 
+  const handleConceptImagesUpload = useCallback((images: ImageFile[]) => {
+    concepts.handleConceptImagesUpload(images);
+    if (images[0]) {
+      void detectImageAspectRatio(images[0]).then((detected) => {
+        setAspectRatio(detected);
+      });
+    }
+  }, [concepts]);
+
+  const handleConceptUpload = useCallback((image: ImageFile | null) => {
+    concepts.handleConceptUpload(image);
+    if (image) {
+      void detectImageAspectRatio(image).then((detected) => {
+        setAspectRatio(detected);
+      });
+    }
+  }, [concepts]);
   // Default driver wraps the real Gemini service; tests can inject a mock.
   const driver = useMemo<ClothingTransferImageDriver>(
     () => ({ editImage, upscaleImage }),
@@ -184,8 +202,8 @@ export const useClothingTransfer = () => {
     handleReferenceLabel: references.handleReferenceLabel,
     addReference: references.addReference,
     removeReference: references.removeReference,
-    handleConceptUpload: concepts.handleConceptUpload,
-    handleConceptImagesUpload: concepts.handleConceptImagesUpload,
+    handleConceptUpload,
+    handleConceptImagesUpload,
     handleGenerate: engine.handleGenerate,
     handleRegenerateSingle: engine.handleRegenerateSingle,
     handleUpscale: resultActions.handleUpscale,

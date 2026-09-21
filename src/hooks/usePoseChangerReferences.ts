@@ -6,11 +6,11 @@
  * Extracted to keep usePoseChanger under the line limit.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getEnglishFramingInstruction } from '../utils/framingInstructions';
-
+import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 type CameraView = 'default' | 'fullBody' | 'halfBody' | 'kneesUp';
 
 interface CameraViewOption {
@@ -67,6 +67,14 @@ export const usePoseChangerReferences = (): UsePoseChangerReferencesReturn => {
   ];
 
   const getFramingInstruction = () => getEnglishFramingInstruction(cameraView);
+  const handleSubjectImageUpload = useCallback((file: ImageFile | null) => {
+    setSubjectImage(file);
+    if (file) {
+      void detectImageAspectRatio(file).then((detected) => {
+        setAspectRatio(detected);
+      });
+    }
+  }, []);
 
   const handlePoseReferenceUpload = (file: ImageFile | null) => {
     setPoseReferenceImage(file);
@@ -91,7 +99,7 @@ export const usePoseChangerReferences = (): UsePoseChangerReferencesReturn => {
 
   return {
     subjectImage,
-    setSubjectImage,
+    setSubjectImage: handleSubjectImageUpload,
     poseReferenceImage,
     customPosePrompt,
     selectedLibraryPoses,

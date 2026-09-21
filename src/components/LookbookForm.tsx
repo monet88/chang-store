@@ -15,6 +15,7 @@ import {
 } from './LookbookGenerator.prompts';
 import { LookbookFormState } from '../hooks/useLookbookDraft';
 import { lookbookAiScanSources } from '../utils/lookbook-prompt-types';
+import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 
 interface LookbookFormProps {
   formState: LookbookFormState;
@@ -90,7 +91,12 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
       item.id === id ? { ...item, image: file } : item,
     );
     onFormChange({ clothingImages: newClothingImages });
-  }, [clothingImages, onFormChange]);
+    if (file && setAspectRatio) {
+      void detectImageAspectRatio(file).then((detected) => {
+        setAspectRatio(detected);
+      });
+    }
+  }, [clothingImages, onFormChange, setAspectRatio]);
 
   const handleMultiClothingUpload = useCallback((files: ImageFile[]) => {
     const newClothingImages = files.map((file) => ({
@@ -98,7 +104,12 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
       image: file,
     }));
     onFormChange({ clothingImages: newClothingImages });
-  }, [onFormChange]);
+    if (files[0] && setAspectRatio) {
+      void detectImageAspectRatio(files[0]).then((detected) => {
+        setAspectRatio(detected);
+      });
+    }
+  }, [onFormChange, setAspectRatio]);
 
   const addClothingUploader = useCallback(() => {
     onFormChange({

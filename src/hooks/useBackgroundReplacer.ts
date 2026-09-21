@@ -7,6 +7,7 @@ import { useApi } from '../contexts/ApiProviderContext';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generateImageDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
+import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { useImageRefinement } from './useImageRefinement';
 import { useAiScan } from '../contexts/AiScanContext';
 import { buildBackgroundReplacementPrompt } from '../utils/background-replacer-prompt-builder';
@@ -60,6 +61,11 @@ export const useBackgroundReplacer = () => {
 
   const handleSubjectUpload = useCallback((file: ImageFile | null) => {
     setSubjectImage(file);
+    if (file) {
+      void detectImageAspectRatio(file).then((detected) => {
+        setAspectRatio(detected);
+      });
+    }
   }, []);
 
   const handleBackgroundUpload = useCallback((file: ImageFile | null) => {

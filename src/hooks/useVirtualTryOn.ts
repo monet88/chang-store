@@ -12,6 +12,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
+import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { useImageRefinement } from './useImageRefinement';
 import { useVirtualTryOnSubjects } from './useVirtualTryOnSubjects';
 import { useVirtualTryOnEngine, VirtualTryOnImageDriver } from './useVirtualTryOnEngine';
@@ -58,6 +59,24 @@ export const useVirtualTryOn = () => {
 
   // Subject batch management extracted to its own focused hook.
   const subjects = useVirtualTryOnSubjects(setError, setUpscalingStates);
+
+  const handleSubjectImagesUpload = useCallback((images: ImageFile[]) => {
+    subjects.handleSubjectImagesUpload(images);
+    if (images[0]) {
+      void detectImageAspectRatio(images[0]).then((detected) => {
+        setAspectRatio(detected);
+      });
+    }
+  }, [subjects]);
+
+  const setSubjectImage = useCallback((image: ImageFile | null) => {
+    subjects.setSubjectImage(image);
+    if (image) {
+      void detectImageAspectRatio(image).then((detected) => {
+        setAspectRatio(detected);
+      });
+    }
+  }, [subjects]);
 
   // Default driver comes from the studio-scoped image engine; tests can inject a mock.
   const driver = useMemo<VirtualTryOnImageDriver>(() => ({ editImage, upscaleImage }), [editImage, upscaleImage]);
@@ -152,8 +171,8 @@ export const useVirtualTryOn = () => {
     setSelectedSubjectItemId: subjects.setSelectedSubjectItemId,
     activeSubjectItem: subjects.activeSubjectItem,
     subjectImage: subjects.subjectImage,
-    setSubjectImage: subjects.setSubjectImage,
-    handleSubjectImagesUpload: subjects.handleSubjectImagesUpload,
+    setSubjectImage,
+    handleSubjectImagesUpload,
     clothingItems: clothing.clothingItems,
     backgroundPrompt,
     setBackgroundPrompt,
@@ -186,6 +205,10 @@ export const useVirtualTryOn = () => {
     handleSourcePromptChange: clothing.handleSourcePromptChange,
     addClothingUploader: clothing.addClothingUploader,
     removeClothingUploader: clothing.removeClothingUploader,
+    detectingItemIds: clothing.detectingItemIds,
+    isAutoDetectingAll: clothing.isAutoDetectingAll,
+    autoDetectItemType: clothing.autoDetectItemType,
+    autoDetectAllItemTypes: clothing.autoDetectAllItemTypes,
     handleDownloadAll: resultActions.handleDownloadAll,
     anyUpscaling,
     engineId,

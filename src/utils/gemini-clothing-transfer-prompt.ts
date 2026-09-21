@@ -19,6 +19,7 @@ import {
   formatGarmentScopeSelection,
   type ClothingTransferReferenceInput,
 } from './clothing-transfer-prompt-types';
+import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION, UNTUCKED_PROHIBITION_LINE } from './outfitDrapePolicy';
 
 const destinationRoleLabel = 'DESTINATION SCENE (owns background, scene composition, lighting, display method, and any subject person)';
 
@@ -54,7 +55,12 @@ export function buildGeminiClothingTransferParts(
     })),
   ];
 
-  const avoidBlock = AVOID_BULLETS.map((bullet) => `- ${bullet}`).join('\n');
+  const tuckingAllowed = isTuckingAllowed(extraInstructions);
+  const avoidList = [
+    ...AVOID_BULLETS,
+    ...(!tuckingAllowed ? [UNTUCKED_PROHIBITION_LINE] : []),
+  ];
+  const avoidBlock = avoidList.map((bullet) => `- ${bullet}`).join('\n');
   const blueprintBlock = formatGeminiBlueprintBlock(outfitBlueprint);
 
   const taskPrompt = `TASK: Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.${blueprintBlock}
@@ -78,7 +84,7 @@ PLACEMENT & PHYSICAL INTEGRATION:
 - Map each source garment to its corresponding location in the DESTINATION arrangement (e.g. source top to destination top position, source bottom to destination bottom position).
 - Adapt the garment drape to the DESTINATION display method: natural gravity drape for hanging clothes, natural spread and realistic folds for flat lays, and natural anatomical fit and body folds when worn by a person.
 - Preserve 3D garment silhouette: For voluminous, peplum, ruffled, or flared garments, preserve their authentic full 3D volume, flared drape, and silhouette rather than flattening or compressing them against the destination subject.
-- Maintain accessory & object boundaries: If the destination subject holds a phone, camera, or bag, the hands and held objects remain in the foreground in front of the clothing, with clean occlusion edges and zero texture smearing or blending artifacts.
+${!tuckingAllowed ? `- ${UNTUCKED_DRAPE_INSTRUCTION}\n` : ''}- Maintain accessory & object boundaries: If the destination subject holds a phone, camera, or bag, the hands and held objects remain in the foreground in front of the clothing, with clean occlusion edges and zero texture smearing or blending artifacts.
 - Zero blending: completely replace the destination clothing without retaining old colors, silhouettes, or pattern remnants. Replaced clothing areas must have zero visual influence from the old garment.
 - Lighting and contact: match the DESTINATION scene's light direction, intensity, color temperature, contact shadows, and occlusion so the transferred garment integrates believably as a single photograph.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
 

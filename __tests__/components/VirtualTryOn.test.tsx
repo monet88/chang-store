@@ -126,6 +126,10 @@ const baseHookState = {
   handleClothingUpload: vi.fn(),
   addClothingUploader: vi.fn(),
   removeClothingUploader: vi.fn(),
+  detectingItemIds: {},
+  isAutoDetectingAll: false,
+  autoDetectItemType: vi.fn().mockResolvedValue({ success: false }),
+  autoDetectAllItemTypes: vi.fn().mockResolvedValue({ detectedCount: 0 }),
   handleDownloadAll: vi.fn(),
   anyUpscaling: false,
   engineId: 'gemini' as const,
@@ -752,6 +756,58 @@ describe('VirtualTryOn component', () => {
       // The badge must describe the images the wardrobe batch will actually use.
       await waitFor(() => expect(analyze).toHaveBeenCalledWith(wardrobeSource, expect.anything()));
       expect(analyze).not.toHaveBeenCalledWith(multiModelSource, expect.anything());
+    });
+  });
+
+  describe('Auto-detect source item type with TypeSafe', () => {
+    it('renders single auto-detect button and triggers autoDetectItemType on click', () => {
+      const autoDetectItemTypeMock = vi.fn().mockResolvedValue({ success: true });
+      useVirtualTryOnMock.mockReturnValue({
+        ...baseHookState,
+        clothingItems: [{ id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: 'Áo sơ mi' }],
+        autoDetectItemType: autoDetectItemTypeMock,
+      });
+
+      render(<VirtualTryOn />);
+      const btn = screen.getByRole('button', { name: 'virtualTryOn.autoDetect' });
+      expect(btn).toBeInTheDocument();
+
+      fireEvent.click(btn);
+      expect(autoDetectItemTypeMock).toHaveBeenCalledWith(1);
+    });
+
+    it('renders batch auto-detect button when items have notes and triggers autoDetectAllItemTypes', () => {
+      const autoDetectAllItemTypesMock = vi.fn().mockResolvedValue({ detectedCount: 1 });
+      useVirtualTryOnMock.mockReturnValue({
+        ...baseHookState,
+        clothingItems: [{ id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: 'Giày sneaker' }],
+        autoDetectAllItemTypes: autoDetectAllItemTypesMock,
+      });
+
+      render(<VirtualTryOn />);
+      const batchBtn = screen.getByRole('button', { name: 'virtualTryOn.autoDetectAll' });
+      expect(batchBtn).toBeInTheDocument();
+      fireEvent.click(batchBtn);
+      expect(autoDetectAllItemTypesMock).toHaveBeenCalled();
+    });
+
+    it('sets error when auto-detect returns noText', async () => {
+      const setErrorMock = vi.fn();
+      const autoDetectItemTypeMock = vi.fn().mockResolvedValue({ success: false, error: 'noText' });
+      useVirtualTryOnMock.mockReturnValue({
+        ...baseHookState,
+        clothingItems: [{ id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: 'ao' }],
+        autoDetectItemType: autoDetectItemTypeMock,
+        setError: setErrorMock,
+      });
+
+      render(<VirtualTryOn />);
+      const btn = screen.getByRole('button', { name: 'virtualTryOn.autoDetect' });
+      fireEvent.click(btn);
+
+      await waitFor(() => {
+        expect(setErrorMock).toHaveBeenCalledWith('virtualTryOn.autoDetectNoText');
+      });
     });
   });
 });

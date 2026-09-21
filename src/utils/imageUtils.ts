@@ -1,4 +1,9 @@
-import { ImageFile, MarkerPosition } from "../types";
+import { AspectRatio, ImageFile, IMAGE_ASPECT_RATIOS, MarkerPosition } from "../types";
+export {
+  extractDimensionsFromHeader,
+  detectClosestAspectRatio,
+  detectImageAspectRatio,
+} from './imageAspectRatio';
 
 /**
  * Allowed MIME types for image uploads
@@ -87,7 +92,6 @@ export const validateImageFile = async (file: File): Promise<ImageValidationResu
 
   return { isValid: true };
 };
-
 export const getImageDimensions = (base64: string, mimeType: string): Promise<{ width: number, height: number }> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -101,7 +105,6 @@ export const getImageDimensions = (base64: string, mimeType: string): Promise<{ 
     img.src = `data:${mimeType};base64,${base64}`;
   });
 };
-
 
 export const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {

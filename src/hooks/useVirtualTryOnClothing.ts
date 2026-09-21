@@ -2,8 +2,9 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   VirtualTryOnClothingItem,
   VirtualTryOnSourceItemType,
+  ImageFile,
 } from '../types';
-import { ImageFile } from '../types';
+import { classifyVirtualTryOnItemTypes } from '../services/typesafeService';
 
 const MAX_SHARED_OUTFIT_IMAGES = 4;
 const MAX_SOURCE_PROMPT_LENGTH = 180;
@@ -19,6 +20,10 @@ export interface UseVirtualTryOnClothingReturn {
   handleSourcePromptChange: (id: number, sourcePrompt: string) => void;
   addClothingUploader: () => void;
   removeClothingUploader: (id: number) => void;
+  detectingItemIds: Record<number, boolean>;
+  isAutoDetectingAll: boolean;
+  autoDetectItemType: (id: number, fallbackText?: string) => Promise<{ success: boolean; error?: string }>;
+  autoDetectAllItemTypes: (fallbackBlueprint?: string | null) => Promise<{ detectedCount: number; error?: string }>;
 }
 
 /**
@@ -32,6 +37,8 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
   const [clothingItems, setClothingItems] = useState<VirtualTryOnClothingItem[]>([
     { id: ++clothingIdCounter.current, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
   ]);
+  const [detectingItemIds, setDetectingItemIds] = useState<Record<number, boolean>>({});
+  const [isAutoDetectingAll, setIsAutoDetectingAll] = useState(false);
 
   const validClothingItems = useMemo(
     () => clothingItems.filter((item) => item.image !== null),
@@ -78,6 +85,68 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
     });
   }, []);
 
+  const autoDetectItemType = useCallback(
+    async (id: number, fallbackText?: string): Promise<{ success: boolean; error?: string }> => {
+      const item = clothingItems.find((ci) => ci.id === id);
+      if (!item) return { success: false, error: 'Item not found' };
+
+      const text = item.sourcePrompt.trim() || fallbackText?.trim() || '';
+      if (!text) {
+        return { success: false, error: 'noText' };
+      }
+
+      setDetectingItemIds((prev) => ({ ...prev, [id]: true }));
+      try {
+        const result = await classifyVirtualTryOnItemTypes([{ id, text }]);
+        const detected = result[String(id)];
+        if (detected && detected.confidence >= 0.5) {
+          handleSourceItemTypeChange(id, detected.type);
+          return { success: true };
+        }
+        return { success: false, error: 'lowConfidence' };
+      } catch (err) {
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+      } finally {
+        setDetectingItemIds((prev) => ({ ...prev, [id]: false }));
+      }
+    },
+    [clothingItems, handleSourceItemTypeChange],
+  );
+
+  const autoDetectAllItemTypes = useCallback(
+    async (fallbackBlueprint?: string | null): Promise<{ detectedCount: number; error?: string }> => {
+      const itemsToClassify = clothingItems
+        .map((item) => {
+          const text = item.sourcePrompt.trim() || fallbackBlueprint?.trim() || '';
+          return { id: item.id, text };
+        })
+        .filter((item) => item.text.length > 0);
+
+      if (itemsToClassify.length === 0) {
+        return { detectedCount: 0, error: 'noText' };
+      }
+
+      setIsAutoDetectingAll(true);
+      try {
+        const result = await classifyVirtualTryOnItemTypes(itemsToClassify);
+        let count = 0;
+        for (const item of itemsToClassify) {
+          const detected = result[String(item.id)];
+          if (detected && detected.confidence >= 0.5) {
+            handleSourceItemTypeChange(Number(item.id), detected.type);
+            count += 1;
+          }
+        }
+        return { detectedCount: count };
+      } catch (err) {
+        return { detectedCount: 0, error: err instanceof Error ? err.message : String(err) };
+      } finally {
+        setIsAutoDetectingAll(false);
+      }
+    },
+    [clothingItems, handleSourceItemTypeChange],
+  );
+
   return {
     clothingItems,
     validClothingItems,
@@ -86,5 +155,9 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
     handleSourcePromptChange,
     addClothingUploader,
     removeClothingUploader,
+    detectingItemIds,
+    isAutoDetectingAll,
+    autoDetectItemType,
+    autoDetectAllItemTypes,
   };
 };

@@ -5,7 +5,7 @@ import Spinner from './Spinner';
 import HoverableImage from './HoverableImage';
 import { Feature, VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES, VirtualTryOnSourceItemType } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { AddIcon, DeleteIcon, CloudUploadIcon } from './Icons';
+import { AddIcon, DeleteIcon, CloudUploadIcon, MagicWandIcon } from './Icons';
 import Tooltip from './Tooltip';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
@@ -62,6 +62,10 @@ const VirtualTryOn: React.FC = () => {
     handleSourcePromptChange,
     addClothingUploader,
     removeClothingUploader,
+    detectingItemIds = {},
+    isAutoDetectingAll = false,
+    autoDetectItemType = async (): Promise<{ success: boolean; error?: string }> => ({ success: false }),
+    autoDetectAllItemTypes = async (): Promise<{ detectedCount: number; error?: string }> => ({ detectedCount: 0 }),
     handleDownloadAll,
     anyUpscaling,
     engineId,
@@ -338,9 +342,34 @@ const VirtualTryOn: React.FC = () => {
                 </Tooltip>
 
                 <div className="space-y-3">
-                  <div className="space-y-1">
-                    <p className="text-base font-semibold text-zinc-100">{t('virtualTryOn.step2')}</p>
-                    <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.sharedOutfitHint')}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-base font-semibold text-zinc-100">{t('virtualTryOn.step2')}</p>
+                      <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.sharedOutfitHint')}</p>
+                    </div>
+                    {clothingItems.some((item) => item.sourcePrompt.trim()) && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const res = await autoDetectAllItemTypes();
+                          if (res.error === 'noText') {
+                            setError(t('virtualTryOn.autoDetectNoText'));
+                          } else if (res.error) {
+                            setError(res.error);
+                          }
+                        }}
+                        disabled={isLoading || isAutoDetectingAll}
+                        title={t('virtualTryOn.autoDetectTooltip')}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition-all hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {isAutoDetectingAll ? (
+                          <Spinner />
+                        ) : (
+                          <MagicWandIcon className="h-3.5 w-3.5" />
+                        )}
+                        <span>{t('virtualTryOn.autoDetectAll')}</span>
+                      </button>
+                    )}
                   </div>
                   <div data-testid="source-items-grid" className={sourceItemsGridClass}>
                     {clothingItems.map((item, index) => (
@@ -355,9 +384,32 @@ const VirtualTryOn: React.FC = () => {
                         </Tooltip>
                         <div className="mt-3 space-y-3">
                           <div className="space-y-2">
-                            <label htmlFor={`source-item-type-${item.id}`} className="text-sm font-semibold text-zinc-200">
-                              {t('virtualTryOn.sourceItemTypeLabel')}
-                            </label>
+                            <div className="flex items-center justify-between">
+                              <label htmlFor={`source-item-type-${item.id}`} className="text-sm font-semibold text-zinc-200">
+                                {t('virtualTryOn.sourceItemTypeLabel')}
+                              </label>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const res = await autoDetectItemType(item.id);
+                                  if (res.error === 'noText') {
+                                    setError(t('virtualTryOn.autoDetectNoText'));
+                                  } else if (res.error) {
+                                    setError(res.error);
+                                  }
+                                }}
+                                disabled={isLoading || detectingItemIds?.[item.id] || !item.sourcePrompt.trim()}
+                                title={t('virtualTryOn.autoDetectTooltip')}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-amber-400 transition-colors hover:text-amber-300 disabled:cursor-not-allowed disabled:text-zinc-600"
+                              >
+                                {detectingItemIds[item.id] ? (
+                                  <Spinner />
+                                ) : (
+                                  <MagicWandIcon className="h-3 w-3" />
+                                )}
+                                <span>{t('virtualTryOn.autoDetect')}</span>
+                              </button>
+                            </div>
                             <select
                               id={`source-item-type-${item.id}`}
                               value={item.sourceItemType}

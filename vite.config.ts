@@ -19,6 +19,13 @@ export const createRendererConfig = (
       // Explicit IPv4 loopback: `localhost` resolves to ::1 first on Windows, so anything that
       // probes 127.0.0.1 (the hub's `ready.port` check, curl, other agents) never saw the server.
       host: process.env.VITE_ENABLE_LAN === 'true' ? '0.0.0.0' : '127.0.0.1',
+      proxy: {
+        '/typesafe-proxy': {
+          target: 'https://api.typesafe.ai',
+          changeOrigin: true,
+          rewrite: (p: string) => p.replace(/^\/typesafe-proxy/, ''),
+        },
+      },
 
       // Exclude unnecessary directories from file watching
       watch: {
@@ -73,6 +80,9 @@ export const createRendererConfig = (
       // its values win for the GPT Image provider (docs/api/xompet-image-api-guide.md).
       'process.env.XOMPET_API_KEY': JSON.stringify(rendererSecret(env.XOMPET_API_KEY || env.VITE_XOMPET_API_KEY)),
       'process.env.XOMPET_BASE_URL': JSON.stringify(env.XOMPET_BASE_URL || env.VITE_XOMPET_BASE_URL),
+      // TypeSafe System One (Jev) semantic judgment key and base URL.
+      'process.env.TYPESAFE_API_KEY': JSON.stringify(rendererSecret(env.TYPESAFE_API_KEY || env.VITE_TYPESAFE_API_KEY)),
+      'process.env.TYPESAFE_BASE_URL': JSON.stringify(env.TYPESAFE_BASE_URL || env.VITE_TYPESAFE_BASE_URL || 'https://api.typesafe.ai/v1'),
     },
     resolve: {
       alias: {

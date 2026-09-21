@@ -18,6 +18,7 @@ import {
   formatGarmentScopeSelection,
   type ClothingTransferReferenceInput,
 } from './clothing-transfer-prompt-types';
+import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION, UNTUCKED_PROHIBITION_LINE } from './outfitDrapePolicy';
 
 const destinationRoleLabel = 'DESTINATION SCENE (owns background, scene composition, lighting, display method, and any subject person)';
 
@@ -44,6 +45,7 @@ export function buildGptClothingTransferParts(
 
   const roleMap = roles.map((role, index) => `IMAGE ${index + 1} = ${role.label}`).join('\n');
   const parsedBlueprint = parseOutfitBlueprint(outfitBlueprint);
+  const tuckingAllowed = isTuckingAllowed(extraInstructions);
   const config: Record<string, unknown> = {
     TASK: 'Replace the clothing in the DESTINATION SCENE with the clothing from the SOURCE OUTFIT images, producing a single cohesive photo.',
     REFERENCE_OWNERSHIP: {
@@ -58,11 +60,13 @@ export function buildGptClothingTransferParts(
     PLACEMENT_AND_INTEGRATION: [
       'Map each source garment to its corresponding location in the DESTINATION arrangement.',
       'Adapt drape to the destination display method with realistic gravity, folds, anatomical fit, contact shadows, and occlusion.',
+      ...(!tuckingAllowed ? [UNTUCKED_DRAPE_INSTRUCTION] : []),
       'Zero blending: completely replace the destination clothing; no old colors, silhouettes, patterns, or residual visual attributes may remain.',
       'Match destination light direction, intensity, color temperature, contact shadows, camera perspective, and foreground object boundaries.',
     ],
     STRICT_INVARIANTS_AND_EXCLUSIONS: [
       'No compositing artifacts, edge halos, mismatched shadows, or perspective discrepancies.',
+      ...(!tuckingAllowed ? [UNTUCKED_PROHIBITION_LINE] : []),
       ...parsedBlueprint.detectedAccessories.map((accessory) => `exclude detected accessory: ${accessory}`),
     ],
     ...(parsedBlueprint.raw ? { AI_SCAN_BLUEPRINT: formatGptBlueprintConfig(outfitBlueprint) } : {}),

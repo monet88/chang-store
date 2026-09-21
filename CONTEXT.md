@@ -69,3 +69,7 @@ modes), Lookbook, Identity Transfer, Pose Changer and Background Replacer; the
 E-Com Pack uses the same analysis semantics. A disabled, failed or cancelled scan
 falls back silently to the base prompt.
 _Avoid_: Outfit analysis, garment inspector, deep scan, fabric detection.
+
+**Semantic Judgment**:
+The fast, structured decision layer of the studio powered by System One models (TypeSafe Jev). It evaluates application state, source item text, and AI Scan blueprints to return typed determinations: discrete category selection (`Choice`), condition verification (`Noul`), and graded rubric scoring (`Score`), without generating free-form text or unparsed prose. Semantic Judgment operates on text representations and acts as a common-sense classifier and validator before image synthesis pipelines run.
+_Avoid_: Text AI, AI Assistant, Chatbot, Smart Filter.

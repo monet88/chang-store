@@ -4,6 +4,7 @@ import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
+import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { buildSingleImageEditPrompt, buildMultiImageEditPrompt } from '../utils/ai-editor-prompt-builder';
 
 const MENTION_REGEX = /@img(\d+)/g;
@@ -45,6 +46,17 @@ export const useAIEditor = (): UseAIEditorReturn => {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('Default');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
 
+  const updateImages = useCallback((newImages: ImageFile[] | ((prev: ImageFile[]) => ImageFile[])) => {
+    setImages((prev) => {
+      const next = typeof newImages === 'function' ? newImages(prev) : newImages;
+      if (next.length > 0 && next[0]) {
+        void detectImageAspectRatio(next[0]).then((detected) => {
+          setAspectRatio(detected);
+        });
+      }
+      return next;
+    });
+  }, []);
   const extractMentionedImages = useCallback(
     (promptText: string): MentionedImageSelection => {
       const matches = [...promptText.matchAll(MENTION_REGEX)];
@@ -153,7 +165,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
 
   return {
     images,
-    setImages,
+    setImages: updateImages,
     prompt,
     setPrompt,
     isLoading,

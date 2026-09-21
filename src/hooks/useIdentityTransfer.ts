@@ -15,6 +15,7 @@ import { buildGeminiIdentityTransferParts } from '../utils/gemini-identity-trans
 import { buildGptIdentityTransferParts } from '../utils/gpt-identity-transfer-prompt';
 import type { IdentityTransferPromptInput } from '../utils/identity-transfer-prompt-types';
 import { getErrorMessage } from '../utils/imageUtils';
+import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { loadDefaultIdentityReferences } from '../utils/identity-transfer-defaults';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
@@ -87,6 +88,11 @@ export const useIdentityTransfer = () => {
       (item) => item.destinationImage,
       createDestinationItem,
     ));
+    if (images[0]) {
+      void detectImageAspectRatio(images[0]).then((detected) => {
+        setAspectRatio(detected);
+      });
+    }
     setError(null);
   }, [createDestinationItem]);
 
