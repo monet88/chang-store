@@ -9,6 +9,7 @@ vi.mock('../../../src/contexts/LanguageContext', () => ({
         'studio.switch.label': 'Studio',
         'studio.switch.gemini': 'Gemini',
         'studio.switch.gptImage': 'GPT',
+        'studio.switch.localQwen': 'Local Qwen',
       };
       return translations[key] ?? key;
     },
@@ -16,29 +17,77 @@ vi.mock('../../../src/contexts/LanguageContext', () => ({
 }));
 
 import StudioModeSwitch from '@/components/studios/StudioModeSwitch';
+import '@/platform/desktopGateway';
 
 describe('StudioModeSwitch', () => {
-  it('renders two studio segments', () => {
-    render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
-
-    expect(screen.getByRole('radio', { name: 'Gemini' })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'GPT' })).toBeInTheDocument();
+  beforeEach(() => {
+    delete window.desktopGateway;
   });
 
-  it('marks the active segment as checked', () => {
-    render(<StudioModeSwitch studioMode="gptImage" onChange={vi.fn()} />);
+  describe('browser environment', () => {
+    it('renders only Gemini and GPT segments in browser mode', () => {
+      render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
 
-    expect(screen.getByRole('radio', { name: 'GPT' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('radio', { name: 'Gemini' })).toHaveAttribute('aria-checked', 'false');
+      expect(screen.getByRole('radio', { name: 'Gemini' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'GPT' })).toBeInTheDocument();
+      expect(screen.queryByRole('radio', { name: 'Local Qwen' })).not.toBeInTheDocument();
+    });
+
+    it('marks the active segment as checked', () => {
+      render(<StudioModeSwitch studioMode="gptImage" onChange={vi.fn()} />);
+
+      expect(screen.getByRole('radio', { name: 'GPT' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('radio', { name: 'Gemini' })).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('calls onChange with the selected mode', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(<StudioModeSwitch studioMode="gemini" onChange={onChange} />);
+
+      await user.click(screen.getByRole('radio', { name: 'GPT' }));
+
+      expect(onChange).toHaveBeenCalledWith('gptImage');
+    });
   });
 
-  it('calls onChange with the selected mode', async () => {
-    const user = userEvent.setup();
-    const onChange = vi.fn();
-    render(<StudioModeSwitch studioMode="gemini" onChange={onChange} />);
+  describe('desktop environment', () => {
+    beforeEach(() => {
+      window.desktopGateway = {
+        storeCredential: vi.fn(),
+        removeCredential: vi.fn(),
+        clearCredentials: vi.fn(),
+        listGatewayModels: vi.fn(),
+        geminiGenerateContent: vi.fn(),
+        gptImageGenerate: vi.fn(),
+        gptImageEdit: vi.fn(),
+      };
+    });
 
-    await user.click(screen.getByRole('radio', { name: 'GPT' }));
+    it('renders Gemini, GPT, and Local Qwen segments on desktop', () => {
+      render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
 
-    expect(onChange).toHaveBeenCalledWith('gptImage');
+      expect(screen.getByRole('radio', { name: 'Gemini' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'GPT' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'Local Qwen' })).toBeInTheDocument();
+    });
+
+    it('marks localQwen as checked when active', () => {
+      render(<StudioModeSwitch studioMode="localQwen" onChange={vi.fn()} />);
+
+      expect(screen.getByRole('radio', { name: 'Local Qwen' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('radio', { name: 'Gemini' })).toHaveAttribute('aria-checked', 'false');
+      expect(screen.getByRole('radio', { name: 'GPT' })).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('calls onChange with localQwen when clicked', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(<StudioModeSwitch studioMode="gemini" onChange={onChange} />);
+
+      await user.click(screen.getByRole('radio', { name: 'Local Qwen' }));
+
+      expect(onChange).toHaveBeenCalledWith('localQwen');
+    });
   });
 });

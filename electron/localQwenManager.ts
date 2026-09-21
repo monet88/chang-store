@@ -7,6 +7,8 @@ import {
   type DesktopLocalQwenState,
   type DesktopLocalQwenStatus,
   type DesktopLocalQwenStopResult,
+  type LocalQwenGenerateParams,
+  type LocalQwenGenerateResult,
 } from '../src/platform/desktopLocalQwen';
 import { KNOWN_PORTABLE_COMFYUI_PATH } from '../src/config/localQwenSettings';
 import { trustedBridge } from './gateway';
@@ -53,6 +55,7 @@ export interface LocalQwenManagerOptions {
   spawnFn?: (command: string, args: readonly string[], options: Record<string, unknown>) => ChildProcess;
   readinessTimeoutMs?: number;
   readinessPollIntervalMs?: number;
+  fetchFn?: typeof fetch;
 }
 
 export class LocalQwenManager {
@@ -65,6 +68,7 @@ export class LocalQwenManager {
 
   private probeFn: (endpoint: string) => Promise<boolean>;
   private spawnFn: (command: string, args: readonly string[], options: Record<string, unknown>) => ChildProcess;
+  private fetchFn: typeof fetch;
   private readinessTimeoutMs: number;
   private readinessPollIntervalMs: number;
 
@@ -74,6 +78,7 @@ export class LocalQwenManager {
     this.spawnFn =
       options.spawnFn ??
       ((cmd, args, opts) => spawn(cmd, args as string[], opts as Parameters<typeof spawn>[2]));
+    this.fetchFn = options.fetchFn ?? ((url, init) => fetch(url, init));
     this.readinessTimeoutMs = options.readinessTimeoutMs ?? 60_000;
     this.readinessPollIntervalMs = options.readinessPollIntervalMs ?? 500;
   }
@@ -326,6 +331,208 @@ export class LocalQwenManager {
     }
     return false;
   }
+  public async generateImage(params: LocalQwenGenerateParams): Promise<LocalQwenGenerateResult> {
+    const isReady = await this.probe();
+    if (!isReady) {
+      throw new Error(`ComfyUI server is not running on 127.0.0.1:${this.port}. Please start it first.`);
+    }
+
+    const host = `127.0.0.1:${this.port}`;
+    const baseUrl = `http://${host}`;
+
+    const uploadedFileNames: string[] = [];
+    if (params.images && params.images.length > 0) {
+      for (let i = 0; i < params.images.length; i++) {
+        const img = params.images[i];
+        const buffer = Buffer.from(img.base64, 'base64');
+        const mimeType = img.mimeType || 'image/png';
+        const ext = mimeType.includes('jpeg') || mimeType.includes('jpg') ? 'jpg' : 'png';
+        const filename = `input_${Date.now()}_${i}.${ext}`;
+
+        const formData = new FormData();
+        const blob = new Blob([buffer], { type: mimeType });
+        formData.append('image', blob, filename);
+        formData.append('overwrite', 'true');
+
+        const uploadRes = await this.fetchFn(`${baseUrl}/upload/image`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text().catch(() => uploadRes.statusText);
+          throw new Error(`Failed to upload reference image ${i + 1} to ComfyUI: ${errText}`);
+        }
+
+        const uploadData = (await uploadRes.json()) as { name?: string };
+        uploadedFileNames.push(uploadData.name || filename);
+      }
+    }
+
+    const samplerMap: Record<string, string> = {
+      Euler: 'euler',
+      'Euler a': 'euler_ancestral',
+      'DPM++ 2M': 'dpmpp_2m',
+      'DPM++ 2M SDE': 'dpmpp_2m_sde',
+    };
+    const schedulerMap: Record<string, string> = {
+      Simple: 'simple',
+      Normal: 'normal',
+      Karras: 'karras',
+    };
+
+    const samplerName = (params.sampler && samplerMap[params.sampler]) || 'euler';
+    const schedulerName = (params.scheduler && schedulerMap[params.scheduler]) || 'simple';
+    const resolution = params.resolution ?? 512;
+    const steps = params.steps ?? 16;
+    const cfg = params.cfg ?? 1.0;
+    const seed = params.seed ?? Math.floor(Math.random() * 1_000_000_000);
+
+    const workflow: Record<string, unknown> = {
+      '1': {
+        class_type: 'UnetLoaderGGUF',
+        inputs: {
+          unet_name: 'qwen-image-2.1-Q4_K_M.gguf',
+        },
+      },
+      '2': {
+        class_type: 'CLIPLoader',
+        inputs: {
+          clip_name: 'qwen3vl_8b_w4a8.safetensors',
+          type: 'qwen_image',
+        },
+      },
+      '3': {
+        class_type: 'VAELoader',
+        inputs: {
+          vae_name: 'qwen_image_2.1_vae_bf16.safetensors',
+        },
+      },
+    };
+
+    const textEncodeInputs: Record<string, unknown> = {
+      clip: ['2', 0],
+      vae: ['3', 0],
+      prompt: params.prompt,
+      negative_prompt: params.negativePrompt ?? '',
+      resolution,
+    };
+
+    uploadedFileNames.forEach((fileName, index) => {
+      const nodeId = String(10 + index);
+      workflow[nodeId] = {
+        class_type: 'LoadImage',
+        inputs: {
+          image: fileName,
+        },
+      };
+      textEncodeInputs[`images.image_${index + 1}`] = [nodeId, 0];
+    });
+
+    workflow['4'] = {
+      class_type: 'TextEncodeQwenImage21',
+      inputs: textEncodeInputs,
+    };
+
+    workflow['7'] = {
+      class_type: 'KSampler',
+      inputs: {
+        model: ['1', 0],
+        positive: ['4', 0],
+        negative: ['4', 1],
+        latent_image: ['4', 2],
+        seed,
+        steps,
+        cfg,
+        sampler_name: samplerName,
+        scheduler: schedulerName,
+        denoise: 1.0,
+      },
+    };
+
+    workflow['8'] = {
+      class_type: 'VAEDecode',
+      inputs: {
+        samples: ['7', 0],
+        vae: ['3', 0],
+      },
+    };
+
+    workflow['9'] = {
+      class_type: 'SaveImage',
+      inputs: {
+        filename_prefix: 'Qwen_VTO',
+        images: ['8', 0],
+      },
+    };
+
+    const clientId = `chang-store-${Date.now()}`;
+    const promptRes = await this.fetchFn(`${baseUrl}/prompt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: workflow, client_id: clientId }),
+    });
+
+    if (!promptRes.ok) {
+      const errText = await promptRes.text().catch(() => promptRes.statusText);
+      throw new Error(`ComfyUI prompt rejected (${promptRes.status}): ${errText}`);
+    }
+
+    const promptData = (await promptRes.json()) as { prompt_id: string };
+    const promptId = promptData.prompt_id;
+    if (!promptId) {
+      throw new Error('ComfyUI did not return a prompt_id.');
+    }
+
+    const timeoutMs = 600_000;
+    const pollIntervalMs = 500;
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeoutMs) {
+      const historyRes = await this.fetchFn(`${baseUrl}/history/${promptId}`);
+      if (historyRes.ok) {
+        const historyData = (await historyRes.json()) as Record<string, {
+          outputs?: Record<string, { images?: Array<{ filename: string; subfolder?: string; type?: string }> }>;
+          status?: { status_str?: string; messages?: unknown };
+        }>;
+
+        const item = historyData[promptId];
+        if (item) {
+          if (item.status?.status_str === 'error') {
+            throw new Error(`ComfyUI execution failed: ${JSON.stringify(item.status.messages || 'Unknown error')}`);
+          }
+
+          if (item.outputs) {
+            for (const nodeId of Object.keys(item.outputs)) {
+              const nodeOut = item.outputs[nodeId];
+              if (nodeOut?.images && nodeOut.images.length > 0) {
+                const imgInfo = nodeOut.images[0];
+                const viewUrl = `${baseUrl}/view?filename=${encodeURIComponent(imgInfo.filename)}&subfolder=${encodeURIComponent(imgInfo.subfolder || '')}&type=${encodeURIComponent(imgInfo.type || 'output')}`;
+                const viewRes = await this.fetchFn(viewUrl);
+                if (!viewRes.ok) {
+                  throw new Error(`Failed to fetch rendered image from ComfyUI: ${viewRes.statusText}`);
+                }
+                const buffer = Buffer.from(await viewRes.arrayBuffer());
+                const base64 = buffer.toString('base64');
+                return {
+                  image: {
+                    base64,
+                    mimeType: 'image/png',
+                  },
+                };
+              }
+            }
+          }
+        }
+      }
+
+      const { promise, resolve } = Promise.withResolvers<void>();
+      setTimeout(resolve, pollIntervalMs);
+      await promise;
+    }
+
+    throw new Error('ComfyUI generation timed out.');
+  }
 }
 
 export const localQwenManager = new LocalQwenManager();
@@ -341,5 +548,8 @@ export const registerDesktopLocalQwenHandlers = (
   );
   ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.stopServer, (event) =>
     trustedBridge(event, () => manager.stopServer()),
+  );
+  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.generateImage, (event, params) =>
+    trustedBridge(event, () => manager.generateImage(params as LocalQwenGenerateParams)),
   );
 };

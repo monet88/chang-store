@@ -138,6 +138,7 @@ export const vi: Translation = {
       label: 'Studio',
       gemini: 'Gemini',
       gptImage: 'GPT',
+      localQwen: 'Qwen Cục bộ',
     },
     provider: {
       featuresLabel: 'Quy trình của nhà cung cấp',

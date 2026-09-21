@@ -138,6 +138,7 @@ export const en = {
       label: 'Studio',
       gemini: 'Gemini',
       gptImage: 'GPT',
+      localQwen: 'Local Qwen',
     },
     provider: {
       featuresLabel: 'Provider workflows',

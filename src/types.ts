@@ -16,10 +16,10 @@ export enum Feature {
 // ============================================
 
 /** Studio mode for the provider split. Gemini is default. */
-export type StudioMode = 'gemini' | 'gptImage';
+export type StudioMode = 'gemini' | 'gptImage' | 'localQwen';
 
 /** Engine identifier for image generation and gallery persistence. */
-export type ImageEngineId = 'gemini' | 'gptImage';
+export type ImageEngineId = 'gemini' | 'gptImage' | 'localQwen';
 /**
  * Subset of features available inside the GPT Image studio.
  * The GPT studio only supports these five workflows.
@@ -35,6 +35,20 @@ export const PROVIDER_SUPPORTED_FEATURES: Feature[] = [
 /** Returns true when a feature is supported inside the GPT Image studio. */
 export const isProviderSupportedFeature = (feature: Feature): boolean =>
   PROVIDER_SUPPORTED_FEATURES.includes(feature);
+
+/**
+ * Subset of features available inside the Local Qwen studio (desktop only).
+ */
+export const LOCAL_QWEN_SUPPORTED_FEATURES: Feature[] = [
+  Feature.TryOn,
+  Feature.ClothingTransfer,
+  Feature.IdentityTransfer,
+  Feature.AIEditor,
+];
+
+/** Returns true when a feature is supported inside the Local Qwen studio. */
+export const isLocalQwenSupportedFeature = (feature: Feature): boolean =>
+  LOCAL_QWEN_SUPPORTED_FEATURES.includes(feature);
 
 export interface ImageFile {
   base64: string;

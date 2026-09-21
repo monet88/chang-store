@@ -12,6 +12,7 @@ import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '../utils/gpt-virtual-try-on-prompt';
+import { buildQwenVirtualTryOnParts } from '../utils/qwen-virtual-try-on-prompt';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { UseVirtualTryOnSubjectsReturn } from './useVirtualTryOnSubjects';
 import { UseImageRefinementReturn } from './useImageRefinement';
@@ -108,7 +109,9 @@ export const useVirtualTryOnEngine = (
           isMultiPersonMode: isMultiPersonMode && subjects.markerPosition !== null,
           outfitBlueprint: blueprint ?? undefined,
         };
-        const interleavedParts = engineId === 'gptImage'
+        const interleavedParts = engineId === 'localQwen'
+          ? buildQwenVirtualTryOnParts(promptInput)
+          : engineId === 'gptImage'
           ? buildGptVirtualTryOnParts(promptInput)
           : buildGeminiVirtualTryOnParts(promptInput);
         const results = await driver.editImage(
@@ -154,7 +157,9 @@ export const useVirtualTryOnEngine = (
       id: item.id,
       subjectImage: item.subjectImage,
     }));
-    const batchConcurrency = Math.min(VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY, jobs.length);
+    const batchConcurrency = engineId === 'localQwen'
+      ? 1
+      : Math.min(VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY, jobs.length);
 
     setIsLoading(true);
     setLoadingMessage(t('virtualTryOn.generatingStatus'));
