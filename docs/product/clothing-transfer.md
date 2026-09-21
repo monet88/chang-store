@@ -19,7 +19,7 @@ where the clothing is being worn.
 | --- | --- | --- |
 | Clothing input | Isolated garment photo | Full person wearing outfit |
 | Use case | Product photos, flat-lays | Street style, outfit copying |
-| Prompt builder | `virtual-try-on-prompt-builder` | `clothing-transfer-prompt-builder` |
+| Prompt builder | `virtual-try-on-prompt-builder` | `gemini-clothing-transfer-prompt` / `gpt-clothing-transfer-prompt` |
 
 ## Inputs
 
@@ -35,7 +35,8 @@ where the clothing is being worn.
 
 - `src/components/ClothingTransfer.tsx` — UI
 - `src/hooks/useClothingTransfer.ts` — logic + state
-- `src/utils/clothing-transfer-prompt-builder.ts` — prompt construction
+- `src/utils/gemini-clothing-transfer-prompt.ts` — Gemini prompt policy
+- `src/utils/gpt-clothing-transfer-prompt.ts` — GPT Image prompt policy
 
 ## Validation Path
 

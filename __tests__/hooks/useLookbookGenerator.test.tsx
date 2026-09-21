@@ -60,13 +60,19 @@ vi.mock('../../src/utils/zipDownload', () => ({
 vi.mock('../../src/contexts/LanguageContext', () => mockUseLanguage());
 vi.mock('../../src/contexts/ImageGalleryContext', () => mockUseImageGallery({ addImage: addImageMock }));
 vi.mock('../../src/contexts/ApiProviderContext', () => mockUseApi());
-// The hook takes its transport from the studio-scoped engine (issue #152
-// Decision 3), so the same service spies feed the engine mock.
-vi.mock('../../src/contexts/ImageEngineContext', () => mockUseImageEngine({
-  editImage,
-  upscaleImage,
-  createImageChatSession,
+const activeEngine = vi.hoisted(() => ({
+  id: 'gemini' as 'gemini' | 'gptImage',
   model: 'gemini-3.1-flash-image',
+}));
+
+vi.mock('../../src/contexts/ImageEngineContext', () => ({
+  useImageEngine: () => ({
+    id: activeEngine.id,
+    model: activeEngine.model,
+    editImage,
+    upscaleImage,
+    createImageChatSession,
+  }),
 }));
 
 /** Mock prompts */
@@ -182,6 +188,8 @@ describe('useLookbookGenerator', () => {
     refineSessionMock.reset.mockReset();
     refineSessionMock.getHistory.mockReturnValue([]);
     addImageMock.mockReset();
+    activeEngine.id = 'gemini';
+    activeEngine.model = 'gemini-3.1-flash-image';
   });
 
   afterEach(() => {
@@ -1354,6 +1362,80 @@ describe('useLookbookGenerator', () => {
         expect(promptSent(callIndex)).not.toContain(outfitB.base64);
       });
       expect(analyze).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Studio Mode prompt policy & engine integration', () => {
+    it('uses Gemini-owned markdown prompt policy, exposes engineId, and tags gallery images with gemini', async () => {
+      activeEngine.id = 'gemini';
+      activeEngine.model = 'gemini-3.1-flash-image';
+      vi.mocked(editImage).mockResolvedValueOnce([GENERATED_IMAGE]);
+
+      const { result } = renderHook(() => useLookbookGenerator());
+      expect(result.current.engineId).toBe('gemini');
+
+      act(() => {
+        result.current.updateForm({
+          clothingImages: [{ id: '1', image: TEST_CLOTHING_IMAGE }],
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      const prompt = vi.mocked(editImage).mock.calls[0][0].prompt;
+      expect(prompt).toContain('## OUTPUT');
+      expect(prompt).not.toContain('/* LOOKBOOK_CONFIG */');
+      expect(addImageMock).toHaveBeenCalledWith(GENERATED_IMAGE, Feature.Lookbook, 'gemini');
+    });
+
+    it('uses GPT-owned JSON prompt policy, exposes engineId, and tags gallery images with gptImage', async () => {
+      activeEngine.id = 'gptImage';
+      activeEngine.model = 'gpt-image-2';
+      vi.mocked(editImage).mockResolvedValue([GENERATED_IMAGE]);
+
+      const { result } = renderHook(() => useLookbookGenerator());
+      expect(result.current.engineId).toBe('gptImage');
+
+      act(() => {
+        result.current.updateForm({
+          clothingImages: [
+            { id: '1', image: TEST_CLOTHING_IMAGE },
+            { id: '2', image: TEST_CLOTHING_IMAGE },
+          ],
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      const mainPrompt = vi.mocked(editImage).mock.calls[0][0].prompt;
+      expect(mainPrompt).toContain('/* LOOKBOOK_CONFIG */');
+      expect(mainPrompt).not.toContain('## OUTPUT');
+      expect(mainPrompt).toContain('## IMAGE ROLES');
+      expect(addImageMock).toHaveBeenCalledWith(GENERATED_IMAGE, Feature.Lookbook, 'gptImage');
+
+      // Test variation and close-up routing for GPT
+      await act(async () => {
+        await result.current.handleGenerateVariations();
+      });
+
+      const variationPrompt = vi.mocked(editImage).mock.calls[1][0].prompt;
+      expect(variationPrompt).toContain('TASK: PRODUCT LOOKBOOK VARIATION SHOT');
+      expect(variationPrompt).not.toContain('/* LOOKBOOK_CONFIG */');
+
+      await act(async () => {
+        await result.current.handleGenerateCloseUp();
+      });
+
+      // 3 close-up calls (calls 2, 3, 4)
+      [2, 3, 4].forEach((callIndex) => {
+        const closeUpPrompt = vi.mocked(editImage).mock.calls[callIndex][0].prompt;
+        expect(closeUpPrompt).toContain('DETAIL CLOSE-UP');
+        expect(addImageMock).toHaveBeenNthCalledWith(callIndex + 1, GENERATED_IMAGE, Feature.Lookbook, 'gptImage');
+      });
     });
   });
 });

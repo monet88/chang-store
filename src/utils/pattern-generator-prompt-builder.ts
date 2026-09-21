@@ -1,6 +1,6 @@
 import type { Part } from '@google/genai';
 import { ImageFile } from '../types';
-import { imagePart } from './promptFormat';
+import { imagePart } from './imagePart';
 
 export const TASK_PROMPT = `TASK:
 Generate a seamless, square, tileable textile pattern repeat unit from the reference image(s).

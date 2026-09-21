@@ -18,6 +18,15 @@ const mockImage = (id: string): ImageFile => ({
   mimeType: 'image/png',
 });
 
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+
+  return { promise, resolve };
+};
+
 describe('useClothingTransferEComPack', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -265,5 +274,331 @@ describe('useClothingTransferEComPack', () => {
       'gemini-3.8-flash',
     );
     expect(result.current.outfitBlueprint).toBe('Mock Blueprint: Top & Tiered Skirt');
+  });
+
+  it('does not label a new source outfit with an earlier analysis still in flight', async () => {
+    const firstDeferred = createDeferred<string>();
+    const analyzeMock = vi.fn()
+      .mockReturnValueOnce(firstDeferred.promise)
+      .mockResolvedValueOnce('Blueprint for outfit 2');
+
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gemini-2.5-flash-image',
+        textGenerateModel: 'gemini-3.8-flash',
+        engineId: 'gemini',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        analyzeOutfitBlueprintFn: analyzeMock,
+      }),
+    );
+
+    // 1. Upload outfit 1 -> starts first analysis (in flight)
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit-1'));
+    });
+    expect(result.current.isAnalyzingOutfit).toBe(true);
+
+    // 2. Quickly replace with outfit 2 before first analysis resolves
+    await act(async () => {
+      result.current.setSourceOutfitImage(mockImage('outfit-2'));
+    });
+    expect(result.current.outfitBlueprint).toBe('Blueprint for outfit 2');
+
+    // 3. Stale first analysis finishes later -> must not overwrite outfit 2's blueprint
+    await act(async () => {
+      firstDeferred.resolve('Stale blueprint for outfit 1');
+    });
+
+    expect(result.current.outfitBlueprint).toBe('Blueprint for outfit 2');
+  });
+
+  it('plans product display assets, brand models, and custom destinations into separate pack cards', async () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomStagingUpload([mockImage('staging-1'), mockImage('staging-2')]);
+      result.current.selectBrandModel('mai');
+      result.current.handleCustomDestinationsUpload([mockImage('dest-1'), mockImage('dest-2')]);
+    });
+
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    expect(result.current.packItems).toHaveLength(5);
+    expect(result.current.packItems.map((item) => item.category)).toEqual([
+      'product',
+      'product',
+      'brand-models',
+      'custom-destinations',
+      'custom-destinations',
+    ]);
+    expect(result.current.packItems.map((item) => item.id)).toEqual([
+      'template-custom-staging-0',
+      'template-custom-staging-1',
+      'brand-mai',
+      'custom-0',
+      'custom-1',
+    ]);
+    expect(result.current.packItems[2].title).toBe('Mai');
+    expect(editImageMock).toHaveBeenCalledTimes(5);
+  });
+
+  it('caps pack generation concurrency to three concurrent requests', async () => {
+    const deferredResults = Array.from({ length: 8 }, () => createDeferred<ImageFile[]>());
+    let activeRequests = 0;
+    let maxActiveRequests = 0;
+    let callIndex = 0;
+
+    editImageMock.mockImplementation(() => {
+      const currentCall = callIndex++;
+      activeRequests += 1;
+      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+
+      return deferredResults[currentCall].promise.finally(() => {
+        activeRequests -= 1;
+      });
+    });
+
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomStagingUpload([
+        mockImage('s1'),
+        mockImage('s2'),
+        mockImage('s3'),
+        mockImage('s4'),
+      ]);
+      result.current.handleCustomDestinationsUpload([
+        mockImage('d1'),
+        mockImage('d2'),
+        mockImage('d3'),
+        mockImage('d4'),
+      ]);
+    });
+
+    const generatePromise = act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    await vi.waitFor(() => {
+      expect(editImageMock).toHaveBeenCalledTimes(3);
+    });
+
+    deferredResults.forEach(({ resolve }, index) => {
+      resolve([mockImage(`res-${index}`)]);
+    });
+
+    await generatePromise;
+    expect(maxActiveRequests).toBe(3);
+    expect(editImageMock).toHaveBeenCalledTimes(8);
+    expect(result.current.packItems.every((item) => item.status === 'completed')).toBe(true);
+  });
+
+  it('consumes active blueprint and passes it to the active model-family prompt policy', async () => {
+    const blueprintText = '[CORE_GARMENTS]\nSilk organza blouse with scalloped hem\n\n[TEXTILE_PHYSICS]\nCrisp structured sheen with soft gravity drape';
+    const analyzeMock = vi.fn().mockResolvedValue(blueprintText);
+
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gemini-2.5-flash-image',
+        engineId: 'gemini',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        analyzeOutfitBlueprintFn: analyzeMock,
+      }),
+    );
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomStagingUpload([mockImage('staging-wood')]);
+    });
+
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    const request = editImageMock.mock.calls[0][0];
+    const text = request.interleavedParts.find((part: { text?: string }) =>
+      part.text?.includes('LAYER 3: GARMENT BLUEPRINT'),
+    )?.text;
+    expect(text).toContain('Silk organza blouse with scalloped hem');
+  });
+
+  it('retains successful sibling pack items when one item generation fails', async () => {
+    editImageMock
+      .mockRejectedValueOnce(new Error('Staging generation failed'))
+      .mockResolvedValueOnce([mockImage('model-res')])
+      .mockResolvedValueOnce([mockImage('dest-res')]);
+
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomStagingUpload([mockImage('staging-1')]);
+      result.current.selectBrandModel('mai');
+      result.current.handleCustomDestinationsUpload([mockImage('dest-1')]);
+    });
+
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    expect(result.current.packItems).toHaveLength(3);
+    expect(result.current.packItems[0].status).toBe('error');
+    expect(result.current.packItems[0].error).toBe('Staging generation failed');
+    expect(result.current.packItems[1].status).toBe('completed');
+    expect(result.current.packItems[1].results).toEqual([mockImage('model-res')]);
+    expect(result.current.packItems[2].status).toBe('completed');
+    expect(result.current.packItems[2].results).toEqual([mockImage('dest-res')]);
+    expect(addImageMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('regenerate-one reruns only the selected pack item using its exact planned definition and active blueprint', async () => {
+    editImageMock
+      .mockResolvedValueOnce([mockImage('res-staging')])
+      .mockResolvedValueOnce([mockImage('res-dest')])
+      .mockResolvedValueOnce([mockImage('res-dest-regenerated')]);
+
+    const analyzeMock = vi.fn().mockResolvedValue('[CORE_GARMENTS]\nOriginal Linen Dress');
+
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gemini-2.5-flash-image',
+        engineId: 'gemini',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        analyzeOutfitBlueprintFn: analyzeMock,
+      }),
+    );
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomStagingUpload([mockImage('staging-1')]);
+      result.current.handleCustomDestinationsUpload([mockImage('dest-1')]);
+    });
+
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    expect(editImageMock).toHaveBeenCalledTimes(2);
+    expect(result.current.packItems[0].results).toEqual([mockImage('res-staging')]);
+    expect(result.current.packItems[1].results).toEqual([mockImage('res-dest')]);
+
+    // Update blueprint actively before regenerate
+    const updatedBlueprint = '[CORE_GARMENTS]\nUpdated Cotton Tunic';
+    act(() => {
+      result.current.setOutfitBlueprint(updatedBlueprint);
+    });
+
+    const destinationItemId = result.current.packItems[1].id;
+
+    await act(async () => {
+      await result.current.handleRegeneratePackItem(destinationItemId);
+    });
+
+    // Exactly one extra call for the targeted item only
+    expect(editImageMock).toHaveBeenCalledTimes(3);
+
+    // Item 0 is untouched
+    expect(result.current.packItems[0].results).toEqual([mockImage('res-staging')]);
+    expect(result.current.packItems[0].status).toBe('completed');
+
+    // Item 1 was updated
+    expect(result.current.packItems[1].results).toEqual([mockImage('res-dest-regenerated')]);
+    expect(result.current.packItems[1].status).toBe('completed');
+
+    // 3rd call used the active updated blueprint
+    const thirdCallParts = editImageMock.mock.calls[2][0].interleavedParts;
+    const thirdCallText = thirdCallParts.find((part: { text?: string }) =>
+      part.text?.includes('TASK: Replace the clothing'),
+    )?.text;
+    expect(thirdCallText).toContain('Updated Cotton Tunic');
+  });
+
+  it('regenerates a planned custom destination using its captured image even after destination is removed from form state', async () => {
+    editImageMock
+      .mockResolvedValueOnce([mockImage('dest-initial')])
+      .mockResolvedValueOnce([mockImage('dest-retry')]);
+
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomDestinationsUpload([mockImage('captured-target-dest')]);
+    });
+
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    expect(result.current.packItems).toHaveLength(1);
+    const itemId = result.current.packItems[0].id;
+
+    // Remove custom destination from form selection
+    act(() => {
+      result.current.handleRemoveCustomDestination(0);
+    });
+    expect(result.current.customDestinations).toHaveLength(0);
+
+    // Regenerate the item; it must use its captured target definition rather than failing
+    await act(async () => {
+      await result.current.handleRegeneratePackItem(itemId);
+    });
+
+    expect(editImageMock).toHaveBeenCalledTimes(2);
+    expect(result.current.packItems[0].status).toBe('completed');
+    expect(result.current.packItems[0].results).toEqual([mockImage('dest-retry')]);
+
+    // Verify the second call still sent the original destination image
+    const secondCallParts = editImageMock.mock.calls[1][0].interleavedParts;
+    const destImagePart = secondCallParts.find(
+      (part: { inlineData?: { data?: string } }) =>
+        part.inlineData?.data === 'data-captured-target-dest',
+    );
+    expect(destImagePart).toBeDefined();
+  });
+
+  it('handleRegeneratePackItem is a no-op for nonexistent item id', async () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomDestinationsUpload([mockImage('d1')]);
+    });
+
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    expect(editImageMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.handleRegeneratePackItem('nonexistent-id');
+    });
+
+    expect(editImageMock).toHaveBeenCalledTimes(1);
   });
 });

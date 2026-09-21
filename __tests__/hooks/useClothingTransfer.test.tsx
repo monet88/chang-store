@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { Feature } from '../../src/types';
+import { Feature, ImageFile } from '../../src/types';
 
 const addImageMock = vi.fn();
 
@@ -178,6 +178,32 @@ describe('useClothingTransfer', () => {
     expect(addImageMock).toHaveBeenCalledWith(RESULT_A, Feature.ClothingTransfer, 'gptImage');
   });
 
+  it('uses the GPT-owned Clothing Transfer prompt policy in GPT Studio Mode and exposes engineId', async () => {
+    activeEngineId.current = 'gptImage';
+    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+
+    const { result } = renderHook(() => useClothingTransfer());
+    expect(result.current.engineId).toBe('gptImage');
+
+    act(() => {
+      result.current.handleConceptImagesUpload([CONCEPT_A]);
+      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
+      result.current.handleReferenceLabel('top', result.current.referenceItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    const textParts = vi.mocked(editImage).mock.calls[0][0].interleavedParts
+      ?.filter((part: { text?: string }) => part.text)
+      .map((part: { text?: string }) => part.text)
+      .join('\n');
+    expect(textParts).toContain('/* CLOTHING_TRANSFER_CONFIG */');
+    expect(textParts).toContain('IMAGE 1 = DESTINATION SCENE');
+    expect(textParts).not.toContain('DESTINATION SCENE OWNS THE ENVIRONMENT AND COMPOSITION');
+  });
+
   it('stores per-item errors without aborting sibling concept jobs', async () => {
     vi.mocked(editImage)
       .mockResolvedValueOnce([RESULT_A])
@@ -286,6 +312,43 @@ describe('useClothingTransfer', () => {
     expect(result.current.conceptItems[0].results[0]).toEqual(UPSCALED);
     expect(addImageMock).toHaveBeenCalledWith(UPSCALED, Feature.ClothingTransfer, 'gemini');
     expect(result.current.upscalingStates[`${itemId}:0`]).toBe(false);
+  });
+
+  it('upscales the targeted slot preserving sibling results and tags gallery persistence with the active engine', async () => {
+    activeEngineId.current = 'gptImage';
+    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A, RESULT_B]);
+    const deferred = createDeferred<ImageFile>();
+    vi.mocked(upscaleImage).mockReturnValueOnce(deferred.promise);
+
+    const { result } = renderHook(() => useClothingTransfer());
+
+    act(() => {
+      result.current.handleConceptImagesUpload([CONCEPT_A]);
+      result.current.handleReferenceUpload(REF_A, result.current.referenceItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    addImageMock.mockClear();
+    const itemId = result.current.conceptItems[0].id;
+    let upscalePromise!: Promise<void>;
+
+    act(() => {
+      upscalePromise = result.current.handleUpscale(RESULT_B, 1, itemId);
+    });
+
+    expect(result.current.upscalingStates[`${itemId}:1`]).toBe(true);
+
+    await act(async () => {
+      deferred.resolve(UPSCALED);
+      await upscalePromise;
+    });
+
+    expect(result.current.conceptItems[0].results).toEqual([RESULT_A, UPSCALED]);
+    expect(result.current.upscalingStates[`${itemId}:1`]).toBe(false);
+    expect(addImageMock).toHaveBeenCalledWith(UPSCALED, Feature.ClothingTransfer, 'gptImage');
   });
 
   it('addReference allows more than 2 references (unlimited)', () => {

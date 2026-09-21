@@ -69,7 +69,7 @@ import type { ReactNode } from 'react';
 import { compositeMarkerOnImage } from '../../src/utils/imageUtils';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 import { Feature } from '../../src/types';
-import type { ImageEngineId } from '../../src/types';
+import type { ImageEngineId, ImageFile } from '../../src/types';
 
 const SUBJECT_A = { base64: 'subject-a', mimeType: 'image/png' };
 const SUBJECT_B = { base64: 'subject-b', mimeType: 'image/png' };
@@ -429,9 +429,8 @@ describe('useVirtualTryOn', () => {
     await act(async () => {
       await result.current.handleGenerateImage();
     });
-
+    addImageMock.mockClear();
     const itemId = result.current.subjectItems[0].id;
-
     await act(async () => {
       await result.current.handleUpscale(RESULT_A, 0, itemId);
     });
@@ -445,6 +444,43 @@ describe('useVirtualTryOn', () => {
     );
     expect(result.current.subjectItems[0].results[0]).toEqual(UPSCALED);
     expect(result.current.upscalingStates[`${itemId}:0`]).toBe(false);
+    expect(addImageMock).not.toHaveBeenCalled();
+  });
+
+  it('upscales the targeted slot preserving sibling results and tracks inflight upscalingStates', async () => {
+    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A, RESULT_B]);
+    const deferred = createDeferred<ImageFile>();
+    vi.mocked(upscaleImage).mockReturnValueOnce(deferred.promise);
+
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.handleSubjectImagesUpload([SUBJECT_A]);
+      result.current.handleClothingUpload(OUTFIT_A, result.current.clothingItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerateImage();
+    });
+
+    addImageMock.mockClear();
+    const itemId = result.current.subjectItems[0].id;
+    let upscalePromise!: Promise<void>;
+
+    act(() => {
+      upscalePromise = result.current.handleUpscale(RESULT_B, 1, itemId);
+    });
+
+    expect(result.current.upscalingStates[`${itemId}:1`]).toBe(true);
+
+    await act(async () => {
+      deferred.resolve(UPSCALED);
+      await upscalePromise;
+    });
+
+    expect(result.current.subjectItems[0].results).toEqual([RESULT_A, UPSCALED]);
+    expect(result.current.upscalingStates[`${itemId}:1`]).toBe(false);
+    expect(addImageMock).not.toHaveBeenCalled();
   });
 
   it('clearSubjectImages resets all subject state', () => {
@@ -737,9 +773,9 @@ describe('useVirtualTryOn', () => {
       await result.current.handleGenerateImage();
     });
 
+    addImageMock.mockClear();
     const itemId = result.current.subjectItems[0].id;
     const refineKey = `${itemId}:0`;
-
     act(() => {
       result.current.setRefinePrompts({ [refineKey]: 'make it cleaner' });
     });
@@ -752,6 +788,7 @@ describe('useVirtualTryOn', () => {
     expect(result.current.subjectItems[0].results[0]).toEqual(REFINED);
     expect(result.current.refinePrompts[refineKey]).toBe('');
     expect(result.current.isRefining[refineKey]).toBe(false);
+    expect(addImageMock).not.toHaveBeenCalled();
   });
 
   it('sets error when creating a refinement session fails', async () => {

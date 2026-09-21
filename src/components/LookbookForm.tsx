@@ -1,10 +1,11 @@
 import React, { useCallback, useId, useMemo, useState } from 'react';
-import { ImageFile, AspectRatio, ImageResolution } from '../types';
+import { ImageFile, AspectRatio, ImageResolution, ImageEngineId } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import ImageUploader from './ImageUploader';
 import MultiImageUploader from './MultiImageUploader';
 import Spinner from './Spinner';
 import ImageOptionsPanel from './ImageOptionsPanel';
+import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import AiScanPanel from './AiScanPanel';
 import { AddIcon, DeleteIcon, MagicWandIcon } from './Icons';
 import {
@@ -12,12 +13,8 @@ import {
   GarmentType,
   MannequinBackgroundStyleKey,
 } from './LookbookGenerator.prompts';
-import { LookbookFormState, lookbookAiScanSources } from '../utils/lookbookPromptBuilder';
-
-export interface ClothingItem {
-  id: string;
-  image: ImageFile | null;
-}
+import { LookbookFormState } from '../hooks/useLookbookDraft';
+import { lookbookAiScanSources } from '../utils/lookbook-prompt-types';
 
 interface LookbookFormProps {
   formState: LookbookFormState;
@@ -29,9 +26,10 @@ interface LookbookFormProps {
   isLoading: boolean;
   aspectRatio: AspectRatio;
   setAspectRatio: (ratio: AspectRatio) => void;
-  resolution: ImageResolution;
-  setResolution: (resolution: ImageResolution) => void;
-  imageEditModel: string;
+  resolution?: ImageResolution;
+  setResolution?: (resolution: ImageResolution) => void;
+  imageEditModel?: string;
+  engineId?: ImageEngineId;
   mannequinBackgroundStyles: Array<{ key: MannequinBackgroundStyleKey; label: string }>;
 }
 
@@ -60,8 +58,10 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
   resolution,
   setResolution,
   imageEditModel,
+  engineId,
   mannequinBackgroundStyles,
 }) => {
+  const isGptImageStudio = engineId === 'gptImage';
   const { t } = useLanguage();
   const styleGroupName = useId();
   const presentationGroupName = useId();
@@ -407,13 +407,17 @@ export const LookbookForm = React.memo<LookbookFormProps>(({
               </div>
             )}
 
-            <ImageOptionsPanel
-              aspectRatio={aspectRatio}
-              setAspectRatio={setAspectRatio}
-              resolution={resolution}
-              setResolution={setResolution}
-              model={imageEditModel}
-            />
+            {isGptImageStudio ? (
+              <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
+            ) : (
+              <ImageOptionsPanel
+                aspectRatio={aspectRatio}
+                setAspectRatio={setAspectRatio}
+                resolution={resolution!}
+                setResolution={setResolution!}
+                model={imageEditModel ?? ''}
+              />
+            )}
 
             <AiScanPanel sources={aiScanSources} />
           </div>

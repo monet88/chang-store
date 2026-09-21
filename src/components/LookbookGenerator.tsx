@@ -45,6 +45,7 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
     refinementVersions,
     selectedVersionIndex,
     originalImageRef,
+    engineId,
     imageEditModel,
     handleDownloadAll,
   } = useLookbookGenerator();
@@ -82,6 +83,7 @@ export const LookbookGenerator: React.FC<LookbookGeneratorProps> = ({ onSendToFe
           resolution={resolution}
           setResolution={setResolution}
           imageEditModel={imageEditModel}
+          engineId={engineId}
           mannequinBackgroundStyles={mannequinBackgroundStyles}
         />
 

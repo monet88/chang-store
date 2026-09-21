@@ -4,7 +4,7 @@
  */
 
 import type { Part } from '@google/genai';
-import { imagePart } from './promptFormat';
+import { imagePart } from './imagePart';
 import { formatGeminiBlueprintBlock, parseOutfitBlueprint } from './ai-scan-blueprint';
 import type { VirtualTryOnPromptInput, VirtualTryOnPromptSourceItem } from './virtual-try-on-prompt-types';
 

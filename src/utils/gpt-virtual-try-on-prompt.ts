@@ -5,7 +5,7 @@
  */
 
 import type { Part } from '@google/genai';
-import { imagePart } from './promptFormat';
+import { imagePart } from './imagePart';
 import { formatGptBlueprintConfig, parseOutfitBlueprint } from './ai-scan-blueprint';
 import type { VirtualTryOnPromptInput, VirtualTryOnPromptSourceItem } from './virtual-try-on-prompt-types';
 

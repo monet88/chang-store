@@ -3,6 +3,7 @@ import ImageUploader from './ImageUploader';
 import MultiImageUploader from './MultiImageUploader';
 import Spinner from './Spinner';
 import HoverableImage from './HoverableImage';
+import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import { AddIcon, DeleteIcon, CloseIcon } from './Icons';
@@ -18,6 +19,7 @@ interface EComPackViewProps {
   setResolution: (res: ImageResolution) => void;
   imageEditModel: string;
   error: string | null;
+  isGptImageStudio: boolean;
 }
 
 const GARMENT_SCOPES: { id: GarmentScope; labelKey: string }[] = [
@@ -36,6 +38,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
   setResolution,
   imageEditModel,
   error,
+  isGptImageStudio,
 }) => {
   const { t } = useLanguage();
   const {
@@ -343,13 +346,20 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
 
         {/* Action Panel & Generation Trigger */}
         <section className="workspace-panel space-y-4 rounded-[2rem] p-5 sm:p-6">
-          <ImageOptionsPanel
-            aspectRatio={aspectRatio}
-            setAspectRatio={setAspectRatio}
-            resolution={resolution}
-            setResolution={setResolution}
-            model={imageEditModel}
-          />
+          {isGptImageStudio ? (
+            <GptImageOptionsPanel
+              aspectRatio={aspectRatio}
+              setAspectRatio={setAspectRatio}
+            />
+          ) : (
+            <ImageOptionsPanel
+              aspectRatio={aspectRatio}
+              setAspectRatio={setAspectRatio}
+              resolution={resolution}
+              setResolution={setResolution}
+              model={imageEditModel}
+            />
+          )}
 
           {error && (
             <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-300">

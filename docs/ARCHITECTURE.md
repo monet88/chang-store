@@ -174,15 +174,13 @@ createImageChatSession, options }` for the active mode, the Gemini lane backed
 by `src/services/imageEditingService.ts` and the GPT lane by
 `src/services/providers/gpt-image/gptImageEngine.ts`.
 
-The current source still reuses several prompt builders and selects an assembly
-format through `src/utils/promptFormat.ts`: Gemini receives interleaved
-`[label, image, …]` parts, while the GPT lane is flattened into one role map and
-ordered reference images. Treat that reuse as an implementation detail, not as
-an architectural requirement that the two lanes share wording. When prompt
-behavior diverges, prefer separate Gemini and GPT prompt modules at the engine
-seam rather than forcing "one wording, two assemblies". Transport helpers and
-truly model-agnostic prompt fragments may still be shared when doing so does not
-constrain either model family.
+Gemini and GPT Image feature workflows assemble requests through independent
+prompt policies at the engine seam rather than forcing "one wording, two
+assemblies": Gemini receives interleaved `[label, image, …]` parts, while the
+GPT lane is flattened into one role map and ordered reference images. Transport
+helpers (`imagePart` in `src/utils/imagePart.ts`) and truly model-agnostic
+prompt fragments may still be shared when doing so does not constrain either
+model family.
 
 The GPT adapter also maps the requested ratio to the pixel size the active
 `(gateway, model)` pair actually honors and turns a refine into one stateless

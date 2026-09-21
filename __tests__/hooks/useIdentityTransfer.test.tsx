@@ -11,6 +11,10 @@ vi.mock('../../src/services/imageEditingService', () => ({
 vi.mock('../../src/contexts/LanguageContext', () => ({
   useLanguage: () => ({ t: (key: string) => key }),
 }));
+const activeEngine = vi.hoisted(() => ({
+  id: 'gemini' as 'gemini' | 'gptImage',
+  model: 'gemini-3.1-flash-image',
+}));
 
 // The hook takes its transport from the studio-scoped engine (issue #152
 // Decision 3), so the same service spy feeds the engine mock.
@@ -19,7 +23,12 @@ vi.mock('../../src/contexts/ImageEngineContext', async () => {
   const services = await import('../../src/services/imageEditingService');
   return createEngineMock({
     editImage: services.editImage,
-    model: 'gemini-3.1-flash-image',
+    get id() {
+      return activeEngine.id;
+    },
+    get model() {
+      return activeEngine.model;
+    },
   });
 });
 
@@ -69,6 +78,8 @@ const textData = (callIndex: number) =>
 describe('useIdentityTransfer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    activeEngine.id = 'gemini';
+    activeEngine.model = 'gemini-3.1-flash-image';
     addImageMock.mockReset();
     defaultsMock.load.mockReset().mockReturnValue(createDeferred<DefaultIdentityReferences>().promise);
   });
@@ -494,6 +505,89 @@ describe('useIdentityTransfer', () => {
       expect(result.current.destinationItems[0].results).toEqual([RESULT_A]);
       expect(textData(0)).not.toContain('AI SCAN');
       warn.mockRestore();
+    });
+  });
+
+  describe('GPT Studio Mode', () => {
+    beforeEach(() => {
+      activeEngine.id = 'gptImage';
+      activeEngine.model = 'gpt-image-2';
+    });
+
+    it('uses GPT-owned flat prompt policy, exposes engineId, and tags gallery images with gptImage', async () => {
+      vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+
+      const { result } = renderHook(() => useIdentityTransfer());
+      expect(result.current.engineId).toBe('gptImage');
+
+      act(() => {
+        result.current.handleDestinationImagesUpload([DESTINATION_A]);
+        result.current.setFaceReference(FACE);
+        result.current.setBodyReference(BODY);
+        result.current.setBackgroundPrompt('dramatic night studio');
+        result.current.setExtraPrompt('soft rim lighting');
+        result.current.setAspectRatio('3:4');
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      expect(editImage).toHaveBeenCalledTimes(1);
+      const callInput = vi.mocked(editImage).mock.calls[0][0];
+      const parts = callInput.interleavedParts ?? [];
+
+      // GPT Image lane: single leading text part with role map, followed by referenced images in order
+      expect(parts).toHaveLength(4);
+      expect(parts[0].text).toContain('IMAGE 1 = DESTINATION IMAGE:');
+      expect(parts[0].text).toContain('IMAGE 2 = FACE REFERENCE:');
+      expect(parts[0].text).toContain('IMAGE 3 = BODY REFERENCE:');
+      expect(parts[0].text).toContain('dramatic night studio');
+      expect(parts[0].text).toContain('soft rim lighting');
+      expect(parts[1].inlineData?.data).toBe('destination-a');
+      expect(parts[2].inlineData?.data).toBe('face-reference');
+      expect(parts[3].inlineData?.data).toBe('body-reference');
+
+      expect(addImageMock).toHaveBeenCalledTimes(1);
+      expect(addImageMock).toHaveBeenCalledWith(RESULT_A, Feature.IdentityTransfer, 'gptImage');
+      expect(result.current.completedCount).toBe(1);
+    });
+
+    it('preserves regenerate-one gating and successful siblings in GPT Studio Mode', async () => {
+      vi.mocked(editImage)
+        .mockResolvedValueOnce([RESULT_A])
+        .mockRejectedValueOnce(new Error('gpt destination failed'));
+
+      const { result } = renderHook(() => useIdentityTransfer());
+      act(() => {
+        result.current.handleDestinationImagesUpload([DESTINATION_A, DESTINATION_B]);
+        result.current.setFaceReference(FACE);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      expect(result.current.destinationItems[0].status).toBe('completed');
+      expect(result.current.destinationItems[0].results).toEqual([RESULT_A]);
+      expect(result.current.destinationItems[1].status).toBe('error');
+      expect(result.current.destinationItems[1].error).toBe('gpt destination failed');
+      expect(result.current.completedCount).toBe(1);
+      expect(result.current.failedCount).toBe(1);
+
+      // Regenerate the failed sibling
+      const regenerated = { base64: 'result-b-retry', mimeType: 'image/png' };
+      vi.mocked(editImage).mockResolvedValueOnce([regenerated]);
+
+      const secondId = result.current.destinationItems[1].id;
+      await act(async () => {
+        await result.current.handleRegenerateSingle(secondId);
+      });
+
+      expect(result.current.destinationItems[0].results).toEqual([RESULT_A]);
+      expect(result.current.destinationItems[1].results).toEqual([regenerated]);
+      expect(result.current.destinationItems[1].status).toBe('completed');
+      expect(addImageMock).toHaveBeenLastCalledWith(regenerated, Feature.IdentityTransfer, 'gptImage');
     });
   });
 });

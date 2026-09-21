@@ -5,10 +5,10 @@ import { mockUseImageEngine, mockUseLanguage } from '../../__mocks__/contexts';
 
 vi.mock('@/contexts/LanguageContext', () => mockUseLanguage());
 vi.mock('@/components/VirtualTryOn', () => ({ default: () => <div data-testid="view-try-on" /> }));
-vi.mock('@/components/studios/GptLookbookGenerator', () => ({ default: () => <div data-testid="view-lookbook" /> }));
-vi.mock('@/components/studios/GptClothingTransfer', () => ({ default: () => <div data-testid="view-clothing-transfer" /> }));
+vi.mock('@/components/LookbookGenerator', () => ({ default: () => <div data-testid="view-lookbook" /> }));
+vi.mock('@/components/ClothingTransfer', () => ({ default: () => <div data-testid="view-clothing-transfer" /> }));
 vi.mock('@/components/studios/GptAIEditor', () => ({ default: () => <div data-testid="view-ai-editor" /> }));
-vi.mock('@/components/studios/GptIdentityTransfer', () => ({ default: () => <div data-testid="view-identity-transfer" /> }));
+vi.mock('@/components/IdentityTransfer', () => ({ default: () => <div data-testid="view-identity-transfer" /> }));
 
 vi.mock('@/contexts/ImageEngineContext', () => mockUseImageEngine({
   id: 'gptImage',

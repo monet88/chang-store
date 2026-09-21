@@ -219,5 +219,69 @@ describe('AiScanContext', () => {
       expect(analyze).toHaveBeenCalledTimes(2);
       consoleSpy.mockRestore();
     });
+
+    it('isolates source sets: scanning another set never evicts earlier analysis', async () => {
+      const analyze = vi.fn(async (image: ImageFile) => `blueprint for ${image.base64}`);
+      const { result } = renderHook(() => useAiScan(), { wrapper: wrapperFor(analyze) });
+
+      let blueprintA: string | null = null;
+      let blueprintB: string | null = null;
+      let blueprintAReused: string | null = null;
+
+      await act(async () => {
+        blueprintA = await result.current.scan([IMAGE_A]);
+        blueprintB = await result.current.scan([IMAGE_B]);
+        blueprintAReused = await result.current.scan([IMAGE_A]);
+      });
+
+      expect(blueprintA).toBe('blueprint for aaa');
+      expect(blueprintB).toBe('blueprint for bbb');
+      expect(blueprintAReused).toBe('blueprint for aaa');
+      // IMAGE_A was analyzed only once despite IMAGE_B scanning in between
+      expect(analyze).toHaveBeenCalledTimes(2);
+    });
+
+    it('never invalidates an existing analysis when another job fails', async () => {
+      const analyze = vi.fn(async (image: ImageFile) => {
+        if (image === IMAGE_B) throw new Error('image B failure');
+        return `blueprint for ${image.base64}`;
+      });
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { result } = renderHook(() => useAiScan(), { wrapper: wrapperFor(analyze) });
+
+      let blueprintA: string | null = null;
+      let blueprintB: string | null = null;
+      let blueprintAReused: string | null = null;
+
+      await act(async () => {
+        blueprintA = await result.current.scan([IMAGE_A]);
+        blueprintB = await result.current.scan([IMAGE_B]);
+        blueprintAReused = await result.current.scan([IMAGE_A]);
+      });
+
+      expect(blueprintA).toBe('blueprint for aaa');
+      expect(blueprintB).toBeNull();
+      expect(blueprintAReused).toBe('blueprint for aaa');
+      expect(analyze).toHaveBeenCalledTimes(2);
+      consoleSpy.mockRestore();
+    });
+
+    it('an empty source scan from another feature does not purge cached analyses', async () => {
+      const analyze = vi.fn().mockResolvedValue('blueprint for aaa');
+      const { result } = renderHook(() => useAiScan(), { wrapper: wrapperFor(analyze) });
+
+      let blueprintA: string | null = null;
+      let blueprintAReused: string | null = null;
+
+      await act(async () => {
+        blueprintA = await result.current.scan([IMAGE_A]);
+        await result.current.scan([]);
+        blueprintAReused = await result.current.scan([IMAGE_A]);
+      });
+
+      expect(blueprintA).toBe('blueprint for aaa');
+      expect(blueprintAReused).toBe('blueprint for aaa');
+      expect(analyze).toHaveBeenCalledTimes(1);
+    });
   });
 });

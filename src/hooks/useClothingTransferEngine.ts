@@ -9,8 +9,8 @@ import {
 } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage } from '../services/imageEditingService';
-import { buildClothingTransferParts } from '../utils/clothing-transfer-prompt-builder';
-import { promptFormatFor } from '../utils/promptFormat';
+import { buildGeminiClothingTransferParts } from '../utils/gemini-clothing-transfer-prompt';
+import { buildGptClothingTransferParts } from '../utils/gpt-clothing-transfer-prompt';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { UseClothingTransferConceptsReturn } from './useClothingTransferConcepts';
 import { UseImageRefinementReturn } from './useImageRefinement';
@@ -18,12 +18,12 @@ import { UseImageRefinementReturn } from './useImageRefinement';
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
 /**
- * Gemini image primitives the engine orchestrates, mirroring the provider
+ * Image primitives the engine orchestrates, mirroring the provider
  * `ProviderImageDriver` seam. The main hook builds the default driver from the
  * real `imageEditingService`; tests can inject a mock driver to exercise the
- * generation core without hitting the Gemini API.
+ * generation core without hitting the active image API.
  */
-export interface GeminiImageDriver {
+export interface ClothingTransferImageDriver {
   editImage: typeof editImage;
   upscaleImage: typeof upscaleImage;
 }
@@ -31,7 +31,7 @@ export interface GeminiImageDriver {
 const CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY = 3;
 
 export interface UseClothingTransferEngineConfig {
-  driver: GeminiImageDriver;
+  driver: ClothingTransferImageDriver;
   concepts: UseClothingTransferConceptsReturn;
   validReferences: ClothingTransferReferenceItem[];
   extraPrompt: string;
@@ -83,12 +83,9 @@ export const useClothingTransferEngine = (
     ) => {
       updateConceptItem(itemId, { status: 'processing', results: [], error: undefined });
       try {
-        const interleavedParts = buildClothingTransferParts(
-          conceptImage,
-          refsWithImages,
-          extraPrompt.trim(),
-          promptFormatFor(engineId),
-        );
+        const interleavedParts = engineId === 'gptImage'
+          ? buildGptClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim())
+          : buildGeminiClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim());
         const results = await driver.editImage(
           {
             images: [conceptImage, ...referenceImages],

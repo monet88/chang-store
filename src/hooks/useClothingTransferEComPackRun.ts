@@ -1,0 +1,342 @@
+import { useCallback, useRef, useState } from 'react';
+import type { Part } from '@google/genai';
+import {
+  AspectRatio,
+  EComPackItem,
+  Feature,
+  GarmentScope,
+  ImageEngineId,
+  ImageFile,
+  ImageResolution,
+} from '../types';
+import { ClothingTransferImageDriver } from './useClothingTransferEngine';
+import { BrandModelProfile } from '../config/brandModelRoster';
+import { DisplayTemplate } from '../config/displayTemplates';
+import {
+  buildGeminiBrandModelParts,
+  buildGeminiClothingTransferParts,
+  buildGeminiProductStagingParts,
+} from '../utils/gemini-clothing-transfer-prompt';
+import {
+  buildGptBrandModelParts,
+  buildGptClothingTransferParts,
+  buildGptProductStagingParts,
+} from '../utils/gpt-clothing-transfer-prompt';
+import { formatGarmentScope } from '../utils/clothing-transfer-prompt-types';
+import { runBoundedWorkers } from '../utils/run-bounded-workers';
+import { getErrorMessage } from '../utils/imageUtils';
+
+/** Worker ceiling for one pack run; a single run never exceeds this many in-flight requests. */
+export const ECOM_PACK_BATCH_MAX_CONCURRENCY = 3;
+
+/** The user's live E-Com Pack selection, the only input target planning reads. */
+export interface EComPackPlanInput {
+  displayTemplates: DisplayTemplate[];
+  selectedTemplateIds: string[];
+  brandModels: BrandModelProfile[];
+  selectedBrandModelIds: string[];
+  customDestinations: ImageFile[];
+}
+
+/**
+ * One resolved generation target. The definition travels with the planned item so
+ * regenerate-one reruns that exact definition even if the selection moved since.
+ */
+export type EComPackTarget =
+  | { kind: 'product'; template: DisplayTemplate }
+  | { kind: 'brand-model'; model: BrandModelProfile }
+  | { kind: 'custom-destination'; destination: ImageFile };
+
+export interface EComPackPlannedTarget {
+  item: EComPackItem;
+  target: EComPackTarget;
+}
+
+/**
+ * Resolve the current selection into the ordered pack cards of one run:
+ * product display assets, then brand models, then custom destinations.
+ */
+export const planEComPackTargets = (input: EComPackPlanInput): EComPackPlannedTarget[] => {
+  const productTargets = input.displayTemplates
+    .filter((template) => input.selectedTemplateIds.includes(template.id))
+    .map((template): EComPackPlannedTarget => ({
+      item: {
+        id: `template-${template.id}`,
+        category: 'product',
+        title: template.name,
+        subtitle: template.category === 'hanger' ? 'Hanger' : 'Flat Lay',
+        status: 'pending',
+        results: [],
+      },
+      target: { kind: 'product', template },
+    }));
+
+  const brandModelTargets = input.brandModels
+    .filter((model) => input.selectedBrandModelIds.includes(model.id))
+    .map((model): EComPackPlannedTarget => ({
+      item: {
+        id: `brand-${model.id}`,
+        category: 'brand-models',
+        title: model.name,
+        subtitle: model.metadata.styleVibe,
+        status: 'pending',
+        results: [],
+      },
+      target: { kind: 'brand-model', model },
+    }));
+
+  const destinationTargets = input.customDestinations.map(
+    (destination, index): EComPackPlannedTarget => ({
+      item: {
+        id: `custom-${index}`,
+        category: 'custom-destinations',
+        title: `Concept #${index + 1}`,
+        subtitle: 'Custom Scene',
+        status: 'pending',
+        results: [],
+      },
+      target: { kind: 'custom-destination', destination },
+    }),
+  );
+
+  return [...productTargets, ...brandModelTargets, ...destinationTargets];
+};
+
+interface EComPackPromptContext {
+  sourceOutfitImage: ImageFile;
+  garmentScope: GarmentScope;
+  extraPrompt: string;
+  aspectRatio: AspectRatio;
+  resolution: ImageResolution;
+  engineId?: ImageEngineId;
+  blueprint: string;
+}
+
+/**
+ * Assemble one target's request through the prompt family that owns its policy.
+ * Both families receive the same model-agnostic blueprint, and each expresses it
+ * its own way (ADR-0002).
+ */
+const buildTargetParts = (
+  target: EComPackTarget,
+  context: EComPackPromptContext,
+): Part[] => {
+  const isGptImage = context.engineId === 'gptImage';
+
+  switch (target.kind) {
+    case 'product':
+      return isGptImage
+        ? buildGptProductStagingParts(
+            context.sourceOutfitImage,
+            target.template,
+            context.garmentScope,
+            context.extraPrompt,
+            context.blueprint,
+            context.aspectRatio,
+            context.resolution,
+          )
+        : buildGeminiProductStagingParts(
+            context.sourceOutfitImage,
+            target.template,
+            context.garmentScope,
+            context.extraPrompt,
+            context.blueprint,
+          );
+    case 'brand-model':
+      return isGptImage
+        ? buildGptBrandModelParts(
+            context.sourceOutfitImage,
+            target.model,
+            context.garmentScope,
+            context.extraPrompt,
+            context.blueprint,
+          )
+        : buildGeminiBrandModelParts(
+            context.sourceOutfitImage,
+            target.model,
+            context.extraPrompt,
+            context.blueprint,
+          );
+    case 'custom-destination': {
+      const sourceReferences = [
+        { image: context.sourceOutfitImage, label: formatGarmentScope(context.garmentScope) },
+      ];
+      return isGptImage
+        ? buildGptClothingTransferParts(
+            target.destination,
+            sourceReferences,
+            context.extraPrompt,
+            context.blueprint,
+          )
+        : buildGeminiClothingTransferParts(
+            target.destination,
+            sourceReferences,
+            context.extraPrompt,
+            context.blueprint,
+          );
+    }
+  }
+};
+
+export interface UseClothingTransferEComPackRunConfig {
+  driver: ClothingTransferImageDriver;
+  sourceOutfitImage: ImageFile | null;
+  garmentScope: GarmentScope;
+  selection: EComPackPlanInput;
+  aspectRatio: AspectRatio;
+  resolution: ImageResolution;
+  numImages: number;
+  imageEditModel: string;
+  engineId?: ImageEngineId;
+  extraPrompt: string;
+  /**
+   * The active model-agnostic blueprint for this source outfit, analyzed on demand
+   * when the run has none yet. Null falls back to the base prompt.
+   */
+  resolveOutfitBlueprint: () => Promise<string | null>;
+  addImage: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
+  setError: (msg: string | null) => void;
+  t: (key: string, options?: Record<string, string | number>) => string;
+}
+
+export interface UseClothingTransferEComPackRunReturn {
+  packItems: EComPackItem[];
+  isGenerating: boolean;
+  handleGeneratePack: () => Promise<void>;
+  handleRegeneratePackItem: (itemId: string) => Promise<void>;
+}
+
+/**
+ * The E-Com Pack run: owned target planning, active-blueprint consumption, bounded
+ * batch execution, per-item result state, and regenerate-one. Form and selection
+ * state stay in `useClothingTransferEComPack`; this seam only executes them.
+ */
+export const useClothingTransferEComPackRun = (
+  config: UseClothingTransferEComPackRunConfig,
+): UseClothingTransferEComPackRunReturn => {
+  const {
+    driver,
+    sourceOutfitImage,
+    garmentScope,
+    selection,
+    aspectRatio,
+    resolution,
+    numImages,
+    imageEditModel,
+    engineId,
+    extraPrompt,
+    resolveOutfitBlueprint,
+    addImage,
+    setError,
+    t,
+  } = config;
+
+  const [packItems, setPackItems] = useState<EComPackItem[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  /** Definition each published pack card was planned to generate. */
+  const plannedTargets = useRef<Map<string, EComPackTarget>>(new Map());
+
+  const updatePackItem = useCallback((id: string, patch: Partial<EComPackItem>) => {
+    setPackItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    );
+  }, []);
+
+  const generateTarget = useCallback(
+    async (itemId: string, target: EComPackTarget, blueprint: string): Promise<void> => {
+      if (!sourceOutfitImage) return;
+      updatePackItem(itemId, { status: 'processing', results: [], error: undefined });
+
+      try {
+        const parts = buildTargetParts(target, {
+          sourceOutfitImage,
+          garmentScope,
+          extraPrompt,
+          aspectRatio,
+          resolution,
+          engineId,
+          blueprint,
+        });
+
+        const results = await driver.editImage(
+          {
+            images: [],
+            prompt: '',
+            numberOfImages: numImages,
+            aspectRatio,
+            resolution,
+            interleavedParts: parts,
+          },
+          imageEditModel,
+          { onStatusUpdate: () => {} },
+        );
+
+        updatePackItem(itemId, { status: 'completed', results, error: undefined });
+        results.forEach((img) => addImage(img, Feature.ClothingTransfer, engineId));
+      } catch (err) {
+        updatePackItem(itemId, {
+          status: 'error',
+          results: [],
+          error: getErrorMessage(err, t),
+        });
+      }
+    },
+    [
+      sourceOutfitImage,
+      garmentScope,
+      extraPrompt,
+      aspectRatio,
+      resolution,
+      engineId,
+      numImages,
+      imageEditModel,
+      driver,
+      addImage,
+      updatePackItem,
+      t,
+    ],
+  );
+
+  const handleGeneratePack = useCallback(async (): Promise<void> => {
+    if (!sourceOutfitImage) {
+      setError(t('clothingTransfer.ecomPack.inputError'));
+      return;
+    }
+
+    const plan = planEComPackTargets(selection);
+    if (plan.length === 0) {
+      setError(t('clothingTransfer.ecomPack.inputError'));
+      return;
+    }
+
+    setError(null);
+    setIsGenerating(true);
+
+    try {
+      const blueprint = (await resolveOutfitBlueprint()) ?? '';
+      plannedTargets.current = new Map(plan.map(({ item, target }) => [item.id, target]));
+      setPackItems(plan.map(({ item }) => item));
+
+      await runBoundedWorkers(
+        plan,
+        ECOM_PACK_BATCH_MAX_CONCURRENCY,
+        ({ item, target }) => generateTarget(item.id, target, blueprint),
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [sourceOutfitImage, selection, setError, t, resolveOutfitBlueprint, generateTarget]);
+
+  const handleRegeneratePackItem = useCallback(
+    async (itemId: string): Promise<void> => {
+      const target = plannedTargets.current.get(itemId);
+      if (!target) return;
+
+      const blueprint = (await resolveOutfitBlueprint()) ?? '';
+      await generateTarget(itemId, target, blueprint);
+    },
+    [generateTarget, resolveOutfitBlueprint],
+  );
+
+  return { packItems, isGenerating, handleGeneratePack, handleRegeneratePackItem };
+};

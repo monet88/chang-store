@@ -10,14 +10,20 @@ import { getErrorMessage } from '../utils/imageUtils';
 import { useAiScan } from '../contexts/AiScanContext';
 import type { editImage, upscaleImage, createImageChatSession } from '../services/imageEditingService';
 import {
-  buildLookbookPrompt,
-  buildVariationPrompt,
-  buildCloseUpPrompts,
-  buildCloseUpNegativePrompt,
   lookbookAiScanSources,
-  LookbookFormState as PromptFormState,
-} from '../utils/lookbookPromptBuilder';
-import { promptFormatFor } from '../utils/promptFormat';
+  buildCloseUpNegativePrompt,
+  type LookbookPromptInput,
+} from '../utils/lookbook-prompt-types';
+import {
+  buildGeminiLookbookPrompt,
+  buildGeminiVariationPrompt,
+  buildGeminiCloseUpPrompts,
+} from '../utils/gemini-lookbook-prompt';
+import {
+  buildGptLookbookPrompt,
+  buildGptVariationPrompt,
+  buildGptCloseUpPrompts,
+} from '../utils/gpt-lookbook-prompt';
 import { LookbookFormState } from './useLookbookDraft';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
@@ -122,13 +128,15 @@ export const useLookbookGeneration = (
     }
 
     const blueprint = await aiScan.scan(aiScanSources);
-    const prompt = buildLookbookPrompt(
-      formState as PromptFormState,
-      imagesForApi,
+    const promptInput: LookbookPromptInput = {
+      formState,
+      images: imagesForApi,
       fabricTextureImage,
-      promptFormatFor(engineId),
-      blueprint ?? '',
-    );
+      outfitBlueprint: blueprint,
+    };
+    const prompt = engineId === 'gptImage'
+      ? buildGptLookbookPrompt(promptInput)
+      : buildGeminiLookbookPrompt(promptInput);
 
     try {
       const results = await driver.editImage({
@@ -167,7 +175,9 @@ export const useLookbookGeneration = (
     // The blueprint belongs to the generated main, not to the current form:
     // editing the outfit after generating must not re-analyze the new garments
     // into the variations of the old main.
-    const prompt = buildVariationPrompt(formState.lookbookStyle, generatedLookbook.blueprint ?? '', promptFormatFor(engineId));
+    const prompt = engineId === 'gptImage'
+      ? buildGptVariationPrompt(formState.lookbookStyle, generatedLookbook.blueprint ?? '')
+      : buildGeminiVariationPrompt(formState.lookbookStyle, generatedLookbook.blueprint ?? '');
 
     try {
       const newVariations = await driver.editImage({
@@ -202,7 +212,9 @@ export const useLookbookGeneration = (
     const baseImage = generatedLookbook.main;
     // Same source of truth as the variations: the analysis of the outfit the
     // main was generated from.
-    const closeUpPrompts = buildCloseUpPrompts(generatedLookbook.blueprint ?? '', promptFormatFor(engineId));
+    const closeUpPrompts = engineId === 'gptImage'
+      ? buildGptCloseUpPrompts(generatedLookbook.blueprint ?? '')
+      : buildGeminiCloseUpPrompts(generatedLookbook.blueprint ?? '');
     const combinedNegativePrompt = buildCloseUpNegativePrompt(formState.negativePrompt);
 
     try {
