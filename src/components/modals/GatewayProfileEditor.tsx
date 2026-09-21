@@ -64,7 +64,7 @@ export const GatewayProfileEditor: React.FC<GatewayProfileEditorProps> = ({
             type="password"
             value={geminiApiKey}
             onChange={(e) => onGeminiApiKeyChange(e.target.value)}
-            autoComplete="off"
+            autoComplete="new-password"
             placeholder={t('settingsModal.cpaGateway.apiKeyPlaceholder')}
             className={inputClassName}
           />

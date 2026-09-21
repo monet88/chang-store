@@ -121,7 +121,7 @@ export const GatewayProfileRow: React.FC<GatewayProfileRowProps> = ({
         <input
           aria-label={t('settingsModal.gatewayProfiles.apiKeyField')}
           type="password"
-          autoComplete="off"
+          autoComplete="new-password"
           placeholder="sk-..."
           value={profile.apiKey}
           onChange={(e) => onPatch({ apiKey: e.target.value })}
