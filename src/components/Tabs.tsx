@@ -1,5 +1,5 @@
 import React from 'react';
-import { Feature, PROVIDER_SUPPORTED_FEATURES, StudioMode } from '../types';
+import { Feature, LOCAL_QWEN_SUPPORTED_FEATURES, PROVIDER_SUPPORTED_FEATURES, type StudioMode } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface TabsProps {
@@ -24,9 +24,19 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature, studioMode
     [Feature.IdentityTransfer]: t('tabs.identityTransfer'),
   };
 
+  const isLocalQwen = studioMode === 'localQwen';
   const isProviderMode = studioMode === 'gptImage';
 
-  const groups = isProviderMode
+  const groups = isLocalQwen
+    ? [
+        {
+          key: 'localQwenFeatures',
+          title: t('studio.provider.featuresLabel'),
+          description: t('studio.provider.featuresDescription'),
+          items: LOCAL_QWEN_SUPPORTED_FEATURES.map((id) => ({ id, label: featureLabels[id] })),
+        },
+      ]
+    : isProviderMode
     ? [
         {
           key: 'providerFeatures',

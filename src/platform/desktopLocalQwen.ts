@@ -4,6 +4,7 @@ export const DESKTOP_LOCAL_QWEN_CHANNELS = {
   getStatus: 'desktop-local-qwen:get-status',
   startServer: 'desktop-local-qwen:start-server',
   stopServer: 'desktop-local-qwen:stop-server',
+  generateImage: 'desktop-local-qwen:generate-image',
 } as const;
 
 export type DesktopLocalQwenState = 'stopped' | 'starting' | 'ready' | 'error';
@@ -19,11 +20,30 @@ export interface DesktopLocalQwenStopResult {
   stopped: boolean;
   wasExternal: boolean;
 }
+export interface LocalQwenGenerateParams {
+  prompt: string;
+  negativePrompt?: string;
+  images?: Array<{ base64: string; mimeType: string }>;
+  resolution?: number;
+  steps?: number;
+  cfg?: number;
+  sampler?: string;
+  scheduler?: string;
+  seed?: number;
+}
+
+export interface LocalQwenGenerateResult {
+  image: {
+    base64: string;
+    mimeType: string;
+  };
+}
 
 export interface DesktopLocalQwenApi {
   getStatus(): Promise<DesktopBridgeResult<DesktopLocalQwenStatus>>;
   startServer(folder?: string): Promise<DesktopBridgeResult<DesktopLocalQwenStatus>>;
   stopServer(): Promise<DesktopBridgeResult<DesktopLocalQwenStopResult>>;
+  generateImage(params: LocalQwenGenerateParams): Promise<DesktopBridgeResult<LocalQwenGenerateResult>>;
 }
 
 declare global {

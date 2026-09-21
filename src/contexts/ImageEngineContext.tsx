@@ -4,6 +4,7 @@ import type { GptImageQuality } from '../config/gptImageModelRegistry';
 import { createImageChatSession, editImage, upscaleImage } from '../services/imageEditingService';
 import { useApi } from './ApiProviderContext';
 import { useGptImageEngine } from '../hooks/useGptImageEngine';
+import { useLocalQwenImageEngine } from '../hooks/useLocalQwenImageEngine';
 
 /**
  * Studio-scoped image transport. Feature hooks take their driver, model and
@@ -75,14 +76,21 @@ const GptImageEngineProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const engine = useGptImageEngine();
   return <ImageEngineContext.Provider value={engine}>{children}</ImageEngineContext.Provider>;
 };
+const LocalQwenImageEngineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const engine = useLocalQwenImageEngine();
+  return <ImageEngineContext.Provider value={engine}>{children}</ImageEngineContext.Provider>;
+};
 
 /** Mounts the engine of the active studio mode around the studio surface. */
 export const ImageEngineProvider: React.FC<{ mode: StudioMode; children: React.ReactNode }> = ({
   mode,
   children,
-}) =>
-  mode === 'gemini' ? (
-    <GeminiImageEngineProvider>{children}</GeminiImageEngineProvider>
-  ) : (
-    <GptImageEngineProvider>{children}</GptImageEngineProvider>
-  );
+}) => {
+  if (mode === 'localQwen') {
+    return <LocalQwenImageEngineProvider>{children}</LocalQwenImageEngineProvider>;
+  }
+  if (mode === 'gptImage') {
+    return <GptImageEngineProvider>{children}</GptImageEngineProvider>;
+  }
+  return <GeminiImageEngineProvider>{children}</GeminiImageEngineProvider>;
+};
