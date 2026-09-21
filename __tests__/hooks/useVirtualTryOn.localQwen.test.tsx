@@ -32,6 +32,10 @@ vi.mock('@/contexts/LanguageContext', () => ({
 }));
 
 vi.mock('@/contexts/ImageGalleryContext', () => ({
+  ImageGalleryContext: {
+    Consumer: ({ children }: { children: (val: unknown) => unknown }) => children(null),
+    Provider: ({ children }: { children: unknown }) => children,
+  },
   useImageGallery: () => ({
     images: [],
     addImage: addImageMock,
@@ -263,6 +267,7 @@ describe('useVirtualTryOn with Local Qwen Image Engine', () => {
           numberOfImages: 1,
         },
         'qwen-image-2.1',
+        undefined as unknown as { onStatusUpdate: (msg: string) => void },
       );
 
       expect(bridgeGenerateMock).toHaveBeenCalledTimes(1);

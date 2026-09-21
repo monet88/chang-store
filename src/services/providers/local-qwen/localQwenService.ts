@@ -31,7 +31,7 @@ export const generateLocalQwenImage = async (
 
   try {
     const result = await desktopLocalQwen.generateImage(params);
-    if (!result.ok) {
+    if (result.ok === false) {
       throw new Error(result.error.message || 'Local Qwen generation failed.');
     }
 

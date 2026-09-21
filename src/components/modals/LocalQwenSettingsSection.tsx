@@ -1,31 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import {
-  type LocalQwenSettings,
   type LocalQwenSampler,
   type LocalQwenScheduler,
   LOCAL_QWEN_RESOLUTIONS,
   LOCAL_QWEN_SAMPLERS,
   LOCAL_QWEN_SCHEDULERS,
   KNOWN_PORTABLE_COMFYUI_PATH,
-  loadLocalQwenSettings,
-  saveLocalQwenSettings,
   detectPortableComfyUiPath,
-} from '../../config/localQwenSettings';
+  useLocalQwenSettings,
+} from '../../hooks/useLocalQwenSettings';
 import { SectionCard } from './SettingsDataSection';
 import { fieldLabelClassName, inputClassName } from './GatewayProfileRow';
 
 export const LocalQwenSettingsSection: React.FC = () => {
   const { t } = useLanguage();
-  const [settings, setSettings] = useState<LocalQwenSettings>(() => loadLocalQwenSettings());
-
-  const updateSetting = <K extends keyof LocalQwenSettings>(key: K, value: LocalQwenSettings[K]) => {
-    setSettings((prev) => {
-      const next = { ...prev, [key]: value };
-      saveLocalQwenSettings(next);
-      return next;
-    });
-  };
+  const { settings, updateSetting } = useLocalQwenSettings();
 
   const isAutoDetected =
     Boolean(settings.comfyUiPath) &&

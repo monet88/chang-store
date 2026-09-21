@@ -74,16 +74,17 @@ export const useLocalQwenStatus = (
       try {
         const result = await api.startServer(folder);
         if (mountedRef.current) {
-          if (result.ok) {
+          if (result.ok === false) {
+            setStatus({
+              state: 'error',
+              isAppOwned: false,
+              port: 8188,
+              error: result.error.message,
+            });
+          } else {
             setStatus(result.value);
             return true;
           }
-          setStatus({
-            state: 'error',
-            isAppOwned: false,
-            port: 8188,
-            error: result.error.message,
-          });
         }
         return false;
       } catch (err) {

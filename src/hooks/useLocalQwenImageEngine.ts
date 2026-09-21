@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useContext } from 'react';
 import type { ImageEngine } from '../contexts/ImageEngineContext';
-import { useImageGallery, type ImageGalleryContextType } from '../contexts/ImageGalleryContext';
+import { ImageGalleryContext } from '../contexts/ImageGalleryContext';
 import type { EditImageParams } from '../services/imageEditingService';
 import type { ImageFile, UpscaleQuality } from '../types';
 import { snapshotLocalQwenSettings } from '../config/localQwenSettings';
@@ -37,12 +37,7 @@ interface LocalQwenServiceConfig {
  * - No auto-upscale; results remain at configured resolution.
  */
 export const useLocalQwenImageEngine = (): ImageEngine => {
-  let gallery: ImageGalleryContextType | undefined;
-  try {
-    gallery = useImageGallery();
-  } catch {
-    // Allows running outside ImageGalleryProvider in tests
-  }
+  const gallery = useContext(ImageGalleryContext);
   return useMemo<ImageEngine>(() => {
     const editImage = async (
       params: EditImageParams,
@@ -106,8 +101,11 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
           scale,
         });
 
-        if (!res.ok || !res.value) {
-          throw new Error(res.error?.message || 'Local Qwen upscale failed');
+        if (res.ok === false) {
+          throw new Error(res.error.message || 'Local Qwen upscale failed');
+        }
+        if (!res.value) {
+          throw new Error('Local Qwen upscale returned empty response');
         }
 
         const upscaledImage: ImageFile = {

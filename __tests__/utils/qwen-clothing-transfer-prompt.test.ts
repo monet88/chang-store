@@ -240,6 +240,17 @@ describe('buildQwenBrandModelParts', () => {
     const modelWithoutFace: BrandModelProfile = {
       id: 'no-face',
       name: 'No Face',
+      faceImage: null,
+      bodyImage: null,
+      metadata: {
+        age: 25,
+        height: '168cm',
+        weight: '50kg',
+        bodyType: 'Slim',
+        skinTone: 'Fair',
+        facialFeatures: 'Natural',
+        styleVibe: 'Casual',
+      },
     };
 
     const parts = buildQwenBrandModelParts(sourceImage, modelWithoutFace);

@@ -195,7 +195,7 @@ describe('LocalQwenStatusBanner', () => {
         state: 'error',
         isAppOwned: false,
         port: 8188,
-        error: 'ComfyUI directory not found: D:\ComfyUI_windows_portable',
+        error: 'ComfyUI directory not found: D:\\ComfyUI_windows_portable',
       };
 
       render(<LocalQwenStatusBanner status={status} />);

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { ImageFile } from '@/types';
 import { useLocalQwenImageEngine } from '@/hooks/useLocalQwenImageEngine';
-import { ImageGalleryContext } from '@/contexts/ImageGalleryContext';
+import { ImageGalleryContext, type ImageGalleryContextType } from '@/contexts/ImageGalleryContext';
 
 const addImageMock = vi.hoisted(() => vi.fn());
 
@@ -47,6 +47,7 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
       startServer: vi.fn(),
       stopServer: vi.fn(),
       generateImage: desktopGenerateMock,
+      cancelJob: vi.fn(),
       upscaleImage: desktopUpscaleMock,
     };
   });
@@ -58,7 +59,7 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
         addImage: addImageMock,
         deleteImage: vi.fn(),
         clearImages: vi.fn(),
-        getCacheMetrics: vi.fn() as unknown as () => { size: number; count: number; hitRate: number },
+        getCacheMetrics: vi.fn() as unknown as ImageGalleryContextType['getCacheMetrics'],
       }}
     >
       {children}
@@ -154,7 +155,7 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
     let caughtError: Error | null = null;
     await act(async () => {
       try {
-        await result.current.upscaleImage(originalCopy);
+        await result.current.upscaleImage(originalCopy, undefined as unknown as string, undefined as unknown as { onStatusUpdate: (msg: string) => void });
       } catch (err) {
         caughtError = err as Error;
       }
@@ -184,7 +185,7 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
 
     await act(async () => {
       await expect(
-        result.current.upscaleImage(ORIGINAL_IMAGE),
+        result.current.upscaleImage(ORIGINAL_IMAGE, undefined as unknown as string, undefined as unknown as { onStatusUpdate: (msg: string) => void }),
       ).rejects.toThrow(/desktop app runtime/);
     });
 
@@ -210,6 +211,7 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
       generated = await result.current.editImage(
         { prompt: 'A stylish jacket', images: [] },
         'qwen-image-2.1',
+        undefined as unknown as { onStatusUpdate: (msg: string) => void },
       );
     });
 
@@ -242,8 +244,8 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
 
     await act(async () => {
       // Launch two upscales concurrently
-      const p1 = result.current.upscaleImage(ORIGINAL_IMAGE);
-      const p2 = result.current.upscaleImage(ORIGINAL_IMAGE);
+      const p1 = result.current.upscaleImage(ORIGINAL_IMAGE, undefined as unknown as string, undefined as unknown as { onStatusUpdate: (msg: string) => void });
+      const p2 = result.current.upscaleImage(ORIGINAL_IMAGE, undefined as unknown as string, undefined as unknown as { onStatusUpdate: (msg: string) => void });
       await Promise.all([p1, p2]);
     });
 

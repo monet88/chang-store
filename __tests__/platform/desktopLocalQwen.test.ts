@@ -173,6 +173,9 @@ describe('desktopLocalQwen and settings', () => {
         getStatus: vi.fn().mockResolvedValue({ ok: true, value: mockStatus }),
         startServer: vi.fn().mockResolvedValue({ ok: true, value: mockStatus }),
         stopServer: vi.fn().mockResolvedValue({ ok: true, value: mockStop }),
+        generateImage: vi.fn().mockResolvedValue({ ok: true, value: { image: { base64: 'abc', mimeType: 'image/png' } } }),
+        cancelJob: vi.fn().mockResolvedValue({ ok: true, value: { cancelled: true } }),
+        upscaleImage: vi.fn().mockResolvedValue({ ok: true, value: { image: 'upscaled' } }),
       };
 
       Object.defineProperty(window, 'desktopLocalQwen', {

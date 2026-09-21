@@ -431,12 +431,19 @@ export class LocalQwenManager {
         ws = new WsClass(`ws://${host}/ws?clientId=${clientId}`);
         const onWsMsg = (eventOrData: unknown) => {
           try {
-            const raw =
-              typeof eventOrData === 'string'
-                ? eventOrData
-                : eventOrData?.data
-                  ? eventOrData.data.toString()
-                  : eventOrData.toString();
+            let raw = '';
+            if (typeof eventOrData === 'string') {
+              raw = eventOrData;
+            } else if (
+              eventOrData &&
+              typeof eventOrData === 'object' &&
+              'data' in eventOrData &&
+              (eventOrData as { data: unknown }).data != null
+            ) {
+              raw = String((eventOrData as { data: unknown }).data);
+            } else if (eventOrData != null) {
+              raw = String(eventOrData);
+            }
             const msg = JSON.parse(raw);
             if (msg.type === 'progress' && msg.data) {
               const { value, max } = msg.data;
