@@ -10,6 +10,8 @@ import type { GatewayProfile } from '../config/gatewayProfiles';
 import { listGatewayModels, type GatewayProbeResult } from '../services/gatewayDiscoveryService';
 import { logEvent } from '../services/debugService';
 import { isUsableProviderBaseUrl } from '../utils/provider-url-validation';
+import { removeDesktopCredential } from '../platform/desktopCredentials';
+import { getDesktopGatewayApi } from '../platform/desktopGateway';
 
 /** The row shape the editor renders; re-exported so the UI layer never imports config. */
 export type EditorProfile = GatewayProfile;
@@ -40,8 +42,20 @@ export const useGatewayProfileEditor = (): UseGatewayProfileEditorReturn => {
   const [probeStates, setProbeStates] = useState<Record<string, ProfileProbeState | undefined>>({});
 
   const updateImageProfile = useCallback((id: string, patch: Partial<GatewayProfile>) => {
+    const current = api.gatewayProfiles.find((profile) => profile.id === id);
+    const desktopBaseUrlChanged = Boolean(
+      getDesktopGatewayApi()
+      && current
+      && patch.baseUrl !== undefined
+      && patch.baseUrl !== current.baseUrl,
+    );
+    if (desktopBaseUrlChanged) {
+      removeDesktopCredential(id);
+    }
     api.saveGatewayProfiles(
-      api.gatewayProfiles.map((profile) => (profile.id === id ? { ...profile, ...patch } : profile)),
+      api.gatewayProfiles.map((profile) => (profile.id === id
+        ? { ...profile, ...patch, ...(desktopBaseUrlChanged ? { apiKey: '' } : {}) }
+        : profile)),
     );
   }, [api]);
 
@@ -64,6 +78,7 @@ export const useGatewayProfileEditor = (): UseGatewayProfileEditorReturn => {
   }, [api]);
 
   const removeImageProfile = useCallback((id: string) => {
+    removeDesktopCredential(id);
     api.saveGatewayProfiles(api.gatewayProfiles.filter((profile) => profile.id !== id));
     if (api.activeImageProfileId === id) {
       api.selectImageProfile(null);
@@ -78,7 +93,7 @@ export const useGatewayProfileEditor = (): UseGatewayProfileEditorReturn => {
       return;
     }
     setProbeStates((current) => ({ ...current, [id]: { phase: 'probing' } }));
-    const result = await listGatewayModels({ baseUrl, apiKey }, { force: true });
+    const result = await listGatewayModels({ baseUrl, apiKey, credentialRef: id }, { force: true });
     setProbeStates((current) => ({ ...current, [id]: { phase: 'done', result } }));
     if (result.status === 'ok') {
       // The served list just changed under this profile: pickers re-read the cache.

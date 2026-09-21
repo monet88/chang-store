@@ -1,5 +1,82 @@
 # Changelog
 
+## [Unreleased] — 2026-09-21
+
+### Added
+
+- A production-grade Electron desktop shell based on the Chatbox architecture
+  audit. Desktop development and packaging now use `electron-vite` to build the
+  main, preload, and renderer processes explicitly instead of starting a custom
+  loopback HTTP server to serve the Vite output.
+- A narrow named preload bridge for desktop gateway operations: Gemini
+  `generateContent`, gateway model discovery, and OpenAI-compatible image
+  generate/edit calls are executed by Electron main instead of exposing a
+  generic `ipcRenderer.invoke` escape hatch to the renderer.
+- Encrypted desktop gateway credential storage backed by Electron `safeStorage`.
+  Existing CPA/Image gateway keys are migrated out of renderer localStorage only
+  after secure storage succeeds; localStorage retains a non-secret reference
+  marker. Legacy `vertex_proxy_*` credentials are migrated through the same path.
+- Desktop image URL materialization for gateways that return `data[].url` instead
+  of `b64_json`. The main-process downloader rejects private/reserved network
+  targets, pins connections to validated public DNS results, revalidates
+  redirects, requires an image response, caps downloads at 50 MB, and applies a
+  hard request deadline before returning base64 data to the renderer.
+- Desktop networking/security regression coverage for credential migration,
+  named gateway routing, secret-free renderer behavior, and IPv4/IPv6 public
+  network classification.
+
+### Changed
+
+- Packaged desktop builds now load `out/renderer/index.html` directly with
+  `BrowserWindow.loadFile()`. Development uses the renderer URL provided by
+  `electron-vite`, removing the previous fixed-port probe, MIME table, SPA
+  fallback server, and server shutdown lifecycle.
+- Electron main and preload are now TypeScript build targets under `electron/`.
+  The existing React source tree remains shared by browser and desktop instead of
+  being duplicated or moved solely to mirror Chatbox's layout.
+- The desktop renderer runs with `webSecurity: true`, `contextIsolation: true`,
+  `nodeIntegration: false`, and `sandbox: true`. External navigation is blocked
+  from replacing the trusted app renderer; HTTP(S) links continue to open in the
+  system browser.
+- Desktop provider credentials are no longer injected into generated renderer or
+  main bundles. Browser builds keep the existing direct-provider/localStorage
+  contract, while desktop requests resolve credentials through the encrypted
+  main-process vault and bind each stored key to its configured gateway base URL.
+- Gateway settings now understand desktop credential references when discovering
+  served models and building the active Gemini/GPT Image clients. Changing a
+  desktop gateway base URL invalidates the old stored credential so a key cannot
+  silently be reused against a different destination.
+- The Electron window now waits for `ready-to-show`, reports renderer load/process
+  failures, preserves single-instance focus behavior, and handles startup errors
+  without leaving a partially bootstrapped second instance.
+
+### Fixed
+
+- Opening a second desktop instance can no longer continue into the normal app
+  bootstrap after failing the single-instance lock; it now exits cleanly while
+  the existing window is restored and focused.
+- Desktop gateway traffic no longer depends on renderer CORS exceptions. The
+  app can keep custom/local gateway support without disabling Electron renderer
+  web security.
+- Secure credential migration is fail-safe: if the OS-encrypted vault cannot
+  store a key, the existing plaintext value is left untouched rather than being
+  replaced prematurely by a reference marker and effectively lost.
+- Desktop credential rotation no longer reuses a served-model cache entry from
+  the previous key, and failed gateway saves keep the previous working settings
+  instead of silently discarding them.
+- Editing an encrypted image-gateway key now keeps a local field draft and
+  commits once on blur, avoiding per-keystroke vault writes and controlled-input
+  resets. Clearing or rebinding a profile also removes the old vault entry.
+- Desktop credential migration now preserves legacy gateway URLs, promotes a
+  profile-only CPA credential into the active CPA settings projection, and
+  keeps startup alive when renderer storage access fails.
+- "Clear all data" now removes legacy gateway keys and refuses to report success
+  when the encrypted credential vault could not be cleared.
+- Provider-returned image URLs no longer create an unrestricted main-process
+  fetch path; non-public IPv4/IPv6 ranges, mapped/translation forms, excessive
+  redirects, oversized payloads, non-image responses, and indefinitely trickled
+  downloads are rejected.
+
 ## [Unreleased] — 2026-09-19
 
 ### Added

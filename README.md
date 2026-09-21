@@ -27,6 +27,7 @@ those workflows on the same views with its own size and quality controls.
 - React 19
 - TypeScript
 - Vite
+- Electron 44 + electron-vite (desktop shell)
 - Tailwind CSS
 - Google Gemini SDK (`@google/genai`)
 - GPT Image (OpenAI) REST in the GPT studio
@@ -64,6 +65,19 @@ is a batch shim; launch Vite directly when a `cmd.exe` wrapper is not available:
 
 ```bash
 node node_modules/vite/bin/vite.js
+```
+
+Desktop development uses the same renderer through the Electron shell:
+
+```bash
+npm run desktop:dev
+```
+
+Build and preview the production desktop output with:
+
+```bash
+npm run desktop:build
+npm run desktop:preview
 ```
 
 ## Environment Variables

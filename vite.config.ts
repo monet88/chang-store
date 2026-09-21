@@ -1,10 +1,16 @@
 import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type UserConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc'; // SWC is 20-30x faster than Babel
 
-export default defineConfig(({ mode }) => {
+export const createRendererConfig = (
+  mode: string,
+  { desktop = false }: { desktop?: boolean } = {},
+): UserConfig => {
   const env = loadEnv(mode, '.', '');
+  const rendererSecret = (value: string | undefined): string | undefined =>
+    desktop ? undefined : value;
   return {
+    base: desktop ? './' : undefined,
     server: {
       port: 3549,
       // Fail loudly instead of silently drifting to another port when 3549 is taken.
@@ -20,6 +26,7 @@ export default defineConfig(({ mode }) => {
           '**/node_modules/**',
           '**/.git/**',
           '**/dist/**',
+          '**/out/**',
           '**/coverage/**',
           '**/.beads/**',
           // .kiro bundles a Python venv with thousands of files that exhaust
@@ -55,19 +62,16 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      // API keys are injected in ALL build modes and exposed in the client
-      // bundle. This is accepted for v1 — plan a serverless proxy for v2.
-      // See docs/deployment.md and the three-provider-studios plan.
-      // CPA gateway key: the app always routes Gemini through the gateway, so
-      // this default removes the need to paste the key into Settings.
-      'process.env.CLIPROXY_API_KEY': JSON.stringify(env.CLIPROXY_API_KEY || env.VITE_CLIPROXY_API_KEY),
+      // Web keeps the existing client-side provider contract. Desktop receives
+      // no build-time provider keys; its real credentials are owned by Electron main.
+      'process.env.CLIPROXY_API_KEY': JSON.stringify(rendererSecret(env.CLIPROXY_API_KEY || env.VITE_CLIPROXY_API_KEY)),
       // Provider studio keys/base URLs use non-prefixed hosting names with a
       // VITE_-prefixed fallback for local .env files.
-      'process.env.GPT_IMAGE_API_KEY': JSON.stringify(env.GPT_IMAGE_API_KEY || env.VITE_GPT_IMAGE_API_KEY),
+      'process.env.GPT_IMAGE_API_KEY': JSON.stringify(rendererSecret(env.GPT_IMAGE_API_KEY || env.VITE_GPT_IMAGE_API_KEY)),
       'process.env.GPT_IMAGE_BASE_URL': JSON.stringify(env.GPT_IMAGE_BASE_URL || env.VITE_GPT_IMAGE_BASE_URL),
       // XomPet is the measured reference gateway for the image lane: when both are set,
       // its values win for the GPT Image provider (docs/api/xompet-image-api-guide.md).
-      'process.env.XOMPET_API_KEY': JSON.stringify(env.XOMPET_API_KEY || env.VITE_XOMPET_API_KEY),
+      'process.env.XOMPET_API_KEY': JSON.stringify(rendererSecret(env.XOMPET_API_KEY || env.VITE_XOMPET_API_KEY)),
       'process.env.XOMPET_BASE_URL': JSON.stringify(env.XOMPET_BASE_URL || env.VITE_XOMPET_BASE_URL),
     },
     resolve: {
@@ -97,4 +101,6 @@ export default defineConfig(({ mode }) => {
       pure: mode === 'production' ? ['console.log', 'console.debug', 'console.info'] : [],
     }
   };
-});
+};
+
+export default defineConfig(({ mode }) => createRendererConfig(mode));

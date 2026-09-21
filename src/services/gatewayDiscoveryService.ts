@@ -1,5 +1,12 @@
 import { logEvent } from './debugService';
 import { safeFetch } from './providers/shared/safeFetch';
+import {
+  DESKTOP_CREDENTIAL_SENTINEL,
+  DesktopGatewayError,
+  getDesktopGatewayApi,
+  transientDesktopApiKey,
+  unwrapDesktopBridgeResult,
+} from '../platform/desktopGateway';
 import { gatewayHostOf } from './providers/shared/imageDriverPolicy';
 
 /**
@@ -26,6 +33,7 @@ export interface GatewayProbeResult {
 export interface GatewayProbeTarget {
   baseUrl: string;
   apiKey: string;
+  credentialRef?: string;
 }
 
 interface GatewayModelsCacheEntry {
@@ -79,10 +87,34 @@ const writeCacheEntry = (entry: GatewayModelsCacheEntry): void => {
   }
 };
 
+export const invalidateCachedGatewayModels = (credentialRef: string): void => {
+  try {
+    const keyId = `ref:${credentialRef}`;
+    const remaining = readCache().filter((entry) => entry?.keyId !== keyId);
+    if (remaining.length === 0) {
+      localStorage.removeItem(CACHE_STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(remaining));
+  } catch {
+    // Cache invalidation is best-effort; a blocked localStorage already behaves as a cache miss.
+  }
+};
+
 /** Cached `ok` probe for this (host, key) pair, still inside the TTL — never keyed by host alone. */
-export function getCachedGatewayModels(baseUrl: string, apiKey: string, now: number = Date.now()): GatewayProbeResult | null {
+const cacheKeyIdentity = (apiKey: string, credentialRef?: string): string =>
+  credentialRef && apiKey === DESKTOP_CREDENTIAL_SENTINEL
+    ? `ref:${credentialRef}`
+    : keyIdentity(apiKey);
+
+export function getCachedGatewayModels(
+  baseUrl: string,
+  apiKey: string,
+  now: number = Date.now(),
+  credentialRef?: string,
+): GatewayProbeResult | null {
   const entry = readCache().find(
-    (cached) => cached?.baseUrl === toApiRoot(baseUrl) && cached?.keyId === keyIdentity(apiKey),
+    (cached) => cached?.baseUrl === toApiRoot(baseUrl) && cached?.keyId === cacheKeyIdentity(apiKey, credentialRef),
   );
   if (!entry || now - entry.fetchedAt > GATEWAY_MODELS_TTL_MS) {
     return null;
@@ -168,18 +200,40 @@ export async function listGatewayModels(
   const baseUrl = toApiRoot(target.baseUrl);
 
   if (!options.force) {
-    const cached = getCachedGatewayModels(baseUrl, target.apiKey);
+    const cached = getCachedGatewayModels(baseUrl, target.apiKey, Date.now(), target.credentialRef);
     if (cached) {
       return cached;
     }
   }
 
-  const result = await probe({ ...target, baseUrl });
+  const desktopGateway = getDesktopGatewayApi();
+  let result: GatewayProbeResult;
+  if (desktopGateway && target.credentialRef) {
+    const startedAt = Date.now();
+    try {
+      result = unwrapDesktopBridgeResult(await desktopGateway.listGatewayModels({
+        credentialRef: target.credentialRef,
+        // Main binds credentials to the configured provider URL. Keep the
+        // profile URL intact here; main normalizes /v1 only for the models path.
+        baseUrl: target.baseUrl,
+        apiKey: transientDesktopApiKey(target.apiKey),
+      }));
+    } catch (error) {
+      const status = error instanceof DesktopGatewayError ? error.status : undefined;
+      result = empty(
+        status === 401 ? 'unauthorized' : status === 403 ? 'forbidden' : 'unreachable',
+        Date.now() - startedAt,
+        status,
+      );
+    }
+  } else {
+    result = await probe({ ...target, baseUrl });
+  }
 
   if (result.status === 'ok') {
     writeCacheEntry({
       baseUrl,
-      keyId: keyIdentity(target.apiKey),
+      keyId: cacheKeyIdentity(target.apiKey, target.credentialRef),
       fetchedAt: Date.now(),
       modelIds: result.modelIds,
       ownedBy: result.ownedBy,

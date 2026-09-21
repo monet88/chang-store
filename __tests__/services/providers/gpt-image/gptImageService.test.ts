@@ -31,6 +31,7 @@ describe('gptImageService', () => {
     let fetchMock: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
+        delete (window as Window & { desktopGateway?: unknown }).desktopGateway;
         fetchMock = vi.fn();
         vi.stubGlobal('fetch', fetchMock);
         dimensionsMock.mockReset();
@@ -50,6 +51,42 @@ describe('gptImageService', () => {
     });
 
     describe('generateGptImage', () => {
+        it('routes desktop generation through the named main-process bridge', async () => {
+            const gptImageGenerate = vi.fn().mockResolvedValue({
+                ok: true,
+                value: { ok: true, status: 200, body: { data: [{ b64_json: 'DESKTOP' }] } },
+            });
+            Object.defineProperty(window, 'desktopGateway', {
+                configurable: true,
+                value: { gptImageGenerate },
+            });
+
+            const result = await generateGptImage(
+                { model: 'gpt-image-2', prompt: 'desktop shot', size: '1024x1024', quality: 'high' },
+                {
+                    apiKey: '__desktop_gateway_credential__',
+                    baseUrl: CONFIG.baseUrl,
+                    credentialRef: 'gptImage-default',
+                },
+            );
+
+            expect(result).toEqual([{ base64: 'DESKTOP', mimeType: 'image/png' }]);
+            expect(gptImageGenerate).toHaveBeenCalledWith({
+                credentialRef: 'gptImage-default',
+                baseUrl: CONFIG.baseUrl,
+                apiKey: undefined,
+                body: {
+                    model: 'gpt-image-2',
+                    prompt: 'desktop shot',
+                    n: 1,
+                    response_format: 'b64_json',
+                    size: '1024x1024',
+                    quality: 'high',
+                },
+            });
+            expect(fetchMock).not.toHaveBeenCalled();
+        });
+
         it('posts JSON to /images/generations with size, quality and response_format', async () => {
             fetchMock.mockResolvedValue(okResponse({ data: [{ b64_json: 'IMG' }] }));
 

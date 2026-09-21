@@ -44,6 +44,7 @@ const GATEWAY_URL = 'https://cliproxy.monet.uno';
 
 describe('apiClient', () => {
   beforeEach(() => {
+    delete (window as Window & { desktopGateway?: unknown }).desktopGateway;
     configureGeminiClient({ apiKey: null, baseUrl: null });
     reinitializeGeminiClient();
     constructorCalls.length = 0;
@@ -116,6 +117,37 @@ describe('apiClient', () => {
   // getGeminiClient tests
   // ============================================================
   describe('getGeminiClient', () => {
+    it('routes Gemini generateContent through the named desktop bridge without constructing the SDK in the renderer', async () => {
+      const geminiGenerateContent = vi.fn().mockResolvedValue({
+        ok: true,
+        value: { text: 'desktop-response', candidates: [] },
+      });
+      Object.defineProperty(window, 'desktopGateway', {
+        configurable: true,
+        value: { geminiGenerateContent },
+      });
+
+      configureGeminiClient({
+        apiKey: '__desktop_gateway_credential__',
+        baseUrl: GATEWAY_URL,
+        credentialRef: 'cpa-default',
+      });
+
+      const response = await getGeminiClient().models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: 'hello',
+      });
+
+      expect(response.text).toBe('desktop-response');
+      expect(geminiGenerateContent).toHaveBeenCalledWith({
+        credentialRef: 'cpa-default',
+        baseUrl: GATEWAY_URL,
+        apiKey: undefined,
+        request: { model: 'gemini-3.8-flash', contents: 'hello' },
+      });
+      expect(constructorCalls).toHaveLength(0);
+    });
+
     it('should send the gateway key and base URL to the SDK', () => {
       // Arrange
       configureGeminiClient({ apiKey: 'gateway-key', baseUrl: GATEWAY_URL });

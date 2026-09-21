@@ -1,4 +1,9 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, type GenerateContentParameters, type GenerateContentResponse } from "@google/genai";
+import {
+  getDesktopGatewayApi,
+  transientDesktopApiKey,
+  unwrapDesktopBridgeResult,
+} from '../platform/desktopGateway';
 
 interface DebuggableGeminiClient {
   apiClient?: {
@@ -16,11 +21,19 @@ interface DebuggableGeminiClient {
 interface GeminiClientConfiguration {
   apiKey: string | null;
   baseUrl: string | null;
+  credentialRef?: string;
 }
 
-let geminiClientInstance: GoogleGenAI | null = null;
+interface GeminiClientLike {
+  models: {
+    generateContent(params: GenerateContentParameters): Promise<GenerateContentResponse>;
+  };
+}
+
+let geminiClientInstance: GeminiClientLike | null = null;
 let activeApiKeyOverride: string | null = null;
 let customBaseUrl: string | null = null;
+let activeCredentialRef: string | null = null;
 
 const trimToNull = (value: string | null | undefined): string | null => {
   const trimmedValue = value?.trim();
@@ -75,14 +88,16 @@ const buildGeminiClient = (apiKey: string, baseUrl: string | null): GoogleGenAI 
  * The app always configures the CPA gateway, so a configured base URL means the
  * gateway key is the only accepted credential: no silent fallback to a Google key.
  */
-export function configureGeminiClient({ apiKey, baseUrl }: GeminiClientConfiguration): void {
+export function configureGeminiClient({ apiKey, baseUrl, credentialRef }: GeminiClientConfiguration): void {
   activeApiKeyOverride = trimToNull(apiKey);
   customBaseUrl = trimToNull(baseUrl);
+  activeCredentialRef = trimToNull(credentialRef);
   geminiClientInstance = null;
 
   logGeminiClientDebug('configureGeminiClient', {
     hasApiKey: Boolean(activeApiKeyOverride),
     customBaseUrl,
+    credentialRef: activeCredentialRef,
   });
 }
 
@@ -100,19 +115,42 @@ export function getActiveApiKey(): string {
   throw new Error("API_KEY is not configured. Please set it in the settings or environment.");
 }
 
-export function getGeminiClient(): GoogleGenAI {
+const buildDesktopGeminiClient = (): GeminiClientLike => {
+  const desktopGateway = getDesktopGatewayApi();
+  if (!desktopGateway || !activeCredentialRef || !customBaseUrl) {
+    throw new Error('Desktop Gemini gateway is not configured.');
+  }
+
+  return {
+    models: {
+      generateContent: async (request) => unwrapDesktopBridgeResult(
+        await desktopGateway.geminiGenerateContent({
+          credentialRef: activeCredentialRef!,
+          baseUrl: customBaseUrl!,
+          apiKey: transientDesktopApiKey(activeApiKeyOverride),
+          request,
+        }),
+      ),
+    },
+  };
+};
+
+export function getGeminiClient(): GeminiClientLike {
   if (!geminiClientInstance) {
-    geminiClientInstance = buildGeminiClient(getActiveApiKey(), customBaseUrl);
+    const desktopGateway = getDesktopGatewayApi();
+    geminiClientInstance = desktopGateway && activeCredentialRef
+      ? buildDesktopGeminiClient()
+      : buildGeminiClient(getActiveApiKey(), customBaseUrl);
     logGeminiClientDebug('createGeminiClient', {
       customBaseUrl,
       hasActiveApiKeyOverride: Boolean(activeApiKeyOverride),
-      ...getGeminiClientDebugState(geminiClientInstance),
+      ...(geminiClientInstance instanceof GoogleGenAI ? getGeminiClientDebugState(geminiClientInstance) : {}),
     });
   } else {
     logGeminiClientDebug('reuseGeminiClient', {
       customBaseUrl,
       hasActiveApiKeyOverride: Boolean(activeApiKeyOverride),
-      ...getGeminiClientDebugState(geminiClientInstance),
+      ...(geminiClientInstance instanceof GoogleGenAI ? getGeminiClientDebugState(geminiClientInstance) : {}),
     });
   }
 

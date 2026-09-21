@@ -21,6 +21,13 @@ import {
   type ProfileStorage,
 } from '../config/gatewayProfiles';
 import type { ImageDriverId } from '../config/imageModelCatalog';
+import { removeDesktopCredential, storeDesktopCredential } from '../platform/desktopCredentials';
+import { invalidateCachedGatewayModels } from '../services/gatewayDiscoveryService';
+import {
+  DESKTOP_CREDENTIAL_SENTINEL,
+  getDesktopGatewayApi,
+  isStoredDesktopCredential,
+} from '../platform/desktopGateway';
 
 export interface UseGatewayProfilesParams {
   gemini: GeminiGatewaySeed;
@@ -58,9 +65,64 @@ export const useGatewayProfiles = ({ gemini, storage }: UseGatewayProfilesParams
   const imageProfiles = useMemo(() => gatewayProfiles.filter((profile) => profile.lane === 'image'), [gatewayProfiles]);
 
   const persist = useCallback((profiles: GatewayProfile[]) => {
-    saveGatewayProfiles(storage, profiles);
     setStoredProfiles(profiles);
-  }, [storage]);
+
+    if (!getDesktopGatewayApi()) {
+      saveGatewayProfiles(storage, profiles);
+      return;
+    }
+
+    // Desktop never writes raw credentials into renderer localStorage. Other
+    // profile fields persist immediately; the sentinel is written only after
+    // main confirms the key reached encrypted storage.
+    saveGatewayProfiles(
+      storage,
+      profiles.map((profile) => (
+        profile.apiKey.trim() && !isStoredDesktopCredential(profile.apiKey)
+          ? { ...profile, apiKey: '' }
+          : profile
+      )),
+    );
+
+    for (const profile of profiles) {
+      const rawApiKey = profile.apiKey.trim();
+      if (!rawApiKey) {
+        const previous = storedProfiles.find((item) => item.id === profile.id);
+        if (previous?.apiKey.trim()) {
+          invalidateCachedGatewayModels(profile.id);
+          void removeDesktopCredential(profile.id);
+        }
+        continue;
+      }
+      if (isStoredDesktopCredential(rawApiKey)) continue;
+
+      void storeDesktopCredential(profile.id, profile.baseUrl, rawApiKey).then((stored) => {
+        if (!stored) return;
+        invalidateCachedGatewayModels(profile.id);
+        setStoredProfiles((current) => {
+          let changed = false;
+          const next = current.map((item) => {
+            if (item.id !== profile.id || item.apiKey !== profile.apiKey || item.baseUrl !== profile.baseUrl) {
+              return item;
+            }
+            changed = true;
+            return { ...item, apiKey: DESKTOP_CREDENTIAL_SENTINEL };
+          });
+          if (changed) {
+            saveGatewayProfiles(
+              storage,
+              next.map((item) => (
+                item.apiKey.trim() && !isStoredDesktopCredential(item.apiKey)
+                  ? { ...item, apiKey: '' }
+                  : item
+              )),
+            );
+          }
+          return changed ? next : current;
+        });
+      });
+    }
+  }, [storage, storedProfiles]);
 
   /** The image profile a driver uses: the active one, else that driver's first selectable one. */
   const imageProfileForDriver = useCallback((driver: ImageDriverId): GatewayProfile | undefined =>

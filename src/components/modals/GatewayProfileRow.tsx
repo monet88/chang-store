@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { IMAGE_DRIVER_OPTIONS, type EditorProfile, type ProfileProbeState } from '../../hooks/useGatewayProfileEditor';
+import { isStoredDesktopCredential } from '../../platform/desktopGateway';
 
 export const fieldLabelClassName = 'text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400';
 export const inputClassName = 'workspace-input min-h-[44px] w-full px-3 py-2 text-sm text-zinc-100';
@@ -53,6 +54,23 @@ export const GatewayProfileRow: React.FC<GatewayProfileRowProps> = ({
   onProbe,
 }) => {
   const { t } = useLanguage();
+  const [apiKeyDraft, setApiKeyDraft] = useState(() => (
+    isStoredDesktopCredential(profile.apiKey) ? '' : profile.apiKey
+  ));
+  const [apiKeyDirty, setApiKeyDirty] = useState(false);
+
+  useEffect(() => {
+    if (!apiKeyDirty) {
+      setApiKeyDraft(isStoredDesktopCredential(profile.apiKey) ? '' : profile.apiKey);
+    }
+  }, [apiKeyDirty, profile.apiKey]);
+
+  const commitApiKeyDraft = (): void => {
+    if (!apiKeyDirty) return;
+    setApiKeyDirty(false);
+    onPatch({ apiKey: apiKeyDraft });
+  };
+
   return (
     <div className="space-y-3 rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
       <div className="flex items-center justify-between gap-3">
@@ -122,9 +140,13 @@ export const GatewayProfileRow: React.FC<GatewayProfileRowProps> = ({
           aria-label={t('settingsModal.gatewayProfiles.apiKeyField')}
           type="password"
           autoComplete="new-password"
-          placeholder="sk-..."
-          value={profile.apiKey}
-          onChange={(e) => onPatch({ apiKey: e.target.value })}
+          placeholder={isStoredDesktopCredential(profile.apiKey) ? '••••••••' : 'sk-...'}
+          value={apiKeyDraft}
+          onChange={(e) => {
+            setApiKeyDraft(e.target.value);
+            setApiKeyDirty(true);
+          }}
+          onBlur={commitApiKeyDraft}
           className={inputClassName}
         />
       </label>

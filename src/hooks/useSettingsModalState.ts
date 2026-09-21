@@ -10,6 +10,7 @@ import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { isDebugEnabled, setDebugEnabled } from '../services/debugService';
 import { validateProviderBaseUrl } from '../utils/provider-url-validation';
 import { getLocalStorageUsage } from '../utils/storage';
+import { isStoredDesktopCredential } from '../platform/desktopGateway';
 
 const CPA_GATEWAY_URL_KEY = 'cpa_gateway_url';
 const CPA_GATEWAY_API_KEY_KEY = 'cpa_gateway_api_key';
@@ -30,6 +31,8 @@ const DEFAULT_STORAGE_INFO: StorageInfo = {
   quotaMB: '200.00',
   storagePercentage: 0,
 };
+
+const comparableProviderUrl = (value: string): string => value.trim().replace(/\/+$/, '');
 
 export interface UseSettingsModalStateParams {
   isOpen: boolean;
@@ -84,15 +87,18 @@ export const useSettingsModalState = ({ isOpen }: UseSettingsModalStateParams): 
   );
   const hasCpaGatewayChanges = useMemo(
     () => (
-      localCpaGatewayUrl.trim() !== cpaGatewaySettings.url
+      comparableProviderUrl(localCpaGatewayUrl) !== comparableProviderUrl(cpaGatewaySettings.url)
       || localCpaGatewayApiKey !== cpaGatewaySettings.apiKey
     ),
     [localCpaGatewayApiKey, localCpaGatewayUrl, cpaGatewaySettings],
   );
   const isCpaGatewayUrlInvalid = cpaGatewayUrlValidation.status === 'invalid';
   const isCpaGatewayUrlCustom = cpaGatewayUrlValidation.status === 'custom';
-  const isCpaGatewayApiKeyMissing = localCpaGatewayApiKey.trim().length === 0
-    && hasCpaGatewayChanges;
+  const cpaGatewayUrlChanged = comparableProviderUrl(localCpaGatewayUrl) !== comparableProviderUrl(cpaGatewaySettings.url);
+  const isCpaGatewayApiKeyMissing = (
+    localCpaGatewayApiKey.trim().length === 0
+    || (cpaGatewayUrlChanged && isStoredDesktopCredential(localCpaGatewayApiKey))
+  ) && hasCpaGatewayChanges;
   const customCpaGatewayHost = isCpaGatewayUrlCustom ? cpaGatewayUrlValidation.host : null;
 
   const refreshStorageUsage = useCallback(async (): Promise<void> => {
