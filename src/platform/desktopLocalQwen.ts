@@ -6,6 +6,7 @@ export const DESKTOP_LOCAL_QWEN_CHANNELS = {
   stopServer: 'desktop-local-qwen:stop-server',
   generateImage: 'desktop-local-qwen:generate-image',
   cancelJob: 'desktop-local-qwen:cancel-job',
+  upscaleImage: 'desktop-local-qwen:upscale-image',
 } as const;
 
 export type DesktopLocalQwenState = 'starting' | 'ready' | 'generating' | 'error' | 'stopped';
@@ -45,12 +46,22 @@ export interface LocalQwenGenerateResult {
   };
 }
 
+export interface LocalQwenUpscaleParams {
+  image: string;
+  scale?: number;
+}
+
+export interface LocalQwenUpscaleResult {
+  image: string;
+}
+
 export interface DesktopLocalQwenApi {
   getStatus(): Promise<DesktopBridgeResult<DesktopLocalQwenStatus>>;
   startServer(folder?: string): Promise<DesktopBridgeResult<DesktopLocalQwenStatus>>;
   stopServer(): Promise<DesktopBridgeResult<DesktopLocalQwenStopResult>>;
   generateImage(params: LocalQwenGenerateParams): Promise<DesktopBridgeResult<LocalQwenGenerateResult>>;
   cancelJob(): Promise<DesktopBridgeResult<{ cancelled: boolean }>>;
+  upscaleImage(params: { image: string; scale?: number }): Promise<DesktopBridgeResult<{ image: string }>>;
 }
 
 declare global {

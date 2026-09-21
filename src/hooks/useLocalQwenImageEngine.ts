@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { ImageEngine } from '../contexts/ImageEngineContext';
+import { useImageGallery, type ImageGalleryContextType } from '../contexts/ImageGalleryContext';
 import type { EditImageParams } from '../services/imageEditingService';
 import type { ImageFile, UpscaleQuality } from '../types';
 import { snapshotLocalQwenSettings } from '../config/localQwenSettings';
@@ -36,6 +37,12 @@ interface LocalQwenServiceConfig {
  * - No auto-upscale; results remain at configured resolution.
  */
 export const useLocalQwenImageEngine = (): ImageEngine => {
+  let gallery: ImageGalleryContextType | undefined;
+  try {
+    gallery = useImageGallery();
+  } catch {
+    // Allows running outside ImageGalleryProvider in tests
+  }
   return useMemo<ImageEngine>(() => {
     const editImage = async (
       params: EditImageParams,
@@ -83,11 +90,35 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
       image: ImageFile,
       _model?: string,
       config?: LocalQwenServiceConfig,
-      _quality?: UpscaleQuality,
+      quality?: UpscaleQuality,
     ): Promise<ImageFile> => {
       return runSerializedLocalQwenJob(async () => {
-        config?.onStatusUpdate?.('Local Qwen upscale...');
-        return image;
+        config?.onStatusUpdate?.('Upscaling image with local ComfyUI...');
+
+        const desktopApi = window.desktopLocalQwen;
+        if (!desktopApi?.upscaleImage) {
+          throw new Error('Local Qwen upscale requires desktop app runtime.');
+        }
+
+        const scale = quality === '4K' ? 4 : 2;
+        const res = await desktopApi.upscaleImage({
+          image: image.base64,
+          scale,
+        });
+
+        if (!res.ok || !res.value) {
+          throw new Error(res.error?.message || 'Local Qwen upscale failed');
+        }
+
+        const upscaledImage: ImageFile = {
+          base64: res.value.image,
+          mimeType: image.mimeType || 'image/png',
+        };
+
+        // Tag upscaled result in gallery as localQwen
+        gallery?.addImage(upscaledImage, undefined, 'localQwen');
+
+        return upscaledImage;
       });
     };
 
@@ -102,5 +133,5 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
       noSelectableModel: false,
       options: null,
     };
-  }, []);
+  }, [gallery]);
 };

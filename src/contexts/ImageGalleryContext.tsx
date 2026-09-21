@@ -22,7 +22,7 @@ import { useGalleryPersistence } from '../hooks/useGalleryPersistence';
 // Types
 // ============================================================================
 
-interface ImageGalleryContextType {
+export interface ImageGalleryContextType {
   /** Gallery images */
   images: GalleryImageFile[];
   /** Add image to gallery */
@@ -56,7 +56,7 @@ const imageCache = new ImageLRUCache<GalleryImageFile>();
 // Context
 // ============================================================================
 
-const ImageGalleryContext = createContext<ImageGalleryContextType | undefined>(undefined);
+export const ImageGalleryContext = createContext<ImageGalleryContextType | undefined>(undefined);
 
 // ============================================================================
 // Provider Component
