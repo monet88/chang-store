@@ -9,6 +9,8 @@ import {
   type DesktopLocalQwenStopResult,
   type LocalQwenGenerateParams,
   type LocalQwenGenerateResult,
+  type LocalQwenUpscaleParams,
+  type LocalQwenUpscaleResult,
 } from '../src/platform/desktopLocalQwen';
 import { KNOWN_PORTABLE_COMFYUI_PATH } from '../src/config/localQwenSettings';
 import { trustedBridge } from './gateway';
@@ -533,6 +535,144 @@ export class LocalQwenManager {
 
     throw new Error('ComfyUI generation timed out.');
   }
+
+  public async upscaleImage(params: LocalQwenUpscaleParams): Promise<LocalQwenUpscaleResult> {
+    const isReady = await this.probe();
+    if (!isReady) {
+      throw new Error(`ComfyUI server is not running on 127.0.0.1:${this.port}. Please start it first.`);
+    }
+
+    if (!params || typeof params.image !== 'string' || !params.image.trim()) {
+      throw new Error('No image provided for upscale.');
+    }
+
+    const host = `127.0.0.1:${this.port}`;
+    const baseUrl = `http://${host}`;
+
+    let rawBase64 = params.image.trim();
+    let mimeType = 'image/png';
+    if (rawBase64.startsWith('data:')) {
+      const match = rawBase64.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        mimeType = match[1];
+        rawBase64 = match[2];
+      }
+    }
+
+    const buffer = Buffer.from(rawBase64, 'base64');
+    const ext = mimeType.includes('jpeg') || mimeType.includes('jpg') ? 'jpg' : 'png';
+    const filename = `upscale_input_${Date.now()}.${ext}`;
+
+    const formData = new FormData();
+    const blob = new Blob([buffer], { type: mimeType });
+    formData.append('image', blob, filename);
+    formData.append('overwrite', 'true');
+
+    const uploadRes = await this.fetchFn(`${baseUrl}/upload/image`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text().catch(() => uploadRes.statusText);
+      throw new Error(`Failed to upload image to ComfyUI for upscale: ${errText}`);
+    }
+
+    const uploadData = (await uploadRes.json()) as { name?: string };
+    const uploadedFileName = uploadData.name || filename;
+
+    const scale = typeof params.scale === 'number' && Number.isFinite(params.scale) && params.scale > 0
+      ? params.scale
+      : 2.0;
+
+    const workflow: Record<string, unknown> = {
+      '1': {
+        class_type: 'LoadImage',
+        inputs: {
+          image: uploadedFileName,
+        },
+      },
+      '2': {
+        class_type: 'ImageScaleBy',
+        inputs: {
+          image: ['1', 0],
+          upscale_method: 'bicubic',
+          scale_by: scale,
+        },
+      },
+      '3': {
+        class_type: 'SaveImage',
+        inputs: {
+          filename_prefix: 'Qwen_Upscale',
+          images: ['2', 0],
+        },
+      },
+    };
+
+    const clientId = `chang-store-upscale-${Date.now()}`;
+    const promptRes = await this.fetchFn(`${baseUrl}/prompt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: workflow, client_id: clientId }),
+    });
+
+    if (!promptRes.ok) {
+      const errText = await promptRes.text().catch(() => promptRes.statusText);
+      throw new Error(`ComfyUI upscale rejected (${promptRes.status}): ${errText}`);
+    }
+
+    const promptData = (await promptRes.json()) as { prompt_id: string };
+    const promptId = promptData.prompt_id;
+    if (!promptId) {
+      throw new Error('ComfyUI did not return a prompt_id.');
+    }
+
+    const timeoutMs = 600_000;
+    const pollIntervalMs = 500;
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeoutMs) {
+      const historyRes = await this.fetchFn(`${baseUrl}/history/${promptId}`);
+      if (historyRes.ok) {
+        const historyData = (await historyRes.json()) as Record<string, {
+          outputs?: Record<string, { images?: Array<{ filename: string; subfolder?: string; type?: string }> }>;
+          status?: { status_str?: string; messages?: unknown };
+        }>;
+
+        const item = historyData[promptId];
+        if (item) {
+          if (item.status?.status_str === 'error') {
+            throw new Error(`ComfyUI upscale execution failed: ${JSON.stringify(item.status.messages || 'Unknown error')}`);
+          }
+
+          if (item.outputs) {
+            for (const nodeId of Object.keys(item.outputs)) {
+              const nodeOut = item.outputs[nodeId];
+              if (nodeOut?.images && nodeOut.images.length > 0) {
+                const imgInfo = nodeOut.images[0];
+                const viewUrl = `${baseUrl}/view?filename=${encodeURIComponent(imgInfo.filename)}&subfolder=${encodeURIComponent(imgInfo.subfolder || '')}&type=${encodeURIComponent(imgInfo.type || 'output')}`;
+                const viewRes = await this.fetchFn(viewUrl);
+                if (!viewRes.ok) {
+                  throw new Error(`Failed to fetch upscaled image from ComfyUI: ${viewRes.statusText}`);
+                }
+                const imageBuffer = Buffer.from(await viewRes.arrayBuffer());
+                const base64 = imageBuffer.toString('base64');
+                return {
+                  image: base64,
+                };
+              }
+            }
+          }
+        }
+      }
+
+      const { promise, resolve } = Promise.withResolvers<void>();
+      setTimeout(resolve, pollIntervalMs);
+      await promise;
+    }
+
+    throw new Error('ComfyUI upscale timed out.');
+  }
 }
 
 export const localQwenManager = new LocalQwenManager();
@@ -551,5 +691,8 @@ export const registerDesktopLocalQwenHandlers = (
   );
   ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.generateImage, (event, params) =>
     trustedBridge(event, () => manager.generateImage(params as LocalQwenGenerateParams)),
+  );
+  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.upscaleImage, (event, params) =>
+    trustedBridge(event, () => manager.upscaleImage(params as LocalQwenUpscaleParams)),
   );
 };
