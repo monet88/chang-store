@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ImageFile } from '../types';
+import { ImageFile, UpscaleQuality } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { upscaleImage } from '../services/imageEditingService';
 import { downloadImagesAsZip } from '../utils/zipDownload';
@@ -23,6 +23,8 @@ export interface GeneratedResultSlotAdapter {
   commitResult: (itemId: string, index: number, image: ImageFile) => void;
   /** Flat list of results eligible for batch download. */
   collectDownloadableResults: () => ImageFile[];
+  /** Optional matching ZIP entry paths when a Feature needs grouped archives. */
+  collectDownloadableEntryPaths?: () => string[];
 }
 
 export interface UseGeneratedResultActionsConfig {
@@ -39,7 +41,12 @@ export interface UseGeneratedResultActionsConfig {
 }
 
 export interface UseGeneratedResultActionsReturn {
-  handleUpscale: (image: ImageFile, index: number, itemId?: string) => Promise<void>;
+  handleUpscale: (
+    image: ImageFile,
+    index: number,
+    itemId?: string,
+    quality?: UpscaleQuality,
+  ) => Promise<void>;
   handleRefine: (image: ImageFile, index: number, itemId: string, prompt: string) => Promise<void>;
   handleDownloadAll: () => Promise<void>;
 }
@@ -58,7 +65,12 @@ export const useGeneratedResultActions = (
   const { driver, adapter, imageEditModel, refinement, buildImageServiceConfig,
     setError, setUpscalingStates, downloadName, t } = config;
 
-  const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number, itemId?: string) => {
+  const handleUpscale = useCallback(async (
+    imageToUpscale: ImageFile,
+    index: number,
+    itemId?: string,
+    quality?: UpscaleQuality,
+  ) => {
     const targetItemId = itemId ?? adapter.activeItemId;
     if (!imageToUpscale || !targetItemId) {
       return;
@@ -69,11 +81,10 @@ export const useGeneratedResultActions = (
     setError(null);
 
     try {
-      const result = await driver.upscaleImage(
-        imageToUpscale,
-        imageEditModel,
-        buildImageServiceConfig(() => { }),
-      );
+      const serviceConfig = buildImageServiceConfig(() => { });
+      const result = quality
+        ? await driver.upscaleImage(imageToUpscale, imageEditModel, serviceConfig, quality)
+        : await driver.upscaleImage(imageToUpscale, imageEditModel, serviceConfig);
 
       adapter.commitResult(targetItemId, index, result);
     } catch (err) {
@@ -94,7 +105,12 @@ export const useGeneratedResultActions = (
     if (allResults.length === 0) return;
 
     try {
-      await downloadImagesAsZip(allResults, downloadName);
+      const entryPaths = adapter.collectDownloadableEntryPaths?.();
+      if (entryPaths && entryPaths.length === allResults.length) {
+        await downloadImagesAsZip(allResults, downloadName, entryPaths);
+      } else {
+        await downloadImagesAsZip(allResults, downloadName);
+      }
     } catch (err) {
       setError(getErrorMessage(err, t));
     }

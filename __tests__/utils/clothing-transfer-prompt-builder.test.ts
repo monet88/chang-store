@@ -239,6 +239,7 @@ describe('buildProductStagingParts', () => {
     expect(parts[2].text).toContain('TASK: Extract the top garment');
     expect(parts[2].text).toContain('Hang on a natural wood hanger');
     expect(parts[2].text).toContain('ZERO human beings or mannequins');
+    expect(parts[2].text).not.toContain('STAGING REFERENCE');
   });
 
   it('formats industrial JSON-config format for OpenAI image lane (GPT Image)', () => {
@@ -269,6 +270,7 @@ Leather tote bag, tortoiseshell sunglasses`;
 
     expect(config.ENVIRONMENT).toBeDefined();
     expect(config.ENVIRONMENT.target_scene).toBe(template.prompt);
+    expect(config.TASK).not.toContain('STAGING REFERENCE');
 
     expect(config.STAGING_ZONES).toBeDefined();
     expect(config.STAGING_ZONES.upper_hanger).toContain('upper garments');
@@ -438,6 +440,27 @@ Diamond drop earrings`;
 
     const partsGemini = buildGeminiBrandModelParts(sourceImage, model, 'keep vintage belt');
     expect(partsGemini[partsGemini.length - 1].text).toContain('USER INSTRUCTIONS:\nkeep vintage belt');
+  });
+
+  it('preserves only selected top and bottom scopes for brand-model generation', () => {
+    const sourceImage = mockImage('source-outfit');
+
+    const geminiParts = buildGeminiBrandModelParts(
+      sourceImage,
+      model,
+      '',
+      '',
+      ['top', 'bottom'],
+    );
+    const geminiText = geminiParts[geminiParts.length - 1].text || '';
+    expect(geminiText).toContain('top garment');
+    expect(geminiText).toContain('bottom garment');
+    expect(geminiText).toContain('unselected source clothing');
+
+    const gptParts = buildGptBrandModelParts(sourceImage, model, ['top', 'bottom']);
+    expect(gptParts[0].text).toContain('top garment');
+    expect(gptParts[0].text).toContain('bottom garment');
+    expect(gptParts[0].text).toContain('unselected source clothing');
   });
 });
 

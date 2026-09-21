@@ -15,6 +15,7 @@ import {
 } from './ai-scan-blueprint';
 import {
   formatGarmentScope,
+  formatGarmentScopeSelection,
   type ClothingTransferReferenceInput,
 } from './clothing-transfer-prompt-types';
 
@@ -94,6 +95,7 @@ export function buildGptProductStagingParts(
   const stagingSpec = hasStagingImage
     ? `Display the extracted garment realistically hanging, laid out, or staged matching the EXACT setting, hanger, surface, and lighting visible in the STAGING REFERENCE image.${template.prompt ? ` ${template.prompt}` : ''}`
     : template.prompt;
+  const stagingTarget = hasStagingImage ? 'STAGING REFERENCE setting' : 'TEXT TEMPLATE staging specification';
   const parsedBlueprint = parseOutfitBlueprint(outfitBlueprint);
 
   const header = hasStagingImage
@@ -101,7 +103,7 @@ export function buildGptProductStagingParts(
     : `IMAGE 1 = SOURCE OUTFIT (extract ${scopeDesc})\n\n`;
 
   const config: Record<string, unknown> = {
-    TASK: `Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged into the STAGING REFERENCE setting.`,
+    TASK: `Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged according to the ${stagingTarget}.`,
     CANVAS_CONTRACT: {
       aspect_ratio: aspectRatio,
       resolution,
@@ -154,7 +156,7 @@ export function buildGptProductStagingParts(
 export function buildGptBrandModelParts(
   sourceImage: ImageFile,
   model: BrandModelProfile,
-  scope: GarmentScope,
+  scope: GarmentScope | GarmentScope[],
   extraInstructions: string = '',
   outfitBlueprint: string = '',
 ): Part[] {
@@ -163,6 +165,9 @@ export function buildGptBrandModelParts(
   }
 
   const parsedBlueprint = parseOutfitBlueprint(outfitBlueprint);
+  const garmentScopes = Array.isArray(scope) ? scope : [scope];
+  const scopeDescription = formatGarmentScopeSelection(garmentScopes);
+  const isFullSet = garmentScopes.includes('full-set');
 
   const roles = [
     {
@@ -183,10 +188,13 @@ export function buildGptBrandModelParts(
   }
 
   const roleMap = roles.map((r, i) => `IMAGE ${i + 1} = ${r.label}`).join('\n');
-  const gptBlueprint = formatGptBlueprintConfig(outfitBlueprint, scope);
+  const gptBlueprint = {
+    ...formatGptBlueprintConfig(outfitBlueprint),
+    garmentScopes,
+  };
 
   const config: Record<string, unknown> = {
-    TASK: `Replace model's head and face in DESTINATION PHOTO with BRAND MODEL (${model.name}) while maintaining a 100% strict lock on clothing and environment.`,
+    TASK: `Replace model's head and face in DESTINATION PHOTO with BRAND MODEL (${model.name}) while preserving only the selected garment scope(s) and the destination environment.`,
     CANVAS_CONTRACT: {
       framing: 'preserve destination scene composition and framing exactly',
       output_format: 'high-end commercial fashion catalog photograph',
@@ -203,14 +211,18 @@ export function buildGptBrandModelParts(
         : {}),
     },
     LOCKED_ELEMENTS: {
-      garment_lock: '100% FROZEN: Preserve exact clothing down to smallest detail, including colors, fabric textures, seams, ties, lace patterns, and hemlines. Zero alteration to clothing design.',
+      garment_scope: scopeDescription,
+      garment_lock: isFullSet
+        ? '100% FROZEN: Preserve the complete source outfit down to smallest detail, including colors, fabric textures, seams, ties, lace patterns, and hemlines.'
+        : '100% FROZEN: Preserve only the selected source garment scope(s) down to smallest detail. Do not copy unselected source clothing layers.',
       environment_lock: '100% FROZEN: Preserve entire background scene, camera perspective, room setting, lighting geometry, and ambiance.',
       pose_lock: '100% FROZEN: Preserve exact body pose, stance, hand placement, and gesture from DESTINATION PHOTO.',
       ...(parsedBlueprint.raw ? { garment_blueprint: gptBlueprint } : {}),
     },
     STRICT_INVARIANTS_AND_EXCLUSIONS: [
       'Do NOT retain original facial features or expression of person in DESTINATION PHOTO (must be completely replaced by BRAND MODEL)',
-      'Do NOT alter clothing design, fabric textures, or colors (100% garment lock)',
+      'Do NOT alter selected clothing design, fabric textures, or colors (100% garment lock)',
+      ...(isFullSet ? [] : ['Do NOT copy unselected source clothing outside the selected garment scope(s)']),
       'Do NOT alter background scene, furniture, camera perspective, or lighting (100% environment lock)',
       ...parsedBlueprint.detectedAccessories.map(
         (acc) => `exclude detected accessory: ${acc}`,

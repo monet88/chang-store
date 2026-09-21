@@ -75,4 +75,26 @@ describe('downloadImagesAsZip', () => {
     );
     expect(downloadBlobMock).toHaveBeenCalledWith(expect.any(Blob), 'clothing-transfer-batch.zip');
   });
+
+  it('accepts explicit organized entry paths', async () => {
+    await downloadImagesAsZip(
+      [
+        { base64: 'one', mimeType: 'image/png' },
+        { base64: 'two', mimeType: 'image/png' },
+      ],
+      'clothing-transfer-ecom-pack',
+      ['product/template-001.jpg', 'brand-models/model-001.jpg'],
+    );
+
+    expect(zipFileMock).toHaveBeenNthCalledWith(
+      1,
+      'product/template-001.jpg',
+      expect.anything(),
+    );
+    expect(zipFileMock).toHaveBeenNthCalledWith(
+      2,
+      'brand-models/model-001.jpg',
+      expect.anything(),
+    );
+  });
 });

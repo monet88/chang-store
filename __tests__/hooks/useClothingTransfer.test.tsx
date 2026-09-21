@@ -581,6 +581,49 @@ describe('useClothingTransfer', () => {
     expect(createImageChatSession).not.toHaveBeenCalled();
   });
 
+  it('exposes E-Com Pack upscale, refine, and download-all through shared result actions', async () => {
+    vi.mocked(editImage).mockResolvedValueOnce([RESULT_A]);
+    vi.mocked(upscaleImage).mockResolvedValueOnce(UPSCALED);
+    vi.mocked(createImageChatSession).mockReturnValue(refineSessionMock as never);
+    refineSessionMock.sendRefinement.mockResolvedValueOnce(REFINED);
+
+    const { result } = renderHook(() => useClothingTransfer());
+
+    act(() => {
+      result.current.ecomPack.setSourceOutfitImage(CONCEPT_A);
+      result.current.ecomPack.handleCustomStagingUpload([REF_A]);
+    });
+    await act(async () => {
+      await result.current.ecomPack.handleGeneratePack();
+    });
+
+    const itemId = result.current.ecomPack.packItems[0].id;
+    await act(async () => {
+      await result.current.ecomPack.handleUpscale(RESULT_A, 0, itemId, '4K');
+    });
+    expect(upscaleImage).toHaveBeenCalledWith(
+      RESULT_A,
+      expect.any(String),
+      expect.any(Object),
+      '4K',
+    );
+    expect(result.current.ecomPack.packItems[0].results[0]).toEqual(UPSCALED);
+
+    await act(async () => {
+      await result.current.ecomPack.handleRefine(UPSCALED, 0, itemId, 'clean the drape');
+    });
+    expect(result.current.ecomPack.packItems[0].results[0]).toEqual(REFINED);
+
+    await act(async () => {
+      await result.current.ecomPack.handleDownloadAll();
+    });
+    expect(downloadImagesAsZip).toHaveBeenCalledWith(
+      [REFINED],
+      'clothing-transfer-ecom-pack',
+      ['product/template-custom-staging-flat-lay-0-1.jpg'],
+    );
+  });
+
   it('skips zip download when there are no completed results', async () => {
     const { result } = renderHook(() => useClothingTransfer());
 

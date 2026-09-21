@@ -7,12 +7,30 @@ import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 import { AddIcon, DeleteIcon, CloseIcon } from './Icons';
-import { AspectRatio, GarmentScope, ImageFile, ImageResolution } from '../types';
+import { AspectRatio, GarmentScope, ImageFile, ImageResolution, UpscaleQuality } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { UseClothingTransferEComPackReturn } from '../hooks/useClothingTransferEComPack';
 
+type DisplayTemplateCategory =
+  Parameters<UseClothingTransferEComPackReturn['handleAddTextTemplate']>[0]['category'];
+
+type EComPackViewModel = UseClothingTransferEComPackReturn & {
+  handleUpscale: (
+    image: ImageFile,
+    index: number,
+    itemId?: string,
+    quality?: UpscaleQuality,
+  ) => Promise<void>;
+  handleRefine: (image: ImageFile, index: number, itemId: string, prompt: string) => Promise<void>;
+  handleDownloadAll: () => Promise<void>;
+  refinePrompts: Record<string, string>;
+  setRefinePrompts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  isRefining: Record<string, boolean>;
+  upscalingStates: Record<string, boolean>;
+};
+
 interface EComPackViewProps {
-  ecomPack: UseClothingTransferEComPackReturn;
+  ecomPack: EComPackViewModel;
   aspectRatio: AspectRatio;
   setAspectRatio: (ar: AspectRatio) => void;
   resolution: ImageResolution;
@@ -47,64 +65,126 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
     outfitBlueprint,
     isAnalyzingOutfit,
     handleReanalyzeOutfit,
-    garmentScope,
-    setGarmentScope,
+    selectedGarmentScopes,
+    toggleGarmentScope,
     brandModels,
-    selectedBrandModelId,
+    selectedBrandModelIds,
     selectBrandModel,
     handleAddCustomModel,
+    handleUpdateBrandModel,
     handleRemoveCustomModel,
     isCustomBrandModel,
-    customStagingImages,
+    displayTemplates,
+    selectedTemplateIds,
+    toggleDisplayTemplate,
+    handleAddTextTemplate,
+    handleRemoveDisplayTemplate,
     handleCustomStagingUpload,
     customDestinations,
     handleCustomDestinationsUpload,
     packItems,
     isGenerating,
     handleGeneratePack,
+    handleGenerateCategory,
     handleRegeneratePackItem,
+    handleUpscale,
+    handleRefine,
+    handleDownloadAll,
+    refinePrompts,
+    setRefinePrompts,
+    isRefining,
+    upscalingStates,
   } = ecomPack;
 
   const [isAddingModel, setIsAddingModel] = React.useState(false);
+  const [editingModelId, setEditingModelId] = React.useState<string | null>(null);
   const [newModelName, setNewModelName] = React.useState('');
   const [newModelFace, setNewModelFace] = React.useState<ImageFile | null>(null);
   const [newModelBody, setNewModelBody] = React.useState<ImageFile | null>(null);
   const [newModelAge, setNewModelAge] = React.useState('22');
   const [newModelHeight, setNewModelHeight] = React.useState('1m65');
+  const [newModelWeight, setNewModelWeight] = React.useState('48kg');
+  const [newModelSkinTone, setNewModelSkinTone] = React.useState('natural skin tone');
+  const [newModelBodyType, setNewModelBodyType] = React.useState('natural build from body reference');
+  const [newModelFacialFeatures, setNewModelFacialFeatures] = React.useState('natural features from face reference');
+  const [newModelStyleVibe, setNewModelStyleVibe] = React.useState('');
+  const [showTextTemplateForm, setShowTextTemplateForm] = React.useState(false);
+  const [textTemplateName, setTextTemplateName] = React.useState('');
+  const [textTemplatePrompt, setTextTemplatePrompt] = React.useState('');
+  const [textTemplateCategory, setTextTemplateCategory] = React.useState<DisplayTemplateCategory>('flat-lay');
   const [formError, setFormError] = React.useState<string | null>(null);
   const [showBlueprint, setShowBlueprint] = React.useState(false);
 
+  const resetModelForm = () => {
+    setEditingModelId(null);
+    setNewModelName('');
+    setNewModelFace(null);
+    setNewModelBody(null);
+    setNewModelAge('22');
+    setNewModelHeight('1m65');
+    setNewModelWeight('48kg');
+    setNewModelSkinTone('natural skin tone');
+    setNewModelBodyType('natural build from body reference');
+    setNewModelFacialFeatures('natural features from face reference');
+    setNewModelStyleVibe('');
+    setFormError(null);
+  };
+
+  const openEditModel = (modelId: string) => {
+    const model = brandModels.find((item) => item.id === modelId);
+    if (!model) return;
+    setEditingModelId(model.id);
+    setNewModelName(model.name);
+    setNewModelFace(model.faceImage);
+    setNewModelBody(model.bodyImage);
+    setNewModelAge(String(model.metadata.age));
+    setNewModelHeight(model.metadata.height);
+    setNewModelWeight(model.metadata.weight);
+    setNewModelSkinTone(model.metadata.skinTone);
+    setNewModelBodyType(model.metadata.bodyType);
+    setNewModelFacialFeatures(model.metadata.facialFeatures);
+    setNewModelStyleVibe(model.metadata.styleVibe);
+    setFormError(null);
+    setIsAddingModel(true);
+  };
+
   const handleSaveModel = () => {
-    if (!newModelName.trim() || !newModelFace) {
+    if (!newModelName.trim() || !newModelFace || !newModelBody) {
       setFormError(t('clothingTransfer.ecomPack.customModelForm.nameRequiredError'));
       return;
     }
-    handleAddCustomModel({
+    const profile = {
       name: newModelName.trim(),
       faceImage: newModelFace,
       bodyImage: newModelBody,
       metadata: {
         age: Number(newModelAge) || 22,
         height: newModelHeight.trim() || '1m65',
-        weight: '48kg',
-        bodyType: 'natural build from body reference',
-        skinTone: 'natural skin tone',
-        facialFeatures: 'natural features from face reference',
-        styleVibe: '',
+        weight: newModelWeight.trim() || '48kg',
+        bodyType: newModelBodyType.trim() || 'natural build from body reference',
+        skinTone: newModelSkinTone.trim() || 'natural skin tone',
+        facialFeatures: newModelFacialFeatures.trim() || 'natural features from face reference',
+        styleVibe: newModelStyleVibe.trim(),
       },
-    });
-    setNewModelName('');
-    setNewModelFace(null);
-    setNewModelBody(null);
-    setNewModelAge('22');
-    setNewModelHeight('1m65');
-    setFormError(null);
+    };
+    if (editingModelId) {
+      handleUpdateBrandModel(editingModelId, profile);
+    } else {
+      handleAddCustomModel(profile);
+    }
+    resetModelForm();
     setIsAddingModel(false);
   };
 
   const productItems = packItems.filter((it) => it.category === 'product');
   const brandModelItems = packItems.filter((it) => it.category === 'brand-models');
   const customItems = packItems.filter((it) => it.category === 'custom-destinations');
+  const customHangerImages = displayTemplates
+    .filter((template) => template.modality === 'image' && template.category === 'hanger' && template.image)
+    .map((template) => template.image as ImageFile);
+  const customFlatLayImages = displayTemplates
+    .filter((template) => template.modality === 'image' && template.category === 'flat-lay' && template.image)
+    .map((template) => template.image as ImageFile);
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(520px,0.95fr)_minmax(0,1.05fr)] xl:items-start">
@@ -182,12 +262,12 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
               </p>
               <div className="flex flex-wrap gap-2">
                 {GARMENT_SCOPES.map((scope) => {
-                  const isSelected = garmentScope === scope.id;
+                  const isSelected = selectedGarmentScopes.includes(scope.id);
                   return (
                     <button
                       key={scope.id}
                       type="button"
-                      onClick={() => setGarmentScope(scope.id)}
+                      onClick={() => toggleGarmentScope(scope.id)}
                       className={`rounded-xl px-3.5 py-2 text-xs font-medium transition-all ${
                         isSelected
                           ? 'bg-amber-500 text-black shadow-md font-semibold ring-2 ring-amber-500/50'
@@ -203,41 +283,170 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
           </div>
         </section>
 
-        {/* 2. Product Staging (Hanger & Flat Lay - Upload Only) */}
+        {/* 2. Product Staging */}
         <section className="workspace-stage rounded-[2rem] p-5 sm:p-6">
-          <div className="mb-3">
-            <h4 className="workspace-title text-lg font-medium text-white">
-              {t('clothingTransfer.ecomPack.productStagingTitle')}
-            </h4>
-            <p className="text-xs leading-5 text-zinc-400">
-              {t('clothingTransfer.ecomPack.productStagingHint')}
-            </p>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h4 className="workspace-title text-lg font-medium text-white">
+                {t('clothingTransfer.ecomPack.productStagingTitle')}
+              </h4>
+              <p className="text-xs leading-5 text-zinc-400">
+                {t('clothingTransfer.ecomPack.productStagingHint')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleGenerateCategory('product')}
+              disabled={isGenerating || !sourceOutfitImage || selectedTemplateIds.length === 0}
+              className="workspace-button shrink-0 px-3 py-2 text-xs disabled:opacity-50"
+            >
+              {t('clothingTransfer.ecomPack.generateProduct')}
+            </button>
           </div>
 
-          <MultiImageUploader
-            images={customStagingImages}
-            id="custom-staging-uploader"
-            title={t('clothingTransfer.ecomPack.productStagingTitle')}
-            hideTitle
-            maxImages={4}
-            onImagesUpload={handleCustomStagingUpload}
-          />
+          <div className="mb-4 grid gap-2 sm:grid-cols-2">
+            {displayTemplates.map((template) => {
+              const selected = selectedTemplateIds.includes(template.id);
+              const isCustom = template.id.startsWith('custom-');
+              return (
+                <div
+                  key={template.id}
+                  className={'flex items-center gap-2 rounded-xl border p-3 ' + (
+                    selected ? 'border-amber-500/50 bg-amber-500/10' : 'border-white/10 bg-black/25'
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleDisplayTemplate(template.id)}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <p className="truncate text-sm font-medium text-white">{template.name}</p>
+                    <p className="text-[11px] text-zinc-500">
+                      {template.category === 'hanger' ? 'Hanger' : 'Flat Lay'} · {template.modality === 'image' ? 'Image' : 'Text'}
+                    </p>
+                  </button>
+                  {isCustom && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDisplayTemplate(template.id)}
+                      className="rounded-lg p-1.5 text-zinc-500 hover:bg-white/10 hover:text-red-400"
+                      aria-label={t('common.delete')}
+                    >
+                      <DeleteIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <p className="mb-2 text-xs font-medium text-zinc-300">
+                {t('clothingTransfer.ecomPack.customImageTemplate')} · Hanger
+              </p>
+              <MultiImageUploader
+                images={customHangerImages}
+                id="custom-hanger-staging-uploader"
+                title={t('clothingTransfer.ecomPack.productStagingTitle')}
+                hideTitle
+                maxImages={4}
+                onImagesUpload={(files) => handleCustomStagingUpload(files, 'hanger')}
+              />
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <p className="mb-2 text-xs font-medium text-zinc-300">
+                {t('clothingTransfer.ecomPack.customImageTemplate')} · Flat Lay
+              </p>
+              <MultiImageUploader
+                images={customFlatLayImages}
+                id="custom-flat-lay-staging-uploader"
+                title={t('clothingTransfer.ecomPack.productStagingTitle')}
+                hideTitle
+                maxImages={4}
+                onImagesUpload={(files) => handleCustomStagingUpload(files, 'flat-lay')}
+              />
+            </div>
+          </div>
+
+          {showTextTemplateForm ? (
+            <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <input
+                  value={textTemplateName}
+                  onChange={(event) => setTextTemplateName(event.target.value)}
+                  placeholder={t('clothingTransfer.ecomPack.textTemplateName')}
+                  className="workspace-input px-3 py-2 text-sm"
+                />
+                <select
+                  value={textTemplateCategory}
+                  onChange={(event) => setTextTemplateCategory(event.target.value as DisplayTemplateCategory)}
+                  className="workspace-input px-3 py-2 text-sm"
+                >
+                  <option value="hanger">Hanger</option>
+                  <option value="flat-lay">Flat Lay</option>
+                </select>
+              </div>
+              <textarea
+                value={textTemplatePrompt}
+                onChange={(event) => setTextTemplatePrompt(event.target.value)}
+                placeholder={t('clothingTransfer.ecomPack.textTemplatePrompt')}
+                className="workspace-input min-h-20 w-full px-3 py-2 text-sm"
+              />
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowTextTemplateForm(false)} className="workspace-button px-3 py-2 text-xs">
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  disabled={!textTemplateName.trim() || !textTemplatePrompt.trim()}
+                  onClick={() => {
+                    handleAddTextTemplate({
+                      name: textTemplateName,
+                      category: textTemplateCategory,
+                      prompt: textTemplatePrompt,
+                    });
+                    setTextTemplateName('');
+                    setTextTemplatePrompt('');
+                    setShowTextTemplateForm(false);
+                  }}
+                  className="rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-black disabled:opacity-50"
+                >
+                  {t('clothingTransfer.ecomPack.saveTextTemplate')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setShowTextTemplateForm(true)} className="workspace-button w-full px-3 py-2 text-xs">
+              {t('clothingTransfer.ecomPack.addTextTemplate')}
+            </button>
+          )}
         </section>
 
         {/* 3. Brand Models */}
         <section className="workspace-stage rounded-[2rem] p-5 sm:p-6">
-          <div className="mb-3">
-            <h4 className="workspace-title text-lg font-medium text-white">
-              {t('clothingTransfer.ecomPack.brandModelsTitle')}
-            </h4>
-            <p className="text-xs leading-5 text-zinc-400">
-              {t('clothingTransfer.ecomPack.brandModelsHint')}
-            </p>
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <h4 className="workspace-title text-lg font-medium text-white">
+                {t('clothingTransfer.ecomPack.brandModelsTitle')}
+              </h4>
+              <p className="text-xs leading-5 text-zinc-400">
+                {t('clothingTransfer.ecomPack.brandModelsHint')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleGenerateCategory('brand-models')}
+              disabled={isGenerating || !sourceOutfitImage || selectedBrandModelIds.length === 0}
+              className="workspace-button shrink-0 px-3 py-2 text-xs disabled:opacity-50"
+            >
+              {t('clothingTransfer.ecomPack.generateBrandModels')}
+            </button>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {brandModels.map((model) => {
-              const isSelected = selectedBrandModelId === model.id;
+              const isSelected = selectedBrandModelIds.includes(model.id);
               const isCustom = isCustomBrandModel(model.id);
 
               return (
@@ -293,19 +502,32 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                     </div>
                   </button>
 
-                  {isCustom && (
+                  <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleRemoveCustomModel(model.id);
+                        openEditModel(model.id);
                       }}
-                      className="rounded-lg p-1.5 text-zinc-500 hover:bg-white/10 hover:text-red-400 transition-all"
-                      title={t('common.delete')}
+                      className="rounded-lg px-2 py-1.5 text-[10px] text-zinc-400 hover:bg-white/10 hover:text-white transition-all"
+                      title={t('clothingTransfer.ecomPack.editModel')}
                     >
-                      <DeleteIcon className="h-4 w-4" />
+                      {t('clothingTransfer.ecomPack.editModel')}
                     </button>
-                  )}
+                    {isCustom && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveCustomModel(model.id);
+                        }}
+                        className="rounded-lg p-1.5 text-zinc-500 hover:bg-white/10 hover:text-red-400 transition-all"
+                        title={t('common.delete')}
+                      >
+                        <DeleteIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -313,7 +535,10 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
             {/* Add Custom Model Button */}
             <button
               type="button"
-              onClick={() => setIsAddingModel(true)}
+              onClick={() => {
+                resetModelForm();
+                setIsAddingModel(true);
+              }}
               className="flex items-center justify-center gap-2.5 rounded-2xl border border-dashed border-white/20 bg-white/[0.02] p-4 text-center text-zinc-400 hover:border-amber-500/50 hover:bg-white/[0.05] hover:text-white transition-all min-h-[82px]"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
@@ -326,13 +551,23 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
 
         {/* 4. Custom Destinations */}
         <section className="workspace-stage rounded-[2rem] p-5 sm:p-6">
-          <div className="mb-3">
-            <h4 className="workspace-title text-lg font-medium text-white">
-              {t('clothingTransfer.ecomPack.customDestinationsTitle')}
-            </h4>
-            <p className="text-xs leading-5 text-zinc-400">
-              {t('clothingTransfer.ecomPack.customDestinationsHint')}
-            </p>
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <h4 className="workspace-title text-lg font-medium text-white">
+                {t('clothingTransfer.ecomPack.customDestinationsTitle')}
+              </h4>
+              <p className="text-xs leading-5 text-zinc-400">
+                {t('clothingTransfer.ecomPack.customDestinationsHint')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleGenerateCategory('custom-destinations')}
+              disabled={isGenerating || !sourceOutfitImage || customDestinations.length === 0}
+              className="workspace-button shrink-0 px-3 py-2 text-xs disabled:opacity-50"
+            >
+              {t('clothingTransfer.ecomPack.generateDestinations')}
+            </button>
           </div>
           <MultiImageUploader
             images={customDestinations}
@@ -391,9 +626,19 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
           <h4 className="workspace-title text-xl font-medium text-white">
             {t('clothingTransfer.batchResultsTitle')}
           </h4>
-          <span className="rounded-full bg-white/[0.06] px-3 py-1 text-xs text-zinc-400">
-            {packItems.filter((i) => i.status === 'completed').length} / {packItems.length} hoàn tất
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-white/[0.06] px-3 py-1 text-xs text-zinc-400">
+              {packItems.filter((i) => i.status === 'completed').length} / {packItems.length} hoàn tất
+            </span>
+            <button
+              type="button"
+              onClick={() => void handleDownloadAll()}
+              disabled={!packItems.some((item) => item.status === 'completed' && item.results.length > 0)}
+              className="workspace-button px-3 py-1.5 text-xs disabled:opacity-40"
+            >
+              {t('clothingTransfer.ecomPack.downloadAll')}
+            </button>
+          </div>
         </div>
 
         {packItems.length === 0 ? (
@@ -414,6 +659,12 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                       key={item.id}
                       item={item}
                       onRetry={() => handleRegeneratePackItem(item.id)}
+                      onUpscale={(image, index, quality) => handleUpscale(image, index, item.id, quality)}
+                      onRefine={(image, index, prompt) => handleRefine(image, index, item.id, prompt)}
+                      refinePrompts={refinePrompts}
+                      setRefinePrompts={setRefinePrompts}
+                      isRefining={isRefining}
+                      upscalingStates={upscalingStates}
                     />
                   ))}
                 </div>
@@ -432,6 +683,12 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                       key={item.id}
                       item={item}
                       onRetry={() => handleRegeneratePackItem(item.id)}
+                      onUpscale={(image, index, quality) => handleUpscale(image, index, item.id, quality)}
+                      onRefine={(image, index, prompt) => handleRefine(image, index, item.id, prompt)}
+                      refinePrompts={refinePrompts}
+                      setRefinePrompts={setRefinePrompts}
+                      isRefining={isRefining}
+                      upscalingStates={upscalingStates}
                     />
                   ))}
                 </div>
@@ -450,6 +707,12 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                       key={item.id}
                       item={item}
                       onRetry={() => handleRegeneratePackItem(item.id)}
+                      onUpscale={(image, index, quality) => handleUpscale(image, index, item.id, quality)}
+                      onRefine={(image, index, prompt) => handleRefine(image, index, item.id, prompt)}
+                      refinePrompts={refinePrompts}
+                      setRefinePrompts={setRefinePrompts}
+                      isRefining={isRefining}
+                      upscalingStates={upscalingStates}
                     />
                   ))}
                 </div>
@@ -466,7 +729,9 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
             <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <h3 className="text-lg font-semibold text-white">
-                  {t('clothingTransfer.ecomPack.customModelForm.title')}
+                  {editingModelId
+                    ? t('clothingTransfer.ecomPack.customModelForm.editTitle')
+                    : t('clothingTransfer.ecomPack.customModelForm.title')}
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
                   {t('clothingTransfer.ecomPack.brandModelsHint')}
@@ -476,7 +741,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                 type="button"
                 onClick={() => {
                   setIsAddingModel(false);
-                  setFormError(null);
+                  resetModelForm();
                 }}
                 className="rounded-full p-2 text-zinc-400 hover:bg-white/10 hover:text-white transition-all"
               >
@@ -499,7 +764,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                 />
               </div>
 
-              {/* Images: Face (required) and Body (optional) */}
+              {/* Images: Face + Body */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1.5">
@@ -520,7 +785,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
 
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                    {t('clothingTransfer.ecomPack.customModelForm.bodyLabel')}
+                    {t('clothingTransfer.ecomPack.customModelForm.bodyLabel')} <span className="text-amber-400">*</span>
                   </label>
                   <div className="h-44 rounded-xl border border-white/10 bg-black/30 p-2">
                     <ImageUploader
@@ -537,7 +802,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
               </div>
 
               {/* Metadata Fields */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <label className="block text-xs font-medium text-zinc-400 mb-1">
                     {t('clothingTransfer.ecomPack.customModelForm.ageLabel')}
@@ -561,6 +826,63 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                     className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-amber-500 focus:outline-none"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">
+                    {t('clothingTransfer.ecomPack.customModelForm.weightLabel')}
+                  </label>
+                  <input
+                    type="text"
+                    value={newModelWeight}
+                    onChange={(e) => setNewModelWeight(e.target.value)}
+                    placeholder="48kg"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">
+                  {t('clothingTransfer.ecomPack.customModelForm.skinToneLabel')}
+                </label>
+                <input
+                  type="text"
+                  value={newModelSkinTone}
+                  onChange={(e) => setNewModelSkinTone(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">
+                  {t('clothingTransfer.ecomPack.customModelForm.bodyTypeLabel')}
+                </label>
+                <textarea
+                  value={newModelBodyType}
+                  onChange={(e) => setNewModelBodyType(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">
+                  {t('clothingTransfer.ecomPack.customModelForm.facialFeaturesLabel')}
+                </label>
+                <textarea
+                  value={newModelFacialFeatures}
+                  onChange={(e) => setNewModelFacialFeatures(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">
+                  {t('clothingTransfer.ecomPack.customModelForm.styleVibeLabel')}
+                </label>
+                <textarea
+                  value={newModelStyleVibe}
+                  onChange={(e) => setNewModelStyleVibe(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-amber-500 focus:outline-none"
+                />
               </div>
 
               {formError && (
@@ -575,7 +897,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                 type="button"
                 onClick={() => {
                   setIsAddingModel(false);
-                  setFormError(null);
+                  resetModelForm();
                 }}
                 className="rounded-xl border border-white/10 px-4 py-2 text-xs font-medium text-zinc-300 hover:bg-white/5 hover:text-white transition-all"
               >
@@ -606,8 +928,23 @@ const PackResultCard: React.FC<{
     error?: string;
   };
   onRetry: () => void;
-}> = ({ item, onRetry }) => {
-  const resultImage = item.results[0];
+  onUpscale: (image: ImageFile, index: number, quality: UpscaleQuality) => Promise<void>;
+  onRefine: (image: ImageFile, index: number, prompt: string) => Promise<void>;
+  refinePrompts: Record<string, string>;
+  setRefinePrompts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  isRefining: Record<string, boolean>;
+  upscalingStates: Record<string, boolean>;
+}> = ({
+  item,
+  onRetry,
+  onUpscale,
+  onRefine,
+  refinePrompts,
+  setRefinePrompts,
+  isRefining,
+  upscalingStates,
+}) => {
+  const { t } = useLanguage();
 
   return (
     <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/30 p-3.5 transition-all hover:border-white/20">
@@ -631,15 +968,15 @@ const PackResultCard: React.FC<{
         </span>
       </div>
 
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/40">
+      <div className="w-full">
         {item.status === 'processing' && (
-          <div className="flex h-full w-full items-center justify-center">
+          <div className="flex aspect-[3/4] w-full items-center justify-center rounded-xl bg-black/40">
             <Spinner className="h-6 w-6 text-amber-400" />
           </div>
         )}
 
         {item.status === 'error' && (
-          <div className="flex h-full w-full flex-col items-center justify-center p-4 text-center">
+          <div className="flex aspect-[3/4] w-full flex-col items-center justify-center rounded-xl bg-black/40 p-4 text-center">
             <p className="mb-2 text-xs text-red-400">{item.error || 'Lỗi tạo ảnh'}</p>
             <button
               type="button"
@@ -651,12 +988,58 @@ const PackResultCard: React.FC<{
           </div>
         )}
 
-        {item.status === 'completed' && resultImage && (
-          <HoverableImage
-            image={resultImage}
-            altText={item.title}
-            containerClassName="h-full w-full"
-          />
+        {item.status === 'completed' && item.results.length > 0 && (
+          <div className="space-y-3">
+            {item.results.map((resultImage, index) => {
+              const key = item.id + ':' + index;
+              const prompt = refinePrompts[key] || '';
+              return (
+                <div key={key} className="space-y-2">
+                  <HoverableImage
+                    image={resultImage}
+                    altText={item.title}
+                    onRegenerate={onRetry}
+                    isUpscaling={Boolean(upscalingStates[key])}
+                    containerClassName="aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/40"
+                  />
+                  <div className="flex justify-end gap-2">
+                    {(['2K', '4K'] as UpscaleQuality[]).map((quality) => (
+                      <button
+                        key={quality}
+                        type="button"
+                        onClick={() => void onUpscale(resultImage, index, quality)}
+                        disabled={Boolean(upscalingStates[key])}
+                        className="workspace-button px-3 py-1.5 text-[11px] disabled:opacity-50"
+                      >
+                        {t('imageActions.upscale')} {quality}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      value={prompt}
+                      onChange={(event) => setRefinePrompts((prev) => ({ ...prev, [key]: event.target.value }))}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' && prompt.trim()) {
+                          void onRefine(resultImage, index, prompt);
+                        }
+                      }}
+                      placeholder={t('imageActions.refinePromptPlaceholder')}
+                      className="workspace-input min-w-0 flex-1 px-3 py-2 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void onRefine(resultImage, index, prompt)}
+                      disabled={Boolean(isRefining[key]) || !prompt.trim()}
+                      className="workspace-button px-3 py-2 text-xs disabled:opacity-50"
+                    >
+                      {isRefining[key] ? <Spinner className="h-4 w-4" /> : t('imageActions.refineButton')}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

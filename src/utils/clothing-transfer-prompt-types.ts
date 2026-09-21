@@ -27,3 +27,8 @@ export const formatGarmentScope = (scope: GarmentScope): string => {
       return 'entire fashion outfit (complete clothing set)';
   }
 };
+
+export const formatGarmentScopeSelection = (scopes: GarmentScope[]): string => {
+  const effectiveScopes = scopes.length > 0 ? scopes : ['full-set'];
+  return effectiveScopes.map(formatGarmentScope).join(' + ');
+};

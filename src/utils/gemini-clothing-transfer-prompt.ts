@@ -16,6 +16,7 @@ import {
 } from './ai-scan-blueprint';
 import {
   formatGarmentScope,
+  formatGarmentScopeSelection,
   type ClothingTransferReferenceInput,
 } from './clothing-transfer-prompt-types';
 
@@ -109,27 +110,27 @@ export function buildGeminiProductStagingParts(
   const stagingSpec = hasStagingImage
     ? `Display the extracted garment realistically hanging, laid out, or staged matching the EXACT setting, hanger, surface, and lighting visible in the STAGING REFERENCE image.${template.prompt ? ` ${template.prompt}` : ''}`
     : template.prompt;
+  const stagingTarget = hasStagingImage ? 'STAGING REFERENCE' : 'TEXT TEMPLATE staging specification';
   const parsedBlueprint = parseOutfitBlueprint(outfitBlueprint);
 
   const layer1 = `LAYER 1: TASK & CANVAS
-- TASK: Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged into the STAGING REFERENCE setting.
+- TASK: Extract the ${scopeDesc} from the SOURCE OUTFIT image and render it as a professional standalone commercial e-commerce product photo staged according to the ${stagingTarget}.
 - CANVAS CONTRACT: 3:4 portrait aspect ratio, clean catalog framing, centered garment presentation with balanced negative space.
 - STAGING SPECIFICATION:
 ${stagingSpec}`;
 
   const layer2 = `LAYER 2: DYNAMIC SPATIAL ARRANGEMENT
 1. MULTI-PIECE OUTFIT DECOMPOSITION & SPATIAL SEPARATION:
-- When the SOURCE OUTFIT contains multiple pieces (e.g. top and bottom, two-piece set, layered garments) and the STAGING REFERENCE displays separated items (such as an upper hanging area and a lower counter, shelf, or surface):
-- Distribute and stage each garment component according to the staging reference layout:
+- When the SOURCE OUTFIT contains multiple pieces (e.g. top and bottom, two-piece set, layered garments), distribute and stage each component according to the ${stagingTarget}:
   * Upper garments (blouses, shirts, jackets, tops) hang naturally from the primary upper hanger.
   * Lower garments (skirts, skorts, pants, shorts) are arranged distinctly on the lower display surface, shelf, or pants hanger.
-- Maintain clear spatial separation between distinct garments as shown in the staging reference. Do NOT merge separated garments into a single overlapping piece.
+- Maintain clear spatial separation between distinct garments. Do NOT merge separated garments into a single overlapping piece.
 - For single-piece garments (such as a one-piece dress or jumpsuit), hang the complete garment from the primary hanger.
 2. STRUCTURAL AND EDGE FIDELITY (ALL GARMENTS):
 - Faithfully preserve each garment's authentic structural construction, fabric weight, drape, and silhouette.
 - For bottom garments (skirts, skorts, pants, shorts): Accurately reproduce all structural layers, pleats, tiered ruffles, waistband details, and especially the exact hemline finishing (such as lace borders, scalloped trims, sheer mesh bands, fringes, or cuffs) visible in the source photo.
 - Accurately render fabric drape, natural gravity folds, and soft realistic contact shadows on the staging surface.
-- Preserve the exact staging surface, background cabinetry, hanger types, lighting, and ambient props from the STAGING REFERENCE.`;
+- Preserve the requested staging surface, hanger/display method, lighting, and ambient styling defined by the ${stagingTarget}.`;
 
   const layer3 = `LAYER 3: GARMENT BLUEPRINT
 ${parsedBlueprint.coreGarments ? `- Core Garments & Cut Architecture: ${parsedBlueprint.coreGarments}` : `- Authentic Garment Extraction: Extract the exact design, silhouette, collar style, sleeve cut, and construction of the ${scopeDesc}.`}`;
@@ -176,6 +177,7 @@ export function buildGeminiBrandModelParts(
   model: BrandModelProfile,
   extraInstructions: string = '',
   outfitBlueprint: string = '',
+  garmentScopes: GarmentScope[] = ['full-set'],
 ): Part[] {
   if (!model.faceImage) {
     return [imagePart(sourceImage), { text: 'Preserve destination image.' }];
@@ -183,6 +185,8 @@ export function buildGeminiBrandModelParts(
 
   const parsedBlueprint = parseOutfitBlueprint(outfitBlueprint);
   const blueprintBlock = formatAiScanBlock(outfitBlueprint);
+  const scopeDescription = formatGarmentScopeSelection(garmentScopes);
+  const isFullSet = garmentScopes.includes('full-set');
 
   const roles = [
     {
@@ -211,14 +215,17 @@ CRITICAL INSTRUCTIONS:
 - Seamlessly blend ${model.name}'s head onto the body matching the photographed head angle, gaze direction, and natural lighting of the scene.
 ${model.bodyImage ? `- Reshape body morphology and proportions to match the BRAND MODEL BODY reference (${model.metadata.bodyType || 'slender feminine build'}).` : ''}
 
-2. OUTFIT, POSE & SCENE PRESERVATION (100%):
-- Preserve the exact clothing down to the smallest detail: colors, fabric textures, seams, ties, lace patterns, and hemlines.
+2. SELECTED OUTFIT, POSE & SCENE PRESERVATION:
+- GARMENT SCOPE: ${scopeDescription}.
+- Preserve the exact selected garment(s) down to the smallest detail: colors, fabric textures, seams, ties, lace patterns, and hemlines.
+${isFullSet ? '- Preserve the complete source outfit.' : '- Do not copy unselected source clothing layers; keep only the selected garment scope(s) from the source outfit.'}
 - Preserve the exact body pose, stance, hand placement, and gesture from the DESTINATION PHOTO.
 - Preserve the entire background scene, camera perspective, lighting geometry, and ambiance.${extraInstructions.trim() ? `\n\nUSER INSTRUCTIONS:\n${extraInstructions.trim()}` : ''}
 
 AVOID:
 - No keeping the original person's face or facial features.
-- No altering the clothing design, fabric textures, or color.
+- No altering the selected clothing design, fabric textures, or color.
+${isFullSet ? '' : '- No source clothing outside the selected garment scope(s).'}
 - No altering the background scene, furniture, or camera perspective.
 ${parsedBlueprint.detectedAccessories.length > 0 ? `- Exclude detected accessories: ${parsedBlueprint.detectedAccessories.join(', ')}.` : ''}`;
 

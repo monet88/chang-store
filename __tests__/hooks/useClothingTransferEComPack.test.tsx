@@ -46,6 +46,7 @@ describe('useClothingTransferEComPack', () => {
         addImage: addImageMock,
         setError: setErrorMock,
         t: (key) => key,
+        analyzeOutfitBlueprintFn: vi.fn().mockResolvedValue(''),
       }),
     );
 
@@ -53,27 +54,24 @@ describe('useClothingTransferEComPack', () => {
     const { result } = setupHook();
 
     expect(result.current.sourceOutfitImage).toBeNull();
-    expect(result.current.garmentScope).toBe('full-set');
-    expect(result.current.selectedBrandModelId).toBeNull();
+    expect(result.current.selectedGarmentScopes).toEqual(['full-set']);
     expect(result.current.selectedBrandModelIds).toEqual([]);
     expect(result.current.selectedTemplateIds).toEqual([]);
     expect(result.current.customDestinations).toHaveLength(0);
     expect(result.current.packItems).toHaveLength(0);
   });
 
-  it('manages single brand model selection and template toggles', () => {
+  it('manages brand model selection and template toggles', () => {
     const { result } = setupHook();
 
     act(() => {
       result.current.selectBrandModel('mai');
     });
-    expect(result.current.selectedBrandModelId).toBe('mai');
     expect(result.current.selectedBrandModelIds).toEqual(['mai']);
 
     act(() => {
       result.current.selectBrandModel('mai');
     });
-    expect(result.current.selectedBrandModelId).toBeNull();
     expect(result.current.selectedBrandModelIds).toEqual([]);
 
     act(() => {
@@ -85,6 +83,32 @@ describe('useClothingTransferEComPack', () => {
       result.current.toggleDisplayTemplate('custom-staging-0');
     });
     expect(result.current.selectedTemplateIds).toEqual([]);
+  });
+
+  it('supports selecting top and bottom together while other garment scopes remain exclusive', () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.toggleGarmentScope('top');
+      result.current.toggleGarmentScope('bottom');
+    });
+    expect(result.current.selectedGarmentScopes).toEqual(['top', 'bottom']);
+
+    act(() => {
+      result.current.toggleGarmentScope('dress');
+    });
+    expect(result.current.selectedGarmentScopes).toEqual(['dress']);
+  });
+
+  it('supports selecting multiple brand models', () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.toggleBrandModel('linh');
+      result.current.toggleBrandModel('mai');
+    });
+
+    expect(result.current.selectedBrandModelIds).toEqual(['linh', 'mai']);
   });
 
   it('manages custom destination images with maximum limit of 4', () => {
@@ -127,7 +151,7 @@ describe('useClothingTransferEComPack', () => {
 
     act(() => {
       result.current.setSourceOutfitImage(mockImage('outfit'));
-      result.current.setGarmentScope('top');
+      result.current.toggleGarmentScope('top');
       result.current.handleCustomStagingUpload([mockImage('staging-wood')]);
     });
 
@@ -215,13 +239,54 @@ describe('useClothingTransferEComPack', () => {
     });
 
     expect(result.current.customStagingImages).toHaveLength(2);
-    expect(result.current.selectedTemplateIds).toEqual(['custom-staging-0', 'custom-staging-1']);
+    expect(result.current.selectedTemplateIds).toEqual([
+      'custom-staging-flat-lay-0',
+      'custom-staging-flat-lay-1',
+    ]);
     act(() => {
       result.current.handleRemoveCustomStaging(0);
     });
 
     expect(result.current.customStagingImages).toHaveLength(1);
-    expect(result.current.selectedTemplateIds).not.toContain('custom-staging-0');
+    expect(result.current.selectedTemplateIds).not.toContain('custom-staging-flat-lay-0');
+  });
+
+  it('keeps custom hanger and flat-lay image templates independent', () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.handleCustomStagingUpload([mockImage('flat')], 'flat-lay');
+      result.current.handleCustomStagingUpload([mockImage('hanger')], 'hanger');
+    });
+
+    const customImages = result.current.displayTemplates.filter((template) => template.modality === 'image');
+    expect(customImages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'custom-staging-flat-lay-0', category: 'flat-lay' }),
+        expect.objectContaining({ id: 'custom-staging-hanger-0', category: 'hanger' }),
+      ]),
+    );
+    expect(result.current.customStagingImages).toHaveLength(2);
+  });
+
+  it('adds persistent custom text display templates', () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.handleAddTextTemplate({
+        name: 'Soft Linen',
+        category: 'flat-lay',
+        prompt: 'Soft ivory linen with daylight',
+      });
+    });
+
+    const added = result.current.displayTemplates.find((template) => template.name === 'Soft Linen');
+    expect(added).toEqual(expect.objectContaining({
+      category: 'flat-lay',
+      modality: 'text',
+      prompt: 'Soft ivory linen with daylight',
+    }));
+    expect(result.current.selectedTemplateIds).toContain(added!.id);
   });
   it('adds and removes custom brand models', () => {
     const { result } = setupHook();
@@ -230,7 +295,7 @@ describe('useClothingTransferEComPack', () => {
       result.current.handleAddCustomModel({
         name: 'Trang Muse',
         faceImage: mockImage('trang-face'),
-        bodyImage: null,
+        bodyImage: mockImage('trang-body'),
       });
     });
 
@@ -244,6 +309,20 @@ describe('useClothingTransferEComPack', () => {
 
     expect(result.current.brandModels.find((m) => m.name === 'Trang Muse')).toBeUndefined();
     expect(result.current.selectedBrandModelIds).not.toContain(added!.id);
+  });
+
+  it('updates and persists an existing brand model profile', () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.handleUpdateBrandModel('linh', {
+        metadata: { height: '1m70', skinTone: 'warm ivory' },
+      });
+    });
+
+    const linh = result.current.brandModels.find((model) => model.id === 'linh');
+    expect(linh?.metadata.height).toBe('1m70');
+    expect(linh?.metadata.skinTone).toBe('warm ivory');
   });
 
   it('analyzes outfit blueprint on source outfit upload', async () => {
@@ -342,14 +421,89 @@ describe('useClothingTransferEComPack', () => {
       'custom-destinations',
     ]);
     expect(result.current.packItems.map((item) => item.id)).toEqual([
-      'template-custom-staging-0',
-      'template-custom-staging-1',
+      'template-custom-staging-flat-lay-0',
+      'template-custom-staging-flat-lay-1',
       'brand-mai',
       'custom-0',
       'custom-1',
     ]);
     expect(result.current.packItems[2].title).toBe('Mai');
     expect(editImageMock).toHaveBeenCalledTimes(5);
+  });
+
+  it('plans one product target per selected top/bottom scope', async () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.toggleGarmentScope('top');
+      result.current.toggleGarmentScope('bottom');
+      result.current.handleCustomStagingUpload([mockImage('staging')]);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerateCategory('product');
+    });
+
+    expect(result.current.packItems.map((item) => item.id)).toEqual([
+      expect.stringContaining('top'),
+      expect.stringContaining('bottom'),
+    ]);
+    expect(editImageMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps top and bottom as separate source scopes for custom destinations', async () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.toggleGarmentScope('top');
+      result.current.toggleGarmentScope('bottom');
+      result.current.handleCustomDestinationsUpload([mockImage('destination')]);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerateCategory('custom-destinations');
+    });
+
+    const request = editImageMock.mock.calls[0][0];
+    const promptText = request.interleavedParts
+      .map((part: { text?: string }) => part.text || '')
+      .join('\n');
+    expect(promptText).toContain('top garment');
+    expect(promptText).toContain('bottom garment');
+    expect(promptText).not.toContain('entire fashion outfit');
+  });
+
+  it('generates one category without discarding completed sibling categories', async () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomStagingUpload([mockImage('staging')]);
+      result.current.handleCustomDestinationsUpload([mockImage('destination')]);
+    });
+
+    editImageMock
+      .mockResolvedValueOnce([mockImage('product-initial')])
+      .mockResolvedValueOnce([mockImage('destination-initial')]);
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    const destinationBefore = result.current.packItems.find((item) => item.category === 'custom-destinations');
+    editImageMock.mockClear();
+    editImageMock.mockResolvedValueOnce([mockImage('product-refreshed')]);
+
+    await act(async () => {
+      await result.current.handleGenerateCategory('product');
+    });
+
+    expect(editImageMock).toHaveBeenCalledTimes(1);
+    expect(result.current.packItems.find((item) => item.category === 'custom-destinations')?.results)
+      .toEqual(destinationBefore?.results);
+    expect(result.current.packItems.find((item) => item.category === 'product')?.results)
+      .toEqual([mockImage('product-refreshed')]);
   });
 
   it('caps pack generation concurrency to three concurrent requests', async () => {

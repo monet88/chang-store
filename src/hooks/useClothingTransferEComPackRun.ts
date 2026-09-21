@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { Part } from '@google/genai';
 import {
   AspectRatio,
+  EComPackCategory,
   EComPackItem,
   Feature,
   GarmentScope,
@@ -36,6 +37,7 @@ export interface EComPackPlanInput {
   brandModels: BrandModelProfile[];
   selectedBrandModelIds: string[];
   customDestinations: ImageFile[];
+  garmentScopes: GarmentScope[];
 }
 
 /**
@@ -43,7 +45,7 @@ export interface EComPackPlanInput {
  * regenerate-one reruns that exact definition even if the selection moved since.
  */
 export type EComPackTarget =
-  | { kind: 'product'; template: DisplayTemplate }
+  | { kind: 'product'; template: DisplayTemplate; scope: GarmentScope }
   | { kind: 'brand-model'; model: BrandModelProfile }
   | { kind: 'custom-destination'; destination: ImageFile };
 
@@ -57,19 +59,25 @@ export interface EComPackPlannedTarget {
  * product display assets, then brand models, then custom destinations.
  */
 export const planEComPackTargets = (input: EComPackPlanInput): EComPackPlannedTarget[] => {
+  const garmentScopes = input.garmentScopes.length > 0 ? input.garmentScopes : ['full-set' as GarmentScope];
   const productTargets = input.displayTemplates
     .filter((template) => input.selectedTemplateIds.includes(template.id))
-    .map((template): EComPackPlannedTarget => ({
-      item: {
-        id: `template-${template.id}`,
-        category: 'product',
-        title: template.name,
-        subtitle: template.category === 'hanger' ? 'Hanger' : 'Flat Lay',
-        status: 'pending',
-        results: [],
-      },
-      target: { kind: 'product', template },
-    }));
+    .flatMap((template): EComPackPlannedTarget[] =>
+      garmentScopes.map((scope) => {
+        const scoped = garmentScopes.length > 1 || scope !== 'full-set';
+        return {
+          item: {
+            id: scoped ? `template-${template.id}-${scope}` : `template-${template.id}`,
+            category: 'product',
+            title: scoped ? `${template.name} · ${formatGarmentScope(scope)}` : template.name,
+            subtitle: template.category === 'hanger' ? 'Hanger' : 'Flat Lay',
+            status: 'pending',
+            results: [],
+          },
+          target: { kind: 'product', template, scope },
+        };
+      }),
+    );
 
   const brandModelTargets = input.brandModels
     .filter((model) => input.selectedBrandModelIds.includes(model.id))
@@ -104,7 +112,7 @@ export const planEComPackTargets = (input: EComPackPlanInput): EComPackPlannedTa
 
 interface EComPackPromptContext {
   sourceOutfitImage: ImageFile;
-  garmentScope: GarmentScope;
+  garmentScopes: GarmentScope[];
   extraPrompt: string;
   aspectRatio: AspectRatio;
   resolution: ImageResolution;
@@ -129,7 +137,7 @@ const buildTargetParts = (
         ? buildGptProductStagingParts(
             context.sourceOutfitImage,
             target.template,
-            context.garmentScope,
+            target.scope,
             context.extraPrompt,
             context.blueprint,
             context.aspectRatio,
@@ -138,7 +146,7 @@ const buildTargetParts = (
         : buildGeminiProductStagingParts(
             context.sourceOutfitImage,
             target.template,
-            context.garmentScope,
+            target.scope,
             context.extraPrompt,
             context.blueprint,
           );
@@ -147,7 +155,7 @@ const buildTargetParts = (
         ? buildGptBrandModelParts(
             context.sourceOutfitImage,
             target.model,
-            context.garmentScope,
+            context.garmentScopes,
             context.extraPrompt,
             context.blueprint,
           )
@@ -156,11 +164,13 @@ const buildTargetParts = (
             target.model,
             context.extraPrompt,
             context.blueprint,
+            context.garmentScopes,
           );
     case 'custom-destination': {
-      const sourceReferences = [
-        { image: context.sourceOutfitImage, label: formatGarmentScope(context.garmentScope) },
-      ];
+      const sourceReferences = context.garmentScopes.map((scope) => ({
+        image: context.sourceOutfitImage,
+        label: formatGarmentScope(scope),
+      }));
       return isGptImage
         ? buildGptClothingTransferParts(
             target.destination,
@@ -181,7 +191,6 @@ const buildTargetParts = (
 export interface UseClothingTransferEComPackRunConfig {
   driver: ClothingTransferImageDriver;
   sourceOutfitImage: ImageFile | null;
-  garmentScope: GarmentScope;
   selection: EComPackPlanInput;
   aspectRatio: AspectRatio;
   resolution: ImageResolution;
@@ -203,7 +212,9 @@ export interface UseClothingTransferEComPackRunReturn {
   packItems: EComPackItem[];
   isGenerating: boolean;
   handleGeneratePack: () => Promise<void>;
+  handleGenerateCategory: (category: EComPackCategory) => Promise<void>;
   handleRegeneratePackItem: (itemId: string) => Promise<void>;
+  commitPackResult: (itemId: string, index: number, image: ImageFile) => void;
 }
 
 /**
@@ -217,7 +228,6 @@ export const useClothingTransferEComPackRun = (
   const {
     driver,
     sourceOutfitImage,
-    garmentScope,
     selection,
     aspectRatio,
     resolution,
@@ -242,6 +252,19 @@ export const useClothingTransferEComPackRun = (
     );
   }, []);
 
+  const commitPackResult = useCallback((itemId: string, index: number, image: ImageFile) => {
+    setPackItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              results: item.results.map((result, resultIndex) => (resultIndex === index ? image : result)),
+            }
+          : item,
+      ),
+    );
+  }, []);
+
   const generateTarget = useCallback(
     async (itemId: string, target: EComPackTarget, blueprint: string): Promise<void> => {
       if (!sourceOutfitImage) return;
@@ -250,7 +273,9 @@ export const useClothingTransferEComPackRun = (
       try {
         const parts = buildTargetParts(target, {
           sourceOutfitImage,
-          garmentScope,
+          garmentScopes: selection.garmentScopes.length > 0
+            ? selection.garmentScopes
+            : ['full-set'],
           extraPrompt,
           aspectRatio,
           resolution,
@@ -283,7 +308,7 @@ export const useClothingTransferEComPackRun = (
     },
     [
       sourceOutfitImage,
-      garmentScope,
+      selection.garmentScopes,
       extraPrompt,
       aspectRatio,
       resolution,
@@ -297,13 +322,15 @@ export const useClothingTransferEComPackRun = (
     ],
   );
 
-  const handleGeneratePack = useCallback(async (): Promise<void> => {
+  const executePlan = useCallback(async (
+    plan: EComPackPlannedTarget[],
+    category?: EComPackCategory,
+  ): Promise<void> => {
     if (!sourceOutfitImage) {
       setError(t('clothingTransfer.ecomPack.inputError'));
       return;
     }
 
-    const plan = planEComPackTargets(selection);
     if (plan.length === 0) {
       setError(t('clothingTransfer.ecomPack.inputError'));
       return;
@@ -314,8 +341,21 @@ export const useClothingTransferEComPackRun = (
 
     try {
       const blueprint = (await resolveOutfitBlueprint()) ?? '';
-      plannedTargets.current = new Map(plan.map(({ item, target }) => [item.id, target]));
-      setPackItems(plan.map(({ item }) => item));
+      if (category) {
+        const nextTargets = new Map(plannedTargets.current);
+        packItems
+          .filter((item) => item.category === category)
+          .forEach((item) => nextTargets.delete(item.id));
+        plan.forEach(({ item, target }) => nextTargets.set(item.id, target));
+        plannedTargets.current = nextTargets;
+        setPackItems((prev) => [
+          ...prev.filter((item) => item.category !== category),
+          ...plan.map(({ item }) => item),
+        ]);
+      } else {
+        plannedTargets.current = new Map(plan.map(({ item, target }) => [item.id, target]));
+        setPackItems(plan.map(({ item }) => item));
+      }
 
       await runBoundedWorkers(
         plan,
@@ -325,7 +365,16 @@ export const useClothingTransferEComPackRun = (
     } finally {
       setIsGenerating(false);
     }
-  }, [sourceOutfitImage, selection, setError, t, resolveOutfitBlueprint, generateTarget]);
+  }, [sourceOutfitImage, setError, t, resolveOutfitBlueprint, generateTarget, packItems]);
+
+  const handleGeneratePack = useCallback(async (): Promise<void> => {
+    await executePlan(planEComPackTargets(selection));
+  }, [selection, executePlan]);
+
+  const handleGenerateCategory = useCallback(async (category: EComPackCategory): Promise<void> => {
+    const plan = planEComPackTargets(selection).filter(({ item }) => item.category === category);
+    await executePlan(plan, category);
+  }, [selection, executePlan]);
 
   const handleRegeneratePackItem = useCallback(
     async (itemId: string): Promise<void> => {
@@ -338,5 +387,12 @@ export const useClothingTransferEComPackRun = (
     [generateTarget, resolveOutfitBlueprint],
   );
 
-  return { packItems, isGenerating, handleGeneratePack, handleRegeneratePackItem };
+  return {
+    packItems,
+    isGenerating,
+    handleGeneratePack,
+    handleGenerateCategory,
+    handleRegeneratePackItem,
+    commitPackResult,
+  };
 };

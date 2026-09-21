@@ -23,7 +23,8 @@ import { buildDownloadFilename, downloadBlob, imageFileToJpegBlob } from '@/util
  */
 export async function downloadImagesAsZip(
   images: ImageFile[],
-  zipFilename: string = 'images'
+  zipFilename: string = 'images',
+  entryPaths?: string[],
 ): Promise<void> {
   if (images.length === 0) {
     console.warn('downloadImagesAsZip: No images to download');
@@ -35,7 +36,8 @@ export async function downloadImagesAsZip(
 
   // Add each image to the ZIP archive
   for (const [index, image] of images.entries()) {
-    const filename = buildDownloadFilename(zipEntryPrefix, { index: index + 1 });
+    const filename = entryPaths?.[index]
+      ?? buildDownloadFilename(zipEntryPrefix, { index: index + 1 });
     const jpegBlob = await imageFileToJpegBlob(image);
     zip.file(filename, jpegBlob);
   }
