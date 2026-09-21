@@ -10,7 +10,7 @@
  */
 
 import React from 'react';
-import { Feature } from '../types';
+import { Feature, StudioMode } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAIEditor } from '../hooks/useAIEditor';
 import MultiImageUploader from './MultiImageUploader';
@@ -20,11 +20,15 @@ import HoverableImage from './HoverableImage';
 import Spinner, { ErrorDisplay } from './Spinner';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 
+interface AIEditorProps {
+  studioMode?: StudioMode;
+}
+
 /**
  * AIEditor component
  * Provides multi-image editing with @mention reference system
  */
-const AIEditor: React.FC = () => {
+const AIEditor: React.FC<AIEditorProps> = ({ studioMode: propStudioMode }) => {
   const { t } = useLanguage();
   const {
     images,
@@ -41,7 +45,13 @@ const AIEditor: React.FC = () => {
     imageEditModel,
     handleGenerate,
     clearError,
+    engineId,
+    refLimitNotice,
   } = useAIEditor();
+
+  const studioMode = propStudioMode || engineId;
+  const hasMentions = /@img\d+/.test(prompt);
+  const showNotice = studioMode === 'localQwen' && images.length > 4 && !hasMentions;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
@@ -62,6 +72,17 @@ const AIEditor: React.FC = () => {
             id="ai-editor-upload"
           />
         </div>
+
+        {/* Local Qwen reference limit notice */}
+        {showNotice && (
+          <div
+            data-testid="local-qwen-ref-limit-notice"
+            role="status"
+            className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200"
+          >
+            {refLimitNotice || t('aiEditor.localQwenRefLimitNotice')}
+          </div>
+        )}
 
         {/* Prompt with mentions */}
         <div>

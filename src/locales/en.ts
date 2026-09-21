@@ -820,6 +820,7 @@ Do not include any other text or markdown.
     promptPlaceholder: 'Describe your edit. Use @img1, @img2 to reference images. Example: "Change the outfit color in @img1 to match @img2"',
     generateButton: 'Generate',
     generatingStatus: 'Generating edited image...',
+    localQwenRefLimitNotice: 'Local Qwen supports up to 4 reference images. The first 4 images will be used.',
     error: {
       noImages: 'Please upload at least one image.',
       noPrompt: 'Please enter an editing prompt.',

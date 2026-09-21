@@ -1,7 +1,7 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { Feature, ImageFile } from '@/types';
+import { Feature, ImageEngineId, ImageFile } from '@/types';
 
 const handleGenerateMock = vi.fn();
 const clearErrorMock = vi.fn();
@@ -25,6 +25,8 @@ let hookState: {
   imageEditModel: string;
   handleGenerate: typeof handleGenerateMock;
   clearError: typeof clearErrorMock;
+  engineId?: ImageEngineId;
+  refLimitNotice?: string | null;
 };
 
 vi.mock('@/contexts/LanguageContext', () => ({
@@ -136,5 +138,80 @@ describe('AIEditor', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'clear-error' }));
     expect(clearErrorMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('displays notice when studioMode is localQwen and user uploads > 4 images without mentions', () => {
+    hookState.images = [
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+      { base64: 'img3', mimeType: 'image/png' },
+      { base64: 'img4', mimeType: 'image/png' },
+      { base64: 'img5', mimeType: 'image/png' },
+    ];
+    hookState.prompt = 'Transform the scenery';
+
+    render(<AIEditor studioMode="localQwen" />);
+
+    expect(screen.getByTestId('local-qwen-ref-limit-notice')).toBeInTheDocument();
+    expect(screen.getByText('aiEditor.localQwenRefLimitNotice')).toBeInTheDocument();
+  });
+
+  it('displays notice inferred from hook engineId when studioMode prop is omitted', () => {
+    hookState.engineId = 'localQwen';
+    hookState.images = [
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+      { base64: 'img3', mimeType: 'image/png' },
+      { base64: 'img4', mimeType: 'image/png' },
+      { base64: 'img5', mimeType: 'image/png' },
+    ];
+    hookState.prompt = 'Transform the scenery';
+
+    render(<AIEditor />);
+
+    expect(screen.getByTestId('local-qwen-ref-limit-notice')).toBeInTheDocument();
+    expect(screen.getByText('aiEditor.localQwenRefLimitNotice')).toBeInTheDocument();
+  });
+
+  it('hides notice when mentions are present even if images > 4 in localQwen mode', () => {
+    hookState.images = [
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+      { base64: 'img3', mimeType: 'image/png' },
+      { base64: 'img4', mimeType: 'image/png' },
+      { base64: 'img5', mimeType: 'image/png' },
+    ];
+    hookState.prompt = 'Apply style from @img1 to @img2';
+
+    render(<AIEditor studioMode="localQwen" />);
+
+    expect(screen.queryByTestId('local-qwen-ref-limit-notice')).not.toBeInTheDocument();
+  });
+
+  it('hides notice when images <= 4 in localQwen mode', () => {
+    hookState.images = [
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+    ];
+    hookState.prompt = 'Enhance details';
+
+    render(<AIEditor studioMode="localQwen" />);
+
+    expect(screen.queryByTestId('local-qwen-ref-limit-notice')).not.toBeInTheDocument();
+  });
+
+  it('hides notice when studioMode is gemini even with > 4 images', () => {
+    hookState.images = [
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+      { base64: 'img3', mimeType: 'image/png' },
+      { base64: 'img4', mimeType: 'image/png' },
+      { base64: 'img5', mimeType: 'image/png' },
+    ];
+    hookState.prompt = 'Enhance details';
+
+    render(<AIEditor studioMode="gemini" />);
+
+    expect(screen.queryByTestId('local-qwen-ref-limit-notice')).not.toBeInTheDocument();
   });
 });
