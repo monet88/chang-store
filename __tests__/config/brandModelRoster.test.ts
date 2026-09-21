@@ -10,6 +10,8 @@ import {
   loadCustomBrandModels,
   saveCustomBrandModel,
   deleteCustomBrandModel,
+  saveBrandModelProfile,
+  loadSavedBrandModelProfiles,
   isCustomBrandModel,
   BrandModelProfile,
 } from '../../src/config/brandModelRoster';
@@ -75,5 +77,50 @@ describe('brandModelRoster', () => {
 
     deleteCustomBrandModel('custom-model-1');
     expect(loadCustomBrandModels()).toHaveLength(0);
+  });
+
+  it('persists overrides for default brand model profiles', () => {
+    const defaultOverride: BrandModelProfile = {
+      id: 'linh',
+      name: 'Linh',
+      metadata: {
+        ...DEFAULT_BRAND_MODEL_DEFINITIONS[0].metadata,
+        height: '1m70',
+        skinTone: 'warm ivory',
+      },
+      faceImage: { base64: 'linh-face-custom', mimeType: 'image/png' },
+      bodyImage: { base64: 'linh-body-custom', mimeType: 'image/png' },
+    };
+
+    saveBrandModelProfile(defaultOverride);
+
+    expect(loadSavedBrandModelProfiles()).toEqual([
+      expect.objectContaining({
+        id: 'linh',
+        metadata: expect.objectContaining({ height: '1m70', skinTone: 'warm ivory' }),
+      }),
+    ]);
+    expect(isCustomBrandModel('linh')).toBe(false);
+  });
+
+  it('reapplies saved default overrides when bundled assets are served from cache', async () => {
+    saveBrandModelProfile({
+      id: 'linh',
+      name: 'Linh',
+      metadata: {
+        ...DEFAULT_BRAND_MODEL_DEFINITIONS[0].metadata,
+        height: '1m71',
+      },
+      faceImage: { base64: 'cached-face-override', mimeType: 'image/png' },
+      bodyImage: { base64: 'cached-body-override', mimeType: 'image/png' },
+    });
+
+    const models = await loadDefaultBrandModels();
+    expect(models.find((model) => model.id === 'linh')).toEqual(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ height: '1m71' }),
+        faceImage: expect.objectContaining({ base64: 'cached-face-override' }),
+      }),
+    );
   });
 });

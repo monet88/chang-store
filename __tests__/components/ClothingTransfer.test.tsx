@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 const useClothingTransferMock = vi.fn();
 
@@ -26,7 +26,12 @@ vi.mock('../../src/components/Spinner', () => ({
 }));
 
 vi.mock('../../src/components/HoverableImage', () => ({
-  default: ({ altText }: { altText: string }) => <div>{altText}</div>,
+  default: ({ altText, onUpscale }: { altText: string; onUpscale?: () => void }) => (
+    <div>
+      {altText}
+      {onUpscale && <button onClick={onUpscale}>mock-upscale</button>}
+    </div>
+  ),
 }));
 
 vi.mock('../../src/components/shared/ResultPlaceholder', () => ({
@@ -50,23 +55,25 @@ const baseHookState = {
   ecomPack: {
     sourceOutfitImage: null,
     setSourceOutfitImage: vi.fn(),
-    garmentScope: 'full-set' as const,
-    setGarmentScope: vi.fn(),
+    selectedGarmentScopes: ['full-set'],
+    toggleGarmentScope: vi.fn(),
     outfitBlueprint: null,
     isAnalyzingOutfit: false,
     setOutfitBlueprint: vi.fn(),
     handleReanalyzeOutfit: vi.fn(),
     brandModels: [],
-    selectedBrandModelId: null,
     selectedBrandModelIds: [],
     selectBrandModel: vi.fn(),
     toggleBrandModel: vi.fn(),
     handleAddCustomModel: vi.fn(),
+    handleUpdateBrandModel: vi.fn(),
     handleRemoveCustomModel: vi.fn(),
     isCustomBrandModel: vi.fn().mockReturnValue(false),
     displayTemplates: [],
     selectedTemplateIds: [],
     toggleDisplayTemplate: vi.fn(),
+    handleAddTextTemplate: vi.fn(),
+    handleRemoveDisplayTemplate: vi.fn(),
     customStagingImages: [],
     handleCustomStagingUpload: vi.fn(),
     handleRemoveCustomStaging: vi.fn(),
@@ -76,7 +83,15 @@ const baseHookState = {
     packItems: [],
     isGenerating: false,
     handleGeneratePack: vi.fn(),
+    handleGenerateCategory: vi.fn(),
     handleRegeneratePackItem: vi.fn(),
+    handleUpscale: vi.fn(),
+    handleRefine: vi.fn(),
+    handleDownloadAll: vi.fn(),
+    refinePrompts: {},
+    setRefinePrompts: vi.fn(),
+    isRefining: {},
+    upscalingStates: {},
   },
   referenceItems: [{ id: 1, image: null, label: '' }],
   conceptItems: [],
@@ -206,5 +221,69 @@ describe('ClothingTransfer component', () => {
     expect(screen.getByText('gpt-image-options')).toBeInTheDocument();
     expect(screen.queryByText('image-options')).not.toBeInTheDocument();
     expect(screen.getByText('clothingTransfer.ecomPack.sourceTitle')).toBeInTheDocument();
+  });
+
+  it('exposes E-Com Pack templates, category generation, multi-model selection, and result actions', () => {
+    const handleGenerateCategory = vi.fn();
+    const handleUpscale = vi.fn();
+    const handleDownloadAll = vi.fn();
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      mode: 'ecom-pack',
+      ecomPack: {
+        ...baseHookState.ecomPack,
+        sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
+        brandModels: [
+          {
+            id: 'linh',
+            name: 'Linh',
+            metadata: { age: 22, height: '1m66', weight: '48kg', bodyType: '', skinTone: '', facialFeatures: '', styleVibe: '' },
+            faceImage: null,
+            bodyImage: null,
+          },
+          {
+            id: 'mai',
+            name: 'Mai',
+            metadata: { age: 20, height: '1m62', weight: '47kg', bodyType: '', skinTone: '', facialFeatures: '', styleVibe: '' },
+            faceImage: null,
+            bodyImage: null,
+          },
+        ],
+        selectedBrandModelIds: ['linh', 'mai'],
+        displayTemplates: [
+          { id: 'hanger', name: 'Clean Studio Hanger', category: 'hanger', modality: 'text', prompt: 'clean hanger' },
+        ],
+        selectedTemplateIds: ['hanger'],
+        packItems: [
+          {
+            id: 'template-hanger',
+            category: 'product',
+            title: 'Clean Studio Hanger',
+            status: 'completed',
+            results: [{ base64: 'result', mimeType: 'image/png' }],
+          },
+        ],
+        handleGenerateCategory,
+        handleUpscale,
+        handleDownloadAll,
+      },
+    });
+
+    render(<ClothingTransfer />);
+
+    expect(screen.getAllByText('Clean Studio Hanger').length).toBeGreaterThan(0);
+    expect(screen.getByText('Linh')).toBeInTheDocument();
+    expect(screen.getByText('Mai')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'clothingTransfer.ecomPack.generateProduct' }));
+    expect(handleGenerateCategory).toHaveBeenCalledWith('product');
+    fireEvent.click(screen.getByRole('button', { name: 'imageActions.upscale 4K' }));
+    expect(handleUpscale).toHaveBeenCalledWith(
+      { base64: 'result', mimeType: 'image/png' },
+      0,
+      'template-hanger',
+      '4K',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'clothingTransfer.ecomPack.downloadAll' }));
+    expect(handleDownloadAll).toHaveBeenCalled();
   });
 });

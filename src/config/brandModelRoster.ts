@@ -75,48 +75,11 @@ const loadReferenceImage = async (url: string, fileName: string): Promise<ImageF
   }
 };
 
-let cachedBrandModelsPromise: Promise<BrandModelProfile[]> | null = null;
-
-/**
- * Loads the default brand model profiles (Linh & Mai) with bundled face and body assets.
- * Caches in-memory so subsequent requests resolve instantly.
- */
-export const loadDefaultBrandModels = (): Promise<BrandModelProfile[]> => {
-  if (!cachedBrandModelsPromise) {
-    cachedBrandModelsPromise = Promise.all(
-      DEFAULT_BRAND_MODEL_DEFINITIONS.map(async (def) => {
-        const [faceImage, bodyImage] = await Promise.all([
-          loadReferenceImage(def.faceUrl, `${def.id}-face.png`),
-          loadReferenceImage(def.bodyUrl, `${def.id}-body.png`),
-        ]);
-
-        return {
-          id: def.id,
-          name: def.name,
-          metadata: { ...def.metadata },
-          faceImage,
-          bodyImage,
-        };
-      }),
-    );
-  }
-
-  return cachedBrandModelsPromise;
-};
+let cachedBundledBrandModelsPromise: Promise<BrandModelProfile[]> | null = null;
 
 export const CUSTOM_BRAND_MODELS_STORAGE_KEY = 'chang_store_custom_brand_models';
 
-/**
- * Returns true if the model profile is a user-created custom model.
- */
-export const isCustomBrandModel = (id: string): boolean => {
-  return !DEFAULT_BRAND_MODEL_DEFINITIONS.some((def) => def.id === id);
-};
-
-/**
- * Loads saved custom brand models from local storage.
- */
-export const loadCustomBrandModels = (): BrandModelProfile[] => {
+export const loadSavedBrandModelProfiles = (): BrandModelProfile[] => {
   if (typeof window === 'undefined' || !window.localStorage) {
     return [];
   }
@@ -134,21 +97,82 @@ export const loadCustomBrandModels = (): BrandModelProfile[] => {
 };
 
 /**
- * Saves or updates a custom brand model profile in local storage.
+ * Loads the default brand model profiles (Linh & Mai) with bundled face and body assets.
+ * Caches in-memory so subsequent requests resolve instantly.
  */
-export const saveCustomBrandModel = (profile: BrandModelProfile): void => {
+export const loadDefaultBrandModels = (): Promise<BrandModelProfile[]> => {
+  if (!cachedBundledBrandModelsPromise) {
+    cachedBundledBrandModelsPromise = Promise.all(
+      DEFAULT_BRAND_MODEL_DEFINITIONS.map(async (def) => {
+        const [faceImage, bodyImage] = await Promise.all([
+          loadReferenceImage(def.faceUrl, `${def.id}-face.png`),
+          loadReferenceImage(def.bodyUrl, `${def.id}-body.png`),
+        ]);
+
+        return {
+          id: def.id,
+          name: def.name,
+          metadata: { ...def.metadata },
+          faceImage,
+          bodyImage,
+        };
+      }),
+    );
+  }
+
+  return cachedBundledBrandModelsPromise.then((bundledProfiles) => {
+    const savedProfiles = loadSavedBrandModelProfiles();
+    return bundledProfiles.map((bundledProfile) => {
+      const saved = savedProfiles.find((profile) => profile.id === bundledProfile.id);
+      return saved
+        ? {
+            ...bundledProfile,
+            ...saved,
+            metadata: { ...bundledProfile.metadata, ...saved.metadata },
+            faceImage: saved.faceImage ?? bundledProfile.faceImage,
+            bodyImage: saved.bodyImage ?? bundledProfile.bodyImage,
+          }
+        : {
+            ...bundledProfile,
+            metadata: { ...bundledProfile.metadata },
+          };
+    });
+  });
+};
+
+/**
+ * Returns true if the model profile is a user-created custom model.
+ */
+export const isCustomBrandModel = (id: string): boolean => {
+  return !DEFAULT_BRAND_MODEL_DEFINITIONS.some((def) => def.id === id);
+};
+
+/**
+ * Loads saved custom brand models from local storage.
+ */
+export const loadCustomBrandModels = (): BrandModelProfile[] => {
+  return loadSavedBrandModelProfiles().filter((profile) => isCustomBrandModel(profile.id));
+};
+
+export const saveBrandModelProfile = (profile: BrandModelProfile): void => {
   if (typeof window === 'undefined' || !window.localStorage) return;
   try {
-    const existing = loadCustomBrandModels();
+    const existing = loadSavedBrandModelProfiles();
     const filtered = existing.filter((m) => m.id !== profile.id);
     window.localStorage.setItem(
       CUSTOM_BRAND_MODELS_STORAGE_KEY,
       JSON.stringify([...filtered, profile]),
     );
   } catch (err) {
-    // Quota exceeded or private browsing restrictions
-    console.warn('Unable to persist custom brand model to localStorage:', err);
+    console.warn('Unable to persist brand model to localStorage:', err);
   }
+};
+
+/**
+ * Saves or updates a custom brand model profile in local storage.
+ */
+export const saveCustomBrandModel = (profile: BrandModelProfile): void => {
+  saveBrandModelProfile(profile);
 };
 
 /**
@@ -157,7 +181,7 @@ export const saveCustomBrandModel = (profile: BrandModelProfile): void => {
 export const deleteCustomBrandModel = (id: string): void => {
   if (typeof window === 'undefined' || !window.localStorage) return;
   try {
-    const existing = loadCustomBrandModels();
+    const existing = loadSavedBrandModelProfiles();
     const filtered = existing.filter((m) => m.id !== id);
     window.localStorage.setItem(
       CUSTOM_BRAND_MODELS_STORAGE_KEY,

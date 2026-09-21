@@ -14,12 +14,20 @@ import {
   BrandModelMetadata,
   DEFAULT_BRAND_MODEL_DEFINITIONS,
   loadDefaultBrandModels,
-  loadCustomBrandModels,
+  loadSavedBrandModelProfiles,
+  saveBrandModelProfile,
   saveCustomBrandModel,
   deleteCustomBrandModel,
   isCustomBrandModel,
 } from '../config/brandModelRoster';
-import { DisplayTemplate } from '../config/displayTemplates';
+import {
+  DEFAULT_DISPLAY_TEMPLATES,
+  DisplayTemplate,
+  DisplayTemplateCategory,
+  deleteCustomDisplayTemplate,
+  loadCustomDisplayTemplates,
+  saveCustomDisplayTemplate,
+} from '../config/displayTemplates';
 import {
   EComPackPlanInput,
   useClothingTransferEComPackRun,
@@ -44,26 +52,40 @@ export interface UseClothingTransferEComPackConfig {
 export interface UseClothingTransferEComPackReturn {
   sourceOutfitImage: ImageFile | null;
   setSourceOutfitImage: (image: ImageFile | null) => void;
-  garmentScope: GarmentScope;
-  setGarmentScope: (scope: GarmentScope) => void;
+  selectedGarmentScopes: GarmentScope[];
+  toggleGarmentScope: (scope: GarmentScope) => void;
   brandModels: BrandModelProfile[];
-  selectedBrandModelId: string | null;
   selectedBrandModelIds: string[];
   selectBrandModel: (id: string) => void;
   toggleBrandModel: (id: string) => void;
   handleAddCustomModel: (data: {
     name: string;
     faceImage: ImageFile;
-    bodyImage?: ImageFile | null;
+    bodyImage: ImageFile;
     metadata?: Partial<BrandModelMetadata>;
   }) => void;
+  handleUpdateBrandModel: (
+    id: string,
+    patch: {
+      name?: string;
+      faceImage?: ImageFile | null;
+      bodyImage?: ImageFile | null;
+      metadata?: Partial<BrandModelMetadata>;
+    },
+  ) => void;
   handleRemoveCustomModel: (id: string) => void;
   isCustomBrandModel: (id: string) => boolean;
   displayTemplates: DisplayTemplate[];
   selectedTemplateIds: string[];
   toggleDisplayTemplate: (id: string) => void;
+  handleAddTextTemplate: (data: {
+    name: string;
+    category: DisplayTemplateCategory;
+    prompt: string;
+  }) => void;
+  handleRemoveDisplayTemplate: (id: string) => void;
   customStagingImages: ImageFile[];
-  handleCustomStagingUpload: (files: ImageFile[]) => void;
+  handleCustomStagingUpload: (files: ImageFile[], category?: DisplayTemplateCategory) => void;
   handleRemoveCustomStaging: (index: number) => void;
   customDestinations: ImageFile[];
   handleCustomDestinationsUpload: (files: ImageFile[]) => void;
@@ -75,7 +97,9 @@ export interface UseClothingTransferEComPackReturn {
   handleReanalyzeOutfit: () => Promise<void>;
   isGenerating: boolean;
   handleGeneratePack: () => Promise<void>;
+  handleGenerateCategory: (category: 'product' | 'brand-models' | 'custom-destinations') => Promise<void>;
   handleRegeneratePackItem: (itemId: string) => Promise<void>;
+  commitPackResult: (itemId: string, index: number, image: ImageFile) => void;
 }
 
 export const useClothingTransferEComPack = (
@@ -98,7 +122,17 @@ export const useClothingTransferEComPack = (
 
   const [sourceOutfitImage, setSourceOutfitImage] = useState<ImageFile | null>(null);
   const sourceOutfitImageRef = useRef<ImageFile | null>(null);
-  const [garmentScope, setGarmentScope] = useState<GarmentScope>('full-set');
+  const [selectedGarmentScopes, setSelectedGarmentScopes] = useState<GarmentScope[]>(['full-set']);
+  const toggleGarmentScope = useCallback((scope: GarmentScope) => {
+    setSelectedGarmentScopes((prev) => {
+      if (scope !== 'top' && scope !== 'bottom') return [scope];
+      const compatible = prev.filter((item) => item === 'top' || item === 'bottom');
+      const next = compatible.includes(scope)
+        ? compatible.filter((item) => item !== scope)
+        : [...compatible, scope];
+      return next.length > 0 ? next : ['full-set'];
+    });
+  }, []);
   const [outfitBlueprint, setOutfitBlueprint] = useState<string | null>(null);
   const [isAnalyzingOutfit, setIsAnalyzingOutfit] = useState(false);
 
@@ -146,35 +180,33 @@ export const useClothingTransferEComPack = (
   }, [sourceOutfitImage, analyzeBlueprint]);
 
   const [brandModels, setBrandModels] = useState<BrandModelProfile[]>(() => {
-    const defaultProfiles: BrandModelProfile[] = DEFAULT_BRAND_MODEL_DEFINITIONS.map((def) => ({
-      id: def.id,
-      name: def.name,
-      metadata: { ...def.metadata },
-      faceImage: null,
-      bodyImage: null,
-    }));
-    const savedCustom = loadCustomBrandModels();
+    const saved = loadSavedBrandModelProfiles();
+    const defaultProfiles: BrandModelProfile[] = DEFAULT_BRAND_MODEL_DEFINITIONS.map((def) => {
+      const override = saved.find((profile) => profile.id === def.id);
+      return {
+        id: def.id,
+        name: override?.name ?? def.name,
+        metadata: { ...def.metadata, ...(override?.metadata ?? {}) },
+        faceImage: override?.faceImage ?? null,
+        bodyImage: override?.bodyImage ?? null,
+      };
+    });
+    const savedCustom = saved.filter((profile) => isCustomBrandModel(profile.id));
     return [...defaultProfiles, ...savedCustom];
   });
 
-  const [selectedBrandModelId, setSelectedBrandModelId] = useState<string | null>(null);
-  const selectedBrandModelIds = useMemo(
-    () => (selectedBrandModelId ? [selectedBrandModelId] : []),
-    [selectedBrandModelId],
+  const [selectedBrandModelIds, setSelectedBrandModelIds] = useState<string[]>([]);
+  const [customDisplayTemplates, setCustomDisplayTemplates] = useState<DisplayTemplate[]>(() => loadCustomDisplayTemplates());
+  const displayTemplates = useMemo<DisplayTemplate[]>(
+    () => [...DEFAULT_DISPLAY_TEMPLATES, ...customDisplayTemplates],
+    [customDisplayTemplates],
   );
-  const [customStagingImages, setCustomStagingImages] = useState<ImageFile[]>([]);
-
-  const displayTemplates = useMemo<DisplayTemplate[]>(() => {
-    const customTemplates: DisplayTemplate[] = customStagingImages.map((img, idx) => ({
-      id: `custom-staging-${idx}`,
-      name: `${t('clothingTransfer.ecomPack.customStagingPrefix')} #${idx + 1}`,
-      category: 'flat-lay',
-      modality: 'image',
-      prompt: 'A professional e-commerce staging photo reproducing the exact staging surface, hanger, or backdrop shown in the STAGING REFERENCE image.',
-      image: img,
-    }));
-    return customTemplates;
-  }, [customStagingImages, t]);
+  const customStagingImages = useMemo(
+    () => customDisplayTemplates
+      .filter((template) => template.modality === 'image' && template.image)
+      .map((template) => template.image as ImageFile),
+    [customDisplayTemplates],
+  );
 
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [customDestinations, setCustomDestinations] = useState<ImageFile[]>([]);
@@ -204,7 +236,7 @@ export const useClothingTransferEComPack = (
     (data: {
       name: string;
       faceImage: ImageFile;
-      bodyImage?: ImageFile | null;
+      bodyImage: ImageFile;
       metadata?: Partial<BrandModelMetadata>;
     }) => {
       const newId = `custom-model-${Date.now()}`;
@@ -212,7 +244,7 @@ export const useClothingTransferEComPack = (
         id: newId,
         name: data.name.trim() || 'Custom Model',
         faceImage: data.faceImage,
-        bodyImage: data.bodyImage || null,
+        bodyImage: data.bodyImage,
         metadata: {
           age: data.metadata?.age ?? 22,
           height: data.metadata?.height ?? '1m65',
@@ -226,7 +258,7 @@ export const useClothingTransferEComPack = (
 
       saveCustomBrandModel(newProfile);
       setBrandModels((prev) => [...prev, newProfile]);
-      setSelectedBrandModelId(newId);
+      setSelectedBrandModelIds((prev) => [...prev, newId]);
     },
     [],
   );
@@ -234,29 +266,74 @@ export const useClothingTransferEComPack = (
   const handleRemoveCustomModel = useCallback((id: string) => {
     deleteCustomBrandModel(id);
     setBrandModels((prev) => prev.filter((m) => m.id !== id));
-    setSelectedBrandModelId((prev) => (prev === id ? null : prev));
+    setSelectedBrandModelIds((prev) => prev.filter((item) => item !== id));
   }, []);
 
-  const handleCustomStagingUpload = useCallback((files: ImageFile[]) => {
-    setCustomStagingImages((prev) => {
-      const isAppend = prev.length > 0 && files.length > 0 && !files.includes(prev[0]);
-      const next = isAppend ? [...prev, ...files].slice(0, 4) : files.slice(0, 4);
-      setSelectedTemplateIds(next.map((_, i) => `custom-staging-${i}`));
-      return next;
-    });
+  const handleUpdateBrandModel = useCallback((
+    id: string,
+    patch: {
+      name?: string;
+      faceImage?: ImageFile | null;
+      bodyImage?: ImageFile | null;
+      metadata?: Partial<BrandModelMetadata>;
+    },
+  ) => {
+    setBrandModels((prev) => prev.map((model) => {
+      if (model.id !== id) return model;
+      const updated: BrandModelProfile = {
+        ...model,
+        ...patch,
+        metadata: { ...model.metadata, ...(patch.metadata ?? {}) },
+      };
+      saveBrandModelProfile(updated);
+      return updated;
+    }));
   }, []);
+
+  const handleCustomStagingUpload = useCallback((files: ImageFile[], category: DisplayTemplateCategory = 'flat-lay') => {
+    setCustomDisplayTemplates((prev) => {
+      const previousImages = prev.filter(
+        (template) => template.modality === 'image' && template.category === category,
+      );
+      const preservedTemplates = prev.filter(
+        (template) => !(template.modality === 'image' && template.category === category),
+      );
+      const nextImages = files.slice(0, 4).map((img, idx): DisplayTemplate => ({
+        id: `custom-staging-${category}-${idx}`,
+        name: `${t('clothingTransfer.ecomPack.customStagingPrefix')} #${idx + 1}`,
+        category,
+        modality: 'image',
+        prompt: 'A professional e-commerce staging photo reproducing the exact staging surface, hanger, or backdrop shown in the STAGING REFERENCE image.',
+        image: img,
+      }));
+      previousImages.forEach((template) => deleteCustomDisplayTemplate(template.id));
+      nextImages.forEach(saveCustomDisplayTemplate);
+      setSelectedTemplateIds((selected) => {
+        const previousImageIds = new Set(previousImages.map((template) => template.id));
+        return [
+          ...selected.filter((id) => !previousImageIds.has(id)),
+          ...nextImages.map((template) => template.id),
+        ];
+      });
+      return [...preservedTemplates, ...nextImages];
+    });
+  }, [t]);
 
   const handleRemoveCustomStaging = useCallback((index: number) => {
-    const targetId = `custom-staging-${index}`;
-    setCustomStagingImages((prev) => {
-      const filtered = prev.filter((_, i) => i !== index);
-      setSelectedTemplateIds((sel) => sel.filter((id) => id !== targetId));
-      return filtered;
+    setCustomDisplayTemplates((prev) => {
+      const imageTemplates = prev.filter((template) => template.modality === 'image');
+      const target = imageTemplates[index];
+      if (!target) return prev;
+      deleteCustomDisplayTemplate(target.id);
+      setSelectedTemplateIds((selected) => selected.filter((id) => id !== target.id));
+      return prev.filter((template) => template.id !== target.id);
     });
   }, []);
 
   const selectBrandModel = useCallback((id: string) => {
-    setSelectedBrandModelId((prev) => (prev === id ? null : id));
+    setSelectedBrandModelIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
   }, []);
 
   const toggleBrandModel = selectBrandModel;
@@ -265,6 +342,30 @@ export const useClothingTransferEComPack = (
     setSelectedTemplateIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
+  }, []);
+
+  const handleAddTextTemplate = useCallback((data: {
+    name: string;
+    category: DisplayTemplateCategory;
+    prompt: string;
+  }) => {
+    const template: DisplayTemplate = {
+      id: `custom-text-${Date.now()}`,
+      name: data.name.trim(),
+      category: data.category,
+      modality: 'text',
+      prompt: data.prompt.trim(),
+    };
+    saveCustomDisplayTemplate(template);
+    setCustomDisplayTemplates((prev) => [...prev, template]);
+    setSelectedTemplateIds((prev) => [...prev, template.id]);
+  }, []);
+
+  const handleRemoveDisplayTemplate = useCallback((id: string) => {
+    if (DEFAULT_DISPLAY_TEMPLATES.some((template) => template.id === id)) return;
+    deleteCustomDisplayTemplate(id);
+    setCustomDisplayTemplates((prev) => prev.filter((template) => template.id !== id));
+    setSelectedTemplateIds((prev) => prev.filter((item) => item !== id));
   }, []);
 
   const handleCustomDestinationsUpload = useCallback((files: ImageFile[]) => {
@@ -282,6 +383,7 @@ export const useClothingTransferEComPack = (
       brandModels,
       selectedBrandModelIds,
       customDestinations,
+      garmentScopes: selectedGarmentScopes,
     }),
     [
       displayTemplates,
@@ -289,6 +391,7 @@ export const useClothingTransferEComPack = (
       brandModels,
       selectedBrandModelIds,
       customDestinations,
+      selectedGarmentScopes,
     ],
   );
 
@@ -301,11 +404,12 @@ export const useClothingTransferEComPack = (
     packItems,
     isGenerating,
     handleGeneratePack,
+    handleGenerateCategory,
     handleRegeneratePackItem,
+    commitPackResult,
   } = useClothingTransferEComPackRun({
     driver,
     sourceOutfitImage,
-    garmentScope,
     selection,
     aspectRatio,
     resolution,
@@ -326,19 +430,21 @@ export const useClothingTransferEComPack = (
     isAnalyzingOutfit,
     setOutfitBlueprint,
     handleReanalyzeOutfit,
-    garmentScope,
-    setGarmentScope,
+    selectedGarmentScopes,
+    toggleGarmentScope,
     brandModels,
-    selectedBrandModelId,
     selectedBrandModelIds,
     selectBrandModel,
     toggleBrandModel,
     handleAddCustomModel,
+    handleUpdateBrandModel,
     handleRemoveCustomModel,
     isCustomBrandModel,
     displayTemplates,
     selectedTemplateIds,
     toggleDisplayTemplate,
+    handleAddTextTemplate,
+    handleRemoveDisplayTemplate,
     customStagingImages,
     handleCustomStagingUpload,
     handleRemoveCustomStaging,
@@ -348,6 +454,8 @@ export const useClothingTransferEComPack = (
     packItems,
     isGenerating,
     handleGeneratePack,
+    handleGenerateCategory,
     handleRegeneratePackItem,
+    commitPackResult,
   };
 };

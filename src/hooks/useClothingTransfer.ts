@@ -3,6 +3,8 @@ import {
   AspectRatio,
   ClothingTransferMode,
   DEFAULT_IMAGE_RESOLUTION,
+  Feature,
+  ImageFile,
   ImageResolution,
 } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -15,6 +17,7 @@ import { useClothingTransferConcepts } from './useClothingTransferConcepts';
 import { useClothingTransferEngine, ClothingTransferImageDriver } from './useClothingTransferEngine';
 import { useClothingTransferResultActions } from './useClothingTransferResultActions';
 import { useClothingTransferEComPack } from './useClothingTransferEComPack';
+import { useGeneratedResultActions } from './useGeneratedResultActions';
 
 /**
  * Orchestrator for Clothing Transfer. Owns UI-level state (prompts, settings,
@@ -95,7 +98,7 @@ export const useClothingTransfer = () => {
     t,
   });
 
-  const ecomPack = useClothingTransferEComPack({
+  const ecomPackCore = useClothingTransferEComPack({
     driver,
     aspectRatio,
     resolution,
@@ -108,6 +111,49 @@ export const useClothingTransfer = () => {
     setError,
     t,
   });
+
+  const ecomPackResultAdapter = useMemo(() => ({
+    commitResult: (itemId: string, index: number, image: ImageFile) => {
+      ecomPackCore.commitPackResult(itemId, index, image);
+      addImage(image, Feature.ClothingTransfer, engineId);
+    },
+    collectDownloadableResults: () => ecomPackCore.packItems
+      .filter((item) => item.status === 'completed' && item.results.length > 0)
+      .flatMap((item) => item.results),
+    collectDownloadableEntryPaths: () => ecomPackCore.packItems
+      .filter((item) => item.status === 'completed' && item.results.length > 0)
+      .flatMap((item) =>
+        item.results.map((_, index) => `${item.category}/${item.id}-${index + 1}.jpg`),
+      ),
+  }), [ecomPackCore.commitPackResult, ecomPackCore.packItems, addImage, engineId]);
+
+  const ecomPackResultActions = useGeneratedResultActions({
+    driver,
+    adapter: ecomPackResultAdapter,
+    imageEditModel,
+    refinement,
+    buildImageServiceConfig,
+    setError,
+    setUpscalingStates,
+    downloadName: 'clothing-transfer-ecom-pack',
+    t,
+  });
+
+  const ecomPack = useMemo(() => ({
+    ...ecomPackCore,
+    ...ecomPackResultActions,
+    refinePrompts,
+    setRefinePrompts,
+    isRefining,
+    upscalingStates,
+  }), [
+    ecomPackCore,
+    ecomPackResultActions,
+    refinePrompts,
+    setRefinePrompts,
+    isRefining,
+    upscalingStates,
+  ]);
 
   return {
     mode,
