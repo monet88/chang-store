@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useGatewayProfiles } from '@/hooks/useGatewayProfiles';
 import {
   ACTIVE_IMAGE_PROFILE_KEY,
@@ -37,6 +37,10 @@ const profilesFrom = (profiles: GatewayProfile[], activeId?: string) =>
   renderHook(() => useGatewayProfiles({ gemini: GEMINI, storage: storageWith(profiles, activeId) })).result.current;
 
 describe('useGatewayProfiles image-lane resolution', () => {
+  beforeEach(() => {
+    delete window.desktopGateway;
+  });
+
   it('keeps a disabled profile out of the driver fallback', () => {
     const api = profilesFrom([openAiProfile({ enabled: false, apiKey: 'sk-disabled-profile' })]);
 
@@ -61,5 +65,29 @@ describe('useGatewayProfiles image-lane resolution', () => {
 
     expect(api.activeImageProfileId).toBe('custom-profile');
     expect(api.imageProfileForDriver('openai-images')?.id).toBe('custom-profile');
+  });
+
+  it('removes the vaulted desktop credential when a profile key is cleared', async () => {
+    const removeCredential = vi.fn().mockResolvedValue({ ok: true, value: null });
+    const storeCredential = vi.fn().mockResolvedValue({ ok: true, value: null });
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: { removeCredential, storeCredential },
+    });
+    const stored = openAiProfile({ apiKey: '__desktop_gateway_credential__' });
+    const storage = storageWith([stored]);
+    const { result } = renderHook(() => useGatewayProfiles({ gemini: GEMINI, storage }));
+
+    act(() => {
+      result.current.saveProfiles(
+        result.current.gatewayProfiles.map((profile) => (
+          profile.id === stored.id ? { ...profile, apiKey: '' } : profile
+        )),
+      );
+    });
+
+    await waitFor(() => {
+      expect(removeCredential).toHaveBeenCalledWith({ credentialRef: stored.id });
+    });
   });
 });

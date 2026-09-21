@@ -1138,7 +1138,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       apiKeyPlaceholder: 'Nhập API key của cổng CPA',
       apiKeyHint: 'Khóa này chỉ dùng cho cổng ở trên. Không dán account JSON vào đây.',
       apiKeyMissing: 'Hãy nhập API key của cổng trước khi lưu cài đặt này.',
-      storageWarning: 'Bản web lưu API key trong localStorage. Bản desktop chuyển khóa sang kho mã hóa của hệ điều hành và chỉ giữ dấu tham chiếu trong renderer.',
+      storageWarning: 'Bản web lưu API key dạng rõ trong localStorage, vì vậy không nên nhập khóa trên thiết bị không tin cậy. Bản desktop giữ các khóa lưu thành công trong kho mã hóa của hệ điều hành và chỉ để lại dấu tham chiếu trong renderer.',
     },
     storage: {
       title: 'Dung lượng lưu trữ cục bộ',
@@ -1158,8 +1158,10 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       invalidFileType: 'Loại tệp không hợp lệ. Chỉ hỗ trợ tệp JSON.',
       fileTooLarge: 'Tệp quá lớn. Dung lượng tối đa cho phép là 50MB.',
       clearSuccess: 'Đã xóa toàn bộ dữ liệu ứng dụng. Trang sẽ tải lại.',
+      clearFailed: 'Không thể xóa kho khóa mã hóa của bản desktop. Chưa có dữ liệu nào bị xóa.',
       cpaGatewayInvalidUrl: 'Hãy nhập địa chỉ cổng hợp lệ trước khi lưu cài đặt này.',
       cpaGatewayMissingApiKey: 'Hãy nhập API key của cổng trước khi lưu cài đặt này.',
+      cpaGatewaySaveFailed: 'Không thể lưu API key vào kho mã hóa của bản desktop. Cài đặt chưa được thay đổi.',
       cpaGatewayRestoreInvalid: 'Cấu hình cổng đã lưu không hợp lệ và đã được đưa về cổng CPA mặc định.',
     },
     developer: {

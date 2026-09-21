@@ -4,6 +4,8 @@ import { useGatewayProfileEditor } from '../../hooks/useGatewayProfileEditor';
 import { GatewayProfileRow, ProbeLine, fieldLabelClassName, inputClassName } from './GatewayProfileRow';
 import { isStoredDesktopCredential } from '../../platform/desktopGateway';
 
+const comparableProviderUrl = (value: string): string => value.trim().replace(/\/+$/, '');
+
 export interface GatewayProfileEditorProps {
   geminiProfileId: string;
   geminiUrl: string;
@@ -47,8 +49,14 @@ export const GatewayProfileEditor: React.FC<GatewayProfileEditorProps> = ({
             type="url"
             value={geminiUrl}
             onChange={(e) => {
+              const nextUrl = e.target.value;
               onGeminiUrlChange(e.target.value);
-              if (isStoredDesktopCredential(geminiApiKey)) onGeminiApiKeyChange('');
+              if (
+                isStoredDesktopCredential(geminiApiKey)
+                && comparableProviderUrl(nextUrl) !== comparableProviderUrl(geminiUrl)
+              ) {
+                onGeminiApiKeyChange('');
+              }
             }}
             placeholder="https://cliproxy.monet.uno"
             className={inputClassName}

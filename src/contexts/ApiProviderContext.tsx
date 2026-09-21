@@ -1,9 +1,10 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useRef, useMemo, useCallback } from 'react';
 import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
 import { getDefaultModelForSelectionType, isKnownModelForSelectionType, ModelSelectionType } from '../config/modelRegistry';
-import { DEFAULT_GEMINI_PROFILE_ID, isImageDriverId, type GatewayProfile } from '../config/gatewayProfiles';
+import { isImageDriverId, type GatewayProfile } from '../config/gatewayProfiles';
 import { useGatewayProfiles } from '../hooks/useGatewayProfiles';
 import { configureGeminiClient } from '../services/apiClient';
+import { invalidateCachedGatewayModels } from '../services/gatewayDiscoveryService';
 import { useToast } from '../components/Toast';
 import { validateProviderBaseUrl } from '../utils/provider-url-validation';
 import { useLanguage } from './LanguageContext';
@@ -30,7 +31,7 @@ interface ApiContextType {
   textGenerateModel: TextGenerateModel;
   setTextGenerateModel: (model: TextGenerateModel) => void;
   cpaGatewaySettings: CpaGatewaySettings;
-  setCpaGatewaySettings: (settings: CpaGatewaySettings) => void;
+  setCpaGatewaySettings: (settings: CpaGatewaySettings) => Promise<boolean>;
   /** The gateway profiles: one Gemini-lane profile, any number of image-lane ones. */
   gatewayProfiles: GatewayProfile[];
   geminiProfile: GatewayProfile;
@@ -195,30 +196,30 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, [cpaGatewaySettings, profiles.geminiProfile.id]);
 
-  const setCpaGatewaySettings = useCallback((settings: CpaGatewaySettings) => {
-    setCpaGatewaySettingsState(settings);
-    safeStorage.setItem(CPA_GATEWAY_URL_KEY, settings.url);
+  const setCpaGatewaySettings = useCallback(async (settings: CpaGatewaySettings): Promise<boolean> => {
+    const desktopGateway = getDesktopGatewayApi();
+    const apiKey = settings.apiKey.trim();
 
-    if (!getDesktopGatewayApi() || !settings.apiKey.trim() || isStoredDesktopCredential(settings.apiKey)) {
+    if (!desktopGateway || !apiKey || isStoredDesktopCredential(apiKey)) {
+      setCpaGatewaySettingsState(settings);
+      safeStorage.setItem(CPA_GATEWAY_URL_KEY, settings.url);
       safeStorage.setItem(CPA_GATEWAY_API_KEY_KEY, settings.apiKey);
-      return;
+      return true;
     }
 
-    const rawApiKey = settings.apiKey;
-    // Never persist the raw key in renderer storage while main is securing it.
-    safeStorage.removeItem(CPA_GATEWAY_API_KEY_KEY);
-    void storeDesktopCredential(DEFAULT_GEMINI_PROFILE_ID, settings.url, rawApiKey).then((stored) => {
-      if (!stored) return;
-      setCpaGatewaySettingsState((current) => (
-        current.apiKey === rawApiKey && current.url === settings.url
-          ? { ...current, apiKey: DESKTOP_CREDENTIAL_SENTINEL }
-          : current
-      ));
-      if (safeStorage.getItem(CPA_GATEWAY_URL_KEY) === settings.url) {
-        safeStorage.setItem(CPA_GATEWAY_API_KEY_KEY, DESKTOP_CREDENTIAL_SENTINEL);
-      }
-    });
-  }, []);
+    // Desktop commits the visible settings only after main confirms the raw key
+    // reached encrypted storage. A failed store leaves the previous working
+    // settings intact and never writes the raw key to renderer storage.
+    const stored = await storeDesktopCredential(profiles.geminiProfile.id, settings.url, apiKey);
+    if (!stored) return false;
+
+    invalidateCachedGatewayModels(profiles.geminiProfile.id);
+    const securedSettings = { ...settings, apiKey: DESKTOP_CREDENTIAL_SENTINEL };
+    setCpaGatewaySettingsState(securedSettings);
+    safeStorage.setItem(CPA_GATEWAY_URL_KEY, settings.url);
+    safeStorage.setItem(CPA_GATEWAY_API_KEY_KEY, DESKTOP_CREDENTIAL_SENTINEL);
+    return true;
+  }, [profiles.geminiProfile.id]);
 
   const setImageEditModel = useCallback((model: ImageEditModel) => {
     setImageEditModelState(model);

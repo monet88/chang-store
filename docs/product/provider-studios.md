@@ -82,14 +82,18 @@ control stays visible in the GPT views.
 
 Settings → **Gateway** edits two lanes: the Gemini (CPA) profile and any number
 of image-gateway profiles. The image lane is multi-profile; the active profile
-supplies the GPT lane's base URL and key, and `gateway_profiles_v1` is the only
-credential store — the legacy per-provider `provider:*` settings and their
+supplies the GPT lane's base URL and credential reference. Browser builds keep
+image-profile API keys in `gateway_profiles_v1` and the CPA key under
+`cpa_gateway_api_key`; desktop builds move successfully stored keys into
+Electron `safeStorage` and persist only the non-secret credential marker in
+renderer storage. The legacy per-provider `provider:*` settings and their
 `providerRegistry` metadata were removed.
 
 - **Env seed**: a fresh install with no stored profiles gets one image profile
-  built from `XOMPET_BASE_URL` / `GPT_IMAGE_BASE_URL` and
-  `XOMPET_API_KEY` / `GPT_IMAGE_API_KEY` (build-time defines in
-  `vite.config.ts`), defaulting the base URL to `https://api.openai.com/v1`.
+  whose base URL comes from `XOMPET_BASE_URL` / `GPT_IMAGE_BASE_URL`, defaulting
+  to `https://api.openai.com/v1`. Browser builds can also seed the profile key
+  from `XOMPET_API_KEY` / `GPT_IMAGE_API_KEY`; desktop renderer bundles strip
+  provider secrets and main resolves runtime/built-in credentials instead.
 - **Fail closed**: a profile with an empty base URL is never paired with a
   default address — the request fails instead of sending a gateway key to
   OpenAI.
@@ -98,7 +102,9 @@ credential store — the legacy per-provider `provider:*` settings and their
   load.
 - **Check**: probes `GET {baseUrl}/v1/models` (10-minute cache), refuses an
   unusable address client-side, maps 401 to "gateway rejected this key" and 403
-  to an edge/User-Agent block.
+  to an edge/User-Agent block. Desktop cache entries are invalidated when a
+  credential is replaced or removed so model entitlement never survives a key
+  rotation under the same profile id.
 
 ## Models and Capabilities
 

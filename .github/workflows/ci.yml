@@ -37,3 +37,6 @@ jobs:
       
     - name: Build
       run: npm run build
+
+    - name: Build desktop bundles
+      run: npm run desktop:build

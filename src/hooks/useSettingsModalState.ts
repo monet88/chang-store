@@ -32,6 +32,8 @@ const DEFAULT_STORAGE_INFO: StorageInfo = {
   storagePercentage: 0,
 };
 
+const comparableProviderUrl = (value: string): string => value.trim().replace(/\/+$/, '');
+
 export interface UseSettingsModalStateParams {
   isOpen: boolean;
 }
@@ -85,14 +87,14 @@ export const useSettingsModalState = ({ isOpen }: UseSettingsModalStateParams): 
   );
   const hasCpaGatewayChanges = useMemo(
     () => (
-      localCpaGatewayUrl.trim() !== cpaGatewaySettings.url
+      comparableProviderUrl(localCpaGatewayUrl) !== comparableProviderUrl(cpaGatewaySettings.url)
       || localCpaGatewayApiKey !== cpaGatewaySettings.apiKey
     ),
     [localCpaGatewayApiKey, localCpaGatewayUrl, cpaGatewaySettings],
   );
   const isCpaGatewayUrlInvalid = cpaGatewayUrlValidation.status === 'invalid';
   const isCpaGatewayUrlCustom = cpaGatewayUrlValidation.status === 'custom';
-  const cpaGatewayUrlChanged = localCpaGatewayUrl.trim() !== cpaGatewaySettings.url;
+  const cpaGatewayUrlChanged = comparableProviderUrl(localCpaGatewayUrl) !== comparableProviderUrl(cpaGatewaySettings.url);
   const isCpaGatewayApiKeyMissing = (
     localCpaGatewayApiKey.trim().length === 0
     || (cpaGatewayUrlChanged && isStoredDesktopCredential(localCpaGatewayApiKey))

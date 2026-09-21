@@ -46,8 +46,8 @@ export interface UseSettingsModalReturn {
   handleDebugToggle: () => void;
   restoreInputRef: React.RefObject<HTMLInputElement>;
   handleRestore: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleClear: () => void;
-  handleSave: () => void;
+  handleClear: () => Promise<void>;
+  handleSave: () => Promise<void>;
   handleBackup: () => void;
   refreshStorageUsage: () => Promise<void>;
   usageMB: string;

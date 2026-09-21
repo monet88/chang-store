@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DESKTOP_CREDENTIAL_SENTINEL } from '@/platform/desktopGateway';
-import { migrateDesktopGatewayCredentials } from '@/platform/desktopCredentials';
+import {
+  clearDesktopCredentials,
+  migrateDesktopGatewayCredentials,
+  removeDesktopCredential,
+  storeDesktopCredential,
+} from '@/platform/desktopCredentials';
 
 describe('desktopCredentials', () => {
   beforeEach(() => {
@@ -132,5 +137,82 @@ describe('desktopCredentials', () => {
     expect(localStorage.getItem('cpa_gateway_api_key')).toBe(DESKTOP_CREDENTIAL_SENTINEL);
     expect(localStorage.getItem('vertex_proxy_url')).toBeNull();
     expect(localStorage.getItem('vertex_proxy_api_key')).toBeNull();
+  });
+
+  it('binds a current CPA key to the legacy URL when only the legacy URL remains', async () => {
+    const storeCredential = vi.fn().mockResolvedValue({ ok: true, value: null });
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: { storeCredential },
+    });
+    localStorage.setItem('cpa_gateway_api_key', 'current-secret');
+    localStorage.setItem('vertex_proxy_url', 'https://legacy.example.com');
+
+    await migrateDesktopGatewayCredentials();
+
+    expect(storeCredential).toHaveBeenCalledWith({
+      credentialRef: 'cpa-default',
+      baseUrl: 'https://legacy.example.com',
+      apiKey: 'current-secret',
+    });
+  });
+
+  it('promotes a profile-only CPA credential into the CPA settings projection', async () => {
+    const storeCredential = vi.fn().mockResolvedValue({ ok: true, value: null });
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: { storeCredential },
+    });
+    localStorage.setItem('gateway_profiles_v1', JSON.stringify([{
+      id: 'cpa-default',
+      label: 'CPA',
+      baseUrl: 'https://profile-only.example.com',
+      apiKey: 'profile-secret',
+      lane: 'gemini',
+      driver: 'gemini-native',
+      enabled: true,
+    }]));
+
+    await migrateDesktopGatewayCredentials();
+
+    expect(localStorage.getItem('cpa_gateway_url')).toBe('https://profile-only.example.com');
+    expect(localStorage.getItem('cpa_gateway_api_key')).toBe(DESKTOP_CREDENTIAL_SENTINEL);
+  });
+
+  it('reports failure when the desktop credential vault cannot be cleared', async () => {
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: {
+        clearCredentials: vi.fn().mockResolvedValue({
+          ok: false,
+          error: { message: 'clear failed' },
+        }),
+      },
+    });
+
+    await expect(clearDesktopCredentials()).resolves.toBe(false);
+  });
+
+  it('serializes removal behind an in-flight store for the same credential', async () => {
+    let resolveStore!: (value: { ok: true; value: null }) => void;
+    const pendingStore = new Promise<{ ok: true; value: null }>((resolve) => {
+      resolveStore = resolve;
+    });
+    const storeCredential = vi.fn().mockReturnValue(pendingStore);
+    const removeCredential = vi.fn().mockResolvedValue({ ok: true, value: null });
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: { storeCredential, removeCredential },
+    });
+
+    const storing = storeDesktopCredential('image-1', 'https://gateway.example.com/v1', 'first-secret');
+    const removing = removeDesktopCredential('image-1');
+
+    expect(removeCredential).not.toHaveBeenCalled();
+    resolveStore({ ok: true, value: null });
+    await storing;
+    await removing;
+
+    expect(removeCredential).toHaveBeenCalledWith({ credentialRef: 'image-1' });
   });
 });

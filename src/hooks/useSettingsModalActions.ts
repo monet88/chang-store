@@ -32,13 +32,13 @@ export interface UseSettingsModalActionsConfig {
   setImageEditModel: (m: string) => void;
   setImageGenerateModel: (m: string) => void;
   setTextGenerateModel: (m: string) => void;
-  setCpaGatewaySettings: (s: CpaGatewaySettings) => void;
+  setCpaGatewaySettings: (s: CpaGatewaySettings) => Promise<boolean>;
   showToast: (msg: string) => void;
   t: (k: string, o?: Record<string, string | number>) => string;
 }
 
 export interface UseSettingsModalActionsReturn {
-  handleSave: () => void;
+  handleSave: () => Promise<void>;
   handleRestore: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleClear: () => Promise<void>;
   handleBackup: () => void;
@@ -62,7 +62,7 @@ export const useSettingsModalActions = (config: UseSettingsModalActionsConfig): 
     t,
   } = config;
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (isCpaGatewayUrlInvalid) {
       showToast(t('settingsModal.notifications.cpaGatewayInvalidUrl'));
       return;
@@ -71,13 +71,17 @@ export const useSettingsModalActions = (config: UseSettingsModalActionsConfig): 
       showToast(t('settingsModal.notifications.cpaGatewayMissingApiKey'));
       return;
     }
-    setImageEditModel(localImageEditModel);
-    setImageGenerateModel(localImageGenerateModel);
-    setTextGenerateModel(localTextGenerateModel);
-    setCpaGatewaySettings({
+    const gatewaySaved = await setCpaGatewaySettings({
       url: localCpaGatewayUrl.trim(),
       apiKey: localCpaGatewayApiKey.trim(),
     });
+    if (!gatewaySaved) {
+      showToast(t('settingsModal.notifications.cpaGatewaySaveFailed'));
+      return;
+    }
+    setImageEditModel(localImageEditModel);
+    setImageGenerateModel(localImageGenerateModel);
+    setTextGenerateModel(localTextGenerateModel);
     onClose();
   }, [
     isCpaGatewayUrlInvalid,
@@ -130,17 +134,22 @@ export const useSettingsModalActions = (config: UseSettingsModalActionsConfig): 
     if (!window.confirm(t('settingsModal.confirmations.clearAllData'))) {
       return;
     }
+    if (!await clearDesktopCredentials()) {
+      showToast(t('settingsModal.notifications.clearFailed'));
+      return;
+    }
     localStorage.removeItem(CPA_GATEWAY_URL_KEY);
     localStorage.removeItem(CPA_GATEWAY_API_KEY_KEY);
+    localStorage.removeItem('vertex_proxy_url');
+    localStorage.removeItem('vertex_proxy_api_key');
     // The confirm text promises API keys: the profile store holds them, so clear it with the rest.
     localStorage.removeItem(GATEWAY_PROFILES_KEY);
     localStorage.removeItem(ACTIVE_GATEWAY_PROFILE_KEY);
     localStorage.removeItem(ACTIVE_IMAGE_PROFILE_KEY);
-    await clearDesktopCredentials();
     await clearAppData();
     alert(t('settingsModal.notifications.clearSuccess'));
     window.location.reload();
-  }, [t]);
+  }, [showToast, t]);
 
   return {
     handleSave,

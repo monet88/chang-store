@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   GATEWAY_MODELS_TTL_MS,
   getCachedGatewayModels,
+  invalidateCachedGatewayModels,
   listGatewayModels,
 } from '@/services/gatewayDiscoveryService';
 
@@ -71,6 +72,24 @@ describe('gatewayDiscoveryService', () => {
       baseUrl: TARGET.baseUrl,
       apiKey: undefined,
     });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('maps desktop bridge failures to probe statuses instead of rejecting', async () => {
+    const listGatewayModelsBridge = vi.fn().mockResolvedValue({
+      ok: false,
+      error: { message: 'missing key', status: 401, code: 'missing_api_key' },
+    });
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: { listGatewayModels: listGatewayModelsBridge },
+    });
+
+    await expect(listGatewayModels({
+      baseUrl: TARGET.baseUrl,
+      apiKey: '__desktop_gateway_credential__',
+      credentialRef: 'cpa-default',
+    }, { force: true })).resolves.toMatchObject({ status: 'unauthorized', httpStatus: 401 });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -220,6 +239,68 @@ describe('gatewayDiscoveryService', () => {
 
     expect(getCachedGatewayModels(TARGET.baseUrl, TARGET.apiKey)?.modelIds).toEqual([]);
     expect(getCachedGatewayModels(TARGET.baseUrl, 'sk-other-key')?.modelIds).toHaveLength(2);
+  });
+
+  it('does not reuse a vaulted credential cache entry for a transient replacement key', async () => {
+    const listGatewayModelsBridge = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        value: { status: 'ok', modelIds: ['old-model'], ownedBy: {}, latencyMs: 1, httpStatus: 200 },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        value: { status: 'ok', modelIds: ['new-model'], ownedBy: {}, latencyMs: 1, httpStatus: 200 },
+      });
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: { listGatewayModels: listGatewayModelsBridge },
+    });
+
+    await listGatewayModels({
+      baseUrl: TARGET.baseUrl,
+      apiKey: '__desktop_gateway_credential__',
+      credentialRef: 'image-1',
+    });
+    const replacement = await listGatewayModels({
+      baseUrl: TARGET.baseUrl,
+      apiKey: 'new-secret',
+      credentialRef: 'image-1',
+    });
+
+    expect(replacement.modelIds).toEqual(['new-model']);
+    expect(listGatewayModelsBridge).toHaveBeenCalledTimes(2);
+  });
+
+  it('invalidates the vaulted cache entry when a credential is rotated', async () => {
+    const listGatewayModelsBridge = vi.fn().mockResolvedValue({
+      ok: true,
+      value: { status: 'ok', modelIds: ['old-model'], ownedBy: {}, latencyMs: 1, httpStatus: 200 },
+    });
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: { listGatewayModels: listGatewayModelsBridge },
+    });
+
+    await listGatewayModels({
+      baseUrl: TARGET.baseUrl,
+      apiKey: '__desktop_gateway_credential__',
+      credentialRef: 'image-1',
+    });
+    expect(getCachedGatewayModels(
+      TARGET.baseUrl,
+      '__desktop_gateway_credential__',
+      Date.now(),
+      'image-1',
+    )?.modelIds).toEqual(['old-model']);
+
+    invalidateCachedGatewayModels('image-1');
+
+    expect(getCachedGatewayModels(
+      TARGET.baseUrl,
+      '__desktop_gateway_credential__',
+      Date.now(),
+      'image-1',
+    )).toBeNull();
   });
 
   it('never caches a failure and never stores the api key', async () => {

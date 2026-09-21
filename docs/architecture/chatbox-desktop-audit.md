@@ -82,6 +82,7 @@ The browser build intentionally keeps the existing direct provider contract. Bro
 electron/
   gateway.ts
   main.ts
+  networkSafety.ts
   preload.ts
 
 src/                  # existing React renderer remains in place

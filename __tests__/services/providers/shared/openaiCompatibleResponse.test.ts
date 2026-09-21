@@ -44,6 +44,14 @@ describe('parseOpenAIResponse', () => {
     expect(result[0].mimeType).toBe('image/png');
   });
 
+  it('ignores malformed or unsafe provider mime_type hints for b64_json', async () => {
+    const malformed = await parseOpenAIResponse({ data: [{ b64_json: 'AAAA', mime_type: 123 }] });
+    const unsafe = await parseOpenAIResponse({ data: [{ b64_json: 'BBBB', mime_type: 'image/svg+xml' }] });
+
+    expect(malformed[0].mimeType).toBe('image/png');
+    expect(unsafe[0].mimeType).toBe('image/png');
+  });
+
   it('downloads a url-only response and converts it to base64', async () => {
     fetchMock.mockResolvedValue(download());
 

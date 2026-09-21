@@ -6,7 +6,7 @@ interface OpenAiImageItem {
   b64_json?: string;
   url?: string;
   /** Internal desktop bridge hint when a URL response was safely materialized in main. */
-  mime_type?: string;
+  mime_type?: unknown;
 }
 
 interface OpenAiImageResponse {
@@ -19,8 +19,12 @@ interface OpenAiImageResponse {
 }
 
 const DEFAULT_MIME_TYPE = 'image/png';
+const SAFE_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 /** Chunk size for `String.fromCharCode` — a 1.4 MB PNG is ~1.9 M characters. */
 const BASE64_CHUNK = 0x8000;
+
+const safeImageMimeType = (value: unknown, fallback: string): string =>
+  typeof value === 'string' && SAFE_IMAGE_MIME_TYPES.has(value) ? value : fallback;
 
 const bytesToBase64 = (bytes: Uint8Array): string => {
   let binary = '';
@@ -46,7 +50,7 @@ const downloadImage = async (url: string, fallbackMimeType: string): Promise<Ima
 
     return {
       base64: bytesToBase64(new Uint8Array(await response.arrayBuffer())),
-      mimeType: contentType?.startsWith('image/') ? contentType : fallbackMimeType,
+      mimeType: safeImageMimeType(contentType, fallbackMimeType),
     };
   } catch (error) {
     if (error instanceof ProviderUnsupportedResponseError) {
@@ -96,7 +100,7 @@ export async function parseOpenAIResponse(
     if (item && typeof item.b64_json === 'string' && item.b64_json.length > 0) {
       images.push({
         base64: item.b64_json,
-        mimeType: item.mime_type?.startsWith('image/') ? item.mime_type : mimeType,
+        mimeType: safeImageMimeType(item.mime_type, mimeType),
       });
     } else if (item && typeof item.url === 'string' && item.url.length > 0) {
       images.push(await downloadImage(item.url, mimeType));

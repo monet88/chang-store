@@ -214,8 +214,8 @@ describe('ApiProviderContext', () => {
       });
       const { result } = renderHook(() => useApi(), { wrapper: createWrapper() });
 
-      act(() => {
-        result.current.setCpaGatewaySettings({
+      await act(async () => {
+        await result.current.setCpaGatewaySettings({
           url: 'https://gateway.example.com',
           apiKey: 'desktop-secret',
         });
@@ -234,6 +234,38 @@ describe('ApiProviderContext', () => {
         'cpa_gateway_api_key',
         '__desktop_gateway_credential__',
       );
+    });
+
+    it('keeps the previous desktop CPA settings when secure storage rejects a replacement key', async () => {
+      const storeCredential = vi.fn().mockResolvedValue({
+        ok: false,
+        error: { message: 'secure storage unavailable' },
+      });
+      Object.defineProperty(window, 'desktopGateway', {
+        configurable: true,
+        value: { storeCredential },
+      });
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === 'cpa_gateway_url') return 'https://cliproxy.monet.uno';
+        if (key === 'cpa_gateway_api_key') return '__desktop_gateway_credential__';
+        return null;
+      });
+      const { result } = renderHook(() => useApi(), { wrapper: createWrapper() });
+
+      let saved = true;
+      await act(async () => {
+        saved = await result.current.setCpaGatewaySettings({
+          url: 'https://gateway.example.com',
+          apiKey: 'replacement-secret',
+        });
+      });
+
+      expect(saved).toBe(false);
+      expect(result.current.cpaGatewaySettings).toEqual({
+        url: 'https://cliproxy.monet.uno',
+        apiKey: '__desktop_gateway_credential__',
+      });
+      expect(localStorageMock.setItem).not.toHaveBeenCalledWith('cpa_gateway_api_key', 'replacement-secret');
     });
 
     it('setImageEditModel updates imageEditModel', () => {

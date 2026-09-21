@@ -1,6 +1,8 @@
 import { logEvent } from './debugService';
 import { safeFetch } from './providers/shared/safeFetch';
 import {
+  DESKTOP_CREDENTIAL_SENTINEL,
+  DesktopGatewayError,
   getDesktopGatewayApi,
   transientDesktopApiKey,
   unwrapDesktopBridgeResult,
@@ -85,9 +87,25 @@ const writeCacheEntry = (entry: GatewayModelsCacheEntry): void => {
   }
 };
 
+export const invalidateCachedGatewayModels = (credentialRef: string): void => {
+  try {
+    const keyId = `ref:${credentialRef}`;
+    const remaining = readCache().filter((entry) => entry?.keyId !== keyId);
+    if (remaining.length === 0) {
+      localStorage.removeItem(CACHE_STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(remaining));
+  } catch {
+    // Cache invalidation is best-effort; a blocked localStorage already behaves as a cache miss.
+  }
+};
+
 /** Cached `ok` probe for this (host, key) pair, still inside the TTL — never keyed by host alone. */
 const cacheKeyIdentity = (apiKey: string, credentialRef?: string): string =>
-  credentialRef ? `ref:${credentialRef}` : keyIdentity(apiKey);
+  credentialRef && apiKey === DESKTOP_CREDENTIAL_SENTINEL
+    ? `ref:${credentialRef}`
+    : keyIdentity(apiKey);
 
 export function getCachedGatewayModels(
   baseUrl: string,
@@ -189,15 +207,28 @@ export async function listGatewayModels(
   }
 
   const desktopGateway = getDesktopGatewayApi();
-  const result = desktopGateway && target.credentialRef
-    ? unwrapDesktopBridgeResult(await desktopGateway.listGatewayModels({
+  let result: GatewayProbeResult;
+  if (desktopGateway && target.credentialRef) {
+    const startedAt = Date.now();
+    try {
+      result = unwrapDesktopBridgeResult(await desktopGateway.listGatewayModels({
         credentialRef: target.credentialRef,
         // Main binds credentials to the configured provider URL. Keep the
         // profile URL intact here; main normalizes /v1 only for the models path.
         baseUrl: target.baseUrl,
         apiKey: transientDesktopApiKey(target.apiKey),
-      }))
-    : await probe({ ...target, baseUrl });
+      }));
+    } catch (error) {
+      const status = error instanceof DesktopGatewayError ? error.status : undefined;
+      result = empty(
+        status === 401 ? 'unauthorized' : status === 403 ? 'forbidden' : 'unreachable',
+        Date.now() - startedAt,
+        status,
+      );
+    }
+  } else {
+    result = await probe({ ...target, baseUrl });
+  }
 
   if (result.status === 'ok') {
     writeCacheEntry({

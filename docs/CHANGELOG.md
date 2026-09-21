@@ -61,6 +61,17 @@
 - Secure credential migration is fail-safe: if the OS-encrypted vault cannot
   store a key, the existing plaintext value is left untouched rather than being
   replaced prematurely by a reference marker and effectively lost.
+- Desktop credential rotation no longer reuses a served-model cache entry from
+  the previous key, and failed gateway saves keep the previous working settings
+  instead of silently discarding them.
+- Editing an encrypted image-gateway key now keeps a local field draft and
+  commits once on blur, avoiding per-keystroke vault writes and controlled-input
+  resets. Clearing or rebinding a profile also removes the old vault entry.
+- Desktop credential migration now preserves legacy gateway URLs, promotes a
+  profile-only CPA credential into the active CPA settings projection, and
+  keeps startup alive when renderer storage access fails.
+- "Clear all data" now removes legacy gateway keys and refuses to report success
+  when the encrypted credential vault could not be cleared.
 - Provider-returned image URLs no longer create an unrestricted main-process
   fetch path; non-public IPv4/IPv6 ranges, mapped/translation forms, excessive
   redirects, oversized payloads, non-image responses, and indefinitely trickled

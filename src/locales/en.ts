@@ -1136,7 +1136,7 @@ Do not include any other text or markdown.
       apiKeyPlaceholder: 'Enter your CPA gateway API key',
       apiKeyHint: 'This key is used only for the gateway endpoint above. Do not paste account JSON here.',
       apiKeyMissing: 'Enter the gateway API key before saving these settings.',
-      storageWarning: 'Web stores gateway API keys in localStorage. Desktop moves them into the OS-encrypted credential vault and keeps only a reference marker in the renderer.',
+      storageWarning: 'Web stores gateway API keys in plaintext localStorage, so avoid entering them on an untrusted device. Desktop keeps successfully saved keys in the OS-encrypted credential vault and only a reference marker in the renderer.',
     },
     storage: {
       title: 'Local storage usage',
@@ -1156,8 +1156,10 @@ Do not include any other text or markdown.
       invalidFileType: 'Invalid file type. Only JSON files are supported.',
       fileTooLarge: 'File is too large. Maximum size allowed is 50MB.',
       clearSuccess: 'All application data has been cleared. The page will now reload.',
+      clearFailed: 'Could not clear the encrypted desktop credential vault. No data was cleared.',
       cpaGatewayInvalidUrl: 'Enter a valid gateway URL before saving these settings.',
       cpaGatewayMissingApiKey: 'Enter the gateway API key before saving these settings.',
+      cpaGatewaySaveFailed: 'Could not save the gateway API key to encrypted desktop storage. Settings were not changed.',
       cpaGatewayRestoreInvalid: 'The stored gateway settings were invalid and have been reset to the default CPA gateway.',
     },
     developer: {

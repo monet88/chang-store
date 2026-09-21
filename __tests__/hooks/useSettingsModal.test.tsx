@@ -67,9 +67,11 @@ const onCloseMock = vi.fn();
 
 describe('useSettingsModal', () => {
   beforeEach(() => {
+    delete window.desktopGateway;
     vi.clearAllMocks();
     vi.unstubAllGlobals();
     getLocalStorageUsageMock.mockResolvedValue({ usage: 0, quota: 1024 });
+    setCpaGatewaySettingsMock.mockResolvedValue(true);
     apiOverrides.imageEditModel = 'gemini-3.1-flash-image';
     apiOverrides.imageGenerateModel = 'gemini-3.1-flash-image';
     apiOverrides.textGenerateModel = 'gemini-3.8-flash';
@@ -237,11 +239,11 @@ describe('useSettingsModal', () => {
 
   // ── handleSave ──────────────────────────────────────────────────────
 
-  it('saves model selections and closes modal', () => {
+  it('saves model selections and closes modal', async () => {
     const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
 
-    act(() => {
-      result.current.handleSave();
+    await act(async () => {
+      await result.current.handleSave();
     });
 
     expect(setCpaGatewaySettingsMock).toHaveBeenCalledWith({
@@ -254,7 +256,7 @@ describe('useSettingsModal', () => {
     expect(onCloseMock).toHaveBeenCalled();
   });
 
-  it('saves model changes when the gateway has no explicit API key', () => {
+  it('saves model changes when the gateway has no explicit API key', async () => {
     apiOverrides.cpaGatewaySettings = {
       url: 'https://cliproxy.monet.uno',
       apiKey: '',
@@ -266,13 +268,28 @@ describe('useSettingsModal', () => {
       result.current.setLocalImageEditModel('gemini-3.1-flash-image');
     });
 
-    act(() => {
-      result.current.handleSave();
+    await act(async () => {
+      await result.current.handleSave();
     });
 
     expect(showToastMock).not.toHaveBeenCalledWith('settingsModal.notifications.cpaGatewayMissingApiKey');
     expect(setImageEditModelMock).toHaveBeenCalledWith('gemini-3.1-flash-image');
     expect(onCloseMock).toHaveBeenCalled();
+  });
+
+  it('keeps the modal open when desktop credential storage fails', async () => {
+    setCpaGatewaySettingsMock.mockResolvedValueOnce(false);
+    const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith('settingsModal.notifications.cpaGatewaySaveFailed');
+    expect(setImageEditModelMock).not.toHaveBeenCalled();
+    expect(setImageGenerateModelMock).not.toHaveBeenCalled();
+    expect(setTextGenerateModelMock).not.toHaveBeenCalled();
+    expect(onCloseMock).not.toHaveBeenCalled();
   });
 
   // ── handleDebugToggle ───────────────────────────────────────────────
@@ -339,6 +356,8 @@ describe('useSettingsModal', () => {
     expect(removeItemSpy).toHaveBeenCalledWith('gateway_profiles_v1');
     expect(removeItemSpy).toHaveBeenCalledWith('active_gateway_profile_v1');
     expect(removeItemSpy).toHaveBeenCalledWith('active_image_profile_v1');
+    expect(removeItemSpy).toHaveBeenCalledWith('vertex_proxy_url');
+    expect(removeItemSpy).toHaveBeenCalledWith('vertex_proxy_api_key');
     expect(removeItemSpy).not.toHaveBeenCalledWith('provider:gptImage:baseUrl');
     expect(clearAppDataMock).toHaveBeenCalled();
     expect(alertMock).toHaveBeenCalledWith('settingsModal.notifications.clearSuccess');
@@ -356,6 +375,34 @@ describe('useSettingsModal', () => {
     });
 
     expect(clearAppDataMock).not.toHaveBeenCalled();
+  });
+
+  it('does not report success when the desktop credential vault cannot be cleared', async () => {
+    vi.stubGlobal('confirm', () => true);
+    const alertMock = vi.fn();
+    vi.stubGlobal('alert', alertMock);
+    const reloadMock = vi.fn();
+    vi.stubGlobal('location', { reload: reloadMock });
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: {
+        clearCredentials: vi.fn().mockResolvedValue({
+          ok: false,
+          error: { message: 'clear failed' },
+        }),
+      },
+    });
+
+    const { result } = renderHook(() => useSettingsModal({ isOpen: true, onClose: onCloseMock }));
+
+    await act(async () => {
+      await result.current.handleClear();
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith('settingsModal.notifications.clearFailed');
+    expect(clearAppDataMock).not.toHaveBeenCalled();
+    expect(alertMock).not.toHaveBeenCalled();
+    expect(reloadMock).not.toHaveBeenCalled();
   });
 
   // ── handleBackup ────────────────────────────────────────────────────
@@ -499,7 +546,7 @@ describe('useSettingsModal', () => {
 
   // ── Full interaction flows ──────────────────────────────────────
 
-  it('completes save-then-reopen round-trip with persisted model selections', () => {
+  it('completes save-then-reopen round-trip with persisted model selections', async () => {
     const { result, rerender } = renderHook(
       ({ isOpen }: { isOpen: boolean }) =>
         useSettingsModal({ isOpen, onClose: onCloseMock }),
@@ -513,8 +560,8 @@ describe('useSettingsModal', () => {
       result.current.setLocalCpaGatewayApiKey('persisted-gateway-key');
     });
 
-    act(() => {
-      result.current.handleSave();
+    await act(async () => {
+      await result.current.handleSave();
     });
 
     expect(setImageEditModelMock).toHaveBeenCalledWith('my-custom-edit-model');
