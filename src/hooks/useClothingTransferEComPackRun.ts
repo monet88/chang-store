@@ -23,6 +23,11 @@ import {
   buildGptClothingTransferParts,
   buildGptProductStagingParts,
 } from '../utils/gpt-clothing-transfer-prompt';
+import {
+  buildQwenBrandModelParts,
+  buildQwenClothingTransferParts,
+  buildQwenProductStagingParts,
+} from '../utils/qwen-clothing-transfer-prompt';
 import { formatGarmentScope } from '../utils/clothing-transfer-prompt-types';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -130,10 +135,20 @@ const buildTargetParts = (
   context: EComPackPromptContext,
 ): Part[] => {
   const isGptImage = context.engineId === 'gptImage';
-
+  const isLocalQwen = context.engineId === 'localQwen';
   switch (target.kind) {
     case 'product':
-      return isGptImage
+      return isLocalQwen
+        ? buildQwenProductStagingParts(
+            context.sourceOutfitImage,
+            target.template,
+            target.scope,
+            context.extraPrompt,
+            context.blueprint,
+            context.aspectRatio,
+            context.resolution,
+          )
+        : isGptImage
         ? buildGptProductStagingParts(
             context.sourceOutfitImage,
             target.template,
@@ -151,7 +166,15 @@ const buildTargetParts = (
             context.blueprint,
           );
     case 'brand-model':
-      return isGptImage
+      return isLocalQwen
+        ? buildQwenBrandModelParts(
+            context.sourceOutfitImage,
+            target.model,
+            context.extraPrompt,
+            context.blueprint,
+            context.garmentScopes,
+          )
+        : isGptImage
         ? buildGptBrandModelParts(
             context.sourceOutfitImage,
             target.model,
@@ -171,7 +194,14 @@ const buildTargetParts = (
         image: context.sourceOutfitImage,
         label: formatGarmentScope(scope),
       }));
-      return isGptImage
+      return isLocalQwen
+        ? buildQwenClothingTransferParts(
+            target.destination,
+            sourceReferences,
+            context.extraPrompt,
+            context.blueprint,
+          )
+        : isGptImage
         ? buildGptClothingTransferParts(
             target.destination,
             sourceReferences,
@@ -357,15 +387,16 @@ export const useClothingTransferEComPackRun = (
         setPackItems(plan.map(({ item }) => item));
       }
 
+      const batchConcurrency = engineId === 'localQwen' ? 1 : ECOM_PACK_BATCH_MAX_CONCURRENCY;
       await runBoundedWorkers(
         plan,
-        ECOM_PACK_BATCH_MAX_CONCURRENCY,
+        batchConcurrency,
         ({ item, target }) => generateTarget(item.id, target, blueprint),
       );
     } finally {
       setIsGenerating(false);
     }
-  }, [sourceOutfitImage, setError, t, resolveOutfitBlueprint, generateTarget, packItems]);
+  }, [sourceOutfitImage, setError, t, resolveOutfitBlueprint, generateTarget, packItems, engineId]);
 
   const handleGeneratePack = useCallback(async (): Promise<void> => {
     await executePlan(planEComPackTargets(selection));
