@@ -315,7 +315,11 @@ const AppContent: React.FC = () => {
                     <GptStudio activeFeature={activeFeature} onSendToFeature={handleSendToFeature} />
                   )}
                   {studioMode === 'localQwen' && (
-                    <LocalQwenStudio activeFeature={activeFeature} onSendToFeature={handleSendToFeature} />
+                    <LocalQwenStudio
+                      activeFeature={activeFeature}
+                      onSendToFeature={handleSendToFeature}
+                      onOpenSettings={handleOpenSettings}
+                    />
                   )}
                 </Suspense>
               </div>

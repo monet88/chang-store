@@ -13,22 +13,35 @@ import {
  */
 export const generateLocalQwenImage = async (
   params: LocalQwenGenerateParams,
-  _signal?: AbortSignal,
+  signal?: AbortSignal,
 ): Promise<ImageFile[]> => {
   const desktopLocalQwen = getDesktopLocalQwenApi();
   if (!desktopLocalQwen) {
     throw new Error('Local Qwen generation is only available in the desktop application.');
   }
 
-  const result = await desktopLocalQwen.generateImage(params);
-  if (!result.ok) {
-    throw new Error(result.error.message || 'Local Qwen generation failed.');
+  if (signal?.aborted) {
+    throw new Error('Local Qwen generation was cancelled.');
   }
 
-  return [
-    {
-      base64: result.value.image.base64,
-      mimeType: result.value.image.mimeType || 'image/png',
-    },
-  ];
+  const abortHandler = () => {
+    void desktopLocalQwen.cancelJob().catch(() => {});
+  };
+  signal?.addEventListener('abort', abortHandler, { once: true });
+
+  try {
+    const result = await desktopLocalQwen.generateImage(params);
+    if (!result.ok) {
+      throw new Error(result.error.message || 'Local Qwen generation failed.');
+    }
+
+    return [
+      {
+        base64: result.value.image.base64,
+        mimeType: result.value.image.mimeType || 'image/png',
+      },
+    ];
+  } finally {
+    signal?.removeEventListener('abort', abortHandler);
+  }
 };

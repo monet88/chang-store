@@ -130,7 +130,7 @@ if (!gotSingleInstanceLock) {
     if (localQwenManager.isAppOwned && !isStoppingComfyUI) {
       event.preventDefault();
       isStoppingComfyUI = true;
-      void localQwenManager.stopServer().finally(() => {
+      void localQwenManager.handleBeforeQuit().finally(() => {
         app.quit();
       });
     }

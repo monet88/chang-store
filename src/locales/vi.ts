@@ -166,6 +166,23 @@ export const vi: Translation = {
       hide: 'Thu gọn',
       unavailable: 'AI Scan không khả dụng — vẫn tạo ảnh bằng prompt gốc.',
     },
+    localQwenStatus: {
+      starting: 'Đang khởi động ComfyUI...',
+      startingSubtext: 'Đang khởi tạo runtime ComfyUI cục bộ tại 127.0.0.1:8188...',
+      ready: 'ComfyUI Sẵn sàng',
+      readySubtext: 'Qwen-Image 2.1 đã sẵn sàng',
+      appOwned: 'Ứng dụng quản lý',
+      external: 'Tiến trình ngoài',
+      generating: 'Đang tạo ảnh',
+      generatingSubtext: 'Đang lấy mẫu với Qwen-Image 2.1 cục bộ trên ComfyUI...',
+      stopped: 'ComfyUI Đã dừng',
+      stoppedSubtext: 'ComfyUI cục bộ chưa chạy tại 127.0.0.1:8188.',
+      retry: 'Thử lại',
+      openSettings: 'Mở Cài đặt',
+      cancel: 'Hủy',
+      cancelling: 'Đang hủy...',
+      startServer: 'Khởi động ComfyUI',
+    },
   },
 
   imageUploader: {
@@ -822,6 +839,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     promptPlaceholder: 'Mô tả chỉnh sửa. Dùng @img1, @img2 để tham chiếu ảnh. Ví dụ: "Đổi màu outfit ở @img1 giống với @img2"',
     generateButton: 'Tạo ảnh',
     generatingStatus: 'Đang tạo ảnh...',
+    localQwenRefLimitNotice: 'Qwen Cục bộ hỗ trợ tối đa 4 ảnh tham chiếu. 4 ảnh đầu tiên sẽ được sử dụng.',
     error: {
       noImages: 'Vui lòng tải lên ít nhất một ảnh.',
       noPrompt: 'Vui lòng nhập mô tả chỉnh sửa.',

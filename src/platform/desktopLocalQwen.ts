@@ -5,17 +5,23 @@ export const DESKTOP_LOCAL_QWEN_CHANNELS = {
   startServer: 'desktop-local-qwen:start-server',
   stopServer: 'desktop-local-qwen:stop-server',
   generateImage: 'desktop-local-qwen:generate-image',
+  cancelJob: 'desktop-local-qwen:cancel-job',
 } as const;
 
-export type DesktopLocalQwenState = 'stopped' | 'starting' | 'ready' | 'error';
+export type DesktopLocalQwenState = 'starting' | 'ready' | 'generating' | 'error' | 'stopped';
+
+export interface LocalQwenProgress {
+  step: number;
+  maxSteps: number;
+}
 
 export interface DesktopLocalQwenStatus {
   state: DesktopLocalQwenState;
   isAppOwned: boolean;
   port: number;
   error?: string;
+  progress?: LocalQwenProgress;
 }
-
 export interface DesktopLocalQwenStopResult {
   stopped: boolean;
   wasExternal: boolean;
@@ -44,6 +50,7 @@ export interface DesktopLocalQwenApi {
   startServer(folder?: string): Promise<DesktopBridgeResult<DesktopLocalQwenStatus>>;
   stopServer(): Promise<DesktopBridgeResult<DesktopLocalQwenStopResult>>;
   generateImage(params: LocalQwenGenerateParams): Promise<DesktopBridgeResult<LocalQwenGenerateResult>>;
+  cancelJob(): Promise<DesktopBridgeResult<{ cancelled: boolean }>>;
 }
 
 declare global {
@@ -54,3 +61,9 @@ declare global {
 
 export const getDesktopLocalQwenApi = (): DesktopLocalQwenApi | undefined =>
   typeof window === 'undefined' ? undefined : window.desktopLocalQwen;
+
+export {
+  classifyLocalQwenError,
+  type LocalQwenErrorKind,
+  type ClassifiedLocalQwenError,
+} from '../utils/localQwenErrors';
