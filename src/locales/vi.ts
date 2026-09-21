@@ -822,6 +822,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
     promptPlaceholder: 'Mô tả chỉnh sửa. Dùng @img1, @img2 để tham chiếu ảnh. Ví dụ: "Đổi màu outfit ở @img1 giống với @img2"',
     generateButton: 'Tạo ảnh',
     generatingStatus: 'Đang tạo ảnh...',
+    localQwenRefLimitNotice: 'Qwen Cục bộ hỗ trợ tối đa 4 ảnh tham chiếu. 4 ảnh đầu tiên sẽ được sử dụng.',
     error: {
       noImages: 'Vui lòng tải lên ít nhất một ảnh.',
       noPrompt: 'Vui lòng nhập mô tả chỉnh sửa.',

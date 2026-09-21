@@ -47,3 +47,46 @@ ${userPrompt}
 
 ## OUTPUT:
 Return the final edited image as the single result — exactly one image, not a grid, collage, or multi-panel sheet.`;
+
+/**
+ * Single-image / no-mention edit instruction for Local Qwen.
+ *
+ * The user's prompt is authoritative; does not silently inject strong identity,
+ * pose, framing, or background preservation rules.
+ */
+export const buildQwenSingleImageEditPrompt = (userPrompt: string): string =>
+  `# INSTRUCTION: LOCAL QWEN IMAGE EDITING
+
+## USER REQUEST:
+${userPrompt}
+
+## OUTPUT:
+Return the edited image as the final result — exactly one image, not a grid, collage, or multi-panel sheet.`;
+
+/**
+ * Multi-image edit instruction for Local Qwen.
+ *
+ * Minimal image-role mapping with user prompt authoritative; does not silently
+ * inject strong identity or background preservation rules.
+ */
+export const buildQwenMultiImageEditPrompt = (userPrompt: string, imageRoles: string): string =>
+  `# INSTRUCTION: LOCAL QWEN MULTI-IMAGE EDITING
+
+## IMAGE ROLES:
+${imageRoles}
+
+## USER REQUEST:
+${userPrompt}
+
+## OUTPUT:
+Return the final edited image as the single result — exactly one image, not a grid, collage, or multi-panel sheet.`;
+
+/**
+ * Convenience prompt builder for Local Qwen AI Editor.
+ */
+export const buildQwenAiEditorPrompt = (userPrompt: string, imageRoles?: string): string => {
+  if (imageRoles && imageRoles.trim().length > 0) {
+    return buildQwenMultiImageEditPrompt(userPrompt, imageRoles);
+  }
+  return buildQwenSingleImageEditPrompt(userPrompt);
+};

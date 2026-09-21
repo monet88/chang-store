@@ -2,10 +2,15 @@ import { useCallback, useRef, useState } from 'react';
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
+import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageEngineId, ImageFile, ImageResolution } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { detectImageAspectRatio } from '../utils/imageAspectRatio';
-import { buildSingleImageEditPrompt, buildMultiImageEditPrompt } from '../utils/ai-editor-prompt-builder';
+import {
+  buildSingleImageEditPrompt,
+  buildMultiImageEditPrompt,
+  buildQwenSingleImageEditPrompt,
+  buildQwenMultiImageEditPrompt,
+} from '../utils/ai-editor-prompt-builder';
 
 const MENTION_REGEX = /@img(\d+)/g;
 
@@ -22,6 +27,8 @@ export interface UseAIEditorReturn {
   setPrompt: (prompt: string) => void;
   isLoading: boolean;
   error: string | null;
+  warning?: string | null;
+  refLimitNotice?: string | null;
   resultImage: ImageFile | null;
   aspectRatio: AspectRatio;
   setAspectRatio: (aspectRatio: AspectRatio) => void;
@@ -30,6 +37,7 @@ export interface UseAIEditorReturn {
   imageEditModel: string;
   handleGenerate: () => Promise<void>;
   clearError: () => void;
+  engineId?: ImageEngineId;
 }
 
 export const useAIEditor = (): UseAIEditorReturn => {
@@ -78,6 +86,22 @@ export const useAIEditor = (): UseAIEditorReturn => {
 
   const buildApiPrompt = useCallback(
     (userPrompt: string, mentionedImages: ImageFile[]): string => {
+      if (engineId === 'localQwen') {
+        if (mentionedImages.length === 0) {
+          return buildQwenSingleImageEditPrompt(userPrompt);
+        }
+
+        const imageRoles = mentionedImages
+          .map((image, index) => {
+            const originalIndex = images.indexOf(image);
+            const tag = `@img${originalIndex + 1}`;
+            return `- Image ${index + 1} is ${tag}`;
+          })
+          .join('\n');
+
+        return buildQwenMultiImageEditPrompt(userPrompt, imageRoles);
+      }
+
       if (mentionedImages.length === 0) {
         return buildSingleImageEditPrompt(userPrompt);
       }
@@ -92,7 +116,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
 
       return buildMultiImageEditPrompt(userPrompt, imageRoles);
     },
-    [images],
+    [images, engineId],
   );
 
   const handleGenerate = useCallback(async (): Promise<void> => {
@@ -108,21 +132,27 @@ export const useAIEditor = (): UseAIEditorReturn => {
       return;
     }
 
+    const mentionedSelection = extractMentionedImages(prompt);
+    if (mentionedSelection.invalidRefs.length > 0) {
+      setError(t('aiEditor.error.invalidImageReferences', { refs: mentionedSelection.invalidRefs.join(', ') }));
+      return;
+    }
+
     generationInFlightRef.current = true;
     setIsLoading(true);
     setError(null);
     setResultImage(null);
 
     try {
-      const mentionedSelection = extractMentionedImages(prompt);
-      if (mentionedSelection.invalidRefs.length > 0) {
-        setError(t('aiEditor.error.invalidImageReferences', { refs: mentionedSelection.invalidRefs.join(', ') }));
-        return;
-      }
+      const isLocalQwen = engineId === 'localQwen';
+      const rawMentionedImages = mentionedSelection.images;
+      const mentionedImages = isLocalQwen ? rawMentionedImages.slice(0, 4) : rawMentionedImages;
 
-      const imagesToSend = mentionedSelection.hasMentions ? mentionedSelection.images : images;
-      const apiPrompt = buildApiPrompt(prompt, mentionedSelection.images);
+      const imagesToSend = mentionedSelection.hasMentions
+        ? mentionedImages
+        : (isLocalQwen ? images.slice(0, 4) : images);
 
+      const apiPrompt = buildApiPrompt(prompt, mentionedImages);
       const [result] = await editImage(
         {
           images: imagesToSend,
@@ -178,5 +208,12 @@ export const useAIEditor = (): UseAIEditorReturn => {
     imageEditModel,
     handleGenerate,
     clearError: () => setError(null),
+    warning: engineId === 'localQwen' && images.length > 4 && !extractMentionedImages(prompt).hasMentions
+      ? t('aiEditor.localQwenRefLimitNotice')
+      : null,
+    refLimitNotice: engineId === 'localQwen' && images.length > 4 && !extractMentionedImages(prompt).hasMentions
+      ? t('aiEditor.localQwenRefLimitNotice')
+      : null,
+    engineId,
   };
 };
