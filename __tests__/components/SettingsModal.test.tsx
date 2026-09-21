@@ -36,6 +36,7 @@ const translations: Record<string, string> = {
   'settingsModal.developer.debugDescription': 'Log API calls.',
   'settingsModal.developer.toggleDebugAria': 'Toggle debug mode',
   'settingsModal.footerHint': 'Model changes apply when you save this panel.',
+  'settingsModal.localQwen.title': 'Local Qwen (ComfyUI)',
 };
 
 let galleryImages: unknown[] = [];
@@ -150,5 +151,26 @@ describe('SettingsModal', () => {
     rerender(<SettingsModal isOpen onClose={vi.fn()} />);
 
     expect(screen.getByLabelText('Text generation')).toHaveValue('gemini-3.7-flash');
+  });
+
+  it('renders Local Qwen section on desktop and omits it in browser runtime', async () => {
+    delete window.desktopGateway;
+    const { rerender } = render(<SettingsModal isOpen onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Application settings')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Local Qwen (ComfyUI)')).not.toBeInTheDocument();
+
+    // Simulate desktop environment
+    Object.defineProperty(window, 'desktopGateway', {
+      value: {},
+      configurable: true,
+    });
+
+    rerender(<SettingsModal isOpen onClose={vi.fn()} />);
+    expect(screen.getByText('Local Qwen (ComfyUI)')).toBeInTheDocument();
+
+    delete window.desktopGateway;
   });
 });

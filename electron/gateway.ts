@@ -325,7 +325,7 @@ const parseGeminiRequest = (value: unknown): GenerateContentParameters => {
   };
 };
 
-const assertTrustedSender = (event: IpcMainInvokeEvent): void => {
+export const assertTrustedSender = (event: IpcMainInvokeEvent): void => {
   const senderUrl = event.senderFrame?.url;
   if (!senderUrl || event.senderFrame !== event.sender.mainFrame) {
     throw new Error('Untrusted desktop gateway sender.');
@@ -346,7 +346,7 @@ const assertTrustedSender = (event: IpcMainInvokeEvent): void => {
   throw new Error('Untrusted desktop gateway sender.');
 };
 
-const trustedBridge = <T>(event: IpcMainInvokeEvent, task: () => Promise<T> | T): Promise<DesktopBridgeResult<T>> =>
+export const trustedBridge = <T>(event: IpcMainInvokeEvent, task: () => Promise<T> | T): Promise<DesktopBridgeResult<T>> =>
   bridge(() => {
     assertTrustedSender(event);
     return task();

@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, shell } from 'electron';
 import { registerDesktopGatewayHandlers } from './gateway';
+import { registerDesktopLocalQwenHandlers, localQwenManager } from './localQwenManager';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -124,10 +125,22 @@ if (!gotSingleInstanceLock) {
     }
   });
 
+  let isStoppingComfyUI = false;
+  app.on('before-quit', (event) => {
+    if (localQwenManager.isAppOwned && !isStoppingComfyUI) {
+      event.preventDefault();
+      isStoppingComfyUI = true;
+      void localQwenManager.stopServer().finally(() => {
+        app.quit();
+      });
+    }
+  });
+
   void app
     .whenReady()
     .then(async () => {
       registerDesktopGatewayHandlers();
+      registerDesktopLocalQwenHandlers();
       await createWindow();
 
       app.on('activate', async () => {
