@@ -1,12 +1,18 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useRef, useMemo, useCallback } from 'react';
 import { ImageEditModel, ImageGenerateModel, TextGenerateModel } from '../types';
 import { getDefaultModelForSelectionType, isKnownModelForSelectionType, ModelSelectionType } from '../config/modelRegistry';
-import { isImageDriverId, type GatewayProfile } from '../config/gatewayProfiles';
+import { DEFAULT_GEMINI_PROFILE_ID, isImageDriverId, type GatewayProfile } from '../config/gatewayProfiles';
 import { useGatewayProfiles } from '../hooks/useGatewayProfiles';
 import { configureGeminiClient } from '../services/apiClient';
 import { useToast } from '../components/Toast';
 import { validateProviderBaseUrl } from '../utils/provider-url-validation';
 import { useLanguage } from './LanguageContext';
+import { storeDesktopCredential } from '../platform/desktopCredentials';
+import {
+  DESKTOP_CREDENTIAL_SENTINEL,
+  getDesktopGatewayApi,
+  isStoredDesktopCredential,
+} from '../platform/desktopGateway';
 
 
 /** Gateway settings. The gateway is always the Gemini route; only its address
@@ -95,7 +101,7 @@ const readGatewayValue = (key: string, legacyKey: string): string => {
   if (current) return current;
 
   const legacy = safeStorage.getItem(legacyKey)?.trim() || '';
-  if (legacy) {
+  if (legacy && !getDesktopGatewayApi()) {
     safeStorage.setItem(key, legacy);
     safeStorage.removeItem(legacyKey);
   }
@@ -185,13 +191,33 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     configureGeminiClient({
       apiKey: cpaGatewaySettings.apiKey.trim(),
       baseUrl: validation.status === 'invalid' ? DEFAULT_CPA_GATEWAY_URL : validation.url,
+      credentialRef: profiles.geminiProfile.id,
     });
-  }, [cpaGatewaySettings]);
+  }, [cpaGatewaySettings, profiles.geminiProfile.id]);
 
   const setCpaGatewaySettings = useCallback((settings: CpaGatewaySettings) => {
     setCpaGatewaySettingsState(settings);
     safeStorage.setItem(CPA_GATEWAY_URL_KEY, settings.url);
-    safeStorage.setItem(CPA_GATEWAY_API_KEY_KEY, settings.apiKey);
+
+    if (!getDesktopGatewayApi() || !settings.apiKey.trim() || isStoredDesktopCredential(settings.apiKey)) {
+      safeStorage.setItem(CPA_GATEWAY_API_KEY_KEY, settings.apiKey);
+      return;
+    }
+
+    const rawApiKey = settings.apiKey;
+    // Never persist the raw key in renderer storage while main is securing it.
+    safeStorage.removeItem(CPA_GATEWAY_API_KEY_KEY);
+    void storeDesktopCredential(DEFAULT_GEMINI_PROFILE_ID, settings.url, rawApiKey).then((stored) => {
+      if (!stored) return;
+      setCpaGatewaySettingsState((current) => (
+        current.apiKey === rawApiKey && current.url === settings.url
+          ? { ...current, apiKey: DESKTOP_CREDENTIAL_SENTINEL }
+          : current
+      ));
+      if (safeStorage.getItem(CPA_GATEWAY_URL_KEY) === settings.url) {
+        safeStorage.setItem(CPA_GATEWAY_API_KEY_KEY, DESKTOP_CREDENTIAL_SENTINEL);
+      }
+    });
   }, []);
 
   const setImageEditModel = useCallback((model: ImageEditModel) => {

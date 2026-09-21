@@ -26,6 +26,7 @@ describe('gatewayDiscoveryService', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    delete (window as Window & { desktopGateway?: unknown }).desktopGateway;
     localStorage.clear();
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
@@ -40,6 +41,60 @@ describe('gatewayDiscoveryService', () => {
 
   it('never probes on import — discovery is user-triggered only', () => {
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('routes desktop discovery through the named main-process bridge', async () => {
+    const listGatewayModelsBridge = vi.fn().mockResolvedValue({
+      ok: true,
+      value: {
+        status: 'ok',
+        modelIds: ['gemini-3.8-flash'],
+        ownedBy: { 'gemini-3.8-flash': 'google' },
+        latencyMs: 4,
+        httpStatus: 200,
+      },
+    });
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: { listGatewayModels: listGatewayModelsBridge },
+    });
+
+    const result = await listGatewayModels({
+      baseUrl: TARGET.baseUrl,
+      apiKey: '__desktop_gateway_credential__',
+      credentialRef: 'cpa-default',
+    });
+
+    expect(result).toMatchObject({ status: 'ok', modelIds: ['gemini-3.8-flash'] });
+    expect(listGatewayModelsBridge).toHaveBeenCalledWith({
+      credentialRef: 'cpa-default',
+      baseUrl: TARGET.baseUrl,
+      apiKey: undefined,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('preserves a versioned profile URL for desktop credential binding', async () => {
+    const listGatewayModelsBridge = vi.fn().mockResolvedValue({
+      ok: true,
+      value: { status: 'ok', modelIds: [], ownedBy: {}, latencyMs: 1, httpStatus: 200 },
+    });
+    Object.defineProperty(window, 'desktopGateway', {
+      configurable: true,
+      value: { listGatewayModels: listGatewayModelsBridge },
+    });
+
+    await listGatewayModels({
+      baseUrl: 'https://cliproxy.monet.uno/v1',
+      apiKey: '__desktop_gateway_credential__',
+      credentialRef: 'cpa-default',
+    }, { force: true });
+
+    expect(listGatewayModelsBridge).toHaveBeenCalledWith({
+      credentialRef: 'cpa-default',
+      baseUrl: 'https://cliproxy.monet.uno/v1',
+      apiKey: undefined,
+    });
   });
 
   it('maps a 200 served list to ok with ids and owners', async () => {

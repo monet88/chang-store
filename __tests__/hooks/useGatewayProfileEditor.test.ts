@@ -48,7 +48,7 @@ describe('useGatewayProfileEditor.probeProfile', () => {
     });
 
     expect(probeGateway).toHaveBeenCalledWith(
-      { baseUrl: 'https://cliproxy.monet.uno', apiKey: 'sk-live' },
+      { baseUrl: 'https://cliproxy.monet.uno', apiKey: 'sk-live', credentialRef: 'image-2' },
       { force: true },
     );
     expect(result.current.probeStates['image-2']).toMatchObject({ phase: 'done' });

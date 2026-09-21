@@ -36,7 +36,12 @@ export const useModelSelection = ({
 }: UseModelSelectionParams) => {
   const { geminiProfile, servedModelsVersion } = useApi();
   // Gemini features see the Gemini lane's served models only (lane-scoped picker).
-  const geminiServed = useServedModels(geminiProfile.baseUrl, geminiProfile.apiKey, servedModelsVersion);
+  const geminiServed = useServedModels(
+    geminiProfile.baseUrl,
+    geminiProfile.apiKey,
+    servedModelsVersion,
+    geminiProfile.id,
+  );
 
   const selectedModelBySelectionType = useMemo(
     () => ({

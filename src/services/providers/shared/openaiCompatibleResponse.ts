@@ -5,6 +5,8 @@ import { ProviderApiError, ProviderUnsupportedResponseError } from './ProviderAp
 interface OpenAiImageItem {
   b64_json?: string;
   url?: string;
+  /** Internal desktop bridge hint when a URL response was safely materialized in main. */
+  mime_type?: string;
 }
 
 interface OpenAiImageResponse {
@@ -92,7 +94,10 @@ export async function parseOpenAIResponse(
 
   for (const item of items) {
     if (item && typeof item.b64_json === 'string' && item.b64_json.length > 0) {
-      images.push({ base64: item.b64_json, mimeType });
+      images.push({
+        base64: item.b64_json,
+        mimeType: item.mime_type?.startsWith('image/') ? item.mime_type : mimeType,
+      });
     } else if (item && typeof item.url === 'string' && item.url.length > 0) {
       images.push(await downloadImage(item.url, mimeType));
     }

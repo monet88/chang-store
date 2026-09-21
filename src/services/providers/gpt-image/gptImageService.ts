@@ -11,10 +11,17 @@ import { withRetry } from '../shared/withRetry';
 import { validatePrompt } from '../shared/validatePrompt';
 import { validateProviderBaseUrl } from '../../../utils/provider-url-validation';
 import { safeFetch } from '../shared/safeFetch';
+import {
+  getDesktopGatewayApi,
+  transientDesktopApiKey,
+  unwrapDesktopBridgeResult,
+  type DesktopProviderResponse,
+} from '../../../platform/desktopGateway';
 
 export interface GptImageServiceConfig {
   apiKey: string;
   baseUrl: string;
+  credentialRef?: string;
 }
 
 export interface GptImageGenerateParams {
@@ -35,6 +42,12 @@ export interface GptImageEditParams {
 }
 
 const RESULT_MIME_TYPE = 'image/png';
+
+const desktopResponse = (response: DesktopProviderResponse): Response => ({
+  ok: response.ok,
+  status: response.status,
+  json: async () => response.body,
+}) as Response;
 
 const joinUrl = (baseUrl: string, path: string): string => {
   const trimmed = baseUrl.replace(/\/+$/, '');
@@ -105,7 +118,10 @@ export async function generateGptImage(
   config: GptImageServiceConfig,
   signal?: AbortSignal,
 ): Promise<ImageFile[]> {
-  assertConfig(config);
+  const desktopGateway = getDesktopGatewayApi();
+  if (!desktopGateway || !config.credentialRef) {
+    assertConfig(config);
+  }
   const prompt = validatePrompt(params.prompt);
   const policy = resolveDriverPolicy(params.model, config.baseUrl);
   const fields = prepareRequestFields(params.model, params, policy);
@@ -122,6 +138,16 @@ export async function generateGptImage(
 
   return withRetry(
     async (retrySignal) => {
+      if (desktopGateway && config.credentialRef) {
+        const result = unwrapDesktopBridgeResult(await desktopGateway.gptImageGenerate({
+          credentialRef: config.credentialRef,
+          baseUrl: config.baseUrl,
+          apiKey: transientDesktopApiKey(config.apiKey),
+          body,
+        }));
+        return handleResponse(desktopResponse(result), policy, params.size);
+      }
+
       const response = await safeFetch(joinUrl(config.baseUrl, '/images/generations'), {
         method: 'POST',
         headers: {
@@ -147,7 +173,10 @@ export async function editGptImage(
   config: GptImageServiceConfig,
   signal?: AbortSignal,
 ): Promise<ImageFile[]> {
-  assertConfig(config);
+  const desktopGateway = getDesktopGatewayApi();
+  if (!desktopGateway || !config.credentialRef) {
+    assertConfig(config);
+  }
 
   if (params.images.length === 0) {
     throw new ProviderApiError('error.provider.response.noImages', 400, 'no_source_image');
@@ -162,6 +191,27 @@ export async function editGptImage(
 
   return withRetry(
     async (retrySignal) => {
+      if (desktopGateway && config.credentialRef) {
+        const fieldsForBridge: Array<[string, string]> = [
+          ['model', params.model],
+          ['prompt', prompt],
+          ['n', String(GPT_IMAGE_OUTPUT_COUNT)],
+          ['response_format', 'b64_json'],
+          ...fields,
+        ];
+        const result = unwrapDesktopBridgeResult(await desktopGateway.gptImageEdit({
+          credentialRef: config.credentialRef,
+          baseUrl: config.baseUrl,
+          apiKey: transientDesktopApiKey(config.apiKey),
+          fields: fieldsForBridge,
+          images: params.images.map((image, index) => ({
+            ...image,
+            fileName: `image-${index}.${extensionForMime(image.mimeType)}`,
+          })),
+        }));
+        return handleResponse(desktopResponse(result), policy, params.size);
+      }
+
       const form = new FormData();
       form.append('model', params.model);
       form.append('prompt', prompt);

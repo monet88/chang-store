@@ -42,6 +42,8 @@ Chang Store keeps the existing browser Vite build because it is still a supporte
 | External links leave Electron | Validate HTTP(S) before `shell.openExternal` | Keeps arbitrary window creation disabled |
 | Renderer failure visibility | Log `did-fail-load` and `render-process-gone` | Gives actionable desktop failures without adding telemetry infrastructure |
 | Shared renderer build settings | Reuse `createRendererConfig()` from `vite.config.ts` | Prevents desktop and web renderer builds drifting on aliases, env injection, chunks, and optimization |
+| Named main-process gateway transport | Route Gemini, model discovery, and OpenAI-compatible image requests through narrow preload methods | Keeps provider credentials and CORS-sensitive network traffic out of the desktop renderer |
+| OS-encrypted desktop credential vault | Move persisted desktop gateway keys from renderer localStorage into Electron `safeStorage` | Removes plaintext desktop-at-rest credentials while preserving the web app's current storage contract |
 
 ## Defer until a product need exists
 
@@ -50,7 +52,6 @@ Chang Store keeps the existing browser Vite build because it is still a supporte
 | Auto updater | Add after there is an installer/update channel. The current Windows target is portable. |
 | Persistent window position/size | Add when users need restored multi-monitor/window state. |
 | Native file APIs through preload | Add when a workflow needs real filesystem paths or OS dialogs. |
-| Main-process network proxy | Add when gateway requests are intentionally moved out of the renderer. This is the point to remove `webSecurity: false`. |
 | Packaged Playwright E2E | Add when native desktop-only behavior becomes material enough to justify a packaged acceptance suite. |
 | Crash reporting/Sentry | Add only with an explicit observability/privacy decision. |
 | Utility/background processes | Add when Chang Store performs sustained local CPU work that demonstrably blocks the renderer. |
@@ -69,18 +70,24 @@ These Chatbox features solve a different product problem and should not be porte
 
 The last item is intentionally excluded even though Chatbox exposes a generic invoke function. Chang Store should expose named preload capabilities only when a concrete native use case appears.
 
-## Current limitation retained deliberately
+## Desktop gateway boundary
 
-Chang Store's image gateways are still called from the renderer and custom/local gateways may not return browser CORS headers. The desktop shell therefore keeps `webSecurity: false` for compatibility with the current networking contract. That setting should be removed when gateway transport moves behind a named main-process capability; changing it independently would break currently supported gateway configurations.
+Desktop provider traffic now crosses named preload capabilities into Electron main. Main validates the IPC payloads, binds an encrypted credential to its configured provider base URL, performs the provider request, and returns serializable provider data to the renderer. URL-only image responses are materialized in main through a bounded public-network fetch: DNS results must be public, the connection is pinned to the validated address, redirects are revalidated, and response size/type are bounded. External navigation is blocked from replacing the trusted renderer, and `webSecurity` is enabled again.
+
+The browser build intentionally keeps the existing direct provider contract. Browser keys therefore remain web-local configuration; desktop builds do not inject those build-time secrets into the renderer bundle.
 
 ## Resulting structure
 
 ```text
 electron/
+  gateway.ts
   main.ts
   preload.ts
 
 src/                  # existing React renderer remains in place
+  platform/
+    desktopGateway.ts
+    desktopCredentials.ts
 index.html
 vite.config.ts        # web renderer + shared renderer config
 electron.vite.config.ts

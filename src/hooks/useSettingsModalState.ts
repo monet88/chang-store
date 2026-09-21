@@ -10,6 +10,7 @@ import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { isDebugEnabled, setDebugEnabled } from '../services/debugService';
 import { validateProviderBaseUrl } from '../utils/provider-url-validation';
 import { getLocalStorageUsage } from '../utils/storage';
+import { isStoredDesktopCredential } from '../platform/desktopGateway';
 
 const CPA_GATEWAY_URL_KEY = 'cpa_gateway_url';
 const CPA_GATEWAY_API_KEY_KEY = 'cpa_gateway_api_key';
@@ -91,8 +92,11 @@ export const useSettingsModalState = ({ isOpen }: UseSettingsModalStateParams): 
   );
   const isCpaGatewayUrlInvalid = cpaGatewayUrlValidation.status === 'invalid';
   const isCpaGatewayUrlCustom = cpaGatewayUrlValidation.status === 'custom';
-  const isCpaGatewayApiKeyMissing = localCpaGatewayApiKey.trim().length === 0
-    && hasCpaGatewayChanges;
+  const cpaGatewayUrlChanged = localCpaGatewayUrl.trim() !== cpaGatewaySettings.url;
+  const isCpaGatewayApiKeyMissing = (
+    localCpaGatewayApiKey.trim().length === 0
+    || (cpaGatewayUrlChanged && isStoredDesktopCredential(localCpaGatewayApiKey))
+  ) && hasCpaGatewayChanges;
   const customCpaGatewayHost = isCpaGatewayUrlCustom ? cpaGatewayUrlValidation.host : null;
 
   const refreshStorageUsage = useCallback(async (): Promise<void> => {

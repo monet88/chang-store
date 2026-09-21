@@ -1,5 +1,7 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, shell } from 'electron';
+import { registerDesktopGatewayHandlers } from './gateway';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -9,6 +11,21 @@ const isExternalHttpUrl = (value: string): boolean => {
   try {
     const url = new URL(value);
     return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const isAppNavigation = (value: string): boolean => {
+  try {
+    const target = new URL(value);
+    if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) {
+      return target.origin === new URL(process.env.ELECTRON_RENDERER_URL).origin;
+    }
+    if (target.protocol !== 'file:') {
+      return false;
+    }
+    return path.normalize(fileURLToPath(target)) === path.normalize(path.join(__dirname, '../renderer/index.html'));
   } catch {
     return false;
   }
@@ -29,9 +46,7 @@ const createWindow = async (): Promise<BrowserWindow> => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      // Custom/local gateways are configured by the user and may not send CORS headers.
-      // Keep the existing renderer networking contract until those requests move to main.
-      webSecurity: false,
+      webSecurity: true,
       allowRunningInsecureContent: false,
     },
   });
@@ -57,6 +72,16 @@ const createWindow = async (): Promise<BrowserWindow> => {
       void shell.openExternal(url);
     }
     return { action: 'deny' };
+  });
+
+  window.webContents.on('will-navigate', (event, url) => {
+    if (isAppNavigation(url)) {
+      return;
+    }
+    event.preventDefault();
+    if (isExternalHttpUrl(url)) {
+      void shell.openExternal(url);
+    }
   });
 
   if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) {
@@ -102,6 +127,7 @@ if (!gotSingleInstanceLock) {
   void app
     .whenReady()
     .then(async () => {
+      registerDesktopGatewayHandlers();
       await createWindow();
 
       app.on('activate', async () => {

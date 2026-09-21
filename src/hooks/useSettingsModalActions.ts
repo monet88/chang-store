@@ -18,6 +18,7 @@ import {
   ACTIVE_IMAGE_PROFILE_KEY,
   GATEWAY_PROFILES_KEY,
 } from '../config/gatewayProfiles';
+import { clearDesktopCredentials } from '../platform/desktopCredentials';
 
 export interface UseSettingsModalActionsConfig {
   localImageEditModel: string;
@@ -135,6 +136,7 @@ export const useSettingsModalActions = (config: UseSettingsModalActionsConfig): 
     localStorage.removeItem(GATEWAY_PROFILES_KEY);
     localStorage.removeItem(ACTIVE_GATEWAY_PROFILE_KEY);
     localStorage.removeItem(ACTIVE_IMAGE_PROFILE_KEY);
+    await clearDesktopCredentials();
     await clearAppData();
     alert(t('settingsModal.notifications.clearSuccess'));
     window.location.reload();

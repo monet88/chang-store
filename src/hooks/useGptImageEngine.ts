@@ -33,7 +33,7 @@ export const useGptImageEngine = (): ImageEngine => {
   // offered and which of their fields the gateway honors.
   const profile = resolveActiveProfile(imageProfiles, 'image', activeImageProfileId, 'openai-images');
   const gatewayHost = profile ? gatewayHostOf(profile.baseUrl) : undefined;
-  const served = useServedModels(profile?.baseUrl, profile?.apiKey, servedModelsVersion);
+  const served = useServedModels(profile?.baseUrl, profile?.apiKey, servedModelsVersion, profile?.id);
 
   const [requestedModel, setModel] = useState<string>(DEFAULT_GPT_IMAGE_MODEL);
   const [quality, setQuality] = useState<GptImageQuality>(DEFAULT_GPT_IMAGE_QUALITY);
@@ -63,7 +63,12 @@ export const useGptImageEngine = (): ImageEngine => {
     () => ({
       id: 'gptImage',
       model,
-      ...buildGptImageEngine({ model, quality, sizeOptions, credentials: { apiKey, baseUrl } }),
+      ...buildGptImageEngine({
+        model,
+        quality,
+        sizeOptions,
+        credentials: { apiKey, baseUrl, credentialRef: profile?.id },
+      }),
       createImageChatSession: null,
       modelOptions,
       setModel,
@@ -78,6 +83,6 @@ export const useGptImageEngine = (): ImageEngine => {
         supportsQuality,
       },
     }),
-    [model, quality, sizeOptions, sizeObservation, apiKey, baseUrl, modelOptions, noSelectableModel, supportsQuality],
+    [model, quality, sizeOptions, sizeObservation, apiKey, baseUrl, profile?.id, modelOptions, noSelectableModel, supportsQuality],
   );
 };

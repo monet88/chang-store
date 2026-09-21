@@ -1138,7 +1138,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       apiKeyPlaceholder: 'Nhập API key của cổng CPA',
       apiKeyHint: 'Khóa này chỉ dùng cho cổng ở trên. Không dán account JSON vào đây.',
       apiKeyMissing: 'Hãy nhập API key của cổng trước khi lưu cài đặt này.',
-      storageWarning: 'API key của cổng được lưu dạng plaintext trong localStorage của trình duyệt. Chỉ dùng trên thiết bị cá nhân đáng tin cậy.',
+      storageWarning: 'Bản web lưu API key trong localStorage. Bản desktop chuyển khóa sang kho mã hóa của hệ điều hành và chỉ giữ dấu tham chiếu trong renderer.',
     },
     storage: {
       title: 'Dung lượng lưu trữ cục bộ',

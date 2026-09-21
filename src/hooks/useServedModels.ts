@@ -8,9 +8,16 @@
 import { useMemo } from 'react';
 import { getCachedGatewayModels } from '../services/gatewayDiscoveryService';
 
-export const useServedModels = (baseUrl: string | undefined, apiKey: string | undefined, version: number): string[] | undefined =>
+export const useServedModels = (
+  baseUrl: string | undefined,
+  apiKey: string | undefined,
+  version: number,
+  credentialRef?: string,
+): string[] | undefined =>
   useMemo(
     // The cache is per (host, key): a served list probed with another key must not be reused.
-    () => (baseUrl && apiKey ? getCachedGatewayModels(baseUrl, apiKey)?.modelIds : undefined),
-    [baseUrl, apiKey, version],
+    () => (baseUrl && (apiKey || credentialRef)
+      ? getCachedGatewayModels(baseUrl, apiKey ?? '', Date.now(), credentialRef)?.modelIds
+      : undefined),
+    [baseUrl, apiKey, version, credentialRef],
   );

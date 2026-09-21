@@ -85,7 +85,12 @@ export const useSettingsModal = ({ isOpen, onClose }: UseSettingsModalParams): U
   });
 
   // Model lists follow the Gemini lane's served models once discovery has run.
-  const geminiServed = useServedModels(api.geminiProfile.baseUrl, api.geminiProfile.apiKey, api.servedModelsVersion);
+  const geminiServed = useServedModels(
+    api.geminiProfile.baseUrl,
+    api.geminiProfile.apiKey,
+    api.servedModelsVersion,
+    api.geminiProfile.id,
+  );
   const models = useMemo(
     () => ({
       imageEditModels: resolveSelectableModels('imageEdit', geminiServed),

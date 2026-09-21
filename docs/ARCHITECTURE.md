@@ -175,10 +175,20 @@ renderer URL supplied by `electron-vite`; packaged/preview builds load
 `out/renderer/index.html` directly. The desktop package therefore has no
 runtime static HTTP server.
 
-The preload boundary is intentionally narrow. It exposes only the existing
-desktop environment metadata today; native capabilities should be added as
-named APIs when a product workflow requires them. See
-`docs/architecture/chatbox-desktop-audit.md`.
+The preload boundary is intentionally narrow. Besides desktop environment
+metadata, it exposes named gateway capabilities for model discovery, Gemini
+`generateContent`, and OpenAI-compatible image generate/edit requests. The
+renderer never receives a generic IPC escape hatch.
+
+On desktop, persisted gateway credentials are moved from renderer localStorage
+into an Electron-main vault encrypted with `safeStorage`; localStorage keeps only
+a sentinel reference. Each stored credential is bound to its provider base URL,
+IPC payloads are parsed in main before use, and provider network traffic runs in
+main with renderer `webSecurity` enabled. Provider-returned image URLs are fetched
+only after DNS resolution and public-address checks; redirects are revalidated and
+the connection is pinned to the checked address to avoid DNS rebinding into local
+or private networks. The browser build keeps the existing direct-provider/
+localStorage contract. See `docs/architecture/chatbox-desktop-audit.md`.
 
 ### Studio Modes
 

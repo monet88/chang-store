@@ -1136,7 +1136,7 @@ Do not include any other text or markdown.
       apiKeyPlaceholder: 'Enter your CPA gateway API key',
       apiKeyHint: 'This key is used only for the gateway endpoint above. Do not paste account JSON here.',
       apiKeyMissing: 'Enter the gateway API key before saving these settings.',
-      storageWarning: 'Gateway API keys are stored in browser localStorage as plaintext. Only use this on a personal device you trust.',
+      storageWarning: 'Web stores gateway API keys in localStorage. Desktop moves them into the OS-encrypted credential vault and keeps only a reference marker in the renderer.',
     },
     storage: {
       title: 'Local storage usage',

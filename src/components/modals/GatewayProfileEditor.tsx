@@ -2,6 +2,7 @@ import React from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useGatewayProfileEditor } from '../../hooks/useGatewayProfileEditor';
 import { GatewayProfileRow, ProbeLine, fieldLabelClassName, inputClassName } from './GatewayProfileRow';
+import { isStoredDesktopCredential } from '../../platform/desktopGateway';
 
 export interface GatewayProfileEditorProps {
   geminiProfileId: string;
@@ -45,7 +46,10 @@ export const GatewayProfileEditor: React.FC<GatewayProfileEditorProps> = ({
             aria-label={t('settingsModal.cpaGateway.urlLabel')}
             type="url"
             value={geminiUrl}
-            onChange={(e) => onGeminiUrlChange(e.target.value)}
+            onChange={(e) => {
+              onGeminiUrlChange(e.target.value);
+              if (isStoredDesktopCredential(geminiApiKey)) onGeminiApiKeyChange('');
+            }}
             placeholder="https://cliproxy.monet.uno"
             className={inputClassName}
           />
@@ -62,10 +66,10 @@ export const GatewayProfileEditor: React.FC<GatewayProfileEditorProps> = ({
           <input
             aria-label={t('settingsModal.cpaGateway.apiKeyLabel')}
             type="password"
-            value={geminiApiKey}
+            value={isStoredDesktopCredential(geminiApiKey) ? '' : geminiApiKey}
             onChange={(e) => onGeminiApiKeyChange(e.target.value)}
             autoComplete="new-password"
-            placeholder={t('settingsModal.cpaGateway.apiKeyPlaceholder')}
+            placeholder={isStoredDesktopCredential(geminiApiKey) ? '••••••••' : t('settingsModal.cpaGateway.apiKeyPlaceholder')}
             className={inputClassName}
           />
           {isGeminiApiKeyMissing && <p className="text-xs text-red-400">{t('settingsModal.cpaGateway.apiKeyMissing')}</p>}
