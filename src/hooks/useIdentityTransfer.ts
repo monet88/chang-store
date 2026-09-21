@@ -13,6 +13,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAiScan } from '../contexts/AiScanContext';
 import { buildGeminiIdentityTransferParts } from '../utils/gemini-identity-transfer-prompt';
 import { buildGptIdentityTransferParts } from '../utils/gpt-identity-transfer-prompt';
+import { buildQwenIdentityTransferParts } from '../utils/qwen-identity-transfer-prompt';
 import type { IdentityTransferPromptInput } from '../utils/identity-transfer-prompt-types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { detectImageAspectRatio } from '../utils/imageAspectRatio';
@@ -125,7 +126,9 @@ export const useIdentityTransfer = () => {
         extraPrompt,
         outfitBlueprint: blueprint,
       };
-      const interleavedParts = engineId === 'gptImage'
+      const interleavedParts = engineId === 'localQwen'
+        ? buildQwenIdentityTransferParts(promptInput)
+        : engineId === 'gptImage'
         ? buildGptIdentityTransferParts(promptInput)
         : buildGeminiIdentityTransferParts(promptInput);
       const [result] = await editImage({
@@ -172,8 +175,9 @@ export const useIdentityTransfer = () => {
       error: undefined,
     })));
 
+    const batchConcurrency = engineId === 'localQwen' ? 1 : IDENTITY_TRANSFER_BATCH_CONCURRENCY;
     try {
-      await runBoundedWorkers(destinationItems, IDENTITY_TRANSFER_BATCH_CONCURRENCY, (item) =>
+      await runBoundedWorkers(destinationItems, batchConcurrency, (item) =>
         generateForDestination(item, { face: faceReference, body: bodyReference }));
     } catch (batchError) {
       setError(getErrorMessage(batchError, t));
@@ -182,7 +186,7 @@ export const useIdentityTransfer = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [bodyReference, destinationItems, faceReference, generateForDestination, t]);
+  }, [bodyReference, destinationItems, engineId, faceReference, generateForDestination, t]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
     if (generationInFlight.current) return;
