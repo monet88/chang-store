@@ -5,16 +5,18 @@
   "author": "Chang Store",
   "version": "1.0.4",
   "type": "module",
-  "main": "electron/main.mjs",
+  "main": "out/main/index.cjs",
   "scripts": {
     "dev": "vite",
     "dev:turbo": "vite --force",
     "build": "vite build",
     "build:analyze": "vite build --mode analyze",
     "preview": "vite preview",
-    "desktop": "npm run build && electron .",
-    "desktop:dev": "electron . --dev",
-    "dist:win": "npm run build && node scripts/build-win-portable.mjs",
+    "desktop": "npm run desktop:build && electron .",
+    "desktop:dev": "electron-vite dev",
+    "desktop:build": "electron-vite build",
+    "desktop:preview": "electron-vite preview",
+    "dist:win": "npm run desktop:build && node scripts/build-win-portable.mjs",
     "lint": "node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx",
     "test": "vitest --run --passWithNoTests",
     "test:ui": "vitest --ui"
@@ -45,6 +47,7 @@
     "autoprefixer": "^10.4.23",
     "electron": "^44.4.2",
     "electron-builder": "^26.15.3",
+    "electron-vite": "^4.0.1",
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -68,8 +71,7 @@
     "productName": "Chang Store",
     "asar": true,
     "files": [
-      "dist/**/*",
-      "electron/**/*",
+      "out/**/*",
       "package.json"
     ],
     "directories": {

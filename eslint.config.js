@@ -9,6 +9,7 @@ export default [
   {
     ignores: [
       'dist/**',
+      'out/**',
       'node_modules/**',
       'src-tauri/target/**',
       'coverage/**',

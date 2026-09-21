@@ -157,6 +157,29 @@ LanguageProvider
             -> AppContent
 ~~~
 
+### Desktop surface
+
+The Electron desktop app wraps the same React renderer without introducing a
+second application architecture. `electron-vite` owns three desktop build
+targets:
+
+~~~text
+electron/main.ts
+  -> electron/preload.ts
+    -> existing React renderer in src/
+~~~
+
+`vite.config.ts` remains the browser build source and exports the renderer
+configuration reused by `electron.vite.config.ts`. Development loads the
+renderer URL supplied by `electron-vite`; packaged/preview builds load
+`out/renderer/index.html` directly. The desktop package therefore has no
+runtime static HTTP server.
+
+The preload boundary is intentionally narrow. It exposes only the existing
+desktop environment metadata today; native capabilities should be added as
+named APIs when a product workflow requires them. See
+`docs/architecture/chatbox-desktop-audit.md`.
+
 ### Studio Modes
 
 AppContent owns the Feature routing and StudioMode switch. Feature values and
