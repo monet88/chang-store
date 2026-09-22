@@ -29,6 +29,7 @@ const desktopLocalQwen: DesktopLocalQwenApi = {
   generateImage: (params) => ipcRenderer.invoke(DESKTOP_LOCAL_QWEN_CHANNELS.generateImage, params),
   cancelJob: () => ipcRenderer.invoke(DESKTOP_LOCAL_QWEN_CHANNELS.cancelJob),
   upscaleImage: (params) => ipcRenderer.invoke(DESKTOP_LOCAL_QWEN_CHANNELS.upscaleImage, params),
+  verifyFolder: (folder) => ipcRenderer.invoke(DESKTOP_LOCAL_QWEN_CHANNELS.verifyFolder, folder),
 };
 
 contextBridge.exposeInMainWorld('desktopLocalQwen', Object.freeze(desktopLocalQwen));

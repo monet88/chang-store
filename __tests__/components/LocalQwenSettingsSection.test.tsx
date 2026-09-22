@@ -82,7 +82,15 @@ describe('LocalQwenSettingsSection', () => {
     expect(saved.comfyUiPath).toBe('D:\\MyComfyUI');
   });
 
-  it('auto-detect button restores known portable install path', () => {
+  it('auto-detect button restores known portable install path and labels detected only when folder exists', async () => {
+    const verifyFolder = vi.fn().mockResolvedValue({
+      ok: true,
+      value: { exists: true, hasComfyUiMain: true },
+    });
+    window.desktopLocalQwen = {
+      verifyFolder,
+    } as unknown as typeof window.desktopLocalQwen;
+
     saveLocalQwenSettings({ comfyUiPath: 'C:\\CustomPath' });
     render(<LocalQwenSettingsSection />);
 
@@ -93,6 +101,44 @@ describe('LocalQwenSettingsSection', () => {
     fireEvent.click(autoDetectBtn);
 
     expect(input).toHaveValue('D:\\ComfyUI_windows_portable');
-    expect(screen.getByText('Auto-detected portable installation')).toBeInTheDocument();
+    expect(await screen.findByText('Auto-detected portable installation')).toBeInTheDocument();
+  });
+
+  it('does not label detected when the known folder does not actually exist on disk', async () => {
+    const verifyFolder = vi.fn().mockResolvedValue({
+      ok: true,
+      value: { exists: false, hasComfyUiMain: false },
+    });
+    window.desktopLocalQwen = {
+      verifyFolder,
+    } as unknown as typeof window.desktopLocalQwen;
+
+    saveLocalQwenSettings({ comfyUiPath: 'D:\\ComfyUI_windows_portable' });
+    render(<LocalQwenSettingsSection />);
+
+    expect(screen.queryByText('Auto-detected portable installation')).not.toBeInTheDocument();
+  });
+  it('does not label detected when the directory exists but ComfyUI main.py is missing', async () => {
+    const verifyFolder = vi.fn().mockResolvedValue({
+      ok: true,
+      value: { exists: true, hasComfyUiMain: false },
+    });
+    window.desktopLocalQwen = {
+      verifyFolder,
+    } as unknown as typeof window.desktopLocalQwen;
+
+    saveLocalQwenSettings({ comfyUiPath: 'D:\\ComfyUI_windows_portable' });
+    render(<LocalQwenSettingsSection />);
+
+    expect(screen.queryByText('Auto-detected portable installation')).not.toBeInTheDocument();
+  });
+
+  it('does not label detected in browser mode without desktopLocalQwen API', () => {
+    delete window.desktopLocalQwen;
+
+    saveLocalQwenSettings({ comfyUiPath: 'D:\\ComfyUI_windows_portable' });
+    render(<LocalQwenSettingsSection />);
+
+    expect(screen.queryByText('Auto-detected portable installation')).not.toBeInTheDocument();
   });
 });

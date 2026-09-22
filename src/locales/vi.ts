@@ -182,6 +182,8 @@ export const vi: Translation = {
       cancel: 'Hủy',
       cancelling: 'Đang hủy...',
       startServer: 'Khởi động ComfyUI',
+      releaseGpu: 'Giải phóng GPU/RAM',
+      releasingGpu: 'Đang giải phóng...',
     },
   },
 

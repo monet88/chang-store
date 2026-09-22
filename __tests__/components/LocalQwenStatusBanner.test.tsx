@@ -20,6 +20,8 @@ const translations: Record<string, string> = {
   'studio.localQwenStatus.cancel': 'Cancel',
   'studio.localQwenStatus.cancelling': 'Cancelling...',
   'studio.localQwenStatus.startServer': 'Start ComfyUI',
+  'studio.localQwenStatus.releaseGpu': 'Release GPU/RAM',
+  'studio.localQwenStatus.releasingGpu': 'Releasing...',
 };
 
 vi.mock('@/contexts/LanguageContext', () => ({
@@ -65,6 +67,35 @@ describe('LocalQwenStatusBanner', () => {
       expect(onOpenSettings).toHaveBeenCalledTimes(1);
     });
 
+    it('renders Release GPU/RAM button when isAppOwned is true and triggers onReleaseGpu', () => {
+      const status: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: true,
+        port: 8188,
+      };
+      const onReleaseGpu = vi.fn();
+
+      render(<LocalQwenStatusBanner status={status} onReleaseGpu={onReleaseGpu} />);
+
+      const releaseBtn = screen.getByTestId('release-gpu-button');
+      expect(releaseBtn).toBeInTheDocument();
+      expect(releaseBtn).toHaveTextContent('Release GPU/RAM');
+
+      fireEvent.click(releaseBtn);
+      expect(onReleaseGpu).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not render Release GPU/RAM button when instance is external', () => {
+      const status: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: false,
+        port: 8188,
+      };
+
+      render(<LocalQwenStatusBanner status={status} />);
+
+      expect(screen.queryByTestId('release-gpu-button')).not.toBeInTheDocument();
+    });
     it('renders external badge when server is externally owned', () => {
       const status: DesktopLocalQwenStatus = {
         state: 'ready',
@@ -216,6 +247,38 @@ describe('LocalQwenStatusBanner', () => {
 
       expect(screen.getByText('Generation Cancelled')).toBeInTheDocument();
       expect(screen.getByText(/Generation was cancelled. You can retry/i)).toBeInTheDocument();
+    });
+
+    it('renders Release GPU/RAM button in error state when isAppOwned is true and triggers onReleaseGpu', () => {
+      const status: DesktopLocalQwenStatus = {
+        state: 'error',
+        isAppOwned: true,
+        port: 8188,
+        error: 'torch.cuda.OutOfMemoryError: CUDA out of memory',
+      };
+      const onReleaseGpu = vi.fn();
+
+      render(<LocalQwenStatusBanner status={status} onReleaseGpu={onReleaseGpu} />);
+
+      const releaseBtn = screen.getByTestId('release-gpu-button');
+      expect(releaseBtn).toBeInTheDocument();
+      expect(releaseBtn).toHaveTextContent('Release GPU/RAM');
+
+      fireEvent.click(releaseBtn);
+      expect(onReleaseGpu).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not render Release GPU/RAM button in error state when isAppOwned is false', () => {
+      const status: DesktopLocalQwenStatus = {
+        state: 'error',
+        isAppOwned: false,
+        port: 8188,
+        error: 'torch.cuda.OutOfMemoryError: CUDA out of memory',
+      };
+
+      render(<LocalQwenStatusBanner status={status} />);
+
+      expect(screen.queryByTestId('release-gpu-button')).not.toBeInTheDocument();
     });
   });
 });

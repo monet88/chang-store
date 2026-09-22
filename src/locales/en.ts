@@ -182,6 +182,8 @@ export const en = {
       cancel: 'Cancel',
       cancelling: 'Cancelling...',
       startServer: 'Start ComfyUI',
+      releaseGpu: 'Release GPU/RAM',
+      releasingGpu: 'Releasing...',
     },
   },
   imageUploader: {

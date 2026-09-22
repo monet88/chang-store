@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getDesktopLocalQwenApi,
   type DesktopLocalQwenStatus,
+  type DesktopLocalQwenStopResult,
 } from '../platform/desktopLocalQwen';
 import { loadLocalQwenSettings } from '../config/localQwenSettings';
 
@@ -15,8 +16,10 @@ export interface UseLocalQwenStatusReturn {
   status: DesktopLocalQwenStatus;
   isCancelling: boolean;
   isStarting: boolean;
+  isStopping: boolean;
   refreshStatus: () => Promise<DesktopLocalQwenStatus | undefined>;
   startServer: (folder?: string) => Promise<boolean>;
+  releaseGpu: () => Promise<DesktopLocalQwenStopResult | undefined>;
   cancelJob: () => Promise<boolean>;
   retry: () => Promise<void>;
 }
@@ -37,6 +40,7 @@ export const useLocalQwenStatus = (
   });
   const [isCancelling, setIsCancelling] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const mountedRef = useRef(true);
   const latestRequestIdRef = useRef(0);
 
@@ -129,6 +133,26 @@ export const useLocalQwenStatus = (
       }
     }
   }, [refreshStatus]);
+  const stopServer = useCallback(async (): Promise<DesktopLocalQwenStopResult | undefined> => {
+    const api = getDesktopLocalQwenApi();
+    if (!api) {
+      return undefined;
+    }
+
+    setIsStopping(true);
+    try {
+      const result = await api.stopServer();
+      await refreshStatus();
+      return result.ok ? result.value : undefined;
+    } catch {
+      return undefined;
+    } finally {
+      if (mountedRef.current) {
+        setIsStopping(false);
+      }
+    }
+  }, [refreshStatus]);
+
 
   const retry = useCallback(async (): Promise<void> => {
     if (status.state === 'error' || status.state === 'stopped') {
@@ -166,7 +190,9 @@ export const useLocalQwenStatus = (
     isStarting,
     refreshStatus,
     startServer,
+    releaseGpu: stopServer,
     cancelJob,
     retry,
+    isStopping,
   };
 };

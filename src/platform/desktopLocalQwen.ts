@@ -7,6 +7,7 @@ export const DESKTOP_LOCAL_QWEN_CHANNELS = {
   generateImage: 'desktop-local-qwen:generate-image',
   cancelJob: 'desktop-local-qwen:cancel-job',
   upscaleImage: 'desktop-local-qwen:upscale-image',
+  verifyFolder: 'desktop-local-qwen:verify-folder',
 } as const;
 
 export type DesktopLocalQwenState = 'starting' | 'ready' | 'generating' | 'error' | 'stopped';
@@ -26,6 +27,10 @@ export interface DesktopLocalQwenStatus {
 export interface DesktopLocalQwenStopResult {
   stopped: boolean;
   wasExternal: boolean;
+}
+export interface LocalQwenFolderCheck {
+  exists: boolean;
+  hasComfyUiMain: boolean;
 }
 export interface LocalQwenGenerateParams {
   prompt: string;
@@ -62,6 +67,7 @@ export interface DesktopLocalQwenApi {
   generateImage(params: LocalQwenGenerateParams): Promise<DesktopBridgeResult<LocalQwenGenerateResult>>;
   cancelJob(): Promise<DesktopBridgeResult<{ cancelled: boolean }>>;
   upscaleImage(params: { image: string; scale?: number }): Promise<DesktopBridgeResult<{ image: string }>>;
+  verifyFolder?(folder: string): Promise<DesktopBridgeResult<LocalQwenFolderCheck>>;
 }
 
 declare global {

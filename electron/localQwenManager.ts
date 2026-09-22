@@ -7,13 +7,23 @@ import {
   type DesktopLocalQwenState,
   type DesktopLocalQwenStatus,
   type DesktopLocalQwenStopResult,
+  type LocalQwenFolderCheck,
   type LocalQwenGenerateParams,
   type LocalQwenGenerateResult,
   type LocalQwenProgress,
   type LocalQwenUpscaleParams,
   type LocalQwenUpscaleResult,
 } from '../src/platform/desktopLocalQwen';
-import { KNOWN_PORTABLE_COMFYUI_PATH } from '../src/config/localQwenSettings';
+import {
+  KNOWN_PORTABLE_COMFYUI_PATH,
+  LOCAL_QWEN_MAX_CFG,
+  LOCAL_QWEN_MAX_STEPS,
+  LOCAL_QWEN_MIN_CFG,
+  LOCAL_QWEN_MIN_STEPS,
+  LOCAL_QWEN_RESOLUTIONS,
+  LOCAL_QWEN_SAMPLERS,
+  LOCAL_QWEN_SCHEDULERS,
+} from '../src/config/localQwenSettings';
 import { trustedBridge } from './gateway';
 
 declare global {
@@ -43,6 +53,13 @@ const buildComfyUIViewUrl = (
 ): string =>
   `${baseUrl}/view?filename=${encodeURIComponent(imgInfo.filename)}&subfolder=${encodeURIComponent(imgInfo.subfolder || '')}&type=${encodeURIComponent(imgInfo.type || 'output')}`;
 
+export interface LocalQwenHealth {
+  compatible: boolean;
+  error?: string;
+}
+
+export type HealthCheckFn = (baseUrl: string) => Promise<LocalQwenHealth>;
+
 export const defaultProbeFn = async (endpoint: string, timeoutMs = 2000): Promise<boolean> => {
   if (!verifyLoopbackOnly(endpoint)) {
     throw new Error('Security error: Only loopback 127.0.0.1 is permitted for ComfyUI endpoint.');
@@ -52,9 +69,84 @@ export const defaultProbeFn = async (endpoint: string, timeoutMs = 2000): Promis
       method: 'GET',
       signal: AbortSignal.timeout(timeoutMs),
     });
-    return res.ok;
+    if (!res.ok) return false;
+    const body = (await res.json().catch(() => null)) as { system?: unknown } | null;
+    return Boolean(body && typeof body === 'object' && 'system' in body && body.system);
   } catch {
     return false;
+  }
+};
+
+export const defaultHealthCheckFn = async (
+  baseUrl: string,
+  fetchFn: typeof fetch = fetch,
+  timeoutMs = 3000,
+): Promise<LocalQwenHealth> => {
+  try {
+    const statsRes = await fetchFn(`${baseUrl}/system_stats`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!statsRes.ok) {
+      return {
+        compatible: false,
+        error: `ComfyUI /system_stats failed with status ${statsRes.status}`,
+      };
+    }
+    const stats = (await statsRes.json().catch(() => null)) as { system?: unknown } | null;
+    if (!stats || typeof stats !== 'object' || !stats.system) {
+      return {
+        compatible: false,
+        error: 'ComfyUI /system_stats failed or returned unsupported version',
+      };
+    }
+
+    const unetRes = await fetchFn(`${baseUrl}/object_info/UnetLoaderGGUF`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!unetRes.ok) {
+      return {
+        compatible: false,
+        error: 'ComfyUI is incompatible: custom node ComfyUI-GGUF is missing',
+      };
+    }
+    const unetData = (await unetRes.json().catch(() => null)) as {
+      UnetLoaderGGUF?: { input?: { required?: { unet_name?: unknown[] } } };
+    } | null;
+    if (!unetData?.UnetLoaderGGUF) {
+      return {
+        compatible: false,
+        error: 'ComfyUI is incompatible: custom node ComfyUI-GGUF is missing',
+      };
+    }
+
+    const unetNames = unetData.UnetLoaderGGUF.input?.required?.unet_name?.[0];
+    if (Array.isArray(unetNames) && !unetNames.includes('qwen-image-2.1-Q4_K_M.gguf')) {
+      return {
+        compatible: false,
+        error: 'UnetLoaderGGUF: qwen-image-2.1-Q4_K_M.gguf not found in models/diffusion_models',
+      };
+    }
+
+    const textEncodeRes = await fetchFn(`${baseUrl}/object_info/TextEncodeQwenImage21`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!textEncodeRes.ok) {
+      return {
+        compatible: false,
+        error: 'ComfyUI is incompatible: node TextEncodeQwenImage21 is missing',
+      };
+    }
+
+    return { compatible: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      compatible: false,
+      error: `ComfyUI is incompatible: health check failed (${message})`,
+    };
   }
 };
 export interface WebSocketLike {
@@ -70,6 +162,7 @@ export type WebSocketConstructor = new (url: string) => WebSocketLike;
 export interface LocalQwenManagerOptions {
   port?: number;
   probeFn?: (endpoint: string) => Promise<boolean>;
+  healthCheckFn?: HealthCheckFn;
   spawnFn?: (command: string, args: readonly string[], options: Record<string, unknown>) => ChildProcess;
   readinessTimeoutMs?: number;
   readinessPollIntervalMs?: number;
@@ -90,6 +183,7 @@ export class LocalQwenManager {
   private activeAbortController?: AbortController;
   private wsConstructor?: WebSocketConstructor;
   private probeFn: (endpoint: string) => Promise<boolean>;
+  private healthCheckFn: HealthCheckFn;
   private spawnFn: (command: string, args: readonly string[], options: Record<string, unknown>) => ChildProcess;
   private fetchFn: typeof fetch;
   private readinessTimeoutMs: number;
@@ -98,6 +192,11 @@ export class LocalQwenManager {
   constructor(options: LocalQwenManagerOptions = {}) {
     this.port = options.port ?? DEFAULT_COMFYUI_PORT;
     this.probeFn = options.probeFn ?? defaultProbeFn;
+    this.healthCheckFn =
+      options.healthCheckFn ??
+      (options.probeFn && options.probeFn !== defaultProbeFn
+        ? async () => ({ compatible: true })
+        : (url) => defaultHealthCheckFn(url, this.fetchFn));
     this.spawnFn =
       options.spawnFn ??
       ((cmd, args, opts) => spawn(cmd, args as string[], opts as Parameters<typeof spawn>[2]));
@@ -114,6 +213,14 @@ export class LocalQwenManager {
     }
     return this.probeFn(target);
   }
+  public async checkCompatibility(baseUrl?: string): Promise<LocalQwenHealth> {
+    const target = baseUrl ?? `http://127.0.0.1:${this.port}`;
+    if (!verifyLoopbackOnly(target)) {
+      throw new Error('Security error: Only loopback 127.0.0.1 is permitted for ComfyUI endpoint.');
+    }
+    return this.healthCheckFn(target);
+  }
+
 
   public async getStatus(): Promise<DesktopLocalQwenStatus> {
     if (this.state === 'generating') {
@@ -144,6 +251,17 @@ export class LocalQwenManager {
 
     const isResponding = await this.probe();
     if (isResponding) {
+      const health = await this.checkCompatibility();
+      if (!health.compatible) {
+        this.state = 'error';
+        this.lastError = health.error;
+        return {
+          state: 'error',
+          isAppOwned: this.isAppOwned,
+          port: this.port,
+          error: this.lastError,
+        };
+      }
       this.state = 'ready';
       this.lastError = undefined;
       return {
@@ -245,17 +363,59 @@ export class LocalQwenManager {
 
     throw new Error(`Could not find ComfyUI main.py in ${folder}`);
   }
+  public checkFolder(folder: string): LocalQwenFolderCheck {
+    try {
+      if (!folder || typeof folder !== 'string' || !folder.trim()) {
+        return { exists: false, hasComfyUiMain: false };
+      }
+      const trimmed = folder.trim();
+      if (!fs.existsSync(trimmed)) {
+        return { exists: false, hasComfyUiMain: false };
+      }
+      const stat = fs.statSync(trimmed);
+      if (!stat.isDirectory()) {
+        return { exists: false, hasComfyUiMain: false };
+      }
+
+      const isWin = process.platform === 'win32';
+      const portablePython = path.join(trimmed, 'python_embeded', isWin ? 'python.exe' : 'python');
+      const portableMain = path.join(trimmed, 'ComfyUI', 'main.py');
+      const rootMain = path.join(trimmed, 'main.py');
+
+      const hasComfyUiMain =
+        (fs.existsSync(portablePython) && fs.existsSync(portableMain)) || fs.existsSync(rootMain);
+
+      return { exists: true, hasComfyUiMain };
+    } catch {
+      return { exists: false, hasComfyUiMain: false };
+    }
+  }
+
 
   public async startServer(folder?: string): Promise<DesktopLocalQwenStatus> {
     // 1. Probe loopback first
     const alreadyResponding = await this.probe();
     if (alreadyResponding) {
-      this.isAppOwned = false;
+      const hasLiveOwnedChild = Boolean(this.isAppOwned && this.childProcess && !this.childProcess.killed);
+      this.isAppOwned = hasLiveOwnedChild;
+
+      const health = await this.checkCompatibility();
+      if (!health.compatible) {
+        this.state = 'error';
+        this.lastError = health.error;
+        return {
+          state: 'error',
+          isAppOwned: this.isAppOwned,
+          port: this.port,
+          error: this.lastError,
+        };
+      }
+
       this.state = 'ready';
       this.lastError = undefined;
       return {
         state: 'ready',
-        isAppOwned: false,
+        isAppOwned: this.isAppOwned,
         port: this.port,
       };
     }
@@ -347,6 +507,23 @@ export class LocalQwenManager {
       throw new Error(this.lastError);
     }
 
+    const health = await this.checkCompatibility();
+    if (!health.compatible) {
+      this.state = 'error';
+      this.lastError = health.error;
+      if (this.childProcess && !this.childProcess.killed) {
+        try {
+          this.childProcess.kill();
+        } catch {
+          // Ignore
+        }
+      }
+      this.childProcess = undefined;
+      this.childPid = undefined;
+      this.isAppOwned = false;
+      throw new Error(this.lastError);
+    }
+
     this.state = 'ready';
     return {
       state: 'ready',
@@ -354,7 +531,6 @@ export class LocalQwenManager {
       port: this.port,
     };
   }
-
   public async stopServer(): Promise<DesktopLocalQwenStopResult> {
     if (!this.isAppOwned) {
       return { stopped: false, wasExternal: true };
@@ -861,6 +1037,195 @@ export class LocalQwenManager {
   }
 }
 
+type UnknownRecord = Record<string, unknown>;
+
+const requireRecord = (value: unknown, name: string): UnknownRecord => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Invalid local Qwen ${name}.`);
+  }
+  return value as UnknownRecord;
+};
+
+const requireString = (value: unknown, name: string): string => {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`Invalid local Qwen ${name}.`);
+  }
+  return value.trim();
+};
+
+const assertOnlyKeys = (input: UnknownRecord, allowed: readonly string[], name: string): void => {
+  const unexpected = Object.keys(input).find((key) => !allowed.includes(key));
+  if (unexpected) {
+    throw new Error(`Invalid local Qwen ${name}: unsupported field ${unexpected}.`);
+  }
+};
+
+export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateParams => {
+  const input = requireRecord(value, 'generate params');
+  assertOnlyKeys(
+    input,
+    ['prompt', 'negativePrompt', 'images', 'resolution', 'steps', 'cfg', 'sampler', 'scheduler', 'seed'],
+    'generate params',
+  );
+
+  const prompt = requireString(input.prompt, 'prompt');
+  if (prompt.length > 8000) {
+    throw new Error('Invalid local Qwen prompt: length exceeds 8000 characters.');
+  }
+
+  let negativePrompt: string | undefined;
+  if (input.negativePrompt !== undefined) {
+    if (typeof input.negativePrompt !== 'string') {
+      throw new Error('Invalid local Qwen negative prompt: must be a string.');
+    }
+    const trimmed = input.negativePrompt.trim();
+    if (trimmed.length > 8000) {
+      throw new Error('Invalid local Qwen negative prompt: length exceeds 8000 characters.');
+    }
+    negativePrompt = trimmed || undefined;
+  }
+
+  let images: Array<{ base64: string; mimeType: string }> | undefined;
+  if (input.images !== undefined) {
+    if (!Array.isArray(input.images)) {
+      throw new Error('Invalid local Qwen images: must be an array.');
+    }
+    images = input.images.map((img, idx) => {
+      const rec = requireRecord(img, `reference image [${idx}]`);
+      assertOnlyKeys(rec, ['base64', 'mimeType'], `reference image [${idx}]`);
+      const base64 = requireString(rec.base64, `reference image [${idx}] base64`);
+      const mimeType = requireString(rec.mimeType, `reference image [${idx}] mimeType`);
+      if (!mimeType.startsWith('image/')) {
+        throw new Error(`Invalid local Qwen reference image [${idx}] mimeType: must start with image/.`);
+      }
+      return { base64, mimeType };
+    });
+  }
+
+  let resolution: number | undefined;
+  if (input.resolution !== undefined) {
+    if (
+      typeof input.resolution !== 'number' ||
+      !(LOCAL_QWEN_RESOLUTIONS as readonly number[]).includes(input.resolution)
+    ) {
+      throw new Error(
+        `Invalid local Qwen resolution: must be one of ${LOCAL_QWEN_RESOLUTIONS.join(', ')}.`,
+      );
+    }
+    resolution = input.resolution;
+  }
+
+  let steps: number | undefined;
+  if (input.steps !== undefined) {
+    if (
+      typeof input.steps !== 'number' ||
+      !Number.isInteger(input.steps) ||
+      input.steps < LOCAL_QWEN_MIN_STEPS ||
+      input.steps > LOCAL_QWEN_MAX_STEPS
+    ) {
+      throw new Error(
+        `Invalid local Qwen steps: must be an integer between ${LOCAL_QWEN_MIN_STEPS} and ${LOCAL_QWEN_MAX_STEPS}.`,
+      );
+    }
+    steps = input.steps;
+  }
+
+  let cfg: number | undefined;
+  if (input.cfg !== undefined) {
+    if (
+      typeof input.cfg !== 'number' ||
+      !Number.isFinite(input.cfg) ||
+      input.cfg < LOCAL_QWEN_MIN_CFG ||
+      input.cfg > LOCAL_QWEN_MAX_CFG
+    ) {
+      throw new Error(
+        `Invalid local Qwen cfg: must be a number between ${LOCAL_QWEN_MIN_CFG} and ${LOCAL_QWEN_MAX_CFG}.`,
+      );
+    }
+    cfg = input.cfg;
+  }
+
+  let sampler: string | undefined;
+  if (input.sampler !== undefined) {
+    if (
+      typeof input.sampler !== 'string' ||
+      !(LOCAL_QWEN_SAMPLERS as readonly string[]).includes(input.sampler)
+    ) {
+      throw new Error(
+        `Invalid local Qwen sampler: must be one of ${LOCAL_QWEN_SAMPLERS.join(', ')}.`,
+      );
+    }
+    sampler = input.sampler;
+  }
+
+  let scheduler: string | undefined;
+  if (input.scheduler !== undefined) {
+    if (
+      typeof input.scheduler !== 'string' ||
+      !(LOCAL_QWEN_SCHEDULERS as readonly string[]).includes(input.scheduler)
+    ) {
+      throw new Error(
+        `Invalid local Qwen scheduler: must be one of ${LOCAL_QWEN_SCHEDULERS.join(', ')}.`,
+      );
+    }
+    scheduler = input.scheduler;
+  }
+
+  let seed: number | undefined;
+  if (input.seed !== undefined) {
+    if (
+      typeof input.seed !== 'number' ||
+      !Number.isInteger(input.seed) ||
+      input.seed < 0 ||
+      input.seed > 4_294_967_295
+    ) {
+      throw new Error('Invalid local Qwen seed: must be an integer between 0 and 4294967295.');
+    }
+    seed = input.seed;
+  }
+
+  return {
+    prompt,
+    negativePrompt,
+    images,
+    resolution,
+    steps,
+    cfg,
+    sampler,
+    scheduler,
+    seed,
+  };
+};
+
+export const parseLocalQwenUpscaleParams = (value: unknown): LocalQwenUpscaleParams => {
+  const input = requireRecord(value, 'upscale params');
+  assertOnlyKeys(input, ['image', 'scale'], 'upscale params');
+
+  const image = requireString(input.image, 'upscale image');
+
+  let scale: number | undefined;
+  if (input.scale !== undefined) {
+    if (
+      typeof input.scale !== 'number' ||
+      !Number.isFinite(input.scale) ||
+      input.scale <= 0 ||
+      input.scale > 8
+    ) {
+      throw new Error('Invalid local Qwen upscale scale: must be a number between 0 and 8.');
+    }
+    scale = input.scale;
+  }
+
+  return { image, scale };
+};
+
+export const parseLocalQwenFolder = (value: unknown): string | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  return requireString(value, 'folder path');
+};
+
 export const localQwenManager = new LocalQwenManager();
 export const registerDesktopLocalQwenHandlers = (
   manager: LocalQwenManager = localQwenManager,
@@ -869,18 +1234,33 @@ export const registerDesktopLocalQwenHandlers = (
     trustedBridge(event, () => manager.getStatus()),
   );
   ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.startServer, (event, folder) =>
-    trustedBridge(event, () => manager.startServer(typeof folder === 'string' ? folder : undefined)),
+    trustedBridge(event, () => {
+      const parsedFolder = parseLocalQwenFolder(folder);
+      return manager.startServer(parsedFolder);
+    }),
   );
   ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.stopServer, (event) =>
     trustedBridge(event, () => manager.stopServer()),
   );
   ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.generateImage, (event, params) =>
-    trustedBridge(event, () => manager.generateImage(params as LocalQwenGenerateParams)),
+    trustedBridge(event, () => {
+      const validated = parseLocalQwenGenerateParams(params);
+      return manager.generateImage(validated);
+    }),
   );
   ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.cancelJob, (event) =>
     trustedBridge(event, () => manager.cancelJob()),
   );
   ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.upscaleImage, (event, params) =>
-    trustedBridge(event, () => manager.upscaleImage(params as LocalQwenUpscaleParams)),
+    trustedBridge(event, () => {
+      const validated = parseLocalQwenUpscaleParams(params);
+      return manager.upscaleImage(validated);
+    }),
+  );
+  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.verifyFolder, (event, folder) =>
+    trustedBridge(event, () => {
+      const parsedFolder = parseLocalQwenFolder(folder);
+      return manager.checkFolder(parsedFolder || '');
+    }),
   );
 };

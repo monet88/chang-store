@@ -10,9 +10,11 @@ export interface LocalQwenStatusBannerProps {
   status?: DesktopLocalQwenStatus;
   isCancelling?: boolean;
   isStarting?: boolean;
+  isStopping?: boolean;
   onOpenSettings?: () => void;
   onRetry?: () => void;
   onStartServer?: () => void;
+  onReleaseGpu?: () => void;
   onCancelJob?: () => void;
   className?: string;
 }
@@ -21,9 +23,11 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
   status: controlledStatus,
   isCancelling: controlledIsCancelling,
   isStarting: controlledIsStarting,
+  isStopping: controlledIsStopping,
   onOpenSettings,
   onRetry: controlledOnRetry,
   onStartServer: controlledOnStartServer,
+  onReleaseGpu: controlledOnReleaseGpu,
   onCancelJob: controlledOnCancelJob,
   className = '',
 }) => {
@@ -35,9 +39,11 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
   const status = controlledStatus ?? internal.status;
   const isCancelling = controlledIsCancelling ?? internal.isCancelling;
   const isStarting = controlledIsStarting ?? internal.isStarting;
+  const isStopping = controlledIsStopping ?? internal.isStopping;
   const handleRetry = controlledOnRetry ?? internal.retry;
   const handleStartServer = controlledOnStartServer ?? (() => void internal.startServer());
   const handleCancelJob = controlledOnCancelJob ?? (() => void internal.cancelJob());
+  const handleReleaseGpu = controlledOnReleaseGpu ?? (() => void internal.releaseGpu());
 
   const renderContent = () => {
     switch (status.state) {
@@ -87,15 +93,30 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
                 </p>
               </div>
             </div>
-            {onOpenSettings && (
-              <button
-                type="button"
-                onClick={onOpenSettings}
-                className="rounded-lg border border-zinc-700 bg-zinc-800/80 px-2.5 py-1 text-xs font-medium text-zinc-200 transition hover:bg-zinc-700 hover:text-white"
-              >
-                {t('studio.localQwenStatus.openSettings')}
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {status.isAppOwned && (
+                <button
+                  type="button"
+                  onClick={handleReleaseGpu}
+                  disabled={isStopping}
+                  data-testid="release-gpu-button"
+                  className="rounded-lg border border-amber-500/40 bg-amber-950/40 px-2.5 py-1 text-xs font-medium text-amber-200 transition hover:bg-amber-900/60 disabled:opacity-50"
+                >
+                  {isStopping
+                    ? t('studio.localQwenStatus.releasingGpu')
+                    : t('studio.localQwenStatus.releaseGpu')}
+                </button>
+              )}
+              {onOpenSettings && (
+                <button
+                  type="button"
+                  onClick={onOpenSettings}
+                  className="rounded-lg border border-zinc-700 bg-zinc-800/80 px-2.5 py-1 text-xs font-medium text-zinc-200 transition hover:bg-zinc-700 hover:text-white"
+                >
+                  {t('studio.localQwenStatus.openSettings')}
+                </button>
+              )}
+            </div>
           </div>
         );
 
@@ -177,6 +198,19 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
+                {status.isAppOwned && (
+                  <button
+                    type="button"
+                    onClick={handleReleaseGpu}
+                    disabled={isStopping}
+                    data-testid="release-gpu-button"
+                    className="rounded-lg border border-amber-500/40 bg-amber-950/40 px-3 py-1.5 text-xs font-medium text-amber-200 transition hover:bg-amber-900/60 disabled:opacity-50"
+                  >
+                    {isStopping
+                      ? t('studio.localQwenStatus.releasingGpu')
+                      : t('studio.localQwenStatus.releaseGpu')}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleRetry}

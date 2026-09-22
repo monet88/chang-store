@@ -10,6 +10,7 @@ import {
   detectPortableComfyUiPath,
   useLocalQwenSettings,
 } from '../../hooks/useLocalQwenSettings';
+import { getDesktopLocalQwenApi } from '../../platform/desktopLocalQwen';
 import { SectionCard } from './SettingsDataSection';
 import { fieldLabelClassName, inputClassName } from './GatewayProfileRow';
 
@@ -17,10 +18,40 @@ export const LocalQwenSettingsSection: React.FC = () => {
   const { t } = useLanguage();
   const { settings, updateSetting } = useLocalQwenSettings();
 
-  const isAutoDetected =
-    Boolean(settings.comfyUiPath) &&
-    (settings.comfyUiPath === KNOWN_PORTABLE_COMFYUI_PATH ||
-      settings.comfyUiPath === detectPortableComfyUiPath());
+  const [isDetectedPathExisting, setIsDetectedPathExisting] = React.useState(false);
+
+  React.useEffect(() => {
+    let active = true;
+    const checkDetection = async () => {
+      const isKnown =
+        Boolean(settings.comfyUiPath) &&
+        (settings.comfyUiPath === KNOWN_PORTABLE_COMFYUI_PATH ||
+          settings.comfyUiPath === detectPortableComfyUiPath());
+      if (!isKnown) {
+        if (active) setIsDetectedPathExisting(false);
+        return;
+      }
+      const api = getDesktopLocalQwenApi();
+      if (!api?.verifyFolder) {
+        if (active) setIsDetectedPathExisting(false);
+        return;
+      }
+      try {
+        const res = await api.verifyFolder(settings.comfyUiPath);
+        if (active) {
+          setIsDetectedPathExisting(Boolean(res.ok && res.value.exists && res.value.hasComfyUiMain));
+        }
+      } catch {
+        if (active) setIsDetectedPathExisting(false);
+      }
+    };
+    void checkDetection();
+    return () => {
+      active = false;
+    };
+  }, [settings.comfyUiPath]);
+
+  const isAutoDetected = isDetectedPathExisting;
 
   return (
     <SectionCard

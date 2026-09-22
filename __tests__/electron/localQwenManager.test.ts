@@ -7,6 +7,10 @@ import {
   LocalQwenManager,
   verifyLoopbackOnly,
   DEFAULT_COMFYUI_PORT,
+  defaultHealthCheckFn,
+  parseLocalQwenGenerateParams,
+  parseLocalQwenUpscaleParams,
+  parseLocalQwenFolder,
 } from '../../electron/localQwenManager';
 
 // Mock electron so importing localQwenManager or gateway does not fail in vitest
@@ -245,6 +249,223 @@ describe('LocalQwenManager', () => {
       expect(args).toContain('8188');
       expect(args).toContain('--disable-auto-launch');
       expect(args).not.toContain('--disable-dynamic-vram');
+    });
+  });
+
+  describe('ownership preservation on Retry startServer', () => {
+    it('preserves isAppOwned: true when app-owned child is still alive and responding', async () => {
+      const probeFn = vi.fn().mockResolvedValue(true);
+      const mockProc = createMockProcess(1234);
+      const manager = new LocalQwenManager({ probeFn });
+
+      manager.isAppOwned = true;
+      manager.state = 'error';
+      manager.childProcess = mockProc as unknown as ChildProcess;
+      manager.childPid = 1234;
+
+      const status = await manager.startServer('D:\\ComfyUI_windows_portable');
+
+      expect(status.state).toBe('ready');
+      expect(status.isAppOwned).toBe(true);
+      expect(manager.isAppOwned).toBe(true);
+      expect(manager.childPid).toBe(1234);
+    });
+
+    it('sets isAppOwned: false when probe succeeds but no app child process exists', async () => {
+      const probeFn = vi.fn().mockResolvedValue(true);
+      const manager = new LocalQwenManager({ probeFn });
+
+      manager.isAppOwned = false;
+      manager.childProcess = undefined;
+
+      const status = await manager.startServer('D:\\ComfyUI_windows_portable');
+
+      expect(status.state).toBe('ready');
+      expect(status.isAppOwned).toBe(false);
+      expect(manager.isAppOwned).toBe(false);
+    });
+  });
+
+  describe('compatibility probe and environment health', () => {
+    it('marks error when /system_stats returns 200 but lacks system object', async () => {
+      const probeFn = vi.fn().mockResolvedValue(true);
+      const healthCheckFn = vi.fn().mockResolvedValue({
+        compatible: false,
+        error: 'ComfyUI /system_stats failed or returned unsupported version',
+      });
+      const manager = new LocalQwenManager({ probeFn, healthCheckFn });
+
+      const status = await manager.getStatus();
+      expect(status.state).toBe('error');
+      expect(status.error).toContain('system_stats failed or returned unsupported version');
+    });
+
+    it('marks error when custom node ComfyUI-GGUF is missing', async () => {
+      const probeFn = vi.fn().mockResolvedValue(true);
+      const healthCheckFn = vi.fn().mockResolvedValue({
+        compatible: false,
+        error: 'ComfyUI is incompatible: custom node ComfyUI-GGUF is missing',
+      });
+      const manager = new LocalQwenManager({ probeFn, healthCheckFn });
+
+      const status = await manager.getStatus();
+      expect(status.state).toBe('error');
+      expect(status.error).toContain('ComfyUI-GGUF is missing');
+    });
+
+    it('marks error on startServer if environment is incompatible', async () => {
+      const probeFn = vi.fn().mockResolvedValue(true);
+      const healthCheckFn = vi.fn().mockResolvedValue({
+        compatible: false,
+        error: 'UnetLoaderGGUF: qwen-image-2.1-Q4_K_M.gguf not found in models/diffusion_models',
+      });
+      const manager = new LocalQwenManager({ probeFn, healthCheckFn });
+
+      const status = await manager.startServer();
+      expect(status.state).toBe('error');
+      expect(status.error).toContain('qwen-image-2.1-Q4_K_M.gguf not found');
+    });
+
+    it('defaultHealthCheckFn validates system_stats and node endpoints', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.endsWith('/system_stats')) {
+          return new Response(JSON.stringify({ system: { os: 'nt', argv: [] } }), { status: 200 });
+        }
+        if (url.endsWith('/object_info/UnetLoaderGGUF')) {
+          return new Response(
+            JSON.stringify({
+              UnetLoaderGGUF: {
+                input: {
+                  required: {
+                    unet_name: [['qwen-image-2.1-Q4_K_M.gguf', 'other.gguf']],
+                  },
+                },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        if (url.endsWith('/object_info/TextEncodeQwenImage21')) {
+          return new Response(JSON.stringify({ TextEncodeQwenImage21: {} }), { status: 200 });
+        }
+        return new Response('Not found', { status: 404 });
+      });
+
+      const result = await defaultHealthCheckFn('http://127.0.0.1:8188', mockFetch as unknown as typeof fetch);
+      expect(result.compatible).toBe(true);
+    });
+
+    it('defaultHealthCheckFn fails closed on thrown network/timeout error', async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:8188'));
+      const result = await defaultHealthCheckFn('http://127.0.0.1:8188', mockFetch as unknown as typeof fetch);
+      expect(result.compatible).toBe(false);
+      expect(result.error).toContain('ECONNREFUSED');
+    });
+
+    it('defaultHealthCheckFn fails closed on AbortError timeout', async () => {
+      const timeoutError = new Error('The operation was aborted due to timeout');
+      timeoutError.name = 'TimeoutError';
+      const mockFetch = vi.fn().mockRejectedValue(timeoutError);
+      const result = await defaultHealthCheckFn('http://127.0.0.1:8188', mockFetch as unknown as typeof fetch);
+      expect(result.compatible).toBe(false);
+      expect(result.error).toContain('timeout');
+    });
+  });
+
+  describe('checkFolder validation', () => {
+    it('returns exists: false for invalid or missing folder', () => {
+      const manager = new LocalQwenManager();
+      expect(manager.checkFolder('')).toEqual({ exists: false, hasComfyUiMain: false });
+      expect(manager.checkFolder('   ')).toEqual({ exists: false, hasComfyUiMain: false });
+      expect(manager.checkFolder('D:\\NonExistentPath_xyz_123')).toEqual({ exists: false, hasComfyUiMain: false });
+    });
+
+    it('returns exists: true and hasComfyUiMain: true for valid ComfyUI directory', () => {
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+      vi.spyOn(fs, 'statSync').mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+      const manager = new LocalQwenManager();
+      const result = manager.checkFolder('D:\\ComfyUI_windows_portable');
+      expect(result.exists).toBe(true);
+      expect(result.hasComfyUiMain).toBe(true);
+    });
+  });
+
+  describe('IPC boundary validation (parse-first)', () => {
+    it('parses valid generate params cleanly', () => {
+      const parsed = parseLocalQwenGenerateParams({
+        prompt: 'A beautiful portrait',
+        negativePrompt: 'blurry, bad quality',
+        resolution: 768,
+        steps: 20,
+        cfg: 2.0,
+        sampler: 'Euler a',
+        scheduler: 'Karras',
+        seed: 42,
+        images: [
+          { base64: 'abc123==', mimeType: 'image/png' },
+        ],
+      });
+
+      expect(parsed.prompt).toBe('A beautiful portrait');
+      expect(parsed.resolution).toBe(768);
+      expect(parsed.steps).toBe(20);
+      expect(parsed.images?.length).toBe(1);
+    });
+
+    it('rejects generate params with missing or empty prompt', () => {
+      expect(() => parseLocalQwenGenerateParams({})).toThrow(/prompt/);
+      expect(() => parseLocalQwenGenerateParams({ prompt: '' })).toThrow(/prompt/);
+      expect(() => parseLocalQwenGenerateParams({ prompt: '   ' })).toThrow(/prompt/);
+    });
+
+    it('rejects generate params with unsupported keys', () => {
+      expect(() =>
+        parseLocalQwenGenerateParams({
+          prompt: 'valid',
+          evilKey: 'malicious',
+        }),
+      ).toThrow(/unsupported field evilKey/);
+    });
+
+    it('accepts >4 reference images at generic IPC transport level (structured VTO/transfer flows)', () => {
+      const sixImages = Array.from({ length: 6 }, (_, i) => ({
+        base64: `img${i}`,
+        mimeType: 'image/png',
+      }));
+
+      const parsed = parseLocalQwenGenerateParams({
+        prompt: 'A stylish dress',
+        images: sixImages,
+      });
+      expect(parsed.images).toHaveLength(6);
+    });
+
+    it('rejects out-of-range steps, cfg, or invalid sampler', () => {
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', steps: 0 })).toThrow(/steps/);
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', steps: 51 })).toThrow(/steps/);
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', cfg: 0.05 })).toThrow(/cfg/);
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', cfg: 10.5 })).toThrow(/cfg/);
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', sampler: 'FakeSampler' })).toThrow(/sampler/);
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', scheduler: 'FakeScheduler' })).toThrow(/scheduler/);
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', resolution: 600 })).toThrow(/resolution/);
+    });
+
+    it('parses valid upscale params and rejects malformed ones', () => {
+      const valid = parseLocalQwenUpscaleParams({ image: 'base64-data', scale: 2 });
+      expect(valid.image).toBe('base64-data');
+      expect(valid.scale).toBe(2);
+
+      expect(() => parseLocalQwenUpscaleParams({ image: '' })).toThrow(/upscale image/);
+      expect(() => parseLocalQwenUpscaleParams({ image: 'valid', scale: 10 })).toThrow(/scale/);
+      expect(() => parseLocalQwenUpscaleParams({ image: 'valid', extraKey: true })).toThrow(/unsupported field/);
+    });
+
+    it('parses folder and handles undefined/non-string', () => {
+      expect(parseLocalQwenFolder(undefined)).toBeUndefined();
+      expect(parseLocalQwenFolder(null)).toBeUndefined();
+      expect(parseLocalQwenFolder('  D:\\ComfyUI  ')).toBe('D:\\ComfyUI');
+      expect(() => parseLocalQwenFolder(123)).toThrow(/folder path/);
     });
   });
 });

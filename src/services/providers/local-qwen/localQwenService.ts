@@ -3,6 +3,7 @@ import {
   getDesktopLocalQwenApi,
   type LocalQwenGenerateParams,
 } from '../../../platform/desktopLocalQwen';
+import { loadLocalQwenSettings } from '../../../config/localQwenSettings';
 
 /**
  * Calls desktop Local Qwen bridge to generate an image using local ComfyUI.
@@ -30,6 +31,15 @@ export const generateLocalQwenImage = async (
   signal?.addEventListener('abort', abortHandler, { once: true });
 
   try {
+    const statusRes = await desktopLocalQwen.getStatus();
+    if (statusRes?.ok && statusRes.value.state !== 'ready' && statusRes.value.state !== 'generating') {
+      const configuredPath = loadLocalQwenSettings().comfyUiPath || undefined;
+      const startRes = await desktopLocalQwen.startServer(configuredPath);
+      if (startRes?.ok === false) {
+        throw new Error(startRes.error.message || 'Failed to auto-start local ComfyUI server.');
+      }
+    }
+
     const result = await desktopLocalQwen.generateImage(params);
     if (result.ok === false) {
       throw new Error(result.error.message || 'Local Qwen generation failed.');
