@@ -36,18 +36,21 @@ export interface UseAIEditorReturn {
   setResolution: (resolution: ImageResolution) => void;
   imageEditModel: string;
   handleGenerate: () => Promise<void>;
+  handleUpscale: (image: ImageFile) => Promise<void>;
+  isUpscaling: boolean;
   clearError: () => void;
   engineId?: ImageEngineId;
 }
 
 export const useAIEditor = (): UseAIEditorReturn => {
   const { t } = useLanguage();
-  const { editImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
 
   const [images, setImages] = useState<ImageFile[]>([]);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpscaling, setIsUpscaling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<ImageFile | null>(null);
   const generationInFlightRef = useRef(false);
@@ -119,6 +122,17 @@ export const useAIEditor = (): UseAIEditorReturn => {
     [images, engineId],
   );
 
+  /** Drop @imgN tokens whose image was not sent (local Qwen caps mentions at 4). */
+  const stripDroppedMentions = useCallback(
+    (promptText: string, keptImages: ImageFile[]): string => {
+      const keptNumbers = new Set(keptImages.map((image) => images.indexOf(image) + 1));
+      return promptText.replace(MENTION_REGEX, (match, digits: string) =>
+        keptNumbers.has(Number.parseInt(digits, 10)) ? match : '',
+      );
+    },
+    [images],
+  );
+
   const handleGenerate = useCallback(async (): Promise<void> => {
     if (generationInFlightRef.current) return;
 
@@ -152,7 +166,10 @@ export const useAIEditor = (): UseAIEditorReturn => {
         ? mentionedImages
         : (isLocalQwen ? images.slice(0, 4) : images);
 
-      const apiPrompt = buildApiPrompt(prompt, mentionedImages);
+      const userPrompt = mentionedSelection.hasMentions && mentionedImages.length < rawMentionedImages.length
+        ? stripDroppedMentions(prompt, mentionedImages)
+        : prompt;
+      const apiPrompt = buildApiPrompt(userPrompt, mentionedImages);
       const [result] = await editImage(
         {
           images: imagesToSend,
@@ -187,11 +204,28 @@ export const useAIEditor = (): UseAIEditorReturn => {
     editImage,
     imageEditModel,
     extractMentionedImages,
+    stripDroppedMentions,
     buildApiPrompt,
     t,
     addImage,
     engineId,
   ]);
+
+  const handleUpscale = useCallback(async (imageToUpscale: ImageFile): Promise<void> => {
+    setIsUpscaling(true);
+    setError(null);
+    try {
+      const result = await upscaleImage(imageToUpscale, imageEditModel, {
+        onStatusUpdate: () => {},
+      });
+      setResultImage(result);
+      addImage(result, Feature.AIEditor, engineId);
+    } catch (err) {
+      setError(getErrorMessage(err, t));
+    } finally {
+      setIsUpscaling(false);
+    }
+  }, [addImage, engineId, imageEditModel, t, upscaleImage]);
 
   return {
     images,
@@ -207,6 +241,8 @@ export const useAIEditor = (): UseAIEditorReturn => {
     setResolution,
     imageEditModel,
     handleGenerate,
+    handleUpscale,
+    isUpscaling,
     clearError: () => setError(null),
     warning: engineId === 'localQwen' && images.length > 4 && !extractMentionedImages(prompt).hasMentions
       ? t('aiEditor.localQwenRefLimitNotice')

@@ -3,6 +3,7 @@ import {
   getDesktopLocalQwenApi,
   type DesktopLocalQwenStatus,
 } from '../platform/desktopLocalQwen';
+import { loadLocalQwenSettings } from '../config/localQwenSettings';
 
 export interface UseLocalQwenStatusOptions {
   pollIntervalMs?: number;
@@ -37,6 +38,7 @@ export const useLocalQwenStatus = (
   const [isCancelling, setIsCancelling] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const mountedRef = useRef(true);
+  const latestRequestIdRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -51,9 +53,10 @@ export const useLocalQwenStatus = (
       return undefined;
     }
 
+    const currentRequestId = ++latestRequestIdRef.current;
     try {
       const result = await api.getStatus();
-      if (result.ok && mountedRef.current) {
+      if (result.ok && mountedRef.current && currentRequestId === latestRequestIdRef.current) {
         setStatus(result.value);
         return result.value;
       }
@@ -72,7 +75,8 @@ export const useLocalQwenStatus = (
 
       setIsStarting(true);
       try {
-        const result = await api.startServer(folder);
+        const targetFolder = folder?.trim() || loadLocalQwenSettings().comfyUiPath || undefined;
+        const result = await api.startServer(targetFolder);
         if (mountedRef.current) {
           if (result.ok === false) {
             setStatus({

@@ -37,6 +37,12 @@ export const verifyLoopbackOnly = (targetUrl: string): boolean => {
   }
 };
 
+const buildComfyUIViewUrl = (
+  baseUrl: string,
+  imgInfo: { filename: string; subfolder?: string; type?: string },
+): string =>
+  `${baseUrl}/view?filename=${encodeURIComponent(imgInfo.filename)}&subfolder=${encodeURIComponent(imgInfo.subfolder || '')}&type=${encodeURIComponent(imgInfo.type || 'output')}`;
+
 export const defaultProbeFn = async (endpoint: string, timeoutMs = 2000): Promise<boolean> => {
   if (!verifyLoopbackOnly(endpoint)) {
     throw new Error('Security error: Only loopback 127.0.0.1 is permitted for ComfyUI endpoint.');
@@ -274,7 +280,12 @@ export class LocalQwenManager {
     // 4. Resolve command
     const { executable, args } = this.resolveLaunchCommand(comfyDir);
 
-    // 5. Spawn child process
+    // 5. Release any process we still own before spawning a replacement
+    if (this.childProcess && this.isAppOwned) {
+      await this.stopServer();
+    }
+
+    // 6. Spawn child process
     this.state = 'starting';
     this.isAppOwned = true;
     this.lastError = undefined;
@@ -316,7 +327,7 @@ export class LocalQwenManager {
       this.childPid = undefined;
     });
 
-    // 6. Wait for ready
+    // 7. Wait for ready
     const isReady = await this.waitForReady(this.readinessTimeoutMs);
     if (!isReady) {
       if ((this.state as DesktopLocalQwenState) !== 'error') {
@@ -349,29 +360,37 @@ export class LocalQwenManager {
       return { stopped: false, wasExternal: true };
     }
 
-    if (this.childProcess && !this.childProcess.killed) {
-      try {
-        this.childProcess.kill('SIGTERM');
-        const { promise, resolve } = Promise.withResolvers<void>();
-        const timer = setTimeout(() => {
-          if (this.childProcess && !this.childProcess.killed) {
-            try {
-              this.childProcess.kill('SIGKILL');
-            } catch {
-              // Ignore
-            }
+    const child = this.childProcess;
+    if (child) {
+      const { promise, resolve } = Promise.withResolvers<void>();
+      // `.killed` only reports that a signal was sent, not that the process died.
+      // Track the real exit so a child that ignores SIGTERM still gets SIGKILL.
+      let exited = false;
+      const timer = setTimeout(() => {
+        if (!exited) {
+          try {
+            child.kill('SIGKILL');
+          } catch {
+            // Ignore
           }
-          resolve();
-        }, 1500);
+        }
+        resolve();
+      }, 1500);
 
-        this.childProcess.once('exit', () => {
-          clearTimeout(timer);
-          resolve();
-        });
-        await promise;
+      child.once('exit', () => {
+        exited = true;
+        clearTimeout(timer);
+        resolve();
+      });
+
+      try {
+        child.kill('SIGTERM');
       } catch {
-        // Ignore
+        clearTimeout(timer);
+        resolve();
       }
+
+      await promise;
     }
 
     this.childProcess = undefined;
@@ -619,60 +638,22 @@ export class LocalQwenManager {
         throw new Error('ComfyUI did not return a prompt_id.');
       }
 
-      const timeoutMs = 600_000;
-      const pollIntervalMs = 500;
-      const startTime = Date.now();
+      const { base64, mimeType } = await this.pollComfyUIHistory(
+        promptId,
+        baseUrl,
+        abortController.signal,
+        'Generation cancelled by user',
+        'generation',
+      );
 
-      while (Date.now() - startTime < timeoutMs) {
-        if (this.isCancelled || abortController.signal.aborted) {
-          throw new Error('Generation cancelled by user');
-        }
-
-        const historyRes = await this.fetchFn(`${baseUrl}/history/${promptId}`);
-        if (historyRes.ok) {
-          const historyData = (await historyRes.json()) as Record<string, {
-            outputs?: Record<string, { images?: Array<{ filename: string; subfolder?: string; type?: string }> }>;
-            status?: { status_str?: string; messages?: unknown };
-          }>;
-
-          const item = historyData[promptId];
-          if (item) {
-            if (item.status?.status_str === 'error') {
-              throw new Error(`ComfyUI execution failed: ${JSON.stringify(item.status.messages || 'Unknown error')}`);
-            }
-
-            if (item.outputs) {
-              for (const nodeId of Object.keys(item.outputs)) {
-                const nodeOut = item.outputs[nodeId];
-                if (nodeOut?.images && nodeOut.images.length > 0) {
-                  const imgInfo = nodeOut.images[0];
-                  const viewUrl = `${baseUrl}/view?filename=${encodeURIComponent(imgInfo.filename)}&subfolder=${encodeURIComponent(imgInfo.subfolder || '')}&type=${encodeURIComponent(imgInfo.type || 'output')}`;
-                  const viewRes = await this.fetchFn(viewUrl);
-                  if (!viewRes.ok) {
-                    throw new Error(`Failed to fetch rendered image from ComfyUI: ${viewRes.statusText}`);
-                  }
-                  const buffer = Buffer.from(await viewRes.arrayBuffer());
-                  const base64 = buffer.toString('base64');
-                  this.state = 'ready';
-                  this.lastError = undefined;
-                  return {
-                    image: {
-                      base64,
-                      mimeType: 'image/png',
-                    },
-                  };
-                }
-              }
-            }
-          }
-        }
-
-        const { promise, resolve } = Promise.withResolvers<void>();
-        setTimeout(resolve, pollIntervalMs);
-        await promise;
-      }
-
-      throw new Error('ComfyUI generation timed out.');
+      this.state = 'ready';
+      this.lastError = undefined;
+      return {
+        image: {
+          base64,
+          mimeType,
+        },
+      };
     } catch (err) {
       this.state = 'error';
       this.lastError = (err as Error).message || String(err);
@@ -703,9 +684,33 @@ export class LocalQwenManager {
       throw new Error('No image provided for upscale.');
     }
 
+    this.state = 'generating';
+    this.isCancelled = false;
+    this.lastError = undefined;
+    const abortController = new AbortController();
+    this.activeAbortController = abortController;
+
+    try {
+      return await this.runUpscaleWorkflow(params, abortController.signal);
+    } catch (err) {
+      this.state = 'error';
+      this.lastError = (err as Error).message || String(err);
+      throw err;
+    } finally {
+      this.activeAbortController = undefined;
+      this.currentProgress = undefined;
+      if (this.state === 'generating') {
+        this.state = 'ready';
+      }
+    }
+  }
+
+  private async runUpscaleWorkflow(
+    params: LocalQwenUpscaleParams,
+    signal: AbortSignal,
+  ): Promise<LocalQwenUpscaleResult> {
     const host = `127.0.0.1:${this.port}`;
     const baseUrl = `http://${host}`;
-
     let rawBase64 = params.image.trim();
     let mimeType = 'image/png';
     if (rawBase64.startsWith('data:')) {
@@ -784,11 +789,39 @@ export class LocalQwenManager {
       throw new Error('ComfyUI did not return a prompt_id.');
     }
 
+    const { base64 } = await this.pollComfyUIHistory(
+      promptId,
+      baseUrl,
+      signal,
+      'Upscale cancelled by user',
+      'upscale',
+    );
+
+    return {
+      image: base64,
+    };
+  }
+
+  /**
+   * Polls ComfyUI /history/{promptId} until the rendered image is available,
+   * then downloads it as base64. Shared by generation and upscale workflows.
+   */
+  private async pollComfyUIHistory(
+    promptId: string,
+    baseUrl: string,
+    signal: AbortSignal,
+    cancelledMessage: string,
+    label: 'generation' | 'upscale',
+  ): Promise<{ base64: string; mimeType: string }> {
     const timeoutMs = 600_000;
     const pollIntervalMs = 500;
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
+      if (this.isCancelled || signal.aborted) {
+        throw new Error(cancelledMessage);
+      }
+
       const historyRes = await this.fetchFn(`${baseUrl}/history/${promptId}`);
       if (historyRes.ok) {
         const historyData = (await historyRes.json()) as Record<string, {
@@ -799,24 +832,20 @@ export class LocalQwenManager {
         const item = historyData[promptId];
         if (item) {
           if (item.status?.status_str === 'error') {
-            throw new Error(`ComfyUI upscale execution failed: ${JSON.stringify(item.status.messages || 'Unknown error')}`);
+            throw new Error(`ComfyUI ${label} execution failed: ${JSON.stringify(item.status.messages || 'Unknown error')}`);
           }
 
           if (item.outputs) {
             for (const nodeId of Object.keys(item.outputs)) {
               const nodeOut = item.outputs[nodeId];
-              if (nodeOut?.images && nodeOut.images.length > 0) {
-                const imgInfo = nodeOut.images[0];
-                const viewUrl = `${baseUrl}/view?filename=${encodeURIComponent(imgInfo.filename)}&subfolder=${encodeURIComponent(imgInfo.subfolder || '')}&type=${encodeURIComponent(imgInfo.type || 'output')}`;
-                const viewRes = await this.fetchFn(viewUrl);
+              const imgInfo = nodeOut?.images?.[0];
+              if (imgInfo) {
+                const viewRes = await this.fetchFn(buildComfyUIViewUrl(baseUrl, imgInfo));
                 if (!viewRes.ok) {
-                  throw new Error(`Failed to fetch upscaled image from ComfyUI: ${viewRes.statusText}`);
+                  throw new Error(`Failed to fetch image from ComfyUI: ${viewRes.statusText}`);
                 }
-                const imageBuffer = Buffer.from(await viewRes.arrayBuffer());
-                const base64 = imageBuffer.toString('base64');
-                return {
-                  image: base64,
-                };
+                const buffer = Buffer.from(await viewRes.arrayBuffer());
+                return { base64: buffer.toString('base64'), mimeType: 'image/png' };
               }
             }
           }
@@ -828,7 +857,7 @@ export class LocalQwenManager {
       await promise;
     }
 
-    throw new Error('ComfyUI upscale timed out.');
+    throw new Error(`ComfyUI ${label} timed out.`);
   }
 }
 

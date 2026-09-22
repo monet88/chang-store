@@ -116,6 +116,10 @@ describe('useAIEditor in Local Qwen Studio', () => {
       // With mentions: capped at 4
       expect(callParams.images).toHaveLength(4);
       expect(callParams.images).toEqual([IMG_1, IMG_2, IMG_3, IMG_4]);
+
+      // Dropped @img5 must not survive as an orphaned reference in the prompt
+      expect(callParams.prompt).not.toContain('@img5');
+      expect(callParams.prompt).toContain('@img4');
     });
   });
 

@@ -4,6 +4,7 @@ import { ImageGalleryContext } from '../contexts/ImageGalleryContext';
 import type { EditImageParams } from '../services/imageEditingService';
 import type { ImageFile, UpscaleQuality } from '../types';
 import { snapshotLocalQwenSettings } from '../config/localQwenSettings';
+import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
 import { generateLocalQwenImage } from '../services/providers/local-qwen/localQwenService';
 
 // Module-level serialized queue ensuring max 1 active generation job at a time
@@ -51,19 +52,9 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
         const settings = snapshotLocalQwenSettings();
 
         // 2. Extract prompt and images from interleaved parts or fallback params
-        let prompt = params.prompt || '';
-        let images: ImageFile[] = params.images || [];
-
-        if (params.interleavedParts && params.interleavedParts.length > 0) {
-          prompt = params.interleavedParts
-            .flatMap((part) => (part.text ? [part.text] : []))
-            .join('\n\n');
-          images = params.interleavedParts.flatMap((part) =>
-            part.inlineData?.data
-              ? [{ base64: part.inlineData.data, mimeType: part.inlineData.mimeType || 'image/png' }]
-              : [],
-          );
-        }
+        const interleaved = flattenInterleavedParts(params.interleavedParts);
+        const prompt = interleaved ? interleaved.prompt : params.prompt || '';
+        const images: ImageFile[] = interleaved ? interleaved.images : params.images || [];
 
         config?.onStatusUpdate?.('Generating with local ComfyUI (Qwen-Image 2.1)...');
 

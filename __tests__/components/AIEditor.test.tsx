@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { Feature, ImageEngineId, ImageFile } from '@/types';
 
 const handleGenerateMock = vi.fn();
+const handleUpscaleMock = vi.fn();
 const clearErrorMock = vi.fn();
 const setImagesMock = vi.fn();
 const setPromptMock = vi.fn();
@@ -24,6 +25,8 @@ let hookState: {
   setResolution: typeof setResolutionMock;
   imageEditModel: string;
   handleGenerate: typeof handleGenerateMock;
+  handleUpscale: typeof handleUpscaleMock;
+  isUpscaling?: boolean;
   clearError: typeof clearErrorMock;
   engineId?: ImageEngineId;
   refLimitNotice?: string | null;
@@ -67,7 +70,12 @@ vi.mock('@/components/ImageOptionsPanel', () => ({
 
 vi.mock('@/components/HoverableImage', () => ({
   __esModule: true,
-  default: ({ downloadPrefix }: { downloadPrefix: Feature }) => <div>hoverable:{downloadPrefix}</div>,
+  default: ({ downloadPrefix, onUpscale }: { downloadPrefix: Feature; onUpscale?: () => void }) => (
+    <div>
+      <span>hoverable:{downloadPrefix}</span>
+      {onUpscale && <button onClick={onUpscale}>upscale-result</button>}
+    </div>
+  ),
 }));
 
 vi.mock('@/components/Spinner', () => ({
@@ -105,6 +113,8 @@ describe('AIEditor', () => {
       setResolution: setResolutionMock,
       imageEditModel: 'gemini-2.5-flash-image',
       handleGenerate: handleGenerateMock,
+      handleUpscale: handleUpscaleMock,
+      isUpscaling: false,
       clearError: clearErrorMock,
     };
   });
@@ -140,24 +150,19 @@ describe('AIEditor', () => {
     expect(clearErrorMock).toHaveBeenCalledTimes(1);
   });
 
-  it('displays notice when studioMode is localQwen and user uploads > 4 images without mentions', () => {
-    hookState.images = [
-      { base64: 'img1', mimeType: 'image/png' },
-      { base64: 'img2', mimeType: 'image/png' },
-      { base64: 'img3', mimeType: 'image/png' },
-      { base64: 'img4', mimeType: 'image/png' },
-      { base64: 'img5', mimeType: 'image/png' },
-    ];
-    hookState.prompt = 'Transform the scenery';
+  it('wires the result upscale button to the hook handler', () => {
+    hookState.images = [{ base64: 'existing-image', mimeType: 'image/png' }];
+    hookState.resultImage = { base64: 'result-image', mimeType: 'image/png' };
 
-    render(<AIEditor studioMode="localQwen" />);
+    render(<AIEditor />);
 
-    expect(screen.getByTestId('local-qwen-ref-limit-notice')).toBeInTheDocument();
-    expect(screen.getByText('aiEditor.localQwenRefLimitNotice')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'upscale-result' }));
+    expect(handleUpscaleMock).toHaveBeenCalledWith({ base64: 'result-image', mimeType: 'image/png' });
   });
 
-  it('displays notice inferred from hook engineId when studioMode prop is omitted', () => {
+  it('displays notice when hook reports a local Qwen reference limit', () => {
     hookState.engineId = 'localQwen';
+    hookState.refLimitNotice = 'aiEditor.localQwenRefLimitNotice';
     hookState.images = [
       { base64: 'img1', mimeType: 'image/png' },
       { base64: 'img2', mimeType: 'image/png' },

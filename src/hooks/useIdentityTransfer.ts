@@ -36,8 +36,9 @@ export const useIdentityTransfer = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [upscalingItemIds, setUpscalingItemIds] = useState<Record<string, boolean>>({});
 
-  const { editImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
   const { scan } = useAiScan();
@@ -203,6 +204,28 @@ export const useIdentityTransfer = () => {
     }
   }, [bodyReference, destinationItems, faceReference, generateForDestination]);
 
+  // Same contract as the other Features' explicit upscale: the engine's own
+  // `upscaleImage` (local ComfyUI in the Local Qwen studio, cloud elsewhere)
+  // replaces the slot and persists the result next to the original.
+  const buildImageServiceConfig = useCallback(
+    (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),
+    [],
+  );
+
+  const handleUpscale = useCallback(async (imageToUpscale: ImageFile, itemId: string) => {
+    setUpscalingItemIds((prev) => ({ ...prev, [itemId]: true }));
+    setError(null);
+    try {
+      const result = await upscaleImage(imageToUpscale, imageEditModel, buildImageServiceConfig(() => {}));
+      updateDestinationItem(itemId, { results: [result] });
+      addImage(result, Feature.IdentityTransfer, engineId);
+    } catch (upscaleError) {
+      setError(getErrorMessage(upscaleError, t));
+    } finally {
+      setUpscalingItemIds((prev) => ({ ...prev, [itemId]: false }));
+    }
+  }, [addImage, buildImageServiceConfig, engineId, imageEditModel, t, updateDestinationItem]);
+
   const completedCount = useMemo(
     () => destinationItems.filter((item) => item.status === 'completed').length,
     [destinationItems],
@@ -219,5 +242,6 @@ export const useIdentityTransfer = () => {
     setFaceReference: updateFaceReference, setBodyReference: updateBodyReference, setBackgroundPrompt, setExtraPrompt,
     setAspectRatio, setResolution, setError, handleDestinationImagesUpload,
     handleGenerate, handleRegenerateSingle,
+    upscalingItemIds, handleUpscale,
   };
 };

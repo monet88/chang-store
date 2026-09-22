@@ -290,7 +290,7 @@ Local Qwen is desktop-only and intentionally narrower. Its first implementation
 is serial (one active job), defaults to 512 px on the target 8 GB GPU, keeps
 upscale as a separate explicit user action, never falls back to cloud
 automatically, and delegates local-process ownership to Electron main. See
-`docs/api/local-comfyui-qwen-api-guide.md` for the measured runtime contract.
+`docs/api/localQwen-api-guide.md` for the measured runtime contract.
 
 The current source tree has no server-side request, session, or audit-log
 layer. The generic server layering and observability sections above are

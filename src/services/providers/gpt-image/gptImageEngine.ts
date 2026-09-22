@@ -1,9 +1,10 @@
-import type { editImage, upscaleImage, EditImageParams } from '../../imageEditingService';
+import type { editImage, upscaleImage } from '../../imageEditingService';
 import type { ImageAspectRatio, ImageFile, UpscaleQuality } from '../../../types';
 import { DEFAULT_GPT_IMAGE_SIZE, type GptImageQuality } from '../../../config/gptImageModelRegistry';
 import { PROVIDER_UPSCALE_PROMPTS } from '../../../utils/provider-refine-prompt';
 import { appendNegativePrompt } from '../../../utils/negative-prompt-builder';
 import { runBoundedWorkers } from '../../../utils/run-bounded-workers';
+import { flattenInterleavedParts } from '../../../utils/flattenInterleavedParts';
 import { editGptImage, type GptImageServiceConfig } from './gptImageService';
 
 /**
@@ -58,26 +59,6 @@ export interface GptImageEngineParams {
   /** Fail-closed credentials of the resolved image-lane profile. */
   credentials: GptImageServiceConfig;
 }
-
-/**
- * The shared workflow hooks hand both lanes the same interleaved `Part[]`
- * (role labels + images) that `editImage` documents as overriding prompt and
- * images. OpenAI's edit endpoint has no interleaved content: the text parts
- * become the one `prompt`, the inline parts become the ordered `image[]` files.
- */
-const flattenInterleavedParts = (
-  parts: EditImageParams['interleavedParts'],
-): { prompt: string; images: ImageFile[] } | null => {
-  if (!parts?.length) return null;
-  return {
-    prompt: parts.flatMap((part) => (part.text ? [part.text] : [])).join('\n\n'),
-    images: parts.flatMap((part) =>
-      part.inlineData?.data
-        ? [{ base64: part.inlineData.data, mimeType: part.inlineData.mimeType ?? 'image/png' }]
-        : [],
-    ),
-  };
-};
 
 /**
  * OpenAI Images edits are stateless: a refine is one edit request carrying the

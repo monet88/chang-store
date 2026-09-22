@@ -28,7 +28,7 @@ interface AIEditorProps {
  * AIEditor component
  * Provides multi-image editing with @mention reference system
  */
-const AIEditor: React.FC<AIEditorProps> = ({ studioMode: propStudioMode }) => {
+const AIEditor: React.FC<AIEditorProps> = () => {
   const { t } = useLanguage();
   const {
     images,
@@ -44,14 +44,11 @@ const AIEditor: React.FC<AIEditorProps> = ({ studioMode: propStudioMode }) => {
     setResolution,
     imageEditModel,
     handleGenerate,
+    handleUpscale,
+    isUpscaling,
     clearError,
-    engineId,
     refLimitNotice,
   } = useAIEditor();
-
-  const studioMode = propStudioMode || engineId;
-  const hasMentions = /@img\d+/.test(prompt);
-  const showNotice = studioMode === 'localQwen' && images.length > 4 && !hasMentions;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
@@ -74,13 +71,13 @@ const AIEditor: React.FC<AIEditorProps> = ({ studioMode: propStudioMode }) => {
         </div>
 
         {/* Local Qwen reference limit notice */}
-        {showNotice && (
+        {refLimitNotice && (
           <div
             data-testid="local-qwen-ref-limit-notice"
             role="status"
             className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200"
           >
-            {refLimitNotice || t('aiEditor.localQwenRefLimitNotice')}
+            {refLimitNotice}
           </div>
         )}
 
@@ -140,7 +137,9 @@ const AIEditor: React.FC<AIEditorProps> = ({ studioMode: propStudioMode }) => {
               altText="AI Editor result"
               downloadPrefix={Feature.AIEditor}
               onRegenerate={handleGenerate}
+              onUpscale={() => void handleUpscale(resultImage)}
               isGenerating={isLoading}
+              isUpscaling={isUpscaling}
             />
           )}
 
