@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased] — 2026-09-23
+
+### Added
+
+- Custom app icon: a combined camera-lens + clothing-hanger logomark with an
+  indigo-to-fuchsia gradient, placed at `build/icon.ico` (multi-size ICO) and
+  `build/icon.png` (512×512 PNG). electron-builder now embeds the icon into both
+  the portable and installer executables instead of using the default Electron
+  icon.
+- NSIS installer build target (`npm run dist:win:installer`): produces a
+  one-click Windows setup EXE (`Chang Store-<version>-setup.exe`) that installs
+  to Program Files with desktop and Start Menu shortcuts. The installed app
+  launches faster than the portable variant because it skips per-launch
+  self-extraction.
+- Unified build script `scripts/build-win.mjs` replaces the former
+  `build-win-portable.mjs` and accepts a target argument (`portable` or `nsis`).
+
 ## [Unreleased] — 2026-09-21
 
 ### Added

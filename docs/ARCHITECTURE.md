@@ -190,6 +190,17 @@ the connection is pinned to the checked address to avoid DNS rebinding into loca
 or private networks. The browser build keeps the existing direct-provider/
 localStorage contract. See `docs/architecture/chatbox-desktop-audit.md`.
 
+Desktop packaging produces two Windows distribution formats through
+`electron-builder`:
+
+| Script | Target | Output | Startup |
+| --- | --- | --- | --- |
+| `npm run dist:win` | portable | `Chang Store-<ver>-portable.exe` | Self-extracts to `%TEMP%` each launch |
+| `npm run dist:win:installer` | nsis | `Chang Store-<ver>-setup.exe` | Installs to Program Files, runs directly |
+
+Both scripts live under `scripts/` and share the same `package.json` `build`
+section. The app icon (`build/icon.ico`) is embedded into each executable.
+
 ### Studio Modes
 
 AppContent owns the Feature routing and StudioMode switch. Feature values and

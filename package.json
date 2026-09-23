@@ -16,7 +16,8 @@
     "desktop:dev": "electron-vite dev",
     "desktop:build": "electron-vite build",
     "desktop:preview": "electron-vite preview",
-    "dist:win": "npm run desktop:build && node scripts/build-win-portable.mjs",
+    "dist:win": "npm run desktop:build && node scripts/build-win.mjs portable",
+    "dist:win:installer": "npm run desktop:build && node scripts/build-win.mjs nsis",
     "lint": "node node_modules/eslint/bin/eslint.js . --ext .ts,.tsx",
     "test": "vitest --run --passWithNoTests",
     "test:ui": "vitest --ui"
@@ -89,6 +90,13 @@
     },
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "artifactName": "${productName}-${version}-setup.${ext}"
     }
   }
 }

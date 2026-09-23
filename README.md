@@ -80,6 +80,23 @@ npm run desktop:build
 npm run desktop:preview
 ```
 
+### Desktop Distribution
+
+Build a portable Windows executable (no install needed, slower cold start):
+
+```bash
+npm run dist:win
+```
+
+Build an NSIS installer (faster startup, installs to Program Files):
+
+```bash
+npm run dist:win:installer
+```
+
+Both outputs land in `release/`. The installer variant skips the per-launch
+self-extraction that portable requires, so app startup is noticeably faster.
+
 ## Environment Variables
 
 Vite only exposes env vars with `VITE_` prefix. This project also supports
