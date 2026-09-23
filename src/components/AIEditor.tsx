@@ -10,7 +10,7 @@
  */
 
 import React from 'react';
-import { Feature } from '../types';
+import { Feature, StudioMode } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAIEditor } from '../hooks/useAIEditor';
 import MultiImageUploader from './MultiImageUploader';
@@ -40,8 +40,14 @@ const AIEditor: React.FC = () => {
     setResolution,
     imageEditModel,
     handleGenerate,
+    handleUpscale,
+    isUpscaling,
     clearError,
+    refLimitNotice,
+    engineId,
   } = useAIEditor();
+
+  const isLocalQwen = engineId === 'localQwen';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
@@ -63,6 +69,17 @@ const AIEditor: React.FC = () => {
           />
         </div>
 
+        {/* Local Qwen reference limit notice */}
+        {refLimitNotice && (
+          <div
+            data-testid="local-qwen-ref-limit-notice"
+            role="status"
+            className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200"
+          >
+            {refLimitNotice}
+          </div>
+        )}
+
         {/* Prompt with mentions */}
         <div>
           <label htmlFor="ai-editor-prompt" className="block text-sm font-medium text-zinc-300 mb-2">
@@ -78,16 +95,18 @@ const AIEditor: React.FC = () => {
           />
         </div>
 
-        {/* Options panel */}
-        <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-          <ImageOptionsPanel
-            aspectRatio={aspectRatio}
-            setAspectRatio={setAspectRatio}
-            resolution={resolution}
-            setResolution={setResolution}
-            model={imageEditModel}
-          />
-        </div>
+        {/* Options panel: Local Qwen snapshots its own settings instead */}
+        {!isLocalQwen && (
+          <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+            <ImageOptionsPanel
+              aspectRatio={aspectRatio}
+              setAspectRatio={setAspectRatio}
+              resolution={resolution}
+              setResolution={setResolution}
+              model={imageEditModel}
+            />
+          </div>
+        )}
 
         {/* Generate button */}
         <div className="text-center">
@@ -119,7 +138,9 @@ const AIEditor: React.FC = () => {
               altText="AI Editor result"
               downloadPrefix={Feature.AIEditor}
               onRegenerate={handleGenerate}
+              onUpscale={isLocalQwen ? () => void handleUpscale(resultImage) : undefined}
               isGenerating={isLoading}
+              isUpscaling={isUpscaling}
             />
           )}
 

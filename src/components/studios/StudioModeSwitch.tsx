@@ -1,23 +1,32 @@
-import React from 'react';
-import { StudioMode } from '../../types';
+import React, { useMemo } from 'react';
+import type { StudioMode } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { getDesktopLocalQwenApi } from '../../platform/desktopLocalQwen';
 
 interface StudioModeSwitchProps {
   studioMode: StudioMode;
   onChange: (mode: StudioMode) => void;
 }
 
-const STUDIO_SEGMENTS: Array<{ mode: StudioMode; labelKey: string }> = [
+const ALL_STUDIO_SEGMENTS: Array<{ mode: StudioMode; labelKey: string; desktopOnly?: boolean }> = [
   { mode: 'gemini', labelKey: 'studio.switch.gemini' },
   { mode: 'gptImage', labelKey: 'studio.switch.gptImage' },
+  { mode: 'localQwen', labelKey: 'studio.switch.localQwen', desktopOnly: true },
 ];
 
 /**
- * Studio switcher. Lets the user move between the Gemini studio
- * (default) and the GPT Image studio.
+ * Studio switcher. Lets the user move between Gemini, GPT Image,
+ * and Local Qwen (desktop only).
  */
 const StudioModeSwitch: React.FC<StudioModeSwitchProps> = ({ studioMode, onChange }) => {
   const { t } = useLanguage();
+  const hasLocalQwen =
+    typeof window !== 'undefined' &&
+    Boolean(window.desktopLocalQwen || getDesktopLocalQwenApi());
+
+  const segments = useMemo(() => {
+    return ALL_STUDIO_SEGMENTS.filter((seg) => !seg.desktopOnly || hasLocalQwen);
+  }, [hasLocalQwen]);
 
   return (
     <div
@@ -25,7 +34,7 @@ const StudioModeSwitch: React.FC<StudioModeSwitchProps> = ({ studioMode, onChang
       aria-label={t('studio.switch.label')}
       className="flex w-full items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1"
     >
-      {STUDIO_SEGMENTS.map(({ mode, labelKey }) => {
+      {segments.map(({ mode, labelKey }) => {
         const isActive = studioMode === mode;
         return (
           <button

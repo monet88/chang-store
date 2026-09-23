@@ -38,6 +38,7 @@ interface EComPackViewProps {
   imageEditModel: string;
   error: string | null;
   isGptImageStudio: boolean;
+  isLocalQwen?: boolean;
 }
 
 const GARMENT_SCOPES: { id: GarmentScope; labelKey: string }[] = [
@@ -57,6 +58,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
   imageEditModel,
   error,
   isGptImageStudio,
+  isLocalQwen = false,
 }) => {
   const { t } = useLanguage();
   const {
@@ -586,7 +588,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
               aspectRatio={aspectRatio}
               setAspectRatio={setAspectRatio}
             />
-          ) : (
+          ) : isLocalQwen ? null : (
             <ImageOptionsPanel
               aspectRatio={aspectRatio}
               setAspectRatio={setAspectRatio}

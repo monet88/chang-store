@@ -11,7 +11,9 @@ import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildGeminiClothingTransferParts } from '../utils/gemini-clothing-transfer-prompt';
 import { buildGptClothingTransferParts } from '../utils/gpt-clothing-transfer-prompt';
+import { buildQwenClothingTransferParts } from '../utils/qwen-clothing-transfer-prompt';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
+import { dispatchByEngine, resolveEngineConcurrency } from '../utils/engineDispatch';
 import { UseClothingTransferConceptsReturn } from './useClothingTransferConcepts';
 import { UseImageRefinementReturn } from './useImageRefinement';
 
@@ -83,9 +85,12 @@ export const useClothingTransferEngine = (
     ) => {
       updateConceptItem(itemId, { status: 'processing', results: [], error: undefined });
       try {
-        const interleavedParts = engineId === 'gptImage'
-          ? buildGptClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim())
-          : buildGeminiClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim());
+        const trimmedExtraPrompt = extraPrompt.trim();
+        const interleavedParts = dispatchByEngine(engineId, {
+          localQwen: () => buildQwenClothingTransferParts(conceptImage, refsWithImages, trimmedExtraPrompt),
+          gptImage: () => buildGptClothingTransferParts(conceptImage, refsWithImages, trimmedExtraPrompt),
+          gemini: () => buildGeminiClothingTransferParts(conceptImage, refsWithImages, trimmedExtraPrompt),
+        });
         const results = await driver.editImage(
           {
             images: [conceptImage, ...referenceImages],
@@ -127,7 +132,10 @@ export const useClothingTransferEngine = (
       id: item.id,
       conceptImage: item.conceptImage,
     }));
-    const batchConcurrency = Math.min(CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY, jobs.length);
+    const batchConcurrency = resolveEngineConcurrency(
+      engineId,
+      Math.min(CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY, jobs.length),
+    );
 
     setIsLoading(true);
     setLoadingMessage(t('clothingTransfer.generatingStatus'));
@@ -147,7 +155,7 @@ export const useClothingTransferEngine = (
       setLoadingMessage('');
     }
   }, [canGenerate, validReferences, conceptItems, resetAllStatus, refinement,
-    setIsLoading, setLoadingMessage, setError, setUpscalingStates, t, generateForItem]);
+    setIsLoading, setLoadingMessage, setError, setUpscalingStates, t, generateForItem, engineId]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
     const targetItem = conceptItems.find((item) => item.id === itemId);

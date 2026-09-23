@@ -8,6 +8,7 @@ The core domain model and ubiquitous language for the AI fashion studio applicat
 The top-level operational persona of the workspace, selecting which AI engine powers image creation.
 - `gemini`: Google Gemini SDK (`@google/genai`) via CPA gateway route (`gemini-native`).
 - `gptImage`: OpenAI-compatible images route via Image gateway profile (`openai-images`).
+- `localQwen`: Local Qwen image generation through the workstation's ComfyUI runtime.
 _Avoid_: Engine mode, Provider tab, AI flavor.
 
 **Gemini Studio**:
@@ -18,8 +19,12 @@ _Avoid_: Default studio, Google tab.
 The dedicated studio interface tailored for OpenAI GPT Image models. It hosts five features today - Virtual Try-On, Lookbook, Clothing Transfer, AI Editor and Identity Transfer - mirroring their Gemini twins while adapting the controls to pixel dimensions and generation qualities. The remaining five features follow in phase 2.
 _Avoid_: Provider studio, OpenAI wizard.
 
+**Local Qwen Studio**:
+The desktop-only studio interface powered by Qwen image generation on the user's workstation. Its initial product scope is Virtual Try-On, Clothing Transfer, Identity Transfer, and AI Editor. Local generation produces a reviewable result first; upscale remains an explicit user action after the user decides the result is worth keeping. The browser product does not expose this studio.
+_Avoid_: NSFW mode, fallback mode, offline Gemini.
+
 **Image Driver**:
-The transport layer abstraction responsible for executing image generation or edit requests against a specific API contract (`gemini-native` or `openai-images`).
+The transport layer abstraction responsible for executing image generation or edit requests against a specific image-engine contract (`gemini-native`, `openai-images`, or local ComfyUI).
 _Avoid_: Provider client, API connector.
 
 **Gateway Profile**:
@@ -61,7 +66,7 @@ _Avoid_: Target gallery, avatar list, mannequin selector.
 The optional analytical pre-pass of the studio that deconstructs source garments
 into a model-agnostic technical blueprint: weave and material, optical finish,
 weight and drape physics, and micro-edge details. The blueprint records observed
-garment facts; Gemini and GPT Image prompt policies decide independently how to
+garment facts; Gemini, GPT Image, and Local Qwen prompt policies decide independently how to
 use those facts during synthesis. Each generation job owns the blueprint for its
 own source set, so one job never inherits another job's garment analysis. AI Scan
 is a single ON/OFF layer persisted per install, covering Virtual Try-On (both

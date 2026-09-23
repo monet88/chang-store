@@ -20,9 +20,10 @@ const IdentityTransfer: React.FC = () => {
     loadingMessage, error, canGenerate, completedCount, failedCount, imageEditModel, engineId,
     setFaceReference, setBodyReference, setBackgroundPrompt, setExtraPrompt,
     setAspectRatio, setResolution, setError, handleDestinationImagesUpload,
-    handleGenerate, handleRegenerateSingle,
+    handleGenerate, handleRegenerateSingle, upscalingItemIds, handleUpscale,
   } = useIdentityTransfer();
   const isGptImageStudio = engineId === 'gptImage';
+  const isLocalQwen = engineId === 'localQwen';
 
 
   return (
@@ -87,7 +88,7 @@ const IdentityTransfer: React.FC = () => {
           <AiScanPanel sources={aiScanSources} />
           {isGptImageStudio ? (
             <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
-          ) : (
+          ) : isLocalQwen ? null : (
             <ImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} resolution={resolution} setResolution={setResolution} model={imageEditModel} />
           )}
           <button type="button" onClick={handleGenerate} disabled={isLoading || !canGenerate} className="flex min-h-[48px] w-full items-center justify-center rounded-[1.25rem] bg-[var(--workspace-accent)] px-4 py-3.5 text-base font-semibold text-[var(--workspace-accent-text)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-zinc-500">
@@ -114,7 +115,7 @@ const IdentityTransfer: React.FC = () => {
               {destinationItems.map((item, index) => {
                 const result = item.results[0];
                 const label = t('identityTransfer.destinationBatchLabel', { index: index + 1 });
-                if (result) return <HoverableImage key={item.id} image={result} altText={label} downloadPrefix={Feature.IdentityTransfer} onRegenerate={() => handleRegenerateSingle(item.id)} isGenerating={isLoading || item.status === 'processing'} />;
+                if (result) return <HoverableImage key={item.id} image={result} altText={label} downloadPrefix={Feature.IdentityTransfer} onRegenerate={() => handleRegenerateSingle(item.id)} onUpscale={isLocalQwen ? () => handleUpscale(result, item.id) : undefined} isGenerating={isLoading || item.status === 'processing'} isUpscaling={upscalingItemIds?.[item.id]} />;
                 if (item.status === 'error') return (
                   <div key={item.id} className="flex aspect-[3/4] flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-red-500/20 bg-red-500/5 p-5 text-center">
                     <p className="text-sm font-medium text-red-200">{label}</p><p className="text-xs leading-5 text-red-300/80">{item.error}</p>

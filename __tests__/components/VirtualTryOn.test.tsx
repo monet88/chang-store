@@ -810,4 +810,17 @@ describe('VirtualTryOn component', () => {
       });
     });
   });
+
+  it('hides aspect/resolution and image count slider when engineId is localQwen', () => {
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'localQwen',
+    });
+
+    render(<VirtualTryOn />);
+
+    expect(screen.queryByText('image-options')).not.toBeInTheDocument();
+    expect(screen.queryByText('gpt-image-options')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('virtualTryOn.numberOfImages')).not.toBeInTheDocument();
+  });
 });

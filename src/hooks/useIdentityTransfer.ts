@@ -13,12 +13,14 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAiScan } from '../contexts/AiScanContext';
 import { buildGeminiIdentityTransferParts } from '../utils/gemini-identity-transfer-prompt';
 import { buildGptIdentityTransferParts } from '../utils/gpt-identity-transfer-prompt';
+import { buildQwenIdentityTransferParts } from '../utils/qwen-identity-transfer-prompt';
 import type { IdentityTransferPromptInput } from '../utils/identity-transfer-prompt-types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { loadDefaultIdentityReferences } from '../utils/identity-transfer-defaults';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
+import { dispatchByEngine, resolveEngineConcurrency } from '../utils/engineDispatch';
 
 const IDENTITY_TRANSFER_BATCH_CONCURRENCY = 4;
 
@@ -35,8 +37,9 @@ export const useIdentityTransfer = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [upscalingItemIds, setUpscalingItemIds] = useState<Record<string, boolean>>({});
 
-  const { editImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
   const { scan } = useAiScan();
@@ -125,9 +128,11 @@ export const useIdentityTransfer = () => {
         extraPrompt,
         outfitBlueprint: blueprint,
       };
-      const interleavedParts = engineId === 'gptImage'
-        ? buildGptIdentityTransferParts(promptInput)
-        : buildGeminiIdentityTransferParts(promptInput);
+      const interleavedParts = dispatchByEngine(engineId, {
+        localQwen: () => buildQwenIdentityTransferParts(promptInput),
+        gptImage: () => buildGptIdentityTransferParts(promptInput),
+        gemini: () => buildGeminiIdentityTransferParts(promptInput),
+      });
       const [result] = await editImage({
         images: [],
         prompt: '',
@@ -172,8 +177,9 @@ export const useIdentityTransfer = () => {
       error: undefined,
     })));
 
+    const batchConcurrency = resolveEngineConcurrency(engineId, IDENTITY_TRANSFER_BATCH_CONCURRENCY);
     try {
-      await runBoundedWorkers(destinationItems, IDENTITY_TRANSFER_BATCH_CONCURRENCY, (item) =>
+      await runBoundedWorkers(destinationItems, batchConcurrency, (item) =>
         generateForDestination(item, { face: faceReference, body: bodyReference }));
     } catch (batchError) {
       setError(getErrorMessage(batchError, t));
@@ -182,7 +188,7 @@ export const useIdentityTransfer = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [bodyReference, destinationItems, faceReference, generateForDestination, t]);
+  }, [bodyReference, destinationItems, engineId, faceReference, generateForDestination, t]);
 
   const handleRegenerateSingle = useCallback(async (itemId: string) => {
     if (generationInFlight.current) return;
@@ -198,6 +204,21 @@ export const useIdentityTransfer = () => {
       generationInFlight.current = false;
     }
   }, [bodyReference, destinationItems, faceReference, generateForDestination]);
+
+
+  const handleUpscale = useCallback(async (imageToUpscale: ImageFile, itemId: string) => {
+    setUpscalingItemIds((prev) => ({ ...prev, [itemId]: true }));
+    setError(null);
+    try {
+      const result = await upscaleImage(imageToUpscale, imageEditModel, { onStatusUpdate: () => {} });
+      updateDestinationItem(itemId, { results: [result] });
+      addImage(result, Feature.IdentityTransfer, engineId);
+    } catch (upscaleError) {
+      setError(getErrorMessage(upscaleError, t));
+    } finally {
+      setUpscalingItemIds((prev) => ({ ...prev, [itemId]: false }));
+    }
+  }, [addImage, engineId, imageEditModel, t, updateDestinationItem]);
 
   const completedCount = useMemo(
     () => destinationItems.filter((item) => item.status === 'completed').length,
@@ -215,5 +236,6 @@ export const useIdentityTransfer = () => {
     setFaceReference: updateFaceReference, setBodyReference: updateBodyReference, setBackgroundPrompt, setExtraPrompt,
     setAspectRatio, setResolution, setError, handleDestinationImagesUpload,
     handleGenerate, handleRegenerateSingle,
+    upscalingItemIds, handleUpscale,
   };
 };

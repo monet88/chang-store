@@ -2,10 +2,15 @@ import { useCallback, useRef, useState } from 'react';
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageFile, ImageResolution } from '../types';
+import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageEngineId, ImageFile, ImageResolution } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { detectImageAspectRatio } from '../utils/imageAspectRatio';
-import { buildSingleImageEditPrompt, buildMultiImageEditPrompt } from '../utils/ai-editor-prompt-builder';
+import {
+  buildSingleImageEditPrompt,
+  buildMultiImageEditPrompt,
+  buildQwenSingleImageEditPrompt,
+  buildQwenMultiImageEditPrompt,
+} from '../utils/ai-editor-prompt-builder';
 
 const MENTION_REGEX = /@img(\d+)/g;
 
@@ -22,6 +27,7 @@ export interface UseAIEditorReturn {
   setPrompt: (prompt: string) => void;
   isLoading: boolean;
   error: string | null;
+  refLimitNotice?: string | null;
   resultImage: ImageFile | null;
   aspectRatio: AspectRatio;
   setAspectRatio: (aspectRatio: AspectRatio) => void;
@@ -29,17 +35,21 @@ export interface UseAIEditorReturn {
   setResolution: (resolution: ImageResolution) => void;
   imageEditModel: string;
   handleGenerate: () => Promise<void>;
+  handleUpscale: (image: ImageFile) => Promise<void>;
+  isUpscaling: boolean;
   clearError: () => void;
+  engineId?: ImageEngineId;
 }
 
 export const useAIEditor = (): UseAIEditorReturn => {
   const { t } = useLanguage();
-  const { editImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
 
   const [images, setImages] = useState<ImageFile[]>([]);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpscaling, setIsUpscaling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<ImageFile | null>(null);
   const generationInFlightRef = useRef(false);
@@ -77,12 +87,31 @@ export const useAIEditor = (): UseAIEditorReturn => {
   );
 
   const buildApiPrompt = useCallback(
-    (userPrompt: string, mentionedImages: ImageFile[]): string => {
-      if (mentionedImages.length === 0) {
+    (userPrompt: string, imagesToSend: ImageFile[], hasMentions: boolean): string => {
+      if (engineId === 'localQwen') {
+        if (imagesToSend.length <= 1) {
+          return buildQwenSingleImageEditPrompt(userPrompt);
+        }
+
+        const imageRoles = imagesToSend
+          .map((image, index) => {
+            if (hasMentions) {
+              const originalIndex = images.indexOf(image);
+              const tag = `@img${originalIndex + 1}`;
+              return `- Image ${index + 1} is ${tag}`;
+            }
+            return `- Image ${index + 1}`;
+          })
+          .join('\n');
+
+        return buildQwenMultiImageEditPrompt(userPrompt, imageRoles);
+      }
+
+      if (!hasMentions || imagesToSend.length === 0) {
         return buildSingleImageEditPrompt(userPrompt);
       }
 
-      const imageRoles = mentionedImages
+      const imageRoles = imagesToSend
         .map((image, index) => {
           const originalIndex = images.indexOf(image);
           const tag = `@img${originalIndex + 1}`;
@@ -92,11 +121,14 @@ export const useAIEditor = (): UseAIEditorReturn => {
 
       return buildMultiImageEditPrompt(userPrompt, imageRoles);
     },
-    [images],
+    [images, engineId],
   );
 
   const handleGenerate = useCallback(async (): Promise<void> => {
     if (generationInFlightRef.current) return;
+
+    setError(null);
+    setResultImage(null);
 
     if (images.length === 0) {
       setError(t('aiEditor.error.noImages'));
@@ -108,21 +140,25 @@ export const useAIEditor = (): UseAIEditorReturn => {
       return;
     }
 
+    const mentionedSelection = extractMentionedImages(prompt);
+    if (mentionedSelection.invalidRefs.length > 0) {
+      setError(t('aiEditor.error.invalidImageReferences', { refs: mentionedSelection.invalidRefs.join(', ') }));
+      return;
+    }
+    const isLocalQwen = engineId === 'localQwen';
+    if (isLocalQwen && mentionedSelection.hasMentions && mentionedSelection.images.length > 4) {
+      setError(t('aiEditor.error.tooManyReferences'));
+      return;
+    }
+
     generationInFlightRef.current = true;
     setIsLoading(true);
-    setError(null);
-    setResultImage(null);
-
     try {
-      const mentionedSelection = extractMentionedImages(prompt);
-      if (mentionedSelection.invalidRefs.length > 0) {
-        setError(t('aiEditor.error.invalidImageReferences', { refs: mentionedSelection.invalidRefs.join(', ') }));
-        return;
-      }
+      const imagesToSend = mentionedSelection.hasMentions
+        ? mentionedSelection.images
+        : (isLocalQwen ? images.slice(0, 4) : images);
 
-      const imagesToSend = mentionedSelection.hasMentions ? mentionedSelection.images : images;
-      const apiPrompt = buildApiPrompt(prompt, mentionedSelection.images);
-
+      const apiPrompt = buildApiPrompt(prompt, imagesToSend, mentionedSelection.hasMentions);
       const [result] = await editImage(
         {
           images: imagesToSend,
@@ -163,6 +199,22 @@ export const useAIEditor = (): UseAIEditorReturn => {
     engineId,
   ]);
 
+  const handleUpscale = useCallback(async (imageToUpscale: ImageFile): Promise<void> => {
+    setIsUpscaling(true);
+    setError(null);
+    try {
+      const result = await upscaleImage(imageToUpscale, imageEditModel, {
+        onStatusUpdate: () => {},
+      });
+      setResultImage(result);
+      addImage(result, Feature.AIEditor, engineId);
+    } catch (err) {
+      setError(getErrorMessage(err, t));
+    } finally {
+      setIsUpscaling(false);
+    }
+  }, [addImage, engineId, imageEditModel, t, upscaleImage]);
+
   return {
     images,
     setImages: updateImages,
@@ -177,6 +229,12 @@ export const useAIEditor = (): UseAIEditorReturn => {
     setResolution,
     imageEditModel,
     handleGenerate,
+    handleUpscale,
+    isUpscaling,
     clearError: () => setError(null),
+    refLimitNotice: engineId === 'localQwen' && images.length > 4 && !extractMentionedImages(prompt).hasMentions
+      ? t('aiEditor.localQwenRefLimitNotice')
+      : null,
+    engineId,
   };
 };

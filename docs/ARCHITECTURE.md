@@ -194,26 +194,31 @@ localStorage contract. See `docs/architecture/chatbox-desktop-audit.md`.
 
 AppContent owns the Feature routing and StudioMode switch. Feature values and
 provider support are defined in src/types.ts; route/component wiring is in
-src/App.tsx. Two engines ship: the Gemini studio (default, ten workflows) and
-the GPT Image studio.
+src/App.tsx. The browser product ships Gemini and GPT Image studios. The desktop
+architecture additionally reserves a third, desktop-only Local Qwen studio backed
+by a local ComfyUI runtime (ADR-0004).
 
 The studios may share workflow hooks, UI state and model-agnostic domain data,
-but prompt policy is model-family-specific. Gemini image generation and GPT
-Image generation must be free to use different instructions, role framing,
-preservation rules, negative guidance and prompt structure because the models
-respond differently. `src/contexts/ImageEngineContext.tsx` is the execution
-seam — it exposes `{ id, model, editImage, upscaleImage,
-createImageChatSession, options }` for the active mode, the Gemini lane backed
-by `src/services/imageEditingService.ts` and the GPT lane by
-`src/services/providers/gpt-image/gptImageEngine.ts`.
+but prompt policy is model-family-specific. Gemini, GPT Image, and Local Qwen
+must be free to use different instructions, role framing, preservation rules,
+negative guidance and prompt structure because the models respond differently.
+`src/contexts/ImageEngineContext.tsx` is the execution seam — it exposes
+`{ id, model, editImage, upscaleImage, createImageChatSession, options }` for
+the active mode. The current cloud lanes are backed by
+`src/services/imageEditingService.ts` (Gemini) and
+`src/services/providers/gpt-image/gptImageEngine.ts` (GPT Image); Local Qwen
+joins the same seam through the desktop ComfyUI bridge rather than
+forking Feature workflows.
 
-Gemini and GPT Image feature workflows assemble requests through independent
-prompt policies at the engine seam rather than forcing "one wording, two
-assemblies": Gemini receives interleaved `[label, image, …]` parts, while the
-GPT lane is flattened into one role map and ordered reference images. Transport
-helpers (`imagePart` in `src/utils/imagePart.ts`) and truly model-agnostic
-prompt fragments may still be shared when doing so does not constrain either
-model family.
+Gemini, GPT Image, and Local Qwen feature workflows assemble requests through
+independent prompt policies at the engine seam rather than forcing shared
+wording across model families. Gemini receives interleaved
+`[label, image, …]` parts, GPT uses one role map plus ordered reference images,
+and Local Qwen translates the same model-agnostic Feature inputs into the
+deterministic reference ordering and text expected by `TextEncodeQwenImage21`.
+Transport helpers (`imagePart` in `src/utils/imagePart.ts`) and truly
+model-agnostic prompt fragments may still be shared when doing so does not
+constrain a model family.
 
 The GPT adapter also maps the requested ratio to the pixel size the active
 `(gateway, model)` pair actually honors and turns a refine into one stateless
@@ -262,24 +267,30 @@ do not require speculative scaffolding ahead of that work.
 
 #### Workflow Matrix
 
-| Workflow | Gemini | GPT Image |
-| --- | --- | --- |
-| Virtual Try-On | Yes | Yes |
-| Lookbook | Yes | Yes |
-| Clothing Transfer | Yes | Yes |
-| AI Editor | Yes | Yes |
-| Identity Transfer | Yes | Yes |
-| Background Replacer | Yes | No |
-| Pose Changer | Yes | No |
-| Photo Album | Yes | No |
-| Watermark Remover | Yes | No |
-| Pattern Generator | Yes | No |
+| Workflow | Gemini | GPT Image | Local Qwen (desktop) |
+| --- | --- | --- | --- |
+| Virtual Try-On | Yes | Yes | Yes |
+| Lookbook | Yes | Yes | No |
+| Clothing Transfer | Yes | Yes | Yes |
+| AI Editor | Yes | Yes | Yes |
+| Identity Transfer | Yes | Yes | Yes |
+| Background Replacer | Yes | No | No |
+| Pose Changer | Yes | No | No |
+| Photo Album | Yes | No | No |
+| Watermark Remover | Yes | No | No |
+| Pattern Generator | Yes | No | No |
 
 The five Gemini-only workflows are phase 2 of the studio consolidation: they
 already take their driver from the same context, they simply have no GPT view
 yet. GPT caps stay deliberate — one output per request, lookbook variations
 capped at one, wardrobe sets bounded to two, serial batches, and no native
 upscale (upscale is a preservation-prompted edit at the largest quality).
+
+Local Qwen is desktop-only and intentionally narrower. It ships as a serial
+engine (one active job at a time), defaults to 512 px on the target 8 GB GPU,
+keeps upscale as a separate explicit user action, never falls back to cloud
+automatically, and delegates local-process ownership to Electron main. See
+`docs/api/localQwen-api-guide.md` for the measured runtime contract.
 
 The current source tree has no server-side request, session, or audit-log
 layer. The generic server layering and observability sections above are

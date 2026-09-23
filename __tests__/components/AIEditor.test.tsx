@@ -1,9 +1,10 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { Feature, ImageFile } from '@/types';
+import { Feature, ImageEngineId, ImageFile } from '@/types';
 
 const handleGenerateMock = vi.fn();
+const handleUpscaleMock = vi.fn();
 const clearErrorMock = vi.fn();
 const setImagesMock = vi.fn();
 const setPromptMock = vi.fn();
@@ -24,7 +25,11 @@ let hookState: {
   setResolution: typeof setResolutionMock;
   imageEditModel: string;
   handleGenerate: typeof handleGenerateMock;
+  handleUpscale: typeof handleUpscaleMock;
+  isUpscaling?: boolean;
   clearError: typeof clearErrorMock;
+  engineId?: ImageEngineId;
+  refLimitNotice?: string | null;
 };
 
 vi.mock('@/contexts/LanguageContext', () => ({
@@ -65,7 +70,12 @@ vi.mock('@/components/ImageOptionsPanel', () => ({
 
 vi.mock('@/components/HoverableImage', () => ({
   __esModule: true,
-  default: ({ downloadPrefix }: { downloadPrefix: Feature }) => <div>hoverable:{downloadPrefix}</div>,
+  default: ({ downloadPrefix, onUpscale }: { downloadPrefix: Feature; onUpscale?: () => void }) => (
+    <div>
+      <span>hoverable:{downloadPrefix}</span>
+      {onUpscale && <button onClick={onUpscale}>upscale-result</button>}
+    </div>
+  ),
 }));
 
 vi.mock('@/components/Spinner', () => ({
@@ -103,6 +113,8 @@ describe('AIEditor', () => {
       setResolution: setResolutionMock,
       imageEditModel: 'gemini-2.5-flash-image',
       handleGenerate: handleGenerateMock,
+      handleUpscale: handleUpscaleMock,
+      isUpscaling: false,
       clearError: clearErrorMock,
     };
   });
@@ -136,5 +148,104 @@ describe('AIEditor', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'clear-error' }));
     expect(clearErrorMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not render the upscale button on result in cloud engine mode', () => {
+    hookState.engineId = 'gemini';
+    hookState.images = [{ base64: 'existing-image', mimeType: 'image/png' }];
+    hookState.resultImage = { base64: 'result-image', mimeType: 'image/png' };
+
+    render(<AIEditor />);
+
+    expect(screen.queryByRole('button', { name: 'upscale-result' })).not.toBeInTheDocument();
+  });
+
+  it('wires the result upscale button to the hook handler in localQwen mode', () => {
+    hookState.engineId = 'localQwen';
+    hookState.images = [{ base64: 'existing-image', mimeType: 'image/png' }];
+    hookState.resultImage = { base64: 'result-image', mimeType: 'image/png' };
+
+    render(<AIEditor />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'upscale-result' }));
+    expect(handleUpscaleMock).toHaveBeenCalledWith({ base64: 'result-image', mimeType: 'image/png' });
+  });
+
+  it('renders the feature-level options panel for cloud engines', () => {
+    render(<AIEditor />);
+
+    expect(screen.getByText('options:gemini-2.5-flash-image')).toBeInTheDocument();
+  });
+
+  it('hides the feature-level options panel in Local Qwen mode', () => {
+    hookState.engineId = 'localQwen';
+    hookState.imageEditModel = 'qwen-image-2.1';
+
+    render(<AIEditor />);
+
+    expect(screen.queryByText('options:qwen-image-2.1')).not.toBeInTheDocument();
+  });
+
+  it('displays notice when hook reports a local Qwen reference limit', () => {
+    hookState.engineId = 'localQwen';
+    hookState.refLimitNotice = 'aiEditor.localQwenRefLimitNotice';
+    hookState.images = [
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+      { base64: 'img3', mimeType: 'image/png' },
+      { base64: 'img4', mimeType: 'image/png' },
+      { base64: 'img5', mimeType: 'image/png' },
+    ];
+    hookState.prompt = 'Transform the scenery';
+
+    render(<AIEditor />);
+
+    expect(screen.getByTestId('local-qwen-ref-limit-notice')).toBeInTheDocument();
+    expect(screen.getByText('aiEditor.localQwenRefLimitNotice')).toBeInTheDocument();
+  });
+
+  it('hides notice when mentions are present even if images > 4 in localQwen mode', () => {
+    hookState.images = [
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+      { base64: 'img3', mimeType: 'image/png' },
+      { base64: 'img4', mimeType: 'image/png' },
+      { base64: 'img5', mimeType: 'image/png' },
+    ];
+    hookState.prompt = 'Apply style from @img1 to @img2';
+    hookState.engineId = 'localQwen';
+
+    render(<AIEditor />);
+
+    expect(screen.queryByTestId('local-qwen-ref-limit-notice')).not.toBeInTheDocument();
+  });
+
+  it('hides notice when images <= 4 in localQwen mode', () => {
+    hookState.images = [
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+    ];
+    hookState.prompt = 'Enhance details';
+    hookState.engineId = 'localQwen';
+
+    render(<AIEditor />);
+
+    expect(screen.queryByTestId('local-qwen-ref-limit-notice')).not.toBeInTheDocument();
+  });
+
+  it('hides notice when studioMode is gemini even with > 4 images', () => {
+    hookState.images = [
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+      { base64: 'img3', mimeType: 'image/png' },
+      { base64: 'img4', mimeType: 'image/png' },
+      { base64: 'img5', mimeType: 'image/png' },
+    ];
+    hookState.prompt = 'Enhance details';
+    hookState.engineId = 'gemini';
+
+    render(<AIEditor />);
+
+    expect(screen.queryByTestId('local-qwen-ref-limit-notice')).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import { GlobalModelSelector } from './components/GlobalModelSelector';
-import { Feature, ImageFile, StudioMode, PROVIDER_SUPPORTED_FEATURES, isProviderSupportedFeature } from './types';
+import type { ImageFile, StudioMode } from './types';
+import {
+  Feature,
+  PROVIDER_SUPPORTED_FEATURES,
+  isProviderSupportedFeature,
+  LOCAL_QWEN_SUPPORTED_FEATURES,
+  isLocalQwenSupportedFeature,
+} from './types';
 import { ImageGalleryProvider } from './contexts/ImageGalleryContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ApiProvider, useApi } from './contexts/ApiProviderContext';
@@ -27,6 +34,7 @@ const IdentityTransfer = lazy(() => import('./components/IdentityTransfer'));
 const PatternGenerator = lazy(() => import('./components/PatternGenerator'));
 
 const GptStudio = lazy(() => import('./components/studios/GptStudio'));
+const LocalQwenStudio = lazy(() => import('./components/studios/LocalQwenStudio'));
 
 const GalleryModal = lazy(() => import('./components/modals/GalleryModal'));
 const PromptLibraryModal = lazy(() => import('./components/modals/PromptLibraryModal'));
@@ -112,7 +120,11 @@ const AppContent: React.FC = () => {
     setStudioMode(mode);
     setIsSidebarOpen(false);
     // Clamp activeFeature so Gemini-only features never leak into provider mode.
-    if (mode !== 'gemini') {
+    if (mode === 'localQwen') {
+      setActiveFeature((current) =>
+        isLocalQwenSupportedFeature(current) ? current : LOCAL_QWEN_SUPPORTED_FEATURES[0],
+      );
+    } else if (mode !== 'gemini') {
       setActiveFeature((current) =>
         isProviderSupportedFeature(current) ? current : PROVIDER_SUPPORTED_FEATURES[0],
       );
@@ -301,6 +313,13 @@ const AppContent: React.FC = () => {
                 <Suspense fallback={<FeatureLoadingFallback />}>
                   {studioMode === 'gptImage' && (
                     <GptStudio activeFeature={activeFeature} onSendToFeature={handleSendToFeature} />
+                  )}
+                  {studioMode === 'localQwen' && (
+                    <LocalQwenStudio
+                      activeFeature={activeFeature}
+                      onSendToFeature={handleSendToFeature}
+                      onOpenSettings={handleOpenSettings}
+                    />
                   )}
                 </Suspense>
               </div>

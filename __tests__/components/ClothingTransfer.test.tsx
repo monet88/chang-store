@@ -26,10 +26,11 @@ vi.mock('../../src/components/Spinner', () => ({
 }));
 
 vi.mock('../../src/components/HoverableImage', () => ({
-  default: ({ altText, onUpscale }: { altText: string; onUpscale?: () => void }) => (
+  default: ({ altText, onUpscale, onSendToFeature }: { altText: string; onUpscale?: () => void; onSendToFeature?: () => void }) => (
     <div>
       {altText}
       {onUpscale && <button onClick={onUpscale}>mock-upscale</button>}
+      {onSendToFeature && <button onClick={onSendToFeature}>mock-send-to-feature</button>}
     </div>
   ),
 }));
@@ -285,5 +286,49 @@ describe('ClothingTransfer component', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'clothingTransfer.ecomPack.downloadAll' }));
     expect(handleDownloadAll).toHaveBeenCalled();
+  });
+
+  it('hides aspect/resolution and image count slider when engineId is localQwen', () => {
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'localQwen',
+    });
+
+    render(<ClothingTransfer />);
+
+    expect(screen.queryByText('image-options')).not.toBeInTheDocument();
+    expect(screen.queryByText('gpt-image-options')).not.toBeInTheDocument();
+    expect(screen.queryByText('clothingTransfer.numberOfImages')).not.toBeInTheDocument();
+  });
+
+  it('gates Send to Photo Album action when engineId is localQwen', () => {
+    const onSendToFeature = vi.fn();
+    const completedConcept = {
+      id: 'c1',
+      conceptImage: { base64: 'concept', mimeType: 'image/png' },
+      results: [{ base64: 'result', mimeType: 'image/png' }],
+    };
+
+    // 1. Under localQwen: Send to Photo Album must NOT be exposed
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'localQwen',
+      conceptItems: [completedConcept],
+    });
+
+    const { rerender } = render(<ClothingTransfer onSendToFeature={onSendToFeature} />);
+    expect(screen.queryByText('mock-send-to-feature')).not.toBeInTheDocument();
+
+    // 2. Under gemini: Send to Photo Album IS exposed
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'gemini',
+      conceptItems: [completedConcept],
+    });
+
+    rerender(<ClothingTransfer onSendToFeature={onSendToFeature} />);
+    expect(screen.getByText('mock-send-to-feature')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('mock-send-to-feature'));
+    expect(onSendToFeature).toHaveBeenCalledWith('photo-album', { base64: 'result', mimeType: 'image/png' });
   });
 });

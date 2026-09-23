@@ -78,6 +78,36 @@ describe('useAIEditor', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
+  it('clears stale prior result when a subsequent attempt fails invalid @imgN validation', async () => {
+    const { result } = renderHook(() => useAIEditor());
+
+    // 1. Initial successful generation
+    act(() => {
+      result.current.setImages([FIRST_IMAGE]);
+      result.current.setPrompt('First valid edit');
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    expect(result.current.resultImage).toEqual(OUTPUT_IMAGE);
+    expect(result.current.error).toBeNull();
+
+    // 2. Subsequent attempt with invalid @img reference
+    act(() => {
+      result.current.setPrompt('Invalid reference @img99');
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    // Stale prior result MUST be cleared
+    expect(result.current.resultImage).toBeNull();
+    expect(result.current.error).toBe('aiEditor.error.invalidImageReferences:@img99');
+  });
+
   it('sends only valid mentioned images when references are in range', async () => {
     const { result } = renderHook(() => useAIEditor());
 

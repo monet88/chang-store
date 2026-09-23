@@ -9,7 +9,7 @@ import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import { useClothingTransfer } from '../hooks/useClothingTransfer';
-import { Feature, ImageFile } from '../types';
+import { Feature, ImageFile, isFeatureSupportedByEngine } from '../types';
 import EComPackView from './EComPackView';
 
 interface ClothingTransferProps {
@@ -64,6 +64,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
   const toggleRefine = (key: string) =>
     setRefineOpen((prev) => ({ ...prev, [key]: !prev[key] }));
   const isGptImageStudio = engineId === 'gptImage';
+  const isLocalQwen = engineId === 'localQwen';
 
   return (
     <div className="space-y-6">
@@ -102,6 +103,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
           setResolution={setResolution}
           imageEditModel={imageEditModel}
           isGptImageStudio={isGptImageStudio}
+          isLocalQwen={isLocalQwen}
           error={error}
         />
       ) : (
@@ -211,7 +213,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                   numImages={numImages}
                   setNumImages={setNumImages}
                 />
-              ) : (
+              ) : isLocalQwen ? null : (
                 <>
                   <ImageOptionsPanel
                     aspectRatio={aspectRatio}
@@ -330,7 +332,11 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                             onUpscale={() => handleUpscale(image, index, item.id)}
                             isGenerating={isLoading}
                             isUpscaling={upscalingStates[key]}
-                            onSendToFeature={onSendToFeature ? () => onSendToFeature(Feature.PhotoAlbum, image) : undefined}
+                            onSendToFeature={
+                              onSendToFeature && isFeatureSupportedByEngine(Feature.PhotoAlbum, engineId)
+                                ? () => onSendToFeature(Feature.PhotoAlbum, image)
+                                : undefined
+                            }
                           />
                           {conceptItems.length > 1 && (
                             <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full border border-white/10 bg-black/70 px-2 py-1 backdrop-blur-sm">
