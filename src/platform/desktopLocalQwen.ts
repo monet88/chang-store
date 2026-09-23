@@ -58,6 +58,7 @@ export interface LocalQwenUpscaleParams {
 
 export interface LocalQwenUpscaleResult {
   image: string;
+  mimeType?: string;
 }
 
 export interface DesktopLocalQwenApi {
@@ -66,7 +67,7 @@ export interface DesktopLocalQwenApi {
   stopServer(): Promise<DesktopBridgeResult<DesktopLocalQwenStopResult>>;
   generateImage(params: LocalQwenGenerateParams): Promise<DesktopBridgeResult<LocalQwenGenerateResult>>;
   cancelJob(): Promise<DesktopBridgeResult<{ cancelled: boolean }>>;
-  upscaleImage(params: { image: string; scale?: number }): Promise<DesktopBridgeResult<{ image: string }>>;
+  upscaleImage(params: { image: string; scale?: number }): Promise<DesktopBridgeResult<LocalQwenUpscaleResult>>;
   verifyFolder?(folder: string): Promise<DesktopBridgeResult<LocalQwenFolderCheck>>;
 }
 

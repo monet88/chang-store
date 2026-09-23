@@ -31,8 +31,8 @@ const Tabs: React.FC<TabsProps> = ({ activeFeature, setActiveFeature, studioMode
     ? [
         {
           key: 'localQwenFeatures',
-          title: t('studio.provider.featuresLabel'),
-          description: t('studio.provider.featuresDescription'),
+          title: t('studio.localQwen.featuresLabel'),
+          description: t('studio.localQwen.featuresDescription'),
           items: LOCAL_QWEN_SUPPORTED_FEATURES.map((id) => ({ id, label: featureLabels[id] })),
         },
       ]

@@ -19,6 +19,8 @@ import {
 import { editImage } from '../services/imageEditingService';
 import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '../utils/gpt-virtual-try-on-prompt';
+import { buildQwenVirtualTryOnParts } from '../utils/qwen-virtual-try-on-prompt';
+import { dispatchByEngine } from '../utils/engineDispatch';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
@@ -137,9 +139,11 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
             isMultiPersonMode: false,
             outfitBlueprint: blueprint ?? undefined,
           };
-          const interleavedParts = engineId === 'gptImage'
-            ? buildGptVirtualTryOnParts(promptInput)
-            : buildGeminiVirtualTryOnParts(promptInput);
+          const interleavedParts = dispatchByEngine(engineId, {
+            localQwen: () => buildQwenVirtualTryOnParts(promptInput),
+            gptImage: () => buildGptVirtualTryOnParts(promptInput),
+            gemini: () => buildGeminiVirtualTryOnParts(promptInput),
+          });
 
           const images = await driver.editImage(
             {

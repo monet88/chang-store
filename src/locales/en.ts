@@ -144,6 +144,10 @@ export const en = {
       featuresLabel: 'Provider workflows',
       featuresDescription: 'Five workflows available in the GPT Image studio.',
     },
+    localQwen: {
+      featuresLabel: 'Local Qwen workflows',
+      featuresDescription: 'Four local workflows powered by ComfyUI.',
+    },
     profile: {
       none: 'No image provider configured',
       notChecked: 'Not checked yet — run Check in Settings',
@@ -184,6 +188,10 @@ export const en = {
       startServer: 'Start ComfyUI',
       releaseGpu: 'Release GPU/RAM',
       releasingGpu: 'Releasing...',
+      stepProgress: 'Step {{step}} / {{maxSteps}}',
+      upscaling: 'Upscaling image with local ComfyUI...',
+      initializing: 'Initializing Local Qwen generation...',
+      generatingStatus: 'Generating with local ComfyUI (Qwen-Image 2.1)...',
     },
   },
   imageUploader: {

@@ -73,6 +73,7 @@ const GARMENT_TOP: ImageFile = { base64: 'garment-top-data', mimeType: 'image/jp
 const GARMENT_SKIRT: ImageFile = { base64: 'garment-skirt-data', mimeType: 'image/jpeg' };
 
 const RESULT_IMAGE: ImageFile = { base64: 'rendered-qwen-vto', mimeType: 'image/png' };
+const UPSCALED_IMAGE: ImageFile = { base64: 'upscaled-qwen-vto', mimeType: 'image/png' };
 
 describe('useVirtualTryOn with Local Qwen Image Engine', () => {
   beforeEach(() => {
@@ -198,6 +199,34 @@ describe('useVirtualTryOn with Local Qwen Image Engine', () => {
 
     expect(addImageMock).toHaveBeenCalledTimes(1);
     expect(addImageMock).toHaveBeenCalledWith(RESULT_IMAGE, Feature.TryOn, 'localQwen');
+  });
+
+  it('persists an upscaled VTO result once as Feature.TryOn under the Local Qwen engine', async () => {
+    localQwenUpscaleMock.mockResolvedValueOnce(UPSCALED_IMAGE);
+
+    const { result } = renderHook(() => useVirtualTryOn());
+
+    act(() => {
+      result.current.setSubjectImage(SUBJECT_1);
+      result.current.handleClothingUpload(GARMENT_TOP, result.current.clothingItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerateImage();
+    });
+
+    addImageMock.mockClear();
+    const itemId = result.current.subjectItems[0].id;
+
+    await act(async () => {
+      await result.current.handleUpscale(RESULT_IMAGE, 0, itemId);
+    });
+
+    // Slot replaced by the upscaled asset
+    expect(result.current.subjectItems[0].results[0]).toEqual(UPSCALED_IMAGE);
+    // Saved exactly once, tagged with the owning feature and active engine
+    expect(addImageMock).toHaveBeenCalledTimes(1);
+    expect(addImageMock).toHaveBeenCalledWith(UPSCALED_IMAGE, Feature.TryOn, 'localQwen');
   });
 
   it('handles errors locally and NEVER falls back to cloud drivers', async () => {

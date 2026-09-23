@@ -22,11 +22,20 @@ const translations: Record<string, string> = {
   'studio.localQwenStatus.startServer': 'Start ComfyUI',
   'studio.localQwenStatus.releaseGpu': 'Release GPU/RAM',
   'studio.localQwenStatus.releasingGpu': 'Releasing...',
+  'studio.localQwenStatus.stepProgress': 'Step {{step}} / {{maxSteps}}',
 };
 
 vi.mock('@/contexts/LanguageContext', () => ({
   useLanguage: () => ({
-    t: (key: string) => translations[key] ?? key,
+    t: (key: string, options?: Record<string, unknown>) => {
+      let val = translations[key] ?? key;
+      if (options) {
+        for (const [k, v] of Object.entries(options)) {
+          val = val.replace(`{{${k}}}`, String(v));
+        }
+      }
+      return val;
+    },
   }),
 }));
 

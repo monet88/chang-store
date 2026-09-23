@@ -199,10 +199,24 @@ describe('desktopLocalQwen and settings', () => {
       expect(stopRes).toEqual({ ok: true, value: mockStop });
     });
 
-    it('has channel constants matching the desktop-local-qwen prefix', () => {
-      expect(DESKTOP_LOCAL_QWEN_CHANNELS.getStatus).toBe('desktop-local-qwen:get-status');
-      expect(DESKTOP_LOCAL_QWEN_CHANNELS.startServer).toBe('desktop-local-qwen:start-server');
-      expect(DESKTOP_LOCAL_QWEN_CHANNELS.stopServer).toBe('desktop-local-qwen:stop-server');
+    it('has channel constants matching the desktop-local-qwen prefix and exactly pins the named bridge surface', () => {
+      const channelKeys = Object.keys(DESKTOP_LOCAL_QWEN_CHANNELS).sort();
+      // Must strictly be the named capability set (no generic shell/exec/spawn/proxy channel)
+      expect(channelKeys).toEqual([
+        'cancelJob',
+        'generateImage',
+        'getStatus',
+        'startServer',
+        'stopServer',
+        'upscaleImage',
+        'verifyFolder',
+      ]);
+
+      const channelValues = Object.values(DESKTOP_LOCAL_QWEN_CHANNELS);
+      channelValues.forEach((channel) => {
+        expect(channel).toMatch(/^desktop-local-qwen:/);
+        expect(channel).not.toMatch(/shell|exec|spawn|proxy|cmd|eval/i);
+      });
     });
   });
 });

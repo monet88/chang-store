@@ -234,11 +234,124 @@ describe('LocalQwenManager', () => {
       expect(status.state).toBe('starting');
       expect(status.isAppOwned).toBe(true);
     });
+
+    it('preserves app ownership when probe fails transiently while tracked child is alive', async () => {
+      const probeFn = vi.fn().mockResolvedValue(false);
+      const mockProc = createMockProcess();
+      const manager = new LocalQwenManager({ probeFn });
+      manager.state = 'ready';
+      manager.isAppOwned = true;
+      manager.childProcess = mockProc as unknown as ChildProcess;
+
+      const status = await manager.getStatus();
+      expect(status.isAppOwned).toBe(true);
+      expect(manager.isAppOwned).toBe(true);
+      // Release GPU/RAM (stopServer) remains valid
+      const stopResult = await manager.stopServer();
+      expect(stopResult.stopped).toBe(true);
+      expect(stopResult.wasExternal).toBe(false);
+      expect(mockProc.kill).toHaveBeenCalledWith('SIGTERM');
+    });
+
+    it('keeps ownership when the tracked child was signalled but has not emitted exit', async () => {
+      const probeFn = vi.fn().mockResolvedValue(false);
+      const mockProc = createMockProcess();
+      const manager = new LocalQwenManager({ probeFn });
+      manager.state = 'ready';
+      manager.isAppOwned = true;
+      manager.childProcess = mockProc as unknown as ChildProcess;
+      // Node sets `.killed` as soon as a signal is sent; the process may still
+      // be running and has emitted no exit, so ownership must survive.
+      mockProc.killed = true;
+
+      const status = await manager.getStatus();
+
+      expect(status.isAppOwned).toBe(true);
+      expect(manager.isAppOwned).toBe(true);
+      // Probe failed: never claim ready, and never drop to stopped
+      expect(status.state).not.toBe('ready');
+      expect(status.state).not.toBe('stopped');
+
+      // Release GPU/RAM remains valid for the still-tracked child
+      const stopResult = await manager.stopServer();
+      expect(stopResult.stopped).toBe(true);
+      expect(stopResult.wasExternal).toBe(false);
+    });
+
+    it('delayed exit or error from an old child does not mutate replacement child state', async () => {
+      let spawnCount = 0;
+      const child1 = createMockProcess(1001);
+      const child2 = createMockProcess(1002);
+      const spawnFn = vi.fn().mockImplementation(() => {
+        spawnCount++;
+        return spawnCount === 1 ? child1 : child2;
+      });
+
+      const probeFn = vi.fn().mockResolvedValue(true);
+      const manager = new LocalQwenManager({
+        probeFn,
+        spawnFn,
+        readinessPollIntervalMs: 10,
+        readinessTimeoutMs: 1000,
+      });
+
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+      vi.spyOn(manager, 'resolveLaunchCommand').mockReturnValue({
+        executable: 'python.exe',
+        args: ['main.py'],
+      });
+
+      // Initially probe false to force spawn
+      probeFn.mockResolvedValueOnce(false).mockResolvedValue(true);
+      await manager.startServer('D:\\ComfyUI_windows_portable');
+
+      expect(manager.childProcess).toBe(child1);
+      expect(manager.childPid).toBe(1001);
+      expect(manager.isAppOwned).toBe(true);
+
+      // Now spawn replacement child2
+      probeFn.mockResolvedValueOnce(false).mockResolvedValue(true);
+      await manager.startServer('D:\\ComfyUI_windows_portable');
+
+      expect(manager.childProcess).toBe(child2);
+      expect(manager.childPid).toBe(1002);
+      expect(manager.isAppOwned).toBe(true);
+
+      // Delayed exit from old child1
+      child1.emit('exit', 0, 'SIGTERM');
+
+      // Replacement child2 must still be tracked!
+      expect(manager.childProcess).toBe(child2);
+      expect(manager.childPid).toBe(1002);
+      expect(manager.isAppOwned).toBe(true);
+      expect(manager.state).toBe('ready');
+
+      // Delayed error from old child1
+      child1.emit('error', new Error('delayed error'));
+
+      expect(manager.childProcess).toBe(child2);
+      expect(manager.childPid).toBe(1002);
+      expect(manager.isAppOwned).toBe(true);
+      expect(manager.state).toBe('ready');
+    });
   });
 
   describe('launch command options', () => {
+    it('rejects UNC and remote network paths', () => {
+      const manager = new LocalQwenManager();
+      expect(() => manager.resolveLaunchCommand('\\\\remote-server\\share\\ComfyUI')).toThrow(/Security error.*UNC/);
+      expect(() => manager.resolveLaunchCommand('//remote-server/share/ComfyUI')).toThrow(/Security error.*UNC/);
+    });
+
+    it('rejects non-existent folders during launch command resolution', () => {
+      const manager = new LocalQwenManager();
+      expect(() => manager.resolveLaunchCommand('D:\\NonExistent_Fake_Dir_12345')).toThrow(/directory not found/);
+    });
+
     it('launch arguments never contain --disable-dynamic-vram', async () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+      const realpathSpy = vi.spyOn(fs, 'realpathSync').mockImplementation((p) => p.toString());
+      const statSpy = vi.spyOn(fs, 'statSync').mockReturnValue({ isDirectory: () => true } as fs.Stats);
+      const existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
 
       const manager = new LocalQwenManager();
       const { args } = manager.resolveLaunchCommand('D:\\ComfyUI_windows_portable');
@@ -249,6 +362,10 @@ describe('LocalQwenManager', () => {
       expect(args).toContain('8188');
       expect(args).toContain('--disable-auto-launch');
       expect(args).not.toContain('--disable-dynamic-vram');
+
+      realpathSpy.mockRestore();
+      statSpy.mockRestore();
+      existsSpy.mockRestore();
     });
   });
 

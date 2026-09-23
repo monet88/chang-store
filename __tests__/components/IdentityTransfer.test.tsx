@@ -136,6 +136,18 @@ describe('IdentityTransfer component', () => {
     expect(screen.queryByText('image-options')).not.toBeInTheDocument();
   });
 
+  it('hides the feature-level options panel in Local Qwen Studio Mode', () => {
+    useIdentityTransferMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'localQwen',
+    });
+
+    render(<IdentityTransfer />);
+
+    expect(screen.queryByText('image-options')).not.toBeInTheDocument();
+    expect(screen.queryByText('gpt-image-options')).not.toBeInTheDocument();
+  });
+
   it('enables generate button and triggers handleGenerate on click', () => {
     const handleGenerate = vi.fn();
     useIdentityTransferMock.mockReturnValue({

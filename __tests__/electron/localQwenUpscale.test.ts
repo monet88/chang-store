@@ -242,6 +242,83 @@ describe('LocalQwenManager - upscaleImage', () => {
     ).rejects.toThrow(/ComfyUI upscale execution failed/);
   });
 
+  it('returns image/png mimeType even when input image is JPEG', async () => {
+    const outputFilename = 'output_test_upscale.png';
+    const upscaledBytes = Buffer.from('simulated-png-bytes');
+    const promptId = 'upscale-jpeg-prompt-123';
+
+    const fetchFn = vi.fn().mockImplementation(async (url: string) => {
+      if (url.endsWith('/upload/image')) {
+        return { ok: true, status: 200, json: async () => ({ name: 'uploaded.jpg' }) };
+      }
+      if (url.endsWith('/prompt')) {
+        return { ok: true, status: 200, json: async () => ({ prompt_id: promptId }) };
+      }
+      if (url.includes(`/history/${promptId}`)) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            [promptId]: {
+              outputs: { '3': { images: [{ filename: outputFilename, subfolder: '', type: 'output' }] } },
+            },
+          }),
+        };
+      }
+      if (url.includes('/view')) {
+        return {
+          ok: true,
+          status: 200,
+          arrayBuffer: async () => upscaledBytes.buffer.slice(upscaledBytes.byteOffset, upscaledBytes.byteOffset + upscaledBytes.byteLength),
+        };
+      }
+      throw new Error(`Unexpected url: ${url}`);
+    });
+
+    const manager = new LocalQwenManager({
+      probeFn: vi.fn().mockResolvedValue(true),
+      fetchFn: fetchFn as unknown as typeof fetch,
+    });
+
+    const result = await manager.upscaleImage({
+      image: 'data:image/jpeg;base64,' + Buffer.from('jpeg-input').toString('base64'),
+      scale: 2,
+    });
+
+    expect(result.image).toBe(upscaledBytes.toString('base64'));
+    expect(result.mimeType).toBe('image/png');
+  });
+  it('does not send POST /prompt if cancelled during image upload', async () => {
+    const promptMock = vi.fn();
+    const fetchFn = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/upload/image')) {
+        // Simulate cancel being triggered during upload
+        manager.isCancelled = true;
+        return { ok: true, status: 200, json: async () => ({ name: 'uploaded.png' }) };
+      }
+      if (url.endsWith('/prompt')) {
+        promptMock();
+        return { ok: true, status: 200, json: async () => ({ prompt_id: 'upscale-p1' }) };
+      }
+      throw new Error(`Unexpected url: ${url}`);
+    });
+
+    const manager = new LocalQwenManager({
+      probeFn: vi.fn().mockResolvedValue(true),
+      fetchFn: fetchFn as unknown as typeof fetch,
+    });
+
+    await expect(
+      manager.upscaleImage({
+        image: 'base64-data',
+        scale: 2,
+      }),
+    ).rejects.toThrow('Upscale cancelled by user');
+
+    // Ensure POST /prompt was never reached or dispatched
+    expect(promptMock).not.toHaveBeenCalled();
+  });
+
   it('registers upscaleImage handler with desktopLocalQwen channels', () => {
     const manager = new LocalQwenManager();
     registerDesktopLocalQwenHandlers(manager);

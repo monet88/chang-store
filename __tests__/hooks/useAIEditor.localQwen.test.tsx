@@ -81,7 +81,6 @@ describe('useAIEditor in Local Qwen Studio', () => {
 
       // UI notice should be exposed when > 4 images are uploaded without mentions
       expect(result.current.refLimitNotice).toBe('aiEditor.localQwenRefLimitNotice');
-      expect(result.current.warning).toBe('aiEditor.localQwenRefLimitNotice');
 
       await act(async () => {
         await result.current.handleGenerate();

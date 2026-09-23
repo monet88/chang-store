@@ -23,6 +23,7 @@ import {
   buildGptClothingTransferParts,
   buildGptProductStagingParts,
 } from '../utils/gpt-clothing-transfer-prompt';
+import { resolveEngineConcurrency } from '../utils/engineDispatch';
 import {
   buildQwenBrandModelParts,
   buildQwenClothingTransferParts,
@@ -387,7 +388,7 @@ export const useClothingTransferEComPackRun = (
         setPackItems(plan.map(({ item }) => item));
       }
 
-      const batchConcurrency = engineId === 'localQwen' ? 1 : ECOM_PACK_BATCH_MAX_CONCURRENCY;
+      const batchConcurrency = resolveEngineConcurrency(engineId, ECOM_PACK_BATCH_MAX_CONCURRENCY);
       await runBoundedWorkers(
         plan,
         batchConcurrency,

@@ -21,6 +21,14 @@ vi.mock('@/services/imageEditingService', () => ({
 vi.mock('@/services/providers/gpt-image/gptImageService', () => ({
   editGptImage: cloudGptEditMock,
 }));
+vi.mock('@/contexts/LanguageContext', () => ({
+  useLanguage: () => ({
+    t: (key: string) => {
+      if (key === 'studio.localQwenStatus.upscaling') return 'Upscaling image with local ComfyUI...';
+      return key;
+    },
+  }),
+}));
 
 const ORIGINAL_IMAGE: ImageFile = {
   base64: 'original-photo-base64',
@@ -66,7 +74,7 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
     </ImageGalleryContext.Provider>
   );
 
-  it('triggers explicit upscale through desktopLocalQwen bridge and tags result in gallery', async () => {
+  it('triggers explicit upscale through desktopLocalQwen bridge without premature gallery persistence', async () => {
     desktopUpscaleMock.mockResolvedValueOnce({
       ok: true,
       value: { image: UPSCALED_BASE64 },
@@ -102,13 +110,9 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
     expect(statusUpdates.length).toBeGreaterThan(0);
     expect(statusUpdates[0]).toContain('ComfyUI');
 
-    // 4. Verify tagged in gallery with engine: 'localQwen'
-    expect(addImageMock).toHaveBeenCalledTimes(1);
-    expect(addImageMock).toHaveBeenCalledWith(
-      { base64: UPSCALED_BASE64, mimeType: 'image/png' },
-      undefined,
-      'localQwen',
-    );
+    // 4. Verify upscaleImage does NOT prematurely add to gallery with undefined feature,
+    // preserving feature-owned gallery persistence without dedupe lockout
+    expect(addImageMock).not.toHaveBeenCalled();
 
     // 5. Verify cloud drivers NEVER called
     expect(cloudGeminiUpscaleMock).not.toHaveBeenCalled();
@@ -137,6 +141,26 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
       image: ORIGINAL_IMAGE.base64,
       scale: 4,
     });
+  });
+
+  it('returns image/png mimeType even when input image is JPEG', async () => {
+    desktopUpscaleMock.mockResolvedValueOnce({
+      ok: true,
+      value: { image: UPSCALED_BASE64, mimeType: 'image/png' },
+    });
+
+    const { result } = renderHook(() => useLocalQwenImageEngine(), { wrapper });
+    const jpegInput: ImageFile = {
+      base64: 'jpeg-photo-base64',
+      mimeType: 'image/jpeg',
+    };
+
+    let upscaled: ImageFile | undefined;
+    await act(async () => {
+      upscaled = await result.current.upscaleImage(jpegInput, undefined, undefined, '2K');
+    });
+
+    expect(upscaled?.mimeType).toBe('image/png');
   });
 
   it('preserves original image intact and throws clean error on failure without calling cloud', async () => {

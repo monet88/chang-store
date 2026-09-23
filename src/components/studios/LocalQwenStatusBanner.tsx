@@ -45,6 +45,32 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
   const handleCancelJob = controlledOnCancelJob ?? (() => void internal.cancelJob());
   const handleReleaseGpu = controlledOnReleaseGpu ?? (() => void internal.releaseGpu());
 
+  const renderReleaseGpuButton = (extraClass = 'px-2.5 py-1') => (
+    <button
+      type="button"
+      onClick={handleReleaseGpu}
+      disabled={isStopping}
+      data-testid="release-gpu-button"
+      className={`rounded-lg border border-amber-500/40 bg-amber-950/40 ${extraClass} text-xs font-medium text-amber-200 transition hover:bg-amber-900/60 disabled:opacity-50`}
+    >
+      {isStopping
+        ? t('studio.localQwenStatus.releasingGpu')
+        : t('studio.localQwenStatus.releaseGpu')}
+    </button>
+  );
+
+  const renderOpenSettingsButton = (extraTestId?: string, extraClass = 'px-2.5 py-1 text-zinc-200') =>
+    onOpenSettings ? (
+      <button
+        type="button"
+        onClick={onOpenSettings}
+        data-testid={extraTestId}
+        className={`rounded-lg border border-zinc-700 bg-zinc-800/80 ${extraClass} text-xs font-medium transition hover:bg-zinc-700 hover:text-white`}
+      >
+        {t('studio.localQwenStatus.openSettings')}
+      </button>
+    ) : null;
+
   const renderContent = () => {
     switch (status.state) {
       case 'starting':
@@ -94,33 +120,14 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {status.isAppOwned && (
-                <button
-                  type="button"
-                  onClick={handleReleaseGpu}
-                  disabled={isStopping}
-                  data-testid="release-gpu-button"
-                  className="rounded-lg border border-amber-500/40 bg-amber-950/40 px-2.5 py-1 text-xs font-medium text-amber-200 transition hover:bg-amber-900/60 disabled:opacity-50"
-                >
-                  {isStopping
-                    ? t('studio.localQwenStatus.releasingGpu')
-                    : t('studio.localQwenStatus.releaseGpu')}
-                </button>
-              )}
-              {onOpenSettings && (
-                <button
-                  type="button"
-                  onClick={onOpenSettings}
-                  className="rounded-lg border border-zinc-700 bg-zinc-800/80 px-2.5 py-1 text-xs font-medium text-zinc-200 transition hover:bg-zinc-700 hover:text-white"
-                >
-                  {t('studio.localQwenStatus.openSettings')}
-                </button>
-              )}
+              {status.isAppOwned && renderReleaseGpuButton('px-2.5 py-1')}
+              {renderOpenSettingsButton()}
             </div>
           </div>
         );
 
       case 'generating': {
+        const hasProgress = status.progress !== undefined;
         const step = status.progress?.step ?? 0;
         const maxSteps = status.progress?.maxSteps ?? 16;
         const percent = Math.min(100, Math.round((step / Math.max(1, maxSteps)) * 100));
@@ -138,9 +145,15 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
                     <p className="text-sm font-semibold text-sky-400">
                       {t('studio.localQwenStatus.generating')}
                     </p>
-                    <span className="rounded bg-sky-950/80 px-1.5 py-0.5 text-xs font-semibold text-sky-300">
-                      Step {step} / {maxSteps}
-                    </span>
+                    {hasProgress ? (
+                      <span className="rounded bg-sky-950/80 px-1.5 py-0.5 text-xs font-semibold text-sky-300">
+                        {t('studio.localQwenStatus.stepProgress', { step, maxSteps })}
+                      </span>
+                    ) : (
+                      <span className="rounded bg-sky-950/80 px-1.5 py-0.5 text-xs font-semibold text-sky-300">
+                        {t('studio.localQwenStatus.generating')}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-zinc-400">
                     {t('studio.localQwenStatus.generatingSubtext')}
@@ -166,8 +179,10 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
             {/* Sampling Progress Bar */}
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
               <div
-                className="h-full bg-gradient-to-r from-sky-500 to-emerald-400 transition-all duration-300 ease-out"
-                style={{ width: `${percent}%` }}
+                className={`h-full bg-gradient-to-r from-sky-500 to-emerald-400 transition-all duration-300 ease-out ${
+                  hasProgress ? '' : 'animate-pulse w-full'
+                }`}
+                style={hasProgress ? { width: `${percent}%` } : undefined}
               />
             </div>
           </div>
@@ -198,19 +213,7 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
-                {status.isAppOwned && (
-                  <button
-                    type="button"
-                    onClick={handleReleaseGpu}
-                    disabled={isStopping}
-                    data-testid="release-gpu-button"
-                    className="rounded-lg border border-amber-500/40 bg-amber-950/40 px-3 py-1.5 text-xs font-medium text-amber-200 transition hover:bg-amber-900/60 disabled:opacity-50"
-                  >
-                    {isStopping
-                      ? t('studio.localQwenStatus.releasingGpu')
-                      : t('studio.localQwenStatus.releaseGpu')}
-                  </button>
-                )}
+                {status.isAppOwned && renderReleaseGpuButton('px-3 py-1.5')}
                 <button
                   type="button"
                   onClick={handleRetry}
@@ -219,16 +222,7 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
                 >
                   {t('studio.localQwenStatus.retry')}
                 </button>
-                {onOpenSettings && (
-                  <button
-                    type="button"
-                    onClick={onOpenSettings}
-                    data-testid="local-qwen-open-settings-button"
-                    className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-zinc-700"
-                  >
-                    {t('studio.localQwenStatus.openSettings')}
-                  </button>
-                )}
+                {renderOpenSettingsButton('local-qwen-open-settings-button', 'px-3 py-1.5 text-zinc-100')}
               </div>
             </div>
           </div>
@@ -263,15 +257,7 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
                   ? t('studio.localQwenStatus.starting')
                   : t('studio.localQwenStatus.startServer')}
               </button>
-              {onOpenSettings && (
-                <button
-                  type="button"
-                  onClick={onOpenSettings}
-                  className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-200 transition hover:bg-zinc-700"
-                >
-                  {t('studio.localQwenStatus.openSettings')}
-                </button>
-              )}
+              {renderOpenSettingsButton(undefined, 'px-3 py-1.5')}
             </div>
           </div>
         );

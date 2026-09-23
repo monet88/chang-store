@@ -29,7 +29,7 @@ interface UseWardrobeModeParams {
 
 export const useWardrobeMode = (params: UseWardrobeModeParams) => {
   const { t } = useLanguage();
-  const { editImage } = useImageEngine();
+  const { editImage, id: contextEngineId } = useImageEngine();
 
   const list = useWardrobeModeList();
 
@@ -70,7 +70,7 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
     setError,
     setLoadingMessage,
     addImage: params.addImage,
-    engineId: params.engineId,
+    engineId: params.engineId ?? contextEngineId,
   });
 
   const download = useCallback(async () => {

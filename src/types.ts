@@ -50,6 +50,16 @@ export const LOCAL_QWEN_SUPPORTED_FEATURES: Feature[] = [
 export const isLocalQwenSupportedFeature = (feature: Feature): boolean =>
   LOCAL_QWEN_SUPPORTED_FEATURES.includes(feature);
 
+/** Returns true when a feature is supported by the active engine. */
+export const isFeatureSupportedByEngine = (
+  feature: Feature,
+  engineId?: ImageEngineId,
+): boolean => {
+  if (engineId === 'localQwen') return isLocalQwenSupportedFeature(feature);
+  if (engineId === 'gptImage') return isProviderSupportedFeature(feature);
+  return true;
+};
+
 export interface ImageFile {
   base64: string;
   mimeType: string;

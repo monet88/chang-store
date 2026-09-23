@@ -81,12 +81,3 @@ ${userPrompt}
 ## OUTPUT:
 Return the final edited image as the single result — exactly one image, not a grid, collage, or multi-panel sheet.`;
 
-/**
- * Convenience prompt builder for Local Qwen AI Editor.
- */
-export const buildQwenAiEditorPrompt = (userPrompt: string, imageRoles?: string): string => {
-  if (imageRoles && imageRoles.trim().length > 0) {
-    return buildQwenMultiImageEditPrompt(userPrompt, imageRoles);
-  }
-  return buildQwenSingleImageEditPrompt(userPrompt);
-};

@@ -1,21 +1,20 @@
-# Local ComfyUI — Qwen-Image 2.1 Uncensored Guide
+# Local ComfyUI — Qwen-Image 2.1 API Guide
 
 > Measured live: **2026-09-21**
 > Base URL: `http://127.0.0.1:8188`
 > Target Hardware: Windows 11, NVIDIA GeForce RTX 2060 SUPER (8GB VRAM), 32GB System RAM.
 > Upstream Repo: `https://huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-GGUF`
 
-This document details the installation, model files, workflow architecture, and measured hardware performance of running **Qwen-Image 2.1 Uncensored (GGUF)** locally on ComfyUI for **Text-to-Image** and **Virtual Try-On (VTO)** tasks.
+This document details the installation, model files, workflow architecture, and measured hardware performance of running **Qwen-Image 2.1** locally on ComfyUI as Chang Store's desktop-only four-workflow studio (**Virtual Try-On**, **Clothing Transfer**, **Identity Transfer**, and **AI Editor**).
 
 ---
 
 ## 1. Mục đích & Phạm vi sử dụng
 
-- **Mục đích chính:** Giải pháp tạo ảnh và chỉnh sửa trang phục thời trang **không bị kiểm duyệt (Bypass NSFW / Uncensored)**, không lo bị cloud từ chối prompt đối với các thiết kế nhạy cảm, xuyên thấu, đồ lót, bikini.
+- **Mục đích chính:** Cung cấp studio tạo và chỉnh sửa ảnh thời trang hoàn toàn cục bộ (offline / on-device) trên desktop thông qua runtime ComfyUI local, đảm bảo quyền riêng tư dữ liệu, không phụ thuộc vào kết nối đám mây và không tự động fallback sang cloud providers (Gemini / GPT Image).
 - **Phân định ranh giới (Cloud vs Local):**
-  - **Cloud (Google Gemini / OpenAI GPT Image qua Gateway):** Ưu tiên cho 95% tác vụ thời trang thông thường. Tốc độ cao (**3 – 6 giây**), không tốn tài nguyên máy local.
-  - **Local ComfyUI (Qwen-Image 2.1 GGUF):** Dự phòng chuyên biệt cho các case đồ nhạy cảm bị Cloud lọc bản quyền/NSFW. Tốc độ chậm hơn (**~2 – 3 phút** trên GPU 8GB VRAM).
-
+  - **Cloud Studios (Google Gemini / OpenAI GPT Image qua Gateway):** Ưu tiên cho các tác vụ thời trang thông thường trực tuyến. Tốc độ xử lý nhanh (**3 – 6 giây**), không tiêu tốn tài nguyên GPU / VRAM cục bộ.
+  - **Local Qwen Studio (Qwen-Image 2.1 qua ComfyUI loopback):** Studio độc lập trên ứng dụng Desktop Electron dành cho 4 quy trình (Virtual Try-On, Clothing Transfer, Identity Transfer, AI Editor). Chạy tuần tự (serial: tối đa 1 job tại một thời điểm), không tự động fallback sang cloud khi gặp lỗi, kiểm soát tài nguyên VRAM trên máy local (**~2 – 3 phút** trên GPU 8GB VRAM).
 ---
 
 ## 2. Thông tin cài đặt trên máy Local
@@ -113,6 +112,36 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
    - Khuyên dùng: `cfg: 1.0`, `sampler_name: "euler"`, `scheduler: "simple"`, `steps: 12 - 16`.
 6. **`VAEDecode` & `SaveImage`:** Giải mã latent ra ảnh và lưu vào `ComfyUI/output`.
 
+
+### 5.1 Endpoints & Protocol Contract (ComfyUI HTTP + WebSocket)
+
+Chang Store's desktop bridge communicates with local ComfyUI exclusively over strict loopback `http://127.0.0.1:8188` (or configured port) to prevent DNS rebinding vulnerabilities (`localhost` hostname resolution is intentionally rejected):
+
+1. **`GET /system_stats`**:
+   - Probe & health check.
+   - Response: `{ system: { os: string, argv: string[] }, devices: [...] }`.
+2. **`GET /object_info/{node_class}`**:
+   - Custom node presence and model existence verification (`UnetLoaderGGUF`, `TextEncodeQwenImage21`).
+   - Response: JSON object describing inputs, outputs, and model file enum list.
+3. **`POST /upload/image`**:
+   - Multipart form-data upload for reference images and upscale source images.
+   - Fields: `image` (binary file), `overwrite` (`true`).
+   - Response: `{ name: string, subfolder?: string, type?: string }`.
+4. **`POST /prompt`**:
+   - Submit workflow graph for text-to-image/VTO or bicubic upscale.
+   - Request payload: `{ prompt: Record<string, unknown>, client_id: string }`.
+   - Response: `{ prompt_id: string, number: number, node_errors: unknown }`.
+5. **`GET /history/{promptId}`**:
+   - Poll execution state and output asset metadata.
+   - Response: `{ [promptId]: { status: { status_str: "success" | "error", messages?: unknown }, outputs: { [nodeId]: { images: Array<{ filename: string, subfolder?: string, type?: string }> } } } }`.
+6. **`GET /view?filename=...&subfolder=...&type=...`**:
+   - Download rendered image array buffer converted to base64.
+   - Query params: `filename` (required), `subfolder`, `type`.
+7. **`POST /interrupt`**:
+   - Immediately cancel in-flight execution on KSampler.
+   - Handled with timeout (1500ms) to prevent UI hanging if ComfyUI queue is blocked.
+8. **`WS /ws?clientId={clientId}`**:
+   - Real-time progress updates (`{"type": "progress", "data": { "value": number, "max": number }}`) and interruption notifications (`{"type": "execution_interrupted"}`).
 ---
 
 ## 6. Cấu hình nhẹ khuyến nghị cho GPU 8GB
@@ -296,11 +325,12 @@ Không dùng:
 # 1. Khởi động ComfyUI (nếu chưa chạy)
 D:/ComfyUI_windows_portable/python_embeded/python.exe -s D:/ComfyUI_windows_portable/ComfyUI/main.py --windows-standalone-build --listen 127.0.0.1 --port 8188 --disable-auto-launch
 
-# 2. Kiểm tra server hoạt động
+# 2. Kiểm tra server hoạt động và thông số hệ thống
 curl -s http://127.0.0.1:8188/system_stats
 
-# 3. Chạy file test VTO mẫu
-D:/ComfyUI_windows_portable/python_embeded/python.exe D:/ComfyUI_windows_portable/test_vto.py
+# 3. Kiểm tra custom node và model bắt buộc
+curl -s http://127.0.0.1:8188/object_info/UnetLoaderGGUF
+curl -s http://127.0.0.1:8188/object_info/TextEncodeQwenImage21
 ```
 
 ### Verify DynamicVRAM

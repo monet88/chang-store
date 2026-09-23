@@ -13,6 +13,7 @@ import { buildGeminiClothingTransferParts } from '../utils/gemini-clothing-trans
 import { buildGptClothingTransferParts } from '../utils/gpt-clothing-transfer-prompt';
 import { buildQwenClothingTransferParts } from '../utils/qwen-clothing-transfer-prompt';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
+import { dispatchByEngine, resolveEngineConcurrency } from '../utils/engineDispatch';
 import { UseClothingTransferConceptsReturn } from './useClothingTransferConcepts';
 import { UseImageRefinementReturn } from './useImageRefinement';
 
@@ -84,11 +85,12 @@ export const useClothingTransferEngine = (
     ) => {
       updateConceptItem(itemId, { status: 'processing', results: [], error: undefined });
       try {
-        const interleavedParts = engineId === 'localQwen'
-          ? buildQwenClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim())
-          : engineId === 'gptImage'
-          ? buildGptClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim())
-          : buildGeminiClothingTransferParts(conceptImage, refsWithImages, extraPrompt.trim());
+        const trimmedExtraPrompt = extraPrompt.trim();
+        const interleavedParts = dispatchByEngine(engineId, {
+          localQwen: () => buildQwenClothingTransferParts(conceptImage, refsWithImages, trimmedExtraPrompt),
+          gptImage: () => buildGptClothingTransferParts(conceptImage, refsWithImages, trimmedExtraPrompt),
+          gemini: () => buildGeminiClothingTransferParts(conceptImage, refsWithImages, trimmedExtraPrompt),
+        });
         const results = await driver.editImage(
           {
             images: [conceptImage, ...referenceImages],
@@ -130,9 +132,10 @@ export const useClothingTransferEngine = (
       id: item.id,
       conceptImage: item.conceptImage,
     }));
-    const batchConcurrency = engineId === 'localQwen'
-      ? 1
-      : Math.min(CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY, jobs.length);
+    const batchConcurrency = resolveEngineConcurrency(
+      engineId,
+      Math.min(CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY, jobs.length),
+    );
 
     setIsLoading(true);
     setLoadingMessage(t('clothingTransfer.generatingStatus'));

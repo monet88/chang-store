@@ -20,6 +20,7 @@ import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { loadDefaultIdentityReferences } from '../utils/identity-transfer-defaults';
 import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
+import { dispatchByEngine, resolveEngineConcurrency } from '../utils/engineDispatch';
 
 const IDENTITY_TRANSFER_BATCH_CONCURRENCY = 4;
 
@@ -127,11 +128,11 @@ export const useIdentityTransfer = () => {
         extraPrompt,
         outfitBlueprint: blueprint,
       };
-      const interleavedParts = engineId === 'localQwen'
-        ? buildQwenIdentityTransferParts(promptInput)
-        : engineId === 'gptImage'
-        ? buildGptIdentityTransferParts(promptInput)
-        : buildGeminiIdentityTransferParts(promptInput);
+      const interleavedParts = dispatchByEngine(engineId, {
+        localQwen: () => buildQwenIdentityTransferParts(promptInput),
+        gptImage: () => buildGptIdentityTransferParts(promptInput),
+        gemini: () => buildGeminiIdentityTransferParts(promptInput),
+      });
       const [result] = await editImage({
         images: [],
         prompt: '',
@@ -176,7 +177,7 @@ export const useIdentityTransfer = () => {
       error: undefined,
     })));
 
-    const batchConcurrency = engineId === 'localQwen' ? 1 : IDENTITY_TRANSFER_BATCH_CONCURRENCY;
+    const batchConcurrency = resolveEngineConcurrency(engineId, IDENTITY_TRANSFER_BATCH_CONCURRENCY);
     try {
       await runBoundedWorkers(destinationItems, batchConcurrency, (item) =>
         generateForDestination(item, { face: faceReference, body: bodyReference }));
@@ -204,19 +205,12 @@ export const useIdentityTransfer = () => {
     }
   }, [bodyReference, destinationItems, faceReference, generateForDestination]);
 
-  // Same contract as the other Features' explicit upscale: the engine's own
-  // `upscaleImage` (local ComfyUI in the Local Qwen studio, cloud elsewhere)
-  // replaces the slot and persists the result next to the original.
-  const buildImageServiceConfig = useCallback(
-    (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),
-    [],
-  );
 
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, itemId: string) => {
     setUpscalingItemIds((prev) => ({ ...prev, [itemId]: true }));
     setError(null);
     try {
-      const result = await upscaleImage(imageToUpscale, imageEditModel, buildImageServiceConfig(() => {}));
+      const result = await upscaleImage(imageToUpscale, imageEditModel, { onStatusUpdate: () => {} });
       updateDestinationItem(itemId, { results: [result] });
       addImage(result, Feature.IdentityTransfer, engineId);
     } catch (upscaleError) {
@@ -224,7 +218,7 @@ export const useIdentityTransfer = () => {
     } finally {
       setUpscalingItemIds((prev) => ({ ...prev, [itemId]: false }));
     }
-  }, [addImage, buildImageServiceConfig, engineId, imageEditModel, t, updateDestinationItem]);
+  }, [addImage, engineId, imageEditModel, t, updateDestinationItem]);
 
   const completedCount = useMemo(
     () => destinationItems.filter((item) => item.status === 'completed').length,

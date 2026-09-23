@@ -232,7 +232,10 @@ export class LocalQwenManager {
       };
     }
 
-    if (this.childProcess && !this.childProcess.killed && this.state === 'starting') {
+    // `.killed` only reports that a signal was sent, not that the process
+    // exited (see stopServer). The tracked child reference is cleared by its
+    // own exit/error handlers, so the reference itself is the lifetime signal.
+    if (this.childProcess && this.state === 'starting') {
       return {
         state: 'starting',
         isAppOwned: true,
@@ -271,6 +274,17 @@ export class LocalQwenManager {
       };
     }
 
+    if (this.isAppOwned && this.childProcess) {
+      // Probe failed, but the child we own is still tracked: keep ownership so
+      // Release GPU/RAM and before-quit cleanup stay valid, and report a
+      // non-ready state instead of claiming ready or dropping to stopped.
+      return {
+        state: 'starting',
+        isAppOwned: true,
+        port: this.port,
+      };
+    }
+
     this.state = 'stopped';
     this.isAppOwned = false;
     return {
@@ -295,6 +309,7 @@ export class LocalQwenManager {
       const baseUrl = `http://127.0.0.1:${this.port}`;
       await this.fetchFn(`${baseUrl}/interrupt`, {
         method: 'POST',
+        signal: AbortSignal.timeout(1500),
       });
     } catch {
       // Ignore network errors when interrupting ComfyUI
@@ -326,11 +341,33 @@ export class LocalQwenManager {
   }
 
   public resolveLaunchCommand(folder: string): { executable: string; args: string[] } {
-    const isWin = process.platform === 'win32';
-    const portablePython = path.join(folder, 'python_embeded', isWin ? 'python.exe' : 'python');
-    const portableMain = path.join(folder, 'ComfyUI', 'main.py');
-    const rootMain = path.join(folder, 'main.py');
+    if (!folder || typeof folder !== 'string' || !folder.trim()) {
+      throw new Error('ComfyUI folder must be a non-empty string.');
+    }
 
+    const trimmed = folder.trim();
+    // Reject UNC / network paths (e.g. \\server\share or //server/share)
+    if (trimmed.startsWith('\\\\') || trimmed.startsWith('//')) {
+      throw new Error(`Security error: UNC and remote network paths are prohibited: ${trimmed}`);
+    }
+
+    // Resolve realpath to canonicalize symlinks and relative path escapes
+    let canonicalFolder: string;
+    try {
+      canonicalFolder = fs.realpathSync(trimmed);
+    } catch {
+      throw new Error(`ComfyUI directory not found: ${trimmed}`);
+    }
+
+    const stat = fs.statSync(canonicalFolder);
+    if (!stat.isDirectory()) {
+      throw new Error(`ComfyUI path is not a directory: ${canonicalFolder}`);
+    }
+
+    const isWin = process.platform === 'win32';
+    const portablePython = path.join(canonicalFolder, 'python_embeded', isWin ? 'python.exe' : 'python');
+    const portableMain = path.join(canonicalFolder, 'ComfyUI', 'main.py');
+    const rootMain = path.join(canonicalFolder, 'main.py');
     if (fs.existsSync(portablePython) && fs.existsSync(portableMain)) {
       return {
         executable: portablePython,
@@ -396,7 +433,7 @@ export class LocalQwenManager {
     // 1. Probe loopback first
     const alreadyResponding = await this.probe();
     if (alreadyResponding) {
-      const hasLiveOwnedChild = Boolean(this.isAppOwned && this.childProcess && !this.childProcess.killed);
+      const hasLiveOwnedChild = Boolean(this.isAppOwned && this.childProcess);
       this.isAppOwned = hasLiveOwnedChild;
 
       const health = await this.checkCompatibility();
@@ -468,6 +505,7 @@ export class LocalQwenManager {
     });
 
     child.on('error', (err: Error) => {
+      if (this.childProcess !== child) return;
       this.state = 'error';
       this.lastError = `ComfyUI process error: ${err.message}`;
       this.isAppOwned = false;
@@ -476,6 +514,7 @@ export class LocalQwenManager {
     });
 
     child.on('exit', (code: number | null, signal: string | null) => {
+      if (this.childProcess !== child) return;
       if (this.state === 'starting') {
         this.state = 'error';
         this.lastError = `ComfyUI process exited prematurely with code ${code ?? signal}: ${stderrOutput.trim()}`;
@@ -685,6 +724,7 @@ export class LocalQwenManager {
           const uploadRes = await this.fetchFn(`${baseUrl}/upload/image`, {
             method: 'POST',
             body: formData,
+            signal: abortController.signal,
           });
 
           if (!uploadRes.ok) {
@@ -801,6 +841,7 @@ export class LocalQwenManager {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: workflow, client_id: clientId }),
+        signal: abortController.signal,
       });
 
       if (!promptRes.ok) {
@@ -832,8 +873,12 @@ export class LocalQwenManager {
       };
     } catch (err) {
       this.state = 'error';
-      this.lastError = (err as Error).message || String(err);
-      throw err;
+      const isCancelled =
+        this.isCancelled ||
+        abortController.signal.aborted ||
+        (err instanceof Error && err.name === 'AbortError');
+      this.lastError = isCancelled ? 'Generation cancelled by user' : (err as Error).message || String(err);
+      throw isCancelled ? new Error('Generation cancelled by user') : err;
     } finally {
       if (ws) {
         try {
@@ -870,8 +915,12 @@ export class LocalQwenManager {
       return await this.runUpscaleWorkflow(params, abortController.signal);
     } catch (err) {
       this.state = 'error';
-      this.lastError = (err as Error).message || String(err);
-      throw err;
+      const isCancelled =
+        this.isCancelled ||
+        abortController.signal.aborted ||
+        (err instanceof Error && err.name === 'AbortError');
+      this.lastError = isCancelled ? 'Upscale cancelled by user' : (err as Error).message || String(err);
+      throw isCancelled ? new Error('Upscale cancelled by user') : err;
     } finally {
       this.activeAbortController = undefined;
       this.currentProgress = undefined;
@@ -885,6 +934,9 @@ export class LocalQwenManager {
     params: LocalQwenUpscaleParams,
     signal: AbortSignal,
   ): Promise<LocalQwenUpscaleResult> {
+    if (this.isCancelled || signal.aborted) {
+      throw new Error('Upscale cancelled by user');
+    }
     const host = `127.0.0.1:${this.port}`;
     const baseUrl = `http://${host}`;
     let rawBase64 = params.image.trim();
@@ -909,6 +961,7 @@ export class LocalQwenManager {
     const uploadRes = await this.fetchFn(`${baseUrl}/upload/image`, {
       method: 'POST',
       body: formData,
+      signal,
     });
 
     if (!uploadRes.ok) {
@@ -922,6 +975,9 @@ export class LocalQwenManager {
     const scale = typeof params.scale === 'number' && Number.isFinite(params.scale) && params.scale > 0
       ? params.scale
       : 2.0;
+    if (this.isCancelled || signal.aborted) {
+      throw new Error('Upscale cancelled by user');
+    }
 
     const workflow: Record<string, unknown> = {
       '1': {
@@ -952,6 +1008,7 @@ export class LocalQwenManager {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: workflow, client_id: clientId }),
+      signal,
     });
 
     if (!promptRes.ok) {
@@ -965,7 +1022,7 @@ export class LocalQwenManager {
       throw new Error('ComfyUI did not return a prompt_id.');
     }
 
-    const { base64 } = await this.pollComfyUIHistory(
+    const { base64, mimeType: resultMime } = await this.pollComfyUIHistory(
       promptId,
       baseUrl,
       signal,
@@ -975,6 +1032,7 @@ export class LocalQwenManager {
 
     return {
       image: base64,
+      mimeType: resultMime || 'image/png',
     };
   }
 
@@ -998,7 +1056,9 @@ export class LocalQwenManager {
         throw new Error(cancelledMessage);
       }
 
-      const historyRes = await this.fetchFn(`${baseUrl}/history/${promptId}`);
+      const historyRes = await this.fetchFn(`${baseUrl}/history/${promptId}`, {
+        signal,
+      });
       if (historyRes.ok) {
         const historyData = (await historyRes.json()) as Record<string, {
           outputs?: Record<string, { images?: Array<{ filename: string; subfolder?: string; type?: string }> }>;
@@ -1016,7 +1076,9 @@ export class LocalQwenManager {
               const nodeOut = item.outputs[nodeId];
               const imgInfo = nodeOut?.images?.[0];
               if (imgInfo) {
-                const viewRes = await this.fetchFn(buildComfyUIViewUrl(baseUrl, imgInfo));
+                const viewRes = await this.fetchFn(buildComfyUIViewUrl(baseUrl, imgInfo), {
+                  signal,
+                });
                 if (!viewRes.ok) {
                   throw new Error(`Failed to fetch image from ComfyUI: ${viewRes.statusText}`);
                 }
@@ -1027,12 +1089,30 @@ export class LocalQwenManager {
           }
         }
       }
+      if (this.isCancelled || signal.aborted) {
+        throw new Error(cancelledMessage);
+      }
 
-      const { promise, resolve } = Promise.withResolvers<void>();
-      setTimeout(resolve, pollIntervalMs);
-      await promise;
+      await new Promise<void>((resolve, reject) => {
+        let timer: NodeJS.Timeout | undefined;
+        const onAbort = () => {
+          clearTimeout(timer);
+          signal.removeEventListener('abort', onAbort);
+          reject(new Error(cancelledMessage));
+        };
+
+        if (signal.aborted) {
+          reject(new Error(cancelledMessage));
+          return;
+        }
+
+        signal.addEventListener('abort', onAbort, { once: true });
+        timer = setTimeout(() => {
+          signal.removeEventListener('abort', onAbort);
+          resolve();
+        }, pollIntervalMs);
+      });
     }
-
     throw new Error(`ComfyUI ${label} timed out.`);
   }
 }
@@ -1211,7 +1291,7 @@ export const parseLocalQwenUpscaleParams = (value: unknown): LocalQwenUpscalePar
       input.scale <= 0 ||
       input.scale > 8
     ) {
-      throw new Error('Invalid local Qwen upscale scale: must be a number between 0 and 8.');
+      throw new Error('Invalid local Qwen upscale scale: must be a number in (0, 8].');
     }
     scale = input.scale;
   }

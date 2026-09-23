@@ -4,7 +4,7 @@ import {
   type DesktopLocalQwenStatus,
   type DesktopLocalQwenStopResult,
 } from '../platform/desktopLocalQwen';
-import { loadLocalQwenSettings } from '../config/localQwenSettings';
+import { loadLocalQwenSettings, DEFAULT_COMFYUI_PORT } from '../config/localQwenSettings';
 
 export interface UseLocalQwenStatusOptions {
   pollIntervalMs?: number;
@@ -36,7 +36,7 @@ export const useLocalQwenStatus = (
   const [status, setStatus] = useState<DesktopLocalQwenStatus>({
     state: 'stopped',
     isAppOwned: false,
-    port: 8188,
+    port: DEFAULT_COMFYUI_PORT,
   });
   const [isCancelling, setIsCancelling] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -86,7 +86,7 @@ export const useLocalQwenStatus = (
             setStatus({
               state: 'error',
               isAppOwned: false,
-              port: 8188,
+              port: DEFAULT_COMFYUI_PORT,
               error: result.error.message,
             });
           } else {
@@ -100,7 +100,7 @@ export const useLocalQwenStatus = (
           setStatus({
             state: 'error',
             isAppOwned: false,
-            port: 8188,
+            port: DEFAULT_COMFYUI_PORT,
             error: (err as Error).message || 'Failed to start local ComfyUI',
           });
         }

@@ -24,6 +24,8 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
         'tabs.identityTransfer': 'Identity Transfer',
         'studio.provider.featuresLabel': 'Features',
         'studio.provider.featuresDescription': 'Features description',
+        'studio.localQwen.featuresLabel': 'Local Qwen workflows',
+        'studio.localQwen.featuresDescription': 'Four local workflows powered by ComfyUI.',
       };
 
       return translations[key] ?? key;
@@ -70,6 +72,21 @@ describe('Tabs', () => {
     expect(labels).toEqual([
       'Virtual Try-On',
       'Lookbook AI',
+      'Clothing Transfer',
+      'Identity Transfer',
+      'AI Editor',
+    ]);
+  });
+
+  it('lists the four Local Qwen workflows with Local Qwen-specific copy', () => {
+    render(<Tabs activeFeature={Feature.TryOn} setActiveFeature={vi.fn()} studioMode="localQwen" />);
+
+    expect(screen.getByText('Local Qwen workflows')).toBeInTheDocument();
+    expect(screen.getByText('Four local workflows powered by ComfyUI.')).toBeInTheDocument();
+
+    const labels = screen.getAllByRole('button').map((button) => button.textContent);
+    expect(labels).toEqual([
+      'Virtual Try-On',
       'Clothing Transfer',
       'Identity Transfer',
       'AI Editor',

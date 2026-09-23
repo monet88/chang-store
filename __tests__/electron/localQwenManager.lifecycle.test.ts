@@ -102,6 +102,53 @@ describe('LocalQwenManager Lifecycle, Cancellation, and Progress', () => {
       expect(result).toEqual({ cancelled: true });
       expect(manager.state).toBe('error');
     });
+
+    it('cancels hung in-flight loopback fetch and releases generation job path', async () => {
+      let promptSignal: AbortSignal | undefined;
+      const { promise: promptStarted, resolve: signalPromptStarted } = Promise.withResolvers<void>();
+      const mockFetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url.endsWith('/system_stats')) {
+          return Promise.resolve(new Response(JSON.stringify({ system: { os: 'windows' } }), { status: 200 }));
+        }
+        if (url.endsWith('/interrupt')) {
+          return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+        }
+        if (url.endsWith('/prompt')) {
+          promptSignal = init?.signal as AbortSignal | undefined;
+          const { promise, reject } = Promise.withResolvers<Response>();
+          promptSignal?.addEventListener(
+            'abort',
+            () => {
+              const err = new Error('The operation was aborted');
+              err.name = 'AbortError';
+              reject(err);
+            },
+            { once: true },
+          );
+          signalPromptStarted();
+          return promise;
+        }
+        return Promise.resolve(new Response('{}', { status: 200 }));
+      });
+
+      const manager = new LocalQwenManager({
+        probeFn: vi.fn().mockResolvedValue(true),
+        fetchFn: mockFetch,
+      });
+      const genPromise = manager.generateImage({
+        prompt: 'test prompt',
+      });
+
+      await promptStarted;
+      expect(manager.state).toBe('generating');
+      expect(promptSignal).toBeDefined();
+      expect(promptSignal?.aborted).toBe(false);
+
+      await manager.cancelJob();
+
+      await expect(genPromise).rejects.toThrow('Generation cancelled by user');
+      expect(manager.state).not.toBe('generating');
+    });
   });
 
   describe('quit hook behavior (handleBeforeQuit)', () => {
@@ -162,6 +209,77 @@ describe('LocalQwenManager Lifecycle, Cancellation, and Progress', () => {
       expect(stopSpy).not.toHaveBeenCalled();
       // External process was NOT killed
       expect(mockProc.kill).not.toHaveBeenCalled();
+    });
+
+    it('cancels active job without killing process when externally owned and generating on before-quit', async () => {
+      const mockProc = createMockProcess(9999);
+      const manager = new LocalQwenManager();
+
+      manager.isAppOwned = false;
+      manager.state = 'generating';
+      manager.childProcess = mockProc as unknown as ChildProcess;
+
+      const cancelSpy = vi.spyOn(manager, 'cancelJob');
+      const stopSpy = vi.spyOn(manager, 'stopServer');
+
+      await manager.handleBeforeQuit();
+
+      expect(cancelSpy).not.toHaveBeenCalled();
+      expect(stopSpy).not.toHaveBeenCalled();
+      expect(mockProc.kill).not.toHaveBeenCalled();
+    });
+
+    it('strictly executes cancelJob BEFORE stopServer when app-owned server is generating during quit', async () => {
+      const mockProc = createMockProcess(1234);
+      const manager = new LocalQwenManager();
+      manager.isAppOwned = true;
+      manager.state = 'generating';
+      manager.childProcess = mockProc as unknown as ChildProcess;
+
+      const executionOrder: string[] = [];
+      vi.spyOn(manager, 'cancelJob').mockImplementation(async () => {
+        executionOrder.push('cancelJob');
+        manager.state = 'stopped';
+        return { cancelled: true };
+      });
+      vi.spyOn(manager, 'stopServer').mockImplementation(async () => {
+        executionOrder.push('stopServer');
+        manager.isAppOwned = false;
+        return { stopped: true, wasExternal: false };
+      });
+
+      await manager.handleBeforeQuit();
+
+      expect(executionOrder).toEqual(['cancelJob', 'stopServer']);
+    });
+
+    it('wires app before-quit event listener properly to call handleBeforeQuit', async () => {
+      const manager = new LocalQwenManager();
+      manager.isAppOwned = true;
+      const handleBeforeQuitSpy = vi.spyOn(manager, 'handleBeforeQuit').mockResolvedValue();
+
+      // Simulate electron app EventEmitter
+      const appEmitter = new EventEmitter() as EventEmitter & { quit: () => void };
+      appEmitter.quit = vi.fn();
+
+      let isStoppingComfyUI = false;
+      appEmitter.on('before-quit', (event: { preventDefault: () => void }) => {
+        if (manager.isAppOwned && !isStoppingComfyUI) {
+          event.preventDefault();
+          isStoppingComfyUI = true;
+          void manager.handleBeforeQuit().finally(() => {
+            appEmitter.quit();
+          });
+        }
+      });
+
+      const preventDefaultMock = vi.fn();
+      appEmitter.emit('before-quit', { preventDefault: preventDefaultMock });
+
+      expect(preventDefaultMock).toHaveBeenCalledTimes(1);
+      expect(handleBeforeQuitSpy).toHaveBeenCalledTimes(1);
+      await Promise.resolve();
+      expect(appEmitter.quit).toHaveBeenCalledTimes(1);
     });
   });
 

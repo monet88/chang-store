@@ -206,15 +206,15 @@ negative guidance and prompt structure because the models respond differently.
 `{ id, model, editImage, upscaleImage, createImageChatSession, options }` for
 the active mode. The current cloud lanes are backed by
 `src/services/imageEditingService.ts` (Gemini) and
-`src/services/providers/gpt-image/gptImageEngine.ts` (GPT Image); Local Qwen is
-planned to join the same seam through the desktop ComfyUI bridge rather than
+`src/services/providers/gpt-image/gptImageEngine.ts` (GPT Image); Local Qwen
+joins the same seam through the desktop ComfyUI bridge rather than
 forking Feature workflows.
 
 Gemini, GPT Image, and Local Qwen feature workflows assemble requests through
 independent prompt policies at the engine seam rather than forcing shared
 wording across model families. Gemini receives interleaved
 `[label, image, …]` parts, GPT uses one role map plus ordered reference images,
-and Local Qwen will translate the same model-agnostic Feature inputs into the
+and Local Qwen translates the same model-agnostic Feature inputs into the
 deterministic reference ordering and text expected by `TextEncodeQwenImage21`.
 Transport helpers (`imagePart` in `src/utils/imagePart.ts`) and truly
 model-agnostic prompt fragments may still be shared when doing so does not
@@ -269,11 +269,11 @@ do not require speculative scaffolding ahead of that work.
 
 | Workflow | Gemini | GPT Image | Local Qwen (desktop) |
 | --- | --- | --- | --- |
-| Virtual Try-On | Yes | Yes | Planned |
+| Virtual Try-On | Yes | Yes | Yes |
 | Lookbook | Yes | Yes | No |
-| Clothing Transfer | Yes | Yes | Planned |
-| AI Editor | Yes | Yes | Planned |
-| Identity Transfer | Yes | Yes | Planned |
+| Clothing Transfer | Yes | Yes | Yes |
+| AI Editor | Yes | Yes | Yes |
+| Identity Transfer | Yes | Yes | Yes |
 | Background Replacer | Yes | No | No |
 | Pose Changer | Yes | No | No |
 | Photo Album | Yes | No | No |
@@ -286,9 +286,9 @@ yet. GPT caps stay deliberate — one output per request, lookbook variations
 capped at one, wardrobe sets bounded to two, serial batches, and no native
 upscale (upscale is a preservation-prompted edit at the largest quality).
 
-Local Qwen is desktop-only and intentionally narrower. Its first implementation
-is serial (one active job), defaults to 512 px on the target 8 GB GPU, keeps
-upscale as a separate explicit user action, never falls back to cloud
+Local Qwen is desktop-only and intentionally narrower. It ships as a serial
+engine (one active job at a time), defaults to 512 px on the target 8 GB GPU,
+keeps upscale as a separate explicit user action, never falls back to cloud
 automatically, and delegates local-process ownership to Electron main. See
 `docs/api/localQwen-api-guide.md` for the measured runtime contract.
 

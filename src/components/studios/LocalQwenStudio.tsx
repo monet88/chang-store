@@ -45,7 +45,7 @@ const LocalQwenStudio: React.FC<LocalQwenStudioProps> = ({ activeFeature, onSend
             {t('studio.switch.localQwen')}
           </p>
           <h2 className="text-xl font-semibold tracking-[-0.03em] text-zinc-50 sm:text-2xl">
-            {t('studio.provider.featuresLabel')}
+            {t('studio.localQwen.featuresLabel')}
           </h2>
         </div>
       </section>

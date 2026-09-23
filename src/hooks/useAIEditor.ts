@@ -27,7 +27,6 @@ export interface UseAIEditorReturn {
   setPrompt: (prompt: string) => void;
   isLoading: boolean;
   error: string | null;
-  warning?: string | null;
   refLimitNotice?: string | null;
   resultImage: ImageFile | null;
   aspectRatio: AspectRatio;
@@ -136,6 +135,9 @@ export const useAIEditor = (): UseAIEditorReturn => {
   const handleGenerate = useCallback(async (): Promise<void> => {
     if (generationInFlightRef.current) return;
 
+    setError(null);
+    setResultImage(null);
+
     if (images.length === 0) {
       setError(t('aiEditor.error.noImages'));
       return;
@@ -154,9 +156,6 @@ export const useAIEditor = (): UseAIEditorReturn => {
 
     generationInFlightRef.current = true;
     setIsLoading(true);
-    setError(null);
-    setResultImage(null);
-
     try {
       const isLocalQwen = engineId === 'localQwen';
       const rawMentionedImages = mentionedSelection.images;
@@ -244,9 +243,6 @@ export const useAIEditor = (): UseAIEditorReturn => {
     handleUpscale,
     isUpscaling,
     clearError: () => setError(null),
-    warning: engineId === 'localQwen' && images.length > 4 && !extractMentionedImages(prompt).hasMentions
-      ? t('aiEditor.localQwenRefLimitNotice')
-      : null,
     refLimitNotice: engineId === 'localQwen' && images.length > 4 && !extractMentionedImages(prompt).hasMentions
       ? t('aiEditor.localQwenRefLimitNotice')
       : null,

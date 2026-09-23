@@ -87,6 +87,7 @@ const VirtualTryOn: React.FC = () => {
   const subjectImgRef = React.useRef<HTMLImageElement>(null);
   const [imageDimensions, setImageDimensions] = React.useState<{ naturalWidth: number; naturalHeight: number } | null>(null);
   const isGptImageStudio = engineId === 'gptImage';
+  const isLocalQwen = engineId === 'localQwen';
 
   const markerStyle: React.CSSProperties = React.useMemo(() => {
     if (!markerPosition) return {};
@@ -521,7 +522,7 @@ const VirtualTryOn: React.FC = () => {
                       numImages={numImages}
                       setNumImages={setNumImages}
                     />
-                  ) : (
+                  ) : isLocalQwen ? null : (
                     <ImageOptionsPanel
                       aspectRatio={aspectRatio}
                       setAspectRatio={setAspectRatio}
@@ -533,7 +534,7 @@ const VirtualTryOn: React.FC = () => {
 
                   <AiScanPanel sources={aiScanSources} />
 
-                  {!isGptImageStudio && (
+                  {!isGptImageStudio && !isLocalQwen && (
                     <Tooltip content={t('tooltips.tryOnImageCount')} position="top">
                       <div className="space-y-3">
                         <div className="flex items-center justify-between text-sm text-zinc-300">
@@ -866,7 +867,7 @@ const VirtualTryOn: React.FC = () => {
 
                 {isGptImageStudio ? (
                   <GptImageOptionsPanel aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} />
-                ) : (
+                ) : isLocalQwen ? null : (
                   <ImageOptionsPanel
                     aspectRatio={aspectRatio}
                     setAspectRatio={setAspectRatio}

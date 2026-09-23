@@ -144,6 +144,10 @@ export const vi: Translation = {
       featuresLabel: 'Quy trình của nhà cung cấp',
       featuresDescription: 'Năm quy trình khả dụng trong studio GPT Image.',
     },
+    localQwen: {
+      featuresLabel: 'Quy trình Qwen Cục bộ',
+      featuresDescription: 'Bốn quy trình cục bộ chạy trên ComfyUI.',
+    },
     profile: {
       none: 'Chưa cấu hình nhà cung cấp ảnh',
       notChecked: 'Chưa kiểm tra — bấm "Kiểm tra" trong Cài đặt',
@@ -184,6 +188,10 @@ export const vi: Translation = {
       startServer: 'Khởi động ComfyUI',
       releaseGpu: 'Giải phóng GPU/RAM',
       releasingGpu: 'Đang giải phóng...',
+      stepProgress: 'Bước {{step}} / {{maxSteps}}',
+      upscaling: 'Đang nâng cấp độ phân giải với ComfyUI...',
+      initializing: 'Đang khởi tạo tiến trình tạo ảnh Local Qwen...',
+      generatingStatus: 'Đang tạo ảnh với ComfyUI cục bộ (Qwen-Image 2.1)...',
     },
   },
 

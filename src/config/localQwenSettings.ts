@@ -31,6 +31,7 @@ export const LOCAL_QWEN_MAX_CFG = 10.0;
 
 export const LOCAL_QWEN_SETTINGS_KEY = 'local_qwen_settings_v1';
 export const KNOWN_PORTABLE_COMFYUI_PATH = 'D:\\ComfyUI_windows_portable';
+export const DEFAULT_COMFYUI_PORT = 8188;
 
 export const detectPortableComfyUiPath = (platform?: string): string => {
   const desktopEnvPlatform =
@@ -55,14 +56,7 @@ export const DEFAULT_LOCAL_QWEN_SETTINGS: LocalQwenSettings = Object.freeze({
 
 export const sanitizeLocalQwenSettings = (raw: unknown): LocalQwenSettings => {
   if (!raw || typeof raw !== 'object') {
-    return {
-      resolution: 512,
-      steps: 16,
-      cfg: 1.0,
-      sampler: 'Euler',
-      scheduler: 'Simple',
-      comfyUiPath: detectPortableComfyUiPath(),
-    };
+    return { ...DEFAULT_LOCAL_QWEN_SETTINGS, comfyUiPath: detectPortableComfyUiPath() };
   }
 
   const obj = raw as Record<string, unknown>;
@@ -111,39 +105,18 @@ export const sanitizeLocalQwenSettings = (raw: unknown): LocalQwenSettings => {
 
 export const loadLocalQwenSettings = (): LocalQwenSettings => {
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-    return {
-      resolution: 512,
-      steps: 16,
-      cfg: 1.0,
-      sampler: 'Euler',
-      scheduler: 'Simple',
-      comfyUiPath: detectPortableComfyUiPath(),
-    };
+    return { ...DEFAULT_LOCAL_QWEN_SETTINGS, comfyUiPath: detectPortableComfyUiPath() };
   }
 
   try {
     const raw = localStorage.getItem(LOCAL_QWEN_SETTINGS_KEY);
     if (!raw) {
-      return {
-        resolution: 512,
-        steps: 16,
-        cfg: 1.0,
-        sampler: 'Euler',
-        scheduler: 'Simple',
-        comfyUiPath: detectPortableComfyUiPath(),
-      };
+      return { ...DEFAULT_LOCAL_QWEN_SETTINGS, comfyUiPath: detectPortableComfyUiPath() };
     }
     const parsed = JSON.parse(raw);
     return sanitizeLocalQwenSettings(parsed);
   } catch {
-    return {
-      resolution: 512,
-      steps: 16,
-      cfg: 1.0,
-      sampler: 'Euler',
-      scheduler: 'Simple',
-      comfyUiPath: detectPortableComfyUiPath(),
-    };
+    return { ...DEFAULT_LOCAL_QWEN_SETTINGS, comfyUiPath: detectPortableComfyUiPath() };
   }
 };
 

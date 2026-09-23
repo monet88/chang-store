@@ -160,6 +160,21 @@ describe('AIEditor', () => {
     expect(handleUpscaleMock).toHaveBeenCalledWith({ base64: 'result-image', mimeType: 'image/png' });
   });
 
+  it('renders the feature-level options panel for cloud engines', () => {
+    render(<AIEditor />);
+
+    expect(screen.getByText('options:gemini-2.5-flash-image')).toBeInTheDocument();
+  });
+
+  it('hides the feature-level options panel in Local Qwen mode', () => {
+    hookState.engineId = 'localQwen';
+    hookState.imageEditModel = 'qwen-image-2.1';
+
+    render(<AIEditor />);
+
+    expect(screen.queryByText('options:qwen-image-2.1')).not.toBeInTheDocument();
+  });
+
   it('displays notice when hook reports a local Qwen reference limit', () => {
     hookState.engineId = 'localQwen';
     hookState.refLimitNotice = 'aiEditor.localQwenRefLimitNotice';

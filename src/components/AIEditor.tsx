@@ -20,15 +20,11 @@ import HoverableImage from './HoverableImage';
 import Spinner, { ErrorDisplay } from './Spinner';
 import ResultPlaceholder from './shared/ResultPlaceholder';
 
-interface AIEditorProps {
-  studioMode?: StudioMode;
-}
-
 /**
  * AIEditor component
  * Provides multi-image editing with @mention reference system
  */
-const AIEditor: React.FC<AIEditorProps> = () => {
+const AIEditor: React.FC = () => {
   const { t } = useLanguage();
   const {
     images,
@@ -48,7 +44,10 @@ const AIEditor: React.FC<AIEditorProps> = () => {
     isUpscaling,
     clearError,
     refLimitNotice,
+    engineId,
   } = useAIEditor();
+
+  const isLocalQwen = engineId === 'localQwen';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start overflow-x-hidden pb-12">
@@ -96,16 +95,18 @@ const AIEditor: React.FC<AIEditorProps> = () => {
           />
         </div>
 
-        {/* Options panel */}
-        <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-          <ImageOptionsPanel
-            aspectRatio={aspectRatio}
-            setAspectRatio={setAspectRatio}
-            resolution={resolution}
-            setResolution={setResolution}
-            model={imageEditModel}
-          />
-        </div>
+        {/* Options panel: Local Qwen snapshots its own settings instead */}
+        {!isLocalQwen && (
+          <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+            <ImageOptionsPanel
+              aspectRatio={aspectRatio}
+              setAspectRatio={setAspectRatio}
+              resolution={resolution}
+              setResolution={setResolution}
+              model={imageEditModel}
+            />
+          </div>
+        )}
 
         {/* Generate button */}
         <div className="text-center">

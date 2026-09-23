@@ -153,6 +153,8 @@ export const useVirtualTryOn = () => {
     setError,
     setUpscalingStates,
     t,
+    addImage,
+    engineId,
   });
 
   const anyUpscaling = useMemo(

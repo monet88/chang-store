@@ -1,6 +1,6 @@
-import { useMemo, useContext } from 'react';
+import { useMemo } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 import type { ImageEngine } from '../contexts/ImageEngineContext';
-import { ImageGalleryContext } from '../contexts/ImageGalleryContext';
 import type { EditImageParams } from '../services/imageEditingService';
 import type { ImageFile, UpscaleQuality } from '../types';
 import { snapshotLocalQwenSettings } from '../config/localQwenSettings';
@@ -38,7 +38,7 @@ interface LocalQwenServiceConfig {
  * - No auto-upscale; results remain at configured resolution.
  */
 export const useLocalQwenImageEngine = (): ImageEngine => {
-  const gallery = useContext(ImageGalleryContext);
+  const { t } = useLanguage();
   return useMemo<ImageEngine>(() => {
     const editImage = async (
       params: EditImageParams,
@@ -46,7 +46,7 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
       config?: LocalQwenServiceConfig,
     ): Promise<ImageFile[]> => {
       return runSerializedLocalQwenJob(async () => {
-        config?.onStatusUpdate?.('Initializing Local Qwen generation...');
+        config?.onStatusUpdate?.(t('studio.localQwenStatus.initializing'));
 
         // 1. Snapshot settings for this job
         const settings = snapshotLocalQwenSettings();
@@ -56,7 +56,7 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
         const prompt = interleaved ? interleaved.prompt : params.prompt || '';
         const images: ImageFile[] = interleaved ? interleaved.images : params.images || [];
 
-        config?.onStatusUpdate?.('Generating with local ComfyUI (Qwen-Image 2.1)...');
+        config?.onStatusUpdate?.(t('studio.localQwenStatus.generatingStatus'));
 
         const results = await generateLocalQwenImage({
           prompt,
@@ -79,7 +79,7 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
       quality?: UpscaleQuality,
     ): Promise<ImageFile> => {
       return runSerializedLocalQwenJob(async () => {
-        config?.onStatusUpdate?.('Upscaling image with local ComfyUI...');
+        config?.onStatusUpdate?.(t('studio.localQwenStatus.upscaling'));
 
         const desktopApi = window.desktopLocalQwen;
         if (!desktopApi?.upscaleImage) {
@@ -101,11 +101,8 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
 
         const upscaledImage: ImageFile = {
           base64: res.value.image,
-          mimeType: image.mimeType || 'image/png',
+          mimeType: res.value.mimeType || 'image/png',
         };
-
-        // Tag upscaled result in gallery as localQwen
-        gallery?.addImage(upscaledImage, undefined, 'localQwen');
 
         return upscaledImage;
       });
@@ -122,5 +119,5 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
       noSelectableModel: false,
       options: null,
     };
-  }, [gallery]);
+  }, [t]);
 };
