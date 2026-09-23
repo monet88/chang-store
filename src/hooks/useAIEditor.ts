@@ -121,17 +121,6 @@ export const useAIEditor = (): UseAIEditorReturn => {
     [images, engineId],
   );
 
-  /** Drop @imgN tokens whose image was not sent (local Qwen caps mentions at 4). */
-  const stripDroppedMentions = useCallback(
-    (promptText: string, keptImages: ImageFile[]): string => {
-      const keptNumbers = new Set(keptImages.map((image) => images.indexOf(image) + 1));
-      return promptText.replace(MENTION_REGEX, (match, digits: string) =>
-        keptNumbers.has(Number.parseInt(digits, 10)) ? match : '',
-      );
-    },
-    [images],
-  );
-
   const handleGenerate = useCallback(async (): Promise<void> => {
     if (generationInFlightRef.current) return;
 
@@ -153,22 +142,20 @@ export const useAIEditor = (): UseAIEditorReturn => {
       setError(t('aiEditor.error.invalidImageReferences', { refs: mentionedSelection.invalidRefs.join(', ') }));
       return;
     }
+    const isLocalQwen = engineId === 'localQwen';
+    if (isLocalQwen && mentionedSelection.hasMentions && mentionedSelection.images.length > 4) {
+      setError(t('aiEditor.error.tooManyReferences'));
+      return;
+    }
 
     generationInFlightRef.current = true;
     setIsLoading(true);
     try {
-      const isLocalQwen = engineId === 'localQwen';
-      const rawMentionedImages = mentionedSelection.images;
-      const mentionedImages = isLocalQwen ? rawMentionedImages.slice(0, 4) : rawMentionedImages;
-
       const imagesToSend = mentionedSelection.hasMentions
-        ? mentionedImages
+        ? mentionedSelection.images
         : (isLocalQwen ? images.slice(0, 4) : images);
 
-      const userPrompt = mentionedSelection.hasMentions && mentionedImages.length < rawMentionedImages.length
-        ? stripDroppedMentions(prompt, mentionedImages)
-        : prompt;
-      const apiPrompt = buildApiPrompt(userPrompt, mentionedImages);
+      const apiPrompt = buildApiPrompt(prompt, mentionedSelection.images);
       const [result] = await editImage(
         {
           images: imagesToSend,
@@ -203,7 +190,6 @@ export const useAIEditor = (): UseAIEditorReturn => {
     editImage,
     imageEditModel,
     extractMentionedImages,
-    stripDroppedMentions,
     buildApiPrompt,
     t,
     addImage,

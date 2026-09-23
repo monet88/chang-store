@@ -852,6 +852,7 @@ Do not include any other text or markdown.
       noImages: 'Please upload at least one image.',
       noPrompt: 'Please enter an editing prompt.',
       invalidImageReferences: 'Invalid image reference(s): {{refs}}. Use @img1 through the number of uploaded images.',
+      tooManyReferences: 'Local Qwen supports at most 4 referenced images in the prompt. Please reference up to 4 images.',
     },
     outputPanelDescription: 'Your AI-edited image will appear here.',
   },

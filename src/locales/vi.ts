@@ -854,6 +854,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       noImages: 'Vui lòng tải lên ít nhất một ảnh.',
       noPrompt: 'Vui lòng nhập mô tả chỉnh sửa.',
       invalidImageReferences: 'Tham chiếu ảnh không hợp lệ: {{refs}}. Hãy dùng @img1 đến số ảnh đã tải lên.',
+      tooManyReferences: 'Qwen Cục bộ hỗ trợ tối đa 4 ảnh tham chiếu trong mô tả. Vui lòng chỉ tham chiếu tối đa 4 ảnh.',
     },
     outputPanelDescription: 'Ảnh đã chỉnh sửa AI sẽ xuất hiện ở đây.',
   },

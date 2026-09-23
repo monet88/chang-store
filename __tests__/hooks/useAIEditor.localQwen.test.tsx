@@ -94,7 +94,7 @@ describe('useAIEditor in Local Qwen Studio', () => {
       expect(callParams.images).toEqual([IMG_1, IMG_2, IMG_3, IMG_4]);
     });
 
-    it('caps mentioned images at 4 when more than 4 valid mentions are provided', async () => {
+    it('rejects before queueing when more than 4 valid mentions are provided', async () => {
       const { result } = renderHook(() => useAIEditor());
 
       act(() => {
@@ -109,16 +109,31 @@ describe('useAIEditor in Local Qwen Studio', () => {
         await result.current.handleGenerate();
       });
 
+      // Must fail validation before calling editImage
+      expect(localQwenEditImageMock).not.toHaveBeenCalled();
+      expect(result.current.error).toBe('aiEditor.error.tooManyReferences');
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    it('accepts and preserves author prompt when up to 4 valid mentions are provided', async () => {
+      const { result } = renderHook(() => useAIEditor());
+
+      const promptText = 'Blend @img1, @img2, @img3, and @img4 together';
+      act(() => {
+        result.current.setImages([IMG_1, IMG_2, IMG_3, IMG_4, IMG_5, IMG_6]);
+        result.current.setPrompt(promptText);
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
       expect(localQwenEditImageMock).toHaveBeenCalledTimes(1);
       const callParams = localQwenEditImageMock.mock.calls[0][0];
 
-      // With mentions: capped at 4
       expect(callParams.images).toHaveLength(4);
       expect(callParams.images).toEqual([IMG_1, IMG_2, IMG_3, IMG_4]);
-
-      // Dropped @img5 must not survive as an orphaned reference in the prompt
-      expect(callParams.prompt).not.toContain('@img5');
-      expect(callParams.prompt).toContain('@img4');
+      expect(callParams.prompt).toContain(promptText);
     });
   });
 

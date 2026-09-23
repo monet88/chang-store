@@ -202,8 +202,9 @@ describe('AIEditor', () => {
       { base64: 'img5', mimeType: 'image/png' },
     ];
     hookState.prompt = 'Apply style from @img1 to @img2';
+    hookState.engineId = 'localQwen';
 
-    render(<AIEditor studioMode="localQwen" />);
+    render(<AIEditor />);
 
     expect(screen.queryByTestId('local-qwen-ref-limit-notice')).not.toBeInTheDocument();
   });
@@ -214,8 +215,9 @@ describe('AIEditor', () => {
       { base64: 'img2', mimeType: 'image/png' },
     ];
     hookState.prompt = 'Enhance details';
+    hookState.engineId = 'localQwen';
 
-    render(<AIEditor studioMode="localQwen" />);
+    render(<AIEditor />);
 
     expect(screen.queryByTestId('local-qwen-ref-limit-notice')).not.toBeInTheDocument();
   });
@@ -229,8 +231,9 @@ describe('AIEditor', () => {
       { base64: 'img5', mimeType: 'image/png' },
     ];
     hookState.prompt = 'Enhance details';
+    hookState.engineId = 'gemini';
 
-    render(<AIEditor studioMode="gemini" />);
+    render(<AIEditor />);
 
     expect(screen.queryByTestId('local-qwen-ref-limit-notice')).not.toBeInTheDocument();
   });
