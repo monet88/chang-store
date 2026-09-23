@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { ImageFile } from '@/types';
-import { useLocalQwenImageEngine } from '@/hooks/useLocalQwenImageEngine';
+import { useLocalQwenImageEngine, cancelQueuedLocalQwenJobs } from '@/hooks/useLocalQwenImageEngine';
 import { ImageGalleryContext, type ImageGalleryContextType } from '@/contexts/ImageGalleryContext';
 
 const addImageMock = vi.hoisted(() => vi.fn());
@@ -276,5 +276,82 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
     // Max concurrency must strictly be 1
     expect(maxConcurrency).toBe(1);
     expect(desktopUpscaleMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('cooperatively cancels queued batch jobs without running them, while later fresh jobs run normally', async () => {
+    const executionLog: string[] = [];
+    let resolveJob1: () => void = () => {};
+
+    desktopUpscaleMock.mockImplementation(async (params: { image: string }) => {
+      if (params.image === 'job-1') {
+        executionLog.push('job-1-started');
+        const { promise, resolve } = Promise.withResolvers<void>();
+        resolveJob1 = resolve;
+        await promise;
+        executionLog.push('job-1-finished');
+        return { ok: true, value: { image: 'upscaled-1' } };
+      }
+      if (params.image === 'job-2') {
+        executionLog.push('job-2-started');
+        return { ok: true, value: { image: 'upscaled-2' } };
+      }
+      if (params.image === 'job-3') {
+        executionLog.push('job-3-started');
+        return { ok: true, value: { image: 'upscaled-3' } };
+      }
+      if (params.image === 'job-fresh') {
+        executionLog.push('job-fresh-started');
+        return { ok: true, value: { image: 'upscaled-fresh' } };
+      }
+      return { ok: true, value: { image: 'upscaled-default' } };
+    });
+
+    const { result } = renderHook(() => useLocalQwenImageEngine(), { wrapper });
+
+    let p1: Promise<ImageFile>;
+    let p2: Promise<ImageFile>;
+    let p3: Promise<ImageFile>;
+
+    // Enqueue 3 batch jobs in sequence
+    p1 = result.current.upscaleImage({ base64: 'job-1', mimeType: 'image/png' }, undefined, undefined);
+    p2 = result.current.upscaleImage({ base64: 'job-2', mimeType: 'image/png' }, undefined, undefined);
+    p3 = result.current.upscaleImage({ base64: 'job-3', mimeType: 'image/png' }, undefined, undefined);
+
+    // Give microtasks time so job 1 enters execution and job 2 and 3 are waiting in queue
+    await act(async () => {
+      const { promise, resolve } = Promise.withResolvers<void>();
+      setTimeout(resolve, 10);
+      await promise;
+    });
+
+    expect(executionLog).toEqual(['job-1-started']);
+
+    // Cancel batch while job 1 is in-flight
+    cancelQueuedLocalQwenJobs();
+    const p2Caught = p2.catch((e: Error) => e);
+    const p3Caught = p3.catch((e: Error) => e);
+
+    // Complete job 1
+    await act(async () => {
+      resolveJob1();
+      await p1;
+    });
+
+    // Queued jobs 2 and 3 must reject with cancellation error
+    const err2 = (await p2Caught) as Error;
+    const err3 = (await p3Caught) as Error;
+    expect(err2.message).toBe('Local Qwen generation was cancelled.');
+    expect(err3.message).toBe('Local Qwen generation was cancelled.');
+    // Notice: job-2 and job-3 never called desktopUpscaleMock!
+    expect(executionLog).toEqual(['job-1-started', 'job-1-finished']);
+
+    // Later fresh user job enqueued after cancel runs normally
+    let freshResult: ImageFile | undefined;
+    await act(async () => {
+      freshResult = await result.current.upscaleImage({ base64: 'job-fresh', mimeType: 'image/png' }, undefined, undefined);
+    });
+
+    expect(freshResult?.base64).toBe('upscaled-fresh');
+    expect(executionLog).toEqual(['job-1-started', 'job-1-finished', 'job-fresh-started']);
   });
 });

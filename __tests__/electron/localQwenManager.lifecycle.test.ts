@@ -454,5 +454,22 @@ describe('LocalQwenManager Lifecycle, Cancellation, and Progress', () => {
         expect(classified.actionableSuggestion).toContain('Settings');
       }
     });
+
+    it('renders localized title and suggestion when t function is provided', () => {
+      const mockT = vi.fn((key: string) => {
+        if (key === 'studio.localQwenStatus.errors.oom.title') return 'GPU Hết Bộ Nhớ';
+        if (key === 'studio.localQwenStatus.errors.oom.suggestion') return 'Giảm độ phân giải xuống 512';
+        return key;
+      });
+
+      const classified = classifyLocalQwenError('CUDA out of memory', mockT);
+      expect(classified.kind).toBe('oom');
+      expect(classified.titleKey).toBe('studio.localQwenStatus.errors.oom.title');
+      expect(classified.suggestionKey).toBe('studio.localQwenStatus.errors.oom.suggestion');
+      expect(classified.title).toBe('GPU Hết Bộ Nhớ');
+      expect(classified.actionableSuggestion).toBe('Giảm độ phân giải xuống 512');
+      expect(mockT).toHaveBeenCalledWith('studio.localQwenStatus.errors.oom.title');
+      expect(mockT).toHaveBeenCalledWith('studio.localQwenStatus.errors.oom.suggestion');
+    });
   });
 });

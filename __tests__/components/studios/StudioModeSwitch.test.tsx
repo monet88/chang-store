@@ -22,8 +22,8 @@ import '@/platform/desktopGateway';
 describe('StudioModeSwitch', () => {
   beforeEach(() => {
     delete window.desktopGateway;
+    delete window.desktopLocalQwen;
   });
-
   describe('browser environment', () => {
     it('renders only Gemini and GPT segments in browser mode', () => {
       render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
@@ -64,7 +64,24 @@ describe('StudioModeSwitch', () => {
       };
     });
 
-    it('renders Gemini, GPT, and Local Qwen segments on desktop', () => {
+    it('does not render Local Qwen when only desktopGateway is present without local Qwen bridge', () => {
+      render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
+
+      expect(screen.getByRole('radio', { name: 'Gemini' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'GPT' })).toBeInTheDocument();
+      expect(screen.queryByRole('radio', { name: 'Local Qwen' })).not.toBeInTheDocument();
+    });
+
+    it('renders Gemini, GPT, and Local Qwen segments when desktopLocalQwen bridge exists', () => {
+      window.desktopLocalQwen = {
+        getStatus: vi.fn(),
+        startServer: vi.fn(),
+        stopServer: vi.fn(),
+        generateImage: vi.fn(),
+        cancelJob: vi.fn(),
+        upscaleImage: vi.fn(),
+      };
+
       render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
 
       expect(screen.getByRole('radio', { name: 'Gemini' })).toBeInTheDocument();
@@ -72,7 +89,16 @@ describe('StudioModeSwitch', () => {
       expect(screen.getByRole('radio', { name: 'Local Qwen' })).toBeInTheDocument();
     });
 
-    it('marks localQwen as checked when active', () => {
+    it('marks localQwen as checked when active and desktopLocalQwen bridge exists', () => {
+      window.desktopLocalQwen = {
+        getStatus: vi.fn(),
+        startServer: vi.fn(),
+        stopServer: vi.fn(),
+        generateImage: vi.fn(),
+        cancelJob: vi.fn(),
+        upscaleImage: vi.fn(),
+      };
+
       render(<StudioModeSwitch studioMode="localQwen" onChange={vi.fn()} />);
 
       expect(screen.getByRole('radio', { name: 'Local Qwen' })).toHaveAttribute('aria-checked', 'true');
@@ -80,7 +106,16 @@ describe('StudioModeSwitch', () => {
       expect(screen.getByRole('radio', { name: 'GPT' })).toHaveAttribute('aria-checked', 'false');
     });
 
-    it('calls onChange with localQwen when clicked', async () => {
+    it('calls onChange with localQwen when clicked and desktopLocalQwen bridge exists', async () => {
+      window.desktopLocalQwen = {
+        getStatus: vi.fn(),
+        startServer: vi.fn(),
+        stopServer: vi.fn(),
+        generateImage: vi.fn(),
+        cancelJob: vi.fn(),
+        upscaleImage: vi.fn(),
+      };
+
       const user = userEvent.setup();
       const onChange = vi.fn();
       render(<StudioModeSwitch studioMode="gemini" onChange={onChange} />);

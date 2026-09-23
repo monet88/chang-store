@@ -87,28 +87,31 @@ export const useAIEditor = (): UseAIEditorReturn => {
   );
 
   const buildApiPrompt = useCallback(
-    (userPrompt: string, mentionedImages: ImageFile[]): string => {
+    (userPrompt: string, imagesToSend: ImageFile[], hasMentions: boolean): string => {
       if (engineId === 'localQwen') {
-        if (mentionedImages.length === 0) {
+        if (imagesToSend.length <= 1) {
           return buildQwenSingleImageEditPrompt(userPrompt);
         }
 
-        const imageRoles = mentionedImages
+        const imageRoles = imagesToSend
           .map((image, index) => {
-            const originalIndex = images.indexOf(image);
-            const tag = `@img${originalIndex + 1}`;
-            return `- Image ${index + 1} is ${tag}`;
+            if (hasMentions) {
+              const originalIndex = images.indexOf(image);
+              const tag = `@img${originalIndex + 1}`;
+              return `- Image ${index + 1} is ${tag}`;
+            }
+            return `- Image ${index + 1}`;
           })
           .join('\n');
 
         return buildQwenMultiImageEditPrompt(userPrompt, imageRoles);
       }
 
-      if (mentionedImages.length === 0) {
+      if (!hasMentions || imagesToSend.length === 0) {
         return buildSingleImageEditPrompt(userPrompt);
       }
 
-      const imageRoles = mentionedImages
+      const imageRoles = imagesToSend
         .map((image, index) => {
           const originalIndex = images.indexOf(image);
           const tag = `@img${originalIndex + 1}`;
@@ -155,7 +158,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
         ? mentionedSelection.images
         : (isLocalQwen ? images.slice(0, 4) : images);
 
-      const apiPrompt = buildApiPrompt(prompt, mentionedSelection.images);
+      const apiPrompt = buildApiPrompt(prompt, imagesToSend, mentionedSelection.hasMentions);
       const [result] = await editImage(
         {
           images: imagesToSend,

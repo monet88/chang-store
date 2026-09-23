@@ -247,6 +247,33 @@ describe('useAIEditor in Local Qwen Studio', () => {
       expect(promptText).not.toContain('Keep subject identity, pose, framing');
       expect(promptText).not.toContain('Integrate the referenced content as one photograph');
     });
+
+    it('uses minimal Qwen multi-image framing when >1 images are sent without mentions', async () => {
+      const { result } = renderHook(() => useAIEditor());
+
+      act(() => {
+        result.current.setImages([IMG_1, IMG_2, IMG_3]);
+        result.current.setPrompt('Combine these into a cohesive studio composition');
+      });
+
+      await act(async () => {
+        await result.current.handleGenerate();
+      });
+
+      expect(localQwenEditImageMock).toHaveBeenCalledTimes(1);
+      const callParams = localQwenEditImageMock.mock.calls[0][0];
+
+      expect(callParams.images).toEqual([IMG_1, IMG_2, IMG_3]);
+      const promptText: string = callParams.prompt;
+
+      expect(promptText).toContain('LOCAL QWEN MULTI-IMAGE EDITING');
+      expect(promptText).toContain('- Image 1');
+      expect(promptText).toContain('- Image 2');
+      expect(promptText).toContain('- Image 3');
+      expect(promptText).not.toContain('@img');
+      expect(promptText).toContain('Combine these into a cohesive studio composition');
+      expect(promptText).not.toContain('Keep subject identity, pose, framing');
+    });
   });
 
   describe('gallery tagging', () => {

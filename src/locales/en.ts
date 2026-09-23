@@ -192,6 +192,37 @@ export const en = {
       upscaling: 'Upscaling image with local ComfyUI...',
       initializing: 'Initializing Local Qwen generation...',
       generatingStatus: 'Generating with local ComfyUI (Qwen-Image 2.1)...',
+      errors: {
+        failedToStart: 'Failed to start local ComfyUI',
+        cancellation: {
+          title: 'Generation Cancelled',
+          suggestion: 'Generation was cancelled. You can retry whenever you are ready.',
+        },
+        oom: {
+          title: 'GPU Out of Memory',
+          suggestion: 'Your GPU ran out of VRAM. Try reducing the resolution to 512 in Settings or closing other GPU-intensive applications.',
+        },
+        missingModel: {
+          title: 'Missing Model Files',
+          suggestion: 'Required model files are missing from ComfyUI/models/. Check your installation or update the ComfyUI path in Settings.',
+        },
+        incompatibleHealth: {
+          title: 'Incompatible ComfyUI Environment',
+          suggestion: 'ComfyUI is missing required custom nodes (e.g. ComfyUI-GGUF). Ensure your ComfyUI portable environment is properly configured.',
+        },
+        invalidWorkflow: {
+          title: 'Invalid Workflow',
+          suggestion: 'The ComfyUI workflow could not be validated. Check your node settings or update ComfyUI custom nodes.',
+        },
+        startup: {
+          title: 'ComfyUI Startup Error',
+          suggestion: 'Could not start or connect to local ComfyUI. Check the ComfyUI folder path in Settings and try again.',
+        },
+        unknown: {
+          title: 'Local Qwen Error',
+          suggestion: 'An unexpected error occurred in local ComfyUI. Review ComfyUI logs or retry the generation.',
+        },
+      },
     },
   },
   imageUploader: {

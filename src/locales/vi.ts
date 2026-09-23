@@ -192,6 +192,37 @@ export const vi: Translation = {
       upscaling: 'Đang nâng cấp độ phân giải với ComfyUI...',
       initializing: 'Đang khởi tạo tiến trình tạo ảnh Local Qwen...',
       generatingStatus: 'Đang tạo ảnh với ComfyUI cục bộ (Qwen-Image 2.1)...',
+      errors: {
+        failedToStart: 'Không thể khởi động ComfyUI cục bộ',
+        cancellation: {
+          title: 'Đã hủy tạo ảnh',
+          suggestion: 'Quá trình tạo ảnh đã bị hủy. Bạn có thể thử lại bất cứ lúc nào.',
+        },
+        oom: {
+          title: 'GPU Hết Bộ Nhớ (OOM)',
+          suggestion: 'GPU của bạn đã hết VRAM. Hãy thử giảm độ phân giải xuống 512 trong Cài đặt hoặc đóng các ứng dụng nặng khác.',
+        },
+        missingModel: {
+          title: 'Thiếu Tệp Mô Hình',
+          suggestion: 'Các tệp mô hình cần thiết bị thiếu trong ComfyUI/models/. Vui lòng kiểm tra cài đặt hoặc cập nhật đường dẫn ComfyUI trong Cài đặt.',
+        },
+        incompatibleHealth: {
+          title: 'Môi Trường ComfyUI Không Tương Thích',
+          suggestion: 'ComfyUI đang thiếu các custom node bắt buộc (ví dụ: ComfyUI-GGUF). Đảm bảo môi trường ComfyUI portable đã được cấu hình đúng.',
+        },
+        invalidWorkflow: {
+          title: 'Workflow Không Hợp Lệ',
+          suggestion: 'Không thể xác thực workflow ComfyUI. Vui lòng kiểm tra cài đặt node hoặc cập nhật các custom node ComfyUI.',
+        },
+        startup: {
+          title: 'Lỗi Khởi Động ComfyUI',
+          suggestion: 'Không thể khởi động hoặc kết nối với ComfyUI cục bộ. Vui lòng kiểm tra đường dẫn thư mục ComfyUI trong Cài đặt và thử lại.',
+        },
+        unknown: {
+          title: 'Lỗi Local Qwen',
+          suggestion: 'Đã xảy ra lỗi không mong muốn trong ComfyUI cục bộ. Vui lòng xem log ComfyUI hoặc thử lại.',
+        },
+      },
     },
   },
 

@@ -115,7 +115,7 @@ const IdentityTransfer: React.FC = () => {
               {destinationItems.map((item, index) => {
                 const result = item.results[0];
                 const label = t('identityTransfer.destinationBatchLabel', { index: index + 1 });
-                if (result) return <HoverableImage key={item.id} image={result} altText={label} downloadPrefix={Feature.IdentityTransfer} onRegenerate={() => handleRegenerateSingle(item.id)} onUpscale={() => handleUpscale(result, item.id)} isGenerating={isLoading || item.status === 'processing'} isUpscaling={upscalingItemIds?.[item.id]} />;
+                if (result) return <HoverableImage key={item.id} image={result} altText={label} downloadPrefix={Feature.IdentityTransfer} onRegenerate={() => handleRegenerateSingle(item.id)} onUpscale={isLocalQwen ? () => handleUpscale(result, item.id) : undefined} isGenerating={isLoading || item.status === 'processing'} isUpscaling={upscalingItemIds?.[item.id]} />;
                 if (item.status === 'error') return (
                   <div key={item.id} className="flex aspect-[3/4] flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-red-500/20 bg-red-500/5 p-5 text-center">
                     <p className="text-sm font-medium text-red-200">{label}</p><p className="text-xs leading-5 text-red-300/80">{item.error}</p>

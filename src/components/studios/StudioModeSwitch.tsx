@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import type { StudioMode } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { getDesktopGatewayApi } from '../../platform/desktopGateway';
 import { getDesktopLocalQwenApi } from '../../platform/desktopLocalQwen';
 
 interface StudioModeSwitchProps {
@@ -21,13 +20,13 @@ const ALL_STUDIO_SEGMENTS: Array<{ mode: StudioMode; labelKey: string; desktopOn
  */
 const StudioModeSwitch: React.FC<StudioModeSwitchProps> = ({ studioMode, onChange }) => {
   const { t } = useLanguage();
-  const isDesktop =
+  const hasLocalQwen =
     typeof window !== 'undefined' &&
-    Boolean(window.desktopLocalQwen || getDesktopLocalQwenApi() || window.desktopGateway || getDesktopGatewayApi());
+    Boolean(window.desktopLocalQwen || getDesktopLocalQwenApi());
 
   const segments = useMemo(() => {
-    return ALL_STUDIO_SEGMENTS.filter((seg) => !seg.desktopOnly || isDesktop);
-  }, [isDesktop]);
+    return ALL_STUDIO_SEGMENTS.filter((seg) => !seg.desktopOnly || hasLocalQwen);
+  }, [hasLocalQwen]);
 
   return (
     <div

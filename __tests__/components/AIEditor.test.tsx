@@ -150,7 +150,18 @@ describe('AIEditor', () => {
     expect(clearErrorMock).toHaveBeenCalledTimes(1);
   });
 
-  it('wires the result upscale button to the hook handler', () => {
+  it('does not render the upscale button on result in cloud engine mode', () => {
+    hookState.engineId = 'gemini';
+    hookState.images = [{ base64: 'existing-image', mimeType: 'image/png' }];
+    hookState.resultImage = { base64: 'result-image', mimeType: 'image/png' };
+
+    render(<AIEditor />);
+
+    expect(screen.queryByRole('button', { name: 'upscale-result' })).not.toBeInTheDocument();
+  });
+
+  it('wires the result upscale button to the hook handler in localQwen mode', () => {
+    hookState.engineId = 'localQwen';
     hookState.images = [{ base64: 'existing-image', mimeType: 'image/png' }];
     hookState.resultImage = { base64: 'result-image', mimeType: 'image/png' };
 

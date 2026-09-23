@@ -1,3 +1,5 @@
+import { en } from '../locales/en';
+
 export type LocalQwenErrorKind =
   | 'startup'
   | 'incompatible_health'
@@ -9,6 +11,8 @@ export type LocalQwenErrorKind =
 
 export interface ClassifiedLocalQwenError {
   kind: LocalQwenErrorKind;
+  titleKey: string;
+  suggestionKey: string;
   title: string;
   message: string;
   actionableSuggestion: string;
@@ -21,7 +25,10 @@ export interface ClassifiedLocalQwenError {
  * - Local failures stay local and NEVER suggest or fall back to cloud providers.
  * - Always provides a concrete, actionable suggestion for the user.
  */
-export const classifyLocalQwenError = (error: unknown): ClassifiedLocalQwenError => {
+export const classifyLocalQwenError = (
+  error: unknown,
+  t?: (key: string) => string,
+): ClassifiedLocalQwenError => {
   const raw =
     error instanceof Error
       ? error.message
@@ -30,18 +37,36 @@ export const classifyLocalQwenError = (error: unknown): ClassifiedLocalQwenError
         : JSON.stringify(error || '');
   const lower = raw.toLowerCase();
 
+  const resolve = (
+    kind: LocalQwenErrorKind,
+    titleKey: string,
+    suggestionKey: string,
+    fallbackTitle: string,
+    fallbackSuggestion: string,
+  ): ClassifiedLocalQwenError => ({
+    kind,
+    titleKey,
+    suggestionKey,
+    title: t ? t(titleKey) : fallbackTitle,
+    message: raw,
+    actionableSuggestion: t ? t(suggestionKey) : fallbackSuggestion,
+  });
+
+  const errs = en.studio.localQwenStatus.errors;
+
   // 1. Cancellation
   if (
     lower.includes('cancel') ||
     lower.includes('interrupted') ||
     lower.includes('abort')
   ) {
-    return {
-      kind: 'cancellation',
-      title: 'Generation Cancelled',
-      message: raw,
-      actionableSuggestion: 'Generation was cancelled. You can retry whenever you are ready.',
-    };
+    return resolve(
+      'cancellation',
+      'studio.localQwenStatus.errors.cancellation.title',
+      'studio.localQwenStatus.errors.cancellation.suggestion',
+      errs.cancellation.title,
+      errs.cancellation.suggestion,
+    );
   }
 
   // 2. OOM (Out of Memory)
@@ -52,13 +77,13 @@ export const classifyLocalQwenError = (error: unknown): ClassifiedLocalQwenError
     lower.includes('allocation on device') ||
     (lower.includes('vram') && (lower.includes('full') || lower.includes('exceeded') || lower.includes('enough')))
   ) {
-    return {
-      kind: 'oom',
-      title: 'GPU Out of Memory',
-      message: raw,
-      actionableSuggestion:
-        'Your GPU ran out of VRAM. Try reducing the resolution to 512 in Settings or closing other GPU-intensive applications.',
-    };
+    return resolve(
+      'oom',
+      'studio.localQwenStatus.errors.oom.title',
+      'studio.localQwenStatus.errors.oom.suggestion',
+      errs.oom.title,
+      errs.oom.suggestion,
+    );
   }
 
   // 3. Missing Model
@@ -76,13 +101,13 @@ export const classifyLocalQwenError = (error: unknown): ClassifiedLocalQwenError
     lower.includes('qwen3vl_8b_w4a8.safetensors') ||
     lower.includes('qwen_image_2.1_vae')
   ) {
-    return {
-      kind: 'missing_model',
-      title: 'Missing Model Files',
-      message: raw,
-      actionableSuggestion:
-        'Required model files are missing from ComfyUI/models/. Check your installation or update the ComfyUI path in Settings.',
-    };
+    return resolve(
+      'missing_model',
+      'studio.localQwenStatus.errors.missingModel.title',
+      'studio.localQwenStatus.errors.missingModel.suggestion',
+      errs.missingModel.title,
+      errs.missingModel.suggestion,
+    );
   }
 
   // 4. Incompatible health / environment
@@ -93,13 +118,13 @@ export const classifyLocalQwenError = (error: unknown): ClassifiedLocalQwenError
     lower.includes('unsupported version') ||
     (lower.includes('system_stats') && lower.includes('failed'))
   ) {
-    return {
-      kind: 'incompatible_health',
-      title: 'Incompatible ComfyUI Environment',
-      message: raw,
-      actionableSuggestion:
-        'ComfyUI is missing required custom nodes (e.g. ComfyUI-GGUF). Ensure your ComfyUI portable environment is properly configured.',
-    };
+    return resolve(
+      'incompatible_health',
+      'studio.localQwenStatus.errors.incompatibleHealth.title',
+      'studio.localQwenStatus.errors.incompatibleHealth.suggestion',
+      errs.incompatibleHealth.title,
+      errs.incompatibleHealth.suggestion,
+    );
   }
 
   // 5. Invalid workflow
@@ -111,13 +136,13 @@ export const classifyLocalQwenError = (error: unknown): ClassifiedLocalQwenError
     lower.includes('textencodeqwenimage21') ||
     lower.includes('ksampler')
   ) {
-    return {
-      kind: 'invalid_workflow',
-      title: 'Invalid Workflow',
-      message: raw,
-      actionableSuggestion:
-        'The ComfyUI workflow could not be validated. Check your node settings or update ComfyUI custom nodes.',
-    };
+    return resolve(
+      'invalid_workflow',
+      'studio.localQwenStatus.errors.invalidWorkflow.title',
+      'studio.localQwenStatus.errors.invalidWorkflow.suggestion',
+      errs.invalidWorkflow.title,
+      errs.invalidWorkflow.suggestion,
+    );
   }
 
   // 6. Startup
@@ -132,20 +157,20 @@ export const classifyLocalQwenError = (error: unknown): ClassifiedLocalQwenError
     lower.includes('failed to start') ||
     lower.includes('server is not running')
   ) {
-    return {
-      kind: 'startup',
-      title: 'ComfyUI Startup Error',
-      message: raw,
-      actionableSuggestion:
-        'Could not start or connect to local ComfyUI. Check the ComfyUI folder path in Settings and try again.',
-    };
+    return resolve(
+      'startup',
+      'studio.localQwenStatus.errors.startup.title',
+      'studio.localQwenStatus.errors.startup.suggestion',
+      errs.startup.title,
+      errs.startup.suggestion,
+    );
   }
 
-  return {
-    kind: 'unknown',
-    title: 'Local Qwen Error',
-    message: raw,
-    actionableSuggestion:
-      'An unexpected error occurred in local ComfyUI. Review ComfyUI logs or retry the generation.',
-  };
+  return resolve(
+    'unknown',
+    'studio.localQwenStatus.errors.unknown.title',
+    'studio.localQwenStatus.errors.unknown.suggestion',
+    errs.unknown.title,
+    errs.unknown.suggestion,
+  );
 };

@@ -138,7 +138,7 @@ const AIEditor: React.FC = () => {
               altText="AI Editor result"
               downloadPrefix={Feature.AIEditor}
               onRegenerate={handleGenerate}
-              onUpscale={() => void handleUpscale(resultImage)}
+              onUpscale={isLocalQwen ? () => void handleUpscale(resultImage) : undefined}
               isGenerating={isLoading}
               isUpscaling={isUpscaling}
             />

@@ -5,6 +5,14 @@ import { generateLocalQwenImage } from '@/services/providers/local-qwen/localQwe
 import { saveLocalQwenSettings } from '@/config/localQwenSettings';
 import type { DesktopLocalQwenStatus, DesktopLocalQwenStopResult } from '@/platform/desktopLocalQwen';
 
+vi.mock('@/contexts/LanguageContext', () => ({
+  useLanguage: () => ({
+    t: (key: string) => {
+      if (key === 'studio.localQwenStatus.errors.failedToStart') return 'Failed to start local ComfyUI';
+      return key;
+    },
+  }),
+}));
 describe('useLocalQwenStatus & First-use Auto-start', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -88,6 +96,25 @@ describe('useLocalQwenStatus & First-use Auto-start', () => {
       expect(result.current.status.state).toBe('ready');
     });
 
+    it('uses localized fallback message when startServer throws without message', async () => {
+      window.desktopLocalQwen = {
+        getStatus: vi.fn().mockResolvedValue({ ok: true, value: { state: 'stopped', isAppOwned: false, port: 8188 } }),
+        startServer: vi.fn().mockRejectedValue(new Error('')),
+        stopServer: vi.fn(),
+        generateImage: vi.fn(),
+        cancelJob: vi.fn(),
+        upscaleImage: vi.fn(),
+      };
+
+      const { result } = renderHook(() => useLocalQwenStatus({ autoRefresh: false }));
+
+      await act(async () => {
+        await result.current.startServer();
+      });
+
+      expect(result.current.status.state).toBe('error');
+      expect(result.current.status.error).toBe('Failed to start local ComfyUI');
+    });
     it('retry on stopped/error state invokes startServer with persisted path', async () => {
       saveLocalQwenSettings({ comfyUiPath: 'D:\\PersistedComfyUI' });
 

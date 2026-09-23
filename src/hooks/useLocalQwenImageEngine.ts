@@ -9,15 +9,36 @@ import { generateLocalQwenImage } from '../services/providers/local-qwen/localQw
 
 // Module-level serialized queue ensuring max 1 active generation job at a time
 let executionQueue: Promise<unknown> = Promise.resolve();
+let currentBatchId = 0;
+
+export const cancelQueuedLocalQwenJobs = (): void => {
+  currentBatchId++;
+};
 
 export const runSerializedLocalQwenJob = async <T>(task: () => Promise<T>): Promise<T> => {
+  const batchId = currentBatchId;
   const previous = executionQueue;
   const { promise, resolve: release } = Promise.withResolvers<void>();
   executionQueue = promise;
 
   try {
     await previous;
-    return await task();
+    if (batchId !== currentBatchId) {
+      throw new Error('Local Qwen generation was cancelled.');
+    }
+    try {
+      return await task();
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        (err.message.toLowerCase().includes('cancel') ||
+          err.message.toLowerCase().includes('interrupted') ||
+          err.message.toLowerCase().includes('abort'))
+      ) {
+        cancelQueuedLocalQwenJobs();
+      }
+      throw err;
+    }
   } finally {
     release();
   }

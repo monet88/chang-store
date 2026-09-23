@@ -23,6 +23,16 @@ const translations: Record<string, string> = {
   'studio.localQwenStatus.releaseGpu': 'Release GPU/RAM',
   'studio.localQwenStatus.releasingGpu': 'Releasing...',
   'studio.localQwenStatus.stepProgress': 'Step {{step}} / {{maxSteps}}',
+  'studio.localQwenStatus.errors.cancellation.title': 'Generation Cancelled',
+  'studio.localQwenStatus.errors.cancellation.suggestion': 'Generation was cancelled. You can retry whenever you are ready.',
+  'studio.localQwenStatus.errors.oom.title': 'GPU Out of Memory',
+  'studio.localQwenStatus.errors.oom.suggestion': 'Your GPU ran out of VRAM. Try reducing the resolution to 512 in Settings or closing other GPU-intensive applications.',
+  'studio.localQwenStatus.errors.missingModel.title': 'Missing Model Files',
+  'studio.localQwenStatus.errors.missingModel.suggestion': 'Required model files are missing from ComfyUI/models/. Check your installation or update the ComfyUI path in Settings.',
+  'studio.localQwenStatus.errors.startup.title': 'ComfyUI Startup Error',
+  'studio.localQwenStatus.errors.startup.suggestion': 'Could not start or connect to local ComfyUI. Check the ComfyUI folder path in Settings and try again.',
+  'studio.localQwenStatus.errors.unknown.title': 'Local Qwen Error',
+  'studio.localQwenStatus.errors.unknown.suggestion': 'An unexpected error occurred in local ComfyUI. Review ComfyUI logs or retry the generation.',
 };
 
 vi.mock('@/contexts/LanguageContext', () => ({
@@ -140,6 +150,23 @@ describe('LocalQwenStatusBanner', () => {
 
       fireEvent.click(cancelBtn);
       expect(onCancelJob).toHaveBeenCalledTimes(1);
+    });
+    it('renders progress bar using Tailwind width utility without inline styles', () => {
+      const status: DesktopLocalQwenStatus = {
+        state: 'generating',
+        isAppOwned: true,
+        port: 8188,
+        progress: {
+          step: 8,
+          maxSteps: 16,
+        },
+      };
+
+      const { container } = render(<LocalQwenStatusBanner status={status} />);
+      const progressBar = container.querySelector('.bg-gradient-to-r');
+      expect(progressBar).toBeInTheDocument();
+      expect(progressBar).toHaveClass('w-[50%]');
+      expect(progressBar?.getAttribute('style')).toBeFalsy();
     });
 
     it('disables cancel button and shows cancelling text when cancellation is in progress', () => {

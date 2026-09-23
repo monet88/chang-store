@@ -5,6 +5,29 @@ import {
 } from '../../platform/desktopLocalQwen';
 import { useLocalQwenStatus } from '../../hooks/useLocalQwenStatus';
 import { useLanguage } from '../../contexts/LanguageContext';
+const getProgressWidthClass = (percent: number): string => {
+  if (percent <= 0) return 'w-0';
+  if (percent <= 5) return 'w-[5%]';
+  if (percent <= 10) return 'w-[10%]';
+  if (percent <= 15) return 'w-[15%]';
+  if (percent <= 20) return 'w-[20%]';
+  if (percent <= 25) return 'w-[25%]';
+  if (percent <= 30) return 'w-[30%]';
+  if (percent <= 35) return 'w-[35%]';
+  if (percent <= 40) return 'w-[40%]';
+  if (percent <= 45) return 'w-[45%]';
+  if (percent <= 50) return 'w-[50%]';
+  if (percent <= 55) return 'w-[55%]';
+  if (percent <= 60) return 'w-[60%]';
+  if (percent <= 65) return 'w-[65%]';
+  if (percent <= 70) return 'w-[70%]';
+  if (percent <= 75) return 'w-[75%]';
+  if (percent <= 80) return 'w-[80%]';
+  if (percent <= 85) return 'w-[85%]';
+  if (percent <= 90) return 'w-[90%]';
+  if (percent <= 95) return 'w-[95%]';
+  return 'w-full';
+};
 
 export interface LocalQwenStatusBannerProps {
   status?: DesktopLocalQwenStatus;
@@ -180,9 +203,8 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
               <div
                 className={`h-full bg-gradient-to-r from-sky-500 to-emerald-400 transition-all duration-300 ease-out ${
-                  hasProgress ? '' : 'animate-pulse w-full'
+                  hasProgress ? getProgressWidthClass(percent) : 'animate-pulse w-full'
                 }`}
-                style={hasProgress ? { width: `${percent}%` } : undefined}
               />
             </div>
           </div>
@@ -190,7 +212,7 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
       }
 
       case 'error': {
-        const classified = classifyLocalQwenError(status.error);
+        const classified = classifyLocalQwenError(status.error, t);
 
         return (
           <div className="flex flex-col gap-3" data-testid="local-qwen-error-banner">

@@ -5,7 +5,8 @@ import {
   type DesktopLocalQwenStopResult,
 } from '../platform/desktopLocalQwen';
 import { loadLocalQwenSettings, DEFAULT_COMFYUI_PORT } from '../config/localQwenSettings';
-
+import { useLanguage } from '../contexts/LanguageContext';
+import { cancelQueuedLocalQwenJobs } from './useLocalQwenImageEngine';
 export interface UseLocalQwenStatusOptions {
   pollIntervalMs?: number;
   activeIntervalMs?: number;
@@ -32,6 +33,8 @@ export const useLocalQwenStatus = (
     activeIntervalMs = 500,
     autoRefresh = true,
   } = options;
+
+  const { t } = useLanguage();
 
   const [status, setStatus] = useState<DesktopLocalQwenStatus>({
     state: 'stopped',
@@ -101,7 +104,7 @@ export const useLocalQwenStatus = (
             state: 'error',
             isAppOwned: false,
             port: DEFAULT_COMFYUI_PORT,
-            error: (err as Error).message || 'Failed to start local ComfyUI',
+            error: (err as Error).message || t('studio.localQwenStatus.errors.failedToStart'),
           });
         }
         return false;
@@ -115,11 +118,11 @@ export const useLocalQwenStatus = (
   );
 
   const cancelJob = useCallback(async (): Promise<boolean> => {
+    cancelQueuedLocalQwenJobs();
     const api = getDesktopLocalQwenApi();
     if (!api) {
       return false;
     }
-
     setIsCancelling(true);
     try {
       const result = await api.cancelJob();

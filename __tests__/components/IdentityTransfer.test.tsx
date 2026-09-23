@@ -32,10 +32,19 @@ vi.mock('../../src/components/Spinner', () => ({
 }));
 
 vi.mock('../../src/components/HoverableImage', () => ({
-  default: ({ altText, onRegenerate }: { altText: string; onRegenerate?: () => void }) => (
+  default: ({
+    altText,
+    onRegenerate,
+    onUpscale,
+  }: {
+    altText: string;
+    onRegenerate?: () => void;
+    onUpscale?: () => void;
+  }) => (
     <div>
       <span>{altText}</span>
       {onRegenerate && <button type="button" onClick={onRegenerate}>regenerate-hover</button>}
+      {onUpscale && <button type="button" onClick={onUpscale}>upscale-hover</button>}
     </div>
   ),
 }));
@@ -200,6 +209,48 @@ describe('IdentityTransfer component', () => {
     expect(retryBtn).toBeInTheDocument();
     fireEvent.click(retryBtn);
     expect(handleRegenerateSingle).toHaveBeenCalledWith('dest-2');
+  });
+
+  it('does not expose upscale action on results in cloud mode', () => {
+    useIdentityTransferMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'gemini',
+      destinationItems: [
+        {
+          id: 'dest-1',
+          destinationImage: { base64: 'dest-1-img', mimeType: 'image/png' },
+          status: 'completed',
+          results: [{ base64: 'result-1', mimeType: 'image/png' }],
+        },
+      ],
+    });
+
+    render(<IdentityTransfer />);
+    expect(screen.queryByRole('button', { name: 'upscale-hover' })).not.toBeInTheDocument();
+  });
+
+  it('exposes explicit upscale action on results only in localQwen mode', () => {
+    const handleUpscale = vi.fn();
+    const mockResult = { base64: 'result-1', mimeType: 'image/png' };
+    useIdentityTransferMock.mockReturnValue({
+      ...baseHookState,
+      engineId: 'localQwen',
+      handleUpscale,
+      destinationItems: [
+        {
+          id: 'dest-1',
+          destinationImage: { base64: 'dest-1-img', mimeType: 'image/png' },
+          status: 'completed',
+          results: [mockResult],
+        },
+      ],
+    });
+
+    render(<IdentityTransfer />);
+    const upscaleBtn = screen.getByRole('button', { name: 'upscale-hover' });
+    expect(upscaleBtn).toBeInTheDocument();
+    fireEvent.click(upscaleBtn);
+    expect(handleUpscale).toHaveBeenCalledWith(mockResult, 'dest-1');
   });
 
   it('shows loading message and spinner during generation', () => {
