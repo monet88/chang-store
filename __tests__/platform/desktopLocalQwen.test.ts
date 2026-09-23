@@ -169,6 +169,11 @@ describe('desktopLocalQwen and settings', () => {
         wasExternal: false,
       };
 
+      const mockFolderCheck = {
+        exists: true,
+        hasComfyUiMain: true,
+      };
+
       const mockApi: DesktopLocalQwenApi = {
         getStatus: vi.fn().mockResolvedValue({ ok: true, value: mockStatus }),
         startServer: vi.fn().mockResolvedValue({ ok: true, value: mockStatus }),
@@ -176,6 +181,7 @@ describe('desktopLocalQwen and settings', () => {
         generateImage: vi.fn().mockResolvedValue({ ok: true, value: { image: { base64: 'abc', mimeType: 'image/png' } } }),
         cancelJob: vi.fn().mockResolvedValue({ ok: true, value: { cancelled: true } }),
         upscaleImage: vi.fn().mockResolvedValue({ ok: true, value: { image: 'upscaled' } }),
+        verifyFolder: vi.fn().mockResolvedValue({ ok: true, value: mockFolderCheck }),
       };
 
       Object.defineProperty(window, 'desktopLocalQwen', {
@@ -197,11 +203,36 @@ describe('desktopLocalQwen and settings', () => {
       const stopRes = await api!.stopServer();
       expect(mockApi.stopServer).toHaveBeenCalled();
       expect(stopRes).toEqual({ ok: true, value: mockStop });
+
+      const genRes = await api!.generateImage({ prompt: 'test' });
+      expect(mockApi.generateImage).toHaveBeenCalledWith({ prompt: 'test' });
+      expect(genRes).toEqual({ ok: true, value: { image: { base64: 'abc', mimeType: 'image/png' } } });
+
+      const cancelRes = await api!.cancelJob();
+      expect(mockApi.cancelJob).toHaveBeenCalled();
+      expect(cancelRes).toEqual({ ok: true, value: { cancelled: true } });
+
+      const upscaleRes = await api!.upscaleImage({ image: 'abc', scale: 2 });
+      expect(mockApi.upscaleImage).toHaveBeenCalledWith({ image: 'abc', scale: 2 });
+      expect(upscaleRes).toEqual({ ok: true, value: { image: 'upscaled' } });
+
+      const folderRes = await api!.verifyFolder!('D:\\ComfyUI');
+      expect(mockApi.verifyFolder).toHaveBeenCalledWith('D:\\ComfyUI');
+      expect(folderRes).toEqual({ ok: true, value: mockFolderCheck });
     });
 
     it('has channel constants matching the desktop-local-qwen prefix and exactly pins the named bridge surface', () => {
+      expect(DESKTOP_LOCAL_QWEN_CHANNELS).toEqual({
+        getStatus: 'desktop-local-qwen:get-status',
+        startServer: 'desktop-local-qwen:start-server',
+        stopServer: 'desktop-local-qwen:stop-server',
+        generateImage: 'desktop-local-qwen:generate-image',
+        cancelJob: 'desktop-local-qwen:cancel-job',
+        upscaleImage: 'desktop-local-qwen:upscale-image',
+        verifyFolder: 'desktop-local-qwen:verify-folder',
+      });
+
       const channelKeys = Object.keys(DESKTOP_LOCAL_QWEN_CHANNELS).sort();
-      // Must strictly be the named capability set (no generic shell/exec/spawn/proxy channel)
       expect(channelKeys).toEqual([
         'cancelJob',
         'generateImage',

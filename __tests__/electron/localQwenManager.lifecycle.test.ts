@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import EventEmitter from 'node:events';
+import fs from 'node:fs';
 import type { ChildProcess } from 'node:child_process';
 import type { Mock } from 'vitest';
 import {
@@ -34,9 +35,11 @@ const createMockProcess = (pid = 12345): MockProcess => {
   proc.pid = pid;
   proc.killed = false;
   proc.stderr = new EventEmitter();
-  proc.kill = vi.fn((_signal?: string) => {
+  proc.kill = vi.fn((signal?: string) => {
     proc.killed = true;
-    proc.emit('exit', 0, null);
+    queueMicrotask(() => {
+      proc.emit('exit', 0, signal ?? 'SIGTERM');
+    });
     return true;
   });
   return proc;
@@ -148,6 +151,60 @@ describe('LocalQwenManager Lifecycle, Cancellation, and Progress', () => {
 
       await expect(genPromise).rejects.toThrow('Generation cancelled by user');
       expect(manager.state).not.toBe('generating');
+    });
+
+    it('immediately transitions active job to error and exposes concrete failure when process exits during generation', async () => {
+      const { promise: promptStarted, resolve: signalPromptStarted } = Promise.withResolvers<void>();
+      const mockProc = createMockProcess(5555);
+
+      const mockFetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url.endsWith('/prompt')) {
+          signalPromptStarted();
+          const { promise, reject } = Promise.withResolvers<Response>();
+          init?.signal?.addEventListener('abort', () => {
+            const err = new Error('The operation was aborted');
+            err.name = 'AbortError';
+            reject(err);
+          });
+          return promise;
+        }
+        return Promise.resolve(new Response('{}', { status: 200 }));
+      });
+      let isReady = false;
+      const probeFn = vi.fn().mockImplementation(async () => isReady);
+      const spawnFn = vi.fn().mockImplementation(() => {
+        isReady = true;
+        return mockProc;
+      });
+
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+
+      const manager = new LocalQwenManager({
+        probeFn,
+        fetchFn: mockFetch,
+        spawnFn,
+        readinessPollIntervalMs: 10,
+        readinessTimeoutMs: 1000,
+      });
+      vi.spyOn(manager, 'resolveLaunchCommand').mockReturnValue({
+        executable: 'python.exe',
+        args: ['main.py'],
+      });
+
+      await manager.startServer('D:\\ComfyUI');
+      const genPromise = manager.generateImage({
+        prompt: 'test prompt',
+      });
+
+      await promptStarted;
+      expect(manager.state).toBe('generating');
+
+      // Simulate unexpected crash of the child process
+      mockProc.emit('exit', 1, null);
+
+      await expect(genPromise).rejects.toThrow(/ComfyUI process exited unexpectedly/);
+      expect(manager.state).toBe('error');
+      expect(manager.lastError).toContain('ComfyUI process exited unexpectedly');
     });
   });
 
@@ -415,7 +472,7 @@ describe('LocalQwenManager Lifecycle, Cancellation, and Progress', () => {
 
     it('classifies invalid workflow failures', () => {
       const cases = [
-        'ComfyUI prompt rejected (400): Invalid node TextEncodeQwenImage21',
+        'ComfyUI prompt rejected (400): Prompt graph contains cycle',
         'workflow error: Value not in list for sampler_name',
       ];
 
@@ -470,6 +527,37 @@ describe('LocalQwenManager Lifecycle, Cancellation, and Progress', () => {
       expect(classified.actionableSuggestion).toBe('Giảm độ phân giải xuống 512');
       expect(mockT).toHaveBeenCalledWith('studio.localQwenStatus.errors.oom.title');
       expect(mockT).toHaveBeenCalledWith('studio.localQwenStatus.errors.oom.suggestion');
+    });
+
+    it('distinguishes missing node types from missing model files', () => {
+      const missingNodeCases = [
+        'Cannot find node type UnetLoaderGGUF',
+        'Invalid node TextEncodeQwenImage21',
+        'Node type UnetLoaderGGUF not found',
+      ];
+      for (const msg of missingNodeCases) {
+        const classified = classifyLocalQwenError(msg);
+        expect(classified.kind).toBe('incompatible_health');
+      }
+
+      const missingModelCases = [
+        'UnetLoaderGGUF: qwen-image-2.1-Q4_K_M.gguf not found',
+        'CLIPLoader: qwen3vl_8b_w4a8.safetensors missing from models/text_encoders',
+      ];
+      for (const msg of missingModelCases) {
+        const classified = classifyLocalQwenError(msg);
+        expect(classified.kind).toBe('missing_model');
+      }
+    });
+
+    it('handles circular and non-serializable objects gracefully without throwing', () => {
+      const circular: Record<string, unknown> = { error: 'something crashed' };
+      circular.self = circular;
+
+      expect(() => classifyLocalQwenError(circular)).not.toThrow();
+      const classified = classifyLocalQwenError(circular);
+      expect(classified.kind).toBe('unknown');
+      expect(classified.message).toBeDefined();
     });
   });
 });

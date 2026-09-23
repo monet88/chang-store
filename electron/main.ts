@@ -127,7 +127,7 @@ if (!gotSingleInstanceLock) {
 
   let isStoppingComfyUI = false;
   app.on('before-quit', (event) => {
-    if (localQwenManager.isAppOwned && !isStoppingComfyUI) {
+    if ((localQwenManager.isAppOwned || localQwenManager.isStarting) && !isStoppingComfyUI) {
       event.preventDefault();
       isStoppingComfyUI = true;
       void localQwenManager.handleBeforeQuit().finally(() => {

@@ -29,12 +29,18 @@ export const classifyLocalQwenError = (
   error: unknown,
   t?: (key: string) => string,
 ): ClassifiedLocalQwenError => {
-  const raw =
-    error instanceof Error
-      ? error.message
-      : typeof error === 'string'
-        ? error
-        : JSON.stringify(error || '');
+  let raw = '';
+  if (error instanceof Error) {
+    raw = error.message;
+  } else if (typeof error === 'string') {
+    raw = error;
+  } else {
+    try {
+      raw = JSON.stringify(error ?? '');
+    } catch {
+      raw = String(error ?? 'unknown');
+    }
+  }
   const lower = raw.toLowerCase();
 
   const resolve = (
@@ -86,21 +92,25 @@ export const classifyLocalQwenError = (
     );
   }
 
-  // 3. Missing Model
-  if (
-    (lower.includes('model') &&
-      (lower.includes('not found') ||
-        lower.includes('missing') ||
-        lower.includes('filenotfound') ||
-        lower.includes('does not exist') ||
-        lower.includes('no such file'))) ||
-    lower.includes('unetloadergguf') ||
-    lower.includes('vaeloader') ||
-    lower.includes('cliploader') ||
-    lower.includes('qwen-image-2.1-q4_k_m.gguf') ||
-    lower.includes('qwen3vl_8b_w4a8.safetensors') ||
-    lower.includes('qwen_image_2.1_vae')
-  ) {
+  // 3. Missing Model Files (model filename or models/ path absent)
+  const hasModelFilePattern =
+    lower.includes('.gguf') ||
+    lower.includes('.safetensors') ||
+    lower.includes('qwen_image_2.1_vae') ||
+    lower.includes('models/diffusion_models') ||
+    lower.includes('models/text_encoders') ||
+    lower.includes('models/vae') ||
+    (lower.includes('models/') && (lower.includes('not found') || lower.includes('missing') || lower.includes('filenotfound') || lower.includes('no such file'))) ||
+    (lower.includes('model') && (lower.includes('not found') || lower.includes('missing') || lower.includes('filenotfound') || lower.includes('does not exist') || lower.includes('no such file')) && !lower.includes('node'));
+
+  const hasMissingPattern =
+    lower.includes('not found') ||
+    lower.includes('missing') ||
+    lower.includes('filenotfound') ||
+    lower.includes('does not exist') ||
+    lower.includes('no such file');
+
+  if (hasModelFilePattern && hasMissingPattern) {
     return resolve(
       'missing_model',
       'studio.localQwenStatus.errors.missingModel.title',
@@ -110,14 +120,18 @@ export const classifyLocalQwenError = (
     );
   }
 
-  // 4. Incompatible health / environment
-  if (
+  // 4. Incompatible health / environment (Missing Node Types or Custom Nodes)
+  const isMissingNode =
     lower.includes('incompatible') ||
     lower.includes('custom node') ||
     lower.includes('comfyui-gguf') ||
     lower.includes('unsupported version') ||
-    (lower.includes('system_stats') && lower.includes('failed'))
-  ) {
+    (lower.includes('system_stats') && lower.includes('failed')) ||
+    (lower.includes('node') && (lower.includes('not found') || lower.includes('missing') || lower.includes('invalid') || lower.includes('cannot find') || lower.includes('unknown'))) ||
+    lower.includes('unetloadergguf') ||
+    lower.includes('textencodeqwenimage21');
+
+  if (isMissingNode) {
     return resolve(
       'incompatible_health',
       'studio.localQwenStatus.errors.incompatibleHealth.title',
@@ -132,8 +146,6 @@ export const classifyLocalQwenError = (
     lower.includes('workflow') ||
     lower.includes('prompt rejected') ||
     lower.includes('value not in list') ||
-    lower.includes('invalid node') ||
-    lower.includes('textencodeqwenimage21') ||
     lower.includes('ksampler')
   ) {
     return resolve(
@@ -144,7 +156,6 @@ export const classifyLocalQwenError = (
       errs.invalidWorkflow.suggestion,
     );
   }
-
   // 6. Startup
   if (
     lower.includes('directory not found') ||

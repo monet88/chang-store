@@ -111,6 +111,16 @@ describe('buildQwenVirtualTryOnParts', () => {
       expect(promptText).toContain(UNTUCKED_DRAPE_INSTRUCTION);
     });
 
+    it('omits untucked drape instruction and preserves user request when tucking is opted in', () => {
+      const parts = buildQwenVirtualTryOnParts({
+        ...defaultInput,
+        extraPrompt: 'Please tuck the shirt neatly into the trousers',
+      });
+      const promptText = parts[0].text ?? '';
+
+      expect(promptText).not.toContain(UNTUCKED_DRAPE_INSTRUCTION);
+      expect(promptText).toContain('Please tuck the shirt neatly into the trousers');
+    });
     it('incorporates AI scan textile blueprint when provided', () => {
       const blueprintText = 'FABRIC: 100% Mulberry Silk, 19mm momme, satin weave with lustrous finish.';
       const parts = buildQwenVirtualTryOnParts({

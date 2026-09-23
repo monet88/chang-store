@@ -40,8 +40,7 @@ export const useLocalQwenSettings = (): UseLocalQwenSettingsReturn => {
     <K extends keyof LocalQwenSettings>(key: K, value: LocalQwenSettings[K]) => {
       setSettings((prev) => {
         const next = { ...prev, [key]: value };
-        saveLocalQwenSettings(next);
-        return next;
+        return saveLocalQwenSettings(next);
       });
     },
     [],

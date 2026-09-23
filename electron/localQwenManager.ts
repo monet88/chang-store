@@ -179,6 +179,12 @@ export class LocalQwenManager {
   public lastError?: string;
   public currentProgress?: LocalQwenProgress;
   public isCancelled = false;
+  private isShuttingDown = false;
+  private childProcessExitError?: string;
+
+  public get isStarting(): boolean {
+    return this.state === 'starting';
+  }
 
   private activeAbortController?: AbortController;
   private wsConstructor?: WebSocketConstructor;
@@ -325,6 +331,8 @@ export class LocalQwenManager {
   }
 
   public async handleBeforeQuit(): Promise<void> {
+    this.isShuttingDown = true;
+
     if (!this.isAppOwned) {
       return;
     }
@@ -430,6 +438,9 @@ export class LocalQwenManager {
 
 
   public async startServer(folder?: string): Promise<DesktopLocalQwenStatus> {
+    if (this.isShuttingDown) {
+      throw new Error('Application is shutting down.');
+    }
     // 1. Probe loopback first
     const alreadyResponding = await this.probe();
     if (alreadyResponding) {
@@ -483,6 +494,11 @@ export class LocalQwenManager {
     }
 
     // 6. Spawn child process
+    if (this.isShuttingDown) {
+      this.state = 'stopped';
+      throw new Error('Application is shutting down.');
+    }
+
     this.state = 'starting';
     this.isAppOwned = true;
     this.lastError = undefined;
@@ -491,11 +507,26 @@ export class LocalQwenManager {
     const child = this.spawnFn(executable, args, {
       cwd: comfyDir,
       detached: false,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['ignore', 'ignore', 'pipe'],
     });
+
+    child.stdout?.resume?.();
 
     this.childProcess = child;
     this.childPid = child.pid;
+
+    if (this.isShuttingDown) {
+      try {
+        child.kill();
+      } catch {
+        // Ignore
+      }
+      this.childProcess = undefined;
+      this.childPid = undefined;
+      this.isAppOwned = false;
+      this.state = 'stopped';
+      throw new Error('Application is shutting down.');
+    }
 
     child.stderr?.on('data', (chunk: Buffer | string) => {
       stderrOutput += chunk.toString();
@@ -506,8 +537,13 @@ export class LocalQwenManager {
 
     child.on('error', (err: Error) => {
       if (this.childProcess !== child) return;
+      const errorMsg = `ComfyUI process error: ${err.message}`;
+      if (this.state === 'generating') {
+        this.childProcessExitError = errorMsg;
+        this.activeAbortController?.abort();
+      }
       this.state = 'error';
-      this.lastError = `ComfyUI process error: ${err.message}`;
+      this.lastError = errorMsg;
       this.isAppOwned = false;
       this.childProcess = undefined;
       this.childPid = undefined;
@@ -518,6 +554,13 @@ export class LocalQwenManager {
       if (this.state === 'starting') {
         this.state = 'error';
         this.lastError = `ComfyUI process exited prematurely with code ${code ?? signal}: ${stderrOutput.trim()}`;
+      } else if (this.state === 'generating') {
+        const exitMsg = `ComfyUI process exited unexpectedly during generation with code ${code ?? signal}: ${stderrOutput.trim()}`.trim();
+        this.childProcessExitError = exitMsg;
+        this.state = 'error';
+        this.lastError = exitMsg;
+        this.currentProgress = undefined;
+        this.activeAbortController?.abort();
       } else if (this.state === 'ready') {
         this.state = 'stopped';
       }
@@ -525,7 +568,6 @@ export class LocalQwenManager {
       this.childProcess = undefined;
       this.childPid = undefined;
     });
-
     // 7. Wait for ready
     const isReady = await this.waitForReady(this.readinessTimeoutMs);
     if (!isReady) {
@@ -620,7 +662,7 @@ export class LocalQwenManager {
   private async waitForReady(timeoutMs: number): Promise<boolean> {
     const startedAt = Date.now();
     while (Date.now() - startedAt < timeoutMs) {
-      if (this.childProcess?.killed || (this.state === 'error' && this.lastError)) {
+      if (this.isShuttingDown) {
         return false;
       }
       try {
@@ -873,6 +915,10 @@ export class LocalQwenManager {
       };
     } catch (err) {
       this.state = 'error';
+      if (this.childProcessExitError) {
+        this.lastError = this.childProcessExitError;
+        throw new Error(this.childProcessExitError);
+      }
       const isCancelled =
         this.isCancelled ||
         abortController.signal.aborted ||
@@ -880,6 +926,7 @@ export class LocalQwenManager {
       this.lastError = isCancelled ? 'Generation cancelled by user' : (err as Error).message || String(err);
       throw isCancelled ? new Error('Generation cancelled by user') : err;
     } finally {
+      this.childProcessExitError = undefined;
       if (ws) {
         try {
           if (typeof ws.close === 'function') ws.close();
@@ -915,6 +962,10 @@ export class LocalQwenManager {
       return await this.runUpscaleWorkflow(params, abortController.signal);
     } catch (err) {
       this.state = 'error';
+      if (this.childProcessExitError) {
+        this.lastError = this.childProcessExitError;
+        throw new Error(this.childProcessExitError);
+      }
       const isCancelled =
         this.isCancelled ||
         abortController.signal.aborted ||
@@ -922,6 +973,7 @@ export class LocalQwenManager {
       this.lastError = isCancelled ? 'Upscale cancelled by user' : (err as Error).message || String(err);
       throw isCancelled ? new Error('Upscale cancelled by user') : err;
     } finally {
+      this.childProcessExitError = undefined;
       this.activeAbortController = undefined;
       this.currentProgress = undefined;
       if (this.state === 'generating') {

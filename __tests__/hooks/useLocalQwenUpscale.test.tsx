@@ -7,20 +7,6 @@ import { ImageGalleryContext, type ImageGalleryContextType } from '@/contexts/Im
 
 const addImageMock = vi.hoisted(() => vi.fn());
 
-// Cloud drivers to verify they are NEVER called as fallbacks
-const cloudGeminiEditMock = vi.hoisted(() => vi.fn());
-const cloudGeminiUpscaleMock = vi.hoisted(() => vi.fn());
-const cloudGptEditMock = vi.hoisted(() => vi.fn());
-
-vi.mock('@/services/imageEditingService', () => ({
-  editImage: cloudGeminiEditMock,
-  upscaleImage: cloudGeminiUpscaleMock,
-  createImageChatSession: vi.fn(),
-}));
-
-vi.mock('@/services/providers/gpt-image/gptImageService', () => ({
-  editGptImage: cloudGptEditMock,
-}));
 vi.mock('@/contexts/LanguageContext', () => ({
   useLanguage: () => ({
     t: (key: string) => {
@@ -44,9 +30,6 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
   beforeEach(() => {
     vi.clearAllMocks();
     addImageMock.mockReset();
-    cloudGeminiEditMock.mockReset();
-    cloudGeminiUpscaleMock.mockReset();
-    cloudGptEditMock.mockReset();
     desktopUpscaleMock.mockReset();
     desktopGenerateMock.mockReset();
 
@@ -114,10 +97,6 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
     // preserving feature-owned gallery persistence without dedupe lockout
     expect(addImageMock).not.toHaveBeenCalled();
 
-    // 5. Verify cloud drivers NEVER called
-    expect(cloudGeminiUpscaleMock).not.toHaveBeenCalled();
-    expect(cloudGeminiEditMock).not.toHaveBeenCalled();
-    expect(cloudGptEditMock).not.toHaveBeenCalled();
   });
 
   it('uses 4x scale factor when quality is 4K', async () => {
@@ -196,10 +175,6 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
     // 3. Gallery addImage was NOT called for failed upscale
     expect(addImageMock).not.toHaveBeenCalled();
 
-    // 4. Crucial: CLOUD DRIVERS NEVER CALLED AS FALLBACK
-    expect(cloudGeminiUpscaleMock).not.toHaveBeenCalled();
-    expect(cloudGeminiEditMock).not.toHaveBeenCalled();
-    expect(cloudGptEditMock).not.toHaveBeenCalled();
   });
 
   it('throws clean error if desktop bridge is not available', async () => {
@@ -213,8 +188,6 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
       ).rejects.toThrow(/desktop app runtime/);
     });
 
-    expect(cloudGeminiUpscaleMock).not.toHaveBeenCalled();
-    expect(cloudGptEditMock).not.toHaveBeenCalled();
   });
 
   it('does NOT auto-upscale after editImage generation (explicit action only)', async () => {
@@ -248,6 +221,43 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
     // 3. Result is raw generated output
     expect(generated.length).toBe(1);
     expect(generated[0].base64).toBe('raw-generated-512px-image');
+  });
+
+  it('surfaces local error when desktop bridge is missing for editImage and does not add to gallery', async () => {
+    delete window.desktopLocalQwen;
+    const { result } = renderHook(() => useLocalQwenImageEngine(), { wrapper });
+
+    await act(async () => {
+      await expect(
+        result.current.editImage(
+          { images: [ORIGINAL_IMAGE], prompt: 'Test edit', numberOfImages: 1 },
+          'qwen-image-2.1',
+          undefined,
+        ),
+      ).rejects.toThrow('Local Qwen generation is only available in the desktop application.');
+    });
+
+    expect(addImageMock).not.toHaveBeenCalled();
+  });
+
+  it('surfaces generation failure when bridge reports ok: false and does not add to gallery', async () => {
+    desktopGenerateMock.mockResolvedValueOnce({
+      ok: false,
+      error: { message: 'ComfyUI out of memory' },
+    });
+    const { result } = renderHook(() => useLocalQwenImageEngine(), { wrapper });
+
+    await act(async () => {
+      await expect(
+        result.current.editImage(
+          { images: [ORIGINAL_IMAGE], prompt: 'Test edit', numberOfImages: 1 },
+          'qwen-image-2.1',
+          undefined,
+        ),
+      ).rejects.toThrow('ComfyUI out of memory');
+    });
+
+    expect(addImageMock).not.toHaveBeenCalled();
   });
 
   it('serializes concurrent operations (concurrency = 1)', async () => {

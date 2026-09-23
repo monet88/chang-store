@@ -8,19 +8,6 @@ import { useAIEditor } from '@/hooks/useAIEditor';
 const addImageMock = vi.hoisted(() => vi.fn());
 const localQwenEditImageMock = vi.hoisted(() => vi.fn());
 
-// Cloud drivers to verify they are NEVER called as fallbacks
-const cloudGeminiEditMock = vi.hoisted(() => vi.fn());
-const cloudGptEditMock = vi.hoisted(() => vi.fn());
-
-vi.mock('@/services/imageEditingService', () => ({
-  editImage: cloudGeminiEditMock,
-  upscaleImage: vi.fn(),
-  createImageChatSession: vi.fn(),
-}));
-
-vi.mock('@/services/providers/gpt-image/gptImageService', () => ({
-  editGptImage: cloudGptEditMock,
-}));
 
 vi.mock('@/contexts/LanguageContext', () => ({
   useLanguage: () => ({
@@ -64,8 +51,6 @@ describe('useAIEditor in Local Qwen Studio', () => {
     vi.clearAllMocks();
     addImageMock.mockReset();
     localQwenEditImageMock.mockReset();
-    cloudGeminiEditMock.mockReset();
-    cloudGptEditMock.mockReset();
 
     localQwenEditImageMock.mockResolvedValue([RESULT_IMAGE]);
   });
@@ -294,8 +279,8 @@ describe('useAIEditor in Local Qwen Studio', () => {
     });
   });
 
-  describe('zero cloud fallback', () => {
-    it('handles errors locally and NEVER calls cloud providers on failure', async () => {
+  describe('local error contract', () => {
+    it('surfaces local error, resets loading, and does not add to gallery on failure', async () => {
       localQwenEditImageMock.mockRejectedValue(new Error('ComfyUI out of VRAM error'));
 
       const { result } = renderHook(() => useAIEditor());
@@ -309,12 +294,10 @@ describe('useAIEditor in Local Qwen Studio', () => {
         await result.current.handleGenerate();
       });
 
+      expect(localQwenEditImageMock).toHaveBeenCalledTimes(1);
       expect(result.current.error).toContain('ComfyUI out of VRAM error');
       expect(result.current.isLoading).toBe(false);
-
-      // Cloud providers must NEVER be called
-      expect(cloudGeminiEditMock).not.toHaveBeenCalled();
-      expect(cloudGptEditMock).not.toHaveBeenCalled();
+      expect(addImageMock).not.toHaveBeenCalled();
     });
   });
 

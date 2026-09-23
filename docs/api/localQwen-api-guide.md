@@ -82,7 +82,7 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
 ### Tác vụ 4: VTO native 1K (1024px) với bikini
 - **Encoder:** `qwen3vl_8b_w4a8.safetensors`.
 - **Cấu hình:** Resolution 1024, Steps 16, CFG 1.0, Euler, Simple.
-- **Peak VRAM quan sát khi denoise:** khoảng **7,440 MiB / 8,192 MiB**, chỉ còn khoảng **567 MiB free**, GPU 100%.
+- **Peak VRAM quan sát khi denoise:** khoảng **7,440 MiB / 8,192 MiB**, chỉ còn khoảng **752 MiB free**, GPU 100%.
 - **Kết quả:** job hoàn tất và tạo ảnh `D:\ComfyUI_windows_portable\ComfyUI\output\Qwen_VTO_1K_Bikini_00001_.png`.
 - **Kết luận:** native 1K chạy được trên RTX 2060 SUPER 8GB nhưng headroom quá thấp để dùng làm mặc định production; input lớn hơn, fragmentation hoặc workload khác có thể đẩy job vào OOM.
 
@@ -152,7 +152,7 @@ Chang Store's desktop bridge communicates with local ComfyUI exclusively over st
 - **Diffusion**: giữ `Q4_K_M` trước. Chỉ cân nhắc `Q4_0` nếu vẫn thiếu VRAM sau khi đổi encoder và bật DynamicVRAM.
 - **VTO production**: 512 px, 12–16 steps, CFG 1.0, Euler, Simple.
 - **Output mặc định**: giữ kết quả VTO ở **512 px** để user review trước. Chỉ upscale 2x lên 1024 px khi user bấm Upscale cho ảnh đã chọn.
-- **Native 1K**: chỉ dùng khi cần kiểm chứng chất lượng cuối cùng ở diffusion resolution cao; test thực tế đã lên khoảng **7.44 GB VRAM** và chỉ còn ~**567 MB** headroom.
+- **Native 1K**: chỉ dùng khi cần kiểm chứng chất lượng cuối cùng ở diffusion resolution cao; test thực tế đã lên khoảng **7.44 GB VRAM** và chỉ còn ~**752 MB** headroom.
 - **Upscale**: ưu tiên upscale sau khi VTO đã ổn định composition/garment/body ở 512 px; có thể thêm một pass sharpen/detail nhẹ sau upscale nếu cần ảnh social/fashion sắc hơn.
 - **`--cpu-vae`**: chỉ dùng khi cần nhường thêm VRAM; đổi lại decode chậm hơn.
 - **`--cache-none`**: chỉ dùng nếu RAM/VRAM cache là bottleneck thực tế; đổi lại các node sẽ phải chạy lại nhiều hơn.

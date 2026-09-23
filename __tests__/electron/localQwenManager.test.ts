@@ -39,7 +39,9 @@ const createMockProcess = (pid = 12345): MockProcess => {
   proc.stderr = new EventEmitter();
   proc.kill = vi.fn((signal?: string) => {
     proc.killed = true;
-    proc.emit('exit', 0, signal ?? 'SIGTERM');
+    queueMicrotask(() => {
+      proc.emit('exit', 0, signal ?? 'SIGTERM');
+    });
     return true;
   });
   return proc;

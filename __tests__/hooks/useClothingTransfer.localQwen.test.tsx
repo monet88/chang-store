@@ -273,4 +273,30 @@ describe('useClothingTransfer with Local Qwen Image Engine', () => {
     expect(cloudGeminiEditMock).not.toHaveBeenCalled();
     expect(cloudGptEditMock).not.toHaveBeenCalled();
   });
+
+  it('routes upscale through Local Qwen upscale engine and never through cloud upscale', async () => {
+    const upscaledImage: ImageFile = { base64: 'upscaled-ct-result', mimeType: 'image/png' };
+    localQwenUpscaleMock.mockResolvedValue(upscaledImage);
+
+    const { result } = renderHook(() => useClothingTransfer());
+
+    act(() => {
+      result.current.handleConceptImagesUpload([CONCEPT_1]);
+      result.current.handleReferenceUpload(GARMENT_TOP, result.current.referenceItems[0].id);
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    const itemId = result.current.conceptItems[0].id;
+    await act(async () => {
+      await result.current.handleUpscale(RESULT_IMAGE_1, 0, itemId, '2K');
+    });
+
+    expect(localQwenUpscaleMock).toHaveBeenCalledTimes(1);
+    expect(localQwenUpscaleMock).toHaveBeenCalledWith(RESULT_IMAGE_1, 'qwen-image-2.1', expect.anything(), '2K');
+    expect(result.current.conceptItems[0].results[0]).toEqual(upscaledImage);
+    expect(addImageMock).toHaveBeenCalledWith(upscaledImage, Feature.ClothingTransfer, 'localQwen');
+  });
 });

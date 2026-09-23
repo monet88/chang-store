@@ -211,5 +211,39 @@ describe('useLocalQwenStatus & First-use Auto-start', () => {
         generateLocalQwenImage({ prompt: 'Fashion dress' }),
       ).rejects.toThrow(/ComfyUI directory not found/);
     });
+
+    it('aborts cleanly and throws cancellation error if signal is aborted during preflight or generation', async () => {
+      const abortController = new AbortController();
+      const cancelJobMock = vi.fn().mockResolvedValue({ ok: true, value: { cancelled: true } });
+
+      const getStatusMock = vi.fn().mockImplementation(async () => {
+        abortController.abort();
+        return {
+          ok: true,
+          value: { state: 'ready', isAppOwned: true, port: 8188 },
+        };
+      });
+      const generateImageMock = vi.fn().mockResolvedValue({
+        ok: true,
+        value: { image: { base64: 'generated-data', mimeType: 'image/png' } },
+      });
+
+      window.desktopLocalQwen = {
+        getStatus: getStatusMock,
+        startServer: vi.fn(),
+        stopServer: vi.fn(),
+        generateImage: generateImageMock,
+        cancelJob: cancelJobMock,
+        upscaleImage: vi.fn(),
+      };
+
+      await expect(
+        generateLocalQwenImage({ prompt: 'Fashion dress' }, abortController.signal),
+      ).rejects.toThrow('Local Qwen generation was cancelled.');
+
+      expect(getStatusMock).toHaveBeenCalled();
+      expect(generateImageMock).not.toHaveBeenCalled();
+      expect(cancelJobMock).toHaveBeenCalled();
+    });
   });
 });

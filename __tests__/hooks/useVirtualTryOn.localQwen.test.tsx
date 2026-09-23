@@ -77,6 +77,7 @@ const UPSCALED_IMAGE: ImageFile = { base64: 'upscaled-qwen-vto', mimeType: 'imag
 
 describe('useVirtualTryOn with Local Qwen Image Engine', () => {
   beforeEach(() => {
+    delete window.desktopLocalQwen;
     vi.clearAllMocks();
     addImageMock.mockReset();
     localQwenEditImageMock.mockReset();
@@ -86,6 +87,9 @@ describe('useVirtualTryOn with Local Qwen Image Engine', () => {
     localQwenEditImageMock.mockResolvedValue([RESULT_IMAGE]);
   });
 
+  afterEach(() => {
+    delete window.desktopLocalQwen;
+  });
   it('selects Qwen prompt family and never Gemini or GPT prompt format', async () => {
     const { result } = renderHook(() => useVirtualTryOn());
 

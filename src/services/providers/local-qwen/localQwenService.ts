@@ -32,15 +32,29 @@ export const generateLocalQwenImage = async (
 
   try {
     const statusRes = await desktopLocalQwen.getStatus();
+    if (signal?.aborted) {
+      throw new Error('Local Qwen generation was cancelled.');
+    }
+
     if (statusRes?.ok && statusRes.value.state !== 'ready' && statusRes.value.state !== 'generating') {
       const configuredPath = loadLocalQwenSettings().comfyUiPath || undefined;
       const startRes = await desktopLocalQwen.startServer(configuredPath);
+      if (signal?.aborted) {
+        throw new Error('Local Qwen generation was cancelled.');
+      }
       if (startRes?.ok === false) {
         throw new Error(startRes.error.message || 'Failed to auto-start local ComfyUI server.');
       }
     }
 
+    if (signal?.aborted) {
+      throw new Error('Local Qwen generation was cancelled.');
+    }
+
     const result = await desktopLocalQwen.generateImage(params);
+    if (signal?.aborted) {
+      throw new Error('Local Qwen generation was cancelled.');
+    }
     if (result.ok === false) {
       throw new Error(result.error.message || 'Local Qwen generation failed.');
     }

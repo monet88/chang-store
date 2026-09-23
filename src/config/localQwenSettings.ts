@@ -56,42 +56,44 @@ export const DEFAULT_LOCAL_QWEN_SETTINGS: LocalQwenSettings = Object.freeze({
 
 export const sanitizeLocalQwenSettings = (raw: unknown): LocalQwenSettings => {
   if (!raw || typeof raw !== 'object') {
-    return { ...DEFAULT_LOCAL_QWEN_SETTINGS, comfyUiPath: detectPortableComfyUiPath() };
+    return { ...DEFAULT_LOCAL_QWEN_SETTINGS };
   }
 
   const obj = raw as Record<string, unknown>;
 
   const resolution: LocalQwenResolution =
-    obj.resolution === 768 || obj.resolution === 1024 ? obj.resolution : 512;
+    obj.resolution === 768 || obj.resolution === 1024
+      ? obj.resolution
+      : DEFAULT_LOCAL_QWEN_SETTINGS.resolution;
 
   let steps =
     typeof obj.steps === 'number' && !Number.isNaN(obj.steps)
       ? Math.round(obj.steps)
-      : 16;
+      : DEFAULT_LOCAL_QWEN_SETTINGS.steps;
   steps = Math.max(LOCAL_QWEN_MIN_STEPS, Math.min(LOCAL_QWEN_MAX_STEPS, steps));
 
   let cfg =
     typeof obj.cfg === 'number' && !Number.isNaN(obj.cfg)
       ? Number(obj.cfg.toFixed(1))
-      : 1.0;
+      : DEFAULT_LOCAL_QWEN_SETTINGS.cfg;
   cfg = Math.max(LOCAL_QWEN_MIN_CFG, Math.min(LOCAL_QWEN_MAX_CFG, cfg));
 
   const sampler: LocalQwenSampler =
     typeof obj.sampler === 'string' &&
     (LOCAL_QWEN_SAMPLERS as readonly string[]).includes(obj.sampler)
       ? (obj.sampler as LocalQwenSampler)
-      : 'Euler';
+      : DEFAULT_LOCAL_QWEN_SETTINGS.sampler;
 
   const scheduler: LocalQwenScheduler =
     typeof obj.scheduler === 'string' &&
     (LOCAL_QWEN_SCHEDULERS as readonly string[]).includes(obj.scheduler)
       ? (obj.scheduler as LocalQwenScheduler)
-      : 'Simple';
+      : DEFAULT_LOCAL_QWEN_SETTINGS.scheduler;
 
   const comfyUiPath =
     typeof obj.comfyUiPath === 'string'
       ? obj.comfyUiPath.trim()
-      : detectPortableComfyUiPath();
+      : DEFAULT_LOCAL_QWEN_SETTINGS.comfyUiPath;
 
   return {
     resolution,
@@ -105,18 +107,18 @@ export const sanitizeLocalQwenSettings = (raw: unknown): LocalQwenSettings => {
 
 export const loadLocalQwenSettings = (): LocalQwenSettings => {
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-    return { ...DEFAULT_LOCAL_QWEN_SETTINGS, comfyUiPath: detectPortableComfyUiPath() };
+    return { ...DEFAULT_LOCAL_QWEN_SETTINGS };
   }
 
   try {
     const raw = localStorage.getItem(LOCAL_QWEN_SETTINGS_KEY);
     if (!raw) {
-      return { ...DEFAULT_LOCAL_QWEN_SETTINGS, comfyUiPath: detectPortableComfyUiPath() };
+      return { ...DEFAULT_LOCAL_QWEN_SETTINGS };
     }
     const parsed = JSON.parse(raw);
     return sanitizeLocalQwenSettings(parsed);
   } catch {
-    return { ...DEFAULT_LOCAL_QWEN_SETTINGS, comfyUiPath: detectPortableComfyUiPath() };
+    return { ...DEFAULT_LOCAL_QWEN_SETTINGS };
   }
 };
 
