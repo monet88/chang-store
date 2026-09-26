@@ -506,8 +506,8 @@ describe('useClothingTransferEComPack', () => {
       .toEqual([mockImage('product-refreshed')]);
   });
 
-  it('caps pack generation concurrency to three concurrent requests', async () => {
-    const deferredResults = Array.from({ length: 8 }, () => createDeferred<ImageFile[]>());
+  it('caps pack generation concurrency to ten concurrent requests', async () => {
+    const deferredResults = Array.from({ length: 12 }, () => createDeferred<ImageFile[]>());
     let activeRequests = 0;
     let maxActiveRequests = 0;
     let callIndex = 0;
@@ -531,7 +531,13 @@ describe('useClothingTransferEComPack', () => {
         mockImage('s2'),
         mockImage('s3'),
         mockImage('s4'),
-      ]);
+      ], 'flat-lay');
+      result.current.handleCustomStagingUpload([
+        mockImage('h1'),
+        mockImage('h2'),
+        mockImage('h3'),
+        mockImage('h4'),
+      ], 'hanger');
       result.current.handleCustomDestinationsUpload([
         mockImage('d1'),
         mockImage('d2'),
@@ -545,7 +551,7 @@ describe('useClothingTransferEComPack', () => {
     });
 
     await vi.waitFor(() => {
-      expect(editImageMock).toHaveBeenCalledTimes(3);
+      expect(editImageMock).toHaveBeenCalledTimes(10);
     });
 
     deferredResults.forEach(({ resolve }, index) => {
@@ -553,8 +559,8 @@ describe('useClothingTransferEComPack', () => {
     });
 
     await generatePromise;
-    expect(maxActiveRequests).toBe(3);
-    expect(editImageMock).toHaveBeenCalledTimes(8);
+    expect(maxActiveRequests).toBe(10);
+    expect(editImageMock).toHaveBeenCalledTimes(12);
     expect(result.current.packItems.every((item) => item.status === 'completed')).toBe(true);
   });
 

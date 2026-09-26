@@ -8,7 +8,7 @@ const generateId = (): string =>
 
 /** Clamp concurrency value to valid range */
 const clampConcurrency = (n: number): number =>
-  Math.max(1, Math.min(5, Math.round(n)));
+  Math.max(1, Math.min(10, Math.round(n)));
 
 export interface UseWatermarkRemoverQueueReturn {
   items: WatermarkBatchItem[];
@@ -68,7 +68,14 @@ export const useWatermarkRemoverQueue = (): UseWatermarkRemoverQueueReturn => {
       status: 'pending',
       retryCount: 0,
     }));
-    setItems((prev) => [...prev, ...newItems]);
+    setItems((prev) => {
+      const nextItems = [...prev, ...newItems];
+      setConfig((c) => ({
+        ...c,
+        concurrency: clampConcurrency(nextItems.length),
+      }));
+      return nextItems;
+    });
   }, []);
 
   const removeImage = useCallback((id: string) => {

@@ -34,7 +34,7 @@ import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
 
 /** Worker ceiling for one pack run; a single run never exceeds this many in-flight requests. */
-export const ECOM_PACK_BATCH_MAX_CONCURRENCY = 3;
+export const ECOM_PACK_BATCH_MAX_CONCURRENCY = 10;
 
 /** The user's live E-Com Pack selection, the only input target planning reads. */
 export interface EComPackPlanInput {
@@ -388,7 +388,7 @@ export const useClothingTransferEComPackRun = (
         setPackItems(plan.map(({ item }) => item));
       }
 
-      const batchConcurrency = resolveEngineConcurrency(engineId, ECOM_PACK_BATCH_MAX_CONCURRENCY);
+      const batchConcurrency = resolveEngineConcurrency(engineId, plan.length, ECOM_PACK_BATCH_MAX_CONCURRENCY);
       await runBoundedWorkers(
         plan,
         batchConcurrency,

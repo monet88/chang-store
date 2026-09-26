@@ -227,8 +227,8 @@ describe('useClothingTransfer', () => {
     expect(result.current.conceptItems[1].error).toBe('concept failed');
   });
 
-  it('caps concept image request concurrency during batch generation', async () => {
-    const conceptImages = Array.from({ length: 10 }, (_, index) => ({
+  it('caps concept image request concurrency to 10 during batch generation', async () => {
+    const conceptImages = Array.from({ length: 12 }, (_, index) => ({
       base64: `concept-${index}`,
       mimeType: 'image/png',
     }));
@@ -266,7 +266,7 @@ describe('useClothingTransfer', () => {
     });
 
     await vi.waitFor(() => {
-      expect(editImage).toHaveBeenCalledTimes(3);
+      expect(editImage).toHaveBeenCalledTimes(10);
     });
 
     deferredResults.forEach(({ resolve }, index) => {
@@ -274,9 +274,9 @@ describe('useClothingTransfer', () => {
     });
 
     await generationPromise;
-    expect(maxActiveRequests).toBe(3);
-    expect(vi.mocked(editImage)).toHaveBeenCalledTimes(10);
-    expect(result.current.completedCount).toBe(10);
+    expect(maxActiveRequests).toBe(10);
+    expect(vi.mocked(editImage)).toHaveBeenCalledTimes(12);
+    expect(result.current.completedCount).toBe(12);
     expect(result.current.failedCount).toBe(0);
   });
 

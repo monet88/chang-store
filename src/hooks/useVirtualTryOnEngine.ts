@@ -32,8 +32,6 @@ export interface VirtualTryOnImageDriver {
   upscaleImage: typeof upscaleImage;
 }
 
-const VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY = 3;
-
 export interface UseVirtualTryOnEngineConfig {
   driver: VirtualTryOnImageDriver;
   subjects: UseVirtualTryOnSubjectsReturn;
@@ -160,7 +158,7 @@ export const useVirtualTryOnEngine = (
     }));
     const batchConcurrency = resolveEngineConcurrency(
       engineId,
-      Math.min(VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY, jobs.length),
+      jobs.length,
     );
 
     setIsLoading(true);
