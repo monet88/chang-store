@@ -7,7 +7,7 @@ import type { Part } from '@google/genai';
 import { imagePart } from './imagePart';
 import { formatGeminiBlueprintBlock, parseOutfitBlueprint } from './ai-scan-blueprint';
 import type { VirtualTryOnPromptInput, VirtualTryOnPromptSourceItem } from './virtual-try-on-prompt-types';
-import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION } from './outfitDrapePolicy';
+import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION, UNTUCKED_PROHIBITION_LINE } from './outfitDrapePolicy';
 import { CAMERA_FRAMING_INSTRUCTION, CAMERA_FRAMING_PROHIBITION_LINES } from './cameraFramingPolicy';
 
 const MAX_SOURCE_ITEMS = 4;
@@ -20,7 +20,7 @@ const PROHIBITION_BULLETS = [
   'Do not change unrelated clothing when applying shoes, bag, or accessory items.',
   "Do not keep the subject's original lower-body garment when a clothing source image includes its own lower-body garment.",
   'Do not put hands into pants pockets or hide hands unless the subject image already shows that exact pose.',
-  'No tucking tops into pants or skirts.',
+  UNTUCKED_PROHIBITION_LINE,
   "Do not alter the subject's face, features, expressions, age, or body proportions.",
   ...CAMERA_FRAMING_PROHIBITION_LINES,
   'Preserve source-supported garment graphics and text, but do not invent new logos, text, graphics, or watermarks.',
@@ -84,6 +84,21 @@ function buildTaskText(input: VirtualTryOnPromptInput): string {
   const hasNonClothing = sourceItems.some((item) => item.sourceItemType !== 'clothing');
   const tuckingAllowed = isTuckingAllowed(extraPrompt);
 
+  const untuckedTaskHeadline = !tuckingAllowed
+    ? '\n\nCRITICAL OVERRIDE — HEMLINE & WAISTBAND (NEVER TUCK IN): All tops, blouses, and shirts MUST hang completely untucked outside the waistband. Even if the subject in the photo is standing straight, wears high-waisted pants/skirt, or originally had their shirt tucked in, you MUST drape the new top completely outside and over the waistband of the lower garment. The waistband and beltline must be covered or partially overlapped by the top\'s hemline; under no circumstances should the top be stuffed or tucked into the pants/skirt.'
+    : '';
+
+  const userNotesSummary = sourceItems
+    .map((item, index) => {
+      const note = normalizeSourcePrompt(item.sourcePrompt);
+      return note ? `- Item #${index + 1} (${item.sourceItemType}): "${note}"` : null;
+    })
+    .filter(Boolean);
+
+  const userNotesSection = userNotesSummary.length > 0
+    ? `\n\n## USER SPECIFIC INSTRUCTIONS FOR GARMENTS (STRICT COMPLIANCE REQUIRED)\n${userNotesSummary.join('\n')}\nPay meticulous attention to the user notes above: apply the exact fit, silhouette, and garment type specified.`
+    : '';
+
   const clothingRule = hasClothing
     ? `A clothing source item may contain one garment or a coordinated outfit with multiple garments. For each clothing source item, replace every visible matching clothing category from that source image: top, bottom, dress, outerwear, belt, or other wearable garment. If a single clothing source image visibly contains a complete look with both upper-body and lower-body garments, treat it as one full-look reference and transfer every visible garment from that image together: remove the subject's original top and original bottom together and replace both with the source look in the same result. Do not preserve the subject's original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment. If multiple clothing source items contain the same clothing category, use the later source item in list order for that category. Zero original elements in replaced clothing areas may remain.${!tuckingAllowed ? ' Tops hang freely outside the waistband with natural hem drape; never tucked in.' : ''}`
     : '';
@@ -122,14 +137,14 @@ Treat each source image as its listed type. Only edit the matching category or t
     ? `\n- Do not transfer non-clothing accessories from the clothing source image: ${parsedBlueprint.detectedAccessories.join(', ')}.`
     : '';
   const activeProhibitions = PROHIBITION_BULLETS.filter((bullet) => {
-    if (tuckingAllowed && bullet === 'No tucking tops into pants or skirts.') {
+    if (tuckingAllowed && bullet === UNTUCKED_PROHIBITION_LINE) {
       return false;
     }
     return true;
   });
   const prohibitions = activeProhibitions.map((bullet) => `- ${bullet}`).join('\n') + accessoryExclusion;
   return `## TASK
-Apply all provided fashion source items to the subject while preserving their face, facial features, expressions, hair, skin tone, exact age, body proportions, and overall pose. Only the target fashion items change.${multiPersonSection}${formatGeminiBlueprintBlock(input.outfitBlueprint)}
+Apply all provided fashion source items to the subject while preserving their face, facial features, expressions, hair, skin tone, exact age, body proportions, and overall pose. Only the target fashion items change.${untuckedTaskHeadline}${multiPersonSection}${formatGeminiBlueprintBlock(input.outfitBlueprint)}${userNotesSection}
 
 ${sourceTypeSection}## APPLICATION RULES
 ${[clothingRule, nonClothingRule, untuckedDrapeRule].filter(Boolean).join('\n\n')}

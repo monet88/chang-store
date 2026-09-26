@@ -61,6 +61,7 @@ const baseHookState = {
     outfitBlueprint: null,
     isAnalyzingOutfit: false,
     setOutfitBlueprint: vi.fn(),
+    handleAnalyzeOutfit: vi.fn(),
     handleReanalyzeOutfit: vi.fn(),
     brandModels: [],
     selectedBrandModelIds: [],
@@ -222,6 +223,59 @@ describe('ClothingTransfer component', () => {
     expect(screen.getByText('gpt-image-options')).toBeInTheDocument();
     expect(screen.queryByText('image-options')).not.toBeInTheDocument();
     expect(screen.getByText('clothingTransfer.ecomPack.sourceTitle')).toBeInTheDocument();
+  });
+
+  it('renders manual AI Analyze button when outfit is uploaded and triggers analysis on click', () => {
+    const handleReanalyzeOutfitMock = vi.fn();
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      mode: 'ecom-pack',
+      ecomPack: {
+        ...baseHookState.ecomPack,
+        sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
+        sourceOutfitNote: 'quần không phải váy',
+        outfitBlueprint: null,
+        isAnalyzingOutfit: false,
+        handleReanalyzeOutfit: handleReanalyzeOutfitMock,
+      },
+    });
+
+    const { rerender } = render(<ClothingTransfer />);
+
+    const analyzeBtn = screen.getByRole('button', { name: /analyzeOutfitButton/ });
+    expect(analyzeBtn).toBeInTheDocument();
+    fireEvent.click(analyzeBtn);
+    expect(handleReanalyzeOutfitMock).toHaveBeenCalled();
+
+    // When analyzing
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      mode: 'ecom-pack',
+      ecomPack: {
+        ...baseHookState.ecomPack,
+        sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
+        outfitBlueprint: null,
+        isAnalyzingOutfit: true,
+      },
+    });
+    rerender(<ClothingTransfer />);
+    expect(screen.getByText('clothingTransfer.ecomPack.blueprintAnalyzing')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /analyzeOutfitButton/ })).not.toBeInTheDocument();
+
+    // When blueprint is ready
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      mode: 'ecom-pack',
+      ecomPack: {
+        ...baseHookState.ecomPack,
+        sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
+        outfitBlueprint: '[CORE_GARMENTS]\nTrousers',
+        isAnalyzingOutfit: false,
+      },
+    });
+    rerender(<ClothingTransfer />);
+    expect(screen.getByText('clothingTransfer.ecomPack.blueprintReady')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /blueprintReanalyze/ })).toBeInTheDocument();
   });
 
   it('exposes E-Com Pack templates, category generation, multi-model selection, and result actions', () => {

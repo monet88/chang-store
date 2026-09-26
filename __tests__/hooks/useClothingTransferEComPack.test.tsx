@@ -344,8 +344,17 @@ describe('useClothingTransferEComPack', () => {
       }),
     );
 
-    await act(async () => {
+    act(() => {
       result.current.setSourceOutfitImage(mockImage('my-outfit'));
+    });
+
+    // Does NOT auto-analyze upon upload
+    expect(analyzeMock).not.toHaveBeenCalled();
+    expect(result.current.isAnalyzingOutfit).toBe(false);
+
+    // Analyzes when handleAnalyzeOutfit is explicitly triggered
+    await act(async () => {
+      await result.current.handleAnalyzeOutfit();
     });
 
     expect(analyzeMock).toHaveBeenCalledWith(
@@ -378,15 +387,21 @@ describe('useClothingTransferEComPack', () => {
       }),
     );
 
-    // 1. Upload outfit 1 -> starts first analysis (in flight)
+    // 1. Upload outfit 1 and trigger analysis (in flight)
     act(() => {
       result.current.setSourceOutfitImage(mockImage('outfit-1'));
     });
+    act(() => {
+      void result.current.handleAnalyzeOutfit();
+    });
     expect(result.current.isAnalyzingOutfit).toBe(true);
 
-    // 2. Quickly replace with outfit 2 before first analysis resolves
-    await act(async () => {
+    // 2. Quickly replace with outfit 2 and trigger second analysis before first resolves
+    act(() => {
       result.current.setSourceOutfitImage(mockImage('outfit-2'));
+    });
+    await act(async () => {
+      await result.current.handleAnalyzeOutfit();
     });
     expect(result.current.outfitBlueprint).toBe('Blueprint for outfit 2');
 

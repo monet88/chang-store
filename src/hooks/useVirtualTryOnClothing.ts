@@ -16,6 +16,7 @@ export interface UseVirtualTryOnClothingReturn {
   clothingItems: VirtualTryOnClothingItem[];
   validClothingItems: VirtualTryOnClothingItem[];
   handleClothingUpload: (file: ImageFile | null, id: number) => void;
+  handleMultipleClothingUpload: (files: ImageFile[], targetId?: number) => void;
   handleSourceItemTypeChange: (id: number, sourceItemType: VirtualTryOnSourceItemType) => void;
   handleSourcePromptChange: (id: number, sourcePrompt: string) => void;
   addClothingUploader: () => void;
@@ -49,6 +50,39 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
     setClothingItems((items) =>
       items.map((item) => (item.id === id ? { ...item, image: file } : item)),
     );
+  }, []);
+
+  const handleMultipleClothingUpload = useCallback((files: ImageFile[], targetId?: number) => {
+    if (!files || files.length === 0) return;
+
+    setClothingItems((prev) => {
+      const newItems = [...prev];
+      let fileIdx = 0;
+
+      if (targetId !== undefined) {
+        const targetIndex = newItems.findIndex((item) => item.id === targetId);
+        if (targetIndex !== -1 && fileIdx < files.length) {
+          newItems[targetIndex] = { ...newItems[targetIndex], image: files[fileIdx++] };
+        }
+      }
+
+      for (let i = 0; i < newItems.length && fileIdx < files.length; i++) {
+        if (newItems[i].image === null) {
+          newItems[i] = { ...newItems[i], image: files[fileIdx++] };
+        }
+      }
+
+      while (fileIdx < files.length && newItems.length < MAX_SHARED_OUTFIT_IMAGES) {
+        newItems.push({
+          id: ++clothingIdCounter.current,
+          image: files[fileIdx++],
+          sourceItemType: 'clothing',
+          sourcePrompt: '',
+        });
+      }
+
+      return newItems;
+    });
   }, []);
 
   const handleSourceItemTypeChange = useCallback((id: number, sourceItemType: VirtualTryOnSourceItemType) => {
@@ -151,6 +185,7 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
     clothingItems,
     validClothingItems,
     handleClothingUpload,
+    handleMultipleClothingUpload,
     handleSourceItemTypeChange,
     handleSourcePromptChange,
     addClothingUploader,

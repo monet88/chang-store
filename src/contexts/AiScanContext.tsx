@@ -24,7 +24,11 @@ const AI_SCAN_ENABLED_KEY = 'ai_scan_enabled';
 export const AI_SCAN_MODEL = 'gemini-3.8-flash';
 
 /** Analyzer seam: the real service by default, injected in tests. */
-export type AiScanAnalyzer = (image: ImageFile, model?: string) => Promise<string>;
+export type AiScanAnalyzer = (
+  image: ImageFile,
+  model?: string,
+  userGuidance?: string,
+) => Promise<string>;
 
 export interface AiScanContextValue {
   /** Persisted ON/OFF preference. Defaults to ON: the layer is the quality path. */
@@ -33,9 +37,9 @@ export interface AiScanContextValue {
   /**
    * Deconstruct `images`. Resolves to the blueprint, or to null when the scan
    * is disabled, has no usable source, or fails closed — callers then keep the
-   * base prompt. Repeated calls for the same source set reuse the one analysis.
+   * base prompt. Repeated calls for the same source set and guidance reuse the one analysis.
    */
-  scan: (images: ImageFile[]) => Promise<string | null>;
+  scan: (images: ImageFile[], userGuidance?: string) => Promise<string | null>;
 }
 
 const INACTIVE_AI_SCAN: AiScanContextValue = {
@@ -68,6 +72,7 @@ const sameSourceSet = (a: ImageFile[], b: ImageFile[]): boolean =>
 /** One analyzed source set, held so its own pre-scan and generation share it. */
 interface ScanEntry {
   sources: ImageFile[];
+  userGuidance?: string;
   scan: Promise<string | null>;
 }
 
@@ -108,16 +113,25 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
   }, []);
 
   const scan = useCallback(
-    (images: ImageFile[]): Promise<string | null> => {
+    (images: ImageFile[], userGuidance?: string): Promise<string | null> => {
       if (!enabled) return Promise.resolve(null);
 
       const sources = aiScanSourceSet(images);
       if (sources.length === 0) return Promise.resolve(null);
 
-      const cached = scans.current.find((entry) => sameSourceSet(entry.sources, sources));
+      const normalizedGuidance = userGuidance?.trim() || undefined;
+      const cached = scans.current.find(
+        (entry) => sameSourceSet(entry.sources, sources) && entry.userGuidance === normalizedGuidance,
+      );
       if (cached) return cached.scan;
 
-      const run = Promise.all(sources.map((image) => analyze(image, AI_SCAN_MODEL)))
+      const run = Promise.all(
+        sources.map((image) =>
+          normalizedGuidance
+            ? analyze(image, AI_SCAN_MODEL, normalizedGuidance)
+            : analyze(image, AI_SCAN_MODEL),
+        ),
+      )
         .then((reports) => {
           // Fail closed: a partial blueprint would state the fabric of one
           // garment while silently dropping the others, so a single failed or
@@ -137,7 +151,7 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
           return null;
         });
 
-      scans.current.push({ sources, scan: run });
+      scans.current.push({ sources, userGuidance: normalizedGuidance, scan: run });
       return run;
     },
     [analyze, enabled],
