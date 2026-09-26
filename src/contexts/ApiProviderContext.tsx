@@ -238,6 +238,8 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // ⚡ Bolt: Wrap Context Provider value in useMemo to preserve object identity
   // and prevent massive cascading re-renders across all consumer components.
+  // We destructure profiles properties in the dependency array because useGatewayProfiles
+  // returns a new object literal on every render, which would defeat the useMemo.
   const contextValue = useMemo(() => ({
       imageEditModel,
       setImageEditModel,
@@ -256,7 +258,25 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       selectImageProfile: profiles.selectImageProfile,
       imageProfileForDriver,
       notifyServedModelsChanged: profiles.notifyServedModelsChanged,
-  }), [imageEditModel, setImageEditModel, imageGenerateModel, setImageGenerateModel, textGenerateModel, setTextGenerateModel, cpaGatewaySettings, setCpaGatewaySettings, profiles, imageProfileForDriver]);
+  }), [
+      imageEditModel,
+      setImageEditModel,
+      imageGenerateModel,
+      setImageGenerateModel,
+      textGenerateModel,
+      setTextGenerateModel,
+      cpaGatewaySettings,
+      setCpaGatewaySettings,
+      imageProfileForDriver,
+      profiles.gatewayProfiles,
+      profiles.geminiProfile,
+      profiles.imageProfiles,
+      profiles.activeImageProfileId,
+      profiles.servedModelsVersion,
+      profiles.saveProfiles,
+      profiles.selectImageProfile,
+      profiles.notifyServedModelsChanged
+  ]);
 
   return (
     <ApiContext.Provider value={contextValue}>

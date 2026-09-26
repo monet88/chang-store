@@ -1,0 +1,3 @@
+## 2024-09-25 - Prevent useMemo invalidation from unmemoized hook returns
+**Learning:** Custom hooks that return new object literals (like `useGatewayProfiles`) break `useMemo` dependency arrays if you include the entire object reference as a dependency. The new object literal is generated on every render, which causes the `useMemo` to re-execute and defeat the memoization.
+**Action:** When a hook returns an unmemoized object literal, destructure its properties explicitly within the dependency array of `useMemo` or `useCallback` to ensure it only recalculates when the actual underlying values change.
