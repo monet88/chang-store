@@ -298,7 +298,7 @@ export interface WatermarkConfig {
   promptId: string;
   /** Custom prompt text (used when promptId is 'custom') */
   customPrompt: string;
-  /** Number of concurrent processing jobs (1-5) */
+  /** Number of concurrent processing jobs (1-10) */
   concurrency: number;
 }
 

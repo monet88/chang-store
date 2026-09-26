@@ -344,8 +344,17 @@ describe('useClothingTransferEComPack', () => {
       }),
     );
 
-    await act(async () => {
+    act(() => {
       result.current.setSourceOutfitImage(mockImage('my-outfit'));
+    });
+
+    // Does NOT auto-analyze upon upload
+    expect(analyzeMock).not.toHaveBeenCalled();
+    expect(result.current.isAnalyzingOutfit).toBe(false);
+
+    // Analyzes when handleAnalyzeOutfit is explicitly triggered
+    await act(async () => {
+      await result.current.handleAnalyzeOutfit();
     });
 
     expect(analyzeMock).toHaveBeenCalledWith(
@@ -378,15 +387,21 @@ describe('useClothingTransferEComPack', () => {
       }),
     );
 
-    // 1. Upload outfit 1 -> starts first analysis (in flight)
+    // 1. Upload outfit 1 and trigger analysis (in flight)
     act(() => {
       result.current.setSourceOutfitImage(mockImage('outfit-1'));
     });
+    act(() => {
+      void result.current.handleAnalyzeOutfit();
+    });
     expect(result.current.isAnalyzingOutfit).toBe(true);
 
-    // 2. Quickly replace with outfit 2 before first analysis resolves
-    await act(async () => {
+    // 2. Quickly replace with outfit 2 and trigger second analysis before first resolves
+    act(() => {
       result.current.setSourceOutfitImage(mockImage('outfit-2'));
+    });
+    await act(async () => {
+      await result.current.handleAnalyzeOutfit();
     });
     expect(result.current.outfitBlueprint).toBe('Blueprint for outfit 2');
 
@@ -506,8 +521,8 @@ describe('useClothingTransferEComPack', () => {
       .toEqual([mockImage('product-refreshed')]);
   });
 
-  it('caps pack generation concurrency to three concurrent requests', async () => {
-    const deferredResults = Array.from({ length: 8 }, () => createDeferred<ImageFile[]>());
+  it('caps pack generation concurrency to ten concurrent requests', async () => {
+    const deferredResults = Array.from({ length: 12 }, () => createDeferred<ImageFile[]>());
     let activeRequests = 0;
     let maxActiveRequests = 0;
     let callIndex = 0;
@@ -531,7 +546,13 @@ describe('useClothingTransferEComPack', () => {
         mockImage('s2'),
         mockImage('s3'),
         mockImage('s4'),
-      ]);
+      ], 'flat-lay');
+      result.current.handleCustomStagingUpload([
+        mockImage('h1'),
+        mockImage('h2'),
+        mockImage('h3'),
+        mockImage('h4'),
+      ], 'hanger');
       result.current.handleCustomDestinationsUpload([
         mockImage('d1'),
         mockImage('d2'),
@@ -545,7 +566,7 @@ describe('useClothingTransferEComPack', () => {
     });
 
     await vi.waitFor(() => {
-      expect(editImageMock).toHaveBeenCalledTimes(3);
+      expect(editImageMock).toHaveBeenCalledTimes(10);
     });
 
     deferredResults.forEach(({ resolve }, index) => {
@@ -553,8 +574,8 @@ describe('useClothingTransferEComPack', () => {
     });
 
     await generatePromise;
-    expect(maxActiveRequests).toBe(3);
-    expect(editImageMock).toHaveBeenCalledTimes(8);
+    expect(maxActiveRequests).toBe(10);
+    expect(editImageMock).toHaveBeenCalledTimes(12);
     expect(result.current.packItems.every((item) => item.status === 'completed')).toBe(true);
   });
 

@@ -51,7 +51,7 @@ A batch generation workflow within `ClothingTransfer` producing a complete e-com
 _Avoid_: All-in-one generator, batch wizard, auto lookbook.
 
 **Garment Scope**:
-The explicit classification of clothing items extracted from the source image (`top`, `bottom`, `outerwear`, `dress`, `full-set`). Drives targeted transfer and isolated or coordinated staging.
+The explicit classification of clothing items extracted from the source image (`top`, `bottom`, `outerwear`, `dress`, `full-set`). Drives targeted transfer and isolated or coordinated staging. For `bottom`, the garment architecture must be deterministically classified as either bifurcated (trousers/pants/shorts with two separate leg openings) or continuous (skirt with a single hem circumference), rejecting ambiguous hybrid designations.
 _Avoid_: Item tag, clothing label, cut mode.
 
 **Display Template**:
@@ -66,11 +66,14 @@ _Avoid_: Target gallery, avatar list, mannequin selector.
 The optional analytical pre-pass of the studio that deconstructs source garments
 into a model-agnostic technical blueprint: weave and material, optical finish,
 weight and drape physics, and micro-edge details. The blueprint records observed
-garment facts; Gemini, GPT Image, and Local Qwen prompt policies decide independently how to
-use those facts during synthesis. Each generation job owns the blueprint for its
-own source set, so one job never inherits another job's garment analysis. AI Scan
-is a single ON/OFF layer persisted per install, covering Virtual Try-On (both
-modes), Lookbook, Identity Transfer, Pose Changer and Background Replacer; the
+garment facts under strict invariants: bottom garments enforce deterministic bifurcation
+analysis (distinguishing pants from skirts by ankle cuffs, hem separation, and inseam/crotch
+construction, strictly banning hedging like "A (or B)"), and explicit user guidance notes
+take absolute priority over ambiguous visual cues. Gemini, GPT Image, and Local Qwen prompt
+policies decide independently how to use those facts during synthesis. Each generation job
+owns the blueprint for its own source set, so one job never inherits another job's garment
+analysis. AI Scan is a single ON/OFF layer persisted per install, covering Virtual Try-On
+(both modes), Lookbook, Identity Transfer, Pose Changer and Background Replacer; the
 E-Com Pack uses the same analysis semantics. A disabled, failed or cancelled scan
 falls back silently to the base prompt.
 _Avoid_: Outfit analysis, garment inspector, deep scan, fabric detection.

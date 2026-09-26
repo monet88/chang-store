@@ -20,7 +20,7 @@ import { editImage } from '../services/imageEditingService';
 import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '../utils/gpt-virtual-try-on-prompt';
 import { buildQwenVirtualTryOnParts } from '../utils/qwen-virtual-try-on-prompt';
-import { dispatchByEngine } from '../utils/engineDispatch';
+import { dispatchByEngine, resolveEngineConcurrency } from '../utils/engineDispatch';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
@@ -54,8 +54,6 @@ export interface UseWardrobeModeEngineConfig {
 export interface UseWardrobeModeEngineReturn {
   generate: () => Promise<void>;
 }
-
-const WARDROBE_CONCURRENCY = 3;
 
 export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseWardrobeModeEngineReturn => {
   const {
@@ -113,8 +111,9 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
       items: s.items.filter((i) => i.image !== null),
     }));
 
+    const batchConcurrency = resolveEngineConcurrency(engineId, jobs.length);
     try {
-      await runBoundedWorkers(jobs, WARDROBE_CONCURRENCY, async (job) => {
+      await runBoundedWorkers(jobs, batchConcurrency, async (job) => {
         setResults((prev) =>
           prev.map((r) => (r.setId === job.setId ? { ...r, status: 'processing' } : r)),
         );

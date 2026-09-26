@@ -379,7 +379,7 @@ const WatermarkRemover: React.FC = () => {
               id="watermark-concurrency"
               type="range"
               min="1"
-              max="5"
+              max="10"
               value={config.concurrency}
               onChange={(e) => setConcurrency(Number(e.target.value))}
               disabled={isProcessing}
@@ -387,7 +387,7 @@ const WatermarkRemover: React.FC = () => {
             />
             <div className="flex justify-between text-xs text-zinc-500 mt-1">
               <span>1</span>
-              <span>5</span>
+              <span>10</span>
             </div>
           </div>
         </section>

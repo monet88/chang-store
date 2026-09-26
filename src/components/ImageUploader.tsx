@@ -11,13 +11,23 @@ import ImageSelectionModal from './modals/ImageSelectionModal';
 interface ImageUploaderProps {
   image: ImageFile | null;
   onImageUpload: (file: ImageFile | null) => void;
+  onMultipleImagesUpload?: (files: ImageFile[]) => void;
   title: string;
   /** Keep the title accessible without rendering a duplicate visible heading */
   hideTitle?: boolean;
   id: string;
+  allowMultiple?: boolean;
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImageUpload, title, hideTitle = false, id }) => {
+const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
+  image,
+  onImageUpload,
+  onMultipleImagesUpload,
+  title,
+  hideTitle = false,
+  id,
+  allowMultiple = false,
+}) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isGallerySelectionOpen, setIsGallerySelectionOpen] = useState(false);
   const { t } = useLanguage();
@@ -36,48 +46,72 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
     [image?.base64, image?.mimeType]
   );
 
-  // Memoize processFile - prevents re-creation on every render
-  const processFile = useCallback(async (file: File) => {
-    if (!file) return;
-
-    // Validate file before processing
+  // Helper to convert a single File to ImageFile
+  const convertFile = useCallback(async (file: File): Promise<ImageFile | null> => {
     const validation = await validateImageFile(file);
     if (!validation.isValid) {
       if (import.meta.env.DEV) {
         console.error("Upload validation failed:", validation.errorKey);
       }
-      return;
+      return null;
     }
 
     try {
-      const compressedImage = await compressImage(file);
-      onImageUpload(compressedImage);
+      return await compressImage(file);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("Error compressing image, falling back to original file:", error);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          const base64String = reader.result.substring(reader.result.indexOf(',') + 1);
-          onImageUpload({ base64: base64String, mimeType: file.type });
-        }
-      };
-      reader.onerror = (err) => {
-        if (import.meta.env.DEV) {
-          console.error("FileReader error on fallback:", err);
-        }
-      };
-      reader.readAsDataURL(file);
+      return new Promise<ImageFile>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            const base64String = reader.result.substring(reader.result.indexOf(',') + 1);
+            resolve({ base64: base64String, mimeType: file.type });
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     }
-  }, [onImageUpload]);
+  }, []);
 
-  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  // Memoize processFile - prevents re-creation on every render
+  const processFile = useCallback(async (file: File) => {
+    if (!file) return;
+    const res = await convertFile(file);
+    if (res) {
+      onImageUpload(res);
+    }
+  }, [convertFile, onImageUpload]);
+
+  const processMultipleFiles = useCallback(async (files: File[]) => {
+    if (!onMultipleImagesUpload || files.length === 0) return;
+    const processed: ImageFile[] = [];
+    for (const file of files) {
+      const res = await convertFile(file);
+      if (res) {
+        processed.push(res);
+      }
+    }
+    if (processed.length > 0) {
+      onMultipleImagesUpload(processed);
+    }
+  }, [convertFile, onMultipleImagesUpload]);
+
+  const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = event.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    if ((allowMultiple || onMultipleImagesUpload) && fileList.length > 1 && onMultipleImagesUpload) {
+      await processMultipleFiles(Array.from(fileList));
+      return;
+    }
+
+    const file = fileList[0];
     if (file) {
       processFile(file);
     }
-  }, [processFile]);
+  }, [allowMultiple, onMultipleImagesUpload, processMultipleFiles, processFile]);
 
   const handleClear = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -108,11 +142,19 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     dragCounter.current = 0;
     setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
+    const fileList = e.dataTransfer.files;
+    if (!fileList || fileList.length === 0) return;
+
+    if ((allowMultiple || onMultipleImagesUpload) && fileList.length > 1 && onMultipleImagesUpload) {
+      await processMultipleFiles(Array.from(fileList));
+      return;
+    }
+
+    const file = fileList[0];
     if (file) {
       processFile(file);
       if (inputRef.current) {
@@ -121,7 +163,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
         inputRef.current.files = dataTransfer.files;
       }
     }
-  }, [processFile]);
+  }, [allowMultiple, onMultipleImagesUpload, processMultipleFiles, processFile]);
 
   return (
     <>
@@ -141,6 +183,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
             ref={inputRef}
             type="file"
             accept="image/*"
+            multiple={Boolean(allowMultiple || onMultipleImagesUpload)}
             className="hidden"
             onChange={handleFileChange}
           />

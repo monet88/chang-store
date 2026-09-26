@@ -22,8 +22,6 @@ import { remapImageBatchItems } from '../utils/batch-image-session';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { dispatchByEngine, resolveEngineConcurrency } from '../utils/engineDispatch';
 
-const IDENTITY_TRANSFER_BATCH_CONCURRENCY = 4;
-
 export const useIdentityTransfer = () => {
   const batchIdCounter = useRef(0);
   const generationInFlight = useRef(false);
@@ -177,7 +175,7 @@ export const useIdentityTransfer = () => {
       error: undefined,
     })));
 
-    const batchConcurrency = resolveEngineConcurrency(engineId, IDENTITY_TRANSFER_BATCH_CONCURRENCY);
+    const batchConcurrency = resolveEngineConcurrency(engineId, destinationItems.length);
     try {
       await runBoundedWorkers(destinationItems, batchConcurrency, (item) =>
         generateForDestination(item, { face: faceReference, body: bodyReference }));

@@ -32,8 +32,6 @@ export interface VirtualTryOnImageDriver {
   upscaleImage: typeof upscaleImage;
 }
 
-const VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY = 3;
-
 export interface UseVirtualTryOnEngineConfig {
   driver: VirtualTryOnImageDriver;
   subjects: UseVirtualTryOnSubjectsReturn;
@@ -97,7 +95,17 @@ export const useVirtualTryOnEngine = (
         // One analysis per subject, over that subject's own photo: every
         // subject is an independent job, so a batch-wide blueprint would
         // deconstruct one subject's garments inside another subject's prompt.
-        const blueprint = await scan(aiScanSourceSet(sourceItems.map((item) => item.image), [subjectImage]));
+        const guidance = sourceItems
+          .map((item, idx) => {
+            const prompt = item.sourcePrompt?.trim();
+            return prompt ? `Item #${idx + 1} (${item.sourceItemType}): ${prompt}` : '';
+          })
+          .filter(Boolean)
+          .join('; ');
+        const blueprint = await scan(
+          aiScanSourceSet(sourceItems.map((item) => item.image), [subjectImage]),
+          guidance || undefined,
+        );
         let finalSubjectImage = subjectImage;
         if (isMultiPersonMode && subjects.markerPosition) {
           finalSubjectImage = await compositeMarkerOnImage(subjectImage, subjects.markerPosition);
@@ -160,7 +168,7 @@ export const useVirtualTryOnEngine = (
     }));
     const batchConcurrency = resolveEngineConcurrency(
       engineId,
-      Math.min(VIRTUAL_TRY_ON_BATCH_MAX_CONCURRENCY, jobs.length),
+      jobs.length,
     );
 
     setIsLoading(true);

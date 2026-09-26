@@ -254,17 +254,20 @@ export const analyzeScene = async (
 export const analyzeOutfitBlueprint = async (
   image: ImageFile,
   model: string = 'gemini-3.8-flash',
+  userGuidance?: string,
 ): Promise<string> => {
   const startTime = Date.now();
 
   try {
-    const result = await geminiTextService.analyzeOutfitBlueprint(image, model);
+    const result = await geminiTextService.analyzeOutfitBlueprint(image, model, userGuidance);
 
     logApiCall({
       provider: 'Gemini',
       model,
       feature: 'Outfit Blueprint Analysis',
-      prompt: 'Deconstruct outfit components into technical blueprint',
+      prompt: userGuidance
+        ? `Deconstruct outfit components into technical blueprint (Guidance: ${userGuidance})`
+        : 'Deconstruct outfit components into technical blueprint',
       duration: Date.now() - startTime,
       status: 'success',
       responseSize: result.length,
@@ -276,7 +279,9 @@ export const analyzeOutfitBlueprint = async (
       provider: 'Gemini',
       model,
       feature: 'Outfit Blueprint Analysis',
-      prompt: 'Deconstruct outfit components into technical blueprint',
+      prompt: userGuidance
+        ? `Deconstruct outfit components into technical blueprint (Guidance: ${userGuidance})`
+        : 'Deconstruct outfit components into technical blueprint',
       duration: Date.now() - startTime,
       status: 'error',
       error: error instanceof Error ? error.message : 'Unknown error',

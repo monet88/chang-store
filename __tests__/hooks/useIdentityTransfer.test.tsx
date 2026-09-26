@@ -143,8 +143,8 @@ describe('useIdentityTransfer', () => {
     expect(addImageMock).toHaveBeenNthCalledWith(2, RESULT_B, Feature.IdentityTransfer, 'gemini');
   });
 
-  it('caps active destination requests at four and queues destinations beyond the cap', async () => {
-    const destinations = Array.from({ length: 7 }, (_, index) => ({
+  it('caps active destination requests at ten and queues destinations beyond the cap', async () => {
+    const destinations = Array.from({ length: 12 }, (_, index) => ({
       base64: `destination-${index}`,
       mimeType: 'image/png',
     }));
@@ -175,25 +175,25 @@ describe('useIdentityTransfer', () => {
       generationPromise = result.current.handleGenerate();
     });
 
-    await vi.waitFor(() => expect(editImage).toHaveBeenCalledTimes(4));
-    expect(activeRequests).toBe(4);
+    await vi.waitFor(() => expect(editImage).toHaveBeenCalledTimes(10));
+    expect(activeRequests).toBe(10);
 
     await act(async () => {
-      deferred.slice(0, 4).forEach(({ resolve }, index) => resolve([
+      deferred.slice(0, 10).forEach(({ resolve }, index) => resolve([
         { base64: `result-${index}`, mimeType: 'image/png' },
       ]));
       await Promise.resolve();
     });
 
-    await vi.waitFor(() => expect(editImage).toHaveBeenCalledTimes(7));
+    await vi.waitFor(() => expect(editImage).toHaveBeenCalledTimes(12));
     await act(async () => {
-      deferred.slice(4).forEach(({ resolve }, offset) => resolve([
-        { base64: `result-${offset + 4}`, mimeType: 'image/png' },
+      deferred.slice(10).forEach(({ resolve }, offset) => resolve([
+        { base64: `result-${offset + 10}`, mimeType: 'image/png' },
       ]));
       await generationPromise;
     });
-    expect(maxActiveRequests).toBe(4);
-    expect(result.current.completedCount).toBe(7);
+    expect(maxActiveRequests).toBe(10);
+    expect(result.current.completedCount).toBe(12);
   });
 
   it('keeps successful destination results when one destination fails', async () => {

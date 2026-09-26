@@ -203,6 +203,7 @@ export const useVirtualTryOn = () => {
     handleUpscale: resultActions.handleUpscale,
     handleRefine: resultActions.handleRefine,
     handleClothingUpload: clothing.handleClothingUpload,
+    handleMultipleClothingUpload: clothing.handleMultipleClothingUpload,
     handleSourceItemTypeChange: clothing.handleSourceItemTypeChange,
     handleSourcePromptChange: clothing.handleSourcePromptChange,
     addClothingUploader: clothing.addClothingUploader,

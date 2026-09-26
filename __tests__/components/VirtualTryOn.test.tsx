@@ -124,6 +124,7 @@ const baseHookState = {
   handleRefine: vi.fn(),
   handleSubjectImagesUpload: vi.fn(),
   handleClothingUpload: vi.fn(),
+  handleMultipleClothingUpload: vi.fn(),
   addClothingUploader: vi.fn(),
   removeClothingUploader: vi.fn(),
   detectingItemIds: {},
@@ -232,7 +233,16 @@ describe('VirtualTryOn component', () => {
     expect(screen.getByRole('button', { name: 'virtualTryOn.addItem' })).toBeEnabled();
   });
 
-  it('uses a compact grid when multiple source images are present', () => {
+  it('uses a single-item stack or dynamic responsive grid according to clothing item count', () => {
+    // 1 item -> space-y-3
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [{ id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' }],
+    });
+    const { rerender } = render(<VirtualTryOn />);
+    expect(screen.getByTestId('source-items-grid')).toHaveClass('space-y-3');
+
+    // 2 items -> sm:grid-cols-2
     useVirtualTryOnMock.mockReturnValue({
       ...baseHookState,
       clothingItems: [
@@ -240,10 +250,54 @@ describe('VirtualTryOn component', () => {
         { id: 2, image: null, sourceItemType: 'shoes', sourcePrompt: '' },
       ],
     });
-
-    render(<VirtualTryOn />);
-
+    rerender(<VirtualTryOn />);
     expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'sm:grid-cols-2');
+
+    // 3 items -> sm:grid-cols-3
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [
+        { id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 2, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 3, image: null, sourceItemType: 'shoes', sourcePrompt: '' },
+      ],
+    });
+    rerender(<VirtualTryOn />);
+    expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'sm:grid-cols-3');
+
+    // 4 items -> xl:grid-cols-4
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [
+        { id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 2, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 3, image: null, sourceItemType: 'shoes', sourcePrompt: '' },
+        { id: 4, image: null, sourceItemType: 'bag', sourcePrompt: '' },
+      ],
+    });
+    rerender(<VirtualTryOn />);
+    expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'xl:grid-cols-4');
+  });
+
+  it('renders batch upload button when clothingItems < 4 and hides it when at max 4 items', () => {
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [{ id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' }],
+    });
+    const { rerender } = render(<VirtualTryOn />);
+    expect(screen.getByText('virtualTryOn.uploadMultipleItems')).toBeInTheDocument();
+
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [
+        { id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 2, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 3, image: null, sourceItemType: 'shoes', sourcePrompt: '' },
+        { id: 4, image: null, sourceItemType: 'bag', sourcePrompt: '' },
+      ],
+    });
+    rerender(<VirtualTryOn />);
+    expect(screen.queryByText('virtualTryOn.uploadMultipleItems')).not.toBeInTheDocument();
   });
 
   it('renders clothing slot delete button with aria-label, touch target >= 44px and touch viewport visibility', () => {

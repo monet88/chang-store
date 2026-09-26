@@ -283,6 +283,7 @@ Do not include stylistic opinions or hypothetical scenes.`;
 export const analyzeOutfitBlueprint = async (
   image: ImageFile,
   model: string = 'gemini-3.8-flash',
+  userGuidance?: string,
 ): Promise<string> => {
   const ai = getGeminiClient();
   try {
@@ -292,8 +293,15 @@ export const analyzeOutfitBlueprint = async (
         mimeType: image.mimeType,
       },
     };
+    const userGuidanceBlock = userGuidance?.trim()
+      ? `\n\n[USER DIRECTIVE & CLASSIFICATION OVERRIDE (HIGHEST PRIORITY)]
+The user explicitly specifies the following context/guidance for this outfit:
+"${userGuidance.trim()}"
+You MUST strictly follow this directive. For instance, if the user notes that an item is trousers/pants (or not a skirt), classify it strictly as trousers/pants and deconstruct its legs accordingly.\n`
+      : '';
+
     const prompt = `You are an expert haute couture and commercial fashion analyst.
-Deconstruct the fashion outfit in this photo into an exhaustive, highly technical specification for an AI image generation pipeline.
+Deconstruct the fashion outfit in this photo into an exhaustive, highly technical specification for an AI image generation pipeline.${userGuidanceBlock}
 
 Structure your analysis strictly into the following 3 distinct bounded sections with these exact headers:
 
@@ -301,6 +309,10 @@ Structure your analysis strictly into the following 3 distinct bounded sections 
 - Layer & piece identification (Top, Bottom, One-Piece, Outerwear).
 - Treat belts as supporting apparel when they are part of the outfit; belts are supporting apparel, not generic non-apparel accessories.
 - Exact silhouette, fit, cuts, waistline, neckline/collar, sleeve style, closures.
+- GARMENT BIFURCATION & BOTTOM CLASSIFICATION RULE (CRITICAL):
+  * You MUST deterministically classify any lower-body garment as either bifurcated (Trousers/Pants/Shorts/Culottes/Balloon pants with 2 separate leg openings) or continuous (Skirt with a single continuous sweep/hem circumference).
+  * Always inspect the ankle and leg hemline: if there are two distinct gathered cuffs, leg openings, or visible independent leg openings around the ankles/feet, it is TROUSERS/PANTS (even if voluminous, drop-crotch, balloon-shaped, or draped like a skirt).
+  * STRICT ANTI-HEDGING RULE: NEVER use ambiguous hedging phrases such as "A (or B)", "skirt or trousers", "dress or skirt", "maybe", or "either/or". Commit decisively to ONE definitive garment category based on visual evidence.
 - MICRO-EDGE & HEMLINE DETAILS: scalloped lace edges, fringes, cuffs, sheer mesh bands, contrast stitching.
 
 [2. TEXTILE_PHYSICS]
