@@ -10,7 +10,7 @@ import {
   detectPortableComfyUiPath,
   useLocalQwenSettings,
 } from '../../hooks/useLocalQwenSettings';
-import { getDesktopLocalQwenApi } from '../../platform/desktopLocalQwen';
+import { getDesktopLocalQwenApi, isUncensoredModel } from '../../platform/desktopLocalQwen';
 import { useLocalQwenStatus } from '../../hooks/useLocalQwenStatus';
 import { SectionCard } from './SettingsDataSection';
 import { fieldLabelClassName, inputClassName } from './GatewayProfileRow';
@@ -19,8 +19,13 @@ export const LocalQwenSettingsSection: React.FC = () => {
   const { t } = useLanguage();
   const { settings, updateSetting } = useLocalQwenSettings();
   const { status } = useLocalQwenStatus();
-  const activeModelName = status?.activeModel || 'qwen-image-2.1-UC-Q4_K_M.gguf';
-  const isUncensored = status?.isUncensored ?? (status?.activeModel ? status.activeModel.includes('UC') : true);
+  // Unknown until the manager reports a resolved unet: never claim UC (or
+  // Standard) before detection has actually run.
+  const activeModelName = status?.activeModel;
+  const uncensoredState = status
+    ? (status.isUncensored ??
+      (status.activeModel ? isUncensoredModel(status.activeModel) : undefined))
+    : undefined;
 
   const [isDetectedPathExisting, setIsDetectedPathExisting] = React.useState(false);
 
@@ -103,19 +108,20 @@ export const LocalQwenSettingsSection: React.FC = () => {
             <span className={fieldLabelClassName}>
               {t('settingsModal.localQwen.modelLabel')}
             </span>
-            {isUncensored ? (
-              <span className="rounded border border-purple-500/40 bg-purple-950/70 px-2 py-0.5 text-[10px] font-semibold text-purple-300">
-                {t('settingsModal.localQwen.modelUncensoredBadge')}
-              </span>
-            ) : (
-              <span className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-300">
-                {t('settingsModal.localQwen.modelStandardBadge')}
-              </span>
-            )}
+            {uncensoredState !== undefined &&
+              (uncensoredState ? (
+                <span className="rounded border border-purple-500/40 bg-purple-950/70 px-2 py-0.5 text-[10px] font-semibold text-purple-300">
+                  {t('settingsModal.localQwen.modelUncensoredBadge')}
+                </span>
+              ) : (
+                <span className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-300">
+                  {t('settingsModal.localQwen.modelStandardBadge')}
+                </span>
+              ))}
           </div>
           <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-300">
             <span className="font-mono text-zinc-200" data-testid="local-qwen-active-model">
-              {activeModelName}
+              {activeModelName ?? '—'}
             </span>
             <span className="text-[11px] text-zinc-400">{t('settingsModal.localQwen.modelVramHint')}</span>
           </div>

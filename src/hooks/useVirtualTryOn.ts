@@ -11,7 +11,7 @@ import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
-import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
+import { aiScanGuidanceFromItems, aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { useImageRefinement } from './useImageRefinement';
 import { useVirtualTryOnSubjects } from './useVirtualTryOnSubjects';
@@ -100,14 +100,7 @@ export const useVirtualTryOn = () => {
   );
 
   const aiScanGuidance = useMemo(
-    () =>
-      clothing.validClothingItems
-        .map((item, idx) => {
-          const prompt = item.sourcePrompt?.trim();
-          return prompt ? `Item #${idx + 1} (${item.sourceItemType}): ${prompt}` : '';
-        })
-        .filter(Boolean)
-        .join('; '),
+    () => aiScanGuidanceFromItems(clothing.validClothingItems),
     [clothing.validClothingItems],
   );
 

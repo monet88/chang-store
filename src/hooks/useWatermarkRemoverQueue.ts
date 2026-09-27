@@ -69,14 +69,9 @@ export const useWatermarkRemoverQueue = (): UseWatermarkRemoverQueueReturn => {
       status: 'pending',
       retryCount: 0,
     }));
-    setItems((prev) => {
-      const nextItems = [...prev, ...newItems];
-      setConfig((c) => ({
-        ...c,
-        concurrency: clampConcurrency(nextItems.length),
-      }));
-      return nextItems;
-    });
+    // The configured concurrency is the user's own setting: adding images must
+    // not silently overwrite it.
+    setItems((prev) => [...prev, ...newItems]);
   }, []);
 
   const removeImage = useCallback((id: string) => {

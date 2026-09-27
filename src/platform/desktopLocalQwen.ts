@@ -12,6 +12,17 @@ export const DESKTOP_LOCAL_QWEN_CHANNELS = {
 
 export type DesktopLocalQwenState = 'starting' | 'ready' | 'generating' | 'error' | 'stopped';
 
+/** Workflow routing mode for Local Qwen generation (identity transfer / face swap / plain edit). */
+export type LocalQwenWorkflow = 'identity-transfer' | 'face-swap' | 'standard';
+
+/**
+ * Whether a resolved unet filename is the Uncensored (UC) build.
+ * Single source of truth: the main-process manager and the renderer badges
+ * must agree on the heuristic, so neither re-derives it inline.
+ */
+export const isUncensoredModel = (modelName: string | undefined | null): boolean =>
+  Boolean(modelName?.includes('UC'));
+
 export interface LocalQwenProgress {
   step: number;
   maxSteps: number;
@@ -47,7 +58,7 @@ export interface LocalQwenGenerateParams {
   loraName?: string;
   loraStrength?: number;
   unetName?: string;
-  workflow?: 'identity-transfer' | 'face-swap' | 'standard';
+  workflow?: LocalQwenWorkflow;
 }
 
 export interface LocalQwenGenerateResult {
@@ -55,6 +66,8 @@ export interface LocalQwenGenerateResult {
     base64: string;
     mimeType: string;
   };
+  /** Unet actually loaded for this generation (resolved when `unetName` was not passed). */
+  activeUnetName?: string;
 }
 
 export interface LocalQwenUpscaleParams {

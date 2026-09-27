@@ -8,7 +8,7 @@ import {
   VirtualTryOnClothingItem,
 } from '../types';
 import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
-import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
+import { aiScanGuidanceFromItems, aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '../utils/gpt-virtual-try-on-prompt';
@@ -95,13 +95,7 @@ export const useVirtualTryOnEngine = (
         // One analysis per subject, over that subject's own photo: every
         // subject is an independent job, so a batch-wide blueprint would
         // deconstruct one subject's garments inside another subject's prompt.
-        const guidance = sourceItems
-          .map((item, idx) => {
-            const prompt = item.sourcePrompt?.trim();
-            return prompt ? `Item #${idx + 1} (${item.sourceItemType}): ${prompt}` : '';
-          })
-          .filter(Boolean)
-          .join('; ');
+        const guidance = aiScanGuidanceFromItems(sourceItems);
         const blueprint = await scan(
           aiScanSourceSet(sourceItems.map((item) => item.image), [subjectImage]),
           guidance || undefined,

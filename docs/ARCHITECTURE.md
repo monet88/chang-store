@@ -294,8 +294,10 @@ do not require speculative scaffolding ahead of that work.
 The five Gemini-only workflows are phase 2 of the studio consolidation: they
 already take their driver from the same context, they simply have no GPT view
 yet. GPT caps stay deliberate — one output per request, lookbook variations
-capped at one, wardrobe sets bounded to two, serial batches, and no native
-upscale (upscale is a preservation-prompted edit at the largest quality).
+capped at one, wardrobe sets bounded to two, batch generation capped at 10
+parallel requests (see `resolveEngineConcurrency` in
+`src/utils/engineDispatch.ts`), and no native upscale (upscale is a
+preservation-prompted edit at the largest quality).
 
 Local Qwen is desktop-only and intentionally narrower. It ships as a serial
 engine (one active job at a time), defaults to 512 px on the target 8 GB GPU,

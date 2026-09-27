@@ -70,7 +70,6 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
     setOutfitBlueprint,
     isScanningBlueprint,
     handleScanBlueprint,
-    handleRescanBlueprint,
     selectedGarmentScopes,
     toggleGarmentScope,
     brandModels,
@@ -271,7 +270,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={handleRescanBlueprint}
+                            onClick={handleScanBlueprint}
                             disabled={isScanningBlueprint}
                             className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors"
                             title={t('clothingTransfer.ecomPack.blueprintReanalyze')}

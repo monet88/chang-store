@@ -23,7 +23,7 @@ import {
   buildGptClothingTransferParts,
   buildGptProductStagingParts,
 } from '../utils/gpt-clothing-transfer-prompt';
-import { DEFAULT_MAX_CONCURRENCY, resolveEngineConcurrency } from '../utils/engineDispatch';
+import { resolveEngineConcurrency } from '../utils/engineDispatch';
 import {
   buildQwenBrandModelParts,
   buildQwenClothingTransferParts,
@@ -32,9 +32,6 @@ import {
 import { formatGarmentScope } from '../utils/clothing-transfer-prompt-types';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
-
-/** Worker ceiling for one pack run; a single run never exceeds this many in-flight requests. */
-export const ECOM_PACK_BATCH_MAX_CONCURRENCY = DEFAULT_MAX_CONCURRENCY;
 
 /** The user's live E-Com Pack selection, the only input target planning reads. */
 export interface EComPackPlanInput {

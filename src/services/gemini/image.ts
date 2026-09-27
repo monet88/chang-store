@@ -6,6 +6,7 @@ import { getModelCapabilities, resolveImageSizeConfig } from '../../config/model
 import { runBoundedWorkers } from '../../utils/run-bounded-workers';
 import { appendNegativePrompt, negativePromptSentence } from '../../utils/negative-prompt-builder';
 import { DEFAULT_MAX_CONCURRENCY } from '../../utils/engineDispatch';
+import type { LocalQwenWorkflow } from '../../platform/desktopLocalQwen';
 
 const PROXY_IMAGE_TIMEOUT_MS = 30_000;
 const MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS = DEFAULT_MAX_CONCURRENCY;
@@ -32,7 +33,7 @@ export interface EditImageParams {
   /** Unified dispatch routing hint: passed through imageEditingService to engine drivers (e.g. Local Qwen). */
   feature?: string;
   /** Workflow routing mode: passed through imageEditingService to engine drivers (e.g. Local Qwen). */
-  workflow?: 'identity-transfer' | 'face-swap' | 'standard';
+  workflow?: LocalQwenWorkflow;
 }
 
 const isSafetyFinishReason = (finishReason: string | undefined): boolean =>

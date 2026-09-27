@@ -990,7 +990,6 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
   clothingTransfer: {
     title: 'Chuyển Trang phục',
     editorialDescription: 'Chuyển outfit tham chiếu thành concept mới với khu tham chiếu, sân khấu concept và lưới refinement nằm trong cùng một workspace.',
-    studioNotice: 'Công cụ này hiện chỉ dùng chỉnh sửa ảnh bằng Gemini.',
     providerNotice: 'Công cụ này hiện chỉ dùng chỉnh sửa ảnh bằng Gemini.',
     step1: 'Bước 1: Tải ảnh Trang phục Tham chiếu',
     step2: 'Bước 2: Tải ảnh Concept',
@@ -1043,7 +1042,6 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       blueprintView: 'Xem chi tiết bản vẽ',
       blueprintHide: 'Thu gọn',
       blueprintReanalyze: 'Phân tích lại',
-      blueprintRescan: 'Quét lại',
       scanBlueprintButton: 'Quét AI bản vẽ trang phục (AI Scan)',
       sourcePromptLabel: 'Ghi chú cho trang phục này (Tùy chọn)',
       sourcePromptPlaceholder: 'VD: "quần không phải váy", "áo dáng suông rộng, tay áo hơi phồng"',
@@ -1107,7 +1105,6 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
   identityTransfer: {
     title: 'Đổi Mặt & Chuyển Danh Tính',
     activeLoraBadge: 'BFS FaceSwap LoRA v1.1',
-    studioNotice: 'Hỗ trợ Local Qwen (ComfyUI với BFS FaceSwap LoRA), Gemini và GPT Image.',
     providerNotice: 'Hỗ trợ Local Qwen (ComfyUI với BFS FaceSwap LoRA), Gemini và GPT Image.',
     step1: 'Bước 1: Ảnh tham chiếu chung',
     sharedReferencesTitle: 'Ảnh tham chiếu danh tính & khuôn mặt',
@@ -1139,7 +1136,6 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
   },
   patternGenerator: {
     title: 'Tạo mẫu hoa văn',
-    studioNotice: 'Công cụ này hiện chỉ sử dụng Gemini chỉnh sửa hình ảnh.',
     providerNotice: 'Công cụ này hiện chỉ sử dụng Gemini chỉnh sửa hình ảnh.',
     referenceTitle: 'Hình ảnh tham chiếu',
     referenceHint: 'Tải lên 1 hoặc nhiều hình ảnh tham chiếu để tạo mẫu hoa văn.',
@@ -1242,7 +1238,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       samplerLabel: 'Sampler',
       schedulerLabel: 'Scheduler',
       modelLabel: 'Mô hình Diffusion',
-      modelUncensoredBadge: 'Không kiểm duyệt (Mặc định)',
+      modelUncensoredBadge: 'Không kiểm duyệt (UC)',
       modelStandardBadge: 'Tiêu chuẩn',
       modelVramHint: 'RTX 8GB VRAM',
     },

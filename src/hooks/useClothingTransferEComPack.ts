@@ -105,7 +105,6 @@ export interface UseClothingTransferEComPackReturn {
   isScanningBlueprint: boolean;
   setOutfitBlueprint: (blueprint: string | null) => void;
   handleScanBlueprint: () => Promise<void>;
-  handleRescanBlueprint: () => Promise<void>;
   isGenerating: boolean;
   handleGeneratePack: () => Promise<void>;
   handleGenerateCategory: (category: 'product' | 'brand-models' | 'custom-destinations') => Promise<void>;
@@ -467,7 +466,6 @@ export const useClothingTransferEComPack = (
     isScanningBlueprint,
     setOutfitBlueprint,
     handleScanBlueprint,
-    handleRescanBlueprint: handleScanBlueprint,
     selectedGarmentScopes,
     toggleGarmentScope,
     brandModels,

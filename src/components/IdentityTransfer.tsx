@@ -41,7 +41,7 @@ const IdentityTransfer: React.FC = () => {
                 {t('identityTransfer.activeLoraBadge')}
               </div>
             ) : (
-              <p className="text-xs text-zinc-500">{t('identityTransfer.studioNotice') || t('identityTransfer.providerNotice')}</p>
+              <p className="text-xs text-zinc-500">{t('identityTransfer.providerNotice')}</p>
             )}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

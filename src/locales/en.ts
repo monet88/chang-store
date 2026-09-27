@@ -988,7 +988,6 @@ Do not include any other text or markdown.
   clothingTransfer: {
     title: 'Clothing Transfer',
     editorialDescription: 'Translate reference outfits into new concept imagery with the references, concept stage, and refinement grid aligned in one workspace.',
-    studioNotice: 'This tool currently uses Gemini image editing only.',
     providerNotice: 'This tool currently uses Gemini image editing only.',
     step1: 'Step 1: Upload Reference Outfits',
     step2: 'Step 2: Upload Concept Images',
@@ -1041,7 +1040,6 @@ Do not include any other text or markdown.
       blueprintView: 'View blueprint details',
       blueprintHide: 'Hide',
       blueprintReanalyze: 'Re-analyze',
-      blueprintRescan: 'Rescan',
       scanBlueprintButton: 'AI Scan Garment Blueprint',
       sourcePromptLabel: 'Note for This Outfit (Optional)',
       sourcePromptPlaceholder: 'e.g., "pants not skirt", "loose-fit blouse, slightly puffed sleeves"',
@@ -1105,7 +1103,6 @@ Do not include any other text or markdown.
   identityTransfer: {
     title: 'Identity Transfer & Face Swap',
     activeLoraBadge: 'BFS FaceSwap LoRA v1.1',
-    studioNotice: 'Supports Local Qwen (ComfyUI with BFS FaceSwap LoRA), Gemini, and GPT Image.',
     providerNotice: 'Supports Local Qwen (ComfyUI with BFS FaceSwap LoRA), Gemini, and GPT Image.',
     step1: 'Step 1: Shared References',
     sharedReferencesTitle: 'Identity & Face References',
@@ -1137,7 +1134,6 @@ Do not include any other text or markdown.
   },
   patternGenerator: {
     title: 'Pattern Generator',
-    studioNotice: 'This tool currently uses Gemini image editing only.',
     providerNotice: 'This tool currently uses Gemini image editing only.',
     referenceTitle: 'Reference Images',
     referenceHint: 'Upload 1 or more reference images for pattern generation.',
@@ -1240,7 +1236,7 @@ Do not include any other text or markdown.
       samplerLabel: 'Sampler',
       schedulerLabel: 'Scheduler',
       modelLabel: 'Diffusion Model',
-      modelUncensoredBadge: 'Uncensored (Default)',
+      modelUncensoredBadge: 'Uncensored (UC)',
       modelStandardBadge: 'Standard',
       modelVramHint: 'RTX 8GB VRAM',
     },

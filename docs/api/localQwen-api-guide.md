@@ -40,7 +40,7 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
 | **Diffusion DiT (Fallback)** | `qwen-image-2.1-Q4_K_M.gguf` | 4.60 GB (4,604,557,984 bytes) | `models/diffusion_models/` | Fallback tiêu chuẩn |
 | **Text/Vision Encoder (active)** | `qwen3vl_8b_w4a8.safetensors` | 6.31 GB (6,312,105,364 bytes) | `models/text_encoders/` | Official Comfy-Org W4A8; đã verify SHA256 + VTO end-to-end |
 | **Text/Vision Encoder (rollback)** | `qwen3vl_8b_int8_convrot.safetensors` | 9.35 GB (9,350,798,360 bytes) | `models/text_encoders/` | Bản cũ giữ lại để rollback |
-| **Speed LoRA (Turbo)** | `Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors` | 679 MB (679,604,800 bytes) | `models/loras/` | Đã tải & tài liệu hóa cho phase tương thích tiếp theo (DMD 4–6 steps turbo adapter, CFG=1.0) |
+| **Speed LoRA (Turbo)** | `Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors` | 679 MB (679,604,800 bytes) | `models/loras/` | Đã tải & tài liệu hóa cho phase tương thích tiếp theo (DMD 6 steps turbo adapter, CFG=1.0) |
 | **FaceSwap LoRA (BFS)** | `bfs_head_v1.1_qwen_2.1.safetensors` | 260 MB (260,096,144 bytes) | `models/loras/` | Lora giữ nhận diện khuôn mặt / đổi mặt |
 | **VAE** | `qwen_image_2.1_vae_bf16.safetensors` | 676 MB (675,509,688 bytes) | `models/vae/` | Mã hóa và giải mã latent sang pixel ảnh |
 
@@ -161,9 +161,11 @@ Chang Store hỗ trợ dynamic LoRA injection và workflow auto-routing trong `l
    - `loraName`: Tên file LoRA tùy chọn đặt trong `models/loras/`.
    - `loraStrength`: Cường độ LoRA (`number`, mặc định `1.0`).
    - `unetName`: Chỉ định mô hình DiT cụ thể (mặc định tự động phân giải qua `resolveActiveUnet()`).
+   - Kết quả (`LocalQwenGenerateResult.activeUnetName`): unet thực sự đã dùng cho job — reporting để caller biết UC hay fallback đã chạy.
 
 2. **Auto-Detection Heuristic (`isFaceSwapPrompt`):**
    - Khi không chỉ định `workflow: 'standard'` và không truyền `loraName`, hệ thống tự động quét prompt để phát hiện tác vụ đổi mặt / hoán đổi danh tính:
+     - **Refusal guard (kiểm tra trước):** prompt chứa cụm từ từ chối đổi mặt (`no face swap`, `do not swap`, `keep the original face`, `không đổi mặt`, `không ghép mặt`, `không chuyển danh tính`, …) → trả `false`, không inject LoRA dù có khớp từ khóa bên dưới.
      - Header checks: `QWEN IDENTITY TRANSFER SPECIFICATION`, `QWEN BRAND MODEL SPECIFICATION`, `IDENTITY TRANSFER`, `head_swap`.
      - Từ khóa tiếng Anh: `face swap`, `faceswap`, `swap face`, `head swap`, `replace face`, `facial identity`.
      - Từ khóa tiếng Việt: `đổi mặt`, `hoán đổi mặt`, `ghép mặt`, `thay mặt`, `đổi khuôn mặt`, `thay khuôn mặt`, `chuyển mặt`, `chuyển danh tính`.
@@ -271,7 +273,7 @@ The Electron main process owns Local ComfyUI lifecycle; the renderer never spawn
 ### 7.5 Job execution
 
 - Local Qwen generation is **serial: one active job at a time** on the target 8 GB GPU.
-- Do not reuse the cloud batch concurrency of 3 for Local Qwen.
+- Do not reuse the cloud batch concurrency (up to 10 via `resolveEngineConcurrency`) for Local Qwen.
 - Queue/progress UI exposes only useful state:
   - `Starting`
   - `Ready`

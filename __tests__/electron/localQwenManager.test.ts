@@ -5,6 +5,7 @@ import type { ChildProcess } from 'node:child_process';
 import type { Mock } from 'vitest';
 import {
   LocalQwenManager,
+  isFaceSwapPrompt,
   verifyLoopbackOnly,
   DEFAULT_COMFYUI_PORT,
   defaultHealthCheckFn,
@@ -818,13 +819,14 @@ describe('LocalQwenManager', () => {
       });
 
       try {
-        await manager.generateImage({
+        const result = await manager.generateImage({
           prompt: 'A test prompt',
         });
 
         const sentWorkflow = getSentWorkflow();
         expect(sentWorkflow?.['1']).toBeDefined();
         expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-UC-Q4_K_M.gguf');
+        expect(result.activeUnetName).toBe('qwen-image-2.1-UC-Q4_K_M.gguf');
       } finally {
         existsSpy.mockRestore();
       }
@@ -844,16 +846,32 @@ describe('LocalQwenManager', () => {
       });
 
       try {
-        await manager.generateImage({
+        const result = await manager.generateImage({
           prompt: 'A test prompt',
         });
 
         const sentWorkflow = getSentWorkflow();
         expect(sentWorkflow?.['1']).toBeDefined();
         expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-Q4_K_M.gguf');
+        expect(result.activeUnetName).toBe('qwen-image-2.1-Q4_K_M.gguf');
       } finally {
         existsSpy.mockRestore();
       }
+    });
+  });
+
+  describe('isFaceSwapPrompt refusal guard', () => {
+    it('returns false for prompts that explicitly refuse face swapping', () => {
+      expect(isFaceSwapPrompt('Retouch the background. No face swap in this image.')).toBe(false);
+      expect(isFaceSwapPrompt('Keep the original face, do not swap face.')).toBe(false);
+      expect(isFaceSwapPrompt('Không đổi mặt, chỉ đổi trang phục thôi.')).toBe(false);
+      expect(isFaceSwapPrompt('Vẽ lại phông nền, không ghép mặt người khác.')).toBe(false);
+    });
+
+    it('still matches positive face swap requests', () => {
+      expect(isFaceSwapPrompt('Please face swap the model with the reference photo')).toBe(true);
+      expect(isFaceSwapPrompt('đổi mặt người trong ảnh theo ảnh tham chiếu')).toBe(true);
+      expect(isFaceSwapPrompt('QWEN IDENTITY TRANSFER SPECIFICATION: swap face')).toBe(true);
     });
   });
 });

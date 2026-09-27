@@ -2,6 +2,7 @@ import React from 'react';
 import {
   type DesktopLocalQwenStatus,
   classifyLocalQwenError,
+  isUncensoredModel,
 } from '../../platform/desktopLocalQwen';
 import { useLocalQwenStatus } from '../../hooks/useLocalQwenStatus';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -119,7 +120,12 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
           </div>
         );
 
-      case 'ready':
+      case 'ready': {
+        // Unknown until the manager reports a resolved unet: hide the badge
+        // rather than claim UC (or Standard) before detection has run.
+        const uncensoredState =
+          status.isUncensored ??
+          (status.activeModel ? isUncensoredModel(status.activeModel) : undefined);
         return (
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -136,11 +142,13 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
                       ? t('studio.localQwenStatus.appOwned')
                       : t('studio.localQwenStatus.external')}
                   </span>
-                  <span className="rounded border border-purple-500/40 bg-purple-950/70 px-1.5 py-0.5 text-[10px] font-semibold text-purple-300">
-                    {status.isUncensored ?? (status.activeModel ? status.activeModel.includes('UC') : true)
-                      ? t('studio.localQwenStatus.modelUncensored')
-                      : t('studio.localQwenStatus.modelStandard')}
-                  </span>
+                  {uncensoredState !== undefined && (
+                    <span className="rounded border border-purple-500/40 bg-purple-950/70 px-1.5 py-0.5 text-[10px] font-semibold text-purple-300">
+                      {uncensoredState
+                        ? t('studio.localQwenStatus.modelUncensored')
+                        : t('studio.localQwenStatus.modelStandard')}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-zinc-400">
                   {t('studio.localQwenStatus.readySubtext')} (127.0.0.1:{status.port})
@@ -153,6 +161,7 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
             </div>
           </div>
         );
+      }
 
       case 'generating': {
         const hasProgress = status.progress !== undefined;

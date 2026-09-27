@@ -48,6 +48,23 @@ export const aiScanSourceSet = (
 };
 
 /**
+ * One line per garment carrying a user note: `Item #1 (top): pants not skirt`.
+ * Shared by the pre-scan guidance in `useVirtualTryOn` and the per-subject scan
+ * in `useVirtualTryOnEngine` so the two formats cannot drift apart.
+ * Items without a note are skipped; returns '' when nothing carries a note.
+ */
+export const aiScanGuidanceFromItems = (
+  items: ReadonlyArray<{ sourcePrompt?: string | null; sourceItemType: string }>,
+): string =>
+  items
+    .map((item, idx) => {
+      const prompt = item.sourcePrompt?.trim();
+      return prompt ? `Item #${idx + 1} (${item.sourceItemType}): ${prompt}` : '';
+    })
+    .filter(Boolean)
+    .join('; ');
+
+/**
  * Splice a blueprint into a prompt as a subordinate technical specification.
  * Returns an empty string when there is no blueprint, so a disabled, failed or
  * cancelled scan leaves the base prompt byte-identical.

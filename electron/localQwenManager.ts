@@ -13,6 +13,7 @@ import {
   type LocalQwenProgress,
   type LocalQwenUpscaleParams,
   type LocalQwenUpscaleResult,
+  isUncensoredModel,
 } from '../src/platform/desktopLocalQwen';
 import {
   KNOWN_PORTABLE_COMFYUI_PATH,
@@ -176,9 +177,32 @@ export interface LocalQwenManagerOptions {
   wsConstructor?: WebSocketConstructor;
 }
 
+/**
+ * Phrases that explicitly REFUSE a face swap ("no face swap", "không đổi mặt").
+ * Checked first so a prompt that merely bans swapping never triggers the LoRA.
+ */
+const FACE_SWAP_REFUSAL_PHRASES = [
+  'no face swap',
+  'without face swap',
+  'do not swap',
+  "don't swap",
+  'not swap face',
+  'keep the original face',
+  'không đổi mặt',
+  'không thay mặt',
+  'không ghép mặt',
+  'không đổi khuôn mặt',
+  'không thay khuôn mặt',
+  'không chuyển mặt',
+  'không chuyển danh tính',
+];
+
 export const isFaceSwapPrompt = (prompt: string): boolean => {
   if (!prompt) return false;
   const promptLower = prompt.toLowerCase();
+  if (FACE_SWAP_REFUSAL_PHRASES.some((phrase) => promptLower.includes(phrase))) {
+    return false;
+  }
   return (
     prompt.includes('QWEN IDENTITY TRANSFER SPECIFICATION') ||
     prompt.includes('QWEN BRAND MODEL SPECIFICATION') ||
@@ -293,7 +317,7 @@ export class LocalQwenManager {
     const activeModel = this.resolveActiveUnet(forceRefresh);
     return {
       activeModel,
-      isUncensored: activeModel.includes('UC'),
+      isUncensored: isUncensoredModel(activeModel),
     };
   }
 
@@ -1020,6 +1044,7 @@ export class LocalQwenManager {
           base64,
           mimeType,
         },
+        activeUnetName: unetName,
       };
     } catch (err) {
       this.state = 'error';

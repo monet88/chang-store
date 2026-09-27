@@ -62,7 +62,6 @@ const baseHookState = {
     isScanningBlueprint: false,
     setOutfitBlueprint: vi.fn(),
     handleScanBlueprint: vi.fn(),
-    handleRescanBlueprint: vi.fn(),
     brandModels: [],
     selectedBrandModelIds: [],
     selectBrandModel: vi.fn(),
@@ -227,7 +226,6 @@ describe('ClothingTransfer component', () => {
 
   it('renders manual AI Analyze button when outfit is uploaded and triggers analysis on click', () => {
     const handleScanBlueprintMock = vi.fn();
-    const handleRescanBlueprintMock = vi.fn();
     useClothingTransferMock.mockReturnValue({
       ...baseHookState,
       mode: 'ecom-pack',
@@ -238,7 +236,6 @@ describe('ClothingTransfer component', () => {
         outfitBlueprint: null,
         isScanningBlueprint: false,
         handleScanBlueprint: handleScanBlueprintMock,
-        handleRescanBlueprint: handleRescanBlueprintMock,
       },
     });
 

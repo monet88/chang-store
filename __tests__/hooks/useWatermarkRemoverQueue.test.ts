@@ -14,21 +14,24 @@ describe('useWatermarkRemoverQueue', () => {
     expect(result.current.config.concurrency).toBe(3);
   });
 
-  it('auto-adjusts concurrency to match uploaded image count, capped at 10', () => {
+  it('preserves the configured concurrency when images are uploaded', () => {
     const { result } = renderHook(() => useWatermarkRemoverQueue());
 
-    // Upload 4 images -> concurrency becomes 4
+    // Upload 4 images -> configured concurrency untouched (stays at default 3)
     act(() => {
       result.current.addImages([mockImage('1'), mockImage('2'), mockImage('3'), mockImage('4')]);
     });
-    expect(result.current.config.concurrency).toBe(4);
+    expect(result.current.config.concurrency).toBe(3);
     expect(result.current.items).toHaveLength(4);
 
-    // Upload 8 more images (total 12) -> concurrency capped at 10
+    // A user-chosen value also survives further uploads
+    act(() => {
+      result.current.setConcurrency(7);
+    });
     act(() => {
       result.current.addImages(Array.from({ length: 8 }, (_, i) => mockImage(`more-${i}`)));
     });
-    expect(result.current.config.concurrency).toBe(10);
+    expect(result.current.config.concurrency).toBe(7);
     expect(result.current.items).toHaveLength(12);
   });
 
