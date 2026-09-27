@@ -54,9 +54,9 @@ export const isFaceSwapRefusal = (prompt: string): boolean => {
 };
 
 /**
- * Whether a prompt asks for a face swap. Domain rule shared by the renderer
- * (previewing what will happen) and the main-process manager (routing the job),
- * so neither side re-derives the keyword list.
+ * Whether a prompt asks for a face swap. The main-process manager routes on
+ * this, so the keyword list lives here (next to the refusal guard it defers
+ * to) instead of being re-derived at each call site.
  */
 export const isFaceSwapPrompt = (prompt: string): boolean => {
   if (!prompt) return false;
@@ -147,8 +147,6 @@ export interface LocalQwenGenerateResult {
     base64: string;
     mimeType: string;
   };
-  /** Unet actually loaded for this generation (resolved when `unetName` was not passed). */
-  activeUnetName?: string;
 }
 
 export interface LocalQwenUpscaleParams {

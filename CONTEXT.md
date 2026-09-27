@@ -27,6 +27,14 @@ _Avoid_: NSFW mode, fallback mode, offline Gemini.
 The Local Qwen diffusion model `qwen-image-2.1-UC-Q4_K_M.gguf`, the default unet resolved at runtime by `resolveActiveUnet()` with automatic fallback to the standard `qwen-image-2.1-Q4_K_M.gguf` when the UC file is absent from the configured ComfyUI folder. The studio reports the resolved unet — and only then the `Uncensored (UC)` badge — after detection has actually found a file on disk; an install where neither unet resolves reports no model and no badge instead of claiming UC.
 _Avoid_: NSFW model, unfiltered mode, UC mode.
 
+**FaceSwap LoRA**:
+The Local Qwen identity adapter `bfs_head_v1.1_qwen_2.1.safetensors`, injected between `UnetLoaderGGUF` and `KSampler` for jobs that transplant a face onto a destination photo. A workflow that does so declares it (`workflow: 'identity-transfer'`); a prompt that explicitly refuses swapping never gets the LoRA, whatever the caller declared. Detection runs against the same ComfyUI root generation loads models from, and the badge reports nothing until the file is actually found.
+_Avoid_: identity LoRA, face preset, BFS preset.
+
+**Outfit Drape Invariant**:
+The cross-family studio rule that a top stays untucked outside the waistband, with no exception for a pre-tucked subject or a high-waisted bottom. Unlike role framing or prompt structure, this wording is owned once and imported verbatim by all three prompt families, because breaking it is a domain failure rather than a styling choice.
+_Avoid_: tuck rule, untuck setting, hemline preference.
+
 **Image Driver**:
 The transport layer abstraction responsible for executing image generation or edit requests against a specific image-engine contract (`gemini-native`, `openai-images`, or local ComfyUI).
 _Avoid_: Provider client, API connector.

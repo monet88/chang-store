@@ -76,7 +76,7 @@ AI Editor, which gain nothing from textile semantics.
 - `src/utils/ai-scan-blueprint.ts` — the shared block formatter and scan
   source-set selection
 - `src/services/textService.ts` → `src/services/gemini/text.ts` —
-  `analyzeOutfitBlueprint`, the analyzer prompt
+  `scanGarmentBlueprint`, the analyzer prompt
 - `src/locales/en.ts` / `src/locales/vi.ts` — `studio.aiScan.*`
 
 ## Validation Path

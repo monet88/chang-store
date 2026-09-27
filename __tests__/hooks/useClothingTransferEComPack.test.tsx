@@ -490,6 +490,27 @@ describe('useClothingTransferEComPack', () => {
     expect(editImageMock).toHaveBeenCalledTimes(5);
   });
 
+  it('declares the face-swap workflow only for the brand-model lane', async () => {
+    const { result } = setupHook();
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit'));
+      result.current.handleCustomStagingUpload([mockImage('staging-1'), mockImage('staging-2')]);
+      result.current.selectBrandModel('mai');
+      result.current.handleCustomDestinationsUpload([mockImage('dest-1'), mockImage('dest-2')]);
+    });
+
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    const workflows = editImageMock.mock.calls.map((call) => (call[0] as { workflow?: string }).workflow);
+    // The brand-model card transplants a face; the staging lanes never do.
+    expect(workflows).toContain('identity-transfer');
+    expect(workflows.filter((w) => w === 'identity-transfer')).toHaveLength(1);
+    expect(workflows.filter((w) => w === 'standard')).toHaveLength(workflows.length - 1);
+  });
+
   it('plans one product target per selected top/bottom scope', async () => {
     const { result } = setupHook();
 

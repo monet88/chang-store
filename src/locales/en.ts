@@ -437,8 +437,6 @@ export const en = {
     autoDetectSuccess: 'Categorized {{count}} item(s)',
     uploadMultipleItems: 'Upload Multiple Items',
     uploadMultipleItemsTooltip: 'Select multiple garment/accessory photos at once (up to 4)',
-    scanBlueprintButton: 'AI Scan Garment Blueprint',
-    scanBlueprintTooltip: 'Deconstruct uploaded garments into a technical blueprint with your notes',
     batchUploadTruncated: 'Maximum 4 garments reached. {{count}} extra image(s) were skipped.',
     clothingUploadHint: 'Choose the type below each source image. Example: upload a shirt as Clothing, pants as Clothing, and shoes as Shoes.',
     outfitNoteLabel: 'Outfit Notes (Optional)',

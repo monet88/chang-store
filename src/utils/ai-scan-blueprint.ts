@@ -49,9 +49,11 @@ export const aiScanSourceSet = (
 
 /**
  * The note line carried by ONE source item: `Item #1 (top): pants not skirt`.
- * Shared by the pre-scan guidance in `useVirtualTryOn`, the per-subject scan in
- * `useVirtualTryOnEngine` and the Virtual Try-On prompt builders so the format
- * cannot drift between them. Returns null when the item carries no note.
+ * The scan-side consumers (the pre-scan guidance in `useVirtualTryOn` and the
+ * per-subject scan in `useVirtualTryOnEngine`) share this one format, and the
+ * Gemini prompt builder renders the same line in its user-notes section. GPT and
+ * Qwen keep their own role-map wording by design (ADR-0002). Returns null when
+ * the item carries no note.
  */
 export const sourceItemNoteLine = (
   item: Readonly<{ sourcePrompt?: string | null; sourceItemType: string }>,

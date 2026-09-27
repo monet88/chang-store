@@ -8,7 +8,6 @@ import { appendNegativePrompt, negativePromptSentence } from '../../utils/negati
 import { DEFAULT_MAX_CONCURRENCY, type LocalQwenWorkflow } from '../../utils/engineDispatch';
 
 const PROXY_IMAGE_TIMEOUT_MS = 30_000;
-const MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS = DEFAULT_MAX_CONCURRENCY;
 
 let activeGeminiImageRequests = 0;
 const geminiImageRequestQueue: Array<() => void> = [];
@@ -120,7 +119,7 @@ const splitIntoBatches = (count: number, batchSize: number): number[] => {
 };
 
 const acquireGeminiImageRequestSlot = async (): Promise<void> => {
-  if (activeGeminiImageRequests < MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS) {
+  if (activeGeminiImageRequests < DEFAULT_MAX_CONCURRENCY) {
     activeGeminiImageRequests += 1;
     return;
   }
@@ -208,7 +207,7 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
     };
 
     const results: ImageFile[] = [];
-    for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+    for (const batchSize of splitIntoBatches(numberOfImages, DEFAULT_MAX_CONCURRENCY)) {
       const batchResults: ImageFile[] = new Array(batchSize);
       const batchSlots = Array.from({ length: batchSize }, (_, index) => index);
       await runBoundedWorkers(
@@ -240,7 +239,7 @@ export const generateImageFromText = async (
 
     if (!isProxyEnabled()) {
       const results: GeneratedImageFile[] = [];
-      for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+      for (const batchSize of splitIntoBatches(numberOfImages, DEFAULT_MAX_CONCURRENCY)) {
         const batchResults: GeneratedImageFile[] = new Array(batchSize);
         await runBoundedWorkers(
           Array.from({ length: batchSize }, (_, index) => index),
@@ -263,7 +262,7 @@ export const generateImageFromText = async (
     }
 
     const proxyResults: GeneratedImageFile[] = [];
-    for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+    for (const batchSize of splitIntoBatches(numberOfImages, DEFAULT_MAX_CONCURRENCY)) {
       const batchResults: GeneratedImageFile[] = new Array(batchSize);
       await runBoundedWorkers(
         Array.from({ length: batchSize }, (_, index) => index),

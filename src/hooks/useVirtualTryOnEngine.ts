@@ -113,6 +113,7 @@ export const useVirtualTryOnEngine = (
           backgroundPrompt,
           isMultiPersonMode: isMultiPersonMode && subjects.markerPosition !== null,
           outfitBlueprint: blueprint ?? undefined,
+          userGuidance: userGuidance.trim() || undefined,
         };
         const interleavedParts = dispatchByEngine(engineId, {
           localQwen: () => buildQwenVirtualTryOnParts(promptInput),

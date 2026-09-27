@@ -206,6 +206,12 @@ export const compressImage = (file: File, quality: number = 0.8): Promise<ImageF
 /**
  * Validates, compresses, and safely falls back to base64 encoding for an image File.
  * Returns null if file fails validation.
+ *
+ * Tests: never feed it a real `File` under jsdom. jsdom's `Blob.slice()` has no
+ * `arrayBuffer`, so `validateImageFile` swallows the TypeError and reports
+ * `error.upload.invalidSignature` for a perfectly valid PNG, and canvas
+ * compression never runs either. Mock the module at the caller, and unit-test
+ * the pure `imageFilesOnly` filter below instead.
  */
 export const processUploadImageFile = async (file: File): Promise<ImageFile | null> => {
   const validation = await validateImageFile(file);

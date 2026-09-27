@@ -319,6 +319,10 @@ export const useClothingTransferEComPackRun = (
             aspectRatio,
             resolution,
             interleavedParts: parts,
+            // Declare the routing instead of letting the main process sniff the
+            // prompt: brand models transplant a face (BFS LoRA), the staging
+            // lanes never do.
+            workflow: target.kind === 'brand-model' ? 'identity-transfer' : 'standard',
           },
           imageEditModel,
           { onStatusUpdate: () => {} },

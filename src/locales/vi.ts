@@ -438,8 +438,6 @@ export const vi: Translation = {
     autoDetectSuccess: 'Đã nhận diện {{count}} món đồ',
     uploadMultipleItems: 'Tải lên nhiều ảnh',
     uploadMultipleItemsTooltip: 'Chọn nhiều ảnh trang phục/phụ kiện cùng lúc (tối đa 4 ảnh)',
-    scanBlueprintButton: 'Quét AI bản vẽ trang phục',
-    scanBlueprintTooltip: 'Phân tích kỹ thuật các trang phục đã tải lên kèm ghi chú của bạn',
     batchUploadTruncated: 'Đã đạt giới hạn tối đa 4 trang phục. Bỏ qua {{count}} ảnh vượt quá.',
     clothingUploadHint: 'Chọn loại bên dưới từng ảnh nguồn. Ví dụ: tải áo là Quần áo, quần là Quần áo, giày là Giày dép.',
     outfitNoteLabel: 'Ghi chú về trang phục (Tùy chọn)',

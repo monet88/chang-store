@@ -881,24 +881,6 @@ describe('VirtualTryOn component', () => {
     expect(screen.queryByLabelText('virtualTryOn.numberOfImages')).not.toBeInTheDocument();
   });
 
-  it('renders VTO manual scan blueprint button when valid items exist and triggers scan', () => {
-    useVirtualTryOnMock.mockReturnValue({
-      ...baseHookState,
-      clothingItems: [{ id: 1, image: { base64: 'shirt', mimeType: 'image/png' }, sourceItemType: 'clothing', sourcePrompt: 'silk shirt' }],
-      validClothingItems: [{ id: 1, image: { base64: 'shirt', mimeType: 'image/png' }, sourceItemType: 'clothing', sourcePrompt: 'silk shirt' }],
-    });
-
-    render(
-      <AiScanProvider initialEnabled={true}>
-        <VirtualTryOn />
-      </AiScanProvider>,
-    );
-
-    const scanBtn = screen.getByTestId('vto-scan-blueprint-btn');
-    expect(scanBtn).toBeInTheDocument();
-    expect(scanBtn).toHaveTextContent('virtualTryOn.scanBlueprintButton');
-  });
-
   it('sets error warning when batch clothing upload truncates extra items', async () => {
     const setErrorMock = vi.fn();
     const handleMultipleClothingUploadMock = vi.fn().mockReturnValue({ uploadedCount: 2, droppedCount: 2 });

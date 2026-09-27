@@ -18,7 +18,7 @@ describe('engineDispatch', () => {
       expect(resolveEngineConcurrency('localQwen', 20)).toBe(1);
     });
 
-    it('scales concurrency to requested count when within maxCap for cloud engines', () => {
+    it('scales concurrency to requested count when within the cap for cloud engines', () => {
       expect(resolveEngineConcurrency('gemini', 1)).toBe(1);
       expect(resolveEngineConcurrency('gemini', 4)).toBe(4);
       expect(resolveEngineConcurrency('gemini', 7)).toBe(7);
@@ -32,11 +32,6 @@ describe('engineDispatch', () => {
       expect(resolveEngineConcurrency('gemini', 11)).toBe(10);
       expect(resolveEngineConcurrency('gemini', 25)).toBe(10);
       expect(resolveEngineConcurrency('gptImage', 100)).toBe(10);
-    });
-
-    it('respects a custom maxCap when specified', () => {
-      expect(resolveEngineConcurrency('gemini', 8, 5)).toBe(5);
-      expect(resolveEngineConcurrency('gemini', 3, 5)).toBe(3);
     });
 
     it('handles undefined engineId by treating it as cloud default', () => {

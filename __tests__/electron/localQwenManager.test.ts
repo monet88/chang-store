@@ -965,7 +965,6 @@ describe('LocalQwenManager', () => {
         const sentWorkflow = getSentWorkflow();
         expect(sentWorkflow?.['1']).toBeDefined();
         expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-UC-Q4_K_M.gguf');
-        expect(result.activeUnetName).toBe('qwen-image-2.1-UC-Q4_K_M.gguf');
       } finally {
         existsSpy.mockRestore();
       }
@@ -992,7 +991,6 @@ describe('LocalQwenManager', () => {
         const sentWorkflow = getSentWorkflow();
         expect(sentWorkflow?.['1']).toBeDefined();
         expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-Q4_K_M.gguf');
-        expect(result.activeUnetName).toBe('qwen-image-2.1-Q4_K_M.gguf');
       } finally {
         existsSpy.mockRestore();
       }

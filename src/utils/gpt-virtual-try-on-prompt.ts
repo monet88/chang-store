@@ -53,12 +53,14 @@ export const buildGptVirtualTryOnParts = (input: VirtualTryOnPromptInput): Part[
   const hasClothing = sourceItems.some((item) => item.sourceItemType === 'clothing');
   const hasNonClothing = sourceItems.some((item) => item.sourceItemType !== 'clothing');
   const tuckingAllowed = isTuckingAllowed(input.extraPrompt);
+  const outfitNote = input.userGuidance?.replace(/\s+/g, ' ').trim();
   const config: Record<string, unknown> = {
     TASK: 'Apply all provided fashion source items to the subject while preserving face, facial features, expression, hair, skin tone, exact age, body proportions, pose, and unrelated scene content.',
     IMAGE_ROLES: buildRoleMap(input).split('\n'),
     APPLICATION_RULES: [
       ...(!tuckingAllowed ? [UNTUCKED_OVERRIDE_HEADLINE, UNTUCKED_DRAPE_INSTRUCTION] : []),
-      ...(hasClothing ? [`For each clothing source item, replace every visible matching clothing category from that source image, including complete upper/lower looks. Do not preserve the subject's original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment. Zero original elements in replaced clothing areas may remain.${!tuckingAllowed ? ' Tops hang freely outside the waistband with natural hem drape; never tucked in.' : ''}`] : []),
+      ...(hasClothing ? ['For each clothing source item, replace every visible matching clothing category from that source image, including complete upper/lower looks. Do not preserve the subject\'s original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment. Zero original elements in replaced clothing areas may remain.'] : []),
+      ...(outfitNote ? [`Operator outfit directive, which outranks any ambiguous reading of the garments: ${outfitNote}`] : []),
       ...(hasNonClothing ? ['For shoes, bag, or accessory source items, add or replace only that category and preserve clothing areas not targeted by a clothing source item.'] : []),
       'Replicate silhouette, construction, collar, sleeves, hems, straps, hardware, sole, texture, material, color, supported graphics/text, pattern scale, folds, contact points, lighting, and occlusion faithfully.',
     ],

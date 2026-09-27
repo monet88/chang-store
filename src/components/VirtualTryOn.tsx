@@ -11,7 +11,6 @@ import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import AiScanPanel from './AiScanPanel';
-import { useAiScan } from '../contexts/AiScanContext';
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
 import {
   processUploadImageFile,
@@ -66,7 +65,7 @@ const VirtualTryOn: React.FC = () => {
     handleRefine,
     handleSubjectImagesUpload,
     handleClothingUpload,
-    handleMultipleClothingUpload = () => {},
+    handleMultipleClothingUpload = () => ({ droppedCount: 0 }),
     handleSourceItemTypeChange,
     handleSourcePromptChange,
     addClothingUploader,
@@ -87,13 +86,11 @@ const VirtualTryOn: React.FC = () => {
     markerPosition,
     setMarkerPosition,
     clearMarker,
-    validClothingItems = [],
     aiScanSources = [],
     aiScanGuidance = '',
   } = useVirtualTryOn();
 
   const { t } = useLanguage();
-  const { scan, enabled: isAiScanEnabled } = useAiScan();
   const [refineOpen, setRefineOpen] = React.useState<Record<string, boolean>>({});
   const subjectContainerRef = React.useRef<HTMLDivElement>(null);
   const subjectImgRef = React.useRef<HTMLImageElement>(null);
@@ -414,21 +411,6 @@ const VirtualTryOn: React.FC = () => {
                             <MagicWandIcon className="h-3.5 w-3.5" />
                           )}
                           <span>{t('virtualTryOn.autoDetectAll')}</span>
-                        </button>
-                      )}
-                      {isAiScanEnabled && (validClothingItems.length > 0 || clothingItems.some((item) => item.image !== null)) && (
-                        <button
-                          type="button"
-                          data-testid="vto-scan-blueprint-btn"
-                          onClick={async () => {
-                            await scan(aiScanSources, aiScanGuidance || undefined);
-                          }}
-                          disabled={isLoading}
-                          title={t('virtualTryOn.scanBlueprintTooltip')}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition-all hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <span aria-hidden="true">✨</span>
-                          <span>{t('virtualTryOn.scanBlueprintButton')}</span>
                         </button>
                       )}
                     </div>

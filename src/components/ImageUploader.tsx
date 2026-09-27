@@ -46,23 +46,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
   );
 
 
-  // Memoize processFile - prevents re-creation on every render
-  const processFile = useCallback(async (file: File) => {
-    if (!file) return;
-    const res = await processUploadImageFile(file);
-    if (res) {
-      onImageUpload(res);
-    }
-  }, [onImageUpload]);
-
-  const processMultipleFiles = useCallback(async (files: File[]) => {
-    if (!onMultipleImagesUpload || files.length === 0) return;
-    const processed = await processMultipleImageFiles(files);
-    if (processed.length > 0) {
-      onMultipleImagesUpload(processed);
-    }
-  }, [onMultipleImagesUpload]);
-
   /**
    * One routing rule for every file entry point (picker and drag & drop):
    * a multi-file selection goes to the batch handler, anything else to the
@@ -72,15 +55,16 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
     if (!fileList || fileList.length === 0) return;
 
     if (onMultipleImagesUpload && fileList.length > 1) {
-      await processMultipleFiles(Array.from(fileList));
+      const processed = await processMultipleImageFiles(Array.from(fileList));
+      if (processed.length > 0) onMultipleImagesUpload(processed);
       return;
     }
 
     const file = fileList[0];
-    if (file) {
-      await processFile(file);
-    }
-  }, [onMultipleImagesUpload, processMultipleFiles, processFile]);
+    if (!file) return;
+    const res = await processUploadImageFile(file);
+    if (res) onImageUpload(res);
+  }, [onImageUpload, onMultipleImagesUpload]);
 
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     void handleFiles(event.target.files);

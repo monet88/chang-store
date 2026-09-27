@@ -254,14 +254,14 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                     <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-xs">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 text-emerald-400 font-medium">
-                          <span>✨</span>
+                          <span aria-hidden="true">✨</span>
                           <span>{t('clothingTransfer.ecomPack.blueprintReady')}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => setShowBlueprint(!showBlueprint)}
-                            className="text-zinc-400 hover:text-white transition-colors underline text-[11px]"
+                            className="text-zinc-400 hover:text-white transition-colors underline text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                           >
                             {showBlueprint
                               ? t('clothingTransfer.ecomPack.blueprintHide')
@@ -271,10 +271,10 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                             type="button"
                             onClick={handleScanBlueprint}
                             disabled={isScanningBlueprint}
-                            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors"
+                            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
                             title={t('clothingTransfer.ecomPack.blueprintReanalyze')}
                           >
-                            <span>🔄</span>
+                            <span aria-hidden="true">🔄</span>
                             <span>{t('clothingTransfer.ecomPack.blueprintReanalyze')}</span>
                           </button>
                         </div>

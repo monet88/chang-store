@@ -93,8 +93,16 @@ function buildTaskText(input: VirtualTryOnPromptInput): string {
     .filter((line): line is string => line !== null)
     .map((line) => `- ${line}`);
 
-  const userNotesSection = userNotesSummary.length > 0
-    ? `\n\n## USER SPECIFIC INSTRUCTIONS FOR GARMENTS (STRICT COMPLIANCE REQUIRED)\n${userNotesSummary.join('\n')}\nPay meticulous attention to the user notes above: apply the exact fit, silhouette, and garment type specified.`
+
+  const outfitNote = input.userGuidance?.replace(/\s+/g, ' ').trim();
+  const outfitNoteLine = outfitNote
+    ? `- Outfit note from the user: ${outfitNote}`
+    : '';
+  const allUserNotes = outfitNoteLine
+    ? [...userNotesSummary, outfitNoteLine]
+    : userNotesSummary;
+  const userNotesSection = allUserNotes.length > 0
+    ? `\n\n## USER SPECIFIC INSTRUCTIONS FOR GARMENTS (STRICT COMPLIANCE REQUIRED)\n${allUserNotes.join('\n')}\nPay meticulous attention to the user notes above: apply the exact fit, silhouette, and garment type specified.`
     : '';
 
   const clothingRule = hasClothing

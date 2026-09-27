@@ -284,4 +284,30 @@ describe('AiScanContext', () => {
       expect(analyze).toHaveBeenCalledTimes(1);
     });
   });
-});
+
+    it('a forced rescan analyses again instead of replaying the cached blueprint', async () => {
+      let pass = 0;
+      const analyze = vi.fn().mockImplementation(() => Promise.resolve(`blueprint pass ${++pass}`));
+      const { result } = renderHook(() => useAiScan(), { wrapper: wrapperFor(analyze) });
+
+      let first: string | null = null;
+      let second: string | null = null;
+      let cached: string | null = null;
+      let rescanned: string | null = null;
+
+      await act(async () => {
+        first = await result.current.scan([IMAGE_A]);
+        second = await result.current.scan([IMAGE_A]);
+        rescanned = await result.current.scan([IMAGE_A], undefined, true);
+        cached = await result.current.scan([IMAGE_A]);
+      });
+
+      expect(first).toBe('blueprint pass 1');
+      // Same sources, no guidance change: the cached blueprint is reused.
+      expect(second).toBe('blueprint pass 1');
+      // The panel's Rescan is a real re-analysis and takes over the entry.
+      expect(rescanned).toBe('blueprint pass 2');
+      expect(cached).toBe('blueprint pass 2');
+      expect(analyze).toHaveBeenCalledTimes(2);
+    });
+  });

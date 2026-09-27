@@ -37,9 +37,10 @@ export interface AiScanContextValue {
   /**
    * Deconstruct `images`. Resolves to the blueprint, or to null when the scan
    * is disabled, has no usable source, or fails closed — callers then keep the
-   * base prompt. Repeated calls for the same source set and guidance reuse the one analysis.
+   * base prompt. Repeated calls for the same source set and guidance reuse the one
+   * analysis; `forceRefresh` (the panel's Rescan) drops that entry and analyses again.
    */
-  scan: (images: ImageFile[], userGuidance?: string) => Promise<string | null>;
+  scan: (images: ImageFile[], userGuidance?: string, forceRefresh?: boolean) => Promise<string | null>;
 }
 
 const INACTIVE_AI_SCAN: AiScanContextValue = {
@@ -113,7 +114,7 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
   }, []);
 
   const scan = useCallback(
-    (images: ImageFile[], userGuidance?: string): Promise<string | null> => {
+    (images: ImageFile[], userGuidance?: string, forceRefresh = false): Promise<string | null> => {
       if (!enabled) return Promise.resolve(null);
 
       const sources = aiScanSourceSet(images);
@@ -123,7 +124,7 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
       const cached = scans.current.find(
         (entry) => sameSourceSet(entry.sources, sources) && entry.userGuidance === normalizedGuidance,
       );
-      if (cached) return cached.scan;
+      if (cached && !forceRefresh) return cached.scan;
 
       const run = Promise.all(
         sources.map((image) => analyze(image, AI_SCAN_MODEL, normalizedGuidance)),
@@ -147,7 +148,12 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
           return null;
         });
 
-      scans.current.push({ sources, userGuidance: normalizedGuidance, scan: run });
+      // A forced rescan drops the entry it superseded, so the cache never grows
+      // one row per click.
+      scans.current = [
+        ...scans.current.filter((entry) => entry !== cached),
+        { sources, userGuidance: normalizedGuidance, scan: run },
+      ];
       return run;
     },
     [analyze, enabled],

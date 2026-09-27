@@ -61,6 +61,13 @@ const buildQwenPromptText = (input: VirtualTryOnPromptInput): string => {
   ];
   sections.push(garmentRules.join('\n'));
 
+  // Operator's own note: stated as a hard classification directive so an
+  // ambiguous garment reading never wins over what the user actually said.
+  const outfitNote = input.userGuidance?.replace(/\s+/g, ' ').trim();
+  if (outfitNote) {
+    sections.push(`OPERATOR OUTFIT DIRECTIVE (HIGHEST PRIORITY):\n"${outfitNote}"\nFollow it exactly. When the reference garment is visually ambiguous, this note decides the garment type, silhouette, and construction.`);
+  }
+
   // Blueprint details if present
   if (input.outfitBlueprint) {
     const formattedBlock = formatAiScanBlock(input.outfitBlueprint).trim();

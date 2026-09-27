@@ -476,7 +476,6 @@ describe('processUploadImageFile', () => {
         }, 0);
       }
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     globalThis.FileReader = MockFileReader as any;
 
     try {
@@ -501,7 +500,6 @@ describe('processUploadImageFile', () => {
         }, 0);
       }
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     globalThis.FileReader = MockFileReader as any;
 
     try {

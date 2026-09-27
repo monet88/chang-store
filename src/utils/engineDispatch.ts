@@ -12,16 +12,16 @@ export type LocalQwenWorkflow = 'identity-transfer' | 'standard';
 /**
  * Resolves concurrency for batch generation jobs.
  * Local Qwen is strictly serialized (max 1 concurrency) to prevent GPU VRAM exhaustion.
- * Cloud engines (Gemini, GPT) scale up to the number of jobs, bounded by maxCap (default 10).
+ * Cloud engines (Gemini, GPT) scale up to the number of jobs, bounded by
+ * `DEFAULT_MAX_CONCURRENCY`.
  */
 export const resolveEngineConcurrency = (
   engineId: ImageEngineId | undefined,
   requestedCount: number,
-  maxCap: number = DEFAULT_MAX_CONCURRENCY,
 ): number => {
   if (engineId === 'localQwen') return 1;
   const count = Math.max(1, requestedCount);
-  return Math.min(count, maxCap);
+  return Math.min(count, DEFAULT_MAX_CONCURRENCY);
 };
 
 /**

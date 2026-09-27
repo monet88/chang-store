@@ -198,6 +198,10 @@ export const useClothingTransferEComPack = (
         outfitSourceRef.current = next;
         return next;
       });
+      // The published blueprint was analysed under the previous note, and the
+      // note outranks every visual cue (CONTEXT.md, AI Scan). Editing it makes
+      // that blueprint stale, so it goes until the operator rescans.
+      setOutfitBlueprint(null);
     },
     [],
   );

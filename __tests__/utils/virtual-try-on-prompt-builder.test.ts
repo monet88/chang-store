@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildGeminiVirtualTryOnParts } from '@/utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '@/utils/gpt-virtual-try-on-prompt';
+import { buildQwenVirtualTryOnParts } from '@/utils/qwen-virtual-try-on-prompt';
 import type { VirtualTryOnPromptInput } from '@/utils/virtual-try-on-prompt-types';
 import { AI_SCAN_BLOCK_HEADER } from '@/utils/ai-scan-blueprint';
 import type { Part } from '@google/genai';
@@ -430,6 +431,29 @@ describe('Virtual Try-On prompt policies', () => {
       const text = getTaskText(parts);
 
       expect(text).not.toContain('Do not transfer non-clothing accessories from the clothing source image');
+    });
+  });
+  describe('operator outfit note (userGuidance)', () => {
+    const NOTE = 'wide-leg trousers, not a skirt';
+
+    it('carries the note into the Gemini prompt', () => {
+      const text = getFullText(buildGeminiVirtualTryOnParts({ ...defaultInput, userGuidance: NOTE }));
+      expect(text).toContain(NOTE);
+    });
+
+    it('carries the note into the GPT prompt', () => {
+      const text = getFullText(buildGptVirtualTryOnParts({ ...defaultInput, userGuidance: NOTE }));
+      expect(text).toContain(NOTE);
+    });
+
+    it('carries the note into the Qwen prompt', () => {
+      const text = getFullText(buildQwenVirtualTryOnParts({ ...defaultInput, userGuidance: NOTE }));
+      expect(text).toContain(NOTE);
+    });
+
+    it('adds no note section when the operator left the note empty', () => {
+      const text = getFullText(buildGeminiVirtualTryOnParts({ ...defaultInput, userGuidance: '   ' }));
+      expect(text).not.toContain('Outfit note from the user');
     });
   });
 });

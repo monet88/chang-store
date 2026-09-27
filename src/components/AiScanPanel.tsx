@@ -44,14 +44,17 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
   // report of a later one.
   const runIdRef = useRef(0);
 
-  const runScan = useCallback(() => {
+  const runScan = useCallback((forceRefresh = false) => {
     const runId = ++runIdRef.current;
     setReport({ blueprint: null, isAnalyzing: true, failed: false });
-    void scan(sources, userGuidance).then((blueprint) => {
+    void scan(sources, userGuidance, forceRefresh).then((blueprint) => {
       if (runId !== runIdRef.current) return;
       setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
     });
   }, [scan, sources, userGuidance]);
+
+  /** Manual Rescan: the analyzer runs again instead of replaying the cache. */
+  const rescan = useCallback(() => runScan(true), [runScan]);
 
   // Pre-scan as soon as the sources change. Repeat runs are free: `scan` reuses
   // the analysis already running or finished for the same source set.
@@ -113,7 +116,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={runScan}
+                    onClick={rescan}
                     className="rounded text-[11px] text-zinc-400 underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                   >
                     {t('studio.aiScan.rescan')}
@@ -140,7 +143,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
               <span>{t('studio.aiScan.unavailable')}</span>
               <button
                 type="button"
-                onClick={runScan}
+                onClick={rescan}
                 className="underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
               >
                 {t('studio.aiScan.rescan')}

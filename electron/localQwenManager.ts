@@ -258,13 +258,15 @@ export class LocalQwenManager {
   }
 
   /**
-   * Configured ComfyUI root: an explicit folder (the renderer's saved setting)
-   * wins, then the folder the server was started from, then the known portable
-   * install — so status reports the install the user actually configured
-   * instead of silently probing the default one.
+   * The one ComfyUI root detection and generation both resolve against, so a
+   * badge can never describe an install the job does not run on. A folder the
+   * app started a server from is authoritative (that is the process serving the
+   * models); before any start the renderer's configured folder wins, then the
+   * known portable install.
    */
   private resolveComfyRoot(folder?: string): string {
-    return folder?.trim() || this.comfyUiFolder || KNOWN_PORTABLE_COMFYUI_PATH;
+    if (this.comfyUiFolder) return this.comfyUiFolder;
+    return folder?.trim() || KNOWN_PORTABLE_COMFYUI_PATH;
   }
 
   /** On-disk model detection for one ComfyUI root, cached for 30s per folder. */
@@ -350,8 +352,8 @@ export class LocalQwenManager {
   }
 
   /**
-   * @param folder ComfyUI folder the renderer has configured; model detection
-   * reports against it so a badge never describes a different install.
+   * @param folder ComfyUI folder the renderer has configured; detection resolves
+   * it through `resolveComfyRoot`, the same root generation loads models from.
    */
   public async getStatus(folder?: string): Promise<DesktopLocalQwenStatus> {
     const modelInfo = this.resolveModelInfo(false, folder);
@@ -1083,7 +1085,6 @@ export class LocalQwenManager {
           base64,
           mimeType,
         },
-        activeUnetName: unetName,
       };
     } catch (err) {
       this.state = 'error';

@@ -164,10 +164,16 @@ Chang Store hỗ trợ dynamic LoRA injection và workflow auto-routing trong `l
    - `loraName`: Tên file LoRA tùy chọn đặt trong `models/loras/`.
    - `loraStrength`: Cường độ LoRA (`number`, mặc định `1.0`).
    - `unetName`: Chỉ định mô hình DiT cụ thể (mặc định tự động phân giải qua `resolveActiveUnet()`).
-   - Kết quả (`LocalQwenGenerateResult.activeUnetName`): unet thực sự đã dùng cho job — reporting để caller biết UC hay fallback đã chạy.
+   - Unet của mỗi job được phân giải từ cùng một folder mà status báo; caller đọc nó qua `getStatus()` (`activeModel` / `isUncensored`) thay vì qua kết quả từng lần generate.
+
+
+   **Caller khai báo tường minh (không dựa vào auto-detection):**
+   - `src/hooks/useIdentityTransfer.ts` → `workflow: 'identity-transfer'`.
+   - `src/hooks/useClothingTransferEComPackRun.ts` → `workflow: 'identity-transfer'` cho lane `brand-model` (ghép mặt brand model), `workflow: 'standard'` cho lane product staging / custom destination.
+   - Các lane còn lại (VTO, AI Editor) không khai báo: chúng đi qua auto-detection.
 
 2. **Auto-Detection Heuristic (`isFaceSwapPrompt` — nguồn duy nhất: `src/platform/desktopLocalQwen.ts`):**
-   - Khi không chỉ định `workflow: 'standard'` và không truyền `loraName`, hệ thống tự động quét prompt để phát hiện tác vụ đổi mặt / hoán đổi danh tính:
+   - Khi caller **không** khai báo `workflow` và không truyền `loraName`, hệ thống tự động quét prompt để phát hiện tác vụ đổi mặt / hoán đổi danh tính:
      - **Refusal guard (kiểm tra trước, thắng cả `workflow: 'identity-transfer'`):** prompt chứa cụm từ từ chối đổi mặt (`no face swap`, `do not swap`, `keep the original face`, `không đổi mặt`, `không ghép mặt`, `không chuyển danh tính`, …) → không inject LoRA dù caller khai báo workflow thế nào.
      - Header checks: `QWEN IDENTITY TRANSFER SPECIFICATION`, `QWEN BRAND MODEL SPECIFICATION`, `IDENTITY TRANSFER`, `head_swap`.
      - Từ khóa tiếng Anh: `face swap`, `faceswap`, `swap face`, `head swap`, `replace face`, `facial identity`.
@@ -175,7 +181,7 @@ Chang Store hỗ trợ dynamic LoRA injection và workflow auto-routing trong `l
    - Khi phát hiện khớp, hệ thống tự động gán `effectiveLoraName = 'bfs_head_v1.1_qwen_2.1.safetensors'` (strength `1.0`) và tự động chèn node `LoraLoaderModelOnly`.
 
 3. **Model detection contract (`resolveActiveUnet` / `resolveModelInfo`):**
-   - Thứ tự folder: folder truyền vào `getStatus(folder)` (renderer gửi `comfyUiPath` đã lưu) → folder dùng lúc `startServer` → `KNOWN_PORTABLE_COMFYUI_PATH`. Status không bao giờ dò sai folder so với cấu hình.
+   - Một folder duy nhất cho cả detection và generation: folder mà app đã start server (`startServer(folder)`) là chuẩn vì đó là tiến trình đang phục vụ model; khi chưa start server nào thì mới dùng `comfyUiPath` renderer gửi qua `getStatus(folder)`, sau đó tới `KNOWN_PORTABLE_COMFYUI_PATH`. Nhờ vậy badge UC và fail-fast LoRA không bao giờ mô tả một install mà job không chạy trên đó.
    - `resolveActiveUnet()` trả `string | null`: `null` nghĩa là *không* unet nào có trên disk. `null` không bao giờ biến thành filename trong status — `activeModel` / `isUncensored` giữ `undefined`, nên install không có model sẽ không hiện badge `Uncensored (UC)`.
    - Cùng một lượt dò còn ra `faceSwapLoraAvailable` (BFS) và `turboLoraAvailable` (turbo) từ `models/loras/`; cả hai `undefined` khi chưa unet nào resolve được (folder chưa xác định).
    - Kết quả detection cache theo folder trong 30s; `invalidateModelCache()` chạy khi `startServer` đổi folder.
