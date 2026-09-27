@@ -352,6 +352,3 @@ Keep the output factual, structured, and focused strictly on clothing constructi
   }
 };
 
-/** @deprecated Use scanGarmentBlueprint instead (AI Scan domain term). */
-export const analyzeOutfitBlueprint = scanGarmentBlueprint;
-

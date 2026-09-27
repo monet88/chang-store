@@ -1,6 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import EventEmitter from 'node:events';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import type { ChildProcess } from 'node:child_process';
 import type { Mock } from 'vitest';
 import {
@@ -8,11 +10,51 @@ import {
   isFaceSwapPrompt,
   verifyLoopbackOnly,
   DEFAULT_COMFYUI_PORT,
+  DEFAULT_QWEN_UNET_NAME,
+  FALLBACK_QWEN_UNET_NAME,
+  FACE_SWAP_LORA_NAME,
+  TURBO_LORA_NAME,
   defaultHealthCheckFn,
   parseLocalQwenGenerateParams,
   parseLocalQwenUpscaleParams,
   parseLocalQwenFolder,
 } from '../../electron/localQwenManager';
+
+/**
+ * A real ComfyUI-shaped folder on disk: model detection reads the filesystem,
+ * so tests that care about what is "installed" build their own install instead
+ * of depending on the developer's machine.
+ */
+const createComfyFixture = (options?: { unets?: string[]; loras?: string[] }): string => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'chang-store-comfy-'));
+  const diffusionDir = path.join(root, 'models', 'diffusion_models');
+  const loraDir = path.join(root, 'models', 'loras');
+  fs.mkdirSync(diffusionDir, { recursive: true });
+  fs.mkdirSync(loraDir, { recursive: true });
+  for (const name of options?.unets ?? []) {
+    fs.writeFileSync(path.join(diffusionDir, name), '');
+  }
+  for (const name of options?.loras ?? []) {
+    fs.writeFileSync(path.join(loraDir, name), '');
+  }
+  return root;
+};
+
+const removeComfyFixture = (root: string): void => {
+  fs.rmSync(root, { recursive: true, force: true });
+};
+
+/**
+ * Scope `fs.existsSync` to one fixture. Earlier tests in this file leave
+ * `existsSync` / `statSync` spies behind, so the check runs against the real
+ * function captured at import time — before any test can spy on it.
+ */
+const realExistsSync = fs.existsSync.bind(fs);
+
+const spyExistsSyncFor = (root: string) =>
+  vi.spyOn(fs, 'existsSync').mockImplementation((p) =>
+    typeof p === 'string' && p.startsWith(root) ? realExistsSync(p) : false,
+  );
 
 // Mock electron so importing localQwenManager or gateway does not fail in vitest
 vi.mock('electron', () => ({
@@ -680,7 +722,90 @@ describe('LocalQwenManager', () => {
     });
   });
 
+  describe('model detection against the configured folder', () => {
+    it('reports no model and no badge when the folder has no unet installed', () => {
+      const root = createComfyFixture({ loras: [FACE_SWAP_LORA_NAME] });
+      const existsSpy = spyExistsSyncFor(root);
+
+      try {
+        const manager = new LocalQwenManager();
+
+        expect(manager.resolveActiveUnet(true, root)).toBeNull();
+        expect(manager.resolveModelInfo(true, root)).toEqual({});
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(root);
+      }
+    });
+
+    it('falls back to the standard unet and marks the install as Standard', () => {
+      const root = createComfyFixture({ unets: [FALLBACK_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(root);
+
+      try {
+        const info = new LocalQwenManager().resolveModelInfo(true, root);
+
+        expect(info.activeModel).toBe(FALLBACK_QWEN_UNET_NAME);
+        expect(info.isUncensored).toBe(false);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(root);
+      }
+    });
+
+    it('reports both LoRA assets from the folder the unet came from', () => {
+      const root = createComfyFixture({
+        unets: [DEFAULT_QWEN_UNET_NAME],
+        loras: [FACE_SWAP_LORA_NAME, TURBO_LORA_NAME],
+      });
+      const existsSpy = spyExistsSyncFor(root);
+
+      try {
+        const info = new LocalQwenManager().resolveModelInfo(true, root);
+
+        expect(info.faceSwapLoraAvailable).toBe(true);
+        expect(info.turboLoraAvailable).toBe(true);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(root);
+      }
+    });
+
+    it('resolves getStatus against the folder the renderer configured', async () => {
+      const root = createComfyFixture({
+        unets: [FALLBACK_QWEN_UNET_NAME],
+        loras: [FACE_SWAP_LORA_NAME],
+      });
+      const existsSpy = spyExistsSyncFor(root);
+
+      try {
+        const manager = new LocalQwenManager({ probeFn: vi.fn().mockResolvedValue(true) });
+
+        const status = await manager.getStatus(root);
+
+        expect(status.activeModel).toBe(FALLBACK_QWEN_UNET_NAME);
+        expect(status.isUncensored).toBe(false);
+        expect(status.faceSwapLoraAvailable).toBe(true);
+        expect(status.turboLoraAvailable).toBe(false);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(root);
+      }
+    });
+  });
+
   describe('LoRA injection in generateImage workflow', () => {
+    // Complete install (both unets + face swap LoRA): detection must find it,
+    // so auto-injection tests never depend on the host machine's real install.
+    let installFixture = '';
+    beforeAll(() => {
+      installFixture = createComfyFixture({
+        unets: [DEFAULT_QWEN_UNET_NAME, FALLBACK_QWEN_UNET_NAME],
+        loras: [FACE_SWAP_LORA_NAME],
+      });
+    });
+    afterAll(() => removeComfyFixture(installFixture));
+
     const createMockPromptManager = (options?: {
       resultImage?: string;
     }) => {
@@ -698,6 +823,7 @@ describe('LocalQwenManager', () => {
         fetchFn: mockFetch as unknown as typeof fetch,
         probeFn: async () => true,
       });
+      manager.comfyUiFolder = installFixture;
       vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
         base64: options?.resultImage ?? 'mock-image',
         mimeType: 'image/png',
@@ -856,6 +982,45 @@ describe('LocalQwenManager', () => {
         expect(result.activeUnetName).toBe('qwen-image-2.1-Q4_K_M.gguf');
       } finally {
         existsSpy.mockRestore();
+      }
+    });
+
+    it('fails fast with an actionable error when the auto face swap LoRA is missing on disk', async () => {
+      const { manager } = createMockPromptManager();
+      const bareInstall = createComfyFixture({ unets: [DEFAULT_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(bareInstall);
+
+      try {
+        manager.comfyUiFolder = bareInstall;
+
+        await expect(
+          manager.generateImage({
+            prompt: 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face from <image_1> to <image_2>',
+          }),
+        ).rejects.toThrow(new RegExp(`Face swap LoRA not found.*${FACE_SWAP_LORA_NAME}`));
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(bareInstall);
+      }
+    });
+
+    it('leaves an explicitly requested loraName for ComfyUI to validate', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager();
+      const bareInstall = createComfyFixture({ unets: [DEFAULT_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(bareInstall);
+
+      try {
+        manager.comfyUiFolder = bareInstall;
+
+        await manager.generateImage({
+          prompt: 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face from <image_1> to <image_2>',
+          loraName: FACE_SWAP_LORA_NAME,
+        });
+
+        expect(getSentWorkflow()?.['5'].inputs.lora_name).toBe(FACE_SWAP_LORA_NAME);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(bareInstall);
       }
     });
   });

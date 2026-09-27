@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   isTuckingAllowed,
   UNTUCKED_DRAPE_INSTRUCTION,
+  UNTUCKED_OVERRIDE_HEADLINE,
   UNTUCKED_PROHIBITION_LINE,
 } from '@/utils/outfitDrapePolicy';
 import { buildGeminiVirtualTryOnParts } from '@/utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '@/utils/gpt-virtual-try-on-prompt';
+import { buildQwenVirtualTryOnParts } from '@/utils/qwen-virtual-try-on-prompt';
 import { buildGeminiClothingTransferParts } from '@/utils/gemini-clothing-transfer-prompt';
 import { buildGptClothingTransferParts } from '@/utils/gpt-clothing-transfer-prompt';
 import type { VirtualTryOnPromptInput } from '@/utils/virtual-try-on-prompt-types';
@@ -98,6 +100,29 @@ describe('outfitDrapePolicy', () => {
       expect(text).not.toContain(UNTUCKED_DRAPE_INSTRUCTION);
       expect(text).not.toContain('never tucked in');
       expect(text).toContain('tuck the shirt into pants');
+    });
+
+    it('carries the shared hemline override in every Virtual Try-On policy', () => {
+      const gemini = buildGeminiVirtualTryOnParts(vtoInput('')).map((p) => p.text || '').join('\n');
+      const gpt = buildGptVirtualTryOnParts(vtoInput(''))[0]?.text || '';
+      const qwen = buildQwenVirtualTryOnParts(vtoInput(''))[0]?.text || '';
+
+      expect(gemini).toContain(UNTUCKED_OVERRIDE_HEADLINE);
+      expect(gpt).toContain(UNTUCKED_OVERRIDE_HEADLINE);
+      expect(qwen).toContain(UNTUCKED_OVERRIDE_HEADLINE);
+    });
+
+    it('drops the shared override from every policy when tucking is permitted', () => {
+      const extraPrompt = 'tuck the shirt into pants';
+      const gemini = buildGeminiVirtualTryOnParts(vtoInput(extraPrompt))
+        .map((p) => p.text || '')
+        .join('\n');
+      const gpt = buildGptVirtualTryOnParts(vtoInput(extraPrompt))[0]?.text || '';
+      const qwen = buildQwenVirtualTryOnParts(vtoInput(extraPrompt))[0]?.text || '';
+
+      expect(gemini).not.toContain(UNTUCKED_OVERRIDE_HEADLINE);
+      expect(gpt).not.toContain(UNTUCKED_OVERRIDE_HEADLINE);
+      expect(qwen).not.toContain(UNTUCKED_OVERRIDE_HEADLINE);
     });
   });
 

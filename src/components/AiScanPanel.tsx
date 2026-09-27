@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAiScan } from '../contexts/AiScanContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import type { ImageFile } from '../types';
@@ -39,33 +39,36 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [report, setReport] = useState<PanelReport>(IDLE_REPORT);
 
+  // One run id shared by the effect-driven pre-scan and manual Rescans: only
+  // the newest run may publish, so a slow earlier scan can never overwrite the
+  // report of a later one.
+  const runIdRef = useRef(0);
+
+  const runScan = useCallback(() => {
+    const runId = ++runIdRef.current;
+    setReport({ blueprint: null, isAnalyzing: true, failed: false });
+    void scan(sources, userGuidance).then((blueprint) => {
+      if (runId !== runIdRef.current) return;
+      setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
+    });
+  }, [scan, sources, userGuidance]);
+
   // Pre-scan as soon as the sources change. Repeat runs are free: `scan` reuses
   // the analysis already running or finished for the same source set.
   useEffect(() => {
     if (!enabled || sources.length === 0) {
+      runIdRef.current++;
       setReport(IDLE_REPORT);
       return;
     }
 
-    let isCurrent = true;
-    setReport({ blueprint: null, isAnalyzing: true, failed: false });
-    void scan(sources, userGuidance).then((blueprint) => {
-      if (!isCurrent) return;
-      setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
-    });
+    runScan();
     return () => {
-      isCurrent = false;
+      runIdRef.current++;
     };
-  }, [enabled, sources, userGuidance, scan]);
+  }, [enabled, sources, runScan]);
 
   const { blueprint, isAnalyzing, failed } = report;
-
-  const handleRescan = useCallback(() => {
-    setReport({ blueprint: null, isAnalyzing: true, failed: false });
-    void scan(sources, userGuidance).then((blueprint) => {
-      setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
-    });
-  }, [scan, sources, userGuidance]);
 
   return (
     <div className="space-y-2">
@@ -110,7 +113,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={handleRescan}
+                    onClick={runScan}
                     className="rounded text-[11px] text-zinc-400 underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                   >
                     {t('studio.aiScan.rescan')}
@@ -137,7 +140,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
               <span>{t('studio.aiScan.unavailable')}</span>
               <button
                 type="button"
-                onClick={handleRescan}
+                onClick={runScan}
                 className="underline transition-colors hover:text-white focus-visible:outline-none"
               >
                 {t('studio.aiScan.rescan')}

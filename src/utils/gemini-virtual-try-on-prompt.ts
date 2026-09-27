@@ -5,9 +5,9 @@
 
 import type { Part } from '@google/genai';
 import { imagePart } from './imagePart';
-import { formatGeminiBlueprintBlock, parseOutfitBlueprint } from './ai-scan-blueprint';
+import { formatGeminiBlueprintBlock, parseOutfitBlueprint, sourceItemNoteLine } from './ai-scan-blueprint';
 import type { VirtualTryOnPromptInput, VirtualTryOnPromptSourceItem } from './virtual-try-on-prompt-types';
-import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION, UNTUCKED_PROHIBITION_LINE } from './outfitDrapePolicy';
+import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION, UNTUCKED_OVERRIDE_HEADLINE, UNTUCKED_PROHIBITION_LINE } from './outfitDrapePolicy';
 import { CAMERA_FRAMING_INSTRUCTION, CAMERA_FRAMING_PROHIBITION_LINES } from './cameraFramingPolicy';
 
 const MAX_SOURCE_ITEMS = 4;
@@ -85,15 +85,13 @@ function buildTaskText(input: VirtualTryOnPromptInput): string {
   const tuckingAllowed = isTuckingAllowed(extraPrompt);
 
   const untuckedTaskHeadline = !tuckingAllowed
-    ? '\n\nCRITICAL OVERRIDE — HEMLINE & WAISTBAND (NEVER TUCK IN): All tops, blouses, and shirts MUST hang completely untucked outside the waistband. Even if the subject in the photo is standing straight, wears high-waisted pants/skirt, or originally had their shirt tucked in, you MUST drape the new top completely outside and over the waistband of the lower garment. The waistband and beltline must be covered or partially overlapped by the top\'s hemline; under no circumstances should the top be stuffed or tucked into the pants/skirt.'
+    ? `\n\n${UNTUCKED_OVERRIDE_HEADLINE}`
     : '';
 
   const userNotesSummary = sourceItems
-    .map((item, index) => {
-      const note = normalizeSourcePrompt(item.sourcePrompt);
-      return note ? `- Item #${index + 1} (${item.sourceItemType}): "${note}"` : null;
-    })
-    .filter(Boolean);
+    .map((item, index) => sourceItemNoteLine(item, index))
+    .filter((line): line is string => line !== null)
+    .map((line) => `- ${line}`);
 
   const userNotesSection = userNotesSummary.length > 0
     ? `\n\n## USER SPECIFIC INSTRUCTIONS FOR GARMENTS (STRICT COMPLIANCE REQUIRED)\n${userNotesSummary.join('\n')}\nPay meticulous attention to the user notes above: apply the exact fit, silhouette, and garment type specified.`

@@ -11,6 +11,7 @@ import {
 import {
   DESKTOP_LOCAL_QWEN_CHANNELS,
   getDesktopLocalQwenApi,
+  resolveUncensoredState,
   type DesktopLocalQwenApi,
   type DesktopLocalQwenStatus,
   type DesktopLocalQwenStopResult,
@@ -248,6 +249,56 @@ describe('desktopLocalQwen and settings', () => {
         expect(channel).toMatch(/^desktop-local-qwen:/);
         expect(channel).not.toMatch(/shell|exec|spawn|proxy|cmd|eval/i);
       });
+    });
+  });
+
+  describe('resolveUncensoredState', () => {
+    it('stays unknown before any status has been reported', () => {
+      expect(resolveUncensoredState(undefined)).toBeUndefined();
+      expect(resolveUncensoredState(null)).toBeUndefined();
+    });
+
+    it('stays unknown while detection has not resolved a unet', () => {
+      const stopped: DesktopLocalQwenStatus = { state: 'stopped', isAppOwned: false, port: 8188 };
+      const readyWithoutModel: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: true,
+        port: 8188,
+        activeModel: '',
+      };
+
+      expect(resolveUncensoredState(stopped)).toBeUndefined();
+      expect(resolveUncensoredState(readyWithoutModel)).toBeUndefined();
+    });
+
+    it('trusts the manager flag over re-deriving the name', () => {
+      const flaggedStandard: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: true,
+        port: 8188,
+        activeModel: 'qwen-image-2.1-UC-Q4_K_M.gguf',
+        isUncensored: false,
+      };
+
+      expect(resolveUncensoredState(flaggedStandard)).toBe(false);
+    });
+
+    it('derives the flag from the resolved unet when the manager left it out', () => {
+      const uncensored: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: true,
+        port: 8188,
+        activeModel: 'qwen-image-2.1-UC-Q4_K_M.gguf',
+      };
+      const standard: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: true,
+        port: 8188,
+        activeModel: 'qwen-image-2.1-Q4_K_M.gguf',
+      };
+
+      expect(resolveUncensoredState(uncensored)).toBe(true);
+      expect(resolveUncensoredState(standard)).toBe(false);
     });
   });
 });

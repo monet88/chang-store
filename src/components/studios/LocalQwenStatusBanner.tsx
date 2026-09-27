@@ -2,7 +2,7 @@ import React from 'react';
 import {
   type DesktopLocalQwenStatus,
   classifyLocalQwenError,
-  isUncensoredModel,
+  resolveUncensoredState,
 } from '../../platform/desktopLocalQwen';
 import { useLocalQwenStatus } from '../../hooks/useLocalQwenStatus';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -123,9 +123,7 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
       case 'ready': {
         // Unknown until the manager reports a resolved unet: hide the badge
         // rather than claim UC (or Standard) before detection has run.
-        const uncensoredState =
-          status.isUncensored ??
-          (status.activeModel ? isUncensoredModel(status.activeModel) : undefined);
+        const uncensoredState = resolveUncensoredState(status);
         return (
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">

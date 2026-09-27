@@ -40,6 +40,10 @@ declare global {
 export const DEFAULT_COMFYUI_PORT = 8188;
 export const DEFAULT_QWEN_UNET_NAME = 'qwen-image-2.1-UC-Q4_K_M.gguf';
 export const FALLBACK_QWEN_UNET_NAME = 'qwen-image-2.1-Q4_K_M.gguf';
+/** Face-swap LoRA auto-injected for identity-transfer / brand-model workflows. */
+export const FACE_SWAP_LORA_NAME = 'bfs_head_v1.1_qwen_2.1.safetensors';
+/** Speed (turbo) LoRA documented for the local pipeline; detected on disk, wired in a later phase. */
+export const TURBO_LORA_NAME = 'Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors';
 
 export const verifyLoopbackOnly = (targetUrl: string): boolean => {
   try {
@@ -59,6 +63,16 @@ const buildComfyUIViewUrl = (
 export interface LocalQwenHealth {
   compatible: boolean;
   error?: string;
+}
+
+/** What on-disk detection knows about one configured ComfyUI root. */
+export interface LocalQwenModelAssets {
+  folder: string;
+  /** `null` when neither the UC nor the fallback unet exists under `folder`. */
+  unet: string | null;
+  faceSwapLora: boolean;
+  turboLora: boolean;
+  resolvedAt: number;
 }
 
 export type HealthCheckFn = (baseUrl: string) => Promise<LocalQwenHealth>;
@@ -250,7 +264,7 @@ export class LocalQwenManager {
   private fetchFn: typeof fetch;
   private readinessTimeoutMs: number;
   private readinessPollIntervalMs: number;
-  private cachedActiveUnet?: { folder?: string; model: string; resolvedAt: number };
+  private cachedModelAssets?: LocalQwenModelAssets;
 
   constructor(options: LocalQwenManagerOptions = {}) {
     this.port = options.port ?? DEFAULT_COMFYUI_PORT;
@@ -286,43 +300,107 @@ export class LocalQwenManager {
   }
 
   public invalidateModelCache(): void {
-    this.cachedActiveUnet = undefined;
+    this.cachedModelAssets = undefined;
   }
 
-  public resolveActiveUnet(forceRefresh = false): string {
-    const comfyRoot = this.comfyUiFolder || KNOWN_PORTABLE_COMFYUI_PATH;
+  /**
+   * Configured ComfyUI root: an explicit folder (the renderer's saved setting)
+   * wins, then the folder the server was started from, then the known portable
+   * install — so status reports the install the user actually configured
+   * instead of silently probing the default one.
+   */
+  private resolveComfyRoot(folder?: string): string {
+    return folder?.trim() || this.comfyUiFolder || KNOWN_PORTABLE_COMFYUI_PATH;
+  }
+
+  /** On-disk model detection for one ComfyUI root, cached for 30s per folder. */
+  private resolveModelAssets(
+    forceRefresh = false,
+    folder?: string,
+  ): LocalQwenModelAssets {
+    const comfyRoot = this.resolveComfyRoot(folder);
     const now = Date.now();
-    if (
-      !forceRefresh &&
-      this.cachedActiveUnet &&
-      this.cachedActiveUnet.folder === comfyRoot &&
-      now - this.cachedActiveUnet.resolvedAt < 30_000
-    ) {
-      return this.cachedActiveUnet.model;
+    const cached = this.cachedModelAssets;
+    if (!forceRefresh && cached && cached.folder === comfyRoot && now - cached.resolvedAt < 30_000) {
+      return cached;
     }
 
-    const hasUcModel =
-      fs.existsSync(path.join(comfyRoot, 'ComfyUI', 'models', 'diffusion_models', DEFAULT_QWEN_UNET_NAME)) ||
-      fs.existsSync(path.join(comfyRoot, 'models', 'diffusion_models', DEFAULT_QWEN_UNET_NAME));
-    const hasFallbackModel =
-      fs.existsSync(path.join(comfyRoot, 'ComfyUI', 'models', 'diffusion_models', FALLBACK_QWEN_UNET_NAME)) ||
-      fs.existsSync(path.join(comfyRoot, 'models', 'diffusion_models', FALLBACK_QWEN_UNET_NAME));
+    const inModels = (dir: 'diffusion_models' | 'loras', file: string): boolean =>
+      fs.existsSync(path.join(comfyRoot, 'ComfyUI', 'models', dir, file)) ||
+      fs.existsSync(path.join(comfyRoot, 'models', dir, file));
 
-    const model = (!hasUcModel && hasFallbackModel) ? FALLBACK_QWEN_UNET_NAME : DEFAULT_QWEN_UNET_NAME;
-    this.cachedActiveUnet = { folder: comfyRoot, model, resolvedAt: now };
-    return model;
+    const hasUcModel = inModels('diffusion_models', DEFAULT_QWEN_UNET_NAME);
+    const hasFallbackModel = inModels('diffusion_models', FALLBACK_QWEN_UNET_NAME);
+
+    const assets = {
+      folder: comfyRoot,
+      unet: hasUcModel
+        ? DEFAULT_QWEN_UNET_NAME
+        : hasFallbackModel
+          ? FALLBACK_QWEN_UNET_NAME
+          : null,
+      faceSwapLora: inModels('loras', FACE_SWAP_LORA_NAME),
+      turboLora: inModels('loras', TURBO_LORA_NAME),
+      resolvedAt: now,
+    };
+    this.cachedModelAssets = assets;
+    return assets;
   }
 
-  public resolveModelInfo(forceRefresh = false): { activeModel: string; isUncensored: boolean } {
-    const activeModel = this.resolveActiveUnet(forceRefresh);
+  /**
+   * Unet on disk under the configured folder, or `null` when neither build is
+   * installed: a default filename is a fallback for generation, never a
+   * detection result to report back to the UI.
+   */
+  public resolveActiveUnet(forceRefresh = false, folder?: string): string | null {
+    return this.resolveModelAssets(forceRefresh, folder).unet;
+  }
+
+  /**
+   * What detection can honestly claim about the configured install. Everything
+   * stays `undefined` while no unet resolves (unknown folder, nothing
+   * installed), so the UI shows neither a model nor a badge.
+   */
+  public resolveModelInfo(forceRefresh = false, folder?: string): {
+    activeModel?: string;
+    isUncensored?: boolean;
+    faceSwapLoraAvailable?: boolean;
+    turboLoraAvailable?: boolean;
+  } {
+    const assets = this.resolveModelAssets(forceRefresh, folder);
+    if (!assets.unet) {
+      return {};
+    }
     return {
-      activeModel,
-      isUncensored: isUncensoredModel(activeModel),
+      activeModel: assets.unet,
+      isUncensored: isUncensoredModel(assets.unet),
+      faceSwapLoraAvailable: assets.faceSwapLora,
+      turboLoraAvailable: assets.turboLora,
     };
   }
 
-  public async getStatus(): Promise<DesktopLocalQwenStatus> {
-    const modelInfo = this.resolveModelInfo();
+  /**
+   * Fail an auto face-swap job fast when the BFS LoRA is missing: ComfyUI
+   * would otherwise reject the workflow with an opaque "Value not in list"
+   * error after the queue round-trip. An explicitly requested `loraName` and an
+   * unknown install are left to ComfyUI to report.
+   */
+  private assertFaceSwapLoraAvailable(): void {
+    const info = this.resolveModelInfo();
+    if (info.activeModel && info.faceSwapLoraAvailable === false) {
+      throw new Error(
+        `Face swap LoRA not found in the configured ComfyUI install: ${FACE_SWAP_LORA_NAME} (models/loras). ` +
+          'Place the file there, or run the job with workflow "standard".',
+      );
+    }
+  }
+
+  /**
+   * @param folder ComfyUI folder the renderer has configured; model detection
+   * reports against it so a badge never describes a different install.
+   */
+  public async getStatus(folder?: string): Promise<DesktopLocalQwenStatus> {
+    const modelInfo = this.resolveModelInfo(false, folder);
 
     if (this.state === 'generating') {
       return {
@@ -907,18 +985,21 @@ export class LocalQwenManager {
       const cfg = params.cfg ?? 1.0;
       const seed = params.seed ?? Math.floor(Math.random() * 1_000_000_000);
 
-      const defaultFaceSwapLora = 'bfs_head_v1.1_qwen_2.1.safetensors';
       const isIdentityTransfer =
         params.workflow === 'identity-transfer' ||
         params.workflow === 'face-swap' ||
         (params.workflow !== 'standard' && isFaceSwapPrompt(params.prompt || ''));
 
-      const effectiveLoraName = params.loraName ?? (isIdentityTransfer ? defaultFaceSwapLora : undefined);
+      const effectiveLoraName = params.loraName ?? (isIdentityTransfer ? FACE_SWAP_LORA_NAME : undefined);
       const loraStrength = typeof params.loraStrength === 'number' && Number.isFinite(params.loraStrength)
         ? params.loraStrength
         : 1.0;
 
-      const unetName = params.unetName || this.resolveActiveUnet();
+      if (effectiveLoraName === FACE_SWAP_LORA_NAME && params.loraName === undefined) {
+        this.assertFaceSwapLoraAvailable();
+      }
+
+      const unetName = params.unetName || this.resolveActiveUnet() || DEFAULT_QWEN_UNET_NAME;
 
       const workflow: Record<string, unknown> = {
         '1': {
@@ -1536,8 +1617,8 @@ export const localQwenManager = new LocalQwenManager();
 export const registerDesktopLocalQwenHandlers = (
   manager: LocalQwenManager = localQwenManager,
 ): void => {
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.getStatus, (event) =>
-    trustedBridge(event, () => manager.getStatus()),
+  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.getStatus, (event, folder?: string) =>
+    trustedBridge(event, () => manager.getStatus(folder)),
   );
   ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.startServer, (event, folder) =>
     trustedBridge(event, () => {

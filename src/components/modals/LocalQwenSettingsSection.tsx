@@ -10,7 +10,7 @@ import {
   detectPortableComfyUiPath,
   useLocalQwenSettings,
 } from '../../hooks/useLocalQwenSettings';
-import { getDesktopLocalQwenApi, isUncensoredModel } from '../../platform/desktopLocalQwen';
+import { getDesktopLocalQwenApi, resolveUncensoredState } from '../../platform/desktopLocalQwen';
 import { useLocalQwenStatus } from '../../hooks/useLocalQwenStatus';
 import { SectionCard } from './SettingsDataSection';
 import { fieldLabelClassName, inputClassName } from './GatewayProfileRow';
@@ -22,10 +22,7 @@ export const LocalQwenSettingsSection: React.FC = () => {
   // Unknown until the manager reports a resolved unet: never claim UC (or
   // Standard) before detection has actually run.
   const activeModelName = status?.activeModel;
-  const uncensoredState = status
-    ? (status.isUncensored ??
-      (status.activeModel ? isUncensoredModel(status.activeModel) : undefined))
-    : undefined;
+  const uncensoredState = resolveUncensoredState(status);
 
   const [isDetectedPathExisting, setIsDetectedPathExisting] = React.useState(false);
 
@@ -125,6 +122,27 @@ export const LocalQwenSettingsSection: React.FC = () => {
             </span>
             <span className="text-[11px] text-zinc-400">{t('settingsModal.localQwen.modelVramHint')}</span>
           </div>
+          {/* Documented LoRA assets, verified against the same folder the unet came from. */}
+          {activeModelName && (
+            <div
+              className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]"
+              data-testid="local-qwen-lora-assets"
+            >
+              <span className="font-medium text-zinc-500">{t('settingsModal.localQwen.assetsLabel')}</span>
+              <span className={status?.faceSwapLoraAvailable ? 'text-emerald-400' : 'text-amber-400'}>
+                {t('settingsModal.localQwen.faceSwapLora')}:{' '}
+                {status?.faceSwapLoraAvailable
+                  ? t('settingsModal.localQwen.assetDetected')
+                  : t('settingsModal.localQwen.assetMissing')}
+              </span>
+              <span className={status?.turboLoraAvailable ? 'text-emerald-400' : 'text-amber-400'}>
+                {t('settingsModal.localQwen.turboLora')}:{' '}
+                {status?.turboLoraAvailable
+                  ? t('settingsModal.localQwen.assetDetected')
+                  : t('settingsModal.localQwen.assetMissing')}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Resolution */}

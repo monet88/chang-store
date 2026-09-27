@@ -46,6 +46,8 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
 
 > **RTX 2060 SUPER 8GB:** `qwen3vl_8b_w4a8.safetensors` đang là encoder active. File đã verify SHA256 `7754425e55e7bea2bfde4dde59a4cc236cb44e5ee9c215ea66ef8d47012824eb` và chạy VTO thành công. Giữ bản INT8 để rollback.
 
+> **Runtime verification (2026-09-27):** `localQwenManager` dò `models/diffusion_models/` và `models/loras/` của folder ComfyUI đang cấu hình (`resolveModelAssets()`, cache 30s/folder). Settings → Local Qwen hiển thị kết quả ở dòng **LoRA assets** (`faceSwapLoraAvailable`, `turboLoraAvailable`) nên "đã tải & tài liệu hóa" kiểm tra được thay vì mặc định đúng. Không có unet nào trên disk → không báo model và không hiện badge `Uncensored (UC)`.
+
 ---
 
 ## 4. Đo đạc hiệu năng thực tế (Measured on RTX 2060 SUPER 8GB)
@@ -170,6 +172,17 @@ Chang Store hỗ trợ dynamic LoRA injection và workflow auto-routing trong `l
      - Từ khóa tiếng Anh: `face swap`, `faceswap`, `swap face`, `head swap`, `replace face`, `facial identity`.
      - Từ khóa tiếng Việt: `đổi mặt`, `hoán đổi mặt`, `ghép mặt`, `thay mặt`, `đổi khuôn mặt`, `thay khuôn mặt`, `chuyển mặt`, `chuyển danh tính`.
    - Khi phát hiện khớp, hệ thống tự động gán `effectiveLoraName = 'bfs_head_v1.1_qwen_2.1.safetensors'` (strength `1.0`) và tự động chèn node `LoraLoaderModelOnly`.
+
+3. **Model detection contract (`resolveActiveUnet` / `resolveModelInfo`):**
+   - Thứ tự folder: folder truyền vào `getStatus(folder)` (renderer gửi `comfyUiPath` đã lưu) → folder dùng lúc `startServer` → `KNOWN_PORTABLE_COMFYUI_PATH`. Status không bao giờ dò sai folder so với cấu hình.
+   - `resolveActiveUnet()` trả `string | null`: `null` nghĩa là *không* unet nào có trên disk. `null` không bao giờ biến thành filename trong status — `activeModel` / `isUncensored` giữ `undefined`, nên install không có model sẽ không hiện badge `Uncensored (UC)`.
+   - Cùng một lượt dò còn ra `faceSwapLoraAvailable` (BFS) và `turboLoraAvailable` (turbo) từ `models/loras/`; cả hai `undefined` khi chưa unet nào resolve được (folder chưa xác định).
+   - Kết quả detection cache theo folder trong 30s; `invalidateModelCache()` chạy khi `startServer` đổi folder.
+
+4. **Fail-fast khi thiếu face swap LoRA:**
+   - LoRA BFS được tự chọn (`effectiveLoraName === 'bfs_head_v1.1_qwen_2.1.safetensors'` và caller không truyền `loraName`) mà `faceSwapLoraAvailable === false` → ném lỗi trước khi xếp workflow: `Face swap LoRA not found in the configured ComfyUI install: … (models/loras)`. ComfyUI không kịp trả `Value not in list: lora_name`.
+   - `loraName` truyền tường minh được pass qua nguyên vẹn (caller tự chịu trách nhiệm), và folder chưa xác định (không có unet) để ComfyUI tự báo.
+   - Identity Transfer chỉ hiện badge `BFS FaceSwap LoRA v1.1` khi `faceSwapLoraAvailable === true`, và hiện cảnh báo "not detected" khi `false`.
 
 ---
 
@@ -360,7 +373,15 @@ curl -s http://127.0.0.1:8188/system_stats
 # 3. Kiểm tra custom node và model bắt buộc
 curl -s http://127.0.0.1:8188/object_info/UnetLoaderGGUF
 curl -s http://127.0.0.1:8188/object_info/TextEncodeQwenImage21
+
+# 4. Kiểm tra node inject LoRA (bắt buộc cho identity transfer)
+curl -s http://127.0.0.1:8188/object_info/LoraLoaderModelOnly
+
+# 5. Kiểm tra model assets mà app cũng dò (BFS face swap + Speed/Turbo LoRA)
+dir D:\ComfyUI_windows_portable\ComfyUI\models\loras
 ```
+
+Kết quả `dir` phải liệt kê `bfs_head_v1.1_qwen_2.1.safetensors` (identity transfer) và `Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors` (phase turbo). Cùng kết quả hiển thị ở **Settings → Local Qwen → LoRA assets**.
 
 ### Verify DynamicVRAM
 

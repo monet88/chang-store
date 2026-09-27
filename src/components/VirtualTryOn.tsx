@@ -436,7 +436,6 @@ const VirtualTryOn: React.FC = () => {
                             id={`clothing-${item.id}`}
                             title={t('virtualTryOn.clothingItemTitle', { index: index + 1 })}
                             onImageUpload={(file) => handleClothingUpload(file, item.id)}
-                            allowMultiple
                             onMultipleImagesUpload={(files) => {
                               const res = handleMultipleClothingUpload(files, item.id);
                               if (res && res.droppedCount > 0) {

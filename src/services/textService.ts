@@ -290,6 +290,3 @@ export const scanGarmentBlueprint = async (
   }
 };
 
-/** @deprecated Use scanGarmentBlueprint instead (AI Scan domain term). */
-export const analyzeOutfitBlueprint = scanGarmentBlueprint;
-

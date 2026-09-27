@@ -23,6 +23,19 @@ export type LocalQwenWorkflow = 'identity-transfer' | 'face-swap' | 'standard';
 export const isUncensoredModel = (modelName: string | undefined | null): boolean =>
   Boolean(modelName?.includes('UC'));
 
+/**
+ * Whether the studio may show an Uncensored (UC) / Standard badge.
+ * Returns `undefined` while detection has not resolved a unet on disk, so no
+ * badge is rendered before the manager has actually reported a model.
+ */
+export const resolveUncensoredState = (
+  status?: Pick<DesktopLocalQwenStatus, 'isUncensored' | 'activeModel'> | null,
+): boolean | undefined => {
+  if (!status) return undefined;
+  if (typeof status.isUncensored === 'boolean') return status.isUncensored;
+  return status.activeModel ? isUncensoredModel(status.activeModel) : undefined;
+};
+
 export interface LocalQwenProgress {
   step: number;
   maxSteps: number;
@@ -34,8 +47,15 @@ export interface DesktopLocalQwenStatus {
   port: number;
   error?: string;
   progress?: LocalQwenProgress;
+  /** Unet actually resolved on disk under the configured folder; absent while detection found none. */
   activeModel?: string;
   isUncensored?: boolean;
+  /**
+   * Model assets next to that unet. `undefined` while no unet resolved, so a
+   * missing folder can never be mistaken for a missing model.
+   */
+  faceSwapLoraAvailable?: boolean;
+  turboLoraAvailable?: boolean;
 }
 export interface DesktopLocalQwenStopResult {
   stopped: boolean;
@@ -81,7 +101,8 @@ export interface LocalQwenUpscaleResult {
 }
 
 export interface DesktopLocalQwenApi {
-  getStatus(): Promise<DesktopBridgeResult<DesktopLocalQwenStatus>>;
+  /** `folder` is the configured ComfyUI root the status should be resolved against. */
+  getStatus(folder?: string): Promise<DesktopBridgeResult<DesktopLocalQwenStatus>>;
   startServer(folder?: string): Promise<DesktopBridgeResult<DesktopLocalQwenStatus>>;
   stopServer(): Promise<DesktopBridgeResult<DesktopLocalQwenStopResult>>;
   generateImage(params: LocalQwenGenerateParams): Promise<DesktopBridgeResult<LocalQwenGenerateResult>>;

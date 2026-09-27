@@ -11,12 +11,12 @@ import ImageSelectionModal from './modals/ImageSelectionModal';
 interface ImageUploaderProps {
   image: ImageFile | null;
   onImageUpload: (file: ImageFile | null) => void;
+  /** Enables multi-select and batch upload; the single prop drives both the input and the routing. */
   onMultipleImagesUpload?: (files: ImageFile[]) => void;
   title: string;
   /** Keep the title accessible without rendering a duplicate visible heading */
   hideTitle?: boolean;
   id: string;
-  allowMultiple?: boolean;
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
@@ -26,7 +26,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
   title,
   hideTitle = false,
   id,
-  allowMultiple = false,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isGallerySelectionOpen, setIsGallerySelectionOpen] = useState(false);
@@ -68,20 +67,28 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
     }
   }, [onMultipleImagesUpload]);
 
-  const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = event.target.files;
+  /**
+   * One routing rule for every file entry point (picker and drag & drop):
+   * a multi-file selection goes to the batch handler, anything else to the
+   * single-image handler.
+   */
+  const handleFiles = useCallback(async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
-    if ((allowMultiple || onMultipleImagesUpload) && fileList.length > 1 && onMultipleImagesUpload) {
+    if (onMultipleImagesUpload && fileList.length > 1) {
       await processMultipleFiles(Array.from(fileList));
       return;
     }
 
     const file = fileList[0];
     if (file) {
-      processFile(file);
+      await processFile(file);
     }
-  }, [allowMultiple, onMultipleImagesUpload, processMultipleFiles, processFile]);
+  }, [onMultipleImagesUpload, processMultipleFiles, processFile]);
+
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    void handleFiles(event.target.files);
+  }, [handleFiles]);
 
   const handleClear = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -119,21 +126,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
     const fileList = e.dataTransfer.files;
     if (!fileList || fileList.length === 0) return;
 
-    if ((allowMultiple || onMultipleImagesUpload) && fileList.length > 1 && onMultipleImagesUpload) {
-      await processMultipleFiles(Array.from(fileList));
-      return;
-    }
+    await handleFiles(fileList);
 
-    const file = fileList[0];
-    if (file) {
-      processFile(file);
-      if (inputRef.current) {
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-        inputRef.current.files = dataTransfer.files;
-      }
+    // Mirror a single dropped file into the hidden input so the picker stays in sync.
+    if (fileList.length === 1 && fileList[0] && inputRef.current) {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(fileList[0]);
+      inputRef.current.files = dataTransfer.files;
     }
-  }, [allowMultiple, onMultipleImagesUpload, processMultipleFiles, processFile]);
+  }, [handleFiles]);
 
   return (
     <>
@@ -153,7 +154,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
             ref={inputRef}
             type="file"
             accept="image/*"
-            multiple={Boolean(allowMultiple || onMultipleImagesUpload)}
+            multiple={Boolean(onMultipleImagesUpload)}
             className="hidden"
             onChange={handleFileChange}
           />

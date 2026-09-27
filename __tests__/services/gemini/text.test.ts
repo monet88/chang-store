@@ -8,7 +8,7 @@
  * - generatePoseDescription: Pose analysis for AI recreation
  * - generateStylePromptFromImage: Style prompt generation from reference image
  * - analyzeScene: Scene analysis for video generation
- * - analyzeOutfitBlueprint: Textile blueprint for the AI Scan layer
+ * - scanGarmentBlueprint: Textile blueprint for the AI Scan layer
  *
  * Mock setup:
  * - Mocks getGeminiClient from apiClient
@@ -44,7 +44,7 @@ import {
   generatePoseDescription,
   generateStylePromptFromImage,
   analyzeScene,
-  analyzeOutfitBlueprint,
+  scanGarmentBlueprint,
 } from '@/services/gemini/text';
 
 // ============================================================================
@@ -792,10 +792,10 @@ describe('services/gemini/text.ts', () => {
   });
 
   // ==========================================================================
-  // analyzeOutfitBlueprint (AI Scan, issue #162)
+  // scanGarmentBlueprint (AI Scan, issue #162)
   // ==========================================================================
 
-  describe('analyzeOutfitBlueprint', () => {
+  describe('scanGarmentBlueprint', () => {
     it('should request the textile dimensions the blueprint consumers are told to expect', async () => {
       // Arrange
       mockGenerateContent.mockResolvedValueOnce(
@@ -803,7 +803,7 @@ describe('services/gemini/text.ts', () => {
       );
 
       // Act
-      const result = await analyzeOutfitBlueprint(sampleImage);
+      const result = await scanGarmentBlueprint(sampleImage);
 
       // Assert: the analyzer's own output contract, which the studio prompts
       // relay verbatim into their generation requests.
@@ -824,7 +824,7 @@ describe('services/gemini/text.ts', () => {
       mockGenerateContent.mockResolvedValueOnce(createPromptBlockedResponse());
 
       // Act & Assert
-      await expect(analyzeOutfitBlueprint(sampleImage)).rejects.toThrow(
+      await expect(scanGarmentBlueprint(sampleImage)).rejects.toThrow(
         'error.api.safetyBlock'
       );
     });

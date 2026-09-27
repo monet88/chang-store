@@ -1,7 +1,7 @@
 /**
  * AI Scan blueprint formatting and source selection (issue #162).
  *
- * `analyzeOutfitBlueprint` returns a free-text textile and garment
+ * `scanGarmentBlueprint` returns a free-text textile and garment
  * deconstruction. Every image prompt that consumes it — the E-Com Pack lanes
  * and the AI Scan layer in Virtual Try-On, Lookbook, Identity Transfer, Pose
  * Changer and Background Replacer — splices the same block, so the heading and
@@ -48,20 +48,30 @@ export const aiScanSourceSet = (
 };
 
 /**
- * One line per garment carrying a user note: `Item #1 (top): pants not skirt`.
- * Shared by the pre-scan guidance in `useVirtualTryOn` and the per-subject scan
- * in `useVirtualTryOnEngine` so the two formats cannot drift apart.
- * Items without a note are skipped; returns '' when nothing carries a note.
+ * The note line carried by ONE source item: `Item #1 (top): pants not skirt`.
+ * Shared by the pre-scan guidance in `useVirtualTryOn`, the per-subject scan in
+ * `useVirtualTryOnEngine` and the Virtual Try-On prompt builders so the format
+ * cannot drift between them. Returns null when the item carries no note.
+ */
+export const sourceItemNoteLine = (
+  item: Readonly<{ sourcePrompt?: string | null; sourceItemType: string }>,
+  index: number,
+): string | null => {
+  const note = item.sourcePrompt?.replace(/\s+/g, ' ').trim();
+  return note ? `Item #${index + 1} (${item.sourceItemType}): ${note}` : null;
+};
+
+/**
+ * One line per garment carrying a user note, joined for a single guidance
+ * string. Items without a note are skipped; returns '' when nothing carries a
+ * note.
  */
 export const aiScanGuidanceFromItems = (
   items: ReadonlyArray<{ sourcePrompt?: string | null; sourceItemType: string }>,
 ): string =>
   items
-    .map((item, idx) => {
-      const prompt = item.sourcePrompt?.trim();
-      return prompt ? `Item #${idx + 1} (${item.sourceItemType}): ${prompt}` : '';
-    })
-    .filter(Boolean)
+    .map((item, idx) => sourceItemNoteLine(item, idx))
+    .filter((line): line is string => line !== null)
     .join('; ');
 
 /**

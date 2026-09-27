@@ -8,7 +8,7 @@ import type { Part } from '@google/genai';
 import { imagePart } from './imagePart';
 import { formatAiScanBlock, parseOutfitBlueprint } from './ai-scan-blueprint';
 import type { VirtualTryOnPromptInput, VirtualTryOnPromptSourceItem } from './virtual-try-on-prompt-types';
-import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION } from './outfitDrapePolicy';
+import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION, UNTUCKED_OVERRIDE_HEADLINE } from './outfitDrapePolicy';
 import { CAMERA_FRAMING_INSTRUCTION, CAMERA_FRAMING_PROHIBITION_LINES } from './cameraFramingPolicy';
 
 const MAX_SOURCE_ITEMS = 4;
@@ -49,7 +49,7 @@ const buildQwenPromptText = (input: VirtualTryOnPromptInput): string => {
           "Do not preserve the model's original lower-body clothing if the source image provides a lower-body piece or full outfit.",
           tuckingAllowed
             ? 'Tuck styling allowed as specified by user instructions.'
-            : UNTUCKED_DRAPE_INSTRUCTION,
+            : `${UNTUCKED_OVERRIDE_HEADLINE}\n${UNTUCKED_DRAPE_INSTRUCTION}`,
         ]
       : []),
     ...(hasNonClothing

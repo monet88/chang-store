@@ -23,6 +23,10 @@ _Avoid_: Provider studio, OpenAI wizard.
 The desktop-only studio interface powered by Qwen image generation on the user's workstation. Its initial product scope is Virtual Try-On, Clothing Transfer, Identity Transfer, and AI Editor. Local generation produces a reviewable result first; upscale remains an explicit user action after the user decides the result is worth keeping. The browser product does not expose this studio.
 _Avoid_: NSFW mode, fallback mode, offline Gemini.
 
+**Uncensored (UC) Model**:
+The Local Qwen diffusion model `qwen-image-2.1-UC-Q4_K_M.gguf`, the default unet resolved at runtime by `resolveActiveUnet()` with automatic fallback to the standard `qwen-image-2.1-Q4_K_M.gguf` when the UC file is absent from the configured ComfyUI folder. The studio reports the resolved unet — and only then the `Uncensored (UC)` badge — after detection has actually found a file on disk; an install where neither unet resolves reports no model and no badge instead of claiming UC.
+_Avoid_: NSFW model, unfiltered mode, UC mode.
+
 **Image Driver**:
 The transport layer abstraction responsible for executing image generation or edit requests against a specific image-engine contract (`gemini-native`, `openai-images`, or local ComfyUI).
 _Avoid_: Provider client, API connector.

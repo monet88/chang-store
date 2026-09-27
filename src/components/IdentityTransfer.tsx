@@ -9,6 +9,7 @@ import ResultPlaceholder from './shared/ResultPlaceholder';
 import Spinner from './Spinner';
 import { IdentityTransferPresets } from './IdentityTransferPresets';
 import { useIdentityTransfer } from '../hooks/useIdentityTransfer';
+import { useLocalQwenStatus } from '../hooks/useLocalQwenStatus';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Feature } from '../types';
 
@@ -24,6 +25,10 @@ const IdentityTransfer: React.FC = () => {
   } = useIdentityTransfer();
   const isGptImageStudio = engineId === 'gptImage';
   const isLocalQwen = engineId === 'localQwen';
+  // The badge claims a LoRA that is loaded on the next job, so it may only
+  // render once detection has actually found the file in models/loras.
+  const { status: localQwenStatus } = useLocalQwenStatus({ autoRefresh: isLocalQwen });
+  const localQwenLoRA = isLocalQwen ? localQwenStatus?.faceSwapLoraAvailable : undefined;
 
 
   return (
@@ -36,10 +41,14 @@ const IdentityTransfer: React.FC = () => {
               <h3 className="workspace-title text-xl font-medium text-white">{t('identityTransfer.sharedReferencesTitle')}</h3>
             </div>
             {isLocalQwen ? (
-              <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                {t('identityTransfer.activeLoraBadge')}
-              </div>
+              localQwenLoRA === true ? (
+                <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  {t('identityTransfer.activeLoraBadge')}
+                </div>
+              ) : localQwenLoRA === false ? (
+                <p className="text-xs text-amber-400">{t('identityTransfer.loraMissing')}</p>
+              ) : null
             ) : (
               <p className="text-xs text-zinc-500">{t('identityTransfer.providerNotice')}</p>
             )}

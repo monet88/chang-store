@@ -46,7 +46,7 @@ describe('useClothingTransferEComPack', () => {
         addImage: addImageMock,
         setError: setErrorMock,
         t: (key) => key,
-        analyzeOutfitBlueprintFn: vi.fn().mockResolvedValue(''),
+        scanBlueprintFn: vi.fn().mockResolvedValue(''),
       }),
     );
 
@@ -182,7 +182,7 @@ describe('useClothingTransferEComPack', () => {
         addImage: addImageMock,
         setError: setErrorMock,
         t: (key) => key,
-        analyzeOutfitBlueprintFn: vi.fn().mockResolvedValue(''),
+        scanBlueprintFn: vi.fn().mockResolvedValue(''),
       }),
     );
 
@@ -213,7 +213,7 @@ describe('useClothingTransferEComPack', () => {
         addImage: addImageMock,
         setError: setErrorMock,
         t: (key) => key,
-        analyzeOutfitBlueprintFn: vi.fn().mockResolvedValue('[CORE_GARMENTS]\nSilk blouse'),
+        scanBlueprintFn: vi.fn().mockResolvedValue('[CORE_GARMENTS]\nSilk blouse'),
       }),
     );
 
@@ -340,7 +340,7 @@ describe('useClothingTransferEComPack', () => {
         addImage: addImageMock,
         setError: setErrorMock,
         t: (key) => key,
-        analyzeOutfitBlueprintFn: analyzeMock,
+        scanBlueprintFn: analyzeMock,
       }),
     );
 
@@ -383,7 +383,7 @@ describe('useClothingTransferEComPack', () => {
         addImage: addImageMock,
         setError: setErrorMock,
         t: (key) => key,
-        analyzeOutfitBlueprintFn: analyzeMock,
+        scanBlueprintFn: analyzeMock,
       }),
     );
 
@@ -595,7 +595,7 @@ describe('useClothingTransferEComPack', () => {
         addImage: addImageMock,
         setError: setErrorMock,
         t: (key) => key,
-        analyzeOutfitBlueprintFn: analyzeMock,
+        scanBlueprintFn: analyzeMock,
       }),
     );
 
@@ -664,7 +664,7 @@ describe('useClothingTransferEComPack', () => {
         addImage: addImageMock,
         setError: setErrorMock,
         t: (key) => key,
-        analyzeOutfitBlueprintFn: analyzeMock,
+        scanBlueprintFn: analyzeMock,
       }),
     );
 

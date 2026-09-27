@@ -46,7 +46,7 @@ export interface UseClothingTransferEComPackConfig {
   addImage: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
   setError: (msg: string | null) => void;
   t: (key: string, options?: Record<string, string | number>) => string;
-  analyzeOutfitBlueprintFn?: (image: ImageFile, model?: string, guidance?: string) => Promise<string>;
+  /** Test seam for the AI Scan service; production always uses `scanGarmentBlueprint`. */
   scanBlueprintFn?: (image: ImageFile, model?: string, guidance?: string) => Promise<string>;
 }
 
@@ -57,7 +57,6 @@ export interface OutfitSourceState {
 
 export interface UseClothingTransferEComPackReturn {
   outfitSource: OutfitSourceState;
-  setOutfitSource: (source: OutfitSourceState) => void;
   sourceOutfitImage: ImageFile | null;
   setSourceOutfitImage: (image: ImageFile | null) => void;
   sourceOutfitNote: string;
@@ -127,7 +126,6 @@ export const useClothingTransferEComPack = (
     addImage,
     setError,
     t,
-    analyzeOutfitBlueprintFn,
     scanBlueprintFn,
   } = config;
 
@@ -156,7 +154,7 @@ export const useClothingTransferEComPack = (
     async (image: ImageFile, guidance?: string): Promise<string | null> => {
       setIsScanningBlueprint(true);
       try {
-        const fn = scanBlueprintFn || analyzeOutfitBlueprintFn || scanGarmentBlueprint;
+        const fn = scanBlueprintFn || scanGarmentBlueprint;
         const activeGuidance = (guidance !== undefined ? guidance : outfitSourceRef.current.note)?.trim();
         const blueprint = activeGuidance
           ? await fn(image, textGenerateModel, activeGuidance)
@@ -177,7 +175,7 @@ export const useClothingTransferEComPack = (
         }
       }
     },
-    [scanBlueprintFn, analyzeOutfitBlueprintFn, textGenerateModel],
+    [scanBlueprintFn, textGenerateModel],
   );
 
   const handleSetSourceOutfitImage = useCallback(
@@ -457,7 +455,6 @@ export const useClothingTransferEComPack = (
 
   return {
     outfitSource,
-    setOutfitSource,
     sourceOutfitImage,
     setSourceOutfitImage: handleSetSourceOutfitImage,
     sourceOutfitNote,
