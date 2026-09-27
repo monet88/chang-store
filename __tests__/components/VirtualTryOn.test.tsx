@@ -254,7 +254,7 @@ describe('VirtualTryOn component', () => {
     rerender(<VirtualTryOn />);
     expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'sm:grid-cols-2');
 
-    // 3 items -> sm:grid-cols-3
+    // 3 items -> sm:grid-cols-2 lg:grid-cols-3
     useVirtualTryOnMock.mockReturnValue({
       ...baseHookState,
       clothingItems: [
@@ -264,7 +264,7 @@ describe('VirtualTryOn component', () => {
       ],
     });
     rerender(<VirtualTryOn />);
-    expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'sm:grid-cols-3');
+    expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'sm:grid-cols-2', 'lg:grid-cols-3');
 
     // 4 items -> xl:grid-cols-4
     useVirtualTryOnMock.mockReturnValue({
@@ -809,8 +809,10 @@ describe('VirtualTryOn component', () => {
       );
 
       // The badge must describe the images the wardrobe batch will actually use.
-      await waitFor(() => expect(analyze).toHaveBeenCalledWith(wardrobeSource, expect.anything()));
-      expect(analyze).not.toHaveBeenCalledWith(multiModelSource, expect.anything());
+      await waitFor(() =>
+        expect(analyze).toHaveBeenCalledWith(wardrobeSource, expect.anything(), undefined),
+      );
+      expect(analyze).not.toHaveBeenCalledWith(multiModelSource, expect.anything(), undefined);
     });
   });
 

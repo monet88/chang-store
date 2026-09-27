@@ -21,6 +21,7 @@ import {
   extractDimensionsFromHeader,
   processUploadImageFile,
   processMultipleImageFiles,
+  imageFilesOnly,
 } from '@/utils/imageUtils';
 
 // ============================================================================
@@ -512,24 +513,27 @@ describe('processUploadImageFile', () => {
   });
 });
 
-describe('processMultipleImageFiles', () => {
-  it('filters out non-image files and processes valid image files', async () => {
+describe('imageFilesOnly', () => {
+  it('keeps image files and drops everything else', () => {
     const textFile = new File(['text content'], 'notes.txt', { type: 'text/plain' });
-    const imageFile = new File(['fake-image-bytes'], 'photo.png', { type: 'image/png' });
-    const mockProcessor = vi.fn().mockResolvedValue({
-      base64: 'valid-base64',
-      mimeType: 'image/png',
-    });
+    const pngFile = new File(['image bytes'], 'photo.png', { type: 'image/png' });
 
-    const results = await processMultipleImageFiles([textFile, imageFile], mockProcessor);
-    expect(results).toHaveLength(1);
-    expect(results[0]).toEqual({ base64: 'valid-base64', mimeType: 'image/png' });
-    expect(mockProcessor).toHaveBeenCalledTimes(1);
-    expect(mockProcessor).toHaveBeenCalledWith(imageFile);
+    expect(imageFilesOnly([textFile, pngFile])).toEqual([pngFile]);
   });
 
+  it('returns an empty array when given no files', () => {
+    expect(imageFilesOnly([])).toEqual([]);
+  });
+});
+
+describe('processMultipleImageFiles', () => {
   it('returns empty array when given no files', async () => {
     const results = await processMultipleImageFiles([]);
     expect(results).toEqual([]);
+  });
+
+  it('drops non-image files before processing', async () => {
+    const textFile = new File(['text content'], 'notes.txt', { type: 'text/plain' });
+    expect(await processMultipleImageFiles([textFile])).toEqual([]);
   });
 });

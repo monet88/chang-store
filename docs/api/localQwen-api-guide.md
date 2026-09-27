@@ -157,17 +157,18 @@ Chang Store's desktop bridge communicates with local ComfyUI exclusively over st
 Chang Store hỗ trợ dynamic LoRA injection và workflow auto-routing trong `localQwenManager`:
 
 1. **Routing parameters (`LocalQwenGenerateParams`):**
-   - `workflow`: `'identity-transfer' | 'face-swap' | 'standard'`.
-     - `'identity-transfer'` / `'face-swap'`: bắt buộc inject BFS FaceSwap LoRA (`bfs_head_v1.1_qwen_2.1.safetensors`, strength `1.0`).
+   - `workflow`: `'identity-transfer' | 'standard'`.
+     - `'identity-transfer'`: bắt buộc inject BFS FaceSwap LoRA (`bfs_head_v1.1_qwen_2.1.safetensors`, strength `1.0`), trừ khi prompt từ chối đổi mặt (xem mục 2).
      - `'standard'`: workflow chuẩn, vô hiệu hóa auto-detection của face-swap.
+     - Không còn giá trị `'face-swap'`: ép inject bất kể prompt thì truyền `loraName` tường minh.
    - `loraName`: Tên file LoRA tùy chọn đặt trong `models/loras/`.
    - `loraStrength`: Cường độ LoRA (`number`, mặc định `1.0`).
    - `unetName`: Chỉ định mô hình DiT cụ thể (mặc định tự động phân giải qua `resolveActiveUnet()`).
    - Kết quả (`LocalQwenGenerateResult.activeUnetName`): unet thực sự đã dùng cho job — reporting để caller biết UC hay fallback đã chạy.
 
-2. **Auto-Detection Heuristic (`isFaceSwapPrompt`):**
+2. **Auto-Detection Heuristic (`isFaceSwapPrompt` — nguồn duy nhất: `src/platform/desktopLocalQwen.ts`):**
    - Khi không chỉ định `workflow: 'standard'` và không truyền `loraName`, hệ thống tự động quét prompt để phát hiện tác vụ đổi mặt / hoán đổi danh tính:
-     - **Refusal guard (kiểm tra trước):** prompt chứa cụm từ từ chối đổi mặt (`no face swap`, `do not swap`, `keep the original face`, `không đổi mặt`, `không ghép mặt`, `không chuyển danh tính`, …) → trả `false`, không inject LoRA dù có khớp từ khóa bên dưới.
+     - **Refusal guard (kiểm tra trước, thắng cả `workflow: 'identity-transfer'`):** prompt chứa cụm từ từ chối đổi mặt (`no face swap`, `do not swap`, `keep the original face`, `không đổi mặt`, `không ghép mặt`, `không chuyển danh tính`, …) → không inject LoRA dù caller khai báo workflow thế nào.
      - Header checks: `QWEN IDENTITY TRANSFER SPECIFICATION`, `QWEN BRAND MODEL SPECIFICATION`, `IDENTITY TRANSFER`, `head_swap`.
      - Từ khóa tiếng Anh: `face swap`, `faceswap`, `swap face`, `head swap`, `replace face`, `facial identity`.
      - Từ khóa tiếng Việt: `đổi mặt`, `hoán đổi mặt`, `ghép mặt`, `thay mặt`, `đổi khuôn mặt`, `thay khuôn mặt`, `chuyển mặt`, `chuyển danh tính`.

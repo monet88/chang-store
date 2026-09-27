@@ -43,6 +43,8 @@ const VirtualTryOn: React.FC = () => {
     setBackgroundPrompt,
     extraPrompt,
     setExtraPrompt,
+    userGuidance = '',
+    setUserGuidance = () => {},
     numImages,
     setNumImages,
     aspectRatio,
@@ -178,19 +180,24 @@ const VirtualTryOn: React.FC = () => {
   const sourceItemsGridClass = React.useMemo(() => {
     if (clothingItems.length === 1) return 'space-y-3';
     if (clothingItems.length === 2) return 'grid gap-4 grid-cols-1 sm:grid-cols-2';
-    if (clothingItems.length === 3) return 'grid gap-4 grid-cols-1 sm:grid-cols-3';
+    if (clothingItems.length === 3) return 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
     return 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
   }, [clothingItems.length]);
+
+  /** One place where a garment batch lands, so truncation is reported once for every upload path. */
+  const addClothingFiles = (files: ImageFile[], targetId?: number) => {
+    const res = handleMultipleClothingUpload(files, targetId);
+    if (res && res.droppedCount > 0) {
+      setError(t('virtualTryOn.batchUploadTruncated', { count: res.droppedCount }));
+    }
+  };
 
   const handleBatchClothingUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
     const validImageFiles = await processMultipleImageFiles(fileList);
     if (validImageFiles.length > 0) {
-      const res = handleMultipleClothingUpload(validImageFiles);
-      if (res && res.droppedCount > 0) {
-        setError(t('virtualTryOn.batchUploadTruncated', { count: res.droppedCount }));
-      }
+      addClothingFiles(validImageFiles);
     }
     event.target.value = '';
   };
@@ -437,10 +444,7 @@ const VirtualTryOn: React.FC = () => {
                             title={t('virtualTryOn.clothingItemTitle', { index: index + 1 })}
                             onImageUpload={(file) => handleClothingUpload(file, item.id)}
                             onMultipleImagesUpload={(files) => {
-                              const res = handleMultipleClothingUpload(files, item.id);
-                              if (res && res.droppedCount > 0) {
-                                setError(t('virtualTryOn.batchUploadTruncated', { count: res.droppedCount }));
-                              }
+                              addClothingFiles(files, item.id);
                             }}
                           />
                         </Tooltip>
@@ -528,6 +532,21 @@ const VirtualTryOn: React.FC = () => {
                     </button>
                   </Tooltip>
                   <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.clothingUploadHint')}</p>
+                  <div className="space-y-1.5">
+                    <label htmlFor="vto-outfit-note" className="text-sm font-semibold text-zinc-200">
+                      {t('virtualTryOn.outfitNoteLabel')}
+                    </label>
+                    <textarea
+                      id="vto-outfit-note"
+                      value={userGuidance}
+                      onChange={(e) => setUserGuidance(e.target.value)}
+                      rows={2}
+                      maxLength={180}
+                      placeholder={t('virtualTryOn.outfitNotePlaceholder')}
+                      className={textareaClass}
+                    />
+                    <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.outfitNoteHint')}</p>
+                  </div>
                 </div>
               </div>
             </section>

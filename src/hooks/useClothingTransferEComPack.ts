@@ -50,13 +50,12 @@ export interface UseClothingTransferEComPackConfig {
   scanBlueprintFn?: (image: ImageFile, model?: string, guidance?: string) => Promise<string>;
 }
 
-export interface OutfitSourceState {
+interface OutfitSourceState {
   image: ImageFile | null;
   note: string;
 }
 
 export interface UseClothingTransferEComPackReturn {
-  outfitSource: OutfitSourceState;
   sourceOutfitImage: ImageFile | null;
   setSourceOutfitImage: (image: ImageFile | null) => void;
   sourceOutfitNote: string;
@@ -156,9 +155,7 @@ export const useClothingTransferEComPack = (
       try {
         const fn = scanBlueprintFn || scanGarmentBlueprint;
         const activeGuidance = (guidance !== undefined ? guidance : outfitSourceRef.current.note)?.trim();
-        const blueprint = activeGuidance
-          ? await fn(image, textGenerateModel, activeGuidance)
-          : await fn(image, textGenerateModel);
+        const blueprint = await fn(image, textGenerateModel, activeGuidance || undefined);
         // Only publish when this analysis still belongs to the active outfit:
         // swapping the photo while an earlier analysis is in flight must never
         // label the new outfit with the old blueprint.
@@ -454,7 +451,6 @@ export const useClothingTransferEComPack = (
   });
 
   return {
-    outfitSource,
     sourceOutfitImage,
     setSourceOutfitImage: handleSetSourceOutfitImage,
     sourceOutfitNote,

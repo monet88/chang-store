@@ -11,6 +11,7 @@ import {
 import {
   DESKTOP_LOCAL_QWEN_CHANNELS,
   getDesktopLocalQwenApi,
+  isUncensoredModel,
   resolveUncensoredState,
   type DesktopLocalQwenApi,
   type DesktopLocalQwenStatus,
@@ -253,6 +254,15 @@ describe('desktopLocalQwen and settings', () => {
   });
 
   describe('resolveUncensoredState', () => {
+    it('reads UC only as a standalone name segment', () => {
+      expect(isUncensoredModel('qwen-image-2.1-UC-Q4_K_M.gguf')).toBe(true);
+      expect(isUncensoredModel('uc-q4_k_m.safetensors')).toBe(true);
+      expect(isUncensoredModel('qwen-image-2.1-Q4_K_M.gguf')).toBe(false);
+      expect(isUncensoredModel('surface-refine.safetensors')).toBe(false);
+      expect(isUncensoredModel('')).toBe(false);
+      expect(isUncensoredModel(undefined)).toBe(false);
+    });
+
     it('stays unknown before any status has been reported', () => {
       expect(resolveUncensoredState(undefined)).toBeUndefined();
       expect(resolveUncensoredState(null)).toBeUndefined();

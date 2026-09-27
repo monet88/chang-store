@@ -75,6 +75,17 @@ export const aiScanGuidanceFromItems = (
     .join('; ');
 
 /**
+ * Joins guidance fragments (the per-item notes and the user's own note) into
+ * one string; empty or whitespace-only fragments are dropped so the scan never
+ * sends a bare separator.
+ */
+export const combineAiScanGuidance = (...parts: ReadonlyArray<string | undefined | null>): string =>
+  parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join('; ');
+
+/**
  * Splice a blueprint into a prompt as a subordinate technical specification.
  * Returns an empty string when there is no blueprint, so a disabled, failed or
  * cancelled scan leaves the base prompt byte-identical.

@@ -5,8 +5,7 @@ import { getGeminiClient, isProxyEnabled } from '../apiClient';
 import { getModelCapabilities, resolveImageSizeConfig } from '../../config/modelRegistry';
 import { runBoundedWorkers } from '../../utils/run-bounded-workers';
 import { appendNegativePrompt, negativePromptSentence } from '../../utils/negative-prompt-builder';
-import { DEFAULT_MAX_CONCURRENCY } from '../../utils/engineDispatch';
-import type { LocalQwenWorkflow } from '../../platform/desktopLocalQwen';
+import { DEFAULT_MAX_CONCURRENCY, type LocalQwenWorkflow } from '../../utils/engineDispatch';
 
 const PROXY_IMAGE_TIMEOUT_MS = 30_000;
 const MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS = DEFAULT_MAX_CONCURRENCY;

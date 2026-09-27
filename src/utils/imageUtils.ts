@@ -241,16 +241,21 @@ export const processUploadImageFile = async (file: File): Promise<ImageFile | nu
 };
 
 /**
+ * Image files only: non-image entries are dropped before any decoding work, so
+ * a mixed selection never starts a read on a PDF or a text file.
+ */
+export const imageFilesOnly = (files: Iterable<File> | FileList | File[]): File[] =>
+  Array.from(files).filter((file) => file.type.startsWith('image/'));
+
+/**
  * Processes a collection of files, filtering for valid image files and converting them to ImageFile objects.
  */
 export const processMultipleImageFiles = async (
   files: Iterable<File> | FileList | File[],
-  processor: (file: File) => Promise<ImageFile | null> = processUploadImageFile,
 ): Promise<ImageFile[]> => {
   const processed: ImageFile[] = [];
-  for (const file of Array.from(files)) {
-    if (!file.type.startsWith('image/')) continue;
-    const img = await processor(file);
+  for (const file of imageFilesOnly(files)) {
+    const img = await processUploadImageFile(file);
     if (img) {
       processed.push(img);
     }

@@ -360,6 +360,7 @@ describe('useClothingTransferEComPack', () => {
     expect(analyzeMock).toHaveBeenCalledWith(
       expect.objectContaining({ base64: 'data-my-outfit' }),
       'gemini-3.8-flash',
+      undefined,
     );
     expect(result.current.outfitBlueprint).toBe('Mock Blueprint: Top & Tiered Skirt');
   });
@@ -777,7 +778,7 @@ describe('useClothingTransferEComPack', () => {
     expect(editImageMock).toHaveBeenCalledTimes(1);
   });
 
-  it('supports AI Scan domain methods and maintains bundled outfitSource state', async () => {
+  it('supports AI Scan domain methods and maintains bundled source outfit state', async () => {
     const scanMock = vi.fn().mockResolvedValue('[CORE_GARMENTS]\nWool overcoat');
     const { result } = renderHook(() =>
       useClothingTransferEComPack({
@@ -795,7 +796,8 @@ describe('useClothingTransferEComPack', () => {
       }),
     );
 
-    expect(result.current.outfitSource).toEqual({ image: null, note: '' });
+    expect(result.current.sourceOutfitImage).toBeNull();
+    expect(result.current.sourceOutfitNote).toBe('');
     expect(result.current.isScanningBlueprint).toBe(false);
 
     act(() => {
@@ -803,8 +805,8 @@ describe('useClothingTransferEComPack', () => {
       result.current.setSourceOutfitNote('long coat');
     });
 
-    expect(result.current.outfitSource.image).toEqual(mockImage('scan-src'));
-    expect(result.current.outfitSource.note).toBe('long coat');
+    expect(result.current.sourceOutfitImage).toEqual(mockImage('scan-src'));
+    expect(result.current.sourceOutfitNote).toBe('long coat');
 
     await act(async () => {
       await result.current.handleScanBlueprint();

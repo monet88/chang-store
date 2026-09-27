@@ -6,6 +6,7 @@ import {
 } from '../../platform/desktopLocalQwen';
 import { useLocalQwenStatus } from '../../hooks/useLocalQwenStatus';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { LocalQwenModelBadge } from '../LocalQwenModelBadge';
 const getProgressWidthClass = (percent: number): string => {
   if (percent <= 0) return 'w-0';
   if (percent <= 5) return 'w-[5%]';
@@ -141,11 +142,11 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
                       : t('studio.localQwenStatus.external')}
                   </span>
                   {uncensoredState !== undefined && (
-                    <span className="rounded border border-purple-500/40 bg-purple-950/70 px-1.5 py-0.5 text-[10px] font-semibold text-purple-300">
-                      {uncensoredState
-                        ? t('studio.localQwenStatus.modelUncensored')
-                        : t('studio.localQwenStatus.modelStandard')}
-                    </span>
+                    <LocalQwenModelBadge
+                      state={uncensoredState}
+                      uncensoredLabel={t('studio.localQwenStatus.modelUncensored')}
+                      standardLabel={t('studio.localQwenStatus.modelStandard')}
+                    />
                   )}
                 </div>
                 <p className="text-xs text-zinc-400">

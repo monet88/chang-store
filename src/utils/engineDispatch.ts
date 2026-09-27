@@ -3,6 +3,13 @@ import type { ImageEngineId } from '../types';
 export const DEFAULT_MAX_CONCURRENCY = 10;
 
 /**
+ * Workflow routing hint shared by every image-engine call site. It lives with
+ * the dispatch rules (not with one engine's params type) because it only ever
+ * describes how dispatch should route a job, never how an engine renders it.
+ */
+export type LocalQwenWorkflow = 'identity-transfer' | 'standard';
+
+/**
  * Resolves concurrency for batch generation jobs.
  * Local Qwen is strictly serialized (max 1 concurrency) to prevent GPU VRAM exhaustion.
  * Cloud engines (Gemini, GPT) scale up to the number of jobs, bounded by maxCap (default 10).

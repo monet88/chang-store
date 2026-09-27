@@ -1,4 +1,8 @@
 import type { DesktopBridgeResult } from './desktopGateway';
+import type { LocalQwenWorkflow } from '../utils/engineDispatch';
+
+/** Workflow routing mode for Local Qwen generation (identity transfer / plain edit). */
+export type { LocalQwenWorkflow };
 
 export const DESKTOP_LOCAL_QWEN_CHANNELS = {
   getStatus: 'desktop-local-qwen:get-status',
@@ -12,16 +16,75 @@ export const DESKTOP_LOCAL_QWEN_CHANNELS = {
 
 export type DesktopLocalQwenState = 'starting' | 'ready' | 'generating' | 'error' | 'stopped';
 
-/** Workflow routing mode for Local Qwen generation (identity transfer / face swap / plain edit). */
-export type LocalQwenWorkflow = 'identity-transfer' | 'face-swap' | 'standard';
+/** `UC` only counts as a standalone name segment (`qwen-image-2.1-UC-Q4_K_M.gguf`). */
+const UC_SEGMENT = /(^|[-_.])uc([-_.]|$)/i;
 
 /**
  * Whether a resolved unet filename is the Uncensored (UC) build.
  * Single source of truth: the main-process manager and the renderer badges
- * must agree on the heuristic, so neither re-derives it inline.
+ * must agree on the heuristic, so neither re-derives it inline; a filename that
+ * merely contains those letters can never be reported as UC.
  */
 export const isUncensoredModel = (modelName: string | undefined | null): boolean =>
-  Boolean(modelName?.includes('UC'));
+  Boolean(modelName && UC_SEGMENT.test(modelName));
+
+/**
+ * Phrases that explicitly REFUSE a face swap ("no face swap", "không đổi mặt").
+ * Checked first so a prompt that merely bans swapping never triggers the LoRA.
+ */
+const FACE_SWAP_REFUSAL_PHRASES = [
+  'no face swap',
+  'without face swap',
+  'do not swap',
+  "don't swap",
+  'not swap face',
+  'keep the original face',
+  'không đổi mặt',
+  'không thay mặt',
+  'không ghép mặt',
+  'không đổi khuôn mặt',
+  'không thay khuôn mặt',
+  'không chuyển mặt',
+  'không chuyển danh tính',
+];
+
+/** Whether a prompt explicitly forbids face swapping. */
+export const isFaceSwapRefusal = (prompt: string): boolean => {
+  if (!prompt) return false;
+  const promptLower = prompt.toLowerCase();
+  return FACE_SWAP_REFUSAL_PHRASES.some((phrase) => promptLower.includes(phrase));
+};
+
+/**
+ * Whether a prompt asks for a face swap. Domain rule shared by the renderer
+ * (previewing what will happen) and the main-process manager (routing the job),
+ * so neither side re-derives the keyword list.
+ */
+export const isFaceSwapPrompt = (prompt: string): boolean => {
+  if (!prompt) return false;
+  if (isFaceSwapRefusal(prompt)) return false;
+  const promptLower = prompt.toLowerCase();
+  return (
+    prompt.includes('QWEN IDENTITY TRANSFER SPECIFICATION') ||
+    prompt.includes('QWEN BRAND MODEL SPECIFICATION') ||
+    prompt.includes('IDENTITY TRANSFER') ||
+    prompt.includes('head_swap') ||
+    promptLower.includes('face swap') ||
+    promptLower.includes('faceswap') ||
+    promptLower.includes('swap face') ||
+    promptLower.includes('head swap') ||
+    promptLower.includes('replace face') ||
+    promptLower.includes('facial identity') ||
+    promptLower.includes('đổi mặt') ||
+    promptLower.includes('hoán đổi mặt') ||
+    promptLower.includes('ghép mặt') ||
+    promptLower.includes('thay mặt') ||
+    promptLower.includes('đổi khuôn mặt') ||
+    promptLower.includes('thay khuôn mặt') ||
+    promptLower.includes('chuyển mặt') ||
+    promptLower.includes('chuyển danh tính')
+  );
+};
 
 /**
  * Whether the studio may show an Uncensored (UC) / Standard badge.

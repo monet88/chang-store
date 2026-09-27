@@ -7,7 +7,6 @@ import type { ChildProcess } from 'node:child_process';
 import type { Mock } from 'vitest';
 import {
   LocalQwenManager,
-  isFaceSwapPrompt,
   verifyLoopbackOnly,
   DEFAULT_COMFYUI_PORT,
   DEFAULT_QWEN_UNET_NAME,
@@ -19,6 +18,7 @@ import {
   parseLocalQwenUpscaleParams,
   parseLocalQwenFolder,
 } from '../../electron/localQwenManager';
+import { isFaceSwapPrompt } from '../../src/platform/desktopLocalQwen';
 
 /**
  * A real ComfyUI-shaped folder on disk: model detection reads the filesystem,
@@ -854,7 +854,7 @@ describe('LocalQwenManager', () => {
       expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
     });
 
-    it('injects BFS LoRA when workflow is explicitly set to identity-transfer or face-swap', async () => {
+    it('injects BFS LoRA when workflow is explicitly set to identity-transfer', async () => {
       const { manager, getSentWorkflow } = createMockPromptManager();
 
       await manager.generateImage({
@@ -866,6 +866,19 @@ describe('LocalQwenManager', () => {
       expect(sentWorkflow?.['5']).toBeDefined();
       expect(sentWorkflow?.['5'].inputs.lora_name).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
       expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
+    });
+
+    it('does NOT inject LoRA when the prompt refuses a face swap, even under identity-transfer', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'refusal-image' });
+
+      await manager.generateImage({
+        prompt: 'Đổi trang phục cho người mẫu, không đổi mặt',
+        workflow: 'identity-transfer',
+      });
+
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow?.['5']).toBeUndefined();
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['1', 0]);
     });
 
     it('injects custom LoRA when loraName and loraStrength are explicitly passed', async () => {

@@ -13,6 +13,8 @@ import {
   type LocalQwenProgress,
   type LocalQwenUpscaleParams,
   type LocalQwenUpscaleResult,
+  isFaceSwapPrompt,
+  isFaceSwapRefusal,
   isUncensoredModel,
 } from '../src/platform/desktopLocalQwen';
 import {
@@ -190,54 +192,6 @@ export interface LocalQwenManagerOptions {
   fetchFn?: typeof fetch;
   wsConstructor?: WebSocketConstructor;
 }
-
-/**
- * Phrases that explicitly REFUSE a face swap ("no face swap", "không đổi mặt").
- * Checked first so a prompt that merely bans swapping never triggers the LoRA.
- */
-const FACE_SWAP_REFUSAL_PHRASES = [
-  'no face swap',
-  'without face swap',
-  'do not swap',
-  "don't swap",
-  'not swap face',
-  'keep the original face',
-  'không đổi mặt',
-  'không thay mặt',
-  'không ghép mặt',
-  'không đổi khuôn mặt',
-  'không thay khuôn mặt',
-  'không chuyển mặt',
-  'không chuyển danh tính',
-];
-
-export const isFaceSwapPrompt = (prompt: string): boolean => {
-  if (!prompt) return false;
-  const promptLower = prompt.toLowerCase();
-  if (FACE_SWAP_REFUSAL_PHRASES.some((phrase) => promptLower.includes(phrase))) {
-    return false;
-  }
-  return (
-    prompt.includes('QWEN IDENTITY TRANSFER SPECIFICATION') ||
-    prompt.includes('QWEN BRAND MODEL SPECIFICATION') ||
-    prompt.includes('IDENTITY TRANSFER') ||
-    prompt.includes('head_swap') ||
-    promptLower.includes('face swap') ||
-    promptLower.includes('faceswap') ||
-    promptLower.includes('swap face') ||
-    promptLower.includes('head swap') ||
-    promptLower.includes('replace face') ||
-    promptLower.includes('facial identity') ||
-    promptLower.includes('đổi mặt') ||
-    promptLower.includes('hoán đổi mặt') ||
-    promptLower.includes('ghép mặt') ||
-    promptLower.includes('thay mặt') ||
-    promptLower.includes('đổi khuôn mặt') ||
-    promptLower.includes('thay khuôn mặt') ||
-    promptLower.includes('chuyển mặt') ||
-    promptLower.includes('chuyển danh tính')
-  );
-};
 
 export class LocalQwenManager {
   public port: number;
@@ -985,10 +939,14 @@ export class LocalQwenManager {
       const cfg = params.cfg ?? 1.0;
       const seed = params.seed ?? Math.floor(Math.random() * 1_000_000_000);
 
+      const prompt = params.prompt || '';
+      // The refusal guard outranks routing: a prompt that bans swapping never
+      // gets the LoRA, whatever workflow the caller declared. Explicit
+      // `loraName` stays the caller's own decision and is untouched here.
       const isIdentityTransfer =
-        params.workflow === 'identity-transfer' ||
-        params.workflow === 'face-swap' ||
-        (params.workflow !== 'standard' && isFaceSwapPrompt(params.prompt || ''));
+        !isFaceSwapRefusal(prompt) &&
+        (params.workflow === 'identity-transfer' ||
+          (params.workflow !== 'standard' && isFaceSwapPrompt(prompt)));
 
       const effectiveLoraName = params.loraName ?? (isIdentityTransfer ? FACE_SWAP_LORA_NAME : undefined);
       const loraStrength = typeof params.loraStrength === 'number' && Number.isFinite(params.loraStrength)
@@ -1556,15 +1514,15 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
     unetName = trimmed || undefined;
   }
 
-  let workflow: 'identity-transfer' | 'face-swap' | 'standard' | undefined;
+  let workflow: 'identity-transfer' | 'standard' | undefined;
   if (input.workflow !== undefined) {
     if (
       typeof input.workflow !== 'string' ||
-      !['identity-transfer', 'face-swap', 'standard'].includes(input.workflow)
+      !['identity-transfer', 'standard'].includes(input.workflow)
     ) {
-      throw new Error('Invalid local Qwen workflow: must be identity-transfer, face-swap, or standard.');
+      throw new Error('Invalid local Qwen workflow: must be identity-transfer or standard.');
     }
-    workflow = input.workflow as 'identity-transfer' | 'face-swap' | 'standard';
+    workflow = input.workflow as 'identity-transfer' | 'standard';
   }
 
   return {

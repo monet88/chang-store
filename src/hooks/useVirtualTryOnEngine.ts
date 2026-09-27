@@ -8,7 +8,7 @@ import {
   VirtualTryOnClothingItem,
 } from '../types';
 import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
-import { aiScanGuidanceFromItems, aiScanSourceSet } from '../utils/ai-scan-blueprint';
+import { aiScanGuidanceFromItems, aiScanSourceSet, combineAiScanGuidance } from '../utils/ai-scan-blueprint';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '../utils/gpt-virtual-try-on-prompt';
@@ -39,6 +39,8 @@ export interface UseVirtualTryOnEngineConfig {
   isMultiPersonMode: boolean;
   backgroundPrompt: string;
   extraPrompt: string;
+  /** The operator's own note about the outfit, appended to the per-item notes. */
+  userGuidance: string;
   numImages: number;
   aspectRatio: AspectRatio;
   resolution: ImageResolution;
@@ -71,7 +73,7 @@ export const useVirtualTryOnEngine = (
 ): UseVirtualTryOnEngineReturn => {
   const {
     driver, subjects, validClothingItems, isMultiPersonMode, backgroundPrompt,
-    extraPrompt, numImages, aspectRatio, resolution, imageEditModel, canGenerate,
+    extraPrompt, userGuidance, numImages, aspectRatio, resolution, imageEditModel, canGenerate,
     isWardrobeGenerating, refinement, buildImageServiceConfig, addImage, engineId,
     setIsLoading, setLoadingMessage, setError, setUpscalingStates, t,
   } = config;
@@ -95,7 +97,7 @@ export const useVirtualTryOnEngine = (
         // One analysis per subject, over that subject's own photo: every
         // subject is an independent job, so a batch-wide blueprint would
         // deconstruct one subject's garments inside another subject's prompt.
-        const guidance = aiScanGuidanceFromItems(sourceItems);
+        const guidance = combineAiScanGuidance(aiScanGuidanceFromItems(sourceItems), userGuidance);
         const blueprint = await scan(
           aiScanSourceSet(sourceItems.map((item) => item.image), [subjectImage]),
           guidance || undefined,
@@ -140,7 +142,7 @@ export const useVirtualTryOnEngine = (
       }
     },
     [driver, subjects.markerPosition, subjects.updateSubjectItem, isMultiPersonMode,
-      extraPrompt, backgroundPrompt, numImages, aspectRatio, resolution, imageEditModel,
+      extraPrompt, backgroundPrompt, userGuidance, numImages, aspectRatio, resolution, imageEditModel,
       buildImageServiceConfig, setLoadingMessage, addImage, engineId, t, scan],
   );
 

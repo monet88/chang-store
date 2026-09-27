@@ -126,11 +126,7 @@ export const AiScanProvider: React.FC<AiScanProviderProps> = ({
       if (cached) return cached.scan;
 
       const run = Promise.all(
-        sources.map((image) =>
-          normalizedGuidance
-            ? analyze(image, AI_SCAN_MODEL, normalizedGuidance)
-            : analyze(image, AI_SCAN_MODEL),
-        ),
+        sources.map((image) => analyze(image, AI_SCAN_MODEL, normalizedGuidance)),
       )
         .then((reports) => {
           // Fail closed: a partial blueprint would state the fabric of one

@@ -91,7 +91,7 @@ describe('AiScanContext', () => {
       });
 
       expect(blueprint).toBe('WEAVE & MATERIAL: plissé accordion pleats.');
-      expect(analyze).toHaveBeenCalledWith(IMAGE_A, AI_SCAN_MODEL);
+      expect(analyze).toHaveBeenCalledWith(IMAGE_A, AI_SCAN_MODEL, undefined);
     });
 
     it('analyzes once for the same source set and reuses that analysis', async () => {
