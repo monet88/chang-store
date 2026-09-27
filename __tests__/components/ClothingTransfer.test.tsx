@@ -59,10 +59,10 @@ const baseHookState = {
     selectedGarmentScopes: ['full-set'],
     toggleGarmentScope: vi.fn(),
     outfitBlueprint: null,
-    isAnalyzingOutfit: false,
+    isScanningBlueprint: false,
     setOutfitBlueprint: vi.fn(),
-    handleAnalyzeOutfit: vi.fn(),
-    handleReanalyzeOutfit: vi.fn(),
+    handleScanBlueprint: vi.fn(),
+    handleRescanBlueprint: vi.fn(),
     brandModels: [],
     selectedBrandModelIds: [],
     selectBrandModel: vi.fn(),
@@ -226,8 +226,8 @@ describe('ClothingTransfer component', () => {
   });
 
   it('renders manual AI Analyze button when outfit is uploaded and triggers analysis on click', () => {
-    const handleAnalyzeOutfitMock = vi.fn();
-    const handleReanalyzeOutfitMock = vi.fn();
+    const handleScanBlueprintMock = vi.fn();
+    const handleRescanBlueprintMock = vi.fn();
     useClothingTransferMock.mockReturnValue({
       ...baseHookState,
       mode: 'ecom-pack',
@@ -236,18 +236,18 @@ describe('ClothingTransfer component', () => {
         sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
         sourceOutfitNote: 'quần không phải váy',
         outfitBlueprint: null,
-        isAnalyzingOutfit: false,
-        handleAnalyzeOutfit: handleAnalyzeOutfitMock,
-        handleReanalyzeOutfit: handleReanalyzeOutfitMock,
+        isScanningBlueprint: false,
+        handleScanBlueprint: handleScanBlueprintMock,
+        handleRescanBlueprint: handleRescanBlueprintMock,
       },
     });
 
     const { rerender } = render(<ClothingTransfer />);
 
-    const analyzeBtn = screen.getByRole('button', { name: /(scanBlueprintButton|analyzeOutfitButton)/ });
+    const analyzeBtn = screen.getByRole('button', { name: /scanBlueprintButton/ });
     expect(analyzeBtn).toBeInTheDocument();
     fireEvent.click(analyzeBtn);
-    expect(handleAnalyzeOutfitMock).toHaveBeenCalled();
+    expect(handleScanBlueprintMock).toHaveBeenCalled();
 
     // When analyzing
     useClothingTransferMock.mockReturnValue({
@@ -257,12 +257,12 @@ describe('ClothingTransfer component', () => {
         ...baseHookState.ecomPack,
         sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
         outfitBlueprint: null,
-        isAnalyzingOutfit: true,
+        isScanningBlueprint: true,
       },
     });
     rerender(<ClothingTransfer />);
     expect(screen.getByText('clothingTransfer.ecomPack.blueprintAnalyzing')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /(scanBlueprintButton|analyzeOutfitButton)/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /scanBlueprintButton/ })).not.toBeInTheDocument();
 
     // When blueprint is ready
     useClothingTransferMock.mockReturnValue({
@@ -272,7 +272,7 @@ describe('ClothingTransfer component', () => {
         ...baseHookState.ecomPack,
         sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
         outfitBlueprint: '[CORE_GARMENTS]\nTrousers',
-        isAnalyzingOutfit: false,
+        isScanningBlueprint: false,
       },
     });
     rerender(<ClothingTransfer />);

@@ -38,7 +38,7 @@ const IdentityTransfer: React.FC = () => {
             {isLocalQwen ? (
               <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                BFS FaceSwap LoRA v1.1
+                {t('identityTransfer.activeLoraBadge')}
               </div>
             ) : (
               <p className="text-xs text-zinc-500">{t('identityTransfer.studioNotice') || t('identityTransfer.providerNotice')}</p>

@@ -20,6 +20,8 @@ const translations: Record<string, string> = {
   'settingsModal.localQwen.schedulerLabel': 'Scheduler',
   'settingsModal.localQwen.modelLabel': 'Diffusion Model',
   'settingsModal.localQwen.modelUncensoredBadge': 'Uncensored (Default)',
+  'settingsModal.localQwen.modelStandardBadge': 'Standard',
+  'settingsModal.localQwen.modelVramHint': 'RTX 8GB VRAM',
 };
 
 vi.mock('@/contexts/LanguageContext', () => ({

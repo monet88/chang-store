@@ -109,7 +109,7 @@ export const LocalQwenSettingsSection: React.FC = () => {
               </span>
             ) : (
               <span className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-300">
-                Standard
+                {t('settingsModal.localQwen.modelStandardBadge')}
               </span>
             )}
           </div>
@@ -117,7 +117,7 @@ export const LocalQwenSettingsSection: React.FC = () => {
             <span className="font-mono text-zinc-200" data-testid="local-qwen-active-model">
               {activeModelName}
             </span>
-            <span className="text-[11px] text-zinc-400">RTX 8GB VRAM</span>
+            <span className="text-[11px] text-zinc-400">{t('settingsModal.localQwen.modelVramHint')}</span>
           </div>
         </div>
 

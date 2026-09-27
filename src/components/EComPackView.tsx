@@ -69,11 +69,8 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
     outfitBlueprint,
     setOutfitBlueprint,
     isScanningBlueprint,
-    isAnalyzingOutfit,
     handleScanBlueprint,
     handleRescanBlueprint,
-    handleAnalyzeOutfit,
-    handleReanalyzeOutfit,
     selectedGarmentScopes,
     toggleGarmentScope,
     brandModels,
@@ -231,7 +228,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                     />
                   </div>
 
-                  {(isScanningBlueprint || isAnalyzingOutfit) && (
+                  {isScanningBlueprint && (
                     <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-300">
                       <span className="relative flex h-2 w-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
@@ -241,13 +238,13 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                     </div>
                   )}
 
-                  {!(isScanningBlueprint || isAnalyzingOutfit) && !outfitBlueprint && (
+                  {!isScanningBlueprint && !outfitBlueprint && (
                     <button
                       type="button"
                       id="scan-source-btn"
                       data-testid="scan-source-btn"
-                      onClick={handleScanBlueprint || handleAnalyzeOutfit}
-                      disabled={!sourceOutfitImage || isScanningBlueprint || isAnalyzingOutfit}
+                      onClick={handleScanBlueprint}
+                      disabled={!sourceOutfitImage || isScanningBlueprint}
                       className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-2.5 text-xs font-semibold text-amber-200 transition-all hover:bg-amber-500/25 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <span aria-hidden="true">✨</span>
@@ -255,7 +252,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                     </button>
                   )}
 
-                  {!(isScanningBlueprint || isAnalyzingOutfit) && outfitBlueprint && (
+                  {!isScanningBlueprint && outfitBlueprint && (
                     <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-xs">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 text-emerald-400 font-medium">
@@ -274,8 +271,8 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={handleRescanBlueprint || handleReanalyzeOutfit}
-                            disabled={isScanningBlueprint || isAnalyzingOutfit}
+                            onClick={handleRescanBlueprint}
+                            disabled={isScanningBlueprint}
                             className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors"
                             title={t('clothingTransfer.ecomPack.blueprintReanalyze')}
                           >

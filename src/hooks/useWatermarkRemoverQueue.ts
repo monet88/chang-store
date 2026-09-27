@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '@/types';
 import { DEFAULT_PROMPT_ID, DEFAULT_WATERMARK_MODEL, type WatermarkModel } from '@/utils/watermark-prompts';
+import { DEFAULT_MAX_CONCURRENCY } from '@/utils/engineDispatch';
 
 /** Generate unique ID for batch items */
 const generateId = (): string =>
@@ -8,7 +9,7 @@ const generateId = (): string =>
 
 /** Clamp concurrency value to valid range */
 const clampConcurrency = (n: number): number =>
-  Math.max(1, Math.min(10, Math.round(n)));
+  Math.max(1, Math.min(DEFAULT_MAX_CONCURRENCY, Math.round(n)));
 
 export interface UseWatermarkRemoverQueueReturn {
   items: WatermarkBatchItem[];

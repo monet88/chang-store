@@ -103,12 +103,9 @@ export interface UseClothingTransferEComPackReturn {
   packItems: EComPackItem[];
   outfitBlueprint: string | null;
   isScanningBlueprint: boolean;
-  isAnalyzingOutfit: boolean;
   setOutfitBlueprint: (blueprint: string | null) => void;
   handleScanBlueprint: () => Promise<void>;
   handleRescanBlueprint: () => Promise<void>;
-  handleAnalyzeOutfit: () => Promise<void>;
-  handleReanalyzeOutfit: () => Promise<void>;
   isGenerating: boolean;
   handleGeneratePack: () => Promise<void>;
   handleGenerateCategory: (category: 'product' | 'brand-models' | 'custom-destinations') => Promise<void>;
@@ -468,12 +465,9 @@ export const useClothingTransferEComPack = (
     setSourceOutfitNote: handleSetSourceOutfitNote,
     outfitBlueprint,
     isScanningBlueprint,
-    isAnalyzingOutfit: isScanningBlueprint,
     setOutfitBlueprint,
     handleScanBlueprint,
     handleRescanBlueprint: handleScanBlueprint,
-    handleAnalyzeOutfit: handleScanBlueprint,
-    handleReanalyzeOutfit: handleScanBlueprint,
     selectedGarmentScopes,
     toggleGarmentScope,
     brandModels,

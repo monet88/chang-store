@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAiScan } from '../contexts/AiScanContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import type { ImageFile } from '../types';
@@ -60,6 +60,13 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
 
   const { blueprint, isAnalyzing, failed } = report;
 
+  const handleRescan = useCallback(() => {
+    setReport({ blueprint: null, isAnalyzing: true, failed: false });
+    void scan(sources, userGuidance).then((blueprint) => {
+      setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
+    });
+  }, [scan, sources, userGuidance]);
+
   return (
     <div className="space-y-2">
       <button
@@ -103,12 +110,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setReport({ blueprint: null, isAnalyzing: true, failed: false });
-                      void scan(sources, userGuidance).then((blueprint) => {
-                        setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
-                      });
-                    }}
+                    onClick={handleRescan}
                     className="rounded text-[11px] text-zinc-400 underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                   >
                     {t('studio.aiScan.rescan')}
@@ -135,12 +137,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
               <span>{t('studio.aiScan.unavailable')}</span>
               <button
                 type="button"
-                onClick={() => {
-                  setReport({ blueprint: null, isAnalyzing: true, failed: false });
-                  void scan(sources, userGuidance).then((blueprint) => {
-                    setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
-                  });
-                }}
+                onClick={handleRescan}
                 className="underline transition-colors hover:text-white focus-visible:outline-none"
               >
                 {t('studio.aiScan.rescan')}

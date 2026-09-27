@@ -178,6 +178,8 @@ export const vi: Translation = {
       readySubtext: 'Qwen-Image 2.1 đã sẵn sàng',
       appOwned: 'Ứng dụng quản lý',
       external: 'Tiến trình ngoài',
+      modelUncensored: 'Không kiểm duyệt (UC)',
+      modelStandard: 'Tiêu chuẩn',
       generating: 'Đang tạo ảnh',
       generatingSubtext: 'Đang lấy mẫu với Qwen-Image 2.1 cục bộ trên ComfyUI...',
       stopped: 'ComfyUI Đã dừng',
@@ -1042,7 +1044,6 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       blueprintHide: 'Thu gọn',
       blueprintReanalyze: 'Phân tích lại',
       blueprintRescan: 'Quét lại',
-      analyzeOutfitButton: 'Quét AI bản vẽ trang phục (AI Scan)',
       scanBlueprintButton: 'Quét AI bản vẽ trang phục (AI Scan)',
       sourcePromptLabel: 'Ghi chú cho trang phục này (Tùy chọn)',
       sourcePromptPlaceholder: 'VD: "quần không phải váy", "áo dáng suông rộng, tay áo hơi phồng"',
@@ -1105,6 +1106,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
   },
   identityTransfer: {
     title: 'Đổi Mặt & Chuyển Danh Tính',
+    activeLoraBadge: 'BFS FaceSwap LoRA v1.1',
     studioNotice: 'Hỗ trợ Local Qwen (ComfyUI với BFS FaceSwap LoRA), Gemini và GPT Image.',
     providerNotice: 'Hỗ trợ Local Qwen (ComfyUI với BFS FaceSwap LoRA), Gemini và GPT Image.',
     step1: 'Bước 1: Ảnh tham chiếu chung',
@@ -1241,6 +1243,8 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       schedulerLabel: 'Scheduler',
       modelLabel: 'Mô hình Diffusion',
       modelUncensoredBadge: 'Không kiểm duyệt (Mặc định)',
+      modelStandardBadge: 'Tiêu chuẩn',
+      modelVramHint: 'RTX 8GB VRAM',
     },
     storage: {
       title: 'Dung lượng lưu trữ cục bộ',

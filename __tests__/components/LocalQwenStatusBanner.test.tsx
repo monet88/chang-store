@@ -11,6 +11,8 @@ const translations: Record<string, string> = {
   'studio.localQwenStatus.readySubtext': 'Qwen-Image 2.1 ready',
   'studio.localQwenStatus.appOwned': 'App-owned',
   'studio.localQwenStatus.external': 'External',
+  'studio.localQwenStatus.modelUncensored': 'Uncensored (UC)',
+  'studio.localQwenStatus.modelStandard': 'Standard',
   'studio.localQwenStatus.generating': 'Generating',
   'studio.localQwenStatus.generatingSubtext': 'Sampling with local Qwen-Image 2.1 on ComfyUI...',
   'studio.localQwenStatus.stopped': 'ComfyUI Stopped',

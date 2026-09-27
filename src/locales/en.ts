@@ -178,6 +178,8 @@ export const en = {
       readySubtext: 'Qwen-Image 2.1 ready',
       appOwned: 'App-owned',
       external: 'External',
+      modelUncensored: 'Uncensored (UC)',
+      modelStandard: 'Standard',
       generating: 'Generating',
       generatingSubtext: 'Sampling with local Qwen-Image 2.1 on ComfyUI...',
       stopped: 'ComfyUI Stopped',
@@ -1040,7 +1042,6 @@ Do not include any other text or markdown.
       blueprintHide: 'Hide',
       blueprintReanalyze: 'Re-analyze',
       blueprintRescan: 'Rescan',
-      analyzeOutfitButton: 'AI Scan Garment Blueprint',
       scanBlueprintButton: 'AI Scan Garment Blueprint',
       sourcePromptLabel: 'Note for This Outfit (Optional)',
       sourcePromptPlaceholder: 'e.g., "pants not skirt", "loose-fit blouse, slightly puffed sleeves"',
@@ -1103,6 +1104,7 @@ Do not include any other text or markdown.
   },
   identityTransfer: {
     title: 'Identity Transfer & Face Swap',
+    activeLoraBadge: 'BFS FaceSwap LoRA v1.1',
     studioNotice: 'Supports Local Qwen (ComfyUI with BFS FaceSwap LoRA), Gemini, and GPT Image.',
     providerNotice: 'Supports Local Qwen (ComfyUI with BFS FaceSwap LoRA), Gemini, and GPT Image.',
     step1: 'Step 1: Shared References',
@@ -1239,6 +1241,8 @@ Do not include any other text or markdown.
       schedulerLabel: 'Scheduler',
       modelLabel: 'Diffusion Model',
       modelUncensoredBadge: 'Uncensored (Default)',
+      modelStandardBadge: 'Standard',
+      modelVramHint: 'RTX 8GB VRAM',
     },
     storage: {
       title: 'Local storage usage',
