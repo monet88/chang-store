@@ -166,6 +166,7 @@ export const vi: Translation = {
       hint: 'Phân tích kết cấu vải của ảnh gốc thành bản đặc tả kỹ thuật trước khi tạo ảnh.',
       analyzing: 'AI Scan đang phân tích kết cấu vải...',
       ready: 'Đã có bản đặc tả kết cấu vải',
+      rescan: 'Quét lại',
       view: 'Xem chi tiết',
       hide: 'Thu gọn',
       unavailable: 'AI Scan không khả dụng — vẫn tạo ảnh bằng prompt gốc.',
@@ -435,6 +436,9 @@ export const vi: Translation = {
     autoDetectSuccess: 'Đã nhận diện {{count}} món đồ',
     uploadMultipleItems: 'Tải lên nhiều ảnh',
     uploadMultipleItemsTooltip: 'Chọn nhiều ảnh trang phục/phụ kiện cùng lúc (tối đa 4 ảnh)',
+    scanBlueprintButton: 'Quét AI bản vẽ trang phục',
+    scanBlueprintTooltip: 'Phân tích kỹ thuật các trang phục đã tải lên kèm ghi chú của bạn',
+    batchUploadTruncated: 'Đã đạt giới hạn tối đa 4 trang phục. Bỏ qua {{count}} ảnh vượt quá.',
     clothingUploadHint: 'Chọn loại bên dưới từng ảnh nguồn. Ví dụ: tải áo là Quần áo, quần là Quần áo, giày là Giày dép.',
     addItem: 'Thêm món đồ khác',
     sharedOutfitHint: 'Tải lên các ảnh nguồn rồi chọn loại cho từng ảnh. Cùng bộ ảnh nguồn sẽ được áp dụng cho mọi ảnh chủ thể trong batch này.',
@@ -984,6 +988,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
   clothingTransfer: {
     title: 'Chuyển Trang phục',
     editorialDescription: 'Chuyển outfit tham chiếu thành concept mới với khu tham chiếu, sân khấu concept và lưới refinement nằm trong cùng một workspace.',
+    studioNotice: 'Công cụ này hiện chỉ dùng chỉnh sửa ảnh bằng Gemini.',
     providerNotice: 'Công cụ này hiện chỉ dùng chỉnh sửa ảnh bằng Gemini.',
     step1: 'Bước 1: Tải ảnh Trang phục Tham chiếu',
     step2: 'Bước 2: Tải ảnh Concept',
@@ -1100,6 +1105,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
   },
   identityTransfer: {
     title: 'Đổi Mặt & Chuyển Danh Tính',
+    studioNotice: 'Hỗ trợ Local Qwen (ComfyUI với BFS FaceSwap LoRA), Gemini và GPT Image.',
     providerNotice: 'Hỗ trợ Local Qwen (ComfyUI với BFS FaceSwap LoRA), Gemini và GPT Image.',
     step1: 'Bước 1: Ảnh tham chiếu chung',
     sharedReferencesTitle: 'Ảnh tham chiếu danh tính & khuôn mặt',
@@ -1131,6 +1137,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
   },
   patternGenerator: {
     title: 'Tạo mẫu hoa văn',
+    studioNotice: 'Công cụ này hiện chỉ sử dụng Gemini chỉnh sửa hình ảnh.',
     providerNotice: 'Công cụ này hiện chỉ sử dụng Gemini chỉnh sửa hình ảnh.',
     referenceTitle: 'Hình ảnh tham chiếu',
     referenceHint: 'Tải lên 1 hoặc nhiều hình ảnh tham chiếu để tạo mẫu hoa văn.',

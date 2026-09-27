@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import type { ImageFile } from '../types';
-import { analyzeOutfitBlueprint } from '../services/textService';
+import { scanGarmentBlueprint } from '../services/textService';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 
 /**
@@ -90,7 +90,7 @@ export interface AiScanProviderProps {
 
 export const AiScanProvider: React.FC<AiScanProviderProps> = ({
   children,
-  analyze = analyzeOutfitBlueprint,
+  analyze = scanGarmentBlueprint,
   initialEnabled,
 }) => {
   const [enabled, setEnabledState] = useState<boolean>(() => initialEnabled ?? readEnabledPreference());

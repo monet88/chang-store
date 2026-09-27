@@ -32,7 +32,7 @@ import {
   EComPackPlanInput,
   useClothingTransferEComPackRun,
 } from './useClothingTransferEComPackRun';
-import { analyzeOutfitBlueprint } from '../services/textService';
+import { scanGarmentBlueprint } from '../services/textService';
 
 export interface UseClothingTransferEComPackConfig {
   driver: ClothingTransferImageDriver;
@@ -160,7 +160,7 @@ export const useClothingTransferEComPack = (
     async (image: ImageFile, guidance?: string): Promise<string | null> => {
       setIsScanningBlueprint(true);
       try {
-        const fn = scanBlueprintFn || analyzeOutfitBlueprintFn || analyzeOutfitBlueprint;
+        const fn = scanBlueprintFn || analyzeOutfitBlueprintFn || scanGarmentBlueprint;
         const activeGuidance = (guidance !== undefined ? guidance : outfitSourceRef.current.note)?.trim();
         const blueprint = activeGuidance
           ? await fn(image, textGenerateModel, activeGuidance)

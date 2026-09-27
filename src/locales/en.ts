@@ -166,6 +166,7 @@ export const en = {
       hint: 'Deconstructs the source garments into a textile blueprint before generating.',
       analyzing: 'AI Scan is deconstructing the fabrics...',
       ready: 'Textile blueprint ready',
+      rescan: 'Rescan',
       view: 'View blueprint',
       hide: 'Hide',
       unavailable: 'AI Scan unavailable — generating from the base prompt.',
@@ -434,6 +435,9 @@ export const en = {
     autoDetectSuccess: 'Categorized {{count}} item(s)',
     uploadMultipleItems: 'Upload Multiple Items',
     uploadMultipleItemsTooltip: 'Select multiple garment/accessory photos at once (up to 4)',
+    scanBlueprintButton: 'AI Scan Garment Blueprint',
+    scanBlueprintTooltip: 'Deconstruct uploaded garments into a technical blueprint with your notes',
+    batchUploadTruncated: 'Maximum 4 garments reached. {{count}} extra image(s) were skipped.',
     clothingUploadHint: 'Choose the type below each source image. Example: upload a shirt as Clothing, pants as Clothing, and shoes as Shoes.',
     addItem: 'Add Another Item',
     sharedOutfitHint: 'Upload source item images and choose a type for each one. The same source set will be reused for every subject image in this batch.',
@@ -982,6 +986,7 @@ Do not include any other text or markdown.
   clothingTransfer: {
     title: 'Clothing Transfer',
     editorialDescription: 'Translate reference outfits into new concept imagery with the references, concept stage, and refinement grid aligned in one workspace.',
+    studioNotice: 'This tool currently uses Gemini image editing only.',
     providerNotice: 'This tool currently uses Gemini image editing only.',
     step1: 'Step 1: Upload Reference Outfits',
     step2: 'Step 2: Upload Concept Images',
@@ -1098,6 +1103,7 @@ Do not include any other text or markdown.
   },
   identityTransfer: {
     title: 'Identity Transfer & Face Swap',
+    studioNotice: 'Supports Local Qwen (ComfyUI with BFS FaceSwap LoRA), Gemini, and GPT Image.',
     providerNotice: 'Supports Local Qwen (ComfyUI with BFS FaceSwap LoRA), Gemini, and GPT Image.',
     step1: 'Step 1: Shared References',
     sharedReferencesTitle: 'Identity & Face References',
@@ -1129,6 +1135,7 @@ Do not include any other text or markdown.
   },
   patternGenerator: {
     title: 'Pattern Generator',
+    studioNotice: 'This tool currently uses Gemini image editing only.',
     providerNotice: 'This tool currently uses Gemini image editing only.',
     referenceTitle: 'Reference Images',
     referenceHint: 'Upload 1 or more reference images for pattern generation.',

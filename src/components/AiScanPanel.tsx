@@ -10,6 +10,8 @@ interface AiScanPanelProps {
    * feature is about to generate from.
    */
   sources: ImageFile[];
+  /** Optional user directives / notes on garment architecture (e.g. "pants not skirt") */
+  userGuidance?: string;
 }
 
 /** What this panel shows: the analysis of its OWN source set. */
@@ -31,7 +33,7 @@ const IDLE_REPORT: PanelReport = { blueprint: null, isAnalyzing: false, failed: 
  * source set per job (Virtual Try-On multi-model, wardrobe, Identity Transfer),
  * so another job's blueprint, spinner or failure must not surface here.
  */
-const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
+const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
   const { t } = useLanguage();
   const { enabled, setEnabled, scan } = useAiScan();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -47,14 +49,14 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
 
     let isCurrent = true;
     setReport({ blueprint: null, isAnalyzing: true, failed: false });
-    void scan(sources).then((blueprint) => {
+    void scan(sources, userGuidance).then((blueprint) => {
       if (!isCurrent) return;
       setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
     });
     return () => {
       isCurrent = false;
     };
-  }, [enabled, sources, scan]);
+  }, [enabled, sources, userGuidance, scan]);
 
   const { blueprint, isAnalyzing, failed } = report;
 
@@ -98,13 +100,27 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
                   <span aria-hidden="true">✨</span>
                   <span>{t('studio.aiScan.ready')}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsExpanded((prev) => !prev)}
-                  className="rounded text-[11px] text-zinc-400 underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                >
-                  {isExpanded ? t('studio.aiScan.hide') : t('studio.aiScan.view')}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReport({ blueprint: null, isAnalyzing: true, failed: false });
+                      void scan(sources, userGuidance).then((blueprint) => {
+                        setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
+                      });
+                    }}
+                    className="rounded text-[11px] text-zinc-400 underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                  >
+                    {t('studio.aiScan.rescan')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsExpanded((prev) => !prev)}
+                    className="rounded text-[11px] text-zinc-400 underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                  >
+                    {isExpanded ? t('studio.aiScan.hide') : t('studio.aiScan.view')}
+                  </button>
+                </div>
               </div>
               {isExpanded && (
                 <div className="mt-2.5 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-black/40 p-2.5 font-mono text-[11px] leading-relaxed text-zinc-300">
@@ -115,9 +131,21 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
           )}
 
           {!isAnalyzing && !blueprint && failed && (
-            <p className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-300/90">
-              {t('studio.aiScan.unavailable')}
-            </p>
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-300/90">
+              <span>{t('studio.aiScan.unavailable')}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setReport({ blueprint: null, isAnalyzing: true, failed: false });
+                  void scan(sources, userGuidance).then((blueprint) => {
+                    setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
+                  });
+                }}
+                className="underline transition-colors hover:text-white focus-visible:outline-none"
+              >
+                {t('studio.aiScan.rescan')}
+              </button>
+            </div>
           )}
         </div>
       )}

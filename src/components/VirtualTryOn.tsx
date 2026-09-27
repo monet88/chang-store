@@ -11,6 +11,7 @@ import ResultPlaceholder from './shared/ResultPlaceholder';
 import ImageOptionsPanel from './ImageOptionsPanel';
 import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import AiScanPanel from './AiScanPanel';
+import { useAiScan } from '../contexts/AiScanContext';
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
 import {
   processUploadImageFile,
@@ -84,10 +85,13 @@ const VirtualTryOn: React.FC = () => {
     markerPosition,
     setMarkerPosition,
     clearMarker,
-    aiScanSources,
+    validClothingItems = [],
+    aiScanSources = [],
+    aiScanGuidance = '',
   } = useVirtualTryOn();
 
   const { t } = useLanguage();
+  const { scan, enabled: isAiScanEnabled } = useAiScan();
   const [refineOpen, setRefineOpen] = React.useState<Record<string, boolean>>({});
   const subjectContainerRef = React.useRef<HTMLDivElement>(null);
   const subjectImgRef = React.useRef<HTMLImageElement>(null);
@@ -183,7 +187,10 @@ const VirtualTryOn: React.FC = () => {
     if (!fileList || fileList.length === 0) return;
     const validImageFiles = await processMultipleImageFiles(fileList);
     if (validImageFiles.length > 0) {
-      handleMultipleClothingUpload(validImageFiles);
+      const res = handleMultipleClothingUpload(validImageFiles);
+      if (res && res.droppedCount > 0) {
+        setError(t('virtualTryOn.batchUploadTruncated', { count: res.droppedCount }));
+      }
     }
     event.target.value = '';
   };
@@ -402,6 +409,22 @@ const VirtualTryOn: React.FC = () => {
                           <span>{t('virtualTryOn.autoDetectAll')}</span>
                         </button>
                       )}
+                      {isAiScanEnabled && (validClothingItems.length > 0 || clothingItems.some((item) => item.image !== null)) && (
+                        <button
+                          type="button"
+                          id="vto-scan-blueprint-btn"
+                          data-testid="vto-scan-blueprint-btn"
+                          onClick={async () => {
+                            await scan(aiScanSources, aiScanGuidance || undefined);
+                          }}
+                          disabled={isLoading}
+                          title={t('virtualTryOn.scanBlueprintTooltip')}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition-all hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <span aria-hidden="true">✨</span>
+                          <span>{t('virtualTryOn.scanBlueprintButton')}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div data-testid="source-items-grid" className={sourceItemsGridClass}>
@@ -414,7 +437,12 @@ const VirtualTryOn: React.FC = () => {
                             title={t('virtualTryOn.clothingItemTitle', { index: index + 1 })}
                             onImageUpload={(file) => handleClothingUpload(file, item.id)}
                             allowMultiple
-                            onMultipleImagesUpload={(files) => handleMultipleClothingUpload(files, item.id)}
+                            onMultipleImagesUpload={(files) => {
+                              const res = handleMultipleClothingUpload(files, item.id);
+                              if (res && res.droppedCount > 0) {
+                                setError(t('virtualTryOn.batchUploadTruncated', { count: res.droppedCount }));
+                              }
+                            }}
                           />
                         </Tooltip>
                         <div className="mt-3 space-y-3">
@@ -566,7 +594,7 @@ const VirtualTryOn: React.FC = () => {
                     />
                   )}
 
-                  <AiScanPanel sources={aiScanSources} />
+                  <AiScanPanel sources={aiScanSources} userGuidance={aiScanGuidance || undefined} />
 
                   {!isGptImageStudio && !isLocalQwen && (
                     <Tooltip content={t('tooltips.tryOnImageCount')} position="top">

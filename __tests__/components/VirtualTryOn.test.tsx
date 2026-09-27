@@ -65,6 +65,7 @@ vi.mock('../../src/components/WardrobeSetCard', () => ({
 
 import VirtualTryOn from '../../src/components/VirtualTryOn';
 import { AiScanProvider } from '../../src/contexts/AiScanContext';
+import * as imageUtils from '../../src/utils/imageUtils';
 
 const baseHookState = {
   mode: 'multi-model' as const,
@@ -877,4 +878,55 @@ describe('VirtualTryOn component', () => {
     expect(screen.queryByText('gpt-image-options')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('virtualTryOn.numberOfImages')).not.toBeInTheDocument();
   });
+
+  it('renders VTO manual scan blueprint button when valid items exist and triggers scan', () => {
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [{ id: 1, image: { base64: 'shirt', mimeType: 'image/png' }, sourceItemType: 'clothing', sourcePrompt: 'silk shirt' }],
+      validClothingItems: [{ id: 1, image: { base64: 'shirt', mimeType: 'image/png' }, sourceItemType: 'clothing', sourcePrompt: 'silk shirt' }],
+    });
+
+    render(
+      <AiScanProvider initialEnabled={true}>
+        <VirtualTryOn />
+      </AiScanProvider>,
+    );
+
+    const scanBtn = screen.getByTestId('vto-scan-blueprint-btn');
+    expect(scanBtn).toBeInTheDocument();
+    expect(scanBtn).toHaveTextContent('virtualTryOn.scanBlueprintButton');
+  });
+
+  it('sets error warning when batch clothing upload truncates extra items', async () => {
+    const setErrorMock = vi.fn();
+    const handleMultipleClothingUploadMock = vi.fn().mockReturnValue({ uploadedCount: 2, droppedCount: 2 });
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [
+        { id: 1, image: { base64: 'item1', mimeType: 'image/png' }, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 2, image: { base64: 'item2', mimeType: 'image/png' }, sourceItemType: 'clothing', sourcePrompt: '' },
+      ],
+      handleMultipleClothingUpload: handleMultipleClothingUploadMock,
+      setError: setErrorMock,
+    });
+
+    vi.spyOn(imageUtils, 'processMultipleImageFiles').mockResolvedValueOnce([
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+      { base64: 'img3', mimeType: 'image/png' },
+      { base64: 'img4', mimeType: 'image/png' },
+    ]);
+
+    const { container } = render(<VirtualTryOn />);
+    const input = container.querySelector('#batch-clothing-upload') as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+
+    const file = new File(['dummy'], 'test.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(setErrorMock).toHaveBeenCalledWith('virtualTryOn.batchUploadTruncated');
+    });
+  });
 });
+

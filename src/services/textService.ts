@@ -251,7 +251,7 @@ export const analyzeScene = async (
   }
 };
 
-export const analyzeOutfitBlueprint = async (
+export const scanGarmentBlueprint = async (
   image: ImageFile,
   model: string = 'gemini-3.8-flash',
   userGuidance?: string,
@@ -259,12 +259,12 @@ export const analyzeOutfitBlueprint = async (
   const startTime = Date.now();
 
   try {
-    const result = await geminiTextService.analyzeOutfitBlueprint(image, model, userGuidance);
+    const result = await geminiTextService.scanGarmentBlueprint(image, model, userGuidance);
 
     logApiCall({
       provider: 'Gemini',
       model,
-      feature: 'Outfit Blueprint Analysis',
+      feature: 'AI Scan Garment Blueprint',
       prompt: userGuidance
         ? `Deconstruct outfit components into technical blueprint (Guidance: ${userGuidance})`
         : 'Deconstruct outfit components into technical blueprint',
@@ -278,7 +278,7 @@ export const analyzeOutfitBlueprint = async (
     logApiCall({
       provider: 'Gemini',
       model,
-      feature: 'Outfit Blueprint Analysis',
+      feature: 'AI Scan Garment Blueprint',
       prompt: userGuidance
         ? `Deconstruct outfit components into technical blueprint (Guidance: ${userGuidance})`
         : 'Deconstruct outfit components into technical blueprint',
@@ -289,3 +289,7 @@ export const analyzeOutfitBlueprint = async (
     throw error;
   }
 };
+
+/** @deprecated Use scanGarmentBlueprint instead (AI Scan domain term). */
+export const analyzeOutfitBlueprint = scanGarmentBlueprint;
+

@@ -53,7 +53,7 @@ const PatternGenerator: React.FC = () => {
       <div className="flex flex-col gap-6">
         <div className="space-y-2">
           <h3 className="text-xl md:text-2xl font-bold text-center flex-shrink-0">{t('patternGenerator.title')}</h3>
-          <p className="text-xs text-center text-zinc-400">{t('patternGenerator.providerNotice')}</p>
+          <p className="text-xs text-center text-zinc-400">{t('patternGenerator.studioNotice') || t('patternGenerator.providerNotice')}</p>
         </div>
 
         <div className="workspace-panel space-y-4 p-5">

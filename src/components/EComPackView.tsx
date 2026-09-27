@@ -251,7 +251,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                       className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-2.5 text-xs font-semibold text-amber-200 transition-all hover:bg-amber-500/25 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <span aria-hidden="true">✨</span>
-                      <span>{t('clothingTransfer.ecomPack.analyzeOutfitButton')}</span>
+                      <span>{t('clothingTransfer.ecomPack.scanBlueprintButton')}</span>
                     </button>
                   )}
 

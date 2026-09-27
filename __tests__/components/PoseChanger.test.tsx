@@ -52,6 +52,7 @@ vi.mock('../../src/services/imageEditingService', () => ({
 
 vi.mock('../../src/services/textService', () => ({
   generatePoseDescription: (...args: unknown[]) => generatePoseDescriptionMock(...args),
+  scanGarmentBlueprint: vi.fn(),
   analyzeOutfitBlueprint: vi.fn(),
 }));
 

@@ -280,7 +280,7 @@ Do not include stylistic opinions or hypothetical scenes.`;
   throw new Error('error.api.noTextDescription');
 };
 
-export const analyzeOutfitBlueprint = async (
+export const scanGarmentBlueprint = async (
   image: ImageFile,
   model: string = 'gemini-3.8-flash',
   userGuidance?: string,
@@ -344,10 +344,14 @@ Keep the output factual, structured, and focused strictly on clothing constructi
     }
     throw new Error('error.api.noTextDescription');
   } catch (error) {
-    console.error('Error analyzing outfit blueprint with Gemini API:', error);
+    console.error('Error scanning garment blueprint with Gemini API:', error);
     const errorMessage = error instanceof Error ? error.message : 'error.unknown';
     throw new Error(
       errorMessage.startsWith('error.') ? errorMessage : `error.api.descriptionFailed:${errorMessage}`,
     );
   }
 };
+
+/** @deprecated Use scanGarmentBlueprint instead (AI Scan domain term). */
+export const analyzeOutfitBlueprint = scanGarmentBlueprint;
+

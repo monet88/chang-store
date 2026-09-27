@@ -99,6 +99,18 @@ export const useVirtualTryOn = () => {
     [clothing.validClothingItems, subjects.subjectItems],
   );
 
+  const aiScanGuidance = useMemo(
+    () =>
+      clothing.validClothingItems
+        .map((item, idx) => {
+          const prompt = item.sourcePrompt?.trim();
+          return prompt ? `Item #${idx + 1} (${item.sourceItemType}): ${prompt}` : '';
+        })
+        .filter(Boolean)
+        .join('; '),
+    [clothing.validClothingItems],
+  );
+
   // Cuando se desactiva el modo multi-persona, limpiar el marcador automáticamente
   const setIsMultiPersonMode = useCallback((value: boolean) => {
     setIsMultiPersonModeState(value);
@@ -194,6 +206,7 @@ export const useVirtualTryOn = () => {
     generatedImages: subjects.generatedImages,
     validClothingItems: clothing.validClothingItems,
     aiScanSources,
+    aiScanGuidance,
     completedCount: subjects.completedCount,
     failedCount: subjects.failedCount,
     canGenerate,

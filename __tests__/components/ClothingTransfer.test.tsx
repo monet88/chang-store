@@ -244,7 +244,7 @@ describe('ClothingTransfer component', () => {
 
     const { rerender } = render(<ClothingTransfer />);
 
-    const analyzeBtn = screen.getByRole('button', { name: /analyzeOutfitButton/ });
+    const analyzeBtn = screen.getByRole('button', { name: /(scanBlueprintButton|analyzeOutfitButton)/ });
     expect(analyzeBtn).toBeInTheDocument();
     fireEvent.click(analyzeBtn);
     expect(handleAnalyzeOutfitMock).toHaveBeenCalled();
@@ -262,7 +262,7 @@ describe('ClothingTransfer component', () => {
     });
     rerender(<ClothingTransfer />);
     expect(screen.getByText('clothingTransfer.ecomPack.blueprintAnalyzing')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /analyzeOutfitButton/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /(scanBlueprintButton|analyzeOutfitButton)/ })).not.toBeInTheDocument();
 
     // When blueprint is ready
     useClothingTransferMock.mockReturnValue({
