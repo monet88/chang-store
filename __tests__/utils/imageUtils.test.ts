@@ -18,6 +18,7 @@ import {
   detectClosestAspectRatio,
   detectImageAspectRatio,
   extractDimensionsFromHeader,
+  processUploadImageFile,
 } from '@/utils/imageUtils';
 
 // ============================================================================
@@ -445,5 +446,66 @@ describe('detectImageAspectRatio', () => {
     const png1x1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
     const ratio = await detectImageAspectRatio({ base64: png1x1, mimeType: 'image/png' });
     expect(ratio).toBe('1:1');
+  });
+});
+
+describe('processUploadImageFile', () => {
+  it('returns null when validation fails for non-image file', async () => {
+    const textFile = new File(['hello world'], 'test.txt', { type: 'text/plain' });
+    const result = await processUploadImageFile(textFile);
+    expect(result).toBeNull();
+  });
+
+  it('safely handles FileReader error during compression fallback', async () => {
+    const imageFile = new File(['fake-png-content'], 'test.png', { type: 'image/png' });
+
+    // Mock FileReader to trigger onerror
+    const originalFileReader = globalThis.FileReader;
+    class MockFileReader {
+      public onloadend: (() => void) | null = null;
+      public onerror: (() => void) | null = null;
+      public result: unknown = null;
+      public error = new Error('Read failed');
+      readAsDataURL() {
+        setTimeout(() => {
+          this.onerror?.();
+          this.onloadend?.();
+        }, 0);
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    globalThis.FileReader = MockFileReader as any;
+
+    try {
+      const result = await processUploadImageFile(imageFile);
+      expect(result).toBeNull();
+    } finally {
+      globalThis.FileReader = originalFileReader;
+    }
+  });
+
+  it('safely handles non-string reader result during compression fallback', async () => {
+    const imageFile = new File(['fake-png-content'], 'test.png', { type: 'image/png' });
+
+    const originalFileReader = globalThis.FileReader;
+    class MockFileReader {
+      public onloadend: (() => void) | null = null;
+      public onerror: (() => void) | null = null;
+      public result: unknown = null; // null result
+      readAsDataURL() {
+        setTimeout(() => {
+          this.onloadend?.();
+        }, 0);
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    globalThis.FileReader = MockFileReader as any;
+
+    try {
+      const result = await processUploadImageFile(imageFile);
+      expect(result).toBeNull();
+    } finally {
+      globalThis.FileReader = originalFileReader;
+    }
   });
 });

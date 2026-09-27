@@ -289,9 +289,16 @@ export class LocalQwenManager {
     return model;
   }
 
+  public resolveModelInfo(forceRefresh = false): { activeModel: string; isUncensored: boolean } {
+    const activeModel = this.resolveActiveUnet(forceRefresh);
+    return {
+      activeModel,
+      isUncensored: activeModel.includes('UC'),
+    };
+  }
+
   public async getStatus(): Promise<DesktopLocalQwenStatus> {
-    const activeModel = this.resolveActiveUnet();
-    const isUncensored = activeModel.includes('UC');
+    const modelInfo = this.resolveModelInfo();
 
     if (this.state === 'generating') {
       return {
@@ -299,8 +306,7 @@ export class LocalQwenManager {
         isAppOwned: this.isAppOwned,
         port: this.port,
         progress: this.currentProgress,
-        activeModel,
-        isUncensored,
+        ...modelInfo,
       };
     }
 
@@ -343,8 +349,7 @@ export class LocalQwenManager {
         state: 'ready',
         isAppOwned: this.isAppOwned,
         port: this.port,
-        activeModel,
-        isUncensored,
+        ...modelInfo,
       };
     }
 
@@ -529,13 +534,11 @@ export class LocalQwenManager {
 
       this.state = 'ready';
       this.lastError = undefined;
-      const activeModel = this.resolveActiveUnet();
       return {
         state: 'ready',
         isAppOwned: this.isAppOwned,
         port: this.port,
-        activeModel,
-        isUncensored: activeModel.includes('UC'),
+        ...this.resolveModelInfo(),
       };
     }
 
@@ -543,13 +546,11 @@ export class LocalQwenManager {
     if (this.childProcess && !this.childProcess.killed && this.state === 'starting') {
       const ready = await this.waitForReady(this.readinessTimeoutMs);
       if (ready) {
-        const activeModel = this.resolveActiveUnet();
         return {
           state: 'ready',
           isAppOwned: true,
           port: this.port,
-          activeModel,
-          isUncensored: activeModel.includes('UC'),
+          ...this.resolveModelInfo(),
         };
       }
       throw new Error(this.lastError || 'ComfyUI server failed to start within timeout.');
@@ -686,13 +687,11 @@ export class LocalQwenManager {
     }
 
     this.state = 'ready';
-    const activeModel = this.resolveActiveUnet();
     return {
       state: 'ready',
       isAppOwned: true,
       port: this.port,
-      activeModel,
-      isUncensored: activeModel.includes('UC'),
+      ...this.resolveModelInfo(),
     };
   }
   public async stopServer(): Promise<DesktopLocalQwenStopResult> {

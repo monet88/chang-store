@@ -28,7 +28,9 @@ export interface EditImageParams {
   numberOfImages?: number;
   /** Pre-built interleaved parts (text labels + images). When provided, overrides images+prompt auto-assembly. */
   interleavedParts?: Part[];
+  /** Unified dispatch routing hint: passed through imageEditingService to engine drivers (e.g. Local Qwen). */
   feature?: string;
+  /** Workflow routing mode: passed through imageEditingService to engine drivers (e.g. Local Qwen). */
   workflow?: 'identity-transfer' | 'face-swap' | 'standard';
 }
 

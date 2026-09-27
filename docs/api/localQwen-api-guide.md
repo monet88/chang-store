@@ -109,11 +109,15 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
    - Cho phép cắm ảnh tham chiếu qua `images.image_1`, `images.image_2`, v.v.
    - Nhận `resolution` (khuyên dùng 512 trên GPU 8GB; 768/1024 là opt-in).
    - Outputs: `positive` (CONDITIONING), `negative` (CONDITIONING), `latent` (LATENT rỗng khớp kích thước).
-5. **`KSampler`:**
-   - `model`: Nối từ `UnetLoaderGGUF`.
+5. **`LoraLoaderModelOnly` (Inject điều kiện / Auto-injected):**
+   - Inject giữa `UnetLoaderGGUF` (node 1) và `KSampler` (node 7) khi kích hoạt FaceSwap / Identity Transfer hoặc khi có `loraName`.
+   - Inputs: `{"model": ["1", 0], "lora_name": effectiveLoraName, "strength_model": loraStrength}`.
+   - Output: `MODEL` (được đưa vào `KSampler.inputs.model = ["5", 0]` thay cho `["1", 0]`).
+6. **`KSampler`:**
+   - `model`: Nối từ `LoraLoaderModelOnly` (nếu có LoRA) hoặc trực tiếp từ `UnetLoaderGGUF`.
    - `positive`, `negative`, `latent_image`: Nối từ `TextEncodeQwenImage21`.
    - Khuyên dùng: `cfg: 1.0`, `sampler_name: "euler"`, `scheduler: "simple"`, `steps: 12 - 16`.
-6. **`VAEDecode` & `SaveImage`:** Giải mã latent ra ảnh và lưu vào `ComfyUI/output`.
+7. **`VAEDecode` & `SaveImage`:** Giải mã latent ra ảnh và lưu vào `ComfyUI/output`.
 
 
 ### 5.1 Endpoints & Protocol Contract (ComfyUI HTTP + WebSocket)
@@ -145,6 +149,26 @@ Chang Store's desktop bridge communicates with local ComfyUI exclusively over st
    - Handled with timeout (1500ms) to prevent UI hanging if ComfyUI queue is blocked.
 8. **`WS /ws?clientId={clientId}`**:
    - Real-time progress updates (`{"type": "progress", "data": { "value": number, "max": number }}`) and interruption notifications (`{"type": "execution_interrupted"}`).
+
+### 5.2 LoRA Injection & Workflow Routing Contract
+
+Chang Store hỗ trợ dynamic LoRA injection và workflow auto-routing trong `localQwenManager`:
+
+1. **Routing parameters (`LocalQwenGenerateParams`):**
+   - `workflow`: `'identity-transfer' | 'face-swap' | 'standard'`.
+     - `'identity-transfer'` / `'face-swap'`: bắt buộc inject BFS FaceSwap LoRA (`bfs_head_v1.1_qwen_2.1.safetensors`, strength `1.0`).
+     - `'standard'`: workflow chuẩn, vô hiệu hóa auto-detection của face-swap.
+   - `loraName`: Tên file LoRA tùy chọn đặt trong `models/loras/`.
+   - `loraStrength`: Cường độ LoRA (`number`, mặc định `1.0`).
+   - `unetName`: Chỉ định mô hình DiT cụ thể (mặc định tự động phân giải qua `resolveActiveUnet()`).
+
+2. **Auto-Detection Heuristic (`isFaceSwapPrompt`):**
+   - Khi không chỉ định `workflow: 'standard'` và không truyền `loraName`, hệ thống tự động quét prompt để phát hiện tác vụ đổi mặt / hoán đổi danh tính:
+     - Header checks: `QWEN IDENTITY TRANSFER SPECIFICATION`, `QWEN BRAND MODEL SPECIFICATION`, `IDENTITY TRANSFER`, `head_swap`.
+     - Từ khóa tiếng Anh: `face swap`, `faceswap`, `swap face`, `head swap`, `replace face`, `facial identity`.
+     - Từ khóa tiếng Việt: `đổi mặt`, `hoán đổi mặt`, `ghép mặt`, `thay mặt`, `đổi khuôn mặt`, `thay khuôn mặt`, `chuyển mặt`, `chuyển danh tính`.
+   - Khi phát hiện khớp, hệ thống tự động gán `effectiveLoraName = 'bfs_head_v1.1_qwen_2.1.safetensors'` (strength `1.0`) và tự động chèn node `LoraLoaderModelOnly`.
+
 ---
 
 ## 6. Cấu hình nhẹ khuyến nghị cho GPU 8GB

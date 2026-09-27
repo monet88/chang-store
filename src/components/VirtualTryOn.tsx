@@ -170,7 +170,7 @@ const VirtualTryOn: React.FC = () => {
     if (clothingItems.length === 1) return 'space-y-3';
     if (clothingItems.length === 2) return 'grid gap-4 grid-cols-1 sm:grid-cols-2';
     if (clothingItems.length === 3) return 'grid gap-4 grid-cols-1 sm:grid-cols-3';
-    return 'grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4';
+    return 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
   }, [clothingItems.length]);
 
   const handleBatchClothingUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

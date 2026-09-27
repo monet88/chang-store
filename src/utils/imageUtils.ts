@@ -219,13 +219,21 @@ export const processUploadImageFile = async (file: File): Promise<ImageFile | nu
     if (import.meta.env.DEV) {
       console.error('Error compressing image, falling back to original file:', error);
     }
-    return new Promise<ImageFile>((resolve) => {
+    return new Promise<ImageFile | null>((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
           const base64String = reader.result.substring(reader.result.indexOf(',') + 1);
           resolve({ base64: base64String, mimeType: file.type });
+        } else {
+          resolve(null);
         }
+      };
+      reader.onerror = (err) => {
+        if (import.meta.env.DEV) {
+          console.error('FileReader error on fallback:', err);
+        }
+        resolve(null);
       };
       reader.readAsDataURL(file);
     });
