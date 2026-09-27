@@ -101,7 +101,8 @@ export interface UseClothingTransferEComPackReturn {
   packItems: EComPackItem[];
   outfitBlueprint: string | null;
   isScanningBlueprint: boolean;
-  setOutfitBlueprint: (blueprint: string | null) => void;
+  /** Operator edit of the blueprint text; marks it hand-owned so a later note change keeps it. */
+  editOutfitBlueprint: (blueprint: string) => void;
   handleScanBlueprint: () => Promise<void>;
   isGenerating: boolean;
   handleGeneratePack: () => Promise<void>;
@@ -147,6 +148,9 @@ export const useClothingTransferEComPack = (
     });
   }, []);
   const [outfitBlueprint, setOutfitBlueprint] = useState<string | null>(null);
+  // A blueprint the operator typed is their work, not a cache entry: a later
+  // note change drops an untouched scan but must never discard it.
+  const [isBlueprintEdited, setIsBlueprintEdited] = useState(false);
   const [isScanningBlueprint, setIsScanningBlueprint] = useState(false);
 
   const scanBlueprint = useCallback(
@@ -154,13 +158,15 @@ export const useClothingTransferEComPack = (
       setIsScanningBlueprint(true);
       try {
         const fn = scanBlueprintFn || scanGarmentBlueprint;
-        const activeGuidance = (guidance !== undefined ? guidance : outfitSourceRef.current.note)?.trim();
-        const blueprint = await fn(image, textGenerateModel, activeGuidance || undefined);
-        // Only publish when this analysis still belongs to the active outfit:
-        // swapping the photo while an earlier analysis is in flight must never
-        // label the new outfit with the old blueprint.
-        if (outfitSourceRef.current.image === image) {
+        const sentNote = (guidance !== undefined ? guidance : outfitSourceRef.current.note)?.trim() || undefined;
+        const blueprint = await fn(image, textGenerateModel, sentNote);
+        // Publish only while this analysis still belongs to the active outfit:
+        // swapping the photo, or retyping the note that steers the analysis,
+        // must never label the current state with the previous answer.
+        const currentNote = outfitSourceRef.current.note?.trim() || undefined;
+        if (outfitSourceRef.current.image === image && currentNote === sentNote) {
           setOutfitBlueprint(blueprint);
+          setIsBlueprintEdited(false);
         }
         return blueprint;
       } catch (err) {
@@ -183,6 +189,7 @@ export const useClothingTransferEComPack = (
         return next;
       });
       setOutfitBlueprint(null);
+      setIsBlueprintEdited(false);
       // A scan in flight for the previous photo will never publish (see
       // scanBlueprint) and so never clears the flag either: without this the
       // spinner sticks forever and the rescan button stays hidden.
@@ -199,12 +206,20 @@ export const useClothingTransferEComPack = (
         return next;
       });
       // The published blueprint was analysed under the previous note, and the
-      // note outranks every visual cue (CONTEXT.md, AI Scan). Editing it makes
-      // that blueprint stale, so it goes until the operator rescans.
-      setOutfitBlueprint(null);
+      // note outranks every visual cue (CONTEXT.md, AI Scan), so an untouched
+      // scan goes until the operator rescans. A hand-edited one stays: the note
+      // itself still rides into the generation prompt.
+      if (!isBlueprintEdited) {
+        setOutfitBlueprint(null);
+      }
     },
-    [],
+    [isBlueprintEdited],
   );
+
+  const handleEditOutfitBlueprint = useCallback((blueprint: string) => {
+    setOutfitBlueprint(blueprint);
+    setIsBlueprintEdited(true);
+  }, []);
 
   const handleScanBlueprint = useCallback(async () => {
     if (outfitSourceRef.current.image) {
@@ -465,7 +480,7 @@ export const useClothingTransferEComPack = (
     setSourceOutfitNote: handleSetSourceOutfitNote,
     outfitBlueprint,
     isScanningBlueprint,
-    setOutfitBlueprint,
+    editOutfitBlueprint: handleEditOutfitBlueprint,
     handleScanBlueprint,
     selectedGarmentScopes,
     toggleGarmentScope,

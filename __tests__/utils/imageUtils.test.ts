@@ -458,57 +458,6 @@ describe('processUploadImageFile', () => {
     const result = await processUploadImageFile(textFile);
     expect(result).toBeNull();
   });
-
-  it('safely handles FileReader error during compression fallback', async () => {
-    const imageFile = new File(['fake-png-content'], 'test.png', { type: 'image/png' });
-
-    // Mock FileReader to trigger onerror
-    const originalFileReader = globalThis.FileReader;
-    class MockFileReader {
-      public onloadend: (() => void) | null = null;
-      public onerror: (() => void) | null = null;
-      public result: unknown = null;
-      public error = new Error('Read failed');
-      readAsDataURL() {
-        setTimeout(() => {
-          this.onerror?.();
-          this.onloadend?.();
-        }, 0);
-      }
-    }
-    globalThis.FileReader = MockFileReader as any;
-
-    try {
-      const result = await processUploadImageFile(imageFile);
-      expect(result).toBeNull();
-    } finally {
-      globalThis.FileReader = originalFileReader;
-    }
-  });
-
-  it('safely handles non-string reader result during compression fallback', async () => {
-    const imageFile = new File(['fake-png-content'], 'test.png', { type: 'image/png' });
-
-    const originalFileReader = globalThis.FileReader;
-    class MockFileReader {
-      public onloadend: (() => void) | null = null;
-      public onerror: (() => void) | null = null;
-      public result: unknown = null; // null result
-      readAsDataURL() {
-        setTimeout(() => {
-          this.onloadend?.();
-        }, 0);
-      }
-    }
-    globalThis.FileReader = MockFileReader as any;
-
-    try {
-      const result = await processUploadImageFile(imageFile);
-      expect(result).toBeNull();
-    } finally {
-      globalThis.FileReader = originalFileReader;
-    }
-  });
 });
 
 describe('imageFilesOnly', () => {

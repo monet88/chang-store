@@ -342,7 +342,10 @@ export class LocalQwenManager {
    * unknown install are left to ComfyUI to report.
    */
   private assertFaceSwapLoraAvailable(): void {
-    const info = this.resolveModelInfo();
+    // Always from disk: the 30s cache exists to throttle the UI poll, not to
+    // gate admission — a job retried right after the user placed the LoRA must
+    // not be rejected by the answer the poll recorded before the fix.
+    const info = this.resolveModelInfo(true);
     if (info.activeModel && info.faceSwapLoraAvailable === false) {
       throw new Error(
         `Face swap LoRA not found in the configured ComfyUI install: ${FACE_SWAP_LORA_NAME} (models/loras). ` +
@@ -356,6 +359,13 @@ export class LocalQwenManager {
    * it through `resolveComfyRoot`, the same root generation loads models from.
    */
   public async getStatus(folder?: string): Promise<DesktopLocalQwenStatus> {
+    // The root is a funnel, not a badge-only value: the generate path resolves
+    // it with no folder of its own, so unless the app started the server the
+    // renderer's configured folder has to be recorded here. A folder the app
+    // started from stays authoritative and is never overwritten.
+    if (!this.isAppOwned) {
+      this.comfyUiFolder = folder?.trim() || this.comfyUiFolder;
+    }
     const modelInfo = this.resolveModelInfo(false, folder);
 
     if (this.state === 'generating') {
@@ -959,7 +969,9 @@ export class LocalQwenManager {
         this.assertFaceSwapLoraAvailable();
       }
 
-      const unetName = params.unetName || this.resolveActiveUnet() || DEFAULT_QWEN_UNET_NAME;
+      // Fresh for the same reason: a unet installed moments ago must win over
+      // the fallback the status poll cached before it.
+      const unetName = params.unetName || this.resolveActiveUnet(true) || DEFAULT_QWEN_UNET_NAME;
 
       const workflow: Record<string, unknown> = {
         '1': {

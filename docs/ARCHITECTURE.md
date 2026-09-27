@@ -299,6 +299,12 @@ parallel requests (see `resolveEngineConcurrency` in
 `src/utils/engineDispatch.ts`), and no native upscale (upscale is a
 preservation-prompted edit at the largest quality).
 
+Job concurrency is not the same thing as request concurrency: a job may fan out
+one request per output image, so 10 jobs of 4 images would put 40 requests on
+the wire. Every cloud lane therefore goes through one shared gate of 10
+in-flight requests (`withImageRequestSlot` in `src/utils/request-slots.ts`),
+which the Gemini and GPT lanes share.
+
 Local Qwen is desktop-only and intentionally narrower. It ships as a serial
 engine (one active job at a time), defaults to 512 px on the target 8 GB GPU,
 keeps upscale as a separate explicit user action, never falls back to cloud

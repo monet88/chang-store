@@ -44,16 +44,22 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
   // report of a later one.
   const runIdRef = useRef(0);
 
+  // Guidance is read through a ref, not a dependency: the pre-scan below is
+  // keyed to the source set alone, so typing a note cannot re-fire a paid
+  // analysis. A changed note reaches the analyzer through Rescan.
+  const guidanceRef = useRef(userGuidance);
+  guidanceRef.current = userGuidance;
+
   const runScan = useCallback((forceRefresh = false) => {
     const runId = ++runIdRef.current;
     setReport({ blueprint: null, isAnalyzing: true, failed: false });
-    void scan(sources, userGuidance, forceRefresh).then((blueprint) => {
+    void scan(sources, guidanceRef.current, forceRefresh).then((blueprint) => {
       if (runId !== runIdRef.current) return;
       setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
     });
-  }, [scan, sources, userGuidance]);
+  }, [scan, sources]);
 
-  /** Manual Rescan: the analyzer runs again instead of replaying the cache. */
+  /** Manual Rescan: the analyzer runs again, under the current note. */
   const rescan = useCallback(() => runScan(true), [runScan]);
 
   // Pre-scan as soon as the sources change. Repeat runs are free: `scan` reuses

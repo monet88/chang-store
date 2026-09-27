@@ -750,7 +750,7 @@ describe('useClothingTransferEComPack', () => {
     // Update blueprint actively before regenerate
     const updatedBlueprint = '[CORE_GARMENTS]\nUpdated Cotton Tunic';
     act(() => {
-      result.current.setOutfitBlueprint(updatedBlueprint);
+      result.current.editOutfitBlueprint(updatedBlueprint);
     });
 
     const destinationItemId = result.current.packItems[1].id;
@@ -879,5 +879,117 @@ describe('useClothingTransferEComPack', () => {
     expect(scanMock).toHaveBeenCalledWith(mockImage('scan-src'), 'gemini-3.8-flash', 'long coat');
     expect(result.current.outfitBlueprint).toBe('[CORE_GARMENTS]\nWool overcoat');
     expect(result.current.isScanningBlueprint).toBe(false);
+  });
+  it('keeps a hand-edited blueprint when the outfit note changes', async () => {
+    const scanMock = vi.fn().mockResolvedValue('[CORE_GARMENTS]\nWool overcoat');
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gemini-2.5-flash-image',
+        engineId: 'gemini',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        scanBlueprintFn: scanMock,
+      }),
+    );
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('scan-src'));
+    });
+    await act(async () => {
+      await result.current.handleScanBlueprint();
+    });
+    expect(result.current.outfitBlueprint).toBe('[CORE_GARMENTS]\nWool overcoat');
+
+    // The operator corrects the blueprint by hand...
+    act(() => {
+      result.current.editOutfitBlueprint('[CORE_GARMENTS]\nWide-leg trousers, not a skirt');
+    });
+    // ...and then keeps typing the note. That typed text is the operator's too:
+    // invalidating the scan must not throw it away without a word.
+    act(() => {
+      result.current.setSourceOutfitNote('wide-leg trousers');
+    });
+
+    expect(result.current.outfitBlueprint).toBe('[CORE_GARMENTS]\nWide-leg trousers, not a skirt');
+  });
+
+  it('drops an untouched blueprint when the outfit note changes', async () => {
+    const scanMock = vi.fn().mockResolvedValue('[CORE_GARMENTS]\nWool overcoat');
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gemini-2.5-flash-image',
+        engineId: 'gemini',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        scanBlueprintFn: scanMock,
+      }),
+    );
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('scan-src'));
+    });
+    await act(async () => {
+      await result.current.handleScanBlueprint();
+    });
+    expect(result.current.outfitBlueprint).toBe('[CORE_GARMENTS]\nWool overcoat');
+
+    act(() => {
+      result.current.setSourceOutfitNote('trousers, not a skirt');
+    });
+
+    // Scanned under the old note, so stale — the operator must rescan.
+    expect(result.current.outfitBlueprint).toBeNull();
+  });
+
+  it('never publishes a scan that was analysed under an earlier outfit note', async () => {
+    const inFlight = createDeferred<string>();
+    const scanMock = vi.fn().mockReturnValueOnce(inFlight.promise);
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gemini-2.5-flash-image',
+        engineId: 'gemini',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        scanBlueprintFn: scanMock,
+      }),
+    );
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('scan-src'));
+    });
+    act(() => {
+      void result.current.handleScanBlueprint();
+    });
+    expect(result.current.isScanningBlueprint).toBe(true);
+
+    // The note that steers the analysis changes while it is in flight.
+    act(() => {
+      result.current.setSourceOutfitNote('trousers, not a skirt');
+    });
+    await act(async () => {
+      inFlight.resolve('[CORE_GARMENTS]\nanalysed without the note');
+    });
+
+    // Same photo, different directive: the answer belongs to a state that no
+    // longer exists, so the blueprint card must not claim to be ready.
+    expect(result.current.outfitBlueprint).toBeNull();
   });
 });

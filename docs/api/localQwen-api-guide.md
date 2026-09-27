@@ -181,10 +181,10 @@ Chang Store hỗ trợ dynamic LoRA injection và workflow auto-routing trong `l
    - Khi phát hiện khớp, hệ thống tự động gán `effectiveLoraName = 'bfs_head_v1.1_qwen_2.1.safetensors'` (strength `1.0`) và tự động chèn node `LoraLoaderModelOnly`.
 
 3. **Model detection contract (`resolveActiveUnet` / `resolveModelInfo`):**
-   - Một folder duy nhất cho cả detection và generation: folder mà app đã start server (`startServer(folder)`) là chuẩn vì đó là tiến trình đang phục vụ model; khi chưa start server nào thì mới dùng `comfyUiPath` renderer gửi qua `getStatus(folder)`, sau đó tới `KNOWN_PORTABLE_COMFYUI_PATH`. Nhờ vậy badge UC và fail-fast LoRA không bao giờ mô tả một install mà job không chạy trên đó.
+   - Một folder duy nhất cho cả detection và generation: folder mà app đã start server (`startServer(folder)`) là chuẩn vì đó là tiến trình đang phục vụ model; khi app **không** sở hữu tiến trình, `getStatus(folder)` ghi lại `comfyUiPath` renderer gửi lên và chính giá trị đó là root mà `generateImage` dùng (generate không mang folder riêng); sau cùng mới tới `KNOWN_PORTABLE_COMFYUI_PATH`. Nhờ vậy badge UC và fail-fast LoRA không bao giờ mô tả một install mà job không chạy trên đó.
    - `resolveActiveUnet()` trả `string | null`: `null` nghĩa là *không* unet nào có trên disk. `null` không bao giờ biến thành filename trong status — `activeModel` / `isUncensored` giữ `undefined`, nên install không có model sẽ không hiện badge `Uncensored (UC)`.
    - Cùng một lượt dò còn ra `faceSwapLoraAvailable` (BFS) và `turboLoraAvailable` (turbo) từ `models/loras/`; cả hai `undefined` khi chưa unet nào resolve được (folder chưa xác định).
-   - Kết quả detection cache theo folder trong 30s; `invalidateModelCache()` chạy khi `startServer` đổi folder.
+   - Kết quả detection cache theo folder trong 30s; `invalidateModelCache()` chạy khi `startServer` đổi folder. Cache chỉ phục vụ poll của UI: đường admission của job (`assertFaceSwapLoraAvailable`, `resolveActiveUnet` trong `generateImage`) đọc thẳng từ disk, nên cài LoRA/unet xong bấm lại trong 30s vẫn được nhận.
 
 4. **Fail-fast khi thiếu face swap LoRA:**
    - LoRA BFS được tự chọn (`effectiveLoraName === 'bfs_head_v1.1_qwen_2.1.safetensors'` và caller không truyền `loraName`) mà `faceSwapLoraAvailable === false` → ném lỗi trước khi xếp workflow: `Face swap LoRA not found in the configured ComfyUI install: … (models/loras)`. ComfyUI không kịp trả `Value not in list: lora_name`.

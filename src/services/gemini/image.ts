@@ -6,11 +6,9 @@ import { getModelCapabilities, resolveImageSizeConfig } from '../../config/model
 import { runBoundedWorkers } from '../../utils/run-bounded-workers';
 import { appendNegativePrompt, negativePromptSentence } from '../../utils/negative-prompt-builder';
 import { DEFAULT_MAX_CONCURRENCY, type LocalQwenWorkflow } from '../../utils/engineDispatch';
+import { withImageRequestSlot } from '../../utils/request-slots';
 
 const PROXY_IMAGE_TIMEOUT_MS = 30_000;
-
-let activeGeminiImageRequests = 0;
-const geminiImageRequestQueue: Array<() => void> = [];
 
 export interface GeneratedImageFile extends ImageFile {
   metadata?: {
@@ -118,33 +116,6 @@ const splitIntoBatches = (count: number, batchSize: number): number[] => {
   return batches;
 };
 
-const acquireGeminiImageRequestSlot = async (): Promise<void> => {
-  if (activeGeminiImageRequests < DEFAULT_MAX_CONCURRENCY) {
-    activeGeminiImageRequests += 1;
-    return;
-  }
-
-  await new Promise<void>((resolve) => {
-    geminiImageRequestQueue.push(() => {
-      activeGeminiImageRequests += 1;
-      resolve();
-    });
-  });
-};
-
-const releaseGeminiImageRequestSlot = (): void => {
-  activeGeminiImageRequests -= 1;
-  geminiImageRequestQueue.shift()?.();
-};
-
-const withGeminiImageRequestSlot = async <T>(task: () => Promise<T>): Promise<T> => {
-  await acquireGeminiImageRequestSlot();
-  try {
-    return await task();
-  } finally {
-    releaseGeminiImageRequestSlot();
-  }
-};
 
 const generateProxyImage = async (
   prompt: string,
@@ -154,7 +125,7 @@ const generateProxyImage = async (
   const ai = getGeminiClient();
   const request = buildProxyImageRequest(prompt, aspectRatio);
 
-  const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
+  const response = await withImageRequestSlot(() => ai.models.generateContent({
     model,
     ...request,
   }));
@@ -194,7 +165,7 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
         imageConfig.imageSize = imageSize;
       }
 
-      const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
+      const response = await withImageRequestSlot(() => ai.models.generateContent({
         model,
         contents: [{ role: 'user', parts: contentParts }],
         config: {
@@ -245,7 +216,7 @@ export const generateImageFromText = async (
           Array.from({ length: batchSize }, (_, index) => index),
           batchSize,
           async (index) => {
-            const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
+            const response = await withImageRequestSlot(() => ai.models.generateContent({
               model,
               contents: [{ role: 'user', parts: [{ text: prompt }] }],
               config: {
@@ -287,7 +258,7 @@ export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '
     const textPart: Part = { text: prompt ?? `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
     const imageSize = resolveImageSizeConfig(model, quality);
 
-    const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
+    const response = await withImageRequestSlot(() => ai.models.generateContent({
       model,
       contents: [{ role: 'user', parts: [imagePart, textPart] }],
       config: {

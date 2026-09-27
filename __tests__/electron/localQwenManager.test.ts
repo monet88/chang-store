@@ -1034,6 +1034,51 @@ describe('LocalQwenManager', () => {
         removeComfyFixture(bareInstall);
       }
     });
+    it('resolves the job root from the folder the status poll reported, not the portable default', async () => {
+      const { manager } = createMockPromptManager();
+      // ComfyUI is running externally, so the app never started it and holds
+      // no root of its own: the renderer's configured install is the only one
+      // both the badge and this job can agree on.
+      manager.comfyUiFolder = undefined;
+      const configured = createComfyFixture({ unets: [DEFAULT_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(configured);
+
+      try {
+        await manager.getStatus(configured);
+
+        await expect(
+          manager.generateImage({
+            prompt: 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face from <image_1> to <image_2>',
+          }),
+        ).rejects.toThrow(new RegExp(`Face swap LoRA not found.*${FACE_SWAP_LORA_NAME}`));
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(configured);
+      }
+    });
+
+    it('re-reads the LoRA from disk so a job retried after installing it is not rejected', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager();
+      const installing = createComfyFixture({ unets: [DEFAULT_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(installing);
+      manager.comfyUiFolder = installing;
+      const identityPrompt = 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face from <image_1> to <image_2>';
+
+      try {
+        await expect(manager.generateImage({ prompt: identityPrompt }))
+          .rejects.toThrow(new RegExp(`Face swap LoRA not found.*${FACE_SWAP_LORA_NAME}`));
+
+        // The user drops the LoRA into the install and hits retry, well inside
+        // the 30s status-poll cache window.
+        fs.writeFileSync(path.join(installing, 'models', 'loras', FACE_SWAP_LORA_NAME), '');
+
+        await manager.generateImage({ prompt: identityPrompt });
+        expect(getSentWorkflow()?.['5'].inputs.lora_name).toBe(FACE_SWAP_LORA_NAME);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(installing);
+      }
+    });
   });
 
   describe('isFaceSwapPrompt refusal guard', () => {

@@ -67,7 +67,7 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
     sourceOutfitNote,
     setSourceOutfitNote,
     outfitBlueprint,
-    setOutfitBlueprint,
+    editOutfitBlueprint,
     isScanningBlueprint,
     handleScanBlueprint,
     selectedGarmentScopes,
@@ -282,8 +282,10 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                       {showBlueprint && (
                         <div className="mt-2.5 space-y-1">
                           <textarea
+                            id="ecom-pack-blueprint"
+                            aria-label={t('clothingTransfer.ecomPack.blueprintReady')}
                             value={outfitBlueprint || ''}
-                            onChange={(e) => setOutfitBlueprint(e.target.value)}
+                            onChange={(e) => editOutfitBlueprint(e.target.value)}
                             rows={8}
                             className="w-full resize-y rounded-lg border border-white/10 bg-black/40 p-2.5 font-mono text-[11px] leading-relaxed text-zinc-300 placeholder:text-zinc-500 focus:border-amber-500/50 focus:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/50"
                             placeholder={t('clothingTransfer.ecomPack.blueprintPlaceholder')}

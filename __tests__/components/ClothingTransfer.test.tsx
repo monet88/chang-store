@@ -60,7 +60,7 @@ const baseHookState = {
     toggleGarmentScope: vi.fn(),
     outfitBlueprint: null,
     isScanningBlueprint: false,
-    setOutfitBlueprint: vi.fn(),
+    editOutfitBlueprint: vi.fn(),
     handleScanBlueprint: vi.fn(),
     brandModels: [],
     selectedBrandModelIds: [],
