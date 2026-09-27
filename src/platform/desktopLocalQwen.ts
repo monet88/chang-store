@@ -42,6 +42,8 @@ export interface LocalQwenGenerateParams {
   sampler?: string;
   scheduler?: string;
   seed?: number;
+  loraName?: string;
+  loraStrength?: number;
 }
 
 export interface LocalQwenGenerateResult {

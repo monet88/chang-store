@@ -801,6 +801,34 @@ export class LocalQwenManager {
       const cfg = params.cfg ?? 1.0;
       const seed = params.seed ?? Math.floor(Math.random() * 1_000_000_000);
 
+      const defaultFaceSwapLora = 'bfs_head_v1.1_qwen_2.1.safetensors';
+      const promptLower = (params.prompt || '').toLowerCase();
+      const isIdentityTransferPrompt =
+        Boolean(params.prompt) &&
+        (params.prompt.includes('QWEN IDENTITY TRANSFER SPECIFICATION') ||
+          params.prompt.includes('QWEN BRAND MODEL SPECIFICATION') ||
+          params.prompt.includes('IDENTITY TRANSFER') ||
+          params.prompt.includes('head_swap') ||
+          promptLower.includes('face swap') ||
+          promptLower.includes('faceswap') ||
+          promptLower.includes('swap face') ||
+          promptLower.includes('head swap') ||
+          promptLower.includes('replace face') ||
+          promptLower.includes('facial identity') ||
+          promptLower.includes('đổi mặt') ||
+          promptLower.includes('hoán đổi mặt') ||
+          promptLower.includes('ghép mặt') ||
+          promptLower.includes('thay mặt') ||
+          promptLower.includes('đổi khuôn mặt') ||
+          promptLower.includes('thay khuôn mặt') ||
+          promptLower.includes('chuyển mặt') ||
+          promptLower.includes('chuyển danh tính'));
+
+      const effectiveLoraName = params.loraName ?? (isIdentityTransferPrompt ? defaultFaceSwapLora : undefined);
+      const loraStrength = typeof params.loraStrength === 'number' && Number.isFinite(params.loraStrength)
+        ? params.loraStrength
+        : 1.0;
+
       const workflow: Record<string, unknown> = {
         '1': {
           class_type: 'UnetLoaderGGUF',
@@ -822,6 +850,19 @@ export class LocalQwenManager {
           },
         },
       };
+
+      let modelTarget: [string, number] = ['1', 0];
+      if (effectiveLoraName) {
+        workflow['5'] = {
+          class_type: 'LoraLoaderModelOnly',
+          inputs: {
+            model: ['1', 0],
+            lora_name: effectiveLoraName,
+            strength_model: loraStrength,
+          },
+        };
+        modelTarget = ['5', 0];
+      }
 
       const textEncodeInputs: Record<string, unknown> = {
         clip: ['2', 0],
@@ -850,7 +891,7 @@ export class LocalQwenManager {
       workflow['7'] = {
         class_type: 'KSampler',
         inputs: {
-          model: ['1', 0],
+          model: modelTarget,
           positive: ['4', 0],
           negative: ['4', 1],
           latent_image: ['4', 2],
@@ -1196,7 +1237,7 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
   const input = requireRecord(value, 'generate params');
   assertOnlyKeys(
     input,
-    ['prompt', 'negativePrompt', 'images', 'resolution', 'steps', 'cfg', 'sampler', 'scheduler', 'seed'],
+    ['prompt', 'negativePrompt', 'images', 'resolution', 'steps', 'cfg', 'sampler', 'scheduler', 'seed', 'loraName', 'loraStrength'],
     'generate params',
   );
 
@@ -1316,6 +1357,23 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
     seed = input.seed;
   }
 
+  let loraName: string | undefined;
+  if (input.loraName !== undefined) {
+    if (typeof input.loraName !== 'string') {
+      throw new Error('Invalid local Qwen loraName: must be a string.');
+    }
+    const trimmed = input.loraName.trim();
+    loraName = trimmed || undefined;
+  }
+
+  let loraStrength: number | undefined;
+  if (input.loraStrength !== undefined) {
+    if (typeof input.loraStrength !== 'number' || !Number.isFinite(input.loraStrength)) {
+      throw new Error('Invalid local Qwen loraStrength: must be a finite number.');
+    }
+    loraStrength = input.loraStrength;
+  }
+
   return {
     prompt,
     negativePrompt,
@@ -1326,6 +1384,8 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
     sampler,
     scheduler,
     seed,
+    loraName,
+    loraStrength,
   };
 };
 

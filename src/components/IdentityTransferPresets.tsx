@@ -17,6 +17,53 @@ export interface PresetCategory {
 
 export const IDENTITY_TRANSFER_PRESETS: PresetCategory[] = [
   {
+    id: 'face-swap',
+    icon: '👤',
+    title: { vi: 'Đổi mặt & Biểu cảm', en: 'Face Swap & Expression' },
+    items: [
+      {
+        id: 'natural-face-blend',
+        icon: '🎯',
+        label: {
+          vi: 'Khớp liền mạch góc nghiêng & ánh sáng',
+          en: 'Seamless Face Angle & Lighting Blend',
+        },
+        prompt:
+          'Seamless head and face angle alignment with identical skin tone luminance, soft ambient occlusion at jawline, and natural hairline integration.',
+      },
+      {
+        id: 'gentle-smile',
+        icon: '✨',
+        label: {
+          vi: 'Nụ cười tươi tắn tự nhiên',
+          en: 'Gentle Charming Smile',
+        },
+        prompt:
+          'Gentle charming natural smile with soft lip curve and warm bright eyes matching the face reference identity.',
+      },
+      {
+        id: 'elegant-gaze',
+        icon: '💎',
+        label: {
+          vi: 'Thần thái sang chảnh tự tin',
+          en: 'Confident Elegant Gaze',
+        },
+        prompt:
+          'Confident high-fashion relaxed expression with sharp engaging gaze and photogenic jawline.',
+      },
+      {
+        id: 'sharp-features',
+        icon: '🔍',
+        label: {
+          vi: 'Đường nét sắc sảo, chân thực',
+          en: 'Crisp Facial Bone Structure',
+        },
+        prompt:
+          'Crisp bone structure, delicate defined nose bridge, natural skin texture with visible pores, no plastic smoothing.',
+      },
+    ],
+  },
+  {
     id: 'body',
     icon: '⏳',
     title: { vi: 'Vóc dáng', en: 'Body' },
