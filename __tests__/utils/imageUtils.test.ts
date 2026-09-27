@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as imageUtils from '@/utils/imageUtils';
 import {
   getImageDimensions,
   blobToBase64,
@@ -19,6 +20,7 @@ import {
   detectImageAspectRatio,
   extractDimensionsFromHeader,
   processUploadImageFile,
+  processMultipleImageFiles,
 } from '@/utils/imageUtils';
 
 // ============================================================================
@@ -507,5 +509,27 @@ describe('processUploadImageFile', () => {
     } finally {
       globalThis.FileReader = originalFileReader;
     }
+  });
+});
+
+describe('processMultipleImageFiles', () => {
+  it('filters out non-image files and processes valid image files', async () => {
+    const textFile = new File(['text content'], 'notes.txt', { type: 'text/plain' });
+    const imageFile = new File(['fake-image-bytes'], 'photo.png', { type: 'image/png' });
+    const mockProcessor = vi.fn().mockResolvedValue({
+      base64: 'valid-base64',
+      mimeType: 'image/png',
+    });
+
+    const results = await processMultipleImageFiles([textFile, imageFile], mockProcessor);
+    expect(results).toHaveLength(1);
+    expect(results[0]).toEqual({ base64: 'valid-base64', mimeType: 'image/png' });
+    expect(mockProcessor).toHaveBeenCalledTimes(1);
+    expect(mockProcessor).toHaveBeenCalledWith(imageFile);
+  });
+
+  it('returns empty array when given no files', async () => {
+    const results = await processMultipleImageFiles([]);
+    expect(results).toEqual([]);
   });
 });

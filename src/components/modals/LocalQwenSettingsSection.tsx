@@ -11,12 +11,16 @@ import {
   useLocalQwenSettings,
 } from '../../hooks/useLocalQwenSettings';
 import { getDesktopLocalQwenApi } from '../../platform/desktopLocalQwen';
+import { useLocalQwenStatus } from '../../hooks/useLocalQwenStatus';
 import { SectionCard } from './SettingsDataSection';
 import { fieldLabelClassName, inputClassName } from './GatewayProfileRow';
 
 export const LocalQwenSettingsSection: React.FC = () => {
   const { t } = useLanguage();
   const { settings, updateSetting } = useLocalQwenSettings();
+  const { status } = useLocalQwenStatus();
+  const activeModelName = status?.activeModel || 'qwen-image-2.1-UC-Q4_K_M.gguf';
+  const isUncensored = status?.isUncensored ?? (status?.activeModel ? status.activeModel.includes('UC') : true);
 
   const [isDetectedPathExisting, setIsDetectedPathExisting] = React.useState(false);
 
@@ -93,18 +97,26 @@ export const LocalQwenSettingsSection: React.FC = () => {
           />
         </div>
 
-        {/* Model (Default Uncensored) */}
+        {/* Model (Dynamic Detection) */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <span className={fieldLabelClassName}>
               {t('settingsModal.localQwen.modelLabel')}
             </span>
-            <span className="rounded border border-purple-500/40 bg-purple-950/70 px-2 py-0.5 text-[10px] font-semibold text-purple-300">
-              {t('settingsModal.localQwen.modelUncensoredBadge')}
-            </span>
+            {isUncensored ? (
+              <span className="rounded border border-purple-500/40 bg-purple-950/70 px-2 py-0.5 text-[10px] font-semibold text-purple-300">
+                {t('settingsModal.localQwen.modelUncensoredBadge')}
+              </span>
+            ) : (
+              <span className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-300">
+                Standard
+              </span>
+            )}
           </div>
           <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-300">
-            <span className="font-mono text-zinc-200">qwen-image-2.1-UC-Q4_K_M.gguf</span>
+            <span className="font-mono text-zinc-200" data-testid="local-qwen-active-model">
+              {activeModelName}
+            </span>
             <span className="text-[11px] text-zinc-400">RTX 8GB VRAM</span>
           </div>
         </div>

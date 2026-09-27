@@ -46,7 +46,8 @@ export interface UseClothingTransferEComPackConfig {
   addImage: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
   setError: (msg: string | null) => void;
   t: (key: string, options?: Record<string, string | number>) => string;
-  analyzeOutfitBlueprintFn?: (image: ImageFile, model?: string) => Promise<string>;
+  analyzeOutfitBlueprintFn?: (image: ImageFile, model?: string, guidance?: string) => Promise<string>;
+  scanBlueprintFn?: (image: ImageFile, model?: string, guidance?: string) => Promise<string>;
 }
 
 export interface OutfitSourceState {
@@ -55,6 +56,8 @@ export interface OutfitSourceState {
 }
 
 export interface UseClothingTransferEComPackReturn {
+  outfitSource: OutfitSourceState;
+  setOutfitSource: (source: OutfitSourceState) => void;
   sourceOutfitImage: ImageFile | null;
   setSourceOutfitImage: (image: ImageFile | null) => void;
   sourceOutfitNote: string;
@@ -99,8 +102,11 @@ export interface UseClothingTransferEComPackReturn {
   handleRemoveCustomDestination: (index: number) => void;
   packItems: EComPackItem[];
   outfitBlueprint: string | null;
+  isScanningBlueprint: boolean;
   isAnalyzingOutfit: boolean;
   setOutfitBlueprint: (blueprint: string | null) => void;
+  handleScanBlueprint: () => Promise<void>;
+  handleRescanBlueprint: () => Promise<void>;
   handleAnalyzeOutfit: () => Promise<void>;
   handleReanalyzeOutfit: () => Promise<void>;
   isGenerating: boolean;
@@ -126,12 +132,15 @@ export const useClothingTransferEComPack = (
     setError,
     t,
     analyzeOutfitBlueprintFn,
+    scanBlueprintFn,
   } = config;
 
-  const [sourceOutfitImage, setSourceOutfitImage] = useState<ImageFile | null>(null);
-  const [sourceOutfitNote, setSourceOutfitNote] = useState<string>('');
-  const outfitSourceRef = useRef<OutfitSourceState>({ image: null, note: '' });
-  outfitSourceRef.current = { image: sourceOutfitImage, note: sourceOutfitNote };
+  const [outfitSource, setOutfitSource] = useState<OutfitSourceState>({ image: null, note: '' });
+  const outfitSourceRef = useRef<OutfitSourceState>(outfitSource);
+  outfitSourceRef.current = outfitSource;
+
+  const sourceOutfitImage = outfitSource.image;
+  const sourceOutfitNote = outfitSource.note;
 
   const [selectedGarmentScopes, setSelectedGarmentScopes] = useState<GarmentScope[]>(['full-set']);
   const toggleGarmentScope = useCallback((scope: GarmentScope) => {
@@ -145,13 +154,13 @@ export const useClothingTransferEComPack = (
     });
   }, []);
   const [outfitBlueprint, setOutfitBlueprint] = useState<string | null>(null);
-  const [isAnalyzingOutfit, setIsAnalyzingOutfit] = useState(false);
+  const [isScanningBlueprint, setIsScanningBlueprint] = useState(false);
 
-  const analyzeBlueprint = useCallback(
+  const scanBlueprint = useCallback(
     async (image: ImageFile, guidance?: string): Promise<string | null> => {
-      setIsAnalyzingOutfit(true);
+      setIsScanningBlueprint(true);
       try {
-        const fn = analyzeOutfitBlueprintFn || analyzeOutfitBlueprint;
+        const fn = scanBlueprintFn || analyzeOutfitBlueprintFn || analyzeOutfitBlueprint;
         const activeGuidance = (guidance !== undefined ? guidance : outfitSourceRef.current.note)?.trim();
         const blueprint = activeGuidance
           ? await fn(image, textGenerateModel, activeGuidance)
@@ -164,21 +173,24 @@ export const useClothingTransferEComPack = (
         }
         return blueprint;
       } catch (err) {
-        console.warn('Outfit blueprint analysis skipped/failed:', err);
+        console.warn('AI Scan blueprint skipped/failed:', err);
         return null;
       } finally {
         if (outfitSourceRef.current.image === image) {
-          setIsAnalyzingOutfit(false);
+          setIsScanningBlueprint(false);
         }
       }
     },
-    [analyzeOutfitBlueprintFn, textGenerateModel],
+    [scanBlueprintFn, analyzeOutfitBlueprintFn, textGenerateModel],
   );
 
   const handleSetSourceOutfitImage = useCallback(
     (img: ImageFile | null) => {
-      outfitSourceRef.current = { ...outfitSourceRef.current, image: img };
-      setSourceOutfitImage(img);
+      setOutfitSource((prev) => {
+        const next = { ...prev, image: img };
+        outfitSourceRef.current = next;
+        return next;
+      });
       setOutfitBlueprint(null);
     },
     [],
@@ -186,17 +198,20 @@ export const useClothingTransferEComPack = (
 
   const handleSetSourceOutfitNote = useCallback(
     (note: string) => {
-      outfitSourceRef.current = { ...outfitSourceRef.current, note };
-      setSourceOutfitNote(note);
+      setOutfitSource((prev) => {
+        const next = { ...prev, note };
+        outfitSourceRef.current = next;
+        return next;
+      });
     },
     [],
   );
 
-  const handleAnalyzeOutfit = useCallback(async () => {
-    if (sourceOutfitImage) {
-      await analyzeBlueprint(sourceOutfitImage, outfitSourceRef.current.note);
+  const handleScanBlueprint = useCallback(async () => {
+    if (outfitSourceRef.current.image) {
+      await scanBlueprint(outfitSourceRef.current.image, outfitSourceRef.current.note);
     }
-  }, [sourceOutfitImage, analyzeBlueprint]);
+  }, [scanBlueprint]);
 
   const [brandModels, setBrandModels] = useState<BrandModelProfile[]>(() => {
     const saved = loadSavedBrandModelProfiles();
@@ -416,8 +431,10 @@ export const useClothingTransferEComPack = (
 
   const resolveOutfitBlueprint = useCallback(async (): Promise<string | null> => {
     if (outfitBlueprint) return outfitBlueprint;
-    return sourceOutfitImage ? analyzeBlueprint(sourceOutfitImage, sourceOutfitNote) : null;
-  }, [outfitBlueprint, sourceOutfitImage, analyzeBlueprint, sourceOutfitNote]);
+    return outfitSourceRef.current.image
+      ? scanBlueprint(outfitSourceRef.current.image, outfitSourceRef.current.note)
+      : null;
+  }, [outfitBlueprint, scanBlueprint]);
 
   const {
     packItems,
@@ -443,15 +460,20 @@ export const useClothingTransferEComPack = (
   });
 
   return {
+    outfitSource,
+    setOutfitSource,
     sourceOutfitImage,
     setSourceOutfitImage: handleSetSourceOutfitImage,
     sourceOutfitNote,
     setSourceOutfitNote: handleSetSourceOutfitNote,
     outfitBlueprint,
-    isAnalyzingOutfit,
+    isScanningBlueprint,
+    isAnalyzingOutfit: isScanningBlueprint,
     setOutfitBlueprint,
-    handleAnalyzeOutfit,
-    handleReanalyzeOutfit: handleAnalyzeOutfit,
+    handleScanBlueprint,
+    handleRescanBlueprint: handleScanBlueprint,
+    handleAnalyzeOutfit: handleScanBlueprint,
+    handleReanalyzeOutfit: handleScanBlueprint,
     selectedGarmentScopes,
     toggleGarmentScope,
     brandModels,

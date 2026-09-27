@@ -12,7 +12,12 @@ import ImageOptionsPanel from './ImageOptionsPanel';
 import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import AiScanPanel from './AiScanPanel';
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
-import { processUploadImageFile, calculateLetterboxedMarkerCoordinates, computeLetterboxBounds } from '../utils/imageUtils';
+import {
+  processUploadImageFile,
+  processMultipleImageFiles,
+  calculateLetterboxedMarkerCoordinates,
+  computeLetterboxBounds,
+} from '../utils/imageUtils';
 import WardrobeSetCard from './WardrobeSetCard';
 import { ExtraPromptPresets } from './IdentityTransferPresets';
 
@@ -176,17 +181,7 @@ const VirtualTryOn: React.FC = () => {
   const handleBatchClothingUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
-    const files = Array.from(fileList);
-    const validImageFiles: ImageFile[] = [];
-
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) continue;
-      const img = await processUploadImageFile(file);
-      if (img) {
-        validImageFiles.push(img);
-      }
-    }
-
+    const validImageFiles = await processMultipleImageFiles(fileList);
     if (validImageFiles.length > 0) {
       handleMultipleClothingUpload(validImageFiles);
     }

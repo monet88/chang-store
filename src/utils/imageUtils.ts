@@ -240,6 +240,24 @@ export const processUploadImageFile = async (file: File): Promise<ImageFile | nu
   }
 };
 
+/**
+ * Processes a collection of files, filtering for valid image files and converting them to ImageFile objects.
+ */
+export const processMultipleImageFiles = async (
+  files: Iterable<File> | FileList | File[],
+  processor: (file: File) => Promise<ImageFile | null> = processUploadImageFile,
+): Promise<ImageFile[]> => {
+  const processed: ImageFile[] = [];
+  for (const file of Array.from(files)) {
+    if (!file.type.startsWith('image/')) continue;
+    const img = await processor(file);
+    if (img) {
+      processed.push(img);
+    }
+  }
+  return processed;
+};
+
 export const cropAndCompressImage = (file: File, targetAspectRatio: number, quality: number = 0.8, maxWidth: number = 1080): Promise<ImageFile> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');

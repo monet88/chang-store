@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CloudUploadIcon, DeleteIcon, GalleryIcon } from './Icons';
-import { processUploadImageFile } from '../utils/imageUtils';
+import { processUploadImageFile, processMultipleImageFiles } from '../utils/imageUtils';
 import ImageSelectionModal from './modals/ImageSelectionModal';
 
 interface ImageUploaderProps {
@@ -62,17 +62,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
 
   const processMultipleFiles = useCallback(async (files: File[]) => {
     if (!onMultipleImagesUpload || files.length === 0) return;
-    const processed: ImageFile[] = [];
-    for (const file of files) {
-      const res = await convertFile(file);
-      if (res) {
-        processed.push(res);
-      }
-    }
+    const processed = await processMultipleImageFiles(files);
     if (processed.length > 0) {
       onMultipleImagesUpload(processed);
     }
-  }, [convertFile, onMultipleImagesUpload]);
+  }, [onMultipleImagesUpload]);
 
   const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files;

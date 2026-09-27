@@ -776,4 +776,42 @@ describe('useClothingTransferEComPack', () => {
 
     expect(editImageMock).toHaveBeenCalledTimes(1);
   });
+
+  it('supports AI Scan domain methods and maintains bundled outfitSource state', async () => {
+    const scanMock = vi.fn().mockResolvedValue('[CORE_GARMENTS]\nWool overcoat');
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gemini-2.5-flash-image',
+        engineId: 'gemini',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        scanBlueprintFn: scanMock,
+      }),
+    );
+
+    expect(result.current.outfitSource).toEqual({ image: null, note: '' });
+    expect(result.current.isScanningBlueprint).toBe(false);
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('scan-src'));
+      result.current.setSourceOutfitNote('long coat');
+    });
+
+    expect(result.current.outfitSource.image).toEqual(mockImage('scan-src'));
+    expect(result.current.outfitSource.note).toBe('long coat');
+
+    await act(async () => {
+      await result.current.handleScanBlueprint();
+    });
+
+    expect(scanMock).toHaveBeenCalledWith(mockImage('scan-src'), 'gemini-3.8-flash', 'long coat');
+    expect(result.current.outfitBlueprint).toBe('[CORE_GARMENTS]\nWool overcoat');
+    expect(result.current.isScanningBlueprint).toBe(false);
+  });
 });

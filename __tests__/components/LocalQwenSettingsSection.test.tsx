@@ -146,4 +146,24 @@ describe('LocalQwenSettingsSection', () => {
 
     expect(screen.queryByText('Auto-detected portable installation')).not.toBeInTheDocument();
   });
+
+  it('renders standard model badge and active model name when falling back to standard unet', async () => {
+    window.desktopLocalQwen = {
+      getStatus: vi.fn().mockResolvedValue({
+        ok: true,
+        value: {
+          state: 'ready',
+          isAppOwned: true,
+          port: 8188,
+          activeModel: 'qwen-image-2.1-Q4_K_M.gguf',
+          isUncensored: false,
+        },
+      }),
+    } as unknown as typeof window.desktopLocalQwen;
+
+    render(<LocalQwenSettingsSection />);
+
+    expect(await screen.findByText('qwen-image-2.1-Q4_K_M.gguf')).toBeInTheDocument();
+    expect(screen.getByText('Standard')).toBeInTheDocument();
+  });
 });
