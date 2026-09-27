@@ -122,10 +122,13 @@ export const defaultHealthCheckFn = async (
     }
 
     const unetNames = unetData.UnetLoaderGGUF.input?.required?.unet_name?.[0];
-    if (Array.isArray(unetNames) && !unetNames.includes('qwen-image-2.1-Q4_K_M.gguf')) {
+    const hasCompatibleUnet =
+      Array.isArray(unetNames) &&
+      (unetNames.includes('qwen-image-2.1-Q4_K_M.gguf') || unetNames.includes('qwen-image-2.1-UC-Q4_K_M.gguf'));
+    if (!hasCompatibleUnet) {
       return {
         compatible: false,
-        error: 'UnetLoaderGGUF: qwen-image-2.1-Q4_K_M.gguf not found in models/diffusion_models',
+        error: 'UnetLoaderGGUF: qwen-image-2.1-Q4_K_M.gguf or qwen-image-2.1-UC-Q4_K_M.gguf not found in models/diffusion_models',
       };
     }
 
@@ -161,6 +164,7 @@ export type WebSocketConstructor = new (url: string) => WebSocketLike;
 
 export interface LocalQwenManagerOptions {
   port?: number;
+  comfyUiFolder?: string;
   probeFn?: (endpoint: string) => Promise<boolean>;
   healthCheckFn?: HealthCheckFn;
   spawnFn?: (command: string, args: readonly string[], options: Record<string, unknown>) => ChildProcess;
@@ -172,6 +176,7 @@ export interface LocalQwenManagerOptions {
 
 export class LocalQwenManager {
   public port: number;
+  public comfyUiFolder?: string;
   public state: DesktopLocalQwenState = 'stopped';
   public isAppOwned = false;
   public childProcess?: ChildProcess;
@@ -197,6 +202,7 @@ export class LocalQwenManager {
 
   constructor(options: LocalQwenManagerOptions = {}) {
     this.port = options.port ?? DEFAULT_COMFYUI_PORT;
+    this.comfyUiFolder = options.comfyUiFolder;
     this.probeFn = options.probeFn ?? defaultProbeFn;
     this.healthCheckFn =
       options.healthCheckFn ??
@@ -479,6 +485,7 @@ export class LocalQwenManager {
 
     // 3. Resolve folder
     const comfyDir = folder?.trim() || KNOWN_PORTABLE_COMFYUI_PATH;
+    this.comfyUiFolder = comfyDir;
     if (!fs.existsSync(comfyDir)) {
       this.state = 'error';
       this.lastError = `ComfyUI directory not found: ${comfyDir}`;
@@ -829,11 +836,20 @@ export class LocalQwenManager {
         ? params.loraStrength
         : 1.0;
 
+      let unetName = 'qwen-image-2.1-Q4_K_M.gguf';
+      const comfyRoot = this.comfyUiFolder || KNOWN_PORTABLE_COMFYUI_PATH;
+      if (
+        fs.existsSync(path.join(comfyRoot, 'ComfyUI', 'models', 'diffusion_models', 'qwen-image-2.1-UC-Q4_K_M.gguf')) ||
+        fs.existsSync(path.join(comfyRoot, 'models', 'diffusion_models', 'qwen-image-2.1-UC-Q4_K_M.gguf'))
+      ) {
+        unetName = 'qwen-image-2.1-UC-Q4_K_M.gguf';
+      }
+
       const workflow: Record<string, unknown> = {
         '1': {
           class_type: 'UnetLoaderGGUF',
           inputs: {
-            unet_name: 'qwen-image-2.1-Q4_K_M.gguf',
+            unet_name: unetName,
           },
         },
         '2': {

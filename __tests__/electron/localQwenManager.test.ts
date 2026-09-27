@@ -474,6 +474,35 @@ describe('LocalQwenManager', () => {
       expect(result.compatible).toBe(true);
     });
 
+    it('defaultHealthCheckFn validates successfully when uncensored UC model is present', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.endsWith('/system_stats')) {
+          return new Response(JSON.stringify({ system: { os: 'nt', argv: [] } }), { status: 200 });
+        }
+        if (url.endsWith('/object_info/UnetLoaderGGUF')) {
+          return new Response(
+            JSON.stringify({
+              UnetLoaderGGUF: {
+                input: {
+                  required: {
+                    unet_name: [['qwen-image-2.1-UC-Q4_K_M.gguf']],
+                  },
+                },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        if (url.endsWith('/object_info/TextEncodeQwenImage21')) {
+          return new Response(JSON.stringify({ TextEncodeQwenImage21: {} }), { status: 200 });
+        }
+        return new Response('Not found', { status: 404 });
+      });
+
+      const result = await defaultHealthCheckFn('http://127.0.0.1:8188', mockFetch as unknown as typeof fetch);
+      expect(result.compatible).toBe(true);
+    });
+
     it('defaultHealthCheckFn fails closed on thrown network/timeout error', async () => {
       const mockFetch = vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:8188'));
       const result = await defaultHealthCheckFn('http://127.0.0.1:8188', mockFetch as unknown as typeof fetch);
@@ -788,6 +817,42 @@ describe('LocalQwenManager', () => {
       expect(sentWorkflow?.['5']).toBeDefined();
       expect(sentWorkflow?.['5'].inputs.lora_name).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
       expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
+    });
+
+    it('selects qwen-image-2.1-UC-Q4_K_M.gguf when present on disk', async () => {
+      let sentWorkflow: Record<string, { class_type: string; inputs: Record<string, unknown> }> | undefined;
+      const mockFetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/prompt') && init?.body) {
+          const parsed = JSON.parse(init.body as string);
+          sentWorkflow = parsed.prompt;
+          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id-uc' }), { status: 200 });
+        }
+        return new Response('Not found', { status: 404 });
+      });
+
+      const existsSpy = vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
+        return typeof p === 'string' && p.includes('qwen-image-2.1-UC-Q4_K_M.gguf');
+      });
+
+      const manager = new LocalQwenManager({
+        fetchFn: mockFetch as unknown as typeof fetch,
+        probeFn: async () => true,
+      });
+      vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
+        base64: 'uc-result',
+        mimeType: 'image/png',
+      });
+
+      try {
+        await manager.generateImage({
+          prompt: 'A test prompt',
+        });
+
+        expect(sentWorkflow?.['1']).toBeDefined();
+        expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-UC-Q4_K_M.gguf');
+      } finally {
+        existsSpy.mockRestore();
+      }
     });
   });
 });
