@@ -1575,8 +1575,8 @@ export const localQwenManager = new LocalQwenManager();
 export const registerDesktopLocalQwenHandlers = (
   manager: LocalQwenManager = localQwenManager,
 ): void => {
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.getStatus, (event, folder?: string) =>
-    trustedBridge(event, () => manager.getStatus(folder)),
+  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.getStatus, (event, folder) =>
+    trustedBridge(event, () => manager.getStatus(parseLocalQwenFolder(folder))),
   );
   ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.startServer, (event, folder) =>
     trustedBridge(event, () => {

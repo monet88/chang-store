@@ -17,7 +17,8 @@ The flagship feature of Chang Store.
 
 - **Multi-model**: Multiple subject photos, each gets its own result set.
 - **Wardrobe Mode**: Pre-define outfit sets, batch-generate all combinations
-  against selected subjects. Up to 4 sets, 4 items per set, concurrency of 4.
+  against selected subjects. Up to 4 sets, 4 items per set; batch concurrency
+  follows `resolveEngineConcurrency` (1 for local Qwen, otherwise up to 10).
 
 ## Inputs
 

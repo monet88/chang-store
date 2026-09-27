@@ -414,6 +414,49 @@ describe('useClothingTransferEComPack', () => {
     expect(result.current.outfitBlueprint).toBe('Blueprint for outfit 2');
   });
 
+  it('clears the scanning flag when the source outfit is replaced mid-scan', async () => {
+    const inFlight = createDeferred<string>();
+    const analyzeMock = vi.fn().mockReturnValueOnce(inFlight.promise);
+
+    const { result } = renderHook(() =>
+      useClothingTransferEComPack({
+        driver: mockDriver,
+        aspectRatio: '3:4',
+        resolution: '1K',
+        numImages: 1,
+        imageEditModel: 'gemini-2.5-flash-image',
+        textGenerateModel: 'gemini-3.8-flash',
+        engineId: 'gemini',
+        extraPrompt: '',
+        addImage: addImageMock,
+        setError: setErrorMock,
+        t: (key) => key,
+        scanBlueprintFn: analyzeMock,
+      }),
+    );
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit-1'));
+    });
+    act(() => {
+      void result.current.handleScanBlueprint();
+    });
+    expect(result.current.isScanningBlueprint).toBe(true);
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('outfit-2'));
+    });
+    // The abandoned scan can no longer publish, so it must not own the flag:
+    // otherwise the spinner sticks and the rescan button never returns.
+    expect(result.current.isScanningBlueprint).toBe(false);
+    expect(result.current.outfitBlueprint).toBeNull();
+
+    await act(async () => {
+      inFlight.resolve('Blueprint for the removed outfit');
+    });
+    expect(result.current.outfitBlueprint).toBeNull();
+  });
+
   it('plans product display assets, brand models, and custom destinations into separate pack cards', async () => {
     const { result } = setupHook();
 

@@ -183,6 +183,10 @@ export const useClothingTransferEComPack = (
         return next;
       });
       setOutfitBlueprint(null);
+      // A scan in flight for the previous photo will never publish (see
+      // scanBlueprint) and so never clears the flag either: without this the
+      // spinner sticks forever and the rescan button stays hidden.
+      setIsScanningBlueprint(false);
     },
     [],
   );

@@ -141,7 +141,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
               <button
                 type="button"
                 onClick={runScan}
-                className="underline transition-colors hover:text-white focus-visible:outline-none"
+                className="underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
               >
                 {t('studio.aiScan.rescan')}
               </button>
