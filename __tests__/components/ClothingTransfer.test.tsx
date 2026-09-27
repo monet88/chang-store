@@ -226,6 +226,7 @@ describe('ClothingTransfer component', () => {
   });
 
   it('renders manual AI Analyze button when outfit is uploaded and triggers analysis on click', () => {
+    const handleAnalyzeOutfitMock = vi.fn();
     const handleReanalyzeOutfitMock = vi.fn();
     useClothingTransferMock.mockReturnValue({
       ...baseHookState,
@@ -236,6 +237,7 @@ describe('ClothingTransfer component', () => {
         sourceOutfitNote: 'quần không phải váy',
         outfitBlueprint: null,
         isAnalyzingOutfit: false,
+        handleAnalyzeOutfit: handleAnalyzeOutfitMock,
         handleReanalyzeOutfit: handleReanalyzeOutfitMock,
       },
     });
@@ -245,7 +247,7 @@ describe('ClothingTransfer component', () => {
     const analyzeBtn = screen.getByRole('button', { name: /analyzeOutfitButton/ });
     expect(analyzeBtn).toBeInTheDocument();
     fireEvent.click(analyzeBtn);
-    expect(handleReanalyzeOutfitMock).toHaveBeenCalled();
+    expect(handleAnalyzeOutfitMock).toHaveBeenCalled();
 
     // When analyzing
     useClothingTransferMock.mockReturnValue({

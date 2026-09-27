@@ -137,7 +137,7 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
                       : t('studio.localQwenStatus.external')}
                   </span>
                   <span className="rounded border border-purple-500/40 bg-purple-950/70 px-1.5 py-0.5 text-[10px] font-semibold text-purple-300">
-                    {status.activeModel?.includes('UC') || !status.activeModel
+                    {status.isUncensored ?? (status.activeModel ? status.activeModel.includes('UC') : true)
                       ? 'Uncensored (UC)'
                       : 'Standard'}
                   </span>

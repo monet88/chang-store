@@ -49,6 +49,11 @@ export interface UseClothingTransferEComPackConfig {
   analyzeOutfitBlueprintFn?: (image: ImageFile, model?: string) => Promise<string>;
 }
 
+export interface OutfitSourceState {
+  image: ImageFile | null;
+  note: string;
+}
+
 export interface UseClothingTransferEComPackReturn {
   sourceOutfitImage: ImageFile | null;
   setSourceOutfitImage: (image: ImageFile | null) => void;
@@ -124,10 +129,9 @@ export const useClothingTransferEComPack = (
   } = config;
 
   const [sourceOutfitImage, setSourceOutfitImage] = useState<ImageFile | null>(null);
-  const sourceOutfitImageRef = useRef<ImageFile | null>(null);
   const [sourceOutfitNote, setSourceOutfitNote] = useState<string>('');
-  const sourceOutfitNoteRef = useRef<string>('');
-  sourceOutfitNoteRef.current = sourceOutfitNote;
+  const outfitSourceRef = useRef<OutfitSourceState>({ image: null, note: '' });
+  outfitSourceRef.current = { image: sourceOutfitImage, note: sourceOutfitNote };
 
   const [selectedGarmentScopes, setSelectedGarmentScopes] = useState<GarmentScope[]>(['full-set']);
   const toggleGarmentScope = useCallback((scope: GarmentScope) => {
@@ -148,14 +152,14 @@ export const useClothingTransferEComPack = (
       setIsAnalyzingOutfit(true);
       try {
         const fn = analyzeOutfitBlueprintFn || analyzeOutfitBlueprint;
-        const activeGuidance = (guidance !== undefined ? guidance : sourceOutfitNoteRef.current)?.trim();
+        const activeGuidance = (guidance !== undefined ? guidance : outfitSourceRef.current.note)?.trim();
         const blueprint = activeGuidance
           ? await fn(image, textGenerateModel, activeGuidance)
           : await fn(image, textGenerateModel);
         // Only publish when this analysis still belongs to the active outfit:
         // swapping the photo while an earlier analysis is in flight must never
         // label the new outfit with the old blueprint.
-        if (sourceOutfitImageRef.current === image) {
+        if (outfitSourceRef.current.image === image) {
           setOutfitBlueprint(blueprint);
         }
         return blueprint;
@@ -163,7 +167,7 @@ export const useClothingTransferEComPack = (
         console.warn('Outfit blueprint analysis skipped/failed:', err);
         return null;
       } finally {
-        if (sourceOutfitImageRef.current === image) {
+        if (outfitSourceRef.current.image === image) {
           setIsAnalyzingOutfit(false);
         }
       }
@@ -173,16 +177,24 @@ export const useClothingTransferEComPack = (
 
   const handleSetSourceOutfitImage = useCallback(
     (img: ImageFile | null) => {
-      sourceOutfitImageRef.current = img;
+      outfitSourceRef.current = { ...outfitSourceRef.current, image: img };
       setSourceOutfitImage(img);
       setOutfitBlueprint(null);
     },
     [],
   );
 
+  const handleSetSourceOutfitNote = useCallback(
+    (note: string) => {
+      outfitSourceRef.current = { ...outfitSourceRef.current, note };
+      setSourceOutfitNote(note);
+    },
+    [],
+  );
+
   const handleAnalyzeOutfit = useCallback(async () => {
     if (sourceOutfitImage) {
-      await analyzeBlueprint(sourceOutfitImage, sourceOutfitNoteRef.current);
+      await analyzeBlueprint(sourceOutfitImage, outfitSourceRef.current.note);
     }
   }, [sourceOutfitImage, analyzeBlueprint]);
 
@@ -434,7 +446,7 @@ export const useClothingTransferEComPack = (
     sourceOutfitImage,
     setSourceOutfitImage: handleSetSourceOutfitImage,
     sourceOutfitNote,
-    setSourceOutfitNote,
+    setSourceOutfitNote: handleSetSourceOutfitNote,
     outfitBlueprint,
     isAnalyzingOutfit,
     setOutfitBlueprint,

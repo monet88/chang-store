@@ -203,6 +203,35 @@ export const compressImage = (file: File, quality: number = 0.8): Promise<ImageF
   });
 };
 
+/**
+ * Validates, compresses, and safely falls back to base64 encoding for an image File.
+ * Returns null if file fails validation.
+ */
+export const processUploadImageFile = async (file: File): Promise<ImageFile | null> => {
+  const validation = await validateImageFile(file);
+  if (!validation.isValid) {
+    return null;
+  }
+
+  try {
+    return await compressImage(file);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('Error compressing image, falling back to original file:', error);
+    }
+    return new Promise<ImageFile>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          const base64String = reader.result.substring(reader.result.indexOf(',') + 1);
+          resolve({ base64: base64String, mimeType: file.type });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+};
+
 export const cropAndCompressImage = (file: File, targetAspectRatio: number, quality: number = 0.8, maxWidth: number = 1080): Promise<ImageFile> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');

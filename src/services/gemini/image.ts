@@ -28,6 +28,8 @@ export interface EditImageParams {
   numberOfImages?: number;
   /** Pre-built interleaved parts (text labels + images). When provided, overrides images+prompt auto-assembly. */
   interleavedParts?: Part[];
+  feature?: string;
+  workflow?: 'identity-transfer' | 'face-swap' | 'standard';
 }
 
 const isSafetyFinishReason = (finishReason: string | undefined): boolean =>

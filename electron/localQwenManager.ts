@@ -176,6 +176,31 @@ export interface LocalQwenManagerOptions {
   wsConstructor?: WebSocketConstructor;
 }
 
+export const isFaceSwapPrompt = (prompt: string): boolean => {
+  if (!prompt) return false;
+  const promptLower = prompt.toLowerCase();
+  return (
+    prompt.includes('QWEN IDENTITY TRANSFER SPECIFICATION') ||
+    prompt.includes('QWEN BRAND MODEL SPECIFICATION') ||
+    prompt.includes('IDENTITY TRANSFER') ||
+    prompt.includes('head_swap') ||
+    promptLower.includes('face swap') ||
+    promptLower.includes('faceswap') ||
+    promptLower.includes('swap face') ||
+    promptLower.includes('head swap') ||
+    promptLower.includes('replace face') ||
+    promptLower.includes('facial identity') ||
+    promptLower.includes('đổi mặt') ||
+    promptLower.includes('hoán đổi mặt') ||
+    promptLower.includes('ghép mặt') ||
+    promptLower.includes('thay mặt') ||
+    promptLower.includes('đổi khuôn mặt') ||
+    promptLower.includes('thay khuôn mặt') ||
+    promptLower.includes('chuyển mặt') ||
+    promptLower.includes('chuyển danh tính')
+  );
+};
+
 export class LocalQwenManager {
   public port: number;
   public comfyUiFolder?: string;
@@ -201,6 +226,7 @@ export class LocalQwenManager {
   private fetchFn: typeof fetch;
   private readinessTimeoutMs: number;
   private readinessPollIntervalMs: number;
+  private cachedActiveUnet?: { folder?: string; model: string; resolvedAt: number };
 
   constructor(options: LocalQwenManagerOptions = {}) {
     this.port = options.port ?? DEFAULT_COMFYUI_PORT;
@@ -235,9 +261,22 @@ export class LocalQwenManager {
     return this.healthCheckFn(target);
   }
 
+  public invalidateModelCache(): void {
+    this.cachedActiveUnet = undefined;
+  }
 
-  public resolveActiveUnet(): string {
+  public resolveActiveUnet(forceRefresh = false): string {
     const comfyRoot = this.comfyUiFolder || KNOWN_PORTABLE_COMFYUI_PATH;
+    const now = Date.now();
+    if (
+      !forceRefresh &&
+      this.cachedActiveUnet &&
+      this.cachedActiveUnet.folder === comfyRoot &&
+      now - this.cachedActiveUnet.resolvedAt < 30_000
+    ) {
+      return this.cachedActiveUnet.model;
+    }
+
     const hasUcModel =
       fs.existsSync(path.join(comfyRoot, 'ComfyUI', 'models', 'diffusion_models', DEFAULT_QWEN_UNET_NAME)) ||
       fs.existsSync(path.join(comfyRoot, 'models', 'diffusion_models', DEFAULT_QWEN_UNET_NAME));
@@ -245,20 +284,23 @@ export class LocalQwenManager {
       fs.existsSync(path.join(comfyRoot, 'ComfyUI', 'models', 'diffusion_models', FALLBACK_QWEN_UNET_NAME)) ||
       fs.existsSync(path.join(comfyRoot, 'models', 'diffusion_models', FALLBACK_QWEN_UNET_NAME));
 
-    if (!hasUcModel && hasFallbackModel) {
-      return FALLBACK_QWEN_UNET_NAME;
-    }
-    return DEFAULT_QWEN_UNET_NAME;
+    const model = (!hasUcModel && hasFallbackModel) ? FALLBACK_QWEN_UNET_NAME : DEFAULT_QWEN_UNET_NAME;
+    this.cachedActiveUnet = { folder: comfyRoot, model, resolvedAt: now };
+    return model;
   }
 
   public async getStatus(): Promise<DesktopLocalQwenStatus> {
+    const activeModel = this.resolveActiveUnet();
+    const isUncensored = activeModel.includes('UC');
+
     if (this.state === 'generating') {
       return {
         state: 'generating',
         isAppOwned: this.isAppOwned,
         port: this.port,
         progress: this.currentProgress,
-        activeModel: this.resolveActiveUnet(),
+        activeModel,
+        isUncensored,
       };
     }
 
@@ -301,7 +343,8 @@ export class LocalQwenManager {
         state: 'ready',
         isAppOwned: this.isAppOwned,
         port: this.port,
-        activeModel: this.resolveActiveUnet(),
+        activeModel,
+        isUncensored,
       };
     }
 
@@ -486,11 +529,13 @@ export class LocalQwenManager {
 
       this.state = 'ready';
       this.lastError = undefined;
+      const activeModel = this.resolveActiveUnet();
       return {
         state: 'ready',
         isAppOwned: this.isAppOwned,
         port: this.port,
-        activeModel: this.resolveActiveUnet(),
+        activeModel,
+        isUncensored: activeModel.includes('UC'),
       };
     }
 
@@ -498,7 +543,14 @@ export class LocalQwenManager {
     if (this.childProcess && !this.childProcess.killed && this.state === 'starting') {
       const ready = await this.waitForReady(this.readinessTimeoutMs);
       if (ready) {
-        return { state: 'ready', isAppOwned: true, port: this.port, activeModel: this.resolveActiveUnet() };
+        const activeModel = this.resolveActiveUnet();
+        return {
+          state: 'ready',
+          isAppOwned: true,
+          port: this.port,
+          activeModel,
+          isUncensored: activeModel.includes('UC'),
+        };
       }
       throw new Error(this.lastError || 'ComfyUI server failed to start within timeout.');
     }
@@ -506,6 +558,7 @@ export class LocalQwenManager {
     // 3. Resolve folder
     const comfyDir = folder?.trim() || KNOWN_PORTABLE_COMFYUI_PATH;
     this.comfyUiFolder = comfyDir;
+    this.invalidateModelCache();
     if (!fs.existsSync(comfyDir)) {
       this.state = 'error';
       this.lastError = `ComfyUI directory not found: ${comfyDir}`;
@@ -633,11 +686,13 @@ export class LocalQwenManager {
     }
 
     this.state = 'ready';
+    const activeModel = this.resolveActiveUnet();
     return {
       state: 'ready',
       isAppOwned: true,
       port: this.port,
-      activeModel: this.resolveActiveUnet(),
+      activeModel,
+      isUncensored: activeModel.includes('UC'),
     };
   }
   public async stopServer(): Promise<DesktopLocalQwenStopResult> {
@@ -830,29 +885,12 @@ export class LocalQwenManager {
       const seed = params.seed ?? Math.floor(Math.random() * 1_000_000_000);
 
       const defaultFaceSwapLora = 'bfs_head_v1.1_qwen_2.1.safetensors';
-      const promptLower = (params.prompt || '').toLowerCase();
-      const isIdentityTransferPrompt =
-        Boolean(params.prompt) &&
-        (params.prompt.includes('QWEN IDENTITY TRANSFER SPECIFICATION') ||
-          params.prompt.includes('QWEN BRAND MODEL SPECIFICATION') ||
-          params.prompt.includes('IDENTITY TRANSFER') ||
-          params.prompt.includes('head_swap') ||
-          promptLower.includes('face swap') ||
-          promptLower.includes('faceswap') ||
-          promptLower.includes('swap face') ||
-          promptLower.includes('head swap') ||
-          promptLower.includes('replace face') ||
-          promptLower.includes('facial identity') ||
-          promptLower.includes('đổi mặt') ||
-          promptLower.includes('hoán đổi mặt') ||
-          promptLower.includes('ghép mặt') ||
-          promptLower.includes('thay mặt') ||
-          promptLower.includes('đổi khuôn mặt') ||
-          promptLower.includes('thay khuôn mặt') ||
-          promptLower.includes('chuyển mặt') ||
-          promptLower.includes('chuyển danh tính'));
+      const isIdentityTransfer =
+        params.workflow === 'identity-transfer' ||
+        params.workflow === 'face-swap' ||
+        (params.workflow !== 'standard' && isFaceSwapPrompt(params.prompt || ''));
 
-      const effectiveLoraName = params.loraName ?? (isIdentityTransferPrompt ? defaultFaceSwapLora : undefined);
+      const effectiveLoraName = params.loraName ?? (isIdentityTransfer ? defaultFaceSwapLora : undefined);
       const loraStrength = typeof params.loraStrength === 'number' && Number.isFinite(params.loraStrength)
         ? params.loraStrength
         : 1.0;
@@ -1267,7 +1305,7 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
   const input = requireRecord(value, 'generate params');
   assertOnlyKeys(
     input,
-    ['prompt', 'negativePrompt', 'images', 'resolution', 'steps', 'cfg', 'sampler', 'scheduler', 'seed', 'loraName', 'loraStrength', 'unetName'],
+    ['prompt', 'negativePrompt', 'images', 'resolution', 'steps', 'cfg', 'sampler', 'scheduler', 'seed', 'loraName', 'loraStrength', 'unetName', 'workflow'],
     'generate params',
   );
 
@@ -1413,6 +1451,17 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
     unetName = trimmed || undefined;
   }
 
+  let workflow: 'identity-transfer' | 'face-swap' | 'standard' | undefined;
+  if (input.workflow !== undefined) {
+    if (
+      typeof input.workflow !== 'string' ||
+      !['identity-transfer', 'face-swap', 'standard'].includes(input.workflow)
+    ) {
+      throw new Error('Invalid local Qwen workflow: must be identity-transfer, face-swap, or standard.');
+    }
+    workflow = input.workflow as 'identity-transfer' | 'face-swap' | 'standard';
+  }
+
   return {
     prompt,
     negativePrompt,
@@ -1426,6 +1475,7 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
     loraName,
     loraStrength,
     unetName,
+    workflow,
   };
 };
 

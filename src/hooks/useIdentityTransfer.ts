@@ -138,6 +138,8 @@ export const useIdentityTransfer = () => {
         aspectRatio,
         resolution,
         interleavedParts,
+        feature: Feature.IdentityTransfer,
+        workflow: 'identity-transfer',
       }, imageEditModel, { onStatusUpdate: setLoadingMessage });
 
       if (!result) {

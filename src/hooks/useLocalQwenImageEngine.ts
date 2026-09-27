@@ -77,7 +77,9 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
         const prompt = interleaved ? interleaved.prompt : params.prompt || '';
         const images: ImageFile[] = interleaved ? interleaved.images : params.images || [];
 
-        config?.onStatusUpdate?.(t('studio.localQwenStatus.generatingStatus'));
+        const workflow =
+          params.workflow ||
+          (params.feature === 'identity-transfer' ? 'identity-transfer' : undefined);
 
         const results = await generateLocalQwenImage({
           prompt,
@@ -87,6 +89,7 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
           cfg: settings.cfg,
           sampler: settings.sampler,
           scheduler: settings.scheduler,
+          workflow,
         });
 
         return results;

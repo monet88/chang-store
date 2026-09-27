@@ -652,6 +652,15 @@ describe('LocalQwenManager', () => {
       expect(() => parseLocalQwenGenerateParams({ prompt: 'test', unetName: 123 as unknown as string })).toThrow(/unetName/);
     });
 
+    it('parses valid workflow in generate params and rejects invalid values', () => {
+      const parsed = parseLocalQwenGenerateParams({
+        prompt: 'test',
+        workflow: 'identity-transfer',
+      });
+      expect(parsed.workflow).toBe('identity-transfer');
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', workflow: 'invalid-mode' as any })).toThrow(/workflow/);
+    });
+
     it('parses valid upscale params and rejects malformed ones', () => {
       const valid = parseLocalQwenUpscaleParams({ image: 'base64-data', scale: 2 });
       expect(valid.image).toBe('base64-data');
@@ -671,13 +680,15 @@ describe('LocalQwenManager', () => {
   });
 
   describe('LoRA injection in generateImage workflow', () => {
-    it('injects LoraLoaderModelOnly when identity transfer signature is present in prompt', async () => {
+    const createMockPromptManager = (options?: {
+      resultImage?: string;
+    }) => {
       let sentWorkflow: Record<string, { class_type: string; inputs: Record<string, unknown> }> | undefined;
       const mockFetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
         if (url.endsWith('/prompt') && init?.body) {
           const parsed = JSON.parse(init.body as string);
           sentWorkflow = parsed.prompt;
-          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id-123' }), { status: 200 });
+          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id' }), { status: 200 });
         }
         return new Response('Not found', { status: 404 });
       });
@@ -687,45 +698,51 @@ describe('LocalQwenManager', () => {
         probeFn: async () => true,
       });
       vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
-        base64: 'generated-image-base64',
+        base64: options?.resultImage ?? 'mock-image',
         mimeType: 'image/png',
       });
+
+      return {
+        manager,
+        mockFetch,
+        getSentWorkflow: () => sentWorkflow,
+      };
+    };
+
+    it('injects LoraLoaderModelOnly when identity transfer signature is present in prompt', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'generated-image-base64' });
 
       const result = await manager.generateImage({
         prompt: 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face from <image_1> to <image_2>',
       });
 
       expect(result.image.base64).toBe('generated-image-base64');
+      const sentWorkflow = getSentWorkflow();
       expect(sentWorkflow).toBeDefined();
-      // Node 5 must be LoraLoaderModelOnly with bfs LoRA
       expect(sentWorkflow?.['5']).toBeDefined();
       expect(sentWorkflow?.['5'].class_type).toBe('LoraLoaderModelOnly');
       expect(sentWorkflow?.['5'].inputs.lora_name).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
       expect(sentWorkflow?.['5'].inputs.strength_model).toBe(1.0);
       expect(sentWorkflow?.['5'].inputs.model).toEqual(['1', 0]);
-      // KSampler must receive model from node 5
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
+    });
+
+    it('injects BFS LoRA when workflow is explicitly set to identity-transfer or face-swap', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager();
+
+      await manager.generateImage({
+        prompt: 'Portrait of a woman',
+        workflow: 'identity-transfer',
+      });
+
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow?.['5']).toBeDefined();
+      expect(sentWorkflow?.['5'].inputs.lora_name).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
       expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
     });
 
     it('injects custom LoRA when loraName and loraStrength are explicitly passed', async () => {
-      let sentWorkflow: Record<string, { class_type: string; inputs: Record<string, unknown> }> | undefined;
-      const mockFetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
-        if (url.endsWith('/prompt') && init?.body) {
-          const parsed = JSON.parse(init.body as string);
-          sentWorkflow = parsed.prompt;
-          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id-456' }), { status: 200 });
-        }
-        return new Response('Not found', { status: 404 });
-      });
-
-      const manager = new LocalQwenManager({
-        fetchFn: mockFetch as unknown as typeof fetch,
-        probeFn: async () => true,
-      });
-      vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
-        base64: 'custom-lora-image',
-        mimeType: 'image/png',
-      });
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'custom-lora-image' });
 
       await manager.generateImage({
         prompt: 'General generation with custom lora',
@@ -733,6 +750,7 @@ describe('LocalQwenManager', () => {
         loraStrength: 0.75,
       });
 
+      const sentWorkflow = getSentWorkflow();
       expect(sentWorkflow?.['5']).toBeDefined();
       expect(sentWorkflow?.['5'].class_type).toBe('LoraLoaderModelOnly');
       expect(sentWorkflow?.['5'].inputs.lora_name).toBe('custom_vto_style.safetensors');
@@ -741,59 +759,38 @@ describe('LocalQwenManager', () => {
     });
 
     it('does NOT inject LoRA when prompt is standard VTO and no loraName is given', async () => {
-      let sentWorkflow: Record<string, { class_type: string; inputs: Record<string, unknown> }> | undefined;
-      const mockFetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
-        if (url.endsWith('/prompt') && init?.body) {
-          const parsed = JSON.parse(init.body as string);
-          sentWorkflow = parsed.prompt;
-          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id-789' }), { status: 200 });
-        }
-        return new Response('Not found', { status: 404 });
-      });
-
-      const manager = new LocalQwenManager({
-        fetchFn: mockFetch as unknown as typeof fetch,
-        probeFn: async () => true,
-      });
-      vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
-        base64: 'standard-vto-image',
-        mimeType: 'image/png',
-      });
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'standard-vto-image' });
 
       await manager.generateImage({
         prompt: 'Professional fashion photoshoot, model wearing summer dress',
       });
 
-      // Node 5 must NOT exist
+      const sentWorkflow = getSentWorkflow();
       expect(sentWorkflow?.['5']).toBeUndefined();
-      // KSampler must receive model directly from node 1 (UnetLoaderGGUF)
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['1', 0]);
+    });
+
+    it('does NOT inject LoRA when workflow is standard even if prompt mentions face words', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager();
+
+      await manager.generateImage({
+        prompt: 'Đổi mặt nhưng giữ nguyên style',
+        workflow: 'standard',
+      });
+
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow?.['5']).toBeUndefined();
       expect(sentWorkflow?.['7'].inputs.model).toEqual(['1', 0]);
     });
 
     it('injects BFS LoRA when prompt is in Vietnamese asking to swap face', async () => {
-      let sentWorkflow: Record<string, { class_type: string; inputs: Record<string, unknown> }> | undefined;
-      const mockFetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
-        if (url.endsWith('/prompt') && init?.body) {
-          const parsed = JSON.parse(init.body as string);
-          sentWorkflow = parsed.prompt;
-          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id-vn' }), { status: 200 });
-        }
-        return new Response('Not found', { status: 404 });
-      });
-
-      const manager = new LocalQwenManager({
-        fetchFn: mockFetch as unknown as typeof fetch,
-        probeFn: async () => true,
-      });
-      vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
-        base64: 'faceswap-vn-result',
-        mimeType: 'image/png',
-      });
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'faceswap-vn-result' });
 
       await manager.generateImage({
         prompt: 'Đổi mặt @img1 bằng khuôn mặt xinh đẹp của @img2, giữ nguyên bối cảnh và quần áo',
       });
 
+      const sentWorkflow = getSentWorkflow();
       expect(sentWorkflow?.['5']).toBeDefined();
       expect(sentWorkflow?.['5'].class_type).toBe('LoraLoaderModelOnly');
       expect(sentWorkflow?.['5'].inputs.lora_name).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
@@ -801,56 +798,23 @@ describe('LocalQwenManager', () => {
     });
 
     it('injects BFS LoRA for Qwen Brand Model dressing workflow', async () => {
-      let sentWorkflow: Record<string, { class_type: string; inputs: Record<string, unknown> }> | undefined;
-      const mockFetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
-        if (url.endsWith('/prompt') && init?.body) {
-          const parsed = JSON.parse(init.body as string);
-          sentWorkflow = parsed.prompt;
-          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id-brand' }), { status: 200 });
-        }
-        return new Response('Not found', { status: 404 });
-      });
-
-      const manager = new LocalQwenManager({
-        fetchFn: mockFetch as unknown as typeof fetch,
-        probeFn: async () => true,
-      });
-      vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
-        base64: 'brand-model-result',
-        mimeType: 'image/png',
-      });
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'brand-model-result' });
 
       await manager.generateImage({
         prompt: 'QWEN BRAND MODEL SPECIFICATION\nTASK: Transfer the facial identity of BRAND MODEL (Linh) onto image_1',
       });
 
+      const sentWorkflow = getSentWorkflow();
       expect(sentWorkflow?.['5']).toBeDefined();
       expect(sentWorkflow?.['5'].inputs.lora_name).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
       expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
     });
 
     it('selects qwen-image-2.1-UC-Q4_K_M.gguf when present on disk', async () => {
-      let sentWorkflow: Record<string, { class_type: string; inputs: Record<string, unknown> }> | undefined;
-      const mockFetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
-        if (url.endsWith('/prompt') && init?.body) {
-          const parsed = JSON.parse(init.body as string);
-          sentWorkflow = parsed.prompt;
-          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id-uc' }), { status: 200 });
-        }
-        return new Response('Not found', { status: 404 });
-      });
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'uc-result' });
 
       const existsSpy = vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
         return typeof p === 'string' && p.includes('qwen-image-2.1-UC-Q4_K_M.gguf');
-      });
-
-      const manager = new LocalQwenManager({
-        fetchFn: mockFetch as unknown as typeof fetch,
-        probeFn: async () => true,
-      });
-      vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
-        base64: 'uc-result',
-        mimeType: 'image/png',
       });
 
       try {
@@ -858,6 +822,7 @@ describe('LocalQwenManager', () => {
           prompt: 'A test prompt',
         });
 
+        const sentWorkflow = getSentWorkflow();
         expect(sentWorkflow?.['1']).toBeDefined();
         expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-UC-Q4_K_M.gguf');
       } finally {
@@ -866,15 +831,7 @@ describe('LocalQwenManager', () => {
     });
 
     it('falls back to qwen-image-2.1-Q4_K_M.gguf when UC model is missing on disk', async () => {
-      let sentWorkflow: Record<string, { class_type: string; inputs: Record<string, unknown> }> | undefined;
-      const mockFetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
-        if (url.endsWith('/prompt') && init?.body) {
-          const parsed = JSON.parse(init.body as string);
-          sentWorkflow = parsed.prompt;
-          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id-fallback' }), { status: 200 });
-        }
-        return new Response('Not found', { status: 404 });
-      });
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'fallback-result' });
 
       const existsSpy = vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
         if (typeof p === 'string' && p.includes('qwen-image-2.1-UC-Q4_K_M.gguf')) {
@@ -886,20 +843,12 @@ describe('LocalQwenManager', () => {
         return false;
       });
 
-      const manager = new LocalQwenManager({
-        fetchFn: mockFetch as unknown as typeof fetch,
-        probeFn: async () => true,
-      });
-      vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
-        base64: 'fallback-result',
-        mimeType: 'image/png',
-      });
-
       try {
         await manager.generateImage({
           prompt: 'A test prompt',
         });
 
+        const sentWorkflow = getSentWorkflow();
         expect(sentWorkflow?.['1']).toBeDefined();
         expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-Q4_K_M.gguf');
       } finally {

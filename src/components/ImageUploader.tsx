@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CloudUploadIcon, DeleteIcon, GalleryIcon } from './Icons';
-import { compressImage, validateImageFile } from '../utils/imageUtils';
+import { processUploadImageFile } from '../utils/imageUtils';
 import ImageSelectionModal from './modals/ImageSelectionModal';
 
 interface ImageUploaderProps {
@@ -48,31 +48,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
 
   // Helper to convert a single File to ImageFile
   const convertFile = useCallback(async (file: File): Promise<ImageFile | null> => {
-    const validation = await validateImageFile(file);
-    if (!validation.isValid) {
-      if (import.meta.env.DEV) {
-        console.error("Upload validation failed:", validation.errorKey);
-      }
-      return null;
-    }
-
-    try {
-      return await compressImage(file);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("Error compressing image, falling back to original file:", error);
-      }
-      return new Promise<ImageFile>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            const base64String = reader.result.substring(reader.result.indexOf(',') + 1);
-            resolve({ base64: base64String, mimeType: file.type });
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-    }
+    return processUploadImageFile(file);
   }, []);
 
   // Memoize processFile - prevents re-creation on every render

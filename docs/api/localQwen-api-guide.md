@@ -40,7 +40,7 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
 | **Diffusion DiT (Fallback)** | `qwen-image-2.1-Q4_K_M.gguf` | 4.60 GB (4,604,557,984 bytes) | `models/diffusion_models/` | Fallback tiêu chuẩn |
 | **Text/Vision Encoder (active)** | `qwen3vl_8b_w4a8.safetensors` | 6.31 GB (6,312,105,364 bytes) | `models/text_encoders/` | Official Comfy-Org W4A8; đã verify SHA256 + VTO end-to-end |
 | **Text/Vision Encoder (rollback)** | `qwen3vl_8b_int8_convrot.safetensors` | 9.35 GB (9,350,798,360 bytes) | `models/text_encoders/` | Bản cũ giữ lại để rollback |
-| **Speed LoRA (Turbo)** | `Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors` | 679 MB (679,604,800 bytes) | `models/loras/` | DMD 4–6 steps turbo adapter (CFG=1.0) |
+| **Speed LoRA (Turbo)** | `Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors` | 679 MB (679,604,800 bytes) | `models/loras/` | Đã tải & tài liệu hóa cho phase tương thích tiếp theo (DMD 4–6 steps turbo adapter, CFG=1.0) |
 | **FaceSwap LoRA (BFS)** | `bfs_head_v1.1_qwen_2.1.safetensors` | 260 MB (260,096,144 bytes) | `models/loras/` | Lora giữ nhận diện khuôn mặt / đổi mặt |
 | **VAE** | `qwen_image_2.1_vae_bf16.safetensors` | 676 MB (675,509,688 bytes) | `models/vae/` | Mã hóa và giải mã latent sang pixel ảnh |
 

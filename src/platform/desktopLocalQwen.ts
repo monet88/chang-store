@@ -24,6 +24,7 @@ export interface DesktopLocalQwenStatus {
   error?: string;
   progress?: LocalQwenProgress;
   activeModel?: string;
+  isUncensored?: boolean;
 }
 export interface DesktopLocalQwenStopResult {
   stopped: boolean;
@@ -46,6 +47,7 @@ export interface LocalQwenGenerateParams {
   loraName?: string;
   loraStrength?: number;
   unetName?: string;
+  workflow?: 'identity-transfer' | 'face-swap' | 'standard';
 }
 
 export interface LocalQwenGenerateResult {

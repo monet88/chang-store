@@ -12,7 +12,7 @@ import ImageOptionsPanel from './ImageOptionsPanel';
 import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import AiScanPanel from './AiScanPanel';
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
-import { compressImage, validateImageFile, calculateLetterboxedMarkerCoordinates, computeLetterboxBounds } from '../utils/imageUtils';
+import { processUploadImageFile, calculateLetterboxedMarkerCoordinates, computeLetterboxBounds } from '../utils/imageUtils';
 import WardrobeSetCard from './WardrobeSetCard';
 import { ExtraPromptPresets } from './IdentityTransferPresets';
 
@@ -181,26 +181,9 @@ const VirtualTryOn: React.FC = () => {
 
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
-      const validation = await validateImageFile(file);
-      if (!validation.isValid) continue;
-
-      try {
-        const compressed = await compressImage(file);
-        validImageFiles.push(compressed);
-      } catch {
-        const reader = new FileReader();
-        await new Promise<void>((resolve) => {
-          reader.onloadend = () => {
-            if (typeof reader.result === 'string') {
-              validImageFiles.push({
-                base64: reader.result.substring(reader.result.indexOf(',') + 1),
-                mimeType: file.type,
-              });
-            }
-            resolve();
-          };
-          reader.readAsDataURL(file);
-        });
+      const img = await processUploadImageFile(file);
+      if (img) {
+        validImageFiles.push(img);
       }
     }
 
@@ -218,17 +201,9 @@ const VirtualTryOn: React.FC = () => {
     if (!fileList || fileList.length === 0) return;
     const file = fileList[0];
     if (!file.type.startsWith('image/')) return;
-    try {
-      const compressed = await compressImage(file);
-      handleSubjectImagesUpload([compressed]);
-    } catch {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          handleSubjectImagesUpload([{ base64: reader.result.substring(reader.result.indexOf(',') + 1), mimeType: file.type }]);
-        }
-      };
-      reader.readAsDataURL(file);
+    const img = await processUploadImageFile(file);
+    if (img) {
+      handleSubjectImagesUpload([img]);
     }
   };
 
