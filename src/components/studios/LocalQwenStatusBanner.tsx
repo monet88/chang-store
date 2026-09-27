@@ -136,6 +136,11 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
                       ? t('studio.localQwenStatus.appOwned')
                       : t('studio.localQwenStatus.external')}
                   </span>
+                  <span className="rounded border border-purple-500/40 bg-purple-950/70 px-1.5 py-0.5 text-[10px] font-semibold text-purple-300">
+                    {status.activeModel?.includes('UC') || !status.activeModel
+                      ? 'Uncensored (UC)'
+                      : 'Standard'}
+                  </span>
                 </div>
                 <p className="text-xs text-zinc-400">
                   {t('studio.localQwenStatus.readySubtext')} (127.0.0.1:{status.port})

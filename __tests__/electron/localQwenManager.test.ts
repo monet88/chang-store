@@ -212,6 +212,7 @@ describe('LocalQwenManager', () => {
       const status = await manager.getStatus();
       expect(status.state).toBe('ready');
       expect(status.isAppOwned).toBe(false);
+      expect(status.activeModel).toBe('qwen-image-2.1-UC-Q4_K_M.gguf');
     });
 
     it('reports ready with isAppOwned: true for app-owned running server', async () => {
@@ -642,6 +643,15 @@ describe('LocalQwenManager', () => {
       expect(() => parseLocalQwenGenerateParams({ prompt: 'test', resolution: 600 })).toThrow(/resolution/);
     });
 
+    it('parses valid unetName in generate params and rejects non-strings', () => {
+      const parsed = parseLocalQwenGenerateParams({
+        prompt: 'test',
+        unetName: 'custom-model.gguf',
+      });
+      expect(parsed.unetName).toBe('custom-model.gguf');
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', unetName: 123 as unknown as string })).toThrow(/unetName/);
+    });
+
     it('parses valid upscale params and rejects malformed ones', () => {
       const valid = parseLocalQwenUpscaleParams({ image: 'base64-data', scale: 2 });
       expect(valid.image).toBe('base64-data');
@@ -850,6 +860,48 @@ describe('LocalQwenManager', () => {
 
         expect(sentWorkflow?.['1']).toBeDefined();
         expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-UC-Q4_K_M.gguf');
+      } finally {
+        existsSpy.mockRestore();
+      }
+    });
+
+    it('falls back to qwen-image-2.1-Q4_K_M.gguf when UC model is missing on disk', async () => {
+      let sentWorkflow: Record<string, { class_type: string; inputs: Record<string, unknown> }> | undefined;
+      const mockFetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/prompt') && init?.body) {
+          const parsed = JSON.parse(init.body as string);
+          sentWorkflow = parsed.prompt;
+          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id-fallback' }), { status: 200 });
+        }
+        return new Response('Not found', { status: 404 });
+      });
+
+      const existsSpy = vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
+        if (typeof p === 'string' && p.includes('qwen-image-2.1-UC-Q4_K_M.gguf')) {
+          return false;
+        }
+        if (typeof p === 'string' && p.includes('qwen-image-2.1-Q4_K_M.gguf')) {
+          return true;
+        }
+        return false;
+      });
+
+      const manager = new LocalQwenManager({
+        fetchFn: mockFetch as unknown as typeof fetch,
+        probeFn: async () => true,
+      });
+      vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
+        base64: 'fallback-result',
+        mimeType: 'image/png',
+      });
+
+      try {
+        await manager.generateImage({
+          prompt: 'A test prompt',
+        });
+
+        expect(sentWorkflow?.['1']).toBeDefined();
+        expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-Q4_K_M.gguf');
       } finally {
         existsSpy.mockRestore();
       }

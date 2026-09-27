@@ -18,6 +18,8 @@ const translations: Record<string, string> = {
   'settingsModal.localQwen.cfgLabel': 'CFG (0.1–10.0)',
   'settingsModal.localQwen.samplerLabel': 'Sampler',
   'settingsModal.localQwen.schedulerLabel': 'Scheduler',
+  'settingsModal.localQwen.modelLabel': 'Diffusion Model',
+  'settingsModal.localQwen.modelUncensoredBadge': 'Uncensored (Default)',
 };
 
 vi.mock('@/contexts/LanguageContext', () => ({
@@ -36,6 +38,9 @@ describe('LocalQwenSettingsSection', () => {
 
     expect(screen.getByText('Local Qwen (ComfyUI)')).toBeInTheDocument();
     expect(screen.getByLabelText('ComfyUI Folder Path')).toBeInTheDocument();
+    expect(screen.getByText('Diffusion Model')).toBeInTheDocument();
+    expect(screen.getByText('Uncensored (Default)')).toBeInTheDocument();
+    expect(screen.getByText('qwen-image-2.1-UC-Q4_K_M.gguf')).toBeInTheDocument();
     expect(screen.getByText('512px')).toBeInTheDocument();
     expect(screen.getByText('768px')).toBeInTheDocument();
     expect(screen.getByText('1024px')).toBeInTheDocument();

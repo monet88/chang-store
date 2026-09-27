@@ -36,9 +36,12 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
 
 | Thành phần | Tên File | Dung lượng | Thư mục đích | Vai trò |
 | :--- | :--- | :--- | :--- | :--- |
-| **Diffusion DiT** | `qwen-image-2.1-Q4_K_M.gguf` | 4.60 GB (4,604,557,984 bytes) | `models/diffusion_models/` | Core diffusion model, lượng tử hóa 4-bit, bypass NSFW |
+| **Diffusion DiT (Default - Uncensored)** | `qwen-image-2.1-UC-Q4_K_M.gguf` | 4.60 GB (4,604,558,112 bytes) | `models/diffusion_models/` | Mặc định: Uncensored GGUF DiT, loại bỏ safety filter / từ chối 18+ |
+| **Diffusion DiT (Fallback)** | `qwen-image-2.1-Q4_K_M.gguf` | 4.60 GB (4,604,557,984 bytes) | `models/diffusion_models/` | Fallback tiêu chuẩn |
 | **Text/Vision Encoder (active)** | `qwen3vl_8b_w4a8.safetensors` | 6.31 GB (6,312,105,364 bytes) | `models/text_encoders/` | Official Comfy-Org W4A8; đã verify SHA256 + VTO end-to-end |
 | **Text/Vision Encoder (rollback)** | `qwen3vl_8b_int8_convrot.safetensors` | 9.35 GB (9,350,798,360 bytes) | `models/text_encoders/` | Bản cũ giữ lại để rollback |
+| **Speed LoRA (Turbo)** | `Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors` | 679 MB (679,604,800 bytes) | `models/loras/` | DMD 4–6 steps turbo adapter (CFG=1.0) |
+| **FaceSwap LoRA (BFS)** | `bfs_head_v1.1_qwen_2.1.safetensors` | 260 MB (260,096,144 bytes) | `models/loras/` | Lora giữ nhận diện khuôn mặt / đổi mặt |
 | **VAE** | `qwen_image_2.1_vae_bf16.safetensors` | 676 MB (675,509,688 bytes) | `models/vae/` | Mã hóa và giải mã latent sang pixel ảnh |
 
 > **RTX 2060 SUPER 8GB:** `qwen3vl_8b_w4a8.safetensors` đang là encoder active. File đã verify SHA256 `7754425e55e7bea2bfde4dde59a4cc236cb44e5ee9c215ea66ef8d47012824eb` và chạy VTO thành công. Giữ bản INT8 để rollback.
@@ -93,7 +96,7 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
 Để chạy được Qwen-Image 2.1 GGUF trên ComfyUI backend qua API `/prompt`:
 
 1. **`UnetLoaderGGUF`:**
-   - Input: `{"unet_name": "qwen-image-2.1-Q4_K_M.gguf"}`
+   - Input: `{"unet_name": "qwen-image-2.1-UC-Q4_K_M.gguf"}` (Mặc định Uncensored; tự fallback `qwen-image-2.1-Q4_K_M.gguf` nếu file UC vắng mặt)
    - Output: `MODEL`
 2. **`CLIPLoader`:**
    - Input khuyến nghị: `{"clip_name": "qwen3vl_8b_w4a8.safetensors", "type": "qwen_image"}`

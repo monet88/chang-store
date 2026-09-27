@@ -23,6 +23,7 @@ export interface DesktopLocalQwenStatus {
   port: number;
   error?: string;
   progress?: LocalQwenProgress;
+  activeModel?: string;
 }
 export interface DesktopLocalQwenStopResult {
   stopped: boolean;
@@ -44,6 +45,7 @@ export interface LocalQwenGenerateParams {
   seed?: number;
   loraName?: string;
   loraStrength?: number;
+  unetName?: string;
 }
 
 export interface LocalQwenGenerateResult {

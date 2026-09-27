@@ -1230,6 +1230,8 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       cfgLabel: 'CFG (0.1–10.0)',
       samplerLabel: 'Sampler',
       schedulerLabel: 'Scheduler',
+      modelLabel: 'Mô hình Diffusion',
+      modelUncensoredBadge: 'Không kiểm duyệt (Mặc định)',
     },
     storage: {
       title: 'Dung lượng lưu trữ cục bộ',

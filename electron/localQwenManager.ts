@@ -37,6 +37,8 @@ declare global {
 }
 
 export const DEFAULT_COMFYUI_PORT = 8188;
+export const DEFAULT_QWEN_UNET_NAME = 'qwen-image-2.1-UC-Q4_K_M.gguf';
+export const FALLBACK_QWEN_UNET_NAME = 'qwen-image-2.1-Q4_K_M.gguf';
 
 export const verifyLoopbackOnly = (targetUrl: string): boolean => {
   try {
@@ -124,11 +126,11 @@ export const defaultHealthCheckFn = async (
     const unetNames = unetData.UnetLoaderGGUF.input?.required?.unet_name?.[0];
     const hasCompatibleUnet =
       Array.isArray(unetNames) &&
-      (unetNames.includes('qwen-image-2.1-Q4_K_M.gguf') || unetNames.includes('qwen-image-2.1-UC-Q4_K_M.gguf'));
+      (unetNames.includes(DEFAULT_QWEN_UNET_NAME) || unetNames.includes(FALLBACK_QWEN_UNET_NAME));
     if (!hasCompatibleUnet) {
       return {
         compatible: false,
-        error: 'UnetLoaderGGUF: qwen-image-2.1-Q4_K_M.gguf or qwen-image-2.1-UC-Q4_K_M.gguf not found in models/diffusion_models',
+        error: `UnetLoaderGGUF: ${DEFAULT_QWEN_UNET_NAME} or ${FALLBACK_QWEN_UNET_NAME} not found in models/diffusion_models`,
       };
     }
 
@@ -234,6 +236,21 @@ export class LocalQwenManager {
   }
 
 
+  public resolveActiveUnet(): string {
+    const comfyRoot = this.comfyUiFolder || KNOWN_PORTABLE_COMFYUI_PATH;
+    const hasUcModel =
+      fs.existsSync(path.join(comfyRoot, 'ComfyUI', 'models', 'diffusion_models', DEFAULT_QWEN_UNET_NAME)) ||
+      fs.existsSync(path.join(comfyRoot, 'models', 'diffusion_models', DEFAULT_QWEN_UNET_NAME));
+    const hasFallbackModel =
+      fs.existsSync(path.join(comfyRoot, 'ComfyUI', 'models', 'diffusion_models', FALLBACK_QWEN_UNET_NAME)) ||
+      fs.existsSync(path.join(comfyRoot, 'models', 'diffusion_models', FALLBACK_QWEN_UNET_NAME));
+
+    if (!hasUcModel && hasFallbackModel) {
+      return FALLBACK_QWEN_UNET_NAME;
+    }
+    return DEFAULT_QWEN_UNET_NAME;
+  }
+
   public async getStatus(): Promise<DesktopLocalQwenStatus> {
     if (this.state === 'generating') {
       return {
@@ -241,6 +258,7 @@ export class LocalQwenManager {
         isAppOwned: this.isAppOwned,
         port: this.port,
         progress: this.currentProgress,
+        activeModel: this.resolveActiveUnet(),
       };
     }
 
@@ -283,6 +301,7 @@ export class LocalQwenManager {
         state: 'ready',
         isAppOwned: this.isAppOwned,
         port: this.port,
+        activeModel: this.resolveActiveUnet(),
       };
     }
 
@@ -471,6 +490,7 @@ export class LocalQwenManager {
         state: 'ready',
         isAppOwned: this.isAppOwned,
         port: this.port,
+        activeModel: this.resolveActiveUnet(),
       };
     }
 
@@ -478,7 +498,7 @@ export class LocalQwenManager {
     if (this.childProcess && !this.childProcess.killed && this.state === 'starting') {
       const ready = await this.waitForReady(this.readinessTimeoutMs);
       if (ready) {
-        return { state: 'ready', isAppOwned: true, port: this.port };
+        return { state: 'ready', isAppOwned: true, port: this.port, activeModel: this.resolveActiveUnet() };
       }
       throw new Error(this.lastError || 'ComfyUI server failed to start within timeout.');
     }
@@ -617,6 +637,7 @@ export class LocalQwenManager {
       state: 'ready',
       isAppOwned: true,
       port: this.port,
+      activeModel: this.resolveActiveUnet(),
     };
   }
   public async stopServer(): Promise<DesktopLocalQwenStopResult> {
@@ -836,14 +857,7 @@ export class LocalQwenManager {
         ? params.loraStrength
         : 1.0;
 
-      let unetName = 'qwen-image-2.1-Q4_K_M.gguf';
-      const comfyRoot = this.comfyUiFolder || KNOWN_PORTABLE_COMFYUI_PATH;
-      if (
-        fs.existsSync(path.join(comfyRoot, 'ComfyUI', 'models', 'diffusion_models', 'qwen-image-2.1-UC-Q4_K_M.gguf')) ||
-        fs.existsSync(path.join(comfyRoot, 'models', 'diffusion_models', 'qwen-image-2.1-UC-Q4_K_M.gguf'))
-      ) {
-        unetName = 'qwen-image-2.1-UC-Q4_K_M.gguf';
-      }
+      const unetName = params.unetName || this.resolveActiveUnet();
 
       const workflow: Record<string, unknown> = {
         '1': {
@@ -1253,7 +1267,7 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
   const input = requireRecord(value, 'generate params');
   assertOnlyKeys(
     input,
-    ['prompt', 'negativePrompt', 'images', 'resolution', 'steps', 'cfg', 'sampler', 'scheduler', 'seed', 'loraName', 'loraStrength'],
+    ['prompt', 'negativePrompt', 'images', 'resolution', 'steps', 'cfg', 'sampler', 'scheduler', 'seed', 'loraName', 'loraStrength', 'unetName'],
     'generate params',
   );
 
@@ -1390,6 +1404,15 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
     loraStrength = input.loraStrength;
   }
 
+  let unetName: string | undefined;
+  if (input.unetName !== undefined) {
+    if (typeof input.unetName !== 'string') {
+      throw new Error('Invalid local Qwen unetName: must be a string.');
+    }
+    const trimmed = input.unetName.trim();
+    unetName = trimmed || undefined;
+  }
+
   return {
     prompt,
     negativePrompt,
@@ -1402,6 +1425,7 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
     seed,
     loraName,
     loraStrength,
+    unetName,
   };
 };
 

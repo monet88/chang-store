@@ -93,6 +93,22 @@ export const LocalQwenSettingsSection: React.FC = () => {
           />
         </div>
 
+        {/* Model (Default Uncensored) */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className={fieldLabelClassName}>
+              {t('settingsModal.localQwen.modelLabel')}
+            </span>
+            <span className="rounded border border-purple-500/40 bg-purple-950/70 px-2 py-0.5 text-[10px] font-semibold text-purple-300">
+              {t('settingsModal.localQwen.modelUncensoredBadge')}
+            </span>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-300">
+            <span className="font-mono text-zinc-200">qwen-image-2.1-UC-Q4_K_M.gguf</span>
+            <span className="text-[11px] text-zinc-400">RTX 8GB VRAM</span>
+          </div>
+        </div>
+
         {/* Resolution */}
         <div className="space-y-1.5">
           <span className={fieldLabelClassName}>

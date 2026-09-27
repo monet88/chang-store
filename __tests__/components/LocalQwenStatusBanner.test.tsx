@@ -80,6 +80,7 @@ describe('LocalQwenStatusBanner', () => {
 
       expect(screen.getByText('ComfyUI Ready')).toBeInTheDocument();
       expect(screen.getByText('App-owned')).toBeInTheDocument();
+      expect(screen.getByText('Uncensored (UC)')).toBeInTheDocument();
 
       const settingsBtn = screen.getByText('Open Settings');
       fireEvent.click(settingsBtn);

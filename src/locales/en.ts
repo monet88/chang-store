@@ -1228,6 +1228,8 @@ Do not include any other text or markdown.
       cfgLabel: 'CFG (0.1–10.0)',
       samplerLabel: 'Sampler',
       schedulerLabel: 'Scheduler',
+      modelLabel: 'Diffusion Model',
+      modelUncensoredBadge: 'Uncensored (Default)',
     },
     storage: {
       title: 'Local storage usage',
