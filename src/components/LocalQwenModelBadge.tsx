@@ -32,5 +32,3 @@ export const LocalQwenModelBadge: React.FC<LocalQwenModelBadgeProps> = ({
     {state ? uncensoredLabel : standardLabel}
   </span>
 );
-
-export default LocalQwenModelBadge;

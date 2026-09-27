@@ -1,8 +1,6 @@
 import type { DesktopBridgeResult } from './desktopGateway';
 import type { LocalQwenWorkflow } from '../utils/engineDispatch';
 
-/** Workflow routing mode for Local Qwen generation (identity transfer / plain edit). */
-export type { LocalQwenWorkflow };
 
 export const DESKTOP_LOCAL_QWEN_CHANNELS = {
   getStatus: 'desktop-local-qwen:get-status',

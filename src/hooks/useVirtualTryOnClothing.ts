@@ -13,7 +13,6 @@ const normalizeSourcePrompt = (value: string) =>
   value.replace(/\s+/g, ' ').slice(0, MAX_SOURCE_PROMPT_LENGTH);
 
 export interface MultipleClothingUploadResult {
-  uploadedCount: number;
   droppedCount: number;
 }
 
@@ -59,7 +58,7 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
 
   const handleMultipleClothingUpload = useCallback(
     (files: ImageFile[], targetId?: number): MultipleClothingUploadResult => {
-      if (!files || files.length === 0) return { uploadedCount: 0, droppedCount: 0 };
+      if (!files || files.length === 0) return { droppedCount: 0 };
 
       let availableSlots = 0;
       if (targetId !== undefined) {
@@ -74,7 +73,6 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
       availableSlots += canPush;
 
       const droppedCount = Math.max(0, files.length - availableSlots);
-      const uploadedCount = Math.min(files.length, availableSlots);
 
       setClothingItems((prev) => {
         const newItems = [...prev];
@@ -105,7 +103,7 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
         return newItems;
       });
 
-      return { uploadedCount, droppedCount };
+      return { droppedCount };
     },
     [clothingItems],
   );

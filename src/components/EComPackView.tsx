@@ -240,7 +240,6 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                   {!isScanningBlueprint && !outfitBlueprint && (
                     <button
                       type="button"
-                      id="scan-source-btn"
                       data-testid="scan-source-btn"
                       onClick={handleScanBlueprint}
                       disabled={!sourceOutfitImage || isScanningBlueprint}

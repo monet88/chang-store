@@ -419,7 +419,6 @@ const VirtualTryOn: React.FC = () => {
                       {isAiScanEnabled && (validClothingItems.length > 0 || clothingItems.some((item) => item.image !== null)) && (
                         <button
                           type="button"
-                          id="vto-scan-blueprint-btn"
                           data-testid="vto-scan-blueprint-btn"
                           onClick={async () => {
                             await scan(aiScanSources, aiScanGuidance || undefined);

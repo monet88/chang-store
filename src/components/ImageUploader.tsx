@@ -45,19 +45,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
     [image?.base64, image?.mimeType]
   );
 
-  // Helper to convert a single File to ImageFile
-  const convertFile = useCallback(async (file: File): Promise<ImageFile | null> => {
-    return processUploadImageFile(file);
-  }, []);
 
   // Memoize processFile - prevents re-creation on every render
   const processFile = useCallback(async (file: File) => {
     if (!file) return;
-    const res = await convertFile(file);
+    const res = await processUploadImageFile(file);
     if (res) {
       onImageUpload(res);
     }
-  }, [convertFile, onImageUpload]);
+  }, [onImageUpload]);
 
   const processMultipleFiles = useCallback(async (files: File[]) => {
     if (!onMultipleImagesUpload || files.length === 0) return;
