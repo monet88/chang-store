@@ -2,7 +2,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, shell } from 'electron';
 import { registerDesktopGatewayHandlers } from './gateway';
-import { registerDesktopLocalQwenHandlers, localQwenManager } from './localQwenManager';
+import { registerDesktopLocalQwenHandlers } from './localQwenIpc';
+import { localQwenManager } from './localQwenManager';
 
 let mainWindow: BrowserWindow | null = null;
 

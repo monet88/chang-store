@@ -1,9 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
-import { ipcMain } from 'electron';
 import {
-  DESKTOP_LOCAL_QWEN_CHANNELS,
   type DesktopLocalQwenState,
   type DesktopLocalQwenStatus,
   type DesktopLocalQwenStopResult,
@@ -27,7 +25,6 @@ import {
   LOCAL_QWEN_SAMPLERS,
   LOCAL_QWEN_SCHEDULERS,
 } from '../src/config/localQwenSettings';
-import { trustedBridge } from './gateway';
 
 declare global {
   interface PromiseConstructor {
@@ -46,6 +43,17 @@ export const FALLBACK_QWEN_UNET_NAME = 'qwen-image-2.1-Q4_K_M.gguf';
 export const FACE_SWAP_LORA_NAME = 'bfs_head_v1.1_qwen_2.1.safetensors';
 /** Speed (turbo) LoRA documented for the local pipeline; detected on disk, wired in a later phase. */
 export const TURBO_LORA_NAME = 'Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors';
+
+/** Last few lines of a ComfyUI boot log, without the terminal colour codes. */
+const bootLogTail = (output: string): string => {
+  const lines = output
+    // eslint-disable-next-line no-control-regex
+    .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter(Boolean);
+  return lines.slice(-3).join(' | ') || 'no output captured';
+};
 
 export const verifyLoopbackOnly = (targetUrl: string): boolean => {
   try {
@@ -233,7 +241,10 @@ export class LocalQwenManager {
       options.spawnFn ??
       ((cmd, args, opts) => spawn(cmd, args as string[], opts as Parameters<typeof spawn>[2]));
     this.fetchFn = options.fetchFn ?? ((url, init) => fetch(url, init));
-    this.readinessTimeoutMs = options.readinessTimeoutMs ?? 60_000;
+    // Measured on the reference machine: a cold ComfyUI start on an 8 GB card
+    // is still loading torch and its plugins at 60s, so the timeout has to
+    // cover a first boot, not a warm one.
+    this.readinessTimeoutMs = options.readinessTimeoutMs ?? 180_000;
     this.readinessPollIntervalMs = options.readinessPollIntervalMs ?? 500;
     this.wsConstructor = options.wsConstructor;
   }
@@ -722,7 +733,10 @@ export class LocalQwenManager {
     if (!isReady) {
       if ((this.state as DesktopLocalQwenState) !== 'error') {
         this.state = 'error';
-        this.lastError = `Timed out waiting for ComfyUI to become ready: ${stderrOutput.trim()}`;
+        // The raw boot log is thousands of lines of ANSI-coloured plugin
+        // output; the status banner shows this string verbatim, so keep the
+        // tail that says where it got stuck.
+        this.lastError = `Timed out waiting for ComfyUI to become ready: ${bootLogTail(stderrOutput)}`;
       }
       if (this.childProcess && !this.childProcess.killed) {
         try {
@@ -1585,40 +1599,3 @@ export const parseLocalQwenFolder = (value: unknown): string | undefined => {
 };
 
 export const localQwenManager = new LocalQwenManager();
-export const registerDesktopLocalQwenHandlers = (
-  manager: LocalQwenManager = localQwenManager,
-): void => {
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.getStatus, (event, folder) =>
-    trustedBridge(event, () => manager.getStatus(parseLocalQwenFolder(folder))),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.startServer, (event, folder) =>
-    trustedBridge(event, () => {
-      const parsedFolder = parseLocalQwenFolder(folder);
-      return manager.startServer(parsedFolder);
-    }),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.stopServer, (event) =>
-    trustedBridge(event, () => manager.stopServer()),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.generateImage, (event, params) =>
-    trustedBridge(event, () => {
-      const validated = parseLocalQwenGenerateParams(params);
-      return manager.generateImage(validated);
-    }),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.cancelJob, (event) =>
-    trustedBridge(event, () => manager.cancelJob()),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.upscaleImage, (event, params) =>
-    trustedBridge(event, () => {
-      const validated = parseLocalQwenUpscaleParams(params);
-      return manager.upscaleImage(validated);
-    }),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.verifyFolder, (event, folder) =>
-    trustedBridge(event, () => {
-      const parsedFolder = parseLocalQwenFolder(folder);
-      return manager.checkFolder(parsedFolder || '');
-    }),
-  );
-};

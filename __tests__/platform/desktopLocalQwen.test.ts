@@ -156,8 +156,42 @@ describe('desktopLocalQwen and settings', () => {
   });
 
   describe('bridge API access and invocation', () => {
-    it('returns undefined when running in browser mode without desktopLocalQwen', () => {
-      expect(getDesktopLocalQwenApi()).toBeUndefined();
+    it('falls back to the dev-server bridge when the Electron preload is absent', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        json: async () => ({ ok: true, value: { state: 'ready' } }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const api = getDesktopLocalQwenApi();
+      expect(api).toBeDefined();
+
+      const result = await api!.getStatus('D:/ComfyUI');
+
+      expect(result).toEqual({ ok: true, value: { state: 'ready' } });
+      // The dev server hosts the same manager, so the call must name the action
+      // the IPC channel would have used.
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/local-qwen',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ action: 'getStatus', payload: 'D:/ComfyUI' }),
+        }),
+      );
+
+      vi.unstubAllGlobals();
+    });
+
+    it('reports a missing transport, not a raw network error, when the dev server is unreachable', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Failed to fetch')));
+
+      const result = await getDesktopLocalQwenApi()!.stopServer();
+
+      expect(result.ok).toBe(false);
+      expect(result.ok === false && result.error.message).toBe(
+        'Local Qwen generation is only available in the desktop app or on the local dev server.',
+      );
+
+      vi.unstubAllGlobals();
     });
 
     it('provides typed bridge methods when running in desktop mode', async () => {

@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ipcMain } from 'electron';
-import {
-  LocalQwenManager,
-  registerDesktopLocalQwenHandlers,
-} from '../../electron/localQwenManager';
+import { LocalQwenManager } from '../../electron/localQwenManager';
+import { registerDesktopLocalQwenHandlers } from '../../electron/localQwenIpc';
 import { DESKTOP_LOCAL_QWEN_CHANNELS } from '../../src/platform/desktopLocalQwen';
 
 // Mock electron

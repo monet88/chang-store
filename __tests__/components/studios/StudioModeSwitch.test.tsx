@@ -25,12 +25,22 @@ describe('StudioModeSwitch', () => {
     delete window.desktopLocalQwen;
   });
   describe('browser environment', () => {
-    it('renders only Gemini and GPT segments in browser mode', () => {
+    it('renders only Gemini and GPT in a static build, where no process owns ComfyUI', () => {
+      vi.stubEnv('DEV', false);
+
       render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
 
       expect(screen.getByRole('radio', { name: 'Gemini' })).toBeInTheDocument();
       expect(screen.getByRole('radio', { name: 'GPT' })).toBeInTheDocument();
       expect(screen.queryByRole('radio', { name: 'Local Qwen' })).not.toBeInTheDocument();
+
+      vi.unstubAllEnvs();
+    });
+
+    it('renders Local Qwen while a dev server hosts the manager', () => {
+      render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
+
+      expect(screen.getByRole('radio', { name: 'Local Qwen' })).toBeInTheDocument();
     });
 
     it('marks the active segment as checked', () => {
@@ -64,12 +74,16 @@ describe('StudioModeSwitch', () => {
       };
     });
 
-    it('does not render Local Qwen when only desktopGateway is present without local Qwen bridge', () => {
+    it('does not render Local Qwen in a static build even when only desktopGateway is present', () => {
+      vi.stubEnv('DEV', false);
+
       render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
 
       expect(screen.getByRole('radio', { name: 'Gemini' })).toBeInTheDocument();
       expect(screen.getByRole('radio', { name: 'GPT' })).toBeInTheDocument();
       expect(screen.queryByRole('radio', { name: 'Local Qwen' })).not.toBeInTheDocument();
+
+      vi.unstubAllEnvs();
     });
 
     it('renders Gemini, GPT, and Local Qwen segments when desktopLocalQwen bridge exists', () => {

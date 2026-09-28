@@ -205,9 +205,11 @@ section. The app icon (`build/icon.ico`) is embedded into each executable.
 
 AppContent owns the Feature routing and StudioMode switch. Feature values and
 provider support are defined in src/types.ts; route/component wiring is in
-src/App.tsx. The browser product ships Gemini and GPT Image studios. The desktop
-architecture additionally reserves a third, desktop-only Local Qwen studio backed
-by a local ComfyUI runtime (ADR-0004).
+src/App.tsx. The browser product ships Gemini and GPT Image studios. A third,
+Local Qwen studio is backed by a local ComfyUI runtime (ADR-0004) and is
+reachable whenever a process owns that runtime: the packaged desktop app
+(Electron main) always, and the browser build only while `vite dev` hosts the
+manager through its Local Qwen dev bridge.
 
 The studios may share workflow hooks, UI state and model-agnostic domain data,
 but prompt policy is model-family-specific. Gemini, GPT Image, and Local Qwen
@@ -305,10 +307,11 @@ the wire. Every cloud lane therefore goes through one shared gate of 10
 in-flight requests (`withImageRequestSlot` in `src/utils/request-slots.ts`),
 which the Gemini and GPT lanes share.
 
-Local Qwen is desktop-only and intentionally narrower. It ships as a serial
-engine (one active job at a time), defaults to 512 px on the target 8 GB GPU,
-keeps upscale as a separate explicit user action, never falls back to cloud
-automatically, and delegates local-process ownership to Electron main. See
+Local Qwen is narrower by design. It ships as a serial engine (one active job
+at a time), defaults to 512 px on the target 8 GB GPU, keeps upscale as a
+separate explicit user action, and never falls back to cloud automatically.
+Local-process ownership sits in one place: Electron main in the packaged app,
+the `vite dev` bridge while testing in a browser. See
 `docs/api/localQwen-api-guide.md` for the measured runtime contract.
 
 The current source tree has no server-side request, session, or audit-log

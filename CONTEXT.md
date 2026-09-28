@@ -20,7 +20,7 @@ The dedicated studio interface tailored for OpenAI GPT Image models. It hosts fi
 _Avoid_: Provider studio, OpenAI wizard.
 
 **Local Qwen Studio**:
-The desktop-only studio interface powered by Qwen image generation on the user's workstation. Its initial product scope is Virtual Try-On, Clothing Transfer, Identity Transfer, and AI Editor. Local generation produces a reviewable result first; upscale remains an explicit user action after the user decides the result is worth keeping. The browser product does not expose this studio.
+The studio interface powered by Qwen image generation on the user's workstation, owned by the local ComfyUI process. Its initial product scope is Virtual Try-On, Clothing Transfer, Identity Transfer, and AI Editor. Local generation produces a reviewable result first; upscale remains an explicit user action after the user decides the result is worth keeping. The packaged desktop app owns that process in Electron main; the browser build reaches the same manager only through the `vite dev` bridge, so the studio is available on the web while the dev server is running and absent from a static deployment.
 _Avoid_: NSFW mode, fallback mode, offline Gemini.
 
 **Uncensored (UC) Model**:

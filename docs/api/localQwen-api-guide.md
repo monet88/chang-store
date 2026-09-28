@@ -208,7 +208,16 @@ Chang Store hỗ trợ dynamic LoRA injection và workflow auto-routing trong `l
 
 ### Desktop app settings contract
 
-Local Qwen is a **desktop-only** studio. The browser build does not expose its settings or runtime.
+Local Qwen is a **desktop-first** studio: the packaged app owns the ComfyUI
+process in Electron main. The `vite dev` server hosts the *same* manager over
+HTTP (`vite-plugins/localQwenDevBridge.ts`: `POST /api/local-qwen` with
+`{action, payload}`, answering in the same `DesktopBridgeResult` envelope), and
+the renderer falls back to it when the Electron preload is absent
+(`src/platform/desktopLocalQwen.ts`). That path exists for browser testing
+only — a static production build has no process to host.
+
+> The endpoint can start ComfyUI and spend the machine's GPU for anyone who
+> can reach the dev server, so only run `vite dev` on a trusted network.
 
 The desktop Settings surface may change the defaults used by the next Local Qwen job:
 

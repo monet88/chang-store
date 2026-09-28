@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, loadEnv, type UserConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc'; // SWC is 20-30x faster than Babel
+import { localQwenDevBridge } from './vite-plugins/localQwenDevBridge';
 
 export const createRendererConfig = (
   mode: string,
@@ -52,7 +53,9 @@ export const createRendererConfig = (
         ],
       },
     },
-    plugins: [react()],
+    // The Local Qwen dev bridge belongs to the web dev server only: it stands in
+    // for the Electron main process that owns the manager in the packaged app.
+    plugins: desktop ? [react()] : [react(), localQwenDevBridge()],
     // Pre-bundle heavy dependencies for faster dev startup
     optimizeDeps: {
       include: [

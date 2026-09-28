@@ -1,5 +1,6 @@
 import type { DesktopBridgeResult } from './desktopGateway';
 import type { LocalQwenWorkflow } from '../utils/engineDispatch';
+import { LOCAL_QWEN_UNAVAILABLE_MESSAGE } from '../utils/localQwenErrors';
 
 
 export const DESKTOP_LOCAL_QWEN_CHANNELS = {
@@ -176,8 +177,54 @@ declare global {
   }
 }
 
-export const getDesktopLocalQwenApi = (): DesktopLocalQwenApi | undefined =>
-  typeof window === 'undefined' ? undefined : window.desktopLocalQwen;
+/**
+ * Dev-server transport, used only when the Electron preload bridge is absent.
+ * `vite dev` mounts the same Local Qwen manager at `/api/local-qwen`, so the
+ * web build drives the local ComfyUI exactly like the packaged app does.
+ */
+const createDevBridgeApi = (): DesktopLocalQwenApi => {
+  const call = async <T>(action: string, payload?: unknown): Promise<DesktopBridgeResult<T>> => {
+    try {
+      const response = await fetch('/api/local-qwen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, payload }),
+      });
+      return (await response.json()) as DesktopBridgeResult<T>;
+    } catch {
+      // A dev server that cannot answer is, from the user's side, no transport
+      // at all: say that instead of leaking "Failed to fetch".
+      return { ok: false, error: { message: LOCAL_QWEN_UNAVAILABLE_MESSAGE } };
+    }
+  };
+  return {
+    getStatus: (folder) => call<DesktopLocalQwenStatus>('getStatus', folder),
+    startServer: (folder) => call<DesktopLocalQwenStatus>('startServer', folder),
+    stopServer: () => call<DesktopLocalQwenStopResult>('stopServer'),
+    generateImage: (params) => call<LocalQwenGenerateResult>('generateImage', params),
+    cancelJob: () => call<{ cancelled: boolean }>('cancelJob'),
+    upscaleImage: (params) => call<LocalQwenUpscaleResult>('upscaleImage', params),
+    verifyFolder: (folder) => call<LocalQwenFolderCheck>('verifyFolder', folder),
+  };
+};
+
+let devBridgeApi: DesktopLocalQwenApi | undefined;
+
+/**
+ * The transport that owns the ComfyUI runtime for this page: the Electron
+ * preload in the packaged app, or the `vite dev` bridge in a dev-served
+ * browser. A static production build owns neither, so the studio stays hidden
+ * there instead of offering a Start button that cannot work.
+ */
+export const getDesktopLocalQwenApi = (): DesktopLocalQwenApi | undefined => {
+  if (typeof window === 'undefined') return undefined;
+  if (window.desktopLocalQwen) return window.desktopLocalQwen;
+  if (!import.meta.env.DEV) return undefined;
+  // No preload, but a dev server is hosting the manager. It answers with the
+  // same `DesktopBridgeResult` envelope, so the studio behaves identically.
+  devBridgeApi ??= createDevBridgeApi();
+  return devBridgeApi;
+};
 
 export {
   classifyLocalQwenError,

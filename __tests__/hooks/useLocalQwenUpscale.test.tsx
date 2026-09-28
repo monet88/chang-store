@@ -234,7 +234,7 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
           'qwen-image-2.1',
           undefined,
         ),
-      ).rejects.toThrow('Local Qwen generation is only available in the desktop application.');
+      ).rejects.toThrow('Local Qwen generation is only available in the desktop app or on the local dev server.');
     });
 
     expect(addImageMock).not.toHaveBeenCalled();

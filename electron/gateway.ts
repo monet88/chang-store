@@ -17,6 +17,7 @@ import {
 } from '../src/platform/desktopGateway';
 import type { ImageFile } from '../src/types';
 import { MAX_GPT_REFERENCE_IMAGES } from '../src/config/gptImageModelRegistry';
+import { bridge, bridgeError } from './bridgeResult';
 import { validateProviderBaseUrl } from '../src/utils/provider-url-validation';
 import { isPublicNetworkAddress, normalizeNetworkHostname } from './networkSafety';
 
@@ -163,22 +164,6 @@ const requireProviderUrl = (rawUrl: string): string => {
   return validation.url.replace(/\/+$/, '');
 };
 
-const bridgeError = (error: unknown): DesktopBridgeErrorShape => {
-  const shaped = error as { message?: unknown; status?: unknown; code?: unknown };
-  return {
-    message: typeof shaped?.message === 'string' ? shaped.message : 'Desktop gateway request failed.',
-    ...(typeof shaped?.status === 'number' ? { status: shaped.status } : {}),
-    ...(typeof shaped?.code === 'string' ? { code: shaped.code } : {}),
-  };
-};
-
-const bridge = async <T>(task: () => Promise<T> | T): Promise<DesktopBridgeResult<T>> => {
-  try {
-    return { ok: true, value: await task() };
-  } catch (error) {
-    return { ok: false, error: bridgeError(error) };
-  }
-};
 
 type UnknownRecord = Record<string, unknown>;
 
