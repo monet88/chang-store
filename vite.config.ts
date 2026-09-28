@@ -16,10 +16,14 @@ export const createRendererConfig = (
       port: 3549,
       // Fail loudly instead of silently drifting to another port when 3549 is taken.
       strictPort: true,
-      // Default to localhost for security; set VITE_ENABLE_LAN=true for cross-device testing
-      // Explicit IPv4 loopback: `localhost` resolves to ::1 first on Windows, so anything that
-      // probes 127.0.0.1 (the hub's `ready.port` check, curl, other agents) never saw the server.
-      host: process.env.VITE_ENABLE_LAN === 'true' ? '0.0.0.0' : '127.0.0.1',
+      // LAN-accessible by default: the dev server is how this app is tested
+      // (browser, phone over the tailnet), and the web build bakes the gateway
+      // keys from .env in either way, so loopback buys no real secrecy here.
+      // Set VITE_ENABLE_LAN=false to bind loopback only on a shared network.
+      // Explicit IPv4: `localhost` resolves to ::1 first on Windows, so anything
+      // that probes 127.0.0.1 (the hub's `ready.port` check, curl, other
+      // agents) never saw the server.
+      host: process.env.VITE_ENABLE_LAN === 'false' ? '127.0.0.1' : '0.0.0.0',
       proxy: {
         '/typesafe-proxy': {
           target: 'https://api.typesafe.ai',

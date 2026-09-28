@@ -59,8 +59,13 @@ npm install
 npm run dev
 ```
 
-The dev server runs on port 3549. Ports are pinned (`server.strictPort`), so a
-second instance fails fast instead of drifting to another port. On Windows, `npm`
+The dev server runs on port 3549 and listens on every interface by default, so
+the app can be opened from a phone or another machine on the same network
+(`http://<your-lan-ip>:3549`, including a Tailscale address). Set
+`VITE_ENABLE_LAN=false` to bind loopback only; the dev server bakes the gateway
+keys from `.env` into the web bundle, so keep it on a network you trust. Ports
+are pinned (`server.strictPort`), so a second instance fails fast instead of
+drifting to another port. On Windows, `npm`
 is a batch shim; launch Vite directly when a `cmd.exe` wrapper is not available:
 
 ```bash
