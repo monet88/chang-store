@@ -1043,6 +1043,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       blueprintView: 'Xem chi tiết bản vẽ',
       blueprintHide: 'Thu gọn',
       blueprintReanalyze: 'Phân tích lại',
+      blueprintReanalyzeConfirm: 'Phân tích lại sẽ ghi đè bản phân tích bạn đã sửa. Tiếp tục?',
       scanBlueprintButton: 'Quét AI bản vẽ trang phục (AI Scan)',
       sourcePromptLabel: 'Ghi chú cho trang phục này (Tùy chọn)',
       sourcePromptPlaceholder: 'VD: "quần không phải váy", "áo dáng suông rộng, tay áo hơi phồng"',

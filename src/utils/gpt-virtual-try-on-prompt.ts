@@ -52,8 +52,13 @@ export const buildGptVirtualTryOnParts = (input: VirtualTryOnPromptInput): Part[
   const parsedBlueprint = parseOutfitBlueprint(input.outfitBlueprint);
   const hasClothing = sourceItems.some((item) => item.sourceItemType === 'clothing');
   const hasNonClothing = sourceItems.some((item) => item.sourceItemType !== 'clothing');
-  const tuckingAllowed = isTuckingAllowed(input.extraPrompt);
-  const outfitNote = input.userGuidance?.replace(/\s+/g, ' ').trim();
+  // The operator's notes ride into APPLICATION_RULES as directives, so they
+  // decide the hemline too: a note asking for a tucked shirt must not
+  // contradict "NEVER TUCK IN" two lines above it.
+  const outfitNote = normalizeSourcePrompt(input.userGuidance);
+  const itemNotes = sourceItems.map((item) => normalizeSourcePrompt(item.sourcePrompt));
+  const tuckingAllowed = isTuckingAllowed([input.extraPrompt, outfitNote, ...itemNotes].join('\n'));
+
   const config: Record<string, unknown> = {
     TASK: 'Apply all provided fashion source items to the subject while preserving face, facial features, expression, hair, skin tone, exact age, body proportions, pose, and unrelated scene content.',
     IMAGE_ROLES: buildRoleMap(input).split('\n'),

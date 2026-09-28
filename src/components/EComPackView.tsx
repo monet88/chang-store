@@ -67,8 +67,9 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
     sourceOutfitNote,
     setSourceOutfitNote,
     outfitBlueprint,
-    editOutfitBlueprint,
+    isBlueprintEdited,
     isScanningBlueprint,
+    editOutfitBlueprint,
     handleScanBlueprint,
     selectedGarmentScopes,
     toggleGarmentScope,
@@ -269,7 +270,15 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={handleScanBlueprint}
+                            onClick={() => {
+                              if (
+                                isBlueprintEdited &&
+                                !window.confirm(t('clothingTransfer.ecomPack.blueprintReanalyzeConfirm'))
+                              ) {
+                                return;
+                              }
+                              void handleScanBlueprint();
+                            }}
                             disabled={isScanningBlueprint}
                             className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
                             title={t('clothingTransfer.ecomPack.blueprintReanalyze')}

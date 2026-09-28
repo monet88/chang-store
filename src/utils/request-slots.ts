@@ -12,7 +12,11 @@ let activeImageRequests = 0;
 const waiters: Array<() => void> = [];
 
 export const withImageRequestSlot = async <T>(task: () => Promise<T>): Promise<T> => {
-  if (activeImageRequests >= DEFAULT_MAX_CONCURRENCY) {
+  // Loop, not `if`: releasing a slot decrements first and only then wakes one
+  // waiter, so a caller already sitting in the microtask queue can take that
+  // slot before the woken waiter resumes. Without the re-check both increment
+  // and the gate lets one request past its own cap.
+  while (activeImageRequests >= DEFAULT_MAX_CONCURRENCY) {
     await new Promise<void>((resolve) => waiters.push(resolve));
   }
   activeImageRequests += 1;

@@ -6,6 +6,7 @@ import type { ImageFile, UpscaleQuality } from '../types';
 import { snapshotLocalQwenSettings } from '../config/localQwenSettings';
 import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
 import { generateLocalQwenImage } from '../services/providers/local-qwen/localQwenService';
+import { getDesktopLocalQwenApi } from '../platform/desktopLocalQwen';
 
 // Module-level serialized queue ensuring max 1 active generation job at a time
 let executionQueue: Promise<unknown> = Promise.resolve();
@@ -103,7 +104,9 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
       return runSerializedLocalQwenJob(async () => {
         config?.onStatusUpdate?.(t('studio.localQwenStatus.upscaling'));
 
-        const desktopApi = window.desktopLocalQwen;
+        // The same transport generation uses, so a browser behind the dev
+        // bridge can upscale too — not only the Electron preload.
+        const desktopApi = getDesktopLocalQwenApi();
         if (!desktopApi?.upscaleImage) {
           throw new Error('Local Qwen upscale requires desktop app runtime.');
         }

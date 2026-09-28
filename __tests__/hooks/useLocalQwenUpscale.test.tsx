@@ -1,5 +1,4 @@
-import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { ImageFile } from '@/types';
 import { useLocalQwenImageEngine, cancelQueuedLocalQwenJobs } from '@/hooks/useLocalQwenImageEngine';
@@ -41,6 +40,11 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
       cancelJob: vi.fn(),
       upscaleImage: desktopUpscaleMock,
     };
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -188,6 +192,33 @@ describe('useLocalQwenImageEngine - Explicit Upscale without Cloud Fallback', ()
       ).rejects.toThrow(/desktop app runtime/);
     });
 
+  });
+
+  it('upscales through the dev bridge when no Electron preload is present', async () => {
+    // A browser behind `vite dev` + LOCAL_QWEN_DEV_BRIDGE owns no preload; the
+    // transport it falls back to must serve the upscale as well.
+    delete window.desktopLocalQwen;
+    vi.stubEnv('LOCAL_QWEN_DEV_BRIDGE', 'true');
+    const fetchMock = vi.fn().mockResolvedValue({
+      json: async () => ({ ok: true, value: { image: UPSCALED_BASE64, mimeType: 'image/png' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useLocalQwenImageEngine(), { wrapper });
+
+    let upscaled: ImageFile | undefined;
+    await act(async () => {
+      upscaled = await result.current.upscaleImage(
+        ORIGINAL_IMAGE,
+        undefined as unknown as string,
+        undefined as unknown as { onStatusUpdate: (msg: string) => void },
+      );
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/local-qwen', expect.objectContaining({ method: 'POST' }));
+    const body = JSON.parse((fetchMock.mock.calls[0]?.[1] as RequestInit).body as string);
+    expect(body.action).toBe('upscaleImage');
+    expect(upscaled?.base64).toBe(UPSCALED_BASE64);
   });
 
   it('does NOT auto-upscale after editImage generation (explicit action only)', async () => {

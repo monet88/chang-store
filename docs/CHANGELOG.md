@@ -17,6 +17,34 @@
 - Unified build script `scripts/build-win.mjs` replaces the former
   `build-win-portable.mjs` and accepts a target argument (`portable` or `nsis`).
 
+### Fixed
+
+- The shared image request gate (`withImageRequestSlot`) re-checks the cap
+  after waking a waiter. A caller already queued in the microtask queue could
+  otherwise take a freed slot first and put 11 concurrent requests on the wire
+  against a cap of 10.
+- GPT Image and Local Qwen upscales go through the gate, like every other cloud
+  request in those lanes. An upscale burst is as real a request as a
+  generation one, and the E-Com Pack's blueprint re-analysis and Local Qwen
+  upscale previously bypassed the queue entirely.
+- `AiScanPanel` keys its pre-scan on the identity of the source *images*, not
+  on the array a caller rebuilds. Typing an outfit note no longer fires one
+  paid analysis per keystroke; the edited note still reaches the analyzer
+  through **Rescan** or through the next generation.
+- The E-Com Pack outfit note rides into the generation prompt, not only into
+  the analysis, so it still holds when the scan failed or the blueprint was
+  hand-edited. Re-analyze now asks before discarding a hand-edited blueprint,
+  and one in-flight analysis is shared between the manual button and Generate.
+- The `vite dev` Local Qwen bridge is opt-in (`LOCAL_QWEN_DEV_BRIDGE=true`).
+  It can start ComfyUI and spend the machine's GPU for anyone who reaches the
+  dev server, which listens on every interface by default. Browsing the rest of
+  the app over the LAN needs no flag.
+- The hemline analysis rule no longer forces a one-piece dress into the skirt
+  bucket: a single continuous hem with no waist seam is reported as one piece.
+- Operator notes asking for a tucked garment now override the untucked
+  hemline rule in the Qwen, Gemini and GPT prompt builders alike, instead of
+  being contradicted by it.
+
 ## [Unreleased] — 2026-09-21
 
 ### Added

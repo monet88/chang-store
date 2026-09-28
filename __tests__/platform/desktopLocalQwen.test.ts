@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_LOCAL_QWEN_SETTINGS,
   KNOWN_PORTABLE_COMFYUI_PATH,
@@ -23,6 +23,12 @@ describe('desktopLocalQwen and settings', () => {
     localStorage.clear();
     delete window.desktopLocalQwen;
   });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
 
   describe('settings defaults and persistence', () => {
     it('returns approved default settings when storage is empty', () => {
@@ -157,6 +163,8 @@ describe('desktopLocalQwen and settings', () => {
 
   describe('bridge API access and invocation', () => {
     it('falls back to the dev-server bridge when the Electron preload is absent', async () => {
+      // The dev bridge is opt-in, so the lane under test turns it on.
+      vi.stubEnv('LOCAL_QWEN_DEV_BRIDGE', 'true');
       const fetchMock = vi.fn().mockResolvedValue({
         json: async () => ({ ok: true, value: { state: 'ready' } }),
       });
@@ -178,10 +186,10 @@ describe('desktopLocalQwen and settings', () => {
         }),
       );
 
-      vi.unstubAllGlobals();
     });
 
     it('reports a missing transport, not a raw network error, when the dev server is unreachable', async () => {
+      vi.stubEnv('LOCAL_QWEN_DEV_BRIDGE', 'true');
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Failed to fetch')));
 
       const result = await getDesktopLocalQwenApi()!.stopServer();
@@ -191,7 +199,12 @@ describe('desktopLocalQwen and settings', () => {
         'Local Qwen generation is only available in the desktop app or on the local dev server.',
       );
 
-      vi.unstubAllGlobals();
+    });
+
+    it('offers no transport at all when the dev bridge was never opted into', () => {
+      // The bridge can start ComfyUI and spend the GPU, so a plain `vite dev`
+      // must not expose it to whoever reaches the server.
+      expect(getDesktopLocalQwenApi()).toBeUndefined();
     });
 
     it('provides typed bridge methods when running in desktop mode', async () => {

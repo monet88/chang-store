@@ -230,4 +230,29 @@ describe('AiScanPanel', () => {
     await waitFor(() => expect(analyze).toHaveBeenCalledTimes(2));
     expect(analyze.mock.calls[1]?.[2]).toBe('quần không phải váy');
   });
+
+  it('does not re-analyze when the parent rebuilds the same sources on every keystroke', async () => {
+    const analyze = vi.fn().mockResolvedValue('BLUEPRINT');
+
+    // Virtual Try-On's real shape: the per-item note lives in the item list, so
+    // every keystroke produces a new `sources` array holding the SAME images.
+    const Harness = ({ note }: { note: string }) => (
+      <AiScanProvider analyze={analyze}>
+        <AiScanPanel
+          sources={[SOURCE]}
+          userGuidance={note ? `Item #1 (top): ${note}` : undefined}
+        />
+      </AiScanProvider>
+    );
+
+    const { rerender } = render(<Harness note="" />);
+    await waitFor(() => expect(screen.getByText('studio.aiScan.ready')).toBeInTheDocument());
+    expect(analyze).toHaveBeenCalledTimes(1);
+
+    rerender(<Harness note="p" />);
+    rerender(<Harness note="pa" />);
+    rerender(<Harness note="pan" />);
+
+    expect(analyze).toHaveBeenCalledTimes(1);
+  });
 });

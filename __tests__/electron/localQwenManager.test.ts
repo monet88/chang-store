@@ -248,14 +248,25 @@ describe('LocalQwenManager', () => {
     });
 
     it('reports ready with isAppOwned: false for external running server', async () => {
+      // Detection reads the filesystem, so the install is a fixture, never the
+      // developer's own ComfyUI folder.
+      const installFixture = createComfyFixture({ unets: [DEFAULT_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(installFixture);
       const probeFn = vi.fn().mockResolvedValue(true);
       const manager = new LocalQwenManager({ probeFn });
       manager.isAppOwned = false;
 
-      const status = await manager.getStatus();
-      expect(status.state).toBe('ready');
-      expect(status.isAppOwned).toBe(false);
-      expect(status.activeModel).toBe('qwen-image-2.1-UC-Q4_K_M.gguf');
+      try {
+        const status = await manager.getStatus(installFixture);
+
+        expect(status.state).toBe('ready');
+        expect(status.isAppOwned).toBe(false);
+        expect(status.activeModel).toBe(DEFAULT_QWEN_UNET_NAME);
+        expect(status.isUncensored).toBe(true);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(installFixture);
+      }
     });
 
     it('reports ready with isAppOwned: true for app-owned running server', async () => {

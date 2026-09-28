@@ -33,7 +33,7 @@ describe('useClothingTransferEComPack', () => {
     editImageMock.mockResolvedValue([mockImage('result-1')]);
   });
 
-  const setupHook = () =>
+  const setupHook = (overrides: Partial<Parameters<typeof useClothingTransferEComPack>[0]> = {}) =>
     renderHook(() =>
       useClothingTransferEComPack({
         driver: mockDriver,
@@ -47,6 +47,7 @@ describe('useClothingTransferEComPack', () => {
         setError: setErrorMock,
         t: (key) => key,
         scanBlueprintFn: vi.fn().mockResolvedValue(''),
+        ...overrides,
       }),
     );
 
@@ -956,21 +957,7 @@ describe('useClothingTransferEComPack', () => {
   it('never publishes a scan that was analysed under an earlier outfit note', async () => {
     const inFlight = createDeferred<string>();
     const scanMock = vi.fn().mockReturnValueOnce(inFlight.promise);
-    const { result } = renderHook(() =>
-      useClothingTransferEComPack({
-        driver: mockDriver,
-        aspectRatio: '3:4',
-        resolution: '1K',
-        numImages: 1,
-        imageEditModel: 'gemini-2.5-flash-image',
-        engineId: 'gemini',
-        extraPrompt: '',
-        addImage: addImageMock,
-        setError: setErrorMock,
-        t: (key) => key,
-        scanBlueprintFn: scanMock,
-      }),
-    );
+    const { result } = setupHook({ scanBlueprintFn: scanMock });
 
     act(() => {
       result.current.setSourceOutfitImage(mockImage('scan-src'));
@@ -991,5 +978,59 @@ describe('useClothingTransferEComPack', () => {
     // Same photo, different directive: the answer belongs to a state that no
     // longer exists, so the blueprint card must not claim to be ready.
     expect(result.current.outfitBlueprint).toBeNull();
+  });
+
+  it('carries the outfit note into the generation prompt, not only the scan', async () => {
+    // The note outranks an ambiguous reading of the garments, so it has to
+    // reach synthesis too — otherwise a failed scan drops it entirely.
+    const scanMock = vi.fn().mockResolvedValue(null);
+    const editImage = vi.fn().mockResolvedValue([{ base64: 'out', mimeType: 'image/png' }]);
+    const { result } = setupHook({
+      driver: { ...mockDriver, editImage },
+      scanBlueprintFn: scanMock,
+    });
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('note-src'));
+      result.current.setSourceOutfitNote('wide-leg trousers, not a skirt');
+      result.current.handleCustomStagingUpload([mockImage('staging-note')]);
+    });
+    await act(async () => {
+      await result.current.handleGeneratePack();
+    });
+
+    const parts = editImage.mock.calls[0]?.[0]?.interleavedParts as Array<{ text?: string }>;
+    const promptText = parts.map((part) => part.text ?? '').join('\n');
+    expect(promptText).toContain('wide-leg trousers, not a skirt');
+  });
+
+  it('shares one in-flight scan between the manual button and Generate', async () => {
+    // Generate while a manual scan is still running must await THAT analysis,
+    // not start a second paid one for the same photo and note.
+    const inFlight = createDeferred<string>();
+    const scanMock = vi.fn().mockReturnValue(inFlight.promise);
+    const editImage = vi.fn().mockResolvedValue([{ base64: 'out', mimeType: 'image/png' }]);
+    const { result } = setupHook({
+      driver: { ...mockDriver, editImage },
+      scanBlueprintFn: scanMock,
+    });
+
+    act(() => {
+      result.current.setSourceOutfitImage(mockImage('shared-src'));
+      result.current.handleCustomStagingUpload([mockImage('staging-shared')]);
+    });
+    act(() => {
+      void result.current.handleScanBlueprint();
+    });
+    await act(async () => {
+      void result.current.handleGeneratePack();
+    });
+
+    expect(scanMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      inFlight.resolve('[CORE_GARMENTS]\nWool overcoat');
+    });
+    expect(editImage).toHaveBeenCalled();
   });
 });

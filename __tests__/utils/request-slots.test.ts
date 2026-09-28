@@ -50,4 +50,36 @@ describe('withImageRequestSlot', () => {
 
     await expect(withImageRequestSlot(async () => 'ok')).resolves.toBe('ok');
   });
+
+  it('never hands out more slots than the cap, even when a waiter is woken', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    // A body that stays suspended until the test releases it, so the number of
+    // simultaneously suspended bodies IS the number of slots held.
+    const body = (holder: ReturnType<typeof createPendingTask>) => async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await holder.task();
+      inFlight -= 1;
+    };
+
+    // Fill the cap: one request finishes on its own and frees a slot, the rest
+    // hold. That freed slot is then contested by a queued request and by a caller
+    // already sitting in the microtask queue — the woken waiter resumes last.
+    const quick = withImageRequestSlot(async () => {});
+    const held = Array.from({ length: DEFAULT_MAX_CONCURRENCY - 1 }, () => createPendingTask());
+    const running = held.map((holder) => withImageRequestSlot(body(holder)));
+    const contested = createPendingTask();
+    const queued = withImageRequestSlot(body(contested));
+    const late = Promise.resolve().then(() => withImageRequestSlot(body(contested)));
+
+    // setImmediate drains the microtask queue without guessing a duration.
+    await new Promise((resolve) => setImmediate(resolve));
+    const observedPeak = peak;
+    held.forEach((holder) => holder.release());
+    contested.release();
+    await Promise.all([quick, ...running, queued, late]);
+
+    expect(observedPeak).toBeLessThanOrEqual(DEFAULT_MAX_CONCURRENCY);
+  });
 });

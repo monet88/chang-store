@@ -303,15 +303,20 @@ preservation-prompted edit at the largest quality).
 
 Job concurrency is not the same thing as request concurrency: a job may fan out
 one request per output image, so 10 jobs of 4 images would put 40 requests on
-the wire. Every cloud lane therefore goes through one shared gate of 10
-in-flight requests (`withImageRequestSlot` in `src/utils/request-slots.ts`),
-which the Gemini and GPT lanes share.
+the wire. Every cloud request therefore goes through one shared gate of 10
+in-flight requests (`withImageRequestSlot` in `src/utils/request-slots.ts`) —
+the Gemini and GPT lanes share it, upscales included. The gate re-checks the
+cap after waking a waiter, because a caller already queued in the microtask
+queue can otherwise claim the freed slot first.
 
 Local Qwen is narrower by design. It ships as a serial engine (one active job
 at a time), defaults to 512 px on the target 8 GB GPU, keeps upscale as a
 separate explicit user action, and never falls back to cloud automatically.
+
 Local-process ownership sits in one place: Electron main in the packaged app,
-the `vite dev` bridge while testing in a browser. See
+the `vite dev` bridge while testing in a browser. The bridge is opt-in
+(`LOCAL_QWEN_DEV_BRIDGE=true`) because it can start ComfyUI for anyone who
+reaches the dev server, which listens on every interface by default. See
 `docs/api/localQwen-api-guide.md` for the measured runtime contract.
 
 The current source tree has no server-side request, session, or audit-log

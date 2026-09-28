@@ -817,6 +817,11 @@ describe('services/gemini/text.ts', () => {
       expect(prompt).toContain('belts are supporting apparel');
       expect(prompt).not.toContain('hats, belts');
       expect(request.model).toBe('gemini-3.8-flash');
+      // A one-piece dress has one continuous hem and no waist seam: the
+      // classification rule must not force it into the skirt bucket, and must
+      // not ban the phrase the model needs in order to say it.
+      expect(prompt).toContain('One-Piece');
+      expect(prompt).not.toContain('"dress or skirt"');
     });
 
     it('should surface a blocked prompt as error.api.safetyBlock', async () => {

@@ -162,3 +162,52 @@ describe('outfitDrapePolicy', () => {
     });
   });
 });
+
+describe('Virtual Try-On notes decide the hemline too', () => {
+  const baseInput = {
+    subjectImage: { base64: 'c3Vi', mimeType: 'image/png' },
+    sourceItems: [
+      {
+        image: { base64: 'Z2Fy', mimeType: 'image/png' },
+        sourceItemType: 'clothing' as const,
+        sourcePrompt: '',
+      },
+    ],
+    extraPrompt: '',
+    backgroundPrompt: '',
+    isMultiPersonMode: false,
+  };
+
+  it('keeps the untucked override on Qwen when only an accessory is a source', () => {
+    // Shoes-only still renders a torso, so the hemline rule must be present
+    // exactly as it is for a full clothing set.
+    const withShoes = buildQwenVirtualTryOnParts({
+      ...baseInput,
+      sourceItems: [
+        {
+          image: { base64: 'c2hv', mimeType: 'image/png' },
+          sourceItemType: 'shoes' as const,
+          sourcePrompt: '',
+        },
+      ],
+    });
+
+    expect(JSON.stringify(withShoes)).toContain('NEVER TUCK IN');
+  });
+
+  // Qwen, Gemini, GPT in that order: the override must land identically.
+  const untuckedIn = (guidance: string) =>
+    [
+      buildQwenVirtualTryOnParts,
+      buildGeminiVirtualTryOnParts,
+      buildGptVirtualTryOnParts,
+    ].map((build) => JSON.stringify(build({ ...baseInput, userGuidance: guidance })).includes('NEVER TUCK IN'));
+
+  it('lets a note asking for a tuck override the untucked rule in every builder', () => {
+    expect(untuckedIn('tuck the shirt into the high waistband')).toEqual([false, false, false]);
+  });
+
+  it('keeps the untucked rule when no note asks for a tuck', () => {
+    expect(untuckedIn('wide-leg trousers, not a skirt')).toEqual([true, true, true]);
+  });
+});

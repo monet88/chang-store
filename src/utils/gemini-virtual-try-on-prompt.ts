@@ -82,31 +82,34 @@ function buildTaskText(input: VirtualTryOnPromptInput): string {
     .join('\n');
   const hasClothing = sourceItems.some((item) => item.sourceItemType === 'clothing');
   const hasNonClothing = sourceItems.some((item) => item.sourceItemType !== 'clothing');
-  const tuckingAllowed = isTuckingAllowed(extraPrompt);
-
-  const untuckedTaskHeadline = !tuckingAllowed
-    ? `\n\n${UNTUCKED_OVERRIDE_HEADLINE}`
-    : '';
 
   const userNotesSummary = sourceItems
     .map((item, index) => sourceItemNoteLine(item, index))
     .filter((line): line is string => line !== null)
     .map((line) => `- ${line}`);
 
-
-  const outfitNote = input.userGuidance?.replace(/\s+/g, ' ').trim();
+  const outfitNote = normalizeSourcePrompt(input.userGuidance);
   const outfitNoteLine = outfitNote
     ? `- Outfit note from the user: ${outfitNote}`
     : '';
   const allUserNotes = outfitNoteLine
     ? [...userNotesSummary, outfitNoteLine]
     : userNotesSummary;
+  // The notes are the operator's own instructions and sit next to this override
+  // under a strict-compliance header, so they decide the hemline too — a note
+  // asking for a tucked shirt must not contradict "NEVER TUCK IN".
+  const tuckingAllowed = isTuckingAllowed([extraPrompt, ...allUserNotes].join('\n'));
+
+  const untuckedTaskHeadline = !tuckingAllowed
+    ? `\n\n${UNTUCKED_OVERRIDE_HEADLINE}`
+    : '';
+
   const userNotesSection = allUserNotes.length > 0
     ? `\n\n## USER SPECIFIC INSTRUCTIONS FOR GARMENTS (STRICT COMPLIANCE REQUIRED)\n${allUserNotes.join('\n')}\nPay meticulous attention to the user notes above: apply the exact fit, silhouette, and garment type specified.`
     : '';
 
   const clothingRule = hasClothing
-    ? `A clothing source item may contain one garment or a coordinated outfit with multiple garments. For each clothing source item, replace every visible matching clothing category from that source image: top, bottom, dress, outerwear, belt, or other wearable garment. If a single clothing source image visibly contains a complete look with both upper-body and lower-body garments, treat it as one full-look reference and transfer every visible garment from that image together: remove the subject's original top and original bottom together and replace both with the source look in the same result. Do not preserve the subject's original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment. If multiple clothing source items contain the same clothing category, use the later source item in list order for that category. Zero original elements in replaced clothing areas may remain.${!tuckingAllowed ? ' Tops hang freely outside the waistband with natural hem drape; never tucked in.' : ''}`
+    ? `A clothing source item may contain one garment or a coordinated outfit with multiple garments. For each clothing source item, replace every visible matching clothing category from that source image: top, bottom, dress, outerwear, belt, or other wearable garment. If a single clothing source image visibly contains a complete look with both upper-body and lower-body garments, treat it as one full-look reference and transfer every visible garment from that image together: remove the subject's original top and original bottom together and replace both with the source look in the same result. Do not preserve the subject's original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment. If multiple clothing source items contain the same clothing category, use the later source item in list order for that category. Zero original elements in replaced clothing areas may remain.`
     : '';
 
   const nonClothingRule = hasNonClothing

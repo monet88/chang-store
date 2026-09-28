@@ -10,7 +10,6 @@ import { GoogleGenAI, type GenerateContentParameters } from '@google/genai';
 import {
   DESKTOP_CREDENTIAL_SENTINEL,
   DESKTOP_GATEWAY_CHANNELS,
-  type DesktopBridgeErrorShape,
   type DesktopBridgeResult,
   type DesktopGatewayProbeResult,
   type DesktopProviderResponse,

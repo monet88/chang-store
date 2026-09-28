@@ -219,9 +219,10 @@ let devBridgeApi: DesktopLocalQwenApi | undefined;
 export const getDesktopLocalQwenApi = (): DesktopLocalQwenApi | undefined => {
   if (typeof window === 'undefined') return undefined;
   if (window.desktopLocalQwen) return window.desktopLocalQwen;
-  if (!import.meta.env.DEV) return undefined;
-  // No preload, but a dev server is hosting the manager. It answers with the
+  // No preload, so only the dev bridge can answer, and only when the dev
+  // server was started with LOCAL_QWEN_DEV_BRIDGE=true. It answers with the
   // same `DesktopBridgeResult` envelope, so the studio behaves identically.
+  if (!import.meta.env.DEV || !import.meta.env.LOCAL_QWEN_DEV_BRIDGE) return undefined;
   devBridgeApi ??= createDevBridgeApi();
   return devBridgeApi;
 };

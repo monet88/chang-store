@@ -113,6 +113,14 @@ export const planEComPackTargets = (input: EComPackPlanInput): EComPackPlannedTa
   return [...productTargets, ...brandModelTargets, ...destinationTargets];
 };
 
+/**
+ * The operator's free-text instructions for one run: the pack's own extra
+ * prompt plus the outfit note. The note outranks an ambiguous reading of the
+ * garments, so it has to reach synthesis itself and not only the analysis.
+ */
+const combineExtraInstructions = (extraPrompt: string, outfitNote: string): string =>
+  [extraPrompt.trim(), outfitNote.trim()].filter(Boolean).join('\n');
+
 interface EComPackPromptContext {
   sourceOutfitImage: ImageFile;
   garmentScopes: GarmentScope[];
@@ -227,6 +235,12 @@ export interface UseClothingTransferEComPackRunConfig {
   engineId?: ImageEngineId;
   extraPrompt: string;
   /**
+   * The operator's note about the source outfit. It steers the analysis AND
+   * rides into the generation prompt, so it still holds when the scan failed or
+   * the blueprint was hand-edited.
+   */
+  outfitNote: string;
+  /**
    * The active model-agnostic blueprint for this source outfit, analyzed on demand
    * when the run has none yet. Null falls back to the base prompt.
    */
@@ -263,6 +277,7 @@ export const useClothingTransferEComPackRun = (
     imageEditModel,
     engineId,
     extraPrompt,
+    outfitNote,
     resolveOutfitBlueprint,
     addImage,
     setError,
@@ -304,7 +319,7 @@ export const useClothingTransferEComPackRun = (
           garmentScopes: selection.garmentScopes.length > 0
             ? selection.garmentScopes
             : ['full-set'],
-          extraPrompt,
+          extraPrompt: combineExtraInstructions(extraPrompt, outfitNote),
           aspectRatio,
           resolution,
           engineId,
@@ -342,6 +357,7 @@ export const useClothingTransferEComPackRun = (
       sourceOutfitImage,
       selection.garmentScopes,
       extraPrompt,
+      outfitNote,
       aspectRatio,
       resolution,
       engineId,

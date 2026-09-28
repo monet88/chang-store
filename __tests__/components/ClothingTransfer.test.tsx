@@ -277,6 +277,36 @@ describe('ClothingTransfer component', () => {
     expect(screen.getByRole('button', { name: /blueprintReanalyze/ })).toBeInTheDocument();
   });
 
+  it('asks before Re-analyze discards a hand-edited blueprint', () => {
+    const handleScanBlueprint = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      mode: 'ecom-pack',
+      ecomPack: {
+        ...baseHookState.ecomPack,
+        sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
+        outfitBlueprint: '[CORE_GARMENTS]\nHand-corrected trousers',
+        isScanningBlueprint: false,
+        isBlueprintEdited: true,
+        handleScanBlueprint,
+      },
+    });
+    render(<ClothingTransfer />);
+
+    fireEvent.click(screen.getByRole('button', { name: /blueprintReanalyze/ }));
+
+    // Declined: the operator's edit is still theirs.
+    expect(confirmSpy).toHaveBeenCalledWith('clothingTransfer.ecomPack.blueprintReanalyzeConfirm');
+    expect(handleScanBlueprint).not.toHaveBeenCalled();
+
+    confirmSpy.mockReturnValue(true);
+    fireEvent.click(screen.getByRole('button', { name: /blueprintReanalyze/ }));
+    expect(handleScanBlueprint).toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
+  });
+
   it('exposes E-Com Pack templates, category generation, multi-model selection, and result actions', () => {
     const handleGenerateCategory = vi.fn();
     const handleUpscale = vi.fn();

@@ -1041,6 +1041,7 @@ Do not include any other text or markdown.
       blueprintView: 'View blueprint details',
       blueprintHide: 'Hide',
       blueprintReanalyze: 'Re-analyze',
+      blueprintReanalyzeConfirm: 'Re-analyzing replaces the blueprint you edited. Continue?',
       scanBlueprintButton: 'AI Scan Garment Blueprint',
       sourcePromptLabel: 'Note for This Outfit (Optional)',
       sourcePromptPlaceholder: 'e.g., "pants not skirt", "loose-fit blouse, slightly puffed sleeves"',

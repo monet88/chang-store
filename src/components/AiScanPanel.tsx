@@ -21,6 +21,23 @@ interface PanelReport {
   failed: boolean;
 }
 
+/**
+ * The same array while it holds the same image objects. Callers rebuild
+ * `sources` on every change (Virtual Try-On rebuilds it while a note is being
+ * typed), and a pre-scan keyed on that fresh identity would re-fire a paid
+ * analysis per keystroke. The images, not the array, are the trigger.
+ */
+const useStableSources = (sources: ImageFile[]): ImageFile[] => {
+  const stable = useRef(sources);
+  if (
+    stable.current.length !== sources.length ||
+    sources.some((image, index) => image !== stable.current[index])
+  ) {
+    stable.current = sources;
+  }
+  return stable.current;
+};
+
 const IDLE_REPORT: PanelReport = { blueprint: null, isAnalyzing: false, failed: false };
 
 /**
@@ -34,6 +51,7 @@ const IDLE_REPORT: PanelReport = { blueprint: null, isAnalyzing: false, failed: 
  * so another job's blueprint, spinner or failure must not surface here.
  */
 const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
+  const stableSources = useStableSources(sources);
   const { t } = useLanguage();
   const { enabled, setEnabled, scan } = useAiScan();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -53,11 +71,11 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
   const runScan = useCallback((forceRefresh = false) => {
     const runId = ++runIdRef.current;
     setReport({ blueprint: null, isAnalyzing: true, failed: false });
-    void scan(sources, guidanceRef.current, forceRefresh).then((blueprint) => {
+    void scan(stableSources, guidanceRef.current, forceRefresh).then((blueprint) => {
       if (runId !== runIdRef.current) return;
       setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
     });
-  }, [scan, sources]);
+  }, [scan, stableSources]);
 
   /** Manual Rescan: the analyzer runs again, under the current note. */
   const rescan = useCallback(() => runScan(true), [runScan]);
@@ -65,7 +83,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
   // Pre-scan as soon as the sources change. Repeat runs are free: `scan` reuses
   // the analysis already running or finished for the same source set.
   useEffect(() => {
-    if (!enabled || sources.length === 0) {
+    if (!enabled || stableSources.length === 0) {
       runIdRef.current++;
       setReport(IDLE_REPORT);
       return;
@@ -75,7 +93,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
     return () => {
       runIdRef.current++;
     };
-  }, [enabled, sources, runScan]);
+  }, [enabled, stableSources, runScan]);
 
   const { blueprint, isAnalyzing, failed } = report;
 
@@ -103,7 +121,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
         </span>
       </button>
 
-      {enabled && sources.length > 0 && (
+      {enabled && stableSources.length > 0 && (
         <div role="status" aria-live="polite">
           {isAnalyzing && (
             <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] text-zinc-400">

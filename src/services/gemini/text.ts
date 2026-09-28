@@ -310,9 +310,9 @@ Structure your analysis strictly into the following 3 distinct bounded sections 
 - Treat belts as supporting apparel when they are part of the outfit; belts are supporting apparel, not generic non-apparel accessories.
 - Exact silhouette, fit, cuts, waistline, neckline/collar, sleeve style, closures.
 - GARMENT BIFURCATION & BOTTOM CLASSIFICATION RULE (CRITICAL):
-  * You MUST deterministically classify any lower-body garment as either bifurcated (Trousers/Pants/Shorts/Culottes/Balloon pants with 2 separate leg openings) or continuous (Skirt with a single continuous sweep/hem circumference).
-  * Always inspect the ankle and leg hemline: if there are two distinct gathered cuffs, leg openings, or visible independent leg openings around the ankles/feet, it is TROUSERS/PANTS (even if voluminous, drop-crotch, balloon-shaped, or draped like a skirt).
-  * STRICT ANTI-HEDGING RULE: NEVER use ambiguous hedging phrases such as "A (or B)", "skirt or trousers", "dress or skirt", "maybe", or "either/or". Commit decisively to ONE definitive garment category based on visual evidence.
+  * Classify the LOWER BODY only: bifurcated (Trousers/Pants/Shorts/Culottes/Balloon pants with 2 separate leg openings) or continuous (Skirt with a single continuous sweep/hem circumference). A one-piece dress has ONE continuous hem and NO waist seam: report it as "One-Piece" in the layer list, and do not label its skirt a separate garment.
+  * Always inspect the ankle and leg hemline of a SEPARATELY waist-seamed lower-body garment: if there are two distinct gathered cuffs, leg openings, or visible independent leg openings around the ankles/feet, it is TROUSERS/PANTS (even if voluminous, drop-crotch, balloon-shaped, or draped like a skirt).
+  * STRICT ANTI-HEDGING RULE: NEVER use ambiguous hedging phrases such as "A (or B)", "skirt or trousers", "maybe", or "either/or". Commit decisively to ONE definitive garment category based on visual evidence. Naming the two categories you weighed is fine; hedging between them is not.
 - MICRO-EDGE & HEMLINE DETAILS: scalloped lace edges, fringes, cuffs, sheer mesh bands, contrast stitching.
 
 [2. TEXTILE_PHYSICS]

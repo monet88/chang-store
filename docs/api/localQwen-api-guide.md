@@ -209,15 +209,18 @@ Chang Store hỗ trợ dynamic LoRA injection và workflow auto-routing trong `l
 ### Desktop app settings contract
 
 Local Qwen is a **desktop-first** studio: the packaged app owns the ComfyUI
-process in Electron main. The `vite dev` server hosts the *same* manager over
+process in Electron main. The `vite dev` server can host the *same* manager over
 HTTP (`vite-plugins/localQwenDevBridge.ts`: `POST /api/local-qwen` with
 `{action, payload}`, answering in the same `DesktopBridgeResult` envelope), and
 the renderer falls back to it when the Electron preload is absent
 (`src/platform/desktopLocalQwen.ts`). That path exists for browser testing
 only — a static production build has no process to host.
 
-> The endpoint can start ComfyUI and spend the machine's GPU for anyone who
-> can reach the dev server, so only run `vite dev` on a trusted network.
+The bridge is **opt-in**: start the dev server with `LOCAL_QWEN_DEV_BRIDGE=true`
+to mount it. It can start ComfyUI and spend the machine's GPU for anyone who
+can reach the dev server, and the dev server listens on every interface by
+default, so it stays off unless a test actually needs it. Browsing the rest of
+the app from a phone or a second machine needs no flag.
 
 The desktop Settings surface may change the defaults used by the next Local Qwen job:
 
@@ -240,8 +243,8 @@ Upscale is never automatic. The user reviews the generated result first and expl
 
 ### 7.1 Product boundary
 
-- Local Qwen is exposed only by the **Electron desktop app** as a third Studio Mode: `localQwen`.
-- The browser build does not render the Local Qwen studio, settings, controls, or process lifecycle.
+- Local Qwen is exposed by the **Electron desktop app** as a third Studio Mode: `localQwen`, and by `vite dev` only when `LOCAL_QWEN_DEV_BRIDGE=true`.
+- The browser build does not render the Local Qwen studio, settings, controls, or process lifecycle. Under `vite dev` the studio appears only when that flag is set, and only while a manager is hosting the endpoint.
 - Initial Local Qwen Feature scope:
   - Virtual Try-On
   - Clothing Transfer

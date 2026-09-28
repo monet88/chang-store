@@ -10,6 +10,10 @@ export const createRendererConfig = (
   const env = loadEnv(mode, '.', '');
   const rendererSecret = (value: string | undefined): string | undefined =>
     desktop ? undefined : value;
+  // One decision, read twice: mount the endpoint, and let the renderer know a
+  // transport can answer. Desktop owns the manager through the preload, so the
+  // dev bridge is never part of it.
+  const devBridgeEnabled = !desktop && process.env.LOCAL_QWEN_DEV_BRIDGE === 'true';
   return {
     base: desktop ? './' : undefined,
     server: {
@@ -57,9 +61,7 @@ export const createRendererConfig = (
         ],
       },
     },
-    // The Local Qwen dev bridge belongs to the web dev server only: it stands in
-    // for the Electron main process that owns the manager in the packaged app.
-    plugins: desktop ? [react()] : [react(), localQwenDevBridge()],
+    plugins: devBridgeEnabled ? [react(), localQwenDevBridge()] : [react()],
     // Pre-bundle heavy dependencies for faster dev startup
     optimizeDeps: {
       include: [
@@ -76,6 +78,9 @@ export const createRendererConfig = (
       },
     },
     define: {
+      // The renderer only offers the Local Qwen studio when a transport can
+      // actually answer, so it must know about the same flag the server used.
+      'import.meta.env.LOCAL_QWEN_DEV_BRIDGE': JSON.stringify(devBridgeEnabled),
       // Web keeps the existing client-side provider contract. Desktop receives
       // no build-time provider keys; its real credentials are owned by Electron main.
       'process.env.CLIPROXY_API_KEY': JSON.stringify(rendererSecret(env.CLIPROXY_API_KEY || env.VITE_CLIPROXY_API_KEY)),

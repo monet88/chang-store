@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -24,6 +24,11 @@ describe('StudioModeSwitch', () => {
     delete window.desktopGateway;
     delete window.desktopLocalQwen;
   });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   describe('browser environment', () => {
     it('renders only Gemini and GPT in a static build, where no process owns ComfyUI', () => {
       vi.stubEnv('DEV', false);
@@ -33,11 +38,17 @@ describe('StudioModeSwitch', () => {
       expect(screen.getByRole('radio', { name: 'Gemini' })).toBeInTheDocument();
       expect(screen.getByRole('radio', { name: 'GPT' })).toBeInTheDocument();
       expect(screen.queryByRole('radio', { name: 'Local Qwen' })).not.toBeInTheDocument();
-
-      vi.unstubAllEnvs();
     });
 
-    it('renders Local Qwen while a dev server hosts the manager', () => {
+    it('renders only Gemini and GPT in a dev build whose bridge was never opted into', () => {
+      render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
+
+      expect(screen.queryByRole('radio', { name: 'Local Qwen' })).not.toBeInTheDocument();
+    });
+
+    it('renders Local Qwen while a dev server hosts the manager behind the opt-in', () => {
+      vi.stubEnv('LOCAL_QWEN_DEV_BRIDGE', 'true');
+
       render(<StudioModeSwitch studioMode="gemini" onChange={vi.fn()} />);
 
       expect(screen.getByRole('radio', { name: 'Local Qwen' })).toBeInTheDocument();
@@ -82,8 +93,6 @@ describe('StudioModeSwitch', () => {
       expect(screen.getByRole('radio', { name: 'Gemini' })).toBeInTheDocument();
       expect(screen.getByRole('radio', { name: 'GPT' })).toBeInTheDocument();
       expect(screen.queryByRole('radio', { name: 'Local Qwen' })).not.toBeInTheDocument();
-
-      vi.unstubAllEnvs();
     });
 
     it('renders Gemini, GPT, and Local Qwen segments when desktopLocalQwen bridge exists', () => {

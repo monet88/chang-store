@@ -19,6 +19,9 @@ The flagship feature of Chang Store.
 - **Wardrobe Mode**: Pre-define outfit sets, batch-generate all combinations
   against selected subjects. Up to 4 sets, 4 items per set; batch concurrency
   follows `resolveEngineConcurrency` (1 for local Qwen, otherwise up to 10).
+  Every request it fans out then passes one shared gate of 10 in-flight
+  requests (`withImageRequestSlot`), so a job count of 10 with 4 images each
+  cannot put 40 requests on the wire.
 
 ## Inputs
 

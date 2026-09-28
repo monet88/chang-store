@@ -181,4 +181,30 @@ describe('buildGptImageEngine', () => {
     await pending;
     expect(editGptImage).toHaveBeenCalled();
   });
+
+  it('holds its upscale behind the shared request gate too', async () => {
+    const engine = buildGptImageEngine({
+      model: 'gpt-image-2',
+      quality: 'high',
+      sizeOptions: XOMPET_SIZES,
+      credentials: CREDENTIALS,
+    });
+
+    // An upscale is a real request too: while every slot is taken it must wait
+    // rather than add one more request on top of the batch.
+    const saturators = Array.from({ length: DEFAULT_MAX_CONCURRENCY }, () => {
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => { release = resolve; });
+      return { held, release, run: withImageRequestSlot(() => held) };
+    });
+
+    const pending = engine.upscaleImage(IMAGE, 'ignored', apiConfig, '2K');
+    await Promise.resolve();
+    expect(editGptImage).not.toHaveBeenCalled();
+
+    saturators.forEach((saturator) => saturator.release());
+    await Promise.all(saturators.map((saturator) => saturator.run));
+    await pending;
+    expect(editGptImage).toHaveBeenCalled();
+  });
 });

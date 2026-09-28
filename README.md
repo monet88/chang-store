@@ -72,6 +72,12 @@ is a batch shim; launch Vite directly when a `cmd.exe` wrapper is not available:
 node node_modules/vite/bin/vite.js
 ```
 
+The Local Qwen studio in a browser additionally needs
+`LOCAL_QWEN_DEV_BRIDGE=true` (`POST /api/local-qwen` on the dev server). It is
+off by default because that endpoint can start ComfyUI and spend the machine's
+GPU for anyone who reaches the dev server; see
+`docs/api/localQwen-api-guide.md`.
+
 Desktop development uses the same renderer through the Electron shell:
 
 ```bash
