@@ -1,0 +1,3 @@
+## 2026-09-28 - Destructuring custom hook object returns for optimal memoization
+**Learning:** Returning a new object literal on every render from a custom hook (like `useGatewayProfiles`) causes referential instability. If the entire object is used as a dependency in `useMemo` or `useCallback` (e.g. `[profiles]`), it defeats the memoization entirely, triggering cascading re-renders across consumers.
+**Action:** Always explicitly destructure the needed properties from custom hooks returning objects, and use those specific properties in dependency arrays to ensure calculation only occurs when underlying values truly change.

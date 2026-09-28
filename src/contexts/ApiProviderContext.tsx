@@ -132,15 +132,25 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     restoredCpaGatewayRef.current.settings,
   );
 
-  const profiles = useGatewayProfiles({
+  const {
+    gatewayProfiles,
+    geminiProfile,
+    imageProfiles,
+    activeImageProfileId,
+    servedModelsVersion,
+    saveProfiles,
+    selectImageProfile,
+    imageProfileForDriver: profilesImageProfileForDriver,
+    notifyServedModelsChanged
+  } = useGatewayProfiles({
     gemini: cpaGatewaySettings,
     storage: safeStorage,
   });
 
   // The UI passes driver ids as plain strings, so the guard lives at this boundary.
   const imageProfileForDriver = useCallback(
-    (driver: string) => (isImageDriverId(driver) ? profiles.imageProfileForDriver(driver) : undefined),
-    [profiles],
+    (driver: string) => (isImageDriverId(driver) ? profilesImageProfileForDriver(driver) : undefined),
+    [profilesImageProfileForDriver],
   );
 
   const [imageEditModel, setImageEditModelState] = useState<ImageEditModel>(() => {
@@ -192,9 +202,9 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     configureGeminiClient({
       apiKey: cpaGatewaySettings.apiKey.trim(),
       baseUrl: validation.status === 'invalid' ? DEFAULT_CPA_GATEWAY_URL : validation.url,
-      credentialRef: profiles.geminiProfile.id,
+      credentialRef: geminiProfile.id,
     });
-  }, [cpaGatewaySettings, profiles.geminiProfile.id]);
+  }, [cpaGatewaySettings, geminiProfile.id]);
 
   const setCpaGatewaySettings = useCallback(async (settings: CpaGatewaySettings): Promise<boolean> => {
     const desktopGateway = getDesktopGatewayApi();
@@ -210,16 +220,16 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Desktop commits the visible settings only after main confirms the raw key
     // reached encrypted storage. A failed store leaves the previous working
     // settings intact and never writes the raw key to renderer storage.
-    const stored = await storeDesktopCredential(profiles.geminiProfile.id, settings.url, apiKey);
+    const stored = await storeDesktopCredential(geminiProfile.id, settings.url, apiKey);
     if (!stored) return false;
 
-    invalidateCachedGatewayModels(profiles.geminiProfile.id);
+    invalidateCachedGatewayModels(geminiProfile.id);
     const securedSettings = { ...settings, apiKey: DESKTOP_CREDENTIAL_SENTINEL };
     setCpaGatewaySettingsState(securedSettings);
     safeStorage.setItem(CPA_GATEWAY_URL_KEY, settings.url);
     safeStorage.setItem(CPA_GATEWAY_API_KEY_KEY, DESKTOP_CREDENTIAL_SENTINEL);
     return true;
-  }, [profiles.geminiProfile.id]);
+  }, [geminiProfile.id]);
 
   const setImageEditModel = useCallback((model: ImageEditModel) => {
     setImageEditModelState(model);
@@ -247,16 +257,25 @@ export const ApiProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setTextGenerateModel,
       cpaGatewaySettings,
       setCpaGatewaySettings,
-      gatewayProfiles: profiles.gatewayProfiles,
-      geminiProfile: profiles.geminiProfile,
-      imageProfiles: profiles.imageProfiles,
-      activeImageProfileId: profiles.activeImageProfileId,
-      servedModelsVersion: profiles.servedModelsVersion,
-      saveGatewayProfiles: profiles.saveProfiles,
-      selectImageProfile: profiles.selectImageProfile,
+      gatewayProfiles,
+      geminiProfile,
+      imageProfiles,
+      activeImageProfileId,
+      servedModelsVersion,
+      saveGatewayProfiles: saveProfiles,
+      selectImageProfile,
       imageProfileForDriver,
-      notifyServedModelsChanged: profiles.notifyServedModelsChanged,
-  }), [imageEditModel, setImageEditModel, imageGenerateModel, setImageGenerateModel, textGenerateModel, setTextGenerateModel, cpaGatewaySettings, setCpaGatewaySettings, profiles, imageProfileForDriver]);
+      notifyServedModelsChanged,
+  }), [
+      imageEditModel, setImageEditModel,
+      imageGenerateModel, setImageGenerateModel,
+      textGenerateModel, setTextGenerateModel,
+      cpaGatewaySettings, setCpaGatewaySettings,
+      gatewayProfiles, geminiProfile, imageProfiles,
+      activeImageProfileId, servedModelsVersion,
+      saveProfiles, selectImageProfile,
+      imageProfileForDriver, notifyServedModelsChanged
+  ]);
 
   return (
     <ApiContext.Provider value={contextValue}>
