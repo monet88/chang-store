@@ -55,6 +55,24 @@ const bootLogTail = (output: string): string => {
   return lines.slice(-3).join(' | ') || 'no output captured';
 };
 
+/**
+ * ComfyUI reports a failed job as an event array (`["execution_error", {...}]`
+ * plus every prior event). Dumping that into the UI buries the one line that
+ * says what broke, so keep the node and its first message line.
+ */
+const summarizeComfyUiMessages = (messages: unknown): string => {
+  if (Array.isArray(messages)) {
+    for (const entry of messages) {
+      if (Array.isArray(entry) && entry[0] === 'execution_error') {
+        const data = (entry[1] ?? {}) as { exception_message?: string; node_type?: string };
+        const message = (data.exception_message ?? '').trim().split('\n')[0].trim();
+        return data.node_type ? `${data.node_type}: ${message}` : message;
+      }
+    }
+  }
+  return typeof messages === 'string' && messages.trim() ? messages : 'Unknown error';
+};
+
 export const verifyLoopbackOnly = (targetUrl: string): boolean => {
   try {
     const parsed = new URL(targetUrl);
@@ -1319,7 +1337,7 @@ export class LocalQwenManager {
         const item = historyData[promptId];
         if (item) {
           if (item.status?.status_str === 'error') {
-            throw new Error(`ComfyUI ${label} execution failed: ${JSON.stringify(item.status.messages || 'Unknown error')}`);
+            throw new Error(`ComfyUI ${label} execution failed: ${summarizeComfyUiMessages(item.status.messages)}`);
           }
 
           if (item.outputs) {
