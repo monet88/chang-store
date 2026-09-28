@@ -169,6 +169,7 @@ const BatchItemCard: React.FC<{
               disabled={isProcessing}
               className="p-1.5 bg-amber-600/80 hover:bg-amber-500 rounded text-white transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               title={t('watermarkRemover.retry')}
+              aria-label={t('watermarkRemover.retry')}
             >
               <RegenerateIcon className="w-4 h-4" />
             </button>
@@ -183,6 +184,7 @@ const BatchItemCard: React.FC<{
               onClick={onSave}
               className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               title={t('imageActions.saveToGallery')}
+              aria-label={t('imageActions.saveToGallery')}
             >
               <GalleryIcon className="w-4 h-4" />
             </button>
@@ -194,6 +196,7 @@ const BatchItemCard: React.FC<{
               onClick={onDownload}
               className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               title={t('imageActions.download')}
+              aria-label={t('imageActions.download')}
             >
               <DownloadIcon className="w-4 h-4" />
             </button>
@@ -205,6 +208,7 @@ const BatchItemCard: React.FC<{
             disabled={isProcessing && item.status === 'processing'}
             className="p-1.5 bg-red-600/70 hover:bg-red-500 rounded text-white transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             title={t('watermarkRemover.remove')}
+            aria-label={t('watermarkRemover.remove')}
           >
             <DeleteIcon className="w-4 h-4" />
           </button>
