@@ -3,7 +3,7 @@ import ImageUploader from './ImageUploader';
 import MultiImageUploader from './MultiImageUploader';
 import Spinner from './Spinner';
 import HoverableImage from './HoverableImage';
-import { Feature, VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES, VirtualTryOnSourceItemType } from '../types';
+import { Feature, ImageFile, VIRTUAL_TRY_ON_SOURCE_ITEM_TYPES, VirtualTryOnSourceItemType } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { AddIcon, DeleteIcon, CloudUploadIcon, MagicWandIcon } from './Icons';
 import Tooltip from './Tooltip';
@@ -12,7 +12,12 @@ import ImageOptionsPanel from './ImageOptionsPanel';
 import GptImageOptionsPanel from './studios/GptImageOptionsPanel';
 import AiScanPanel from './AiScanPanel';
 import { useVirtualTryOn } from '../hooks/useVirtualTryOn';
-import { compressImage, calculateLetterboxedMarkerCoordinates, computeLetterboxBounds } from '../utils/imageUtils';
+import {
+  processUploadImageFile,
+  processMultipleImageFiles,
+  calculateLetterboxedMarkerCoordinates,
+  computeLetterboxBounds,
+} from '../utils/imageUtils';
 import WardrobeSetCard from './WardrobeSetCard';
 import { ExtraPromptPresets } from './IdentityTransferPresets';
 
@@ -37,6 +42,8 @@ const VirtualTryOn: React.FC = () => {
     setBackgroundPrompt,
     extraPrompt,
     setExtraPrompt,
+    userGuidance = '',
+    setUserGuidance = () => {},
     numImages,
     setNumImages,
     aspectRatio,
@@ -58,6 +65,7 @@ const VirtualTryOn: React.FC = () => {
     handleRefine,
     handleSubjectImagesUpload,
     handleClothingUpload,
+    handleMultipleClothingUpload = () => ({ droppedCount: 0 }),
     handleSourceItemTypeChange,
     handleSourcePromptChange,
     addClothingUploader,
@@ -78,7 +86,8 @@ const VirtualTryOn: React.FC = () => {
     markerPosition,
     setMarkerPosition,
     clearMarker,
-    aiScanSources,
+    aiScanSources = [],
+    aiScanGuidance = '',
   } = useVirtualTryOn();
 
   const { t } = useLanguage();
@@ -165,9 +174,30 @@ const VirtualTryOn: React.FC = () => {
 
     setMarkerPosition({ x, y, relX: nextRelX, relY: nextRelY });
   };
-  const sourceItemsGridClass = clothingItems.length === 1
-    ? 'space-y-3'
-    : 'grid gap-4 sm:grid-cols-2 2xl:grid-cols-3';
+  const sourceItemsGridClass = React.useMemo(() => {
+    if (clothingItems.length === 1) return 'space-y-3';
+    if (clothingItems.length === 2) return 'grid gap-4 grid-cols-1 sm:grid-cols-2';
+    if (clothingItems.length === 3) return 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+    return 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+  }, [clothingItems.length]);
+
+  /** One place where a garment batch lands, so truncation is reported once for every upload path. */
+  const addClothingFiles = (files: ImageFile[], targetId?: number) => {
+    const res = handleMultipleClothingUpload(files, targetId);
+    if (res && res.droppedCount > 0) {
+      setError(t('virtualTryOn.batchUploadTruncated', { count: res.droppedCount }));
+    }
+  };
+
+  const handleBatchClothingUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = event.target.files;
+    if (!fileList || fileList.length === 0) return;
+    const validImageFiles = await processMultipleImageFiles(fileList);
+    if (validImageFiles.length > 0) {
+      addClothingFiles(validImageFiles);
+    }
+    event.target.value = '';
+  };
 
   const toggleRefine = (key: string) =>
     setRefineOpen((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -177,17 +207,9 @@ const VirtualTryOn: React.FC = () => {
     if (!fileList || fileList.length === 0) return;
     const file = fileList[0];
     if (!file.type.startsWith('image/')) return;
-    try {
-      const compressed = await compressImage(file);
-      handleSubjectImagesUpload([compressed]);
-    } catch {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          handleSubjectImagesUpload([{ base64: reader.result.substring(reader.result.indexOf(',') + 1), mimeType: file.type }]);
-        }
-      };
-      reader.readAsDataURL(file);
+    const img = await processUploadImageFile(file);
+    if (img) {
+      handleSubjectImagesUpload([img]);
     }
   };
 
@@ -343,34 +365,55 @@ const VirtualTryOn: React.FC = () => {
                 </Tooltip>
 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-1">
                       <p className="text-base font-semibold text-zinc-100">{t('virtualTryOn.step2')}</p>
                       <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.sharedOutfitHint')}</p>
                     </div>
-                    {clothingItems.some((item) => item.sourcePrompt.trim()) && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const res = await autoDetectAllItemTypes();
-                          if (res.error === 'noText') {
-                            setError(t('virtualTryOn.autoDetectNoText'));
-                          } else if (res.error) {
-                            setError(res.error);
-                          }
-                        }}
-                        disabled={isLoading || isAutoDetectingAll}
-                        title={t('virtualTryOn.autoDetectTooltip')}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition-all hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {isAutoDetectingAll ? (
-                          <Spinner />
-                        ) : (
-                          <MagicWandIcon className="h-3.5 w-3.5" />
-                        )}
-                        <span>{t('virtualTryOn.autoDetectAll')}</span>
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {clothingItems.length < 4 && (
+                        <label
+                          htmlFor="batch-clothing-upload"
+                          title={t('virtualTryOn.uploadMultipleItemsTooltip')}
+                          className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-zinc-200 transition-all hover:bg-white/10"
+                        >
+                          <CloudUploadIcon className="h-3.5 w-3.5 text-zinc-400" />
+                          <span>{t('virtualTryOn.uploadMultipleItems')}</span>
+                          <input
+                            id="batch-clothing-upload"
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            className="sr-only"
+                            disabled={isLoading}
+                            onChange={handleBatchClothingUpload}
+                          />
+                        </label>
+                      )}
+                      {clothingItems.some((item) => item.sourcePrompt.trim()) && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const res = await autoDetectAllItemTypes();
+                            if (res.error === 'noText') {
+                              setError(t('virtualTryOn.autoDetectNoText'));
+                            } else if (res.error) {
+                              setError(res.error);
+                            }
+                          }}
+                          disabled={isLoading || isAutoDetectingAll}
+                          title={t('virtualTryOn.autoDetectTooltip')}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition-all hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {isAutoDetectingAll ? (
+                            <Spinner />
+                          ) : (
+                            <MagicWandIcon className="h-3.5 w-3.5" />
+                          )}
+                          <span>{t('virtualTryOn.autoDetectAll')}</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div data-testid="source-items-grid" className={sourceItemsGridClass}>
                     {clothingItems.map((item, index) => (
@@ -381,6 +424,9 @@ const VirtualTryOn: React.FC = () => {
                             id={`clothing-${item.id}`}
                             title={t('virtualTryOn.clothingItemTitle', { index: index + 1 })}
                             onImageUpload={(file) => handleClothingUpload(file, item.id)}
+                            onMultipleImagesUpload={(files) => {
+                              addClothingFiles(files, item.id);
+                            }}
                           />
                         </Tooltip>
                         <div className="mt-3 space-y-3">
@@ -467,6 +513,21 @@ const VirtualTryOn: React.FC = () => {
                     </button>
                   </Tooltip>
                   <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.clothingUploadHint')}</p>
+                  <div className="space-y-1.5">
+                    <label htmlFor="vto-outfit-note" className="text-sm font-semibold text-zinc-200">
+                      {t('virtualTryOn.outfitNoteLabel')}
+                    </label>
+                    <textarea
+                      id="vto-outfit-note"
+                      value={userGuidance}
+                      onChange={(e) => setUserGuidance(e.target.value)}
+                      rows={2}
+                      maxLength={180}
+                      placeholder={t('virtualTryOn.outfitNotePlaceholder')}
+                      className={textareaClass}
+                    />
+                    <p className="text-xs leading-5 text-zinc-400">{t('virtualTryOn.outfitNoteHint')}</p>
+                  </div>
                 </div>
               </div>
             </section>
@@ -532,7 +593,7 @@ const VirtualTryOn: React.FC = () => {
                     />
                   )}
 
-                  <AiScanPanel sources={aiScanSources} />
+                  <AiScanPanel sources={aiScanSources} userGuidance={aiScanGuidance || undefined} />
 
                   {!isGptImageStudio && !isLocalQwen && (
                     <Tooltip content={t('tooltips.tryOnImageCount')} position="top">

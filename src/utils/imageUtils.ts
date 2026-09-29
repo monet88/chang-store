@@ -203,6 +203,72 @@ export const compressImage = (file: File, quality: number = 0.8): Promise<ImageF
   });
 };
 
+/**
+ * Validates, compresses, and safely falls back to base64 encoding for an image File.
+ * Returns null if file fails validation.
+ *
+ * Tests: never feed it a real `File` under jsdom. jsdom's `Blob.slice()` has no
+ * `arrayBuffer`, so `validateImageFile` swallows the TypeError and reports
+ * `error.upload.invalidSignature` for a perfectly valid PNG, and canvas
+ * compression never runs either. Mock the module at the caller, and unit-test
+ * the pure `imageFilesOnly` filter below instead.
+ */
+export const processUploadImageFile = async (file: File): Promise<ImageFile | null> => {
+  const validation = await validateImageFile(file);
+  if (!validation.isValid) {
+    return null;
+  }
+
+  try {
+    return await compressImage(file);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('Error compressing image, falling back to original file:', error);
+    }
+    return new Promise<ImageFile | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          const base64String = reader.result.substring(reader.result.indexOf(',') + 1);
+          resolve({ base64: base64String, mimeType: file.type });
+        } else {
+          resolve(null);
+        }
+      };
+      reader.onerror = (err) => {
+        if (import.meta.env.DEV) {
+          console.error('FileReader error on fallback:', err);
+        }
+        resolve(null);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+};
+
+/**
+ * Image files only: non-image entries are dropped before any decoding work, so
+ * a mixed selection never starts a read on a PDF or a text file.
+ */
+export const imageFilesOnly = (files: Iterable<File> | FileList | File[]): File[] =>
+  Array.from(files).filter((file) => file.type.startsWith('image/'));
+
+/**
+ * Processes a collection of files, filtering for valid image files and converting them to ImageFile objects.
+ */
+export const processMultipleImageFiles = async (
+  files: Iterable<File> | FileList | File[],
+): Promise<ImageFile[]> => {
+  const processed: ImageFile[] = [];
+  for (const file of imageFilesOnly(files)) {
+    const img = await processUploadImageFile(file);
+    if (img) {
+      processed.push(img);
+    }
+  }
+  return processed;
+};
+
 export const cropAndCompressImage = (file: File, targetAspectRatio: number, quality: number = 0.8, maxWidth: number = 1080): Promise<ImageFile> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');

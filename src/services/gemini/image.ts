@@ -5,12 +5,10 @@ import { getGeminiClient, isProxyEnabled } from '../apiClient';
 import { getModelCapabilities, resolveImageSizeConfig } from '../../config/modelRegistry';
 import { runBoundedWorkers } from '../../utils/run-bounded-workers';
 import { appendNegativePrompt, negativePromptSentence } from '../../utils/negative-prompt-builder';
+import { DEFAULT_MAX_CONCURRENCY, type LocalQwenWorkflow } from '../../utils/engineDispatch';
+import { withImageRequestSlot } from '../../utils/request-slots';
 
 const PROXY_IMAGE_TIMEOUT_MS = 30_000;
-const MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS = 3;
-
-let activeGeminiImageRequests = 0;
-const geminiImageRequestQueue: Array<() => void> = [];
 
 export interface GeneratedImageFile extends ImageFile {
   metadata?: {
@@ -28,6 +26,8 @@ export interface EditImageParams {
   numberOfImages?: number;
   /** Pre-built interleaved parts (text labels + images). When provided, overrides images+prompt auto-assembly. */
   interleavedParts?: Part[];
+  /** Unified dispatch routing hint: passed through imageEditingService to engine drivers (e.g. Local Qwen). */
+  workflow?: LocalQwenWorkflow;
 }
 
 const isSafetyFinishReason = (finishReason: string | undefined): boolean =>
@@ -116,33 +116,6 @@ const splitIntoBatches = (count: number, batchSize: number): number[] => {
   return batches;
 };
 
-const acquireGeminiImageRequestSlot = async (): Promise<void> => {
-  if (activeGeminiImageRequests < MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS) {
-    activeGeminiImageRequests += 1;
-    return;
-  }
-
-  await new Promise<void>((resolve) => {
-    geminiImageRequestQueue.push(() => {
-      activeGeminiImageRequests += 1;
-      resolve();
-    });
-  });
-};
-
-const releaseGeminiImageRequestSlot = (): void => {
-  activeGeminiImageRequests -= 1;
-  geminiImageRequestQueue.shift()?.();
-};
-
-const withGeminiImageRequestSlot = async <T>(task: () => Promise<T>): Promise<T> => {
-  await acquireGeminiImageRequestSlot();
-  try {
-    return await task();
-  } finally {
-    releaseGeminiImageRequestSlot();
-  }
-};
 
 const generateProxyImage = async (
   prompt: string,
@@ -152,7 +125,7 @@ const generateProxyImage = async (
   const ai = getGeminiClient();
   const request = buildProxyImageRequest(prompt, aspectRatio);
 
-  const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
+  const response = await withImageRequestSlot(() => ai.models.generateContent({
     model,
     ...request,
   }));
@@ -192,7 +165,7 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
         imageConfig.imageSize = imageSize;
       }
 
-      const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
+      const response = await withImageRequestSlot(() => ai.models.generateContent({
         model,
         contents: [{ role: 'user', parts: contentParts }],
         config: {
@@ -205,7 +178,7 @@ export const editImage = async ({ images, prompt, model = 'gemini-3.1-flash-imag
     };
 
     const results: ImageFile[] = [];
-    for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+    for (const batchSize of splitIntoBatches(numberOfImages, DEFAULT_MAX_CONCURRENCY)) {
       const batchResults: ImageFile[] = new Array(batchSize);
       const batchSlots = Array.from({ length: batchSize }, (_, index) => index);
       await runBoundedWorkers(
@@ -237,13 +210,13 @@ export const generateImageFromText = async (
 
     if (!isProxyEnabled()) {
       const results: GeneratedImageFile[] = [];
-      for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+      for (const batchSize of splitIntoBatches(numberOfImages, DEFAULT_MAX_CONCURRENCY)) {
         const batchResults: GeneratedImageFile[] = new Array(batchSize);
         await runBoundedWorkers(
           Array.from({ length: batchSize }, (_, index) => index),
           batchSize,
           async (index) => {
-            const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
+            const response = await withImageRequestSlot(() => ai.models.generateContent({
               model,
               contents: [{ role: 'user', parts: [{ text: prompt }] }],
               config: {
@@ -260,7 +233,7 @@ export const generateImageFromText = async (
     }
 
     const proxyResults: GeneratedImageFile[] = [];
-    for (const batchSize of splitIntoBatches(numberOfImages, MAX_CONCURRENT_GEMINI_IMAGE_REQUESTS)) {
+    for (const batchSize of splitIntoBatches(numberOfImages, DEFAULT_MAX_CONCURRENCY)) {
       const batchResults: GeneratedImageFile[] = new Array(batchSize);
       await runBoundedWorkers(
         Array.from({ length: batchSize }, (_, index) => index),
@@ -285,7 +258,7 @@ export const upscaleImage = async (image: ImageFile, quality: UpscaleQuality = '
     const textPart: Part = { text: prompt ?? `Upscale this image with enhanced details, sharpness, and texture clarity. Reduce noise and compression artifacts. Preserve all original content exactly - do not add, remove, or modify any elements.` };
     const imageSize = resolveImageSizeConfig(model, quality);
 
-    const response = await withGeminiImageRequestSlot(() => ai.models.generateContent({
+    const response = await withImageRequestSlot(() => ai.models.generateContent({
       model,
       contents: [{ role: 'user', parts: [imagePart, textPart] }],
       config: {

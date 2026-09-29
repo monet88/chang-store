@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_LOCAL_QWEN_SETTINGS,
   KNOWN_PORTABLE_COMFYUI_PATH,
@@ -11,6 +11,8 @@ import {
 import {
   DESKTOP_LOCAL_QWEN_CHANNELS,
   getDesktopLocalQwenApi,
+  isUncensoredModel,
+  resolveUncensoredState,
   type DesktopLocalQwenApi,
   type DesktopLocalQwenStatus,
   type DesktopLocalQwenStopResult,
@@ -21,6 +23,12 @@ describe('desktopLocalQwen and settings', () => {
     localStorage.clear();
     delete window.desktopLocalQwen;
   });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
 
   describe('settings defaults and persistence', () => {
     it('returns approved default settings when storage is empty', () => {
@@ -154,7 +162,48 @@ describe('desktopLocalQwen and settings', () => {
   });
 
   describe('bridge API access and invocation', () => {
-    it('returns undefined when running in browser mode without desktopLocalQwen', () => {
+    it('falls back to the dev-server bridge when the Electron preload is absent', async () => {
+      // The dev bridge is opt-in, so the lane under test turns it on.
+      vi.stubEnv('LOCAL_QWEN_DEV_BRIDGE', 'true');
+      const fetchMock = vi.fn().mockResolvedValue({
+        json: async () => ({ ok: true, value: { state: 'ready' } }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const api = getDesktopLocalQwenApi();
+      expect(api).toBeDefined();
+
+      const result = await api!.getStatus('D:/ComfyUI');
+
+      expect(result).toEqual({ ok: true, value: { state: 'ready' } });
+      // The dev server hosts the same manager, so the call must name the action
+      // the IPC channel would have used.
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/local-qwen',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ action: 'getStatus', payload: 'D:/ComfyUI' }),
+        }),
+      );
+
+    });
+
+    it('reports a missing transport, not a raw network error, when the dev server is unreachable', async () => {
+      vi.stubEnv('LOCAL_QWEN_DEV_BRIDGE', 'true');
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Failed to fetch')));
+
+      const result = await getDesktopLocalQwenApi()!.stopServer();
+
+      expect(result.ok).toBe(false);
+      expect(result.ok === false && result.error.message).toBe(
+        'Local Qwen generation is only available in the desktop app or on the local dev server.',
+      );
+
+    });
+
+    it('offers no transport at all when the dev bridge was never opted into', () => {
+      // The bridge can start ComfyUI and spend the GPU, so a plain `vite dev`
+      // must not expose it to whoever reaches the server.
       expect(getDesktopLocalQwenApi()).toBeUndefined();
     });
 
@@ -248,6 +297,65 @@ describe('desktopLocalQwen and settings', () => {
         expect(channel).toMatch(/^desktop-local-qwen:/);
         expect(channel).not.toMatch(/shell|exec|spawn|proxy|cmd|eval/i);
       });
+    });
+  });
+
+  describe('resolveUncensoredState', () => {
+    it('reads UC only as a standalone name segment', () => {
+      expect(isUncensoredModel('qwen-image-2.1-UC-Q4_K_M.gguf')).toBe(true);
+      expect(isUncensoredModel('uc-q4_k_m.safetensors')).toBe(true);
+      expect(isUncensoredModel('qwen-image-2.1-Q4_K_M.gguf')).toBe(false);
+      expect(isUncensoredModel('surface-refine.safetensors')).toBe(false);
+      expect(isUncensoredModel('')).toBe(false);
+      expect(isUncensoredModel(undefined)).toBe(false);
+    });
+
+    it('stays unknown before any status has been reported', () => {
+      expect(resolveUncensoredState(undefined)).toBeUndefined();
+      expect(resolveUncensoredState(null)).toBeUndefined();
+    });
+
+    it('stays unknown while detection has not resolved a unet', () => {
+      const stopped: DesktopLocalQwenStatus = { state: 'stopped', isAppOwned: false, port: 8188 };
+      const readyWithoutModel: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: true,
+        port: 8188,
+        activeModel: '',
+      };
+
+      expect(resolveUncensoredState(stopped)).toBeUndefined();
+      expect(resolveUncensoredState(readyWithoutModel)).toBeUndefined();
+    });
+
+    it('trusts the manager flag over re-deriving the name', () => {
+      const flaggedStandard: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: true,
+        port: 8188,
+        activeModel: 'qwen-image-2.1-UC-Q4_K_M.gguf',
+        isUncensored: false,
+      };
+
+      expect(resolveUncensoredState(flaggedStandard)).toBe(false);
+    });
+
+    it('derives the flag from the resolved unet when the manager left it out', () => {
+      const uncensored: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: true,
+        port: 8188,
+        activeModel: 'qwen-image-2.1-UC-Q4_K_M.gguf',
+      };
+      const standard: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: true,
+        port: 8188,
+        activeModel: 'qwen-image-2.1-Q4_K_M.gguf',
+      };
+
+      expect(resolveUncensoredState(uncensored)).toBe(true);
+      expect(resolveUncensoredState(standard)).toBe(false);
     });
   });
 });

@@ -8,7 +8,7 @@ and concurrency.
 ## Behavior
 
 1. User adds images to a processing queue.
-2. User configures: model, prompt preset (or custom), concurrency (1-5).
+2. User configures: model, prompt preset (or custom), concurrency (1-10).
 3. User starts batch processing.
 4. Each image is processed in parallel up to the concurrency limit.
 5. Results show per-item status (pending/processing/completed/error).
@@ -22,7 +22,7 @@ and concurrency.
 | Model | `DEFAULT_WATERMARK_MODEL` | AI model for processing |
 | Prompt preset | `DEFAULT_PROMPT_ID` | Predefined removal prompt |
 | Custom prompt | empty | User-written prompt override |
-| Concurrency | 1-5 | Parallel processing slots |
+| Concurrency | 1-10 | Parallel processing slots |
 
 ## Inputs
 

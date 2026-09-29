@@ -30,6 +30,12 @@ survive a single-pass image model that would otherwise flatten them.
    job's blueprint, spinner or failure never surfaces in this panel.
 6. Changing or clearing the source images drops the badge and re-analyzes; the
    analysis of a superseded source set never labels the new one.
+7. Operator guidance (the outfit note, and each garment's own note) steers the
+   analysis but never triggers one: the panel pre-scans on the *images* it was
+   given, not on the array a caller rebuilds, so typing a note costs no API
+   call. The edited note reaches the analyzer through the panel's **Rescan** —
+   or through the next generation. The note also rides into the generation
+   prompt itself, so it still holds when the scan failed or was hand-edited.
 
 ## Coverage
 
@@ -76,7 +82,7 @@ AI Editor, which gain nothing from textile semantics.
 - `src/utils/ai-scan-blueprint.ts` — the shared block formatter and scan
   source-set selection
 - `src/services/textService.ts` → `src/services/gemini/text.ts` —
-  `analyzeOutfitBlueprint`, the analyzer prompt
+  `scanGarmentBlueprint`, the analyzer prompt
 - `src/locales/en.ts` / `src/locales/vi.ts` — `studio.aiScan.*`
 
 ## Validation Path

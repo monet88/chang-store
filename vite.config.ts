@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, loadEnv, type UserConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc'; // SWC is 20-30x faster than Babel
+import { localQwenDevBridge } from './vite-plugins/localQwenDevBridge';
 
 export const createRendererConfig = (
   mode: string,
@@ -9,16 +10,24 @@ export const createRendererConfig = (
   const env = loadEnv(mode, '.', '');
   const rendererSecret = (value: string | undefined): string | undefined =>
     desktop ? undefined : value;
+  // One decision, read twice: mount the endpoint, and let the renderer know a
+  // transport can answer. Desktop owns the manager through the preload, so the
+  // dev bridge is never part of it.
+  const devBridgeEnabled = !desktop && process.env.LOCAL_QWEN_DEV_BRIDGE === 'true';
   return {
     base: desktop ? './' : undefined,
     server: {
       port: 3549,
       // Fail loudly instead of silently drifting to another port when 3549 is taken.
       strictPort: true,
-      // Default to localhost for security; set VITE_ENABLE_LAN=true for cross-device testing
-      // Explicit IPv4 loopback: `localhost` resolves to ::1 first on Windows, so anything that
-      // probes 127.0.0.1 (the hub's `ready.port` check, curl, other agents) never saw the server.
-      host: process.env.VITE_ENABLE_LAN === 'true' ? '0.0.0.0' : '127.0.0.1',
+      // LAN-accessible by default: the dev server is how this app is tested
+      // (browser, phone over the tailnet), and the web build bakes the gateway
+      // keys from .env in either way, so loopback buys no real secrecy here.
+      // Set VITE_ENABLE_LAN=false to bind loopback only on a shared network.
+      // Explicit IPv4: `localhost` resolves to ::1 first on Windows, so anything
+      // that probes 127.0.0.1 (the hub's `ready.port` check, curl, other
+      // agents) never saw the server.
+      host: process.env.VITE_ENABLE_LAN === 'false' ? '127.0.0.1' : '0.0.0.0',
       proxy: {
         '/typesafe-proxy': {
           target: 'https://api.typesafe.ai',
@@ -52,7 +61,7 @@ export const createRendererConfig = (
         ],
       },
     },
-    plugins: [react()],
+    plugins: devBridgeEnabled ? [react(), localQwenDevBridge()] : [react()],
     // Pre-bundle heavy dependencies for faster dev startup
     optimizeDeps: {
       include: [
@@ -69,6 +78,9 @@ export const createRendererConfig = (
       },
     },
     define: {
+      // The renderer only offers the Local Qwen studio when a transport can
+      // actually answer, so it must know about the same flag the server used.
+      'import.meta.env.LOCAL_QWEN_DEV_BRIDGE': JSON.stringify(devBridgeEnabled),
       // Web keeps the existing client-side provider contract. Desktop receives
       // no build-time provider keys; its real credentials are owned by Electron main.
       'process.env.CLIPROXY_API_KEY': JSON.stringify(rendererSecret(env.CLIPROXY_API_KEY || env.VITE_CLIPROXY_API_KEY)),

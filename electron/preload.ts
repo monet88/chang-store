@@ -23,7 +23,7 @@ const desktopGateway: DesktopGatewayApi = {
 contextBridge.exposeInMainWorld('desktopGateway', Object.freeze(desktopGateway));
 
 const desktopLocalQwen: DesktopLocalQwenApi = {
-  getStatus: () => ipcRenderer.invoke(DESKTOP_LOCAL_QWEN_CHANNELS.getStatus),
+  getStatus: (folder) => ipcRenderer.invoke(DESKTOP_LOCAL_QWEN_CHANNELS.getStatus, folder),
   startServer: (folder) => ipcRenderer.invoke(DESKTOP_LOCAL_QWEN_CHANNELS.startServer, folder),
   stopServer: () => ipcRenderer.invoke(DESKTOP_LOCAL_QWEN_CHANNELS.stopServer),
   generateImage: (params) => ipcRenderer.invoke(DESKTOP_LOCAL_QWEN_CHANNELS.generateImage, params),

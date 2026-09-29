@@ -64,9 +64,13 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
   const {
     sourceOutfitImage,
     setSourceOutfitImage,
+    sourceOutfitNote,
+    setSourceOutfitNote,
     outfitBlueprint,
-    isAnalyzingOutfit,
-    handleReanalyzeOutfit,
+    isBlueprintEdited,
+    isScanningBlueprint,
+    editOutfitBlueprint,
+    handleScanBlueprint,
     selectedGarmentScopes,
     toggleGarmentScope,
     brandModels,
@@ -208,9 +212,24 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                 onImageUpload={setSourceOutfitImage}
               />
               {sourceOutfitImage && (
-                <div className="mt-3">
-                  {isAnalyzingOutfit && (
-                    <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3.5 py-2 text-xs text-amber-300">
+                <div className="mt-3 space-y-3">
+                  <div className="space-y-1.5">
+                    <label htmlFor="source-outfit-note" className="text-xs font-semibold text-zinc-300">
+                      {t('clothingTransfer.ecomPack.sourcePromptLabel')}
+                    </label>
+                    <textarea
+                      id="source-outfit-note"
+                      value={sourceOutfitNote}
+                      onChange={(e) => setSourceOutfitNote(e.target.value)}
+                      rows={2}
+                      maxLength={180}
+                      placeholder={t('clothingTransfer.ecomPack.sourcePromptPlaceholder')}
+                      className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs leading-5 text-zinc-100 placeholder:text-zinc-500 focus:border-amber-500/50 focus:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/50"
+                    />
+                  </div>
+
+                  {isScanningBlueprint && (
+                    <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-300">
                       <span className="relative flex h-2 w-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
@@ -218,18 +237,32 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                       <span>{t('clothingTransfer.ecomPack.blueprintAnalyzing')}</span>
                     </div>
                   )}
-                  {!isAnalyzingOutfit && outfitBlueprint && (
+
+                  {!isScanningBlueprint && !outfitBlueprint && (
+                    <button
+                      type="button"
+                      data-testid="scan-source-btn"
+                      onClick={handleScanBlueprint}
+                      disabled={!sourceOutfitImage || isScanningBlueprint}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-2.5 text-xs font-semibold text-amber-200 transition-all hover:bg-amber-500/25 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span aria-hidden="true">✨</span>
+                      <span>{t('clothingTransfer.ecomPack.scanBlueprintButton')}</span>
+                    </button>
+                  )}
+
+                  {!isScanningBlueprint && outfitBlueprint && (
                     <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-xs">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 text-emerald-400 font-medium">
-                          <span>✨</span>
+                          <span aria-hidden="true">✨</span>
                           <span>{t('clothingTransfer.ecomPack.blueprintReady')}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => setShowBlueprint(!showBlueprint)}
-                            className="text-zinc-400 hover:text-white transition-colors underline text-[11px]"
+                            className="text-zinc-400 hover:text-white transition-colors underline text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                           >
                             {showBlueprint
                               ? t('clothingTransfer.ecomPack.blueprintHide')
@@ -237,18 +270,38 @@ export const EComPackView: React.FC<EComPackViewProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={handleReanalyzeOutfit}
-                            disabled={isAnalyzingOutfit}
-                            className="text-zinc-400 hover:text-amber-400 transition-colors text-xs ml-1"
+                            onClick={() => {
+                              if (
+                                isBlueprintEdited &&
+                                !window.confirm(t('clothingTransfer.ecomPack.blueprintReanalyzeConfirm'))
+                              ) {
+                                return;
+                              }
+                              void handleScanBlueprint();
+                            }}
+                            disabled={isScanningBlueprint}
+                            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
                             title={t('clothingTransfer.ecomPack.blueprintReanalyze')}
                           >
-                            🔄
+                            <span aria-hidden="true">🔄</span>
+                            <span>{t('clothingTransfer.ecomPack.blueprintReanalyze')}</span>
                           </button>
                         </div>
                       </div>
                       {showBlueprint && (
-                        <div className="mt-2.5 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-black/40 p-2.5 font-mono text-[11px] leading-relaxed text-zinc-300">
-                          {outfitBlueprint}
+                        <div className="mt-2.5 space-y-1">
+                          <textarea
+                            id="ecom-pack-blueprint"
+                            aria-label={t('clothingTransfer.ecomPack.blueprintReady')}
+                            value={outfitBlueprint || ''}
+                            onChange={(e) => editOutfitBlueprint(e.target.value)}
+                            rows={8}
+                            className="w-full resize-y rounded-lg border border-white/10 bg-black/40 p-2.5 font-mono text-[11px] leading-relaxed text-zinc-300 placeholder:text-zinc-500 focus:border-amber-500/50 focus:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/50"
+                            placeholder={t('clothingTransfer.ecomPack.blueprintPlaceholder')}
+                          />
+                          <p className="text-[10px] text-zinc-500">
+                            {t('clothingTransfer.ecomPack.blueprintEditableHint')}
+                          </p>
                         </div>
                       )}
                     </div>

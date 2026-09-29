@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAiScan } from '../contexts/AiScanContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import type { ImageFile } from '../types';
@@ -10,6 +10,8 @@ interface AiScanPanelProps {
    * feature is about to generate from.
    */
   sources: ImageFile[];
+  /** Optional user directives / notes on garment architecture (e.g. "pants not skirt") */
+  userGuidance?: string;
 }
 
 /** What this panel shows: the analysis of its OWN source set. */
@@ -18,6 +20,23 @@ interface PanelReport {
   isAnalyzing: boolean;
   failed: boolean;
 }
+
+/**
+ * The same array while it holds the same image objects. Callers rebuild
+ * `sources` on every change (Virtual Try-On rebuilds it while a note is being
+ * typed), and a pre-scan keyed on that fresh identity would re-fire a paid
+ * analysis per keystroke. The images, not the array, are the trigger.
+ */
+const useStableSources = (sources: ImageFile[]): ImageFile[] => {
+  const stable = useRef(sources);
+  if (
+    stable.current.length !== sources.length ||
+    sources.some((image, index) => image !== stable.current[index])
+  ) {
+    stable.current = sources;
+  }
+  return stable.current;
+};
 
 const IDLE_REPORT: PanelReport = { blueprint: null, isAnalyzing: false, failed: false };
 
@@ -31,30 +50,50 @@ const IDLE_REPORT: PanelReport = { blueprint: null, isAnalyzing: false, failed: 
  * source set per job (Virtual Try-On multi-model, wardrobe, Identity Transfer),
  * so another job's blueprint, spinner or failure must not surface here.
  */
-const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
+const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources, userGuidance }) => {
+  const stableSources = useStableSources(sources);
   const { t } = useLanguage();
   const { enabled, setEnabled, scan } = useAiScan();
   const [isExpanded, setIsExpanded] = useState(false);
   const [report, setReport] = useState<PanelReport>(IDLE_REPORT);
 
+  // One run id shared by the effect-driven pre-scan and manual Rescans: only
+  // the newest run may publish, so a slow earlier scan can never overwrite the
+  // report of a later one.
+  const runIdRef = useRef(0);
+
+  // Guidance is read through a ref, not a dependency: the pre-scan below is
+  // keyed to the source set alone, so typing a note cannot re-fire a paid
+  // analysis. A changed note reaches the analyzer through Rescan.
+  const guidanceRef = useRef(userGuidance);
+  guidanceRef.current = userGuidance;
+
+  const runScan = useCallback((forceRefresh = false) => {
+    const runId = ++runIdRef.current;
+    setReport({ blueprint: null, isAnalyzing: true, failed: false });
+    void scan(stableSources, guidanceRef.current, forceRefresh).then((blueprint) => {
+      if (runId !== runIdRef.current) return;
+      setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
+    });
+  }, [scan, stableSources]);
+
+  /** Manual Rescan: the analyzer runs again, under the current note. */
+  const rescan = useCallback(() => runScan(true), [runScan]);
+
   // Pre-scan as soon as the sources change. Repeat runs are free: `scan` reuses
   // the analysis already running or finished for the same source set.
   useEffect(() => {
-    if (!enabled || sources.length === 0) {
+    if (!enabled || stableSources.length === 0) {
+      runIdRef.current++;
       setReport(IDLE_REPORT);
       return;
     }
 
-    let isCurrent = true;
-    setReport({ blueprint: null, isAnalyzing: true, failed: false });
-    void scan(sources).then((blueprint) => {
-      if (!isCurrent) return;
-      setReport({ blueprint, isAnalyzing: false, failed: blueprint === null });
-    });
+    runScan();
     return () => {
-      isCurrent = false;
+      runIdRef.current++;
     };
-  }, [enabled, sources, scan]);
+  }, [enabled, stableSources, runScan]);
 
   const { blueprint, isAnalyzing, failed } = report;
 
@@ -82,7 +121,7 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
         </span>
       </button>
 
-      {enabled && sources.length > 0 && (
+      {enabled && stableSources.length > 0 && (
         <div role="status" aria-live="polite">
           {isAnalyzing && (
             <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] text-zinc-400">
@@ -98,13 +137,22 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
                   <span aria-hidden="true">✨</span>
                   <span>{t('studio.aiScan.ready')}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsExpanded((prev) => !prev)}
-                  className="rounded text-[11px] text-zinc-400 underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                >
-                  {isExpanded ? t('studio.aiScan.hide') : t('studio.aiScan.view')}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={rescan}
+                    className="rounded text-[11px] text-zinc-400 underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                  >
+                    {t('studio.aiScan.rescan')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsExpanded((prev) => !prev)}
+                    className="rounded text-[11px] text-zinc-400 underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                  >
+                    {isExpanded ? t('studio.aiScan.hide') : t('studio.aiScan.view')}
+                  </button>
+                </div>
               </div>
               {isExpanded && (
                 <div className="mt-2.5 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-black/40 p-2.5 font-mono text-[11px] leading-relaxed text-zinc-300">
@@ -115,9 +163,16 @@ const AiScanPanel: React.FC<AiScanPanelProps> = ({ sources }) => {
           )}
 
           {!isAnalyzing && !blueprint && failed && (
-            <p className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-300/90">
-              {t('studio.aiScan.unavailable')}
-            </p>
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-300/90">
+              <span>{t('studio.aiScan.unavailable')}</span>
+              <button
+                type="button"
+                onClick={rescan}
+                className="underline transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+              >
+                {t('studio.aiScan.rescan')}
+              </button>
+            </div>
           )}
         </div>
       )}

@@ -59,9 +59,9 @@ const baseHookState = {
     selectedGarmentScopes: ['full-set'],
     toggleGarmentScope: vi.fn(),
     outfitBlueprint: null,
-    isAnalyzingOutfit: false,
-    setOutfitBlueprint: vi.fn(),
-    handleReanalyzeOutfit: vi.fn(),
+    isScanningBlueprint: false,
+    editOutfitBlueprint: vi.fn(),
+    handleScanBlueprint: vi.fn(),
     brandModels: [],
     selectedBrandModelIds: [],
     selectBrandModel: vi.fn(),
@@ -222,6 +222,89 @@ describe('ClothingTransfer component', () => {
     expect(screen.getByText('gpt-image-options')).toBeInTheDocument();
     expect(screen.queryByText('image-options')).not.toBeInTheDocument();
     expect(screen.getByText('clothingTransfer.ecomPack.sourceTitle')).toBeInTheDocument();
+  });
+
+  it('renders manual AI Analyze button when outfit is uploaded and triggers analysis on click', () => {
+    const handleScanBlueprintMock = vi.fn();
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      mode: 'ecom-pack',
+      ecomPack: {
+        ...baseHookState.ecomPack,
+        sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
+        sourceOutfitNote: 'quần không phải váy',
+        outfitBlueprint: null,
+        isScanningBlueprint: false,
+        handleScanBlueprint: handleScanBlueprintMock,
+      },
+    });
+
+    const { rerender } = render(<ClothingTransfer />);
+
+    const analyzeBtn = screen.getByRole('button', { name: /scanBlueprintButton/ });
+    expect(analyzeBtn).toBeInTheDocument();
+    fireEvent.click(analyzeBtn);
+    expect(handleScanBlueprintMock).toHaveBeenCalled();
+
+    // When analyzing
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      mode: 'ecom-pack',
+      ecomPack: {
+        ...baseHookState.ecomPack,
+        sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
+        outfitBlueprint: null,
+        isScanningBlueprint: true,
+      },
+    });
+    rerender(<ClothingTransfer />);
+    expect(screen.getByText('clothingTransfer.ecomPack.blueprintAnalyzing')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /scanBlueprintButton/ })).not.toBeInTheDocument();
+
+    // When blueprint is ready
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      mode: 'ecom-pack',
+      ecomPack: {
+        ...baseHookState.ecomPack,
+        sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
+        outfitBlueprint: '[CORE_GARMENTS]\nTrousers',
+        isScanningBlueprint: false,
+      },
+    });
+    rerender(<ClothingTransfer />);
+    expect(screen.getByText('clothingTransfer.ecomPack.blueprintReady')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /blueprintReanalyze/ })).toBeInTheDocument();
+  });
+
+  it('asks before Re-analyze discards a hand-edited blueprint', () => {
+    const handleScanBlueprint = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    useClothingTransferMock.mockReturnValue({
+      ...baseHookState,
+      mode: 'ecom-pack',
+      ecomPack: {
+        ...baseHookState.ecomPack,
+        sourceOutfitImage: { base64: 'source', mimeType: 'image/png' },
+        outfitBlueprint: '[CORE_GARMENTS]\nHand-corrected trousers',
+        isScanningBlueprint: false,
+        isBlueprintEdited: true,
+        handleScanBlueprint,
+      },
+    });
+    render(<ClothingTransfer />);
+
+    fireEvent.click(screen.getByRole('button', { name: /blueprintReanalyze/ }));
+
+    // Declined: the operator's edit is still theirs.
+    expect(confirmSpy).toHaveBeenCalledWith('clothingTransfer.ecomPack.blueprintReanalyzeConfirm');
+    expect(handleScanBlueprint).not.toHaveBeenCalled();
+
+    confirmSpy.mockReturnValue(true);
+    fireEvent.click(screen.getByRole('button', { name: /blueprintReanalyze/ }));
+    expect(handleScanBlueprint).toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
   });
 
   it('exposes E-Com Pack templates, category generation, multi-model selection, and result actions', () => {

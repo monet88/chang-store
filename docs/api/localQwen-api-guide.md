@@ -36,12 +36,17 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
 
 | Thành phần | Tên File | Dung lượng | Thư mục đích | Vai trò |
 | :--- | :--- | :--- | :--- | :--- |
-| **Diffusion DiT** | `qwen-image-2.1-Q4_K_M.gguf` | 4.60 GB (4,604,557,984 bytes) | `models/diffusion_models/` | Core diffusion model, lượng tử hóa 4-bit, bypass NSFW |
+| **Diffusion DiT (Default - Uncensored)** | `qwen-image-2.1-UC-Q4_K_M.gguf` | 4.60 GB (4,604,558,112 bytes) | `models/diffusion_models/` | Mặc định: Uncensored GGUF DiT, loại bỏ safety filter / từ chối 18+ |
+| **Diffusion DiT (Fallback)** | `qwen-image-2.1-Q4_K_M.gguf` | 4.60 GB (4,604,557,984 bytes) | `models/diffusion_models/` | Fallback tiêu chuẩn |
 | **Text/Vision Encoder (active)** | `qwen3vl_8b_w4a8.safetensors` | 6.31 GB (6,312,105,364 bytes) | `models/text_encoders/` | Official Comfy-Org W4A8; đã verify SHA256 + VTO end-to-end |
 | **Text/Vision Encoder (rollback)** | `qwen3vl_8b_int8_convrot.safetensors` | 9.35 GB (9,350,798,360 bytes) | `models/text_encoders/` | Bản cũ giữ lại để rollback |
+| **Speed LoRA (Turbo)** | `Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors` | 679 MB (679,604,800 bytes) | `models/loras/` | Đã tải & tài liệu hóa cho phase tương thích tiếp theo (DMD 6 steps turbo adapter, CFG=1.0) |
+| **FaceSwap LoRA (BFS)** | `bfs_head_v1.1_qwen_2.1.safetensors` | 260 MB (260,096,144 bytes) | `models/loras/` | Lora giữ nhận diện khuôn mặt / đổi mặt |
 | **VAE** | `qwen_image_2.1_vae_bf16.safetensors` | 676 MB (675,509,688 bytes) | `models/vae/` | Mã hóa và giải mã latent sang pixel ảnh |
 
 > **RTX 2060 SUPER 8GB:** `qwen3vl_8b_w4a8.safetensors` đang là encoder active. File đã verify SHA256 `7754425e55e7bea2bfde4dde59a4cc236cb44e5ee9c215ea66ef8d47012824eb` và chạy VTO thành công. Giữ bản INT8 để rollback.
+
+> **Runtime verification (2026-09-27):** `localQwenManager` dò `models/diffusion_models/` và `models/loras/` của folder ComfyUI đang cấu hình (`resolveModelAssets()`, cache 30s/folder). Settings → Local Qwen hiển thị kết quả ở dòng **LoRA assets** (`faceSwapLoraAvailable`, `turboLoraAvailable`) nên "đã tải & tài liệu hóa" kiểm tra được thay vì mặc định đúng. Không có unet nào trên disk → không báo model và không hiện badge `Uncensored (UC)`.
 
 ---
 
@@ -93,7 +98,7 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
 Để chạy được Qwen-Image 2.1 GGUF trên ComfyUI backend qua API `/prompt`:
 
 1. **`UnetLoaderGGUF`:**
-   - Input: `{"unet_name": "qwen-image-2.1-Q4_K_M.gguf"}`
+   - Input: `{"unet_name": "qwen-image-2.1-UC-Q4_K_M.gguf"}` (Mặc định Uncensored; tự fallback `qwen-image-2.1-Q4_K_M.gguf` nếu file UC vắng mặt)
    - Output: `MODEL`
 2. **`CLIPLoader`:**
    - Input khuyến nghị: `{"clip_name": "qwen3vl_8b_w4a8.safetensors", "type": "qwen_image"}`
@@ -106,11 +111,15 @@ Toàn bộ model đặt trong `D:\ComfyUI_windows_portable\ComfyUI\models\`:
    - Cho phép cắm ảnh tham chiếu qua `images.image_1`, `images.image_2`, v.v.
    - Nhận `resolution` (khuyên dùng 512 trên GPU 8GB; 768/1024 là opt-in).
    - Outputs: `positive` (CONDITIONING), `negative` (CONDITIONING), `latent` (LATENT rỗng khớp kích thước).
-5. **`KSampler`:**
-   - `model`: Nối từ `UnetLoaderGGUF`.
+5. **`LoraLoaderModelOnly` (Inject điều kiện / Auto-injected):**
+   - Inject giữa `UnetLoaderGGUF` (node 1) và `KSampler` (node 7) khi kích hoạt FaceSwap / Identity Transfer hoặc khi có `loraName`.
+   - Inputs: `{"model": ["1", 0], "lora_name": effectiveLoraName, "strength_model": loraStrength}`.
+   - Output: `MODEL` (được đưa vào `KSampler.inputs.model = ["5", 0]` thay cho `["1", 0]`).
+6. **`KSampler`:**
+   - `model`: Nối từ `LoraLoaderModelOnly` (nếu có LoRA) hoặc trực tiếp từ `UnetLoaderGGUF`.
    - `positive`, `negative`, `latent_image`: Nối từ `TextEncodeQwenImage21`.
    - Khuyên dùng: `cfg: 1.0`, `sampler_name: "euler"`, `scheduler: "simple"`, `steps: 12 - 16`.
-6. **`VAEDecode` & `SaveImage`:** Giải mã latent ra ảnh và lưu vào `ComfyUI/output`.
+7. **`VAEDecode` & `SaveImage`:** Giải mã latent ra ảnh và lưu vào `ComfyUI/output`.
 
 
 ### 5.1 Endpoints & Protocol Contract (ComfyUI HTTP + WebSocket)
@@ -142,6 +151,46 @@ Chang Store's desktop bridge communicates with local ComfyUI exclusively over st
    - Handled with timeout (1500ms) to prevent UI hanging if ComfyUI queue is blocked.
 8. **`WS /ws?clientId={clientId}`**:
    - Real-time progress updates (`{"type": "progress", "data": { "value": number, "max": number }}`) and interruption notifications (`{"type": "execution_interrupted"}`).
+
+### 5.2 LoRA Injection & Workflow Routing Contract
+
+Chang Store hỗ trợ dynamic LoRA injection và workflow auto-routing trong `localQwenManager`:
+
+1. **Routing parameters (`LocalQwenGenerateParams`):**
+   - `workflow`: `'identity-transfer' | 'standard'`.
+     - `'identity-transfer'`: bắt buộc inject BFS FaceSwap LoRA (`bfs_head_v1.1_qwen_2.1.safetensors`, strength `1.0`), trừ khi prompt từ chối đổi mặt (xem mục 2).
+     - `'standard'`: workflow chuẩn, vô hiệu hóa auto-detection của face-swap.
+     - Không còn giá trị `'face-swap'`: ép inject bất kể prompt thì truyền `loraName` tường minh.
+   - `loraName`: Tên file LoRA tùy chọn đặt trong `models/loras/`.
+   - `loraStrength`: Cường độ LoRA (`number`, mặc định `1.0`).
+   - `unetName`: Chỉ định mô hình DiT cụ thể (mặc định tự động phân giải qua `resolveActiveUnet()`).
+   - Unet của mỗi job được phân giải từ cùng một folder mà status báo; caller đọc nó qua `getStatus()` (`activeModel` / `isUncensored`) thay vì qua kết quả từng lần generate.
+
+
+   **Caller khai báo tường minh (không dựa vào auto-detection):**
+   - `src/hooks/useIdentityTransfer.ts` → `workflow: 'identity-transfer'`.
+   - `src/hooks/useClothingTransferEComPackRun.ts` → `workflow: 'identity-transfer'` cho lane `brand-model` (ghép mặt brand model), `workflow: 'standard'` cho lane product staging / custom destination.
+   - Các lane còn lại (VTO, AI Editor) không khai báo: chúng đi qua auto-detection.
+
+2. **Auto-Detection Heuristic (`isFaceSwapPrompt` — nguồn duy nhất: `src/platform/desktopLocalQwen.ts`):**
+   - Khi caller **không** khai báo `workflow` và không truyền `loraName`, hệ thống tự động quét prompt để phát hiện tác vụ đổi mặt / hoán đổi danh tính:
+     - **Refusal guard (kiểm tra trước, thắng cả `workflow: 'identity-transfer'`):** prompt chứa cụm từ từ chối đổi mặt (`no face swap`, `do not swap`, `keep the original face`, `không đổi mặt`, `không ghép mặt`, `không chuyển danh tính`, …) → không inject LoRA dù caller khai báo workflow thế nào.
+     - Header checks: `QWEN IDENTITY TRANSFER SPECIFICATION`, `QWEN BRAND MODEL SPECIFICATION`, `IDENTITY TRANSFER`, `head_swap`.
+     - Từ khóa tiếng Anh: `face swap`, `faceswap`, `swap face`, `head swap`, `replace face`, `facial identity`.
+     - Từ khóa tiếng Việt: `đổi mặt`, `hoán đổi mặt`, `ghép mặt`, `thay mặt`, `đổi khuôn mặt`, `thay khuôn mặt`, `chuyển mặt`, `chuyển danh tính`.
+   - Khi phát hiện khớp, hệ thống tự động gán `effectiveLoraName = 'bfs_head_v1.1_qwen_2.1.safetensors'` (strength `1.0`) và tự động chèn node `LoraLoaderModelOnly`.
+
+3. **Model detection contract (`resolveActiveUnet` / `resolveModelInfo`):**
+   - Một folder duy nhất cho cả detection và generation: folder mà app đã start server (`startServer(folder)`) là chuẩn vì đó là tiến trình đang phục vụ model; khi app **không** sở hữu tiến trình, `getStatus(folder)` ghi lại `comfyUiPath` renderer gửi lên và chính giá trị đó là root mà `generateImage` dùng (generate không mang folder riêng); sau cùng mới tới `KNOWN_PORTABLE_COMFYUI_PATH`. Nhờ vậy badge UC và fail-fast LoRA không bao giờ mô tả một install mà job không chạy trên đó.
+   - `resolveActiveUnet()` trả `string | null`: `null` nghĩa là *không* unet nào có trên disk. `null` không bao giờ biến thành filename trong status — `activeModel` / `isUncensored` giữ `undefined`, nên install không có model sẽ không hiện badge `Uncensored (UC)`.
+   - Cùng một lượt dò còn ra `faceSwapLoraAvailable` (BFS) và `turboLoraAvailable` (turbo) từ `models/loras/`; cả hai `undefined` khi chưa unet nào resolve được (folder chưa xác định).
+   - Kết quả detection cache theo folder trong 30s; `invalidateModelCache()` chạy khi `startServer` đổi folder. Cache chỉ phục vụ poll của UI: đường admission của job (`assertFaceSwapLoraAvailable`, `resolveActiveUnet` trong `generateImage`) đọc thẳng từ disk, nên cài LoRA/unet xong bấm lại trong 30s vẫn được nhận.
+
+4. **Fail-fast khi thiếu face swap LoRA:**
+   - LoRA BFS được tự chọn (`effectiveLoraName === 'bfs_head_v1.1_qwen_2.1.safetensors'` và caller không truyền `loraName`) mà `faceSwapLoraAvailable === false` → ném lỗi trước khi xếp workflow: `Face swap LoRA not found in the configured ComfyUI install: … (models/loras)`. ComfyUI không kịp trả `Value not in list: lora_name`.
+   - `loraName` truyền tường minh được pass qua nguyên vẹn (caller tự chịu trách nhiệm), và folder chưa xác định (không có unet) để ComfyUI tự báo.
+   - Identity Transfer chỉ hiện badge `BFS FaceSwap LoRA v1.1` khi `faceSwapLoraAvailable === true`, và hiện cảnh báo "not detected" khi `false`.
+
 ---
 
 ## 6. Cấu hình nhẹ khuyến nghị cho GPU 8GB
@@ -159,7 +208,19 @@ Chang Store's desktop bridge communicates with local ComfyUI exclusively over st
 
 ### Desktop app settings contract
 
-Local Qwen is a **desktop-only** studio. The browser build does not expose its settings or runtime.
+Local Qwen is a **desktop-first** studio: the packaged app owns the ComfyUI
+process in Electron main. The `vite dev` server can host the *same* manager over
+HTTP (`vite-plugins/localQwenDevBridge.ts`: `POST /api/local-qwen` with
+`{action, payload}`, answering in the same `DesktopBridgeResult` envelope), and
+the renderer falls back to it when the Electron preload is absent
+(`src/platform/desktopLocalQwen.ts`). That path exists for browser testing
+only — a static production build has no process to host.
+
+The bridge is **opt-in**: start the dev server with `LOCAL_QWEN_DEV_BRIDGE=true`
+to mount it. It can start ComfyUI and spend the machine's GPU for anyone who
+can reach the dev server, and the dev server listens on every interface by
+default, so it stays off unless a test actually needs it. Browsing the rest of
+the app from a phone or a second machine needs no flag.
 
 The desktop Settings surface may change the defaults used by the next Local Qwen job:
 
@@ -182,8 +243,8 @@ Upscale is never automatic. The user reviews the generated result first and expl
 
 ### 7.1 Product boundary
 
-- Local Qwen is exposed only by the **Electron desktop app** as a third Studio Mode: `localQwen`.
-- The browser build does not render the Local Qwen studio, settings, controls, or process lifecycle.
+- Local Qwen is exposed by the **Electron desktop app** as a third Studio Mode: `localQwen`, and by `vite dev` only when `LOCAL_QWEN_DEV_BRIDGE=true`.
+- The browser build does not render the Local Qwen studio, settings, controls, or process lifecycle. Under `vite dev` the studio appears only when that flag is set, and only while a manager is hosting the endpoint.
 - Initial Local Qwen Feature scope:
   - Virtual Try-On
   - Clothing Transfer
@@ -244,7 +305,7 @@ The Electron main process owns Local ComfyUI lifecycle; the renderer never spawn
 ### 7.5 Job execution
 
 - Local Qwen generation is **serial: one active job at a time** on the target 8 GB GPU.
-- Do not reuse the cloud batch concurrency of 3 for Local Qwen.
+- Do not reuse the cloud batch concurrency (up to 10 via `resolveEngineConcurrency`) for Local Qwen.
 - Queue/progress UI exposes only useful state:
   - `Starting`
   - `Ready`
@@ -331,7 +392,15 @@ curl -s http://127.0.0.1:8188/system_stats
 # 3. Kiểm tra custom node và model bắt buộc
 curl -s http://127.0.0.1:8188/object_info/UnetLoaderGGUF
 curl -s http://127.0.0.1:8188/object_info/TextEncodeQwenImage21
+
+# 4. Kiểm tra node inject LoRA (bắt buộc cho identity transfer)
+curl -s http://127.0.0.1:8188/object_info/LoraLoaderModelOnly
+
+# 5. Kiểm tra model assets mà app cũng dò (BFS face swap + Speed/Turbo LoRA)
+dir D:\ComfyUI_windows_portable\ComfyUI\models\loras
 ```
+
+Kết quả `dir` phải liệt kê `bfs_head_v1.1_qwen_2.1.safetensors` (identity transfer) và `Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors` (phase turbo). Cùng kết quả hiển thị ở **Settings → Local Qwen → LoRA assets**.
 
 ### Verify DynamicVRAM
 

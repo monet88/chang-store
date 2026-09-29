@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ipcMain } from 'electron';
-import {
-  LocalQwenManager,
-  registerDesktopLocalQwenHandlers,
-} from '../../electron/localQwenManager';
+import { LocalQwenManager } from '../../electron/localQwenManager';
+import { registerDesktopLocalQwenHandlers } from '../../electron/localQwenIpc';
 import { DESKTOP_LOCAL_QWEN_CHANNELS } from '../../src/platform/desktopLocalQwen';
 
 // Mock electron
@@ -240,6 +238,57 @@ describe('LocalQwenManager - upscaleImage', () => {
     await expect(
       manager.upscaleImage({ image: 'some-base64', scale: 2 }),
     ).rejects.toThrow(/ComfyUI upscale execution failed/);
+  });
+
+  it('names the failing node instead of dumping the ComfyUI event array', async () => {
+    const promptId = 'gguf-arch-prompt';
+    const fetchFn = vi.fn().mockImplementation(async (url: string) => {
+      if (url.endsWith('/upload/image')) {
+        return { ok: true, status: 200, json: async () => ({ name: 'img.png' }) };
+      }
+      if (url.endsWith('/prompt')) {
+        return { ok: true, status: 200, json: async () => ({ prompt_id: promptId }) };
+      }
+      if (url.includes(`/history/${promptId}`)) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            [promptId]: {
+              status: {
+                status_str: 'error',
+                messages: [
+                  ['execution_start', { prompt_id: promptId, timestamp: 1 }],
+                  [
+                    'execution_error',
+                    {
+                      prompt_id: promptId,
+                      node_id: '1',
+                      node_type: 'UnetLoaderGGUF',
+                      exception_message: "Unexpected architecture type in GGUF file: 'qwen_image21'\n",
+                      exception_type: 'ValueError',
+                      traceback: ['line one', 'line two'],
+                    },
+                  ],
+                ],
+              },
+            },
+          }),
+        };
+      }
+      throw new Error(`Unexpected url: ${url}`);
+    });
+
+    const probeFn = vi.fn().mockResolvedValue(true);
+    const manager = new LocalQwenManager({ probeFn, fetchFn: fetchFn as unknown as typeof fetch });
+    const failure = manager.upscaleImage({ image: 'some-base64', scale: 2 });
+
+    // The actionable line: which node, and what it complained about. The event
+    // array and the traceback are what the status banner used to render.
+    await expect(failure).rejects.toThrow(
+      "ComfyUI upscale execution failed: UnetLoaderGGUF: Unexpected architecture type in GGUF file: 'qwen_image21'",
+    );
+    await expect(failure).rejects.not.toThrow(/execution_start/);
   });
 
   it('returns image/png mimeType even when input image is JPEG', async () => {

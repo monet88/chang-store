@@ -15,6 +15,7 @@ import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useWatermarkRemover } from '../hooks/useWatermarkRemover';
 import { WATERMARK_MODELS, WATERMARK_PROMPTS } from '../utils/watermark-prompts';
+import { DEFAULT_MAX_CONCURRENCY } from '../utils/engineDispatch';
 import MultiImageUploader from './MultiImageUploader';
 import Spinner from './Spinner';
 import ResultPlaceholder from './shared/ResultPlaceholder';
@@ -379,7 +380,7 @@ const WatermarkRemover: React.FC = () => {
               id="watermark-concurrency"
               type="range"
               min="1"
-              max="5"
+              max={DEFAULT_MAX_CONCURRENCY}
               value={config.concurrency}
               onChange={(e) => setConcurrency(Number(e.target.value))}
               disabled={isProcessing}
@@ -387,7 +388,7 @@ const WatermarkRemover: React.FC = () => {
             />
             <div className="flex justify-between text-xs text-zinc-500 mt-1">
               <span>1</span>
-              <span>5</span>
+              <span>{DEFAULT_MAX_CONCURRENCY}</span>
             </div>
           </div>
         </section>

@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as imageUtils from '@/utils/imageUtils';
 import {
   getImageDimensions,
   blobToBase64,
@@ -18,6 +19,9 @@ import {
   detectClosestAspectRatio,
   detectImageAspectRatio,
   extractDimensionsFromHeader,
+  processUploadImageFile,
+  processMultipleImageFiles,
+  imageFilesOnly,
 } from '@/utils/imageUtils';
 
 // ============================================================================
@@ -445,5 +449,38 @@ describe('detectImageAspectRatio', () => {
     const png1x1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
     const ratio = await detectImageAspectRatio({ base64: png1x1, mimeType: 'image/png' });
     expect(ratio).toBe('1:1');
+  });
+});
+
+describe('processUploadImageFile', () => {
+  it('returns null when validation fails for non-image file', async () => {
+    const textFile = new File(['hello world'], 'test.txt', { type: 'text/plain' });
+    const result = await processUploadImageFile(textFile);
+    expect(result).toBeNull();
+  });
+});
+
+describe('imageFilesOnly', () => {
+  it('keeps image files and drops everything else', () => {
+    const textFile = new File(['text content'], 'notes.txt', { type: 'text/plain' });
+    const pngFile = new File(['image bytes'], 'photo.png', { type: 'image/png' });
+
+    expect(imageFilesOnly([textFile, pngFile])).toEqual([pngFile]);
+  });
+
+  it('returns an empty array when given no files', () => {
+    expect(imageFilesOnly([])).toEqual([]);
+  });
+});
+
+describe('processMultipleImageFiles', () => {
+  it('returns empty array when given no files', async () => {
+    const results = await processMultipleImageFiles([]);
+    expect(results).toEqual([]);
+  });
+
+  it('drops non-image files before processing', async () => {
+    const textFile = new File(['text content'], 'notes.txt', { type: 'text/plain' });
+    expect(await processMultipleImageFiles([textFile])).toEqual([]);
   });
 });

@@ -30,8 +30,6 @@ export interface ClothingTransferImageDriver {
   upscaleImage: typeof upscaleImage;
 }
 
-const CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY = 3;
-
 export interface UseClothingTransferEngineConfig {
   driver: ClothingTransferImageDriver;
   concepts: UseClothingTransferConceptsReturn;
@@ -134,7 +132,7 @@ export const useClothingTransferEngine = (
     }));
     const batchConcurrency = resolveEngineConcurrency(
       engineId,
-      Math.min(CLOTHING_TRANSFER_BATCH_MAX_CONCURRENCY, jobs.length),
+      jobs.length,
     );
 
     setIsLoading(true);

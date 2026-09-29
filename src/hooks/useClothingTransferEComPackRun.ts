@@ -33,9 +33,6 @@ import { formatGarmentScope } from '../utils/clothing-transfer-prompt-types';
 import { runBoundedWorkers } from '../utils/run-bounded-workers';
 import { getErrorMessage } from '../utils/imageUtils';
 
-/** Worker ceiling for one pack run; a single run never exceeds this many in-flight requests. */
-export const ECOM_PACK_BATCH_MAX_CONCURRENCY = 3;
-
 /** The user's live E-Com Pack selection, the only input target planning reads. */
 export interface EComPackPlanInput {
   displayTemplates: DisplayTemplate[];
@@ -115,6 +112,14 @@ export const planEComPackTargets = (input: EComPackPlanInput): EComPackPlannedTa
 
   return [...productTargets, ...brandModelTargets, ...destinationTargets];
 };
+
+/**
+ * The operator's free-text instructions for one run: the pack's own extra
+ * prompt plus the outfit note. The note outranks an ambiguous reading of the
+ * garments, so it has to reach synthesis itself and not only the analysis.
+ */
+const combineExtraInstructions = (extraPrompt: string, outfitNote: string): string =>
+  [extraPrompt.trim(), outfitNote.trim()].filter(Boolean).join('\n');
 
 interface EComPackPromptContext {
   sourceOutfitImage: ImageFile;
@@ -230,6 +235,12 @@ export interface UseClothingTransferEComPackRunConfig {
   engineId?: ImageEngineId;
   extraPrompt: string;
   /**
+   * The operator's note about the source outfit. It steers the analysis AND
+   * rides into the generation prompt, so it still holds when the scan failed or
+   * the blueprint was hand-edited.
+   */
+  outfitNote: string;
+  /**
    * The active model-agnostic blueprint for this source outfit, analyzed on demand
    * when the run has none yet. Null falls back to the base prompt.
    */
@@ -266,6 +277,7 @@ export const useClothingTransferEComPackRun = (
     imageEditModel,
     engineId,
     extraPrompt,
+    outfitNote,
     resolveOutfitBlueprint,
     addImage,
     setError,
@@ -307,7 +319,7 @@ export const useClothingTransferEComPackRun = (
           garmentScopes: selection.garmentScopes.length > 0
             ? selection.garmentScopes
             : ['full-set'],
-          extraPrompt,
+          extraPrompt: combineExtraInstructions(extraPrompt, outfitNote),
           aspectRatio,
           resolution,
           engineId,
@@ -322,6 +334,10 @@ export const useClothingTransferEComPackRun = (
             aspectRatio,
             resolution,
             interleavedParts: parts,
+            // Declare the routing instead of letting the main process sniff the
+            // prompt: brand models transplant a face (BFS LoRA), the staging
+            // lanes never do.
+            workflow: target.kind === 'brand-model' ? 'identity-transfer' : 'standard',
           },
           imageEditModel,
           { onStatusUpdate: () => {} },
@@ -341,6 +357,7 @@ export const useClothingTransferEComPackRun = (
       sourceOutfitImage,
       selection.garmentScopes,
       extraPrompt,
+      outfitNote,
       aspectRatio,
       resolution,
       engineId,
@@ -388,7 +405,7 @@ export const useClothingTransferEComPackRun = (
         setPackItems(plan.map(({ item }) => item));
       }
 
-      const batchConcurrency = resolveEngineConcurrency(engineId, ECOM_PACK_BATCH_MAX_CONCURRENCY);
+      const batchConcurrency = resolveEngineConcurrency(engineId, plan.length);
       await runBoundedWorkers(
         plan,
         batchConcurrency,

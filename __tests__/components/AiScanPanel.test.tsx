@@ -200,4 +200,59 @@ describe('AiScanPanel', () => {
     expect(screen.queryByText('studio.aiScan.ready')).not.toBeInTheDocument();
     expect(screen.queryByText('studio.aiScan.analyzing')).not.toBeInTheDocument();
   });
+  it('does not re-analyze while the operator edits the outfit note', async () => {
+    const analyze = vi.fn().mockResolvedValue('FIRST BLUEPRINT');
+    // One stable source set, as a memoized parent would hand it over: only the
+    // note changes between the two renders.
+    const sources = [SOURCE];
+
+    const { rerender } = render(
+      <AiScanProvider analyze={analyze}>
+        <AiScanPanel sources={sources} userGuidance="quần" />
+      </AiScanProvider>,
+    );
+    await waitFor(() => expect(screen.getByText('studio.aiScan.ready')).toBeInTheDocument());
+    expect(analyze).toHaveBeenCalledTimes(1);
+
+    // Every keystroke of the note is a new prop value. Re-running the analysis
+    // per character would spend one API call per source per character.
+    rerender(
+      <AiScanProvider analyze={analyze}>
+        <AiScanPanel sources={sources} userGuidance="quần không phải váy" />
+      </AiScanProvider>,
+    );
+
+    expect(analyze).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('studio.aiScan.ready')).toBeInTheDocument();
+
+    // The note still reaches the analyzer — through the explicit Rescan.
+    fireEvent.click(screen.getByRole('button', { name: 'studio.aiScan.rescan' }));
+    await waitFor(() => expect(analyze).toHaveBeenCalledTimes(2));
+    expect(analyze.mock.calls[1]?.[2]).toBe('quần không phải váy');
+  });
+
+  it('does not re-analyze when the parent rebuilds the same sources on every keystroke', async () => {
+    const analyze = vi.fn().mockResolvedValue('BLUEPRINT');
+
+    // Virtual Try-On's real shape: the per-item note lives in the item list, so
+    // every keystroke produces a new `sources` array holding the SAME images.
+    const Harness = ({ note }: { note: string }) => (
+      <AiScanProvider analyze={analyze}>
+        <AiScanPanel
+          sources={[SOURCE]}
+          userGuidance={note ? `Item #1 (top): ${note}` : undefined}
+        />
+      </AiScanProvider>
+    );
+
+    const { rerender } = render(<Harness note="" />);
+    await waitFor(() => expect(screen.getByText('studio.aiScan.ready')).toBeInTheDocument());
+    expect(analyze).toHaveBeenCalledTimes(1);
+
+    rerender(<Harness note="p" />);
+    rerender(<Harness note="pa" />);
+    rerender(<Harness note="pan" />);
+
+    expect(analyze).toHaveBeenCalledTimes(1);
+  });
 });

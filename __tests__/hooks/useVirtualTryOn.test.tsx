@@ -362,8 +362,8 @@ describe('useVirtualTryOn', () => {
     expect(addImageMock).toHaveBeenCalledWith(RESULT_A, Feature.TryOn, 'gemini');
   });
 
-  it('caps subject image request concurrency during batch generation', async () => {
-    const subjectImages = Array.from({ length: 10 }, (_, index) => ({
+  it('caps subject image request concurrency to 10 during batch generation', async () => {
+    const subjectImages = Array.from({ length: 12 }, (_, index) => ({
       base64: `subject-${index}`,
       mimeType: 'image/png',
     }));
@@ -401,7 +401,7 @@ describe('useVirtualTryOn', () => {
     });
 
     await vi.waitFor(() => {
-      expect(editImage).toHaveBeenCalledTimes(3);
+      expect(editImage).toHaveBeenCalledTimes(10);
     });
 
     deferredResults.forEach(({ resolve }, index) => {
@@ -409,9 +409,9 @@ describe('useVirtualTryOn', () => {
     });
 
     await generationPromise;
-    expect(maxActiveRequests).toBe(3);
-    expect(vi.mocked(editImage)).toHaveBeenCalledTimes(10);
-    expect(result.current.completedCount).toBe(10);
+    expect(maxActiveRequests).toBe(10);
+    expect(vi.mocked(editImage)).toHaveBeenCalledTimes(12);
+    expect(result.current.completedCount).toBe(12);
     expect(result.current.failedCount).toBe(0);
   });
 

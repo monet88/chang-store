@@ -50,3 +50,12 @@ export const UNTUCKED_DRAPE_INSTRUCTION =
  */
 export const UNTUCKED_PROHIBITION_LINE =
   'No tucking tops into pants or skirts. All shirts, blouses, and upper garments must remain fully untucked outside the waistband.';
+
+/**
+ * Prioritized hemline override for the Virtual Try-On prompt builders (Gemini,
+ * GPT Image, Local Qwen): it names the exact failure it forbids (high-waisted
+ * bottoms, pre-tucked subject photos) so a busy surrounding prompt cannot
+ * re-introduce tucking. Shared so the three policies cannot drift apart.
+ */
+export const UNTUCKED_OVERRIDE_HEADLINE =
+  'CRITICAL OVERRIDE — HEMLINE & WAISTBAND (NEVER TUCK IN): All tops, blouses, and shirts MUST hang completely untucked outside the waistband. Even if the subject in the photo is standing straight, wears high-waisted pants/skirt, or originally had their shirt tucked in, you MUST drape the new top completely outside and over the waistband of the lower garment. The waistband and beltline must be covered or partially overlapped by the top\'s hemline; under no circumstances should the top be stuffed or tucked into the pants/skirt.';
