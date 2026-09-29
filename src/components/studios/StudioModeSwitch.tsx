@@ -20,9 +20,8 @@ const ALL_STUDIO_SEGMENTS: Array<{ mode: StudioMode; labelKey: string; desktopOn
  */
 const StudioModeSwitch: React.FC<StudioModeSwitchProps> = ({ studioMode, onChange }) => {
   const { t } = useLanguage();
-  const hasLocalQwen =
-    typeof window !== 'undefined' &&
-    Boolean(window.desktopLocalQwen || getDesktopLocalQwenApi());
+  // One transport decides: the Electron preload, or the opt-in dev bridge.
+  const hasLocalQwen = Boolean(getDesktopLocalQwenApi());
 
   const segments = useMemo(() => {
     return ALL_STUDIO_SEGMENTS.filter((seg) => !seg.desktopOnly || hasLocalQwen);

@@ -7,6 +7,8 @@ vi.mock('@/services/providers/gpt-image/gptImageService', () => ({ editGptImage 
 
 import { buildGptImageEngine, resolveSizeForRatio } from '@/services/providers/gpt-image/gptImageEngine';
 import { PROVIDER_UPSCALE_PROMPTS } from '@/utils/provider-refine-prompt';
+import { withImageRequestSlot } from '@/utils/request-slots';
+import { DEFAULT_MAX_CONCURRENCY } from '@/utils/engineDispatch';
 
 /** The sizes the XomPet reference gateway advertises for the GPT image models. */
 const XOMPET_SIZES = ['1080x1920', '1536x1024', '1024x1024', '1024x1536'];
@@ -147,5 +149,62 @@ describe('buildGptImageEngine', () => {
     expect(results).toHaveLength(4);
     expect(results[0].base64).toBe('img1');
     expect(results[3].base64).toBe('img4');
+  });
+
+  it('holds its requests while the shared request gate is saturated', async () => {
+    const engine = buildGptImageEngine({
+      model: 'gpt-image-2',
+      quality: 'high',
+      sizeOptions: XOMPET_SIZES,
+      credentials: CREDENTIALS,
+    });
+
+    // A 10-job batch already occupies every slot. This lane fans out one
+    // request per output image, so without the shared gate it would put those
+    // 40 straight onto the gateway.
+    const saturators = Array.from({ length: DEFAULT_MAX_CONCURRENCY }, () => {
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => { release = resolve; });
+      return { held, release, run: withImageRequestSlot(() => held) };
+    });
+
+    const pending = engine.editImage(
+      { images: [IMAGE], prompt: 'dress the model', numberOfImages: 4 },
+      'ignored',
+      apiConfig,
+    );
+    await Promise.resolve();
+    expect(editGptImage).not.toHaveBeenCalled();
+
+    saturators.forEach((saturator) => saturator.release());
+    await Promise.all(saturators.map((saturator) => saturator.run));
+    await pending;
+    expect(editGptImage).toHaveBeenCalled();
+  });
+
+  it('holds its upscale behind the shared request gate too', async () => {
+    const engine = buildGptImageEngine({
+      model: 'gpt-image-2',
+      quality: 'high',
+      sizeOptions: XOMPET_SIZES,
+      credentials: CREDENTIALS,
+    });
+
+    // An upscale is a real request too: while every slot is taken it must wait
+    // rather than add one more request on top of the batch.
+    const saturators = Array.from({ length: DEFAULT_MAX_CONCURRENCY }, () => {
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => { release = resolve; });
+      return { held, release, run: withImageRequestSlot(() => held) };
+    });
+
+    const pending = engine.upscaleImage(IMAGE, 'ignored', apiConfig, '2K');
+    await Promise.resolve();
+    expect(editGptImage).not.toHaveBeenCalled();
+
+    saturators.forEach((saturator) => saturator.release());
+    await Promise.all(saturators.map((saturator) => saturator.run));
+    await pending;
+    expect(editGptImage).toHaveBeenCalled();
   });
 });

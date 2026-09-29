@@ -12,10 +12,15 @@ const MAX_SOURCE_PROMPT_LENGTH = 180;
 const normalizeSourcePrompt = (value: string) =>
   value.replace(/\s+/g, ' ').slice(0, MAX_SOURCE_PROMPT_LENGTH);
 
+export interface MultipleClothingUploadResult {
+  droppedCount: number;
+}
+
 export interface UseVirtualTryOnClothingReturn {
   clothingItems: VirtualTryOnClothingItem[];
   validClothingItems: VirtualTryOnClothingItem[];
   handleClothingUpload: (file: ImageFile | null, id: number) => void;
+  handleMultipleClothingUpload: (files: ImageFile[], targetId?: number) => MultipleClothingUploadResult;
   handleSourceItemTypeChange: (id: number, sourceItemType: VirtualTryOnSourceItemType) => void;
   handleSourcePromptChange: (id: number, sourcePrompt: string) => void;
   addClothingUploader: () => void;
@@ -50,6 +55,58 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
       items.map((item) => (item.id === id ? { ...item, image: file } : item)),
     );
   }, []);
+
+  const handleMultipleClothingUpload = useCallback(
+    (files: ImageFile[], targetId?: number): MultipleClothingUploadResult => {
+      if (!files || files.length === 0) return { droppedCount: 0 };
+
+      let availableSlots = 0;
+      if (targetId !== undefined) {
+        const target = clothingItems.find((item) => item.id === targetId);
+        if (target) availableSlots++;
+      }
+      const emptySlots = clothingItems.filter(
+        (item) => item.image === null && item.id !== targetId,
+      ).length;
+      availableSlots += emptySlots;
+      const canPush = Math.max(0, MAX_SHARED_OUTFIT_IMAGES - clothingItems.length);
+      availableSlots += canPush;
+
+      const droppedCount = Math.max(0, files.length - availableSlots);
+
+      setClothingItems((prev) => {
+        const newItems = [...prev];
+        let fileIdx = 0;
+
+        if (targetId !== undefined) {
+          const targetIndex = newItems.findIndex((item) => item.id === targetId);
+          if (targetIndex !== -1 && fileIdx < files.length) {
+            newItems[targetIndex] = { ...newItems[targetIndex], image: files[fileIdx++] };
+          }
+        }
+
+        for (let i = 0; i < newItems.length && fileIdx < files.length; i++) {
+          if (newItems[i].image === null) {
+            newItems[i] = { ...newItems[i], image: files[fileIdx++] };
+          }
+        }
+
+        while (fileIdx < files.length && newItems.length < MAX_SHARED_OUTFIT_IMAGES) {
+          newItems.push({
+            id: ++clothingIdCounter.current,
+            image: files[fileIdx++],
+            sourceItemType: 'clothing',
+            sourcePrompt: '',
+          });
+        }
+
+        return newItems;
+      });
+
+      return { droppedCount };
+    },
+    [clothingItems],
+  );
 
   const handleSourceItemTypeChange = useCallback((id: number, sourceItemType: VirtualTryOnSourceItemType) => {
     setClothingItems((items) =>
@@ -151,6 +208,7 @@ export const useVirtualTryOnClothing = (): UseVirtualTryOnClothingReturn => {
     clothingItems,
     validClothingItems,
     handleClothingUpload,
+    handleMultipleClothingUpload,
     handleSourceItemTypeChange,
     handleSourcePromptChange,
     addClothingUploader,

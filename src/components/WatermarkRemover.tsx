@@ -15,6 +15,7 @@ import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useWatermarkRemover } from '../hooks/useWatermarkRemover';
 import { WATERMARK_MODELS, WATERMARK_PROMPTS } from '../utils/watermark-prompts';
+import { DEFAULT_MAX_CONCURRENCY } from '../utils/engineDispatch';
 import MultiImageUploader from './MultiImageUploader';
 import Spinner from './Spinner';
 import ResultPlaceholder from './shared/ResultPlaceholder';
@@ -169,6 +170,7 @@ const BatchItemCard: React.FC<{
               disabled={isProcessing}
               className="p-1.5 bg-amber-600/80 hover:bg-amber-500 rounded text-white transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               title={t('watermarkRemover.retry')}
+              aria-label={t('watermarkRemover.retry')}
             >
               <RegenerateIcon className="w-4 h-4" />
             </button>
@@ -183,6 +185,7 @@ const BatchItemCard: React.FC<{
               onClick={onSave}
               className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               title={t('imageActions.saveToGallery')}
+              aria-label={t('imageActions.saveToGallery')}
             >
               <GalleryIcon className="w-4 h-4" />
             </button>
@@ -194,6 +197,7 @@ const BatchItemCard: React.FC<{
               onClick={onDownload}
               className="p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               title={t('imageActions.download')}
+              aria-label={t('imageActions.download')}
             >
               <DownloadIcon className="w-4 h-4" />
             </button>
@@ -205,6 +209,7 @@ const BatchItemCard: React.FC<{
             disabled={isProcessing && item.status === 'processing'}
             className="p-1.5 bg-red-600/70 hover:bg-red-500 rounded text-white transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             title={t('watermarkRemover.remove')}
+            aria-label={t('watermarkRemover.remove')}
           >
             <DeleteIcon className="w-4 h-4" />
           </button>
@@ -379,7 +384,7 @@ const WatermarkRemover: React.FC = () => {
               id="watermark-concurrency"
               type="range"
               min="1"
-              max="5"
+              max={DEFAULT_MAX_CONCURRENCY}
               value={config.concurrency}
               onChange={(e) => setConcurrency(Number(e.target.value))}
               disabled={isProcessing}
@@ -387,7 +392,7 @@ const WatermarkRemover: React.FC = () => {
             />
             <div className="flex justify-between text-xs text-zinc-500 mt-1">
               <span>1</span>
-              <span>5</span>
+              <span>{DEFAULT_MAX_CONCURRENCY}</span>
             </div>
           </div>
         </section>

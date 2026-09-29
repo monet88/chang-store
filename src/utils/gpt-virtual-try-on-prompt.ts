@@ -8,7 +8,7 @@ import type { Part } from '@google/genai';
 import { imagePart } from './imagePart';
 import { formatGptBlueprintConfig, parseOutfitBlueprint } from './ai-scan-blueprint';
 import type { VirtualTryOnPromptInput, VirtualTryOnPromptSourceItem } from './virtual-try-on-prompt-types';
-import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION } from './outfitDrapePolicy';
+import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION, UNTUCKED_OVERRIDE_HEADLINE } from './outfitDrapePolicy';
 import { CAMERA_FRAMING_INSTRUCTION, CAMERA_FRAMING_PROHIBITION_LINES } from './cameraFramingPolicy';
 
 const MAX_SOURCE_ITEMS = 4;
@@ -52,13 +52,20 @@ export const buildGptVirtualTryOnParts = (input: VirtualTryOnPromptInput): Part[
   const parsedBlueprint = parseOutfitBlueprint(input.outfitBlueprint);
   const hasClothing = sourceItems.some((item) => item.sourceItemType === 'clothing');
   const hasNonClothing = sourceItems.some((item) => item.sourceItemType !== 'clothing');
-  const tuckingAllowed = isTuckingAllowed(input.extraPrompt);
+  // The operator's notes ride into APPLICATION_RULES as directives, so they
+  // decide the hemline too: a note asking for a tucked shirt must not
+  // contradict "NEVER TUCK IN" two lines above it.
+  const outfitNote = normalizeSourcePrompt(input.userGuidance);
+  const itemNotes = sourceItems.map((item) => normalizeSourcePrompt(item.sourcePrompt));
+  const tuckingAllowed = isTuckingAllowed([input.extraPrompt, outfitNote, ...itemNotes].join('\n'));
+
   const config: Record<string, unknown> = {
     TASK: 'Apply all provided fashion source items to the subject while preserving face, facial features, expression, hair, skin tone, exact age, body proportions, pose, and unrelated scene content.',
     IMAGE_ROLES: buildRoleMap(input).split('\n'),
     APPLICATION_RULES: [
-      ...(hasClothing ? [`For each clothing source item, replace every visible matching clothing category from that source image, including complete upper/lower looks. Do not preserve the subject's original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment. Zero original elements in replaced clothing areas may remain.${!tuckingAllowed ? ' Tops hang freely outside the waistband with natural hem drape; never tucked in.' : ''}`] : []),
-      ...(!tuckingAllowed ? [UNTUCKED_DRAPE_INSTRUCTION] : []),
+      ...(!tuckingAllowed ? [UNTUCKED_OVERRIDE_HEADLINE, UNTUCKED_DRAPE_INSTRUCTION] : []),
+      ...(hasClothing ? ['For each clothing source item, replace every visible matching clothing category from that source image, including complete upper/lower looks. Do not preserve the subject\'s original pants, skirt, shorts, or jeans when the clothing source image already shows a lower-body garment. Zero original elements in replaced clothing areas may remain.'] : []),
+      ...(outfitNote ? [`Operator outfit directive, which outranks any ambiguous reading of the garments: ${outfitNote}`] : []),
       ...(hasNonClothing ? ['For shoes, bag, or accessory source items, add or replace only that category and preserve clothing areas not targeted by a clothing source item.'] : []),
       'Replicate silhouette, construction, collar, sleeves, hems, straps, hardware, sole, texture, material, color, supported graphics/text, pattern scale, folds, contact points, lighting, and occlusion faithfully.',
     ],

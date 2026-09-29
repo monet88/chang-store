@@ -9,7 +9,7 @@ vi.mock('../../src/services/imageEditingService', () => ({
 
 vi.mock('../../src/services/textService', () => ({
   generatePoseDescription: vi.fn(),
-  analyzeOutfitBlueprint: vi.fn(),
+  scanGarmentBlueprint: vi.fn(),
 }));
 
 vi.mock('../../src/utils/imageUtils', () => ({

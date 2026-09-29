@@ -6,6 +6,7 @@ import { appendNegativePrompt } from '../../../utils/negative-prompt-builder';
 import { runBoundedWorkers } from '../../../utils/run-bounded-workers';
 import { flattenInterleavedParts } from '../../../utils/flattenInterleavedParts';
 import { editGptImage, type GptImageServiceConfig } from './gptImageService';
+import { withImageRequestSlot } from '../../../utils/request-slots';
 
 /**
  * The GPT lane's implementation of the shared image engine contract
@@ -90,14 +91,16 @@ export const buildGptImageEngine = ({
 
       const count = Math.max(1, Math.min(params.numberOfImages ?? 1, 4));
       if (count === 1) {
-        return editGptImage(editParams, credentials);
+        return withImageRequestSlot(() => editGptImage(editParams, credentials));
       }
 
       const slots = Array.from({ length: count }, (_, index) => index);
       const results: ImageFile[] = new Array(count);
+      // Every request in this lane goes through the shared gate, upscale
+      // included: an upscale burst is as real a request as a generation one.
       await runBoundedWorkers(slots, count, async (index) => {
         try {
-          const [result] = await editGptImage(editParams, credentials);
+          const [result] = await withImageRequestSlot(() => editGptImage(editParams, credentials));
           if (result) {
             results[index] = result;
           }
@@ -108,7 +111,7 @@ export const buildGptImageEngine = ({
 
       const successfulResults = results.filter(Boolean);
       if (successfulResults.length === 0) {
-        return editGptImage(editParams, credentials);
+        return withImageRequestSlot(() => editGptImage(editParams, credentials));
       }
       return successfulResults;
     },
@@ -118,15 +121,17 @@ export const buildGptImageEngine = ({
       _config,
       qualityLevel: UpscaleQuality = '2K',
     ): Promise<ImageFile> => {
-      const [upscaled] = await editGptImage(
-        {
-          model,
-          prompt: PROVIDER_UPSCALE_PROMPTS[qualityLevel],
-          images: [image],
-          size: upscaleSize,
-          quality: 'high',
-        },
-        credentials,
+      const [upscaled] = await withImageRequestSlot(() =>
+        editGptImage(
+          {
+            model,
+            prompt: PROVIDER_UPSCALE_PROMPTS[qualityLevel],
+            images: [image],
+            size: upscaleSize,
+            quality: 'high',
+          },
+          credentials,
+        ),
       );
       return upscaled;
     },

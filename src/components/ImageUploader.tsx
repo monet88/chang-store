@@ -5,19 +5,28 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { ImageFile } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CloudUploadIcon, DeleteIcon, GalleryIcon } from './Icons';
-import { compressImage, validateImageFile } from '../utils/imageUtils';
+import { processUploadImageFile, processMultipleImageFiles } from '../utils/imageUtils';
 import ImageSelectionModal from './modals/ImageSelectionModal';
 
 interface ImageUploaderProps {
   image: ImageFile | null;
   onImageUpload: (file: ImageFile | null) => void;
+  /** Enables multi-select and batch upload; the single prop drives both the input and the routing. */
+  onMultipleImagesUpload?: (files: ImageFile[]) => void;
   title: string;
   /** Keep the title accessible without rendering a duplicate visible heading */
   hideTitle?: boolean;
   id: string;
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImageUpload, title, hideTitle = false, id }) => {
+const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({
+  image,
+  onImageUpload,
+  onMultipleImagesUpload,
+  title,
+  hideTitle = false,
+  id,
+}) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isGallerySelectionOpen, setIsGallerySelectionOpen] = useState(false);
   const { t } = useLanguage();
@@ -36,48 +45,30 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
     [image?.base64, image?.mimeType]
   );
 
-  // Memoize processFile - prevents re-creation on every render
-  const processFile = useCallback(async (file: File) => {
-    if (!file) return;
 
-    // Validate file before processing
-    const validation = await validateImageFile(file);
-    if (!validation.isValid) {
-      if (import.meta.env.DEV) {
-        console.error("Upload validation failed:", validation.errorKey);
-      }
+  /**
+   * One routing rule for every file entry point (picker and drag & drop):
+   * a multi-file selection goes to the batch handler, anything else to the
+   * single-image handler.
+   */
+  const handleFiles = useCallback(async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+
+    if (onMultipleImagesUpload && fileList.length > 1) {
+      const processed = await processMultipleImageFiles(Array.from(fileList));
+      if (processed.length > 0) onMultipleImagesUpload(processed);
       return;
     }
 
-    try {
-      const compressedImage = await compressImage(file);
-      onImageUpload(compressedImage);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("Error compressing image, falling back to original file:", error);
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          const base64String = reader.result.substring(reader.result.indexOf(',') + 1);
-          onImageUpload({ base64: base64String, mimeType: file.type });
-        }
-      };
-      reader.onerror = (err) => {
-        if (import.meta.env.DEV) {
-          console.error("FileReader error on fallback:", err);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  }, [onImageUpload]);
+    const file = fileList[0];
+    if (!file) return;
+    const res = await processUploadImageFile(file);
+    if (res) onImageUpload(res);
+  }, [onImageUpload, onMultipleImagesUpload]);
 
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      processFile(file);
-    }
-  }, [processFile]);
+    void handleFiles(event.target.files);
+  }, [handleFiles]);
 
   const handleClear = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -108,20 +99,22 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     dragCounter.current = 0;
     setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      processFile(file);
-      if (inputRef.current) {
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-        inputRef.current.files = dataTransfer.files;
-      }
+    const fileList = e.dataTransfer.files;
+    if (!fileList || fileList.length === 0) return;
+
+    await handleFiles(fileList);
+
+    // Mirror a single dropped file into the hidden input so the picker stays in sync.
+    if (fileList.length === 1 && fileList[0] && inputRef.current) {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(fileList[0]);
+      inputRef.current.files = dataTransfer.files;
     }
-  }, [processFile]);
+  }, [handleFiles]);
 
   return (
     <>
@@ -141,6 +134,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = React.memo(({ image, onImage
             ref={inputRef}
             type="file"
             accept="image/*"
+            multiple={Boolean(onMultipleImagesUpload)}
             className="hidden"
             onChange={handleFileChange}
           />

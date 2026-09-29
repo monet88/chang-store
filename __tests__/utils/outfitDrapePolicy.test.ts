@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   isTuckingAllowed,
   UNTUCKED_DRAPE_INSTRUCTION,
+  UNTUCKED_OVERRIDE_HEADLINE,
   UNTUCKED_PROHIBITION_LINE,
 } from '@/utils/outfitDrapePolicy';
 import { buildGeminiVirtualTryOnParts } from '@/utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '@/utils/gpt-virtual-try-on-prompt';
+import { buildQwenVirtualTryOnParts } from '@/utils/qwen-virtual-try-on-prompt';
 import { buildGeminiClothingTransferParts } from '@/utils/gemini-clothing-transfer-prompt';
 import { buildGptClothingTransferParts } from '@/utils/gpt-clothing-transfer-prompt';
 import type { VirtualTryOnPromptInput } from '@/utils/virtual-try-on-prompt-types';
@@ -99,6 +101,29 @@ describe('outfitDrapePolicy', () => {
       expect(text).not.toContain('never tucked in');
       expect(text).toContain('tuck the shirt into pants');
     });
+
+    it('carries the shared hemline override in every Virtual Try-On policy', () => {
+      const gemini = buildGeminiVirtualTryOnParts(vtoInput('')).map((p) => p.text || '').join('\n');
+      const gpt = buildGptVirtualTryOnParts(vtoInput(''))[0]?.text || '';
+      const qwen = buildQwenVirtualTryOnParts(vtoInput(''))[0]?.text || '';
+
+      expect(gemini).toContain(UNTUCKED_OVERRIDE_HEADLINE);
+      expect(gpt).toContain(UNTUCKED_OVERRIDE_HEADLINE);
+      expect(qwen).toContain(UNTUCKED_OVERRIDE_HEADLINE);
+    });
+
+    it('drops the shared override from every policy when tucking is permitted', () => {
+      const extraPrompt = 'tuck the shirt into pants';
+      const gemini = buildGeminiVirtualTryOnParts(vtoInput(extraPrompt))
+        .map((p) => p.text || '')
+        .join('\n');
+      const gpt = buildGptVirtualTryOnParts(vtoInput(extraPrompt))[0]?.text || '';
+      const qwen = buildQwenVirtualTryOnParts(vtoInput(extraPrompt))[0]?.text || '';
+
+      expect(gemini).not.toContain(UNTUCKED_OVERRIDE_HEADLINE);
+      expect(gpt).not.toContain(UNTUCKED_OVERRIDE_HEADLINE);
+      expect(qwen).not.toContain(UNTUCKED_OVERRIDE_HEADLINE);
+    });
   });
 
   describe('Clothing Transfer prompt enforcement', () => {
@@ -135,5 +160,54 @@ describe('outfitDrapePolicy', () => {
       expect(text).not.toContain(UNTUCKED_PROHIBITION_LINE);
       expect(text).toContain('allow tucking');
     });
+  });
+});
+
+describe('Virtual Try-On notes decide the hemline too', () => {
+  const baseInput = {
+    subjectImage: { base64: 'c3Vi', mimeType: 'image/png' },
+    sourceItems: [
+      {
+        image: { base64: 'Z2Fy', mimeType: 'image/png' },
+        sourceItemType: 'clothing' as const,
+        sourcePrompt: '',
+      },
+    ],
+    extraPrompt: '',
+    backgroundPrompt: '',
+    isMultiPersonMode: false,
+  };
+
+  it('keeps the untucked override on Qwen when only an accessory is a source', () => {
+    // Shoes-only still renders a torso, so the hemline rule must be present
+    // exactly as it is for a full clothing set.
+    const withShoes = buildQwenVirtualTryOnParts({
+      ...baseInput,
+      sourceItems: [
+        {
+          image: { base64: 'c2hv', mimeType: 'image/png' },
+          sourceItemType: 'shoes' as const,
+          sourcePrompt: '',
+        },
+      ],
+    });
+
+    expect(JSON.stringify(withShoes)).toContain('NEVER TUCK IN');
+  });
+
+  // Qwen, Gemini, GPT in that order: the override must land identically.
+  const untuckedIn = (guidance: string) =>
+    [
+      buildQwenVirtualTryOnParts,
+      buildGeminiVirtualTryOnParts,
+      buildGptVirtualTryOnParts,
+    ].map((build) => JSON.stringify(build({ ...baseInput, userGuidance: guidance })).includes('NEVER TUCK IN'));
+
+  it('lets a note asking for a tuck override the untucked rule in every builder', () => {
+    expect(untuckedIn('tuck the shirt into the high waistband')).toEqual([false, false, false]);
+  });
+
+  it('keeps the untucked rule when no note asks for a tuck', () => {
+    expect(untuckedIn('wide-leg trousers, not a skirt')).toEqual([true, true, true]);
   });
 });

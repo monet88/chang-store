@@ -1,17 +1,60 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import EventEmitter from 'node:events';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import type { ChildProcess } from 'node:child_process';
 import type { Mock } from 'vitest';
 import {
   LocalQwenManager,
   verifyLoopbackOnly,
   DEFAULT_COMFYUI_PORT,
+  DEFAULT_QWEN_UNET_NAME,
+  FALLBACK_QWEN_UNET_NAME,
+  FACE_SWAP_LORA_NAME,
+  TURBO_LORA_NAME,
   defaultHealthCheckFn,
   parseLocalQwenGenerateParams,
   parseLocalQwenUpscaleParams,
   parseLocalQwenFolder,
 } from '../../electron/localQwenManager';
+import { isFaceSwapPrompt } from '../../src/platform/desktopLocalQwen';
+
+/**
+ * A real ComfyUI-shaped folder on disk: model detection reads the filesystem,
+ * so tests that care about what is "installed" build their own install instead
+ * of depending on the developer's machine.
+ */
+const createComfyFixture = (options?: { unets?: string[]; loras?: string[] }): string => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'chang-store-comfy-'));
+  const diffusionDir = path.join(root, 'models', 'diffusion_models');
+  const loraDir = path.join(root, 'models', 'loras');
+  fs.mkdirSync(diffusionDir, { recursive: true });
+  fs.mkdirSync(loraDir, { recursive: true });
+  for (const name of options?.unets ?? []) {
+    fs.writeFileSync(path.join(diffusionDir, name), '');
+  }
+  for (const name of options?.loras ?? []) {
+    fs.writeFileSync(path.join(loraDir, name), '');
+  }
+  return root;
+};
+
+const removeComfyFixture = (root: string): void => {
+  fs.rmSync(root, { recursive: true, force: true });
+};
+
+/**
+ * Scope `fs.existsSync` to one fixture. Earlier tests in this file leave
+ * `existsSync` / `statSync` spies behind, so the check runs against the real
+ * function captured at import time — before any test can spy on it.
+ */
+const realExistsSync = fs.existsSync.bind(fs);
+
+const spyExistsSyncFor = (root: string) =>
+  vi.spyOn(fs, 'existsSync').mockImplementation((p) =>
+    typeof p === 'string' && p.startsWith(root) ? realExistsSync(p) : false,
+  );
 
 // Mock electron so importing localQwenManager or gateway does not fail in vitest
 vi.mock('electron', () => ({
@@ -205,13 +248,25 @@ describe('LocalQwenManager', () => {
     });
 
     it('reports ready with isAppOwned: false for external running server', async () => {
+      // Detection reads the filesystem, so the install is a fixture, never the
+      // developer's own ComfyUI folder.
+      const installFixture = createComfyFixture({ unets: [DEFAULT_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(installFixture);
       const probeFn = vi.fn().mockResolvedValue(true);
       const manager = new LocalQwenManager({ probeFn });
       manager.isAppOwned = false;
 
-      const status = await manager.getStatus();
-      expect(status.state).toBe('ready');
-      expect(status.isAppOwned).toBe(false);
+      try {
+        const status = await manager.getStatus(installFixture);
+
+        expect(status.state).toBe('ready');
+        expect(status.isAppOwned).toBe(false);
+        expect(status.activeModel).toBe(DEFAULT_QWEN_UNET_NAME);
+        expect(status.isUncensored).toBe(true);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(installFixture);
+      }
     });
 
     it('reports ready with isAppOwned: true for app-owned running server', async () => {
@@ -474,6 +529,35 @@ describe('LocalQwenManager', () => {
       expect(result.compatible).toBe(true);
     });
 
+    it('defaultHealthCheckFn validates successfully when uncensored UC model is present', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.endsWith('/system_stats')) {
+          return new Response(JSON.stringify({ system: { os: 'nt', argv: [] } }), { status: 200 });
+        }
+        if (url.endsWith('/object_info/UnetLoaderGGUF')) {
+          return new Response(
+            JSON.stringify({
+              UnetLoaderGGUF: {
+                input: {
+                  required: {
+                    unet_name: [['qwen-image-2.1-UC-Q4_K_M.gguf']],
+                  },
+                },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        if (url.endsWith('/object_info/TextEncodeQwenImage21')) {
+          return new Response(JSON.stringify({ TextEncodeQwenImage21: {} }), { status: 200 });
+        }
+        return new Response('Not found', { status: 404 });
+      });
+
+      const result = await defaultHealthCheckFn('http://127.0.0.1:8188', mockFetch as unknown as typeof fetch);
+      expect(result.compatible).toBe(true);
+    });
+
     it('defaultHealthCheckFn fails closed on thrown network/timeout error', async () => {
       const mockFetch = vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:8188'));
       const result = await defaultHealthCheckFn('http://127.0.0.1:8188', mockFetch as unknown as typeof fetch);
@@ -532,6 +616,49 @@ describe('LocalQwenManager', () => {
       expect(parsed.images?.length).toBe(1);
     });
 
+    it('parses valid loraName and loraStrength', () => {
+      const parsed = parseLocalQwenGenerateParams({
+        prompt: 'Face swap generation',
+        loraName: 'bfs_head_v1.1_qwen_2.1.safetensors',
+        loraStrength: 0.85,
+      });
+
+      expect(parsed.loraName).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
+      expect(parsed.loraStrength).toBe(0.85);
+    });
+
+    it('sanitizes empty or whitespace loraName to undefined', () => {
+      const parsed = parseLocalQwenGenerateParams({
+        prompt: 'Standard generation',
+        loraName: '   ',
+      });
+
+      expect(parsed.loraName).toBeUndefined();
+    });
+
+    it('rejects invalid loraName or loraStrength types', () => {
+      expect(() =>
+        parseLocalQwenGenerateParams({
+          prompt: 'test',
+          loraName: 12345 as unknown as string,
+        }),
+      ).toThrow(/loraName: must be a string/);
+
+      expect(() =>
+        parseLocalQwenGenerateParams({
+          prompt: 'test',
+          loraStrength: 'strong' as unknown as number,
+        }),
+      ).toThrow(/loraStrength: must be a finite number/);
+
+      expect(() =>
+        parseLocalQwenGenerateParams({
+          prompt: 'test',
+          loraStrength: NaN,
+        }),
+      ).toThrow(/loraStrength: must be a finite number/);
+    });
+
     it('rejects generate params with missing or empty prompt', () => {
       expect(() => parseLocalQwenGenerateParams({})).toThrow(/prompt/);
       expect(() => parseLocalQwenGenerateParams({ prompt: '' })).toThrow(/prompt/);
@@ -570,6 +697,24 @@ describe('LocalQwenManager', () => {
       expect(() => parseLocalQwenGenerateParams({ prompt: 'test', resolution: 600 })).toThrow(/resolution/);
     });
 
+    it('parses valid unetName in generate params and rejects non-strings', () => {
+      const parsed = parseLocalQwenGenerateParams({
+        prompt: 'test',
+        unetName: 'custom-model.gguf',
+      });
+      expect(parsed.unetName).toBe('custom-model.gguf');
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', unetName: 123 as unknown as string })).toThrow(/unetName/);
+    });
+
+    it('parses valid workflow in generate params and rejects invalid values', () => {
+      const parsed = parseLocalQwenGenerateParams({
+        prompt: 'test',
+        workflow: 'identity-transfer',
+      });
+      expect(parsed.workflow).toBe('identity-transfer');
+      expect(() => parseLocalQwenGenerateParams({ prompt: 'test', workflow: 'invalid-mode' as any })).toThrow(/workflow/);
+    });
+
     it('parses valid upscale params and rejects malformed ones', () => {
       const valid = parseLocalQwenUpscaleParams({ image: 'base64-data', scale: 2 });
       expect(valid.image).toBe('base64-data');
@@ -585,6 +730,380 @@ describe('LocalQwenManager', () => {
       expect(parseLocalQwenFolder(null)).toBeUndefined();
       expect(parseLocalQwenFolder('  D:\\ComfyUI  ')).toBe('D:\\ComfyUI');
       expect(() => parseLocalQwenFolder(123)).toThrow(/folder path/);
+    });
+  });
+
+  describe('model detection against the configured folder', () => {
+    it('reports no model and no badge when the folder has no unet installed', () => {
+      const root = createComfyFixture({ loras: [FACE_SWAP_LORA_NAME] });
+      const existsSpy = spyExistsSyncFor(root);
+
+      try {
+        const manager = new LocalQwenManager();
+
+        expect(manager.resolveActiveUnet(true, root)).toBeNull();
+        expect(manager.resolveModelInfo(true, root)).toEqual({});
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(root);
+      }
+    });
+
+    it('falls back to the standard unet and marks the install as Standard', () => {
+      const root = createComfyFixture({ unets: [FALLBACK_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(root);
+
+      try {
+        const info = new LocalQwenManager().resolveModelInfo(true, root);
+
+        expect(info.activeModel).toBe(FALLBACK_QWEN_UNET_NAME);
+        expect(info.isUncensored).toBe(false);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(root);
+      }
+    });
+
+    it('reports both LoRA assets from the folder the unet came from', () => {
+      const root = createComfyFixture({
+        unets: [DEFAULT_QWEN_UNET_NAME],
+        loras: [FACE_SWAP_LORA_NAME, TURBO_LORA_NAME],
+      });
+      const existsSpy = spyExistsSyncFor(root);
+
+      try {
+        const info = new LocalQwenManager().resolveModelInfo(true, root);
+
+        expect(info.faceSwapLoraAvailable).toBe(true);
+        expect(info.turboLoraAvailable).toBe(true);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(root);
+      }
+    });
+
+    it('resolves getStatus against the folder the renderer configured', async () => {
+      const root = createComfyFixture({
+        unets: [FALLBACK_QWEN_UNET_NAME],
+        loras: [FACE_SWAP_LORA_NAME],
+      });
+      const existsSpy = spyExistsSyncFor(root);
+
+      try {
+        const manager = new LocalQwenManager({ probeFn: vi.fn().mockResolvedValue(true) });
+
+        const status = await manager.getStatus(root);
+
+        expect(status.activeModel).toBe(FALLBACK_QWEN_UNET_NAME);
+        expect(status.isUncensored).toBe(false);
+        expect(status.faceSwapLoraAvailable).toBe(true);
+        expect(status.turboLoraAvailable).toBe(false);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(root);
+      }
+    });
+  });
+
+  describe('LoRA injection in generateImage workflow', () => {
+    // Complete install (both unets + face swap LoRA): detection must find it,
+    // so auto-injection tests never depend on the host machine's real install.
+    let installFixture = '';
+    beforeAll(() => {
+      installFixture = createComfyFixture({
+        unets: [DEFAULT_QWEN_UNET_NAME, FALLBACK_QWEN_UNET_NAME],
+        loras: [FACE_SWAP_LORA_NAME],
+      });
+    });
+    afterAll(() => removeComfyFixture(installFixture));
+
+    const createMockPromptManager = (options?: {
+      resultImage?: string;
+    }) => {
+      let sentWorkflow: Record<string, { class_type: string; inputs: Record<string, unknown> }> | undefined;
+      const mockFetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/prompt') && init?.body) {
+          const parsed = JSON.parse(init.body as string);
+          sentWorkflow = parsed.prompt;
+          return new Response(JSON.stringify({ prompt_id: 'test-prompt-id' }), { status: 200 });
+        }
+        return new Response('Not found', { status: 404 });
+      });
+
+      const manager = new LocalQwenManager({
+        fetchFn: mockFetch as unknown as typeof fetch,
+        probeFn: async () => true,
+      });
+      manager.comfyUiFolder = installFixture;
+      vi.spyOn(manager as unknown as { pollComfyUIHistory: () => Promise<unknown> }, 'pollComfyUIHistory').mockResolvedValue({
+        base64: options?.resultImage ?? 'mock-image',
+        mimeType: 'image/png',
+      });
+
+      return {
+        manager,
+        mockFetch,
+        getSentWorkflow: () => sentWorkflow,
+      };
+    };
+
+    it('injects LoraLoaderModelOnly when identity transfer signature is present in prompt', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'generated-image-base64' });
+
+      const result = await manager.generateImage({
+        prompt: 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face from <image_1> to <image_2>',
+      });
+
+      expect(result.image.base64).toBe('generated-image-base64');
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow).toBeDefined();
+      expect(sentWorkflow?.['5']).toBeDefined();
+      expect(sentWorkflow?.['5'].class_type).toBe('LoraLoaderModelOnly');
+      expect(sentWorkflow?.['5'].inputs.lora_name).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
+      expect(sentWorkflow?.['5'].inputs.strength_model).toBe(1.0);
+      expect(sentWorkflow?.['5'].inputs.model).toEqual(['1', 0]);
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
+    });
+
+    it('injects BFS LoRA when workflow is explicitly set to identity-transfer', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager();
+
+      await manager.generateImage({
+        prompt: 'Portrait of a woman',
+        workflow: 'identity-transfer',
+      });
+
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow?.['5']).toBeDefined();
+      expect(sentWorkflow?.['5'].inputs.lora_name).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
+    });
+
+    it('does NOT inject LoRA when the prompt refuses a face swap, even under identity-transfer', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'refusal-image' });
+
+      await manager.generateImage({
+        prompt: 'Đổi trang phục cho người mẫu, không đổi mặt',
+        workflow: 'identity-transfer',
+      });
+
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow?.['5']).toBeUndefined();
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['1', 0]);
+    });
+
+    it('injects custom LoRA when loraName and loraStrength are explicitly passed', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'custom-lora-image' });
+
+      await manager.generateImage({
+        prompt: 'General generation with custom lora',
+        loraName: 'custom_vto_style.safetensors',
+        loraStrength: 0.75,
+      });
+
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow?.['5']).toBeDefined();
+      expect(sentWorkflow?.['5'].class_type).toBe('LoraLoaderModelOnly');
+      expect(sentWorkflow?.['5'].inputs.lora_name).toBe('custom_vto_style.safetensors');
+      expect(sentWorkflow?.['5'].inputs.strength_model).toBe(0.75);
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
+    });
+
+    it('does NOT inject LoRA when prompt is standard VTO and no loraName is given', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'standard-vto-image' });
+
+      await manager.generateImage({
+        prompt: 'Professional fashion photoshoot, model wearing summer dress',
+      });
+
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow?.['5']).toBeUndefined();
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['1', 0]);
+    });
+
+    it('does NOT inject LoRA when workflow is standard even if prompt mentions face words', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager();
+
+      await manager.generateImage({
+        prompt: 'Đổi mặt nhưng giữ nguyên style',
+        workflow: 'standard',
+      });
+
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow?.['5']).toBeUndefined();
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['1', 0]);
+    });
+
+    it('injects BFS LoRA when prompt is in Vietnamese asking to swap face', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'faceswap-vn-result' });
+
+      await manager.generateImage({
+        prompt: 'Đổi mặt @img1 bằng khuôn mặt xinh đẹp của @img2, giữ nguyên bối cảnh và quần áo',
+      });
+
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow?.['5']).toBeDefined();
+      expect(sentWorkflow?.['5'].class_type).toBe('LoraLoaderModelOnly');
+      expect(sentWorkflow?.['5'].inputs.lora_name).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
+    });
+
+    it('injects BFS LoRA for Qwen Brand Model dressing workflow', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'brand-model-result' });
+
+      await manager.generateImage({
+        prompt: 'QWEN BRAND MODEL SPECIFICATION\nTASK: Transfer the facial identity of BRAND MODEL (Linh) onto image_1',
+      });
+
+      const sentWorkflow = getSentWorkflow();
+      expect(sentWorkflow?.['5']).toBeDefined();
+      expect(sentWorkflow?.['5'].inputs.lora_name).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
+      expect(sentWorkflow?.['7'].inputs.model).toEqual(['5', 0]);
+    });
+
+    it('selects qwen-image-2.1-UC-Q4_K_M.gguf when present on disk', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'uc-result' });
+
+      const existsSpy = vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
+        return typeof p === 'string' && p.includes('qwen-image-2.1-UC-Q4_K_M.gguf');
+      });
+
+      try {
+        const result = await manager.generateImage({
+          prompt: 'A test prompt',
+        });
+
+        const sentWorkflow = getSentWorkflow();
+        expect(sentWorkflow?.['1']).toBeDefined();
+        expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-UC-Q4_K_M.gguf');
+      } finally {
+        existsSpy.mockRestore();
+      }
+    });
+
+    it('falls back to qwen-image-2.1-Q4_K_M.gguf when UC model is missing on disk', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager({ resultImage: 'fallback-result' });
+
+      const existsSpy = vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
+        if (typeof p === 'string' && p.includes('qwen-image-2.1-UC-Q4_K_M.gguf')) {
+          return false;
+        }
+        if (typeof p === 'string' && p.includes('qwen-image-2.1-Q4_K_M.gguf')) {
+          return true;
+        }
+        return false;
+      });
+
+      try {
+        const result = await manager.generateImage({
+          prompt: 'A test prompt',
+        });
+
+        const sentWorkflow = getSentWorkflow();
+        expect(sentWorkflow?.['1']).toBeDefined();
+        expect(sentWorkflow?.['1'].inputs.unet_name).toBe('qwen-image-2.1-Q4_K_M.gguf');
+      } finally {
+        existsSpy.mockRestore();
+      }
+    });
+
+    it('fails fast with an actionable error when the auto face swap LoRA is missing on disk', async () => {
+      const { manager } = createMockPromptManager();
+      const bareInstall = createComfyFixture({ unets: [DEFAULT_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(bareInstall);
+
+      try {
+        manager.comfyUiFolder = bareInstall;
+
+        await expect(
+          manager.generateImage({
+            prompt: 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face from <image_1> to <image_2>',
+          }),
+        ).rejects.toThrow(new RegExp(`Face swap LoRA not found.*${FACE_SWAP_LORA_NAME}`));
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(bareInstall);
+      }
+    });
+
+    it('leaves an explicitly requested loraName for ComfyUI to validate', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager();
+      const bareInstall = createComfyFixture({ unets: [DEFAULT_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(bareInstall);
+
+      try {
+        manager.comfyUiFolder = bareInstall;
+
+        await manager.generateImage({
+          prompt: 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face from <image_1> to <image_2>',
+          loraName: FACE_SWAP_LORA_NAME,
+        });
+
+        expect(getSentWorkflow()?.['5'].inputs.lora_name).toBe(FACE_SWAP_LORA_NAME);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(bareInstall);
+      }
+    });
+    it('resolves the job root from the folder the status poll reported, not the portable default', async () => {
+      const { manager } = createMockPromptManager();
+      // ComfyUI is running externally, so the app never started it and holds
+      // no root of its own: the renderer's configured install is the only one
+      // both the badge and this job can agree on.
+      manager.comfyUiFolder = undefined;
+      const configured = createComfyFixture({ unets: [DEFAULT_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(configured);
+
+      try {
+        await manager.getStatus(configured);
+
+        await expect(
+          manager.generateImage({
+            prompt: 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face from <image_1> to <image_2>',
+          }),
+        ).rejects.toThrow(new RegExp(`Face swap LoRA not found.*${FACE_SWAP_LORA_NAME}`));
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(configured);
+      }
+    });
+
+    it('re-reads the LoRA from disk so a job retried after installing it is not rejected', async () => {
+      const { manager, getSentWorkflow } = createMockPromptManager();
+      const installing = createComfyFixture({ unets: [DEFAULT_QWEN_UNET_NAME] });
+      const existsSpy = spyExistsSyncFor(installing);
+      manager.comfyUiFolder = installing;
+      const identityPrompt = 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face from <image_1> to <image_2>';
+
+      try {
+        await expect(manager.generateImage({ prompt: identityPrompt }))
+          .rejects.toThrow(new RegExp(`Face swap LoRA not found.*${FACE_SWAP_LORA_NAME}`));
+
+        // The user drops the LoRA into the install and hits retry, well inside
+        // the 30s status-poll cache window.
+        fs.writeFileSync(path.join(installing, 'models', 'loras', FACE_SWAP_LORA_NAME), '');
+
+        await manager.generateImage({ prompt: identityPrompt });
+        expect(getSentWorkflow()?.['5'].inputs.lora_name).toBe(FACE_SWAP_LORA_NAME);
+      } finally {
+        existsSpy.mockRestore();
+        removeComfyFixture(installing);
+      }
+    });
+  });
+
+  describe('isFaceSwapPrompt refusal guard', () => {
+    it('returns false for prompts that explicitly refuse face swapping', () => {
+      expect(isFaceSwapPrompt('Retouch the background. No face swap in this image.')).toBe(false);
+      expect(isFaceSwapPrompt('Keep the original face, do not swap face.')).toBe(false);
+      expect(isFaceSwapPrompt('Không đổi mặt, chỉ đổi trang phục thôi.')).toBe(false);
+      expect(isFaceSwapPrompt('Vẽ lại phông nền, không ghép mặt người khác.')).toBe(false);
+    });
+
+    it('still matches positive face swap requests', () => {
+      expect(isFaceSwapPrompt('Please face swap the model with the reference photo')).toBe(true);
+      expect(isFaceSwapPrompt('đổi mặt người trong ảnh theo ảnh tham chiếu')).toBe(true);
+      expect(isFaceSwapPrompt('QWEN IDENTITY TRANSFER SPECIFICATION: swap face')).toBe(true);
     });
   });
 });

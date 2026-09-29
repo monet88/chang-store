@@ -8,7 +8,7 @@ import type { Part } from '@google/genai';
 import { imagePart } from './imagePart';
 import { formatAiScanBlock, parseOutfitBlueprint } from './ai-scan-blueprint';
 import type { VirtualTryOnPromptInput, VirtualTryOnPromptSourceItem } from './virtual-try-on-prompt-types';
-import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION } from './outfitDrapePolicy';
+import { isTuckingAllowed, UNTUCKED_DRAPE_INSTRUCTION, UNTUCKED_OVERRIDE_HEADLINE } from './outfitDrapePolicy';
 import { CAMERA_FRAMING_INSTRUCTION, CAMERA_FRAMING_PROHIBITION_LINES } from './cameraFramingPolicy';
 
 const MAX_SOURCE_ITEMS = 4;
@@ -19,7 +19,14 @@ const buildQwenPromptText = (input: VirtualTryOnPromptInput): string => {
   const parsedBlueprint = parseOutfitBlueprint(input.outfitBlueprint);
   const hasClothing = input.sourceItems.some((item) => item.sourceItemType === 'clothing');
   const hasNonClothing = input.sourceItems.some((item) => item.sourceItemType !== 'clothing');
-  const tuckingAllowed = isTuckingAllowed(input.extraPrompt);
+  // The operator's notes ride into the prompt as directives, so they decide
+  // the hemline too: a note asking for a tucked shirt must not contradict
+  // "NEVER TUCK IN".
+  const tuckingAllowed = isTuckingAllowed(
+    [input.extraPrompt, normalizeSourcePrompt(input.userGuidance), ...input.sourceItems.map((item) => normalizeSourcePrompt(item.sourcePrompt))].join('\n'),
+  );
+
+  const outfitNote = normalizeSourcePrompt(input.userGuidance);
 
   const sections: string[] = [];
 
@@ -40,18 +47,20 @@ const buildQwenPromptText = (input: VirtualTryOnPromptInput): string => {
   ];
   sections.push(referenceLines.join('\n'));
 
-  // Garment replacement & textile fidelity
+  // Garment replacement & textile fidelity. The hemline override sits outside
+  // the `hasClothing` branch on purpose: a shoes-only or accessory-only set
+  // still renders a torso, and Gemini/GPT state the same override regardless.
   const garmentRules = [
     'GARMENT REPLACEMENT & TEXTILE FIDELITY:',
     ...(hasClothing
       ? [
           "Replace the model's corresponding garments with the exact clothing from the source images.",
           "Do not preserve the model's original lower-body clothing if the source image provides a lower-body piece or full outfit.",
-          tuckingAllowed
-            ? 'Tuck styling allowed as specified by user instructions.'
-            : UNTUCKED_DRAPE_INSTRUCTION,
         ]
       : []),
+    tuckingAllowed
+      ? 'Tuck styling allowed as specified by user instructions.'
+      : `${UNTUCKED_OVERRIDE_HEADLINE}\n${UNTUCKED_DRAPE_INSTRUCTION}`,
     ...(hasNonClothing
       ? [
           'For shoes, bags, or accessories, apply only the specified item without modifying unaffected garments.',
@@ -60,6 +69,12 @@ const buildQwenPromptText = (input: VirtualTryOnPromptInput): string => {
     'Accurately replicate textile weave, fabric texture, seams, collar, cuffs, drape, hemline, structural silhouette, pattern scale, and logos from the reference garments.',
   ];
   sections.push(garmentRules.join('\n'));
+
+  // Operator's own note: stated as a hard classification directive so an
+  // ambiguous garment reading never wins over what the user actually said.
+  if (outfitNote) {
+    sections.push(`OPERATOR OUTFIT DIRECTIVE (HIGHEST PRIORITY):\n"${outfitNote}"\nFollow it exactly. When the reference garment is visually ambiguous, this note decides the garment type, silhouette, and construction.`);
+  }
 
   // Blueprint details if present
   if (input.outfitBlueprint) {

@@ -1,7 +1,7 @@
 /**
  * AI Scan blueprint formatting and source selection (issue #162).
  *
- * `analyzeOutfitBlueprint` returns a free-text textile and garment
+ * `scanGarmentBlueprint` returns a free-text textile and garment
  * deconstruction. Every image prompt that consumes it — the E-Com Pack lanes
  * and the AI Scan layer in Virtual Try-On, Lookbook, Identity Transfer, Pose
  * Changer and Background Replacer — splices the same block, so the heading and
@@ -46,6 +46,46 @@ export const aiScanSourceSet = (
   const itemSlots = AI_SCAN_MAX_SOURCES - sharedSources.length;
   return [...items.filter(isUsableImage).slice(0, itemSlots), ...sharedSources];
 };
+
+/**
+ * The note line carried by ONE source item: `Item #1 (top): pants not skirt`.
+ * The scan-side consumers (the pre-scan guidance in `useVirtualTryOn` and the
+ * per-subject scan in `useVirtualTryOnEngine`) share this one format, and the
+ * Gemini prompt builder renders the same line in its user-notes section. GPT and
+ * Qwen keep their own role-map wording by design (ADR-0002). Returns null when
+ * the item carries no note.
+ */
+export const sourceItemNoteLine = (
+  item: Readonly<{ sourcePrompt?: string | null; sourceItemType: string }>,
+  index: number,
+): string | null => {
+  const note = item.sourcePrompt?.replace(/\s+/g, ' ').trim();
+  return note ? `Item #${index + 1} (${item.sourceItemType}): ${note}` : null;
+};
+
+/**
+ * One line per garment carrying a user note, joined for a single guidance
+ * string. Items without a note are skipped; returns '' when nothing carries a
+ * note.
+ */
+export const aiScanGuidanceFromItems = (
+  items: ReadonlyArray<{ sourcePrompt?: string | null; sourceItemType: string }>,
+): string =>
+  items
+    .map((item, idx) => sourceItemNoteLine(item, idx))
+    .filter((line): line is string => line !== null)
+    .join('; ');
+
+/**
+ * Joins guidance fragments (the per-item notes and the user's own note) into
+ * one string; empty or whitespace-only fragments are dropped so the scan never
+ * sends a bare separator.
+ */
+export const combineAiScanGuidance = (...parts: ReadonlyArray<string | undefined | null>): string =>
+  parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join('; ');
 
 /**
  * Splice a blueprint into a prompt as a subordinate technical specification.

@@ -34,7 +34,7 @@ for (const name of readdirSync(releaseDir)) {
 console.log(`Building ${label} with electron-builder...`);
 const build = spawnSync(
   electronBuilderPath,
-  ['--win', target, '--x64', `--config.directories.output=${temporaryOutput}`],
+  ['--win', target, '--x64', '--publish', 'never', `--config.directories.output=${temporaryOutput}`],
   { cwd: root, stdio: 'inherit', shell: true }
 );
 

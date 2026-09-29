@@ -4,12 +4,14 @@ import {
   type LocalQwenGenerateParams,
 } from '../../../platform/desktopLocalQwen';
 import { loadLocalQwenSettings } from '../../../config/localQwenSettings';
+import { LOCAL_QWEN_UNAVAILABLE_MESSAGE } from '../../../utils/localQwenErrors';
 
 /**
  * Calls desktop Local Qwen bridge to generate an image using local ComfyUI.
  *
  * Contract:
- * - Desktop only. Throws if invoked in a browser environment.
+ * - Needs a process that owns ComfyUI: the Electron preload, or a dev server
+ *   hosting the manager. Throws when neither is there.
  * - Local failures stay local and NEVER fall back to cloud providers (Gemini, GPT Image).
  */
 export const generateLocalQwenImage = async (
@@ -18,7 +20,7 @@ export const generateLocalQwenImage = async (
 ): Promise<ImageFile[]> => {
   const desktopLocalQwen = getDesktopLocalQwenApi();
   if (!desktopLocalQwen) {
-    throw new Error('Local Qwen generation is only available in the desktop application.');
+    throw new Error(LOCAL_QWEN_UNAVAILABLE_MESSAGE);
   }
 
   if (signal?.aborted) {

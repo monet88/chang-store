@@ -11,7 +11,7 @@ import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
-import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
+import { aiScanGuidanceFromItems, aiScanSourceSet, combineAiScanGuidance } from '../utils/ai-scan-blueprint';
 import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { useImageRefinement } from './useImageRefinement';
 import { useVirtualTryOnSubjects } from './useVirtualTryOnSubjects';
@@ -22,6 +22,7 @@ export const useVirtualTryOn = () => {
   const [mode, setMode] = useState<VirtualTryOnMode>('multi-model');
   const [backgroundPrompt, setBackgroundPrompt] = useState('');
   const [extraPrompt, setExtraPrompt] = useState('');
+  const [userGuidance, setUserGuidance] = useState('');
   const [numImages, setNumImages] = useState(1);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
   const [resolution, setResolution] = useState<ImageResolution>(DEFAULT_IMAGE_RESOLUTION);
@@ -99,6 +100,11 @@ export const useVirtualTryOn = () => {
     [clothing.validClothingItems, subjects.subjectItems],
   );
 
+  const aiScanGuidance = useMemo(
+    () => combineAiScanGuidance(aiScanGuidanceFromItems(clothing.validClothingItems), userGuidance),
+    [clothing.validClothingItems, userGuidance],
+  );
+
   // Cuando se desactiva el modo multi-persona, limpiar el marcador automáticamente
   const setIsMultiPersonMode = useCallback((value: boolean) => {
     setIsMultiPersonModeState(value);
@@ -127,6 +133,7 @@ export const useVirtualTryOn = () => {
     isMultiPersonMode,
     backgroundPrompt,
     extraPrompt,
+    userGuidance,
     numImages,
     aspectRatio,
     resolution,
@@ -180,6 +187,8 @@ export const useVirtualTryOn = () => {
     setBackgroundPrompt,
     extraPrompt,
     setExtraPrompt,
+    userGuidance,
+    setUserGuidance,
     numImages,
     setNumImages,
     aspectRatio,
@@ -194,6 +203,7 @@ export const useVirtualTryOn = () => {
     generatedImages: subjects.generatedImages,
     validClothingItems: clothing.validClothingItems,
     aiScanSources,
+    aiScanGuidance,
     completedCount: subjects.completedCount,
     failedCount: subjects.failedCount,
     canGenerate,
@@ -203,6 +213,7 @@ export const useVirtualTryOn = () => {
     handleUpscale: resultActions.handleUpscale,
     handleRefine: resultActions.handleRefine,
     handleClothingUpload: clothing.handleClothingUpload,
+    handleMultipleClothingUpload: clothing.handleMultipleClothingUpload,
     handleSourceItemTypeChange: clothing.handleSourceItemTypeChange,
     handleSourcePromptChange: clothing.handleSourcePromptChange,
     addClothingUploader: clothing.addClothingUploader,

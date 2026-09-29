@@ -25,6 +25,16 @@ export interface ClassifiedLocalQwenError {
  * - Local failures stay local and NEVER suggest or fall back to cloud providers.
  * - Always provides a concrete, actionable suggestion for the user.
  */
+
+/**
+ * What the user sees when no process can own the ComfyUI runtime: neither the
+ * Electron preload nor a dev server. One sentence, shared by the service guard
+ * and the dev-bridge transport, so a missing transport always reads as a
+ * missing transport and never as a raw network error.
+ */
+export const LOCAL_QWEN_UNAVAILABLE_MESSAGE =
+  'Local Qwen generation is only available in the desktop app or on the local dev server.';
+
 export const classifyLocalQwenError = (
   error: unknown,
   t?: (key: string) => string,

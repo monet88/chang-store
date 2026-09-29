@@ -62,7 +62,7 @@ export const useLocalQwenStatus = (
 
     const currentRequestId = ++latestRequestIdRef.current;
     try {
-      const result = await api.getStatus();
+      const result = await api.getStatus(loadLocalQwenSettings().comfyUiPath || undefined);
       if (result.ok && mountedRef.current && currentRequestId === latestRequestIdRef.current) {
         setStatus(result.value);
         return result.value;

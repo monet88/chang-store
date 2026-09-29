@@ -65,6 +65,7 @@ vi.mock('../../src/components/WardrobeSetCard', () => ({
 
 import VirtualTryOn from '../../src/components/VirtualTryOn';
 import { AiScanProvider } from '../../src/contexts/AiScanContext';
+import * as imageUtils from '../../src/utils/imageUtils';
 
 const baseHookState = {
   mode: 'multi-model' as const,
@@ -124,6 +125,7 @@ const baseHookState = {
   handleRefine: vi.fn(),
   handleSubjectImagesUpload: vi.fn(),
   handleClothingUpload: vi.fn(),
+  handleMultipleClothingUpload: vi.fn(),
   addClothingUploader: vi.fn(),
   removeClothingUploader: vi.fn(),
   detectingItemIds: {},
@@ -232,7 +234,16 @@ describe('VirtualTryOn component', () => {
     expect(screen.getByRole('button', { name: 'virtualTryOn.addItem' })).toBeEnabled();
   });
 
-  it('uses a compact grid when multiple source images are present', () => {
+  it('uses a single-item stack or dynamic responsive grid according to clothing item count', () => {
+    // 1 item -> space-y-3
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [{ id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' }],
+    });
+    const { rerender } = render(<VirtualTryOn />);
+    expect(screen.getByTestId('source-items-grid')).toHaveClass('space-y-3');
+
+    // 2 items -> sm:grid-cols-2
     useVirtualTryOnMock.mockReturnValue({
       ...baseHookState,
       clothingItems: [
@@ -240,10 +251,54 @@ describe('VirtualTryOn component', () => {
         { id: 2, image: null, sourceItemType: 'shoes', sourcePrompt: '' },
       ],
     });
-
-    render(<VirtualTryOn />);
-
+    rerender(<VirtualTryOn />);
     expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'sm:grid-cols-2');
+
+    // 3 items -> sm:grid-cols-2 lg:grid-cols-3
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [
+        { id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 2, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 3, image: null, sourceItemType: 'shoes', sourcePrompt: '' },
+      ],
+    });
+    rerender(<VirtualTryOn />);
+    expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'sm:grid-cols-2', 'lg:grid-cols-3');
+
+    // 4 items -> xl:grid-cols-4
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [
+        { id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 2, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 3, image: null, sourceItemType: 'shoes', sourcePrompt: '' },
+        { id: 4, image: null, sourceItemType: 'bag', sourcePrompt: '' },
+      ],
+    });
+    rerender(<VirtualTryOn />);
+    expect(screen.getByTestId('source-items-grid')).toHaveClass('grid', 'xl:grid-cols-4');
+  });
+
+  it('renders batch upload button when clothingItems < 4 and hides it when at max 4 items', () => {
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [{ id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' }],
+    });
+    const { rerender } = render(<VirtualTryOn />);
+    expect(screen.getByText('virtualTryOn.uploadMultipleItems')).toBeInTheDocument();
+
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [
+        { id: 1, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 2, image: null, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 3, image: null, sourceItemType: 'shoes', sourcePrompt: '' },
+        { id: 4, image: null, sourceItemType: 'bag', sourcePrompt: '' },
+      ],
+    });
+    rerender(<VirtualTryOn />);
+    expect(screen.queryByText('virtualTryOn.uploadMultipleItems')).not.toBeInTheDocument();
   });
 
   it('renders clothing slot delete button with aria-label, touch target >= 44px and touch viewport visibility', () => {
@@ -754,8 +809,10 @@ describe('VirtualTryOn component', () => {
       );
 
       // The badge must describe the images the wardrobe batch will actually use.
-      await waitFor(() => expect(analyze).toHaveBeenCalledWith(wardrobeSource, expect.anything()));
-      expect(analyze).not.toHaveBeenCalledWith(multiModelSource, expect.anything());
+      await waitFor(() =>
+        expect(analyze).toHaveBeenCalledWith(wardrobeSource, expect.anything(), undefined),
+      );
+      expect(analyze).not.toHaveBeenCalledWith(multiModelSource, expect.anything(), undefined);
     });
   });
 
@@ -823,4 +880,37 @@ describe('VirtualTryOn component', () => {
     expect(screen.queryByText('gpt-image-options')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('virtualTryOn.numberOfImages')).not.toBeInTheDocument();
   });
+
+  it('sets error warning when batch clothing upload truncates extra items', async () => {
+    const setErrorMock = vi.fn();
+    const handleMultipleClothingUploadMock = vi.fn().mockReturnValue({ uploadedCount: 2, droppedCount: 2 });
+    useVirtualTryOnMock.mockReturnValue({
+      ...baseHookState,
+      clothingItems: [
+        { id: 1, image: { base64: 'item1', mimeType: 'image/png' }, sourceItemType: 'clothing', sourcePrompt: '' },
+        { id: 2, image: { base64: 'item2', mimeType: 'image/png' }, sourceItemType: 'clothing', sourcePrompt: '' },
+      ],
+      handleMultipleClothingUpload: handleMultipleClothingUploadMock,
+      setError: setErrorMock,
+    });
+
+    vi.spyOn(imageUtils, 'processMultipleImageFiles').mockResolvedValueOnce([
+      { base64: 'img1', mimeType: 'image/png' },
+      { base64: 'img2', mimeType: 'image/png' },
+      { base64: 'img3', mimeType: 'image/png' },
+      { base64: 'img4', mimeType: 'image/png' },
+    ]);
+
+    const { container } = render(<VirtualTryOn />);
+    const input = container.querySelector('#batch-clothing-upload') as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+
+    const file = new File(['dummy'], 'test.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(setErrorMock).toHaveBeenCalledWith('virtualTryOn.batchUploadTruncated');
+    });
+  });
 });
+

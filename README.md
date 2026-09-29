@@ -59,13 +59,24 @@ npm install
 npm run dev
 ```
 
-The dev server runs on port 3549. Ports are pinned (`server.strictPort`), so a
-second instance fails fast instead of drifting to another port. On Windows, `npm`
+The dev server runs on port 3549 and listens on every interface by default, so
+the app can be opened from a phone or another machine on the same network
+(`http://<your-lan-ip>:3549`, including a Tailscale address). Set
+`VITE_ENABLE_LAN=false` to bind loopback only; the dev server bakes the gateway
+keys from `.env` into the web bundle, so keep it on a network you trust. Ports
+are pinned (`server.strictPort`), so a second instance fails fast instead of
+drifting to another port. On Windows, `npm`
 is a batch shim; launch Vite directly when a `cmd.exe` wrapper is not available:
 
 ```bash
 node node_modules/vite/bin/vite.js
 ```
+
+The Local Qwen studio in a browser additionally needs
+`LOCAL_QWEN_DEV_BRIDGE=true` (`POST /api/local-qwen` on the dev server). It is
+off by default because that endpoint can start ComfyUI and spend the machine's
+GPU for anyone who reaches the dev server; see
+`docs/api/localQwen-api-guide.md`.
 
 Desktop development uses the same renderer through the Electron shell:
 

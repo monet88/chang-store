@@ -18,6 +18,10 @@ const translations: Record<string, string> = {
   'settingsModal.localQwen.cfgLabel': 'CFG (0.1–10.0)',
   'settingsModal.localQwen.samplerLabel': 'Sampler',
   'settingsModal.localQwen.schedulerLabel': 'Scheduler',
+  'settingsModal.localQwen.modelLabel': 'Diffusion Model',
+  'settingsModal.localQwen.modelUncensoredBadge': 'Uncensored (UC)',
+  'settingsModal.localQwen.modelStandardBadge': 'Standard',
+  'settingsModal.localQwen.modelVramHint': 'RTX 8GB VRAM',
 };
 
 vi.mock('@/contexts/LanguageContext', () => ({
@@ -36,6 +40,11 @@ describe('LocalQwenSettingsSection', () => {
 
     expect(screen.getByText('Local Qwen (ComfyUI)')).toBeInTheDocument();
     expect(screen.getByLabelText('ComfyUI Folder Path')).toBeInTheDocument();
+    expect(screen.getByText('Diffusion Model')).toBeInTheDocument();
+    // No status reported yet: the badge and model name must not claim UC.
+    expect(screen.queryByText('Uncensored (UC)')).not.toBeInTheDocument();
+    expect(screen.queryByText('qwen-image-2.1-UC-Q4_K_M.gguf')).not.toBeInTheDocument();
+    expect(screen.getByTestId('local-qwen-active-model')).toHaveTextContent('—');
     expect(screen.getByText('512px')).toBeInTheDocument();
     expect(screen.getByText('768px')).toBeInTheDocument();
     expect(screen.getByText('1024px')).toBeInTheDocument();
@@ -140,5 +149,45 @@ describe('LocalQwenSettingsSection', () => {
     render(<LocalQwenSettingsSection />);
 
     expect(screen.queryByText('Auto-detected portable installation')).not.toBeInTheDocument();
+  });
+
+  it('renders standard model badge and active model name when falling back to standard unet', async () => {
+    window.desktopLocalQwen = {
+      getStatus: vi.fn().mockResolvedValue({
+        ok: true,
+        value: {
+          state: 'ready',
+          isAppOwned: true,
+          port: 8188,
+          activeModel: 'qwen-image-2.1-Q4_K_M.gguf',
+          isUncensored: false,
+        },
+      }),
+    } as unknown as typeof window.desktopLocalQwen;
+
+    render(<LocalQwenSettingsSection />);
+
+    expect(await screen.findByText('qwen-image-2.1-Q4_K_M.gguf')).toBeInTheDocument();
+    expect(screen.getByText('Standard')).toBeInTheDocument();
+  });
+
+  it('renders uncensored badge when the manager reports the UC unet', async () => {
+    window.desktopLocalQwen = {
+      getStatus: vi.fn().mockResolvedValue({
+        ok: true,
+        value: {
+          state: 'ready',
+          isAppOwned: true,
+          port: 8188,
+          activeModel: 'qwen-image-2.1-UC-Q4_K_M.gguf',
+          isUncensored: true,
+        },
+      }),
+    } as unknown as typeof window.desktopLocalQwen;
+
+    render(<LocalQwenSettingsSection />);
+
+    expect(await screen.findByText('qwen-image-2.1-UC-Q4_K_M.gguf')).toBeInTheDocument();
+    expect(screen.getByText('Uncensored (UC)')).toBeInTheDocument();
   });
 });

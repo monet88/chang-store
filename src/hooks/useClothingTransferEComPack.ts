@@ -32,7 +32,7 @@ import {
   EComPackPlanInput,
   useClothingTransferEComPackRun,
 } from './useClothingTransferEComPackRun';
-import { analyzeOutfitBlueprint } from '../services/textService';
+import { scanGarmentBlueprint } from '../services/textService';
 
 export interface UseClothingTransferEComPackConfig {
   driver: ClothingTransferImageDriver;
@@ -46,12 +46,20 @@ export interface UseClothingTransferEComPackConfig {
   addImage: (image: ImageFile, feature?: Feature, engine?: ImageEngineId) => void;
   setError: (msg: string | null) => void;
   t: (key: string, options?: Record<string, string | number>) => string;
-  analyzeOutfitBlueprintFn?: (image: ImageFile, model?: string) => Promise<string>;
+  /** Test seam for the AI Scan service; production always uses `scanGarmentBlueprint`. */
+  scanBlueprintFn?: (image: ImageFile, model?: string, guidance?: string) => Promise<string>;
+}
+
+interface OutfitSourceState {
+  image: ImageFile | null;
+  note: string;
 }
 
 export interface UseClothingTransferEComPackReturn {
   sourceOutfitImage: ImageFile | null;
   setSourceOutfitImage: (image: ImageFile | null) => void;
+  sourceOutfitNote: string;
+  setSourceOutfitNote: (note: string) => void;
   selectedGarmentScopes: GarmentScope[];
   toggleGarmentScope: (scope: GarmentScope) => void;
   brandModels: BrandModelProfile[];
@@ -92,9 +100,12 @@ export interface UseClothingTransferEComPackReturn {
   handleRemoveCustomDestination: (index: number) => void;
   packItems: EComPackItem[];
   outfitBlueprint: string | null;
-  isAnalyzingOutfit: boolean;
-  setOutfitBlueprint: (blueprint: string | null) => void;
-  handleReanalyzeOutfit: () => Promise<void>;
+  isScanningBlueprint: boolean;
+  /** True while the published blueprint is the operator's own edit, not a scan. */
+  isBlueprintEdited: boolean;
+  /** Operator edit of the blueprint text; marks it hand-owned so a later note change keeps it. */
+  editOutfitBlueprint: (blueprint: string) => void;
+  handleScanBlueprint: () => Promise<void>;
   isGenerating: boolean;
   handleGeneratePack: () => Promise<void>;
   handleGenerateCategory: (category: 'product' | 'brand-models' | 'custom-destinations') => Promise<void>;
@@ -117,11 +128,16 @@ export const useClothingTransferEComPack = (
     addImage,
     setError,
     t,
-    analyzeOutfitBlueprintFn,
+    scanBlueprintFn,
   } = config;
 
-  const [sourceOutfitImage, setSourceOutfitImage] = useState<ImageFile | null>(null);
-  const sourceOutfitImageRef = useRef<ImageFile | null>(null);
+  const [outfitSource, setOutfitSource] = useState<OutfitSourceState>({ image: null, note: '' });
+  const outfitSourceRef = useRef<OutfitSourceState>(outfitSource);
+  outfitSourceRef.current = outfitSource;
+
+  const sourceOutfitImage = outfitSource.image;
+  const sourceOutfitNote = outfitSource.note;
+
   const [selectedGarmentScopes, setSelectedGarmentScopes] = useState<GarmentScope[]>(['full-set']);
   const toggleGarmentScope = useCallback((scope: GarmentScope) => {
     setSelectedGarmentScopes((prev) => {
@@ -134,50 +150,102 @@ export const useClothingTransferEComPack = (
     });
   }, []);
   const [outfitBlueprint, setOutfitBlueprint] = useState<string | null>(null);
-  const [isAnalyzingOutfit, setIsAnalyzingOutfit] = useState(false);
+  // A blueprint the operator typed is their work, not a cache entry: a later
+  // note change drops an untouched scan but must never discard it.
+  const [isBlueprintEdited, setIsBlueprintEdited] = useState(false);
+  const [isScanningBlueprint, setIsScanningBlueprint] = useState(false);
 
-  const analyzeBlueprint = useCallback(
-    async (image: ImageFile): Promise<string | null> => {
-      setIsAnalyzingOutfit(true);
-      try {
-        const fn = analyzeOutfitBlueprintFn || analyzeOutfitBlueprint;
-        const blueprint = await fn(image, textGenerateModel);
-        // Only publish when this analysis still belongs to the active outfit:
-        // swapping the photo while an earlier analysis is in flight must never
-        // label the new outfit with the old blueprint.
-        if (sourceOutfitImageRef.current === image) {
-          setOutfitBlueprint(blueprint);
-        }
-        return blueprint;
-      } catch (err) {
-        console.warn('Outfit blueprint analysis skipped/failed:', err);
-        return null;
-      } finally {
-        if (sourceOutfitImageRef.current === image) {
-          setIsAnalyzingOutfit(false);
-        }
+  // One analysis in flight, shared by the manual button and by Generate: a
+  // second scan of the same photo and note would buy nothing and cost twice.
+  const inFlightScan = useRef<{ image: ImageFile; note?: string; promise: Promise<string | null> } | null>(null);
+
+  const scanBlueprint = useCallback(
+    async (image: ImageFile, guidance?: string): Promise<string | null> => {
+      const fn = scanBlueprintFn || scanGarmentBlueprint;
+      const sentNote = (guidance !== undefined ? guidance : outfitSourceRef.current.note)?.trim() || undefined;
+      const pending = inFlightScan.current;
+      if (pending && pending.image === image && pending.note === sentNote) {
+        return pending.promise;
       }
+
+      setIsScanningBlueprint(true);
+      const promise = (async () => {
+        try {
+          const blueprint = await fn(image, textGenerateModel, sentNote);
+          // Publish only while this analysis still belongs to the active outfit:
+          // swapping the photo, or retyping the note that steers the analysis,
+          // must never label the current state with the previous answer.
+          const currentNote = outfitSourceRef.current.note?.trim() || undefined;
+          if (outfitSourceRef.current.image === image && currentNote === sentNote) {
+            setOutfitBlueprint(blueprint);
+            setIsBlueprintEdited(false);
+          }
+          return blueprint;
+        } catch (err) {
+          console.warn('AI Scan blueprint skipped/failed:', err);
+          return null;
+        } finally {
+          // A newer entry can only exist for a different photo or note (a repeat
+          // of this one was deduped above), so this identity check is enough.
+          if (inFlightScan.current?.image === image && inFlightScan.current?.note === sentNote) {
+            inFlightScan.current = null;
+          }
+          if (outfitSourceRef.current.image === image) {
+            setIsScanningBlueprint(false);
+          }
+        }
+      })();
+      inFlightScan.current = { image, note: sentNote, promise };
+      return promise;
     },
-    [analyzeOutfitBlueprintFn, textGenerateModel],
+    [scanBlueprintFn, textGenerateModel],
   );
 
   const handleSetSourceOutfitImage = useCallback(
     (img: ImageFile | null) => {
-      sourceOutfitImageRef.current = img;
-      setSourceOutfitImage(img);
+      setOutfitSource((prev) => {
+        const next = { ...prev, image: img };
+        outfitSourceRef.current = next;
+        return next;
+      });
       setOutfitBlueprint(null);
-      if (img) {
-        analyzeBlueprint(img).catch(() => {});
-      }
+      setIsBlueprintEdited(false);
+      // A scan in flight for the previous photo will never publish (see
+      // scanBlueprint) and so never clears the flag either: without this the
+      // spinner sticks forever and the rescan button stays hidden.
+      setIsScanningBlueprint(false);
     },
-    [analyzeBlueprint],
+    [],
   );
 
-  const handleReanalyzeOutfit = useCallback(async () => {
-    if (sourceOutfitImage) {
-      await analyzeBlueprint(sourceOutfitImage);
+  const handleSetSourceOutfitNote = useCallback(
+    (note: string) => {
+      setOutfitSource((prev) => {
+        const next = { ...prev, note };
+        outfitSourceRef.current = next;
+        return next;
+      });
+      // The published blueprint was analysed under the previous note, and the
+      // note outranks every visual cue (CONTEXT.md, AI Scan), so an untouched
+      // scan goes until the operator rescans. A hand-edited one stays: the note
+      // itself rides into the generation prompt either way.
+      if (!isBlueprintEdited) {
+        setOutfitBlueprint(null);
+      }
+    },
+    [isBlueprintEdited],
+  );
+
+  const handleEditOutfitBlueprint = useCallback((blueprint: string) => {
+    setOutfitBlueprint(blueprint);
+    setIsBlueprintEdited(true);
+  }, []);
+
+  const handleScanBlueprint = useCallback(async () => {
+    if (outfitSourceRef.current.image) {
+      await scanBlueprint(outfitSourceRef.current.image, outfitSourceRef.current.note);
     }
-  }, [sourceOutfitImage, analyzeBlueprint]);
+  }, [scanBlueprint]);
 
   const [brandModels, setBrandModels] = useState<BrandModelProfile[]>(() => {
     const saved = loadSavedBrandModelProfiles();
@@ -397,8 +465,10 @@ export const useClothingTransferEComPack = (
 
   const resolveOutfitBlueprint = useCallback(async (): Promise<string | null> => {
     if (outfitBlueprint) return outfitBlueprint;
-    return sourceOutfitImage ? analyzeBlueprint(sourceOutfitImage) : null;
-  }, [outfitBlueprint, sourceOutfitImage, analyzeBlueprint]);
+    return outfitSourceRef.current.image
+      ? scanBlueprint(outfitSourceRef.current.image, outfitSourceRef.current.note)
+      : null;
+  }, [outfitBlueprint, scanBlueprint]);
 
   const {
     packItems,
@@ -417,6 +487,7 @@ export const useClothingTransferEComPack = (
     imageEditModel,
     engineId,
     extraPrompt,
+    outfitNote: sourceOutfitNote,
     resolveOutfitBlueprint,
     addImage,
     setError,
@@ -426,10 +497,13 @@ export const useClothingTransferEComPack = (
   return {
     sourceOutfitImage,
     setSourceOutfitImage: handleSetSourceOutfitImage,
+    sourceOutfitNote,
+    setSourceOutfitNote: handleSetSourceOutfitNote,
     outfitBlueprint,
-    isAnalyzingOutfit,
-    setOutfitBlueprint,
-    handleReanalyzeOutfit,
+    isScanningBlueprint,
+    isBlueprintEdited,
+    editOutfitBlueprint: handleEditOutfitBlueprint,
+    handleScanBlueprint,
     selectedGarmentScopes,
     toggleGarmentScope,
     brandModels,

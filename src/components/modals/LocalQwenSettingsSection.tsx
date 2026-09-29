@@ -10,13 +10,20 @@ import {
   detectPortableComfyUiPath,
   useLocalQwenSettings,
 } from '../../hooks/useLocalQwenSettings';
-import { getDesktopLocalQwenApi } from '../../platform/desktopLocalQwen';
+import { getDesktopLocalQwenApi, resolveUncensoredState } from '../../platform/desktopLocalQwen';
+import { LocalQwenModelBadge } from '../LocalQwenModelBadge';
+import { useLocalQwenStatus } from '../../hooks/useLocalQwenStatus';
 import { SectionCard } from './SettingsDataSection';
 import { fieldLabelClassName, inputClassName } from './GatewayProfileRow';
 
 export const LocalQwenSettingsSection: React.FC = () => {
   const { t } = useLanguage();
   const { settings, updateSetting } = useLocalQwenSettings();
+  const { status } = useLocalQwenStatus();
+  // Unknown until the manager reports a resolved unet: never claim UC (or
+  // Standard) before detection has actually run.
+  const activeModelName = status?.activeModel;
+  const uncensoredState = resolveUncensoredState(status);
 
   const [isDetectedPathExisting, setIsDetectedPathExisting] = React.useState(false);
 
@@ -91,6 +98,50 @@ export const LocalQwenSettingsSection: React.FC = () => {
             placeholder={t('settingsModal.localQwen.folderPlaceholder')}
             className={inputClassName}
           />
+        </div>
+
+        {/* Model (Dynamic Detection) */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className={fieldLabelClassName}>
+              {t('settingsModal.localQwen.modelLabel')}
+            </span>
+            {uncensoredState !== undefined && (
+              <LocalQwenModelBadge
+                state={uncensoredState}
+                size="comfortable"
+                uncensoredLabel={t('settingsModal.localQwen.modelUncensoredBadge')}
+                standardLabel={t('settingsModal.localQwen.modelStandardBadge')}
+              />
+            )}
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-300">
+            <span className="font-mono text-zinc-200" data-testid="local-qwen-active-model">
+              {activeModelName ?? '—'}
+            </span>
+            <span className="text-[11px] text-zinc-400">{t('settingsModal.localQwen.modelVramHint')}</span>
+          </div>
+          {/* Documented LoRA assets, verified against the same folder the unet came from. */}
+          {activeModelName && (
+            <div
+              className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]"
+              data-testid="local-qwen-lora-assets"
+            >
+              <span className="font-medium text-zinc-500">{t('settingsModal.localQwen.assetsLabel')}</span>
+              <span className={status?.faceSwapLoraAvailable ? 'text-emerald-400' : 'text-amber-400'}>
+                {t('settingsModal.localQwen.faceSwapLora')}:{' '}
+                {status?.faceSwapLoraAvailable
+                  ? t('settingsModal.localQwen.assetDetected')
+                  : t('settingsModal.localQwen.assetMissing')}
+              </span>
+              <span className={status?.turboLoraAvailable ? 'text-emerald-400' : 'text-amber-400'}>
+                {t('settingsModal.localQwen.turboLora')}:{' '}
+                {status?.turboLoraAvailable
+                  ? t('settingsModal.localQwen.assetDetected')
+                  : t('settingsModal.localQwen.assetMissing')}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Resolution */}

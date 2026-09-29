@@ -7,3 +7,10 @@ must be free to evolve its own instructions, role framing, preservation rules, n
 guidance, and prompt structure without forcing the other to follow. Model-agnostic facts
 such as an AI Scan technical blueprint may be shared as input, but each prompt family
 decides independently how those facts are expressed to its model.
+
+Amended 2026-09-27: studio invariants are the exception to "no shared wording". A rule
+that must hold for every family — the untucked hemline drape (`outfitDrapePolicy.ts`) and
+camera framing (`cameraFramingPolicy.ts`) — is owned once and imported verbatim, because
+its failure is a domain failure rather than a styling choice. Sharing the invariant text
+does not license sharing assembly: role framing, task framing, and structure stay with
+each family builder.

@@ -1,9 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
-import { ipcMain } from 'electron';
 import {
-  DESKTOP_LOCAL_QWEN_CHANNELS,
   type DesktopLocalQwenState,
   type DesktopLocalQwenStatus,
   type DesktopLocalQwenStopResult,
@@ -13,6 +11,9 @@ import {
   type LocalQwenProgress,
   type LocalQwenUpscaleParams,
   type LocalQwenUpscaleResult,
+  isFaceSwapPrompt,
+  isFaceSwapRefusal,
+  isUncensoredModel,
 } from '../src/platform/desktopLocalQwen';
 import {
   KNOWN_PORTABLE_COMFYUI_PATH,
@@ -24,7 +25,6 @@ import {
   LOCAL_QWEN_SAMPLERS,
   LOCAL_QWEN_SCHEDULERS,
 } from '../src/config/localQwenSettings';
-import { trustedBridge } from './gateway';
 
 declare global {
   interface PromiseConstructor {
@@ -37,6 +37,41 @@ declare global {
 }
 
 export const DEFAULT_COMFYUI_PORT = 8188;
+export const DEFAULT_QWEN_UNET_NAME = 'qwen-image-2.1-UC-Q4_K_M.gguf';
+export const FALLBACK_QWEN_UNET_NAME = 'qwen-image-2.1-Q4_K_M.gguf';
+/** Face-swap LoRA auto-injected for identity-transfer / brand-model workflows. */
+export const FACE_SWAP_LORA_NAME = 'bfs_head_v1.1_qwen_2.1.safetensors';
+/** Speed (turbo) LoRA documented for the local pipeline; detected on disk, wired in a later phase. */
+export const TURBO_LORA_NAME = 'Qwen-Image-2.1-viggle-turbo-v0.2.1-6step-lora-r128.safetensors';
+
+/** Last few lines of a ComfyUI boot log, without the terminal colour codes. */
+const bootLogTail = (output: string): string => {
+  const lines = output
+    // eslint-disable-next-line no-control-regex
+    .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter(Boolean);
+  return lines.slice(-3).join(' | ') || 'no output captured';
+};
+
+/**
+ * ComfyUI reports a failed job as an event array (`["execution_error", {...}]`
+ * plus every prior event). Dumping that into the UI buries the one line that
+ * says what broke, so keep the node and its first message line.
+ */
+const summarizeComfyUiMessages = (messages: unknown): string => {
+  if (Array.isArray(messages)) {
+    for (const entry of messages) {
+      if (Array.isArray(entry) && entry[0] === 'execution_error') {
+        const data = (entry[1] ?? {}) as { exception_message?: string; node_type?: string };
+        const message = (data.exception_message ?? '').trim().split('\n')[0].trim();
+        return data.node_type ? `${data.node_type}: ${message}` : message;
+      }
+    }
+  }
+  return typeof messages === 'string' && messages.trim() ? messages : 'Unknown error';
+};
 
 export const verifyLoopbackOnly = (targetUrl: string): boolean => {
   try {
@@ -56,6 +91,16 @@ const buildComfyUIViewUrl = (
 export interface LocalQwenHealth {
   compatible: boolean;
   error?: string;
+}
+
+/** What on-disk detection knows about one configured ComfyUI root. */
+export interface LocalQwenModelAssets {
+  folder: string;
+  /** `null` when neither the UC nor the fallback unet exists under `folder`. */
+  unet: string | null;
+  faceSwapLora: boolean;
+  turboLora: boolean;
+  resolvedAt: number;
 }
 
 export type HealthCheckFn = (baseUrl: string) => Promise<LocalQwenHealth>;
@@ -122,10 +167,13 @@ export const defaultHealthCheckFn = async (
     }
 
     const unetNames = unetData.UnetLoaderGGUF.input?.required?.unet_name?.[0];
-    if (Array.isArray(unetNames) && !unetNames.includes('qwen-image-2.1-Q4_K_M.gguf')) {
+    const hasCompatibleUnet =
+      Array.isArray(unetNames) &&
+      (unetNames.includes(DEFAULT_QWEN_UNET_NAME) || unetNames.includes(FALLBACK_QWEN_UNET_NAME));
+    if (!hasCompatibleUnet) {
       return {
         compatible: false,
-        error: 'UnetLoaderGGUF: qwen-image-2.1-Q4_K_M.gguf not found in models/diffusion_models',
+        error: `UnetLoaderGGUF: ${DEFAULT_QWEN_UNET_NAME} or ${FALLBACK_QWEN_UNET_NAME} not found in models/diffusion_models`,
       };
     }
 
@@ -161,6 +209,7 @@ export type WebSocketConstructor = new (url: string) => WebSocketLike;
 
 export interface LocalQwenManagerOptions {
   port?: number;
+  comfyUiFolder?: string;
   probeFn?: (endpoint: string) => Promise<boolean>;
   healthCheckFn?: HealthCheckFn;
   spawnFn?: (command: string, args: readonly string[], options: Record<string, unknown>) => ChildProcess;
@@ -172,6 +221,7 @@ export interface LocalQwenManagerOptions {
 
 export class LocalQwenManager {
   public port: number;
+  public comfyUiFolder?: string;
   public state: DesktopLocalQwenState = 'stopped';
   public isAppOwned = false;
   public childProcess?: ChildProcess;
@@ -194,9 +244,11 @@ export class LocalQwenManager {
   private fetchFn: typeof fetch;
   private readinessTimeoutMs: number;
   private readinessPollIntervalMs: number;
+  private cachedModelAssets?: LocalQwenModelAssets;
 
   constructor(options: LocalQwenManagerOptions = {}) {
     this.port = options.port ?? DEFAULT_COMFYUI_PORT;
+    this.comfyUiFolder = options.comfyUiFolder;
     this.probeFn = options.probeFn ?? defaultProbeFn;
     this.healthCheckFn =
       options.healthCheckFn ??
@@ -207,7 +259,10 @@ export class LocalQwenManager {
       options.spawnFn ??
       ((cmd, args, opts) => spawn(cmd, args as string[], opts as Parameters<typeof spawn>[2]));
     this.fetchFn = options.fetchFn ?? ((url, init) => fetch(url, init));
-    this.readinessTimeoutMs = options.readinessTimeoutMs ?? 60_000;
+    // Measured on the reference machine: a cold ComfyUI start on an 8 GB card
+    // is still loading torch and its plugins at 60s, so the timeout has to
+    // cover a first boot, not a warm one.
+    this.readinessTimeoutMs = options.readinessTimeoutMs ?? 180_000;
     this.readinessPollIntervalMs = options.readinessPollIntervalMs ?? 500;
     this.wsConstructor = options.wsConstructor;
   }
@@ -227,14 +282,128 @@ export class LocalQwenManager {
     return this.healthCheckFn(target);
   }
 
+  public invalidateModelCache(): void {
+    this.cachedModelAssets = undefined;
+  }
 
-  public async getStatus(): Promise<DesktopLocalQwenStatus> {
+  /**
+   * The one ComfyUI root detection and generation both resolve against, so a
+   * badge can never describe an install the job does not run on. A folder the
+   * app started a server from is authoritative (that is the process serving the
+   * models); before any start the renderer's configured folder wins, then the
+   * known portable install.
+   */
+  private resolveComfyRoot(folder?: string): string {
+    if (this.comfyUiFolder) return this.comfyUiFolder;
+    return folder?.trim() || KNOWN_PORTABLE_COMFYUI_PATH;
+  }
+
+  /** On-disk model detection for one ComfyUI root, cached for 30s per folder. */
+  private resolveModelAssets(
+    forceRefresh = false,
+    folder?: string,
+  ): LocalQwenModelAssets {
+    const comfyRoot = this.resolveComfyRoot(folder);
+    const now = Date.now();
+    const cached = this.cachedModelAssets;
+    if (!forceRefresh && cached && cached.folder === comfyRoot && now - cached.resolvedAt < 30_000) {
+      return cached;
+    }
+
+    const inModels = (dir: 'diffusion_models' | 'loras', file: string): boolean =>
+      fs.existsSync(path.join(comfyRoot, 'ComfyUI', 'models', dir, file)) ||
+      fs.existsSync(path.join(comfyRoot, 'models', dir, file));
+
+    const hasUcModel = inModels('diffusion_models', DEFAULT_QWEN_UNET_NAME);
+    const hasFallbackModel = inModels('diffusion_models', FALLBACK_QWEN_UNET_NAME);
+
+    const assets = {
+      folder: comfyRoot,
+      unet: hasUcModel
+        ? DEFAULT_QWEN_UNET_NAME
+        : hasFallbackModel
+          ? FALLBACK_QWEN_UNET_NAME
+          : null,
+      faceSwapLora: inModels('loras', FACE_SWAP_LORA_NAME),
+      turboLora: inModels('loras', TURBO_LORA_NAME),
+      resolvedAt: now,
+    };
+    this.cachedModelAssets = assets;
+    return assets;
+  }
+
+  /**
+   * Unet on disk under the configured folder, or `null` when neither build is
+   * installed: a default filename is a fallback for generation, never a
+   * detection result to report back to the UI.
+   */
+  public resolveActiveUnet(forceRefresh = false, folder?: string): string | null {
+    return this.resolveModelAssets(forceRefresh, folder).unet;
+  }
+
+  /**
+   * What detection can honestly claim about the configured install. Everything
+   * stays `undefined` while no unet resolves (unknown folder, nothing
+   * installed), so the UI shows neither a model nor a badge.
+   */
+  public resolveModelInfo(forceRefresh = false, folder?: string): {
+    activeModel?: string;
+    isUncensored?: boolean;
+    faceSwapLoraAvailable?: boolean;
+    turboLoraAvailable?: boolean;
+  } {
+    const assets = this.resolveModelAssets(forceRefresh, folder);
+    if (!assets.unet) {
+      return {};
+    }
+    return {
+      activeModel: assets.unet,
+      isUncensored: isUncensoredModel(assets.unet),
+      faceSwapLoraAvailable: assets.faceSwapLora,
+      turboLoraAvailable: assets.turboLora,
+    };
+  }
+
+  /**
+   * Fail an auto face-swap job fast when the BFS LoRA is missing: ComfyUI
+   * would otherwise reject the workflow with an opaque "Value not in list"
+   * error after the queue round-trip. An explicitly requested `loraName` and an
+   * unknown install are left to ComfyUI to report.
+   */
+  private assertFaceSwapLoraAvailable(): void {
+    // Always from disk: the 30s cache exists to throttle the UI poll, not to
+    // gate admission — a job retried right after the user placed the LoRA must
+    // not be rejected by the answer the poll recorded before the fix.
+    const info = this.resolveModelInfo(true);
+    if (info.activeModel && info.faceSwapLoraAvailable === false) {
+      throw new Error(
+        `Face swap LoRA not found in the configured ComfyUI install: ${FACE_SWAP_LORA_NAME} (models/loras). ` +
+          'Place the file there, or run the job with workflow "standard".',
+      );
+    }
+  }
+
+  /**
+   * @param folder ComfyUI folder the renderer has configured; detection resolves
+   * it through `resolveComfyRoot`, the same root generation loads models from.
+   */
+  public async getStatus(folder?: string): Promise<DesktopLocalQwenStatus> {
+    // The root is a funnel, not a badge-only value: the generate path resolves
+    // it with no folder of its own, so unless the app started the server the
+    // renderer's configured folder has to be recorded here. A folder the app
+    // started from stays authoritative and is never overwritten.
+    if (!this.isAppOwned) {
+      this.comfyUiFolder = folder?.trim() || this.comfyUiFolder;
+    }
+    const modelInfo = this.resolveModelInfo(false, folder);
+
     if (this.state === 'generating') {
       return {
         state: 'generating',
         isAppOwned: this.isAppOwned,
         port: this.port,
         progress: this.currentProgress,
+        ...modelInfo,
       };
     }
 
@@ -277,6 +446,7 @@ export class LocalQwenManager {
         state: 'ready',
         isAppOwned: this.isAppOwned,
         port: this.port,
+        ...modelInfo,
       };
     }
 
@@ -465,6 +635,7 @@ export class LocalQwenManager {
         state: 'ready',
         isAppOwned: this.isAppOwned,
         port: this.port,
+        ...this.resolveModelInfo(),
       };
     }
 
@@ -472,13 +643,20 @@ export class LocalQwenManager {
     if (this.childProcess && !this.childProcess.killed && this.state === 'starting') {
       const ready = await this.waitForReady(this.readinessTimeoutMs);
       if (ready) {
-        return { state: 'ready', isAppOwned: true, port: this.port };
+        return {
+          state: 'ready',
+          isAppOwned: true,
+          port: this.port,
+          ...this.resolveModelInfo(),
+        };
       }
       throw new Error(this.lastError || 'ComfyUI server failed to start within timeout.');
     }
 
     // 3. Resolve folder
     const comfyDir = folder?.trim() || KNOWN_PORTABLE_COMFYUI_PATH;
+    this.comfyUiFolder = comfyDir;
+    this.invalidateModelCache();
     if (!fs.existsSync(comfyDir)) {
       this.state = 'error';
       this.lastError = `ComfyUI directory not found: ${comfyDir}`;
@@ -573,7 +751,10 @@ export class LocalQwenManager {
     if (!isReady) {
       if ((this.state as DesktopLocalQwenState) !== 'error') {
         this.state = 'error';
-        this.lastError = `Timed out waiting for ComfyUI to become ready: ${stderrOutput.trim()}`;
+        // The raw boot log is thousands of lines of ANSI-coloured plugin
+        // output; the status banner shows this string verbatim, so keep the
+        // tail that says where it got stuck.
+        this.lastError = `Timed out waiting for ComfyUI to become ready: ${bootLogTail(stderrOutput)}`;
       }
       if (this.childProcess && !this.childProcess.killed) {
         try {
@@ -610,6 +791,7 @@ export class LocalQwenManager {
       state: 'ready',
       isAppOwned: true,
       port: this.port,
+      ...this.resolveModelInfo(),
     };
   }
   public async stopServer(): Promise<DesktopLocalQwenStopResult> {
@@ -801,11 +983,33 @@ export class LocalQwenManager {
       const cfg = params.cfg ?? 1.0;
       const seed = params.seed ?? Math.floor(Math.random() * 1_000_000_000);
 
+      const prompt = params.prompt || '';
+      // The refusal guard outranks routing: a prompt that bans swapping never
+      // gets the LoRA, whatever workflow the caller declared. Explicit
+      // `loraName` stays the caller's own decision and is untouched here.
+      const isIdentityTransfer =
+        !isFaceSwapRefusal(prompt) &&
+        (params.workflow === 'identity-transfer' ||
+          (params.workflow !== 'standard' && isFaceSwapPrompt(prompt)));
+
+      const effectiveLoraName = params.loraName ?? (isIdentityTransfer ? FACE_SWAP_LORA_NAME : undefined);
+      const loraStrength = typeof params.loraStrength === 'number' && Number.isFinite(params.loraStrength)
+        ? params.loraStrength
+        : 1.0;
+
+      if (effectiveLoraName === FACE_SWAP_LORA_NAME && params.loraName === undefined) {
+        this.assertFaceSwapLoraAvailable();
+      }
+
+      // Fresh for the same reason: a unet installed moments ago must win over
+      // the fallback the status poll cached before it.
+      const unetName = params.unetName || this.resolveActiveUnet(true) || DEFAULT_QWEN_UNET_NAME;
+
       const workflow: Record<string, unknown> = {
         '1': {
           class_type: 'UnetLoaderGGUF',
           inputs: {
-            unet_name: 'qwen-image-2.1-Q4_K_M.gguf',
+            unet_name: unetName,
           },
         },
         '2': {
@@ -822,6 +1026,19 @@ export class LocalQwenManager {
           },
         },
       };
+
+      let modelTarget: [string, number] = ['1', 0];
+      if (effectiveLoraName) {
+        workflow['5'] = {
+          class_type: 'LoraLoaderModelOnly',
+          inputs: {
+            model: ['1', 0],
+            lora_name: effectiveLoraName,
+            strength_model: loraStrength,
+          },
+        };
+        modelTarget = ['5', 0];
+      }
 
       const textEncodeInputs: Record<string, unknown> = {
         clip: ['2', 0],
@@ -850,7 +1067,7 @@ export class LocalQwenManager {
       workflow['7'] = {
         class_type: 'KSampler',
         inputs: {
-          model: ['1', 0],
+          model: modelTarget,
           positive: ['4', 0],
           negative: ['4', 1],
           latent_image: ['4', 2],
@@ -1120,7 +1337,7 @@ export class LocalQwenManager {
         const item = historyData[promptId];
         if (item) {
           if (item.status?.status_str === 'error') {
-            throw new Error(`ComfyUI ${label} execution failed: ${JSON.stringify(item.status.messages || 'Unknown error')}`);
+            throw new Error(`ComfyUI ${label} execution failed: ${summarizeComfyUiMessages(item.status.messages)}`);
           }
 
           if (item.outputs) {
@@ -1196,7 +1413,7 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
   const input = requireRecord(value, 'generate params');
   assertOnlyKeys(
     input,
-    ['prompt', 'negativePrompt', 'images', 'resolution', 'steps', 'cfg', 'sampler', 'scheduler', 'seed'],
+    ['prompt', 'negativePrompt', 'images', 'resolution', 'steps', 'cfg', 'sampler', 'scheduler', 'seed', 'loraName', 'loraStrength', 'unetName', 'workflow'],
     'generate params',
   );
 
@@ -1316,6 +1533,43 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
     seed = input.seed;
   }
 
+  let loraName: string | undefined;
+  if (input.loraName !== undefined) {
+    if (typeof input.loraName !== 'string') {
+      throw new Error('Invalid local Qwen loraName: must be a string.');
+    }
+    const trimmed = input.loraName.trim();
+    loraName = trimmed || undefined;
+  }
+
+  let loraStrength: number | undefined;
+  if (input.loraStrength !== undefined) {
+    if (typeof input.loraStrength !== 'number' || !Number.isFinite(input.loraStrength)) {
+      throw new Error('Invalid local Qwen loraStrength: must be a finite number.');
+    }
+    loraStrength = input.loraStrength;
+  }
+
+  let unetName: string | undefined;
+  if (input.unetName !== undefined) {
+    if (typeof input.unetName !== 'string') {
+      throw new Error('Invalid local Qwen unetName: must be a string.');
+    }
+    const trimmed = input.unetName.trim();
+    unetName = trimmed || undefined;
+  }
+
+  let workflow: 'identity-transfer' | 'standard' | undefined;
+  if (input.workflow !== undefined) {
+    if (
+      typeof input.workflow !== 'string' ||
+      !['identity-transfer', 'standard'].includes(input.workflow)
+    ) {
+      throw new Error('Invalid local Qwen workflow: must be identity-transfer or standard.');
+    }
+    workflow = input.workflow as 'identity-transfer' | 'standard';
+  }
+
   return {
     prompt,
     negativePrompt,
@@ -1326,6 +1580,10 @@ export const parseLocalQwenGenerateParams = (value: unknown): LocalQwenGenerateP
     sampler,
     scheduler,
     seed,
+    loraName,
+    loraStrength,
+    unetName,
+    workflow,
   };
 };
 
@@ -1359,40 +1617,3 @@ export const parseLocalQwenFolder = (value: unknown): string | undefined => {
 };
 
 export const localQwenManager = new LocalQwenManager();
-export const registerDesktopLocalQwenHandlers = (
-  manager: LocalQwenManager = localQwenManager,
-): void => {
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.getStatus, (event) =>
-    trustedBridge(event, () => manager.getStatus()),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.startServer, (event, folder) =>
-    trustedBridge(event, () => {
-      const parsedFolder = parseLocalQwenFolder(folder);
-      return manager.startServer(parsedFolder);
-    }),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.stopServer, (event) =>
-    trustedBridge(event, () => manager.stopServer()),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.generateImage, (event, params) =>
-    trustedBridge(event, () => {
-      const validated = parseLocalQwenGenerateParams(params);
-      return manager.generateImage(validated);
-    }),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.cancelJob, (event) =>
-    trustedBridge(event, () => manager.cancelJob()),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.upscaleImage, (event, params) =>
-    trustedBridge(event, () => {
-      const validated = parseLocalQwenUpscaleParams(params);
-      return manager.upscaleImage(validated);
-    }),
-  );
-  ipcMain.handle(DESKTOP_LOCAL_QWEN_CHANNELS.verifyFolder, (event, folder) =>
-    trustedBridge(event, () => {
-      const parsedFolder = parseLocalQwenFolder(folder);
-      return manager.checkFolder(parsedFolder || '');
-    }),
-  );
-};

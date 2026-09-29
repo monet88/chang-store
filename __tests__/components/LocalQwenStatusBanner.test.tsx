@@ -11,6 +11,8 @@ const translations: Record<string, string> = {
   'studio.localQwenStatus.readySubtext': 'Qwen-Image 2.1 ready',
   'studio.localQwenStatus.appOwned': 'App-owned',
   'studio.localQwenStatus.external': 'External',
+  'studio.localQwenStatus.modelUncensored': 'Uncensored (UC)',
+  'studio.localQwenStatus.modelStandard': 'Standard',
   'studio.localQwenStatus.generating': 'Generating',
   'studio.localQwenStatus.generatingSubtext': 'Sampling with local Qwen-Image 2.1 on ComfyUI...',
   'studio.localQwenStatus.stopped': 'ComfyUI Stopped',
@@ -73,6 +75,7 @@ describe('LocalQwenStatusBanner', () => {
         state: 'ready',
         isAppOwned: true,
         port: 8188,
+        activeModel: 'qwen-image-2.1-UC-Q4_K_M.gguf',
       };
       const onOpenSettings = vi.fn();
 
@@ -80,10 +83,24 @@ describe('LocalQwenStatusBanner', () => {
 
       expect(screen.getByText('ComfyUI Ready')).toBeInTheDocument();
       expect(screen.getByText('App-owned')).toBeInTheDocument();
+      expect(screen.getByText('Uncensored (UC)')).toBeInTheDocument();
 
       const settingsBtn = screen.getByText('Open Settings');
       fireEvent.click(settingsBtn);
       expect(onOpenSettings).toHaveBeenCalledTimes(1);
+    });
+
+    it('hides the model badge until the active model is known', () => {
+      const status: DesktopLocalQwenStatus = {
+        state: 'ready',
+        isAppOwned: true,
+        port: 8188,
+      };
+
+      render(<LocalQwenStatusBanner status={status} />);
+
+      expect(screen.queryByText('Uncensored (UC)')).not.toBeInTheDocument();
+      expect(screen.queryByText('Standard')).not.toBeInTheDocument();
     });
 
     it('renders Release GPU/RAM button when isAppOwned is true and triggers onReleaseGpu', () => {

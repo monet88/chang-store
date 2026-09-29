@@ -205,9 +205,11 @@ section. The app icon (`build/icon.ico`) is embedded into each executable.
 
 AppContent owns the Feature routing and StudioMode switch. Feature values and
 provider support are defined in src/types.ts; route/component wiring is in
-src/App.tsx. The browser product ships Gemini and GPT Image studios. The desktop
-architecture additionally reserves a third, desktop-only Local Qwen studio backed
-by a local ComfyUI runtime (ADR-0004).
+src/App.tsx. The browser product ships Gemini and GPT Image studios. A third,
+Local Qwen studio is backed by a local ComfyUI runtime (ADR-0004) and is
+reachable whenever a process owns that runtime: the packaged desktop app
+(Electron main) always, and the browser build only while `vite dev` hosts the
+manager through its Local Qwen dev bridge.
 
 The studios may share workflow hooks, UI state and model-agnostic domain data,
 but prompt policy is model-family-specific. Gemini, GPT Image, and Local Qwen
@@ -294,13 +296,27 @@ do not require speculative scaffolding ahead of that work.
 The five Gemini-only workflows are phase 2 of the studio consolidation: they
 already take their driver from the same context, they simply have no GPT view
 yet. GPT caps stay deliberate — one output per request, lookbook variations
-capped at one, wardrobe sets bounded to two, serial batches, and no native
-upscale (upscale is a preservation-prompted edit at the largest quality).
+capped at one, wardrobe sets bounded to two, batch generation capped at 10
+parallel requests (see `resolveEngineConcurrency` in
+`src/utils/engineDispatch.ts`), and no native upscale (upscale is a
+preservation-prompted edit at the largest quality).
 
-Local Qwen is desktop-only and intentionally narrower. It ships as a serial
-engine (one active job at a time), defaults to 512 px on the target 8 GB GPU,
-keeps upscale as a separate explicit user action, never falls back to cloud
-automatically, and delegates local-process ownership to Electron main. See
+Job concurrency is not the same thing as request concurrency: a job may fan out
+one request per output image, so 10 jobs of 4 images would put 40 requests on
+the wire. Every cloud request therefore goes through one shared gate of 10
+in-flight requests (`withImageRequestSlot` in `src/utils/request-slots.ts`) —
+the Gemini and GPT lanes share it, upscales included. The gate re-checks the
+cap after waking a waiter, because a caller already queued in the microtask
+queue can otherwise claim the freed slot first.
+
+Local Qwen is narrower by design. It ships as a serial engine (one active job
+at a time), defaults to 512 px on the target 8 GB GPU, keeps upscale as a
+separate explicit user action, and never falls back to cloud automatically.
+
+Local-process ownership sits in one place: Electron main in the packaged app,
+the `vite dev` bridge while testing in a browser. The bridge is opt-in
+(`LOCAL_QWEN_DEV_BRIDGE=true`) because it can start ComfyUI for anyone who
+reaches the dev server, which listens on every interface by default. See
 `docs/api/localQwen-api-guide.md` for the measured runtime contract.
 
 The current source tree has no server-side request, session, or audit-log

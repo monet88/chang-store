@@ -2,9 +2,11 @@ import React from 'react';
 import {
   type DesktopLocalQwenStatus,
   classifyLocalQwenError,
+  resolveUncensoredState,
 } from '../../platform/desktopLocalQwen';
 import { useLocalQwenStatus } from '../../hooks/useLocalQwenStatus';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { LocalQwenModelBadge } from '../LocalQwenModelBadge';
 const getProgressWidthClass = (percent: number): string => {
   if (percent <= 0) return 'w-0';
   if (percent <= 5) return 'w-[5%]';
@@ -119,7 +121,10 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
           </div>
         );
 
-      case 'ready':
+      case 'ready': {
+        // Unknown until the manager reports a resolved unet: hide the badge
+        // rather than claim UC (or Standard) before detection has run.
+        const uncensoredState = resolveUncensoredState(status);
         return (
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -136,6 +141,13 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
                       ? t('studio.localQwenStatus.appOwned')
                       : t('studio.localQwenStatus.external')}
                   </span>
+                  {uncensoredState !== undefined && (
+                    <LocalQwenModelBadge
+                      state={uncensoredState}
+                      uncensoredLabel={t('studio.localQwenStatus.modelUncensored')}
+                      standardLabel={t('studio.localQwenStatus.modelStandard')}
+                    />
+                  )}
                 </div>
                 <p className="text-xs text-zinc-400">
                   {t('studio.localQwenStatus.readySubtext')} (127.0.0.1:{status.port})
@@ -148,6 +160,7 @@ export const LocalQwenStatusBanner: React.FC<LocalQwenStatusBannerProps> = ({
             </div>
           </div>
         );
+      }
 
       case 'generating': {
         const hasProgress = status.progress !== undefined;
