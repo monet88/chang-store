@@ -3,7 +3,7 @@
   "private": true,
   "description": "AI Fashion Photography Studio Desktop App",
   "author": "Chang Store",
-  "version": "1.0.4",
+  "version": "1.4.0",
   "type": "module",
   "main": "out/main/index.cjs",
   "scripts": {
