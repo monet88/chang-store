@@ -5,7 +5,10 @@ export interface UseClothingTransferReferencesReturn {
   referenceItems: ClothingTransferReferenceItem[];
   validReferences: ClothingTransferReferenceItem[];
   handleReferenceUpload: (file: ImageFile | null, id: number) => void;
-  handleReferenceLabel: (label: string, id: number) => void;
+  handleReferenceLabel: {
+    (label: string, id: number): void;
+    (id: number, label: string): void;
+  };
   addReference: () => void;
   removeReference: (id: number) => void;
 }
@@ -32,7 +35,9 @@ export const useClothingTransferReferences = (): UseClothingTransferReferencesRe
     );
   }, []);
 
-  const handleReferenceLabel = useCallback((label: string, id: number) => {
+  const handleReferenceLabel = useCallback((arg1: string | number, arg2: string | number) => {
+    const label = typeof arg1 === 'string' ? arg1 : String(arg2);
+    const id = typeof arg1 === 'number' ? arg1 : Number(arg2);
     setReferenceItems((items) =>
       items.map((item) => (item.id === id ? { ...item, label } : item)),
     );

@@ -29,6 +29,7 @@ interface LookbookDraftState {
 export interface ClothingItem {
   id: string;
   image: ImageFile | null;
+  name?: string;
 }
 
 export interface LookbookFormState {

@@ -13,12 +13,13 @@ import { resolveActiveProfile } from '../config/gatewayProfiles';
 import { firstSelectableModelId, resolveProviderModelOptions } from '../config/modelSelectionRules';
 import { gatewayHostOf } from '../services/providers/shared/imageDriverPolicy';
 import {
-  buildGptImageEngine,
   GPT_STUDIO_ASPECT_RATIOS,
   resolveSizeForRatio,
 } from '../services/providers/gpt-image/gptImageEngine';
+import { GptImageDriverAdapter } from '../services/providers/gpt-image/GptImageDriverAdapter';
+import type { ImageDriver } from '../services/providers/ImageDriver';
 import { useApi } from '../contexts/ApiProviderContext';
-import type { ImageEngine } from '../contexts/ImageEngineContext';
+import { createLegacyDriverBridge, type ImageEngine } from '../contexts/ImageEngineContext';
 import { useServedModels } from './useServedModels';
 
 /**
@@ -59,16 +60,34 @@ export const useGptImageEngine = (): ImageEngine => {
   const apiKey = profile?.apiKey ?? '';
   const baseUrl = profile?.baseUrl ?? '';
 
+  const driver = useMemo<ImageDriver>(
+    () =>
+      new GptImageDriverAdapter({
+        apiKey,
+        baseUrl,
+        credentialRef: profile?.id,
+        model,
+        quality,
+        sizeOptions,
+      }),
+    [apiKey, baseUrl, profile?.id, model, quality, sizeOptions],
+  );
+
+  const legacyBridge = useMemo(
+    () => createLegacyDriverBridge(driver, model),
+    [driver, model],
+  );
+
   return useMemo<ImageEngine>(
     () => ({
       id: 'gptImage',
       model,
-      ...buildGptImageEngine({
-        model,
-        quality,
-        sizeOptions,
-        credentials: { apiKey, baseUrl, credentialRef: profile?.id },
-      }),
+      driver,
+      generate: (job) => driver.generate(job),
+      generateOne: (job) => driver.generateOne(job),
+      upscale: (job) => driver.upscale(job),
+      editImage: legacyBridge.editImage,
+      upscaleImage: legacyBridge.upscaleImage,
       createImageChatSession: null,
       modelOptions,
       setModel,
@@ -83,6 +102,7 @@ export const useGptImageEngine = (): ImageEngine => {
         supportsQuality,
       },
     }),
-    [model, quality, sizeOptions, sizeObservation, apiKey, baseUrl, profile?.id, modelOptions, noSelectableModel, supportsQuality],
+    [model, driver, legacyBridge, quality, sizeOptions, sizeObservation, modelOptions, noSelectableModel, supportsQuality],
   );
 };
+

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { useImageDriver } from '../contexts/useImageDriver';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageEngineId, ImageFile, ImageResolution } from '../types';
@@ -43,6 +44,7 @@ export interface UseAIEditorReturn {
 
 export const useAIEditor = (): UseAIEditorReturn => {
   const { t } = useLanguage();
+  const driver = useImageDriver();
   const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
 
@@ -159,19 +161,32 @@ export const useAIEditor = (): UseAIEditorReturn => {
         : (isLocalQwen ? images.slice(0, 4) : images);
 
       const apiPrompt = buildApiPrompt(prompt, imagesToSend, mentionedSelection.hasMentions);
-      const [result] = await editImage(
-        {
+      let result: ImageFile;
+      if (typeof driver?.generateOne === 'function') {
+        result = await driver.generateOne({
           images: imagesToSend,
           prompt: apiPrompt,
-          numberOfImages: 1,
           aspectRatio,
           resolution,
-        },
-        imageEditModel,
-        {
-          onStatusUpdate: () => {},
-        },
-      );
+          workflow: 'ai-editor',
+          model: imageEditModel,
+        });
+      } else {
+        const [res] = await editImage(
+          {
+            images: imagesToSend,
+            prompt: apiPrompt,
+            numberOfImages: 1,
+            aspectRatio,
+            resolution,
+          },
+          imageEditModel,
+          {
+            onStatusUpdate: () => {},
+          },
+        );
+        result = res;
+      }
 
       if (!result) {
         throw new Error('error.api.noImageGenerated');
@@ -190,6 +205,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
     prompt,
     aspectRatio,
     resolution,
+    driver,
     editImage,
     imageEditModel,
     extractMentionedImages,
@@ -203,9 +219,16 @@ export const useAIEditor = (): UseAIEditorReturn => {
     setIsUpscaling(true);
     setError(null);
     try {
-      const result = await upscaleImage(imageToUpscale, imageEditModel, {
-        onStatusUpdate: () => {},
-      });
+      let result: ImageFile;
+      if (typeof driver?.upscale === 'function') {
+        result = await driver.upscale({
+          image: imageToUpscale,
+        });
+      } else {
+        result = await upscaleImage(imageToUpscale, imageEditModel, {
+          onStatusUpdate: () => {},
+        });
+      }
       setResultImage(result);
       addImage(result, Feature.AIEditor, engineId);
     } catch (err) {
@@ -213,7 +236,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
     } finally {
       setIsUpscaling(false);
     }
-  }, [addImage, engineId, imageEditModel, t, upscaleImage]);
+  }, [addImage, driver, engineId, imageEditModel, t, upscaleImage]);
 
   return {
     images,

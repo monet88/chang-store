@@ -11,6 +11,7 @@ import { useWardrobeMode } from './useWardrobeMode';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { useImageDriver } from '../contexts/useImageDriver';
 import { aiScanGuidanceFromItems, aiScanSourceSet, combineAiScanGuidance } from '../utils/ai-scan-blueprint';
 import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { useImageRefinement } from './useImageRefinement';
@@ -37,6 +38,8 @@ export const useVirtualTryOn = () => {
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
   const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const imageDriver = useImageDriver();
+
 
   // Refine lifecycle (chat sessions + per-slot state) lives in a shared deep
   // module; slot key = `itemId:index`.
@@ -79,8 +82,17 @@ export const useVirtualTryOn = () => {
     }
   }, [subjects]);
 
-  // Default driver comes from the studio-scoped image engine; tests can inject a mock.
-  const driver = useMemo<VirtualTryOnImageDriver>(() => ({ editImage, upscaleImage }), [editImage, upscaleImage]);
+  // Default driver comes from the active ImageDriver; tests can inject a mock.
+  const driver = useMemo<VirtualTryOnImageDriver>(() => {
+    if (!imageDriver) {
+      return { editImage, upscaleImage };
+    }
+    return Object.assign(Object.create(imageDriver), {
+      editImage,
+      upscaleImage,
+    });
+  }, [imageDriver, editImage, upscaleImage]);
+
 
   const buildImageServiceConfig = useCallback(
     (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),

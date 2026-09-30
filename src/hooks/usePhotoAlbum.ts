@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, ImageFile, ImageResolution } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
+import { useOptionalImageDriver } from '../contexts/useImageDriver';
 import { editImage } from '../services/imageEditingService';
 import { PHOTO_ALBUM_POSES, PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 import { detectImageAspectRatio } from '../utils/imageAspectRatio';
@@ -63,8 +64,17 @@ export const usePhotoAlbum = ({ transferredImage, onTransferConsumed }: UsePhoto
   const HAIR_STYLES: Record<string, string> = t('photoAlbum.hairStyles', { returnObjects: true });
   const SKIN_TONES: Record<string, string> = t('photoAlbum.skinTones', { returnObjects: true });
 
+  const imageDriver = useOptionalImageDriver();
+
   // Default driver from real service; tests can inject a mock here.
-  const driver = useMemo<PhotoAlbumImageDriver>(() => ({ editImage }), []);
+  const driver = useMemo<PhotoAlbumImageDriver>(() => {
+    if (!imageDriver) {
+      return { editImage };
+    }
+    return Object.assign(Object.create(imageDriver), {
+      editImage,
+    });
+  }, [imageDriver]);
 
   const engine = usePhotoAlbumEngine({
     driver,

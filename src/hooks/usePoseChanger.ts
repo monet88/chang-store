@@ -9,6 +9,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
+import { useOptionalImageDriver } from '../contexts/useImageDriver';
 import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generatePoseDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -97,8 +98,16 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     [refs.subjectImage],
   );
 
+  const imageDriver = useOptionalImageDriver();
+
   // Default driver from real service; tests inject mock here
-  const driver = useMemo<PoseImageDriver>(() => ({ editImage, upscaleImage }), []);
+  const driver = useMemo<PoseImageDriver>(() => {
+    const legacy = { editImage, upscaleImage };
+    if (!imageDriver) {
+      return legacy;
+    }
+    return Object.assign(Object.create(imageDriver), legacy);
+  }, [imageDriver, editImage, upscaleImage]);
 
   const engine = usePoseChangerEngine({
     driver,

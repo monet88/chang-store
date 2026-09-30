@@ -8,9 +8,12 @@ import {
   type ImageResolution,
 } from '../types';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { useImageDriver } from '../contexts/useImageDriver';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAiScan } from '../contexts/AiScanContext';
+import type { ReferenceRoleImage } from '../services/providers/ImageDriver';
+import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
 import { buildGeminiIdentityTransferParts } from '../utils/gemini-identity-transfer-prompt';
 import { buildGptIdentityTransferParts } from '../utils/gpt-identity-transfer-prompt';
 import { buildQwenIdentityTransferParts } from '../utils/qwen-identity-transfer-prompt';
@@ -37,6 +40,7 @@ export const useIdentityTransfer = () => {
   const [error, setError] = useState<string | null>(null);
   const [upscalingItemIds, setUpscalingItemIds] = useState<Record<string, boolean>>({});
 
+  const driver = useImageDriver();
   const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
@@ -131,15 +135,56 @@ export const useIdentityTransfer = () => {
         gptImage: () => buildGptIdentityTransferParts(promptInput),
         gemini: () => buildGeminiIdentityTransferParts(promptInput),
       });
-      const [result] = await editImage({
-        images: [],
-        prompt: '',
-        numberOfImages: 1,
-        aspectRatio,
-        resolution,
-        interleavedParts,
-        workflow: 'identity-transfer',
-      }, imageEditModel, { onStatusUpdate: setLoadingMessage });
+      const references: ReferenceRoleImage[] = [
+        { image: refs.face, role: 'subject', label: 'identity-face' },
+        { image: item.destinationImage, role: 'style', label: 'destination-scene' },
+      ];
+      if (refs.body) {
+        references.push({ image: refs.body, role: 'subject', label: 'identity-body' });
+      }
+
+      const flattened = flattenInterleavedParts(interleavedParts);
+      const compiledPrompt = flattened ? flattened.prompt : '';
+
+      let result: ImageFile;
+      if (typeof driver?.generateOne === 'function') {
+        result = await driver.generateOne({
+          images: [],
+          prompt: compiledPrompt,
+          references,
+          aspectRatio,
+          resolution,
+          workflow: 'identity-transfer',
+          model: imageEditModel,
+          onProgress: setLoadingMessage,
+          interleavedParts,
+        });
+      } else if (typeof driver?.generate === 'function') {
+        const results = await driver.generate({
+          images: [],
+          prompt: compiledPrompt,
+          references,
+          count: 1,
+          aspectRatio,
+          resolution,
+          workflow: 'identity-transfer',
+          model: imageEditModel,
+          onProgress: setLoadingMessage,
+          interleavedParts,
+        });
+        result = results[0];
+      } else {
+        const [res] = await editImage({
+          images: [],
+          prompt: compiledPrompt,
+          numberOfImages: 1,
+          aspectRatio,
+          resolution,
+          interleavedParts,
+          workflow: 'identity-transfer',
+        }, imageEditModel, { onStatusUpdate: setLoadingMessage });
+        result = res;
+      }
 
       if (!result) {
         throw new Error(t('identityTransfer.noResult'));
@@ -154,7 +199,7 @@ export const useIdentityTransfer = () => {
         error: getErrorMessage(itemError, t),
       });
     }
-  }, [addImage, aspectRatio, backgroundPrompt, editImage, engineId, extraPrompt, imageEditModel, resolution, scan, t, updateDestinationItem]);
+  }, [addImage, aspectRatio, backgroundPrompt, driver, editImage, engineId, extraPrompt, imageEditModel, resolution, scan, setLoadingMessage, t, updateDestinationItem]);
 
   const canGenerate = destinationItems.length > 0 && faceReference !== null;
 
@@ -209,7 +254,14 @@ export const useIdentityTransfer = () => {
     setUpscalingItemIds((prev) => ({ ...prev, [itemId]: true }));
     setError(null);
     try {
-      const result = await upscaleImage(imageToUpscale, imageEditModel, { onStatusUpdate: () => {} });
+      let result: ImageFile;
+      if (typeof driver?.upscale === 'function') {
+        result = await driver.upscale({
+          image: imageToUpscale,
+        });
+      } else {
+        result = await upscaleImage(imageToUpscale, imageEditModel, { onStatusUpdate: () => {} });
+      }
       updateDestinationItem(itemId, { results: [result] });
       addImage(result, Feature.IdentityTransfer, engineId);
     } catch (upscaleError) {
@@ -217,7 +269,7 @@ export const useIdentityTransfer = () => {
     } finally {
       setUpscalingItemIds((prev) => ({ ...prev, [itemId]: false }));
     }
-  }, [addImage, engineId, imageEditModel, t, updateDestinationItem]);
+  }, [addImage, driver, engineId, imageEditModel, t, updateDestinationItem, upscaleImage]);
 
   const completedCount = useMemo(
     () => destinationItems.filter((item) => item.status === 'completed').length,

@@ -35,11 +35,20 @@ export const usePoseChangerResultActions = (
     setError(null);
 
     try {
-      const result = await driver.upscaleImage(
-        imageToUpscale,
-        imageEditModel,
-        buildImageServiceConfig(() => {}),
-      );
+      let result: ImageFile;
+      if (typeof (driver as any).upscale === 'function') {
+        result = await (driver as any).upscale({
+          image: imageToUpscale,
+        });
+      } else if (driver.upscaleImage) {
+        result = await driver.upscaleImage(
+          imageToUpscale,
+          imageEditModel,
+          buildImageServiceConfig(() => {}),
+        );
+      } else {
+        throw new Error('No upscale method available on driver');
+      }
       setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
     } catch (err) {
       setError(getErrorMessage(err, t));

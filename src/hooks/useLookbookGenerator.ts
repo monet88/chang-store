@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { useImageDriver } from '../contexts/useImageDriver';
 import { getErrorMessage } from '../utils/imageUtils';
 import { generateClothingDescription } from '../services/textService';
 import { useLookbookDraft } from './useLookbookDraft';
@@ -44,13 +45,21 @@ export const useLookbookGenerator = () => {
   const { t } = useLanguage();
   const { textGenerateModel } = useApi();
   const { addImage } = useImageGallery();
+  const imageDriver = useImageDriver();
   const { editImage, upscaleImage, createImageChatSession, model: imageEditModel, id: engineId } = useImageEngine();
 
   // Driver over the studio-scoped engine; tests can inject a mock.
-  const driver = useMemo<GeminiImageDriver>(
-    () => ({ editImage, upscaleImage, createImageChatSession: createImageChatSession ?? undefined }),
-    [editImage, upscaleImage, createImageChatSession],
-  );
+  const driver = useMemo<GeminiImageDriver>(() => {
+    const legacy = {
+      editImage,
+      upscaleImage,
+      createImageChatSession: createImageChatSession ?? undefined,
+    };
+    if (!imageDriver) {
+      return legacy;
+    }
+    return Object.assign(Object.create(imageDriver), legacy);
+  }, [imageDriver, editImage, upscaleImage, createImageChatSession]);
 
   const buildImageServiceConfig = useCallback(
     (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),

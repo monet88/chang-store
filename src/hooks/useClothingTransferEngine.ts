@@ -9,6 +9,8 @@ import {
 } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { editImage, upscaleImage } from '../services/imageEditingService';
+import type { ImageDriver, GenerateJob, ReferenceRoleImage } from '../services/providers/ImageDriver';
+import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
 import { buildGeminiClothingTransferParts } from '../utils/gemini-clothing-transfer-prompt';
 import { buildGptClothingTransferParts } from '../utils/gpt-clothing-transfer-prompt';
 import { buildQwenClothingTransferParts } from '../utils/qwen-clothing-transfer-prompt';
@@ -20,15 +22,16 @@ import { UseImageRefinementReturn } from './useImageRefinement';
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
 /**
- * Image primitives the engine orchestrates, mirroring the provider
- * `ProviderImageDriver` seam. The main hook builds the default driver from the
- * real `imageEditingService`; tests can inject a mock driver to exercise the
- * generation core without hitting the active image API.
+ * Image primitives the engine orchestrates. Accepts canonical ImageDriver
+ * or legacy driver for test compatibility.
  */
-export interface ClothingTransferImageDriver {
-  editImage: typeof editImage;
-  upscaleImage: typeof upscaleImage;
-}
+export type ClothingTransferImageDriver = ImageDriver | {
+  editImage?: typeof editImage;
+  upscaleImage?: typeof upscaleImage;
+  generate?: (job: GenerateJob) => Promise<ImageFile[]>;
+  generateOne?: (job: GenerateJob) => Promise<ImageFile>;
+  upscale?: (job: any) => Promise<ImageFile>;
+};
 
 export interface UseClothingTransferEngineConfig {
   driver: ClothingTransferImageDriver;
@@ -89,18 +92,46 @@ export const useClothingTransferEngine = (
           gptImage: () => buildGptClothingTransferParts(conceptImage, refsWithImages, trimmedExtraPrompt),
           gemini: () => buildGeminiClothingTransferParts(conceptImage, refsWithImages, trimmedExtraPrompt),
         });
-        const results = await driver.editImage(
-          {
+        const references: ReferenceRoleImage[] = [
+          { image: conceptImage, role: 'subject', label: 'destination-model' },
+          ...refsWithImages.map((ref) => ({
+            image: ref.image,
+            role: 'garment' as const,
+            label: ref.label,
+          })),
+        ];
+
+        const flattened = flattenInterleavedParts(interleavedParts);
+        const compiledPrompt = flattened ? flattened.prompt : trimmedExtraPrompt;
+
+        let results: ImageFile[];
+        if (typeof (driver as any).generate === 'function') {
+          results = await (driver as any).generate({
             images: [conceptImage, ...referenceImages],
-            prompt: '',
-            numberOfImages: numImages,
+            prompt: compiledPrompt,
+            references,
+            count: numImages,
             aspectRatio,
             resolution,
+            workflow: 'clothing-transfer',
+            model: imageEditModel,
+            onProgress: setLoadingMessage,
             interleavedParts,
-          },
-          imageEditModel,
-          buildImageServiceConfig(setLoadingMessage),
-        );
+          });
+        } else {
+          results = await (driver as any).editImage(
+            {
+              images: [conceptImage, ...referenceImages],
+              prompt: compiledPrompt,
+              numberOfImages: numImages,
+              aspectRatio,
+              resolution,
+              interleavedParts,
+            },
+            imageEditModel,
+            buildImageServiceConfig(setLoadingMessage),
+          );
+        }
         updateConceptItem(itemId, { status: 'completed', results, error: undefined });
         results.forEach((image) => addImage(image, Feature.ClothingTransfer, engineId));
       } catch (itemError) {

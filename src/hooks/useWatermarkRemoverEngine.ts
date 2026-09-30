@@ -1,17 +1,19 @@
 import { useCallback } from 'react';
 import { editImage } from '@/services/gemini/image';
+import type { ImageDriver, GenerateJob } from '@/services/providers/ImageDriver';
 import { runBoundedWorkers } from '@/utils/run-bounded-workers';
 import { getPromptText } from '@/utils/watermark-prompts';
 import { type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '@/types';
 
 /**
- * Image-edit primitive the engine orchestrates. The main hook builds the
- * default driver from the real gemini service; tests can inject a mock driver
- * to exercise the processing core without hitting the Gemini API.
+ * Image-edit primitive the engine orchestrates. Accepts canonical ImageDriver
+ * or legacy driver for test compatibility.
  */
-export interface WatermarkImageDriver {
-  editImage: typeof editImage;
-}
+export type WatermarkImageDriver = ImageDriver | {
+  editImage?: typeof editImage;
+  generate?: (job: GenerateJob) => Promise<ImageFile[]>;
+  generateOne?: (job: GenerateJob) => Promise<ImageFile>;
+};
 
 export interface UseWatermarkRemoverEngineConfig {
   driver: WatermarkImageDriver;
@@ -45,15 +47,35 @@ export const useWatermarkRemoverEngine = (
     try {
       updateItem(item.id, { status: 'processing', error: undefined });
 
-      const results = await driver.editImage({
-        images: [item.original],
-        prompt,
-        model,
-        numberOfImages: 1,
-      });
+      let result: ImageFile | undefined;
+      if (typeof (driver as any).generateOne === 'function') {
+        result = await (driver as any).generateOne({
+          images: [item.original],
+          prompt,
+          model,
+          workflow: 'watermark-remover',
+        });
+      } else if (typeof (driver as any).generate === 'function') {
+        const results = await (driver as any).generate({
+          images: [item.original],
+          prompt,
+          count: 1,
+          model,
+          workflow: 'watermark-remover',
+        });
+        result = results[0];
+      } else {
+        const results = await (driver as any).editImage({
+          images: [item.original],
+          prompt,
+          model,
+          numberOfImages: 1,
+        });
+        result = results[0];
+      }
 
-      if (results.length > 0) {
-        updateItem(item.id, { status: 'completed', result: results[0] });
+      if (result) {
+        updateItem(item.id, { status: 'completed', result });
       } else {
         throw new Error('No result returned from API');
       }

@@ -18,19 +18,23 @@ import { dispatchByEngine, resolveEngineConcurrency } from '../utils/engineDispa
 import { UseVirtualTryOnSubjectsReturn } from './useVirtualTryOnSubjects';
 import { UseImageRefinementReturn } from './useImageRefinement';
 import { useAiScan } from '../contexts/AiScanContext';
+import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
+import type { ImageDriver, ReferenceRoleImage, GenerateJob } from '../services/providers/ImageDriver';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
 /**
- * Image primitives the engine orchestrates, mirroring the provider
- * `ProviderImageDriver` seam. The main hook builds the default driver from the
- * real `imageEditingService`; tests can inject a mock driver to exercise the
- * generation core without hitting the active image API.
+ * Image primitives the engine orchestrates. Accepts canonical ImageDriver
+ * or legacy driver for test compatibility.
  */
-export interface VirtualTryOnImageDriver {
-  editImage: typeof editImage;
-  upscaleImage: typeof upscaleImage;
-}
+export type VirtualTryOnImageDriver = ImageDriver | {
+  editImage?: typeof editImage;
+  upscaleImage?: typeof upscaleImage;
+  generate?: (job: GenerateJob) => Promise<ImageFile[]>;
+  generateOne?: (job: GenerateJob) => Promise<ImageFile>;
+  upscale?: (job: any) => Promise<ImageFile>;
+};
+
 
 export interface UseVirtualTryOnEngineConfig {
   driver: VirtualTryOnImageDriver;
@@ -120,19 +124,51 @@ export const useVirtualTryOnEngine = (
           gptImage: () => buildGptVirtualTryOnParts(promptInput),
           gemini: () => buildGeminiVirtualTryOnParts(promptInput),
         });
-        const results = await driver.editImage(
-          {
+
+        const references: ReferenceRoleImage[] = [
+          { image: finalSubjectImage, role: 'subject', label: 'model' },
+          ...sourceItems.map((item, index) => ({
+            image: item.image,
+            role: 'garment' as const,
+            label: `item-${index + 1}-${item.sourceItemType}${item.sourcePrompt ? `: ${item.sourcePrompt}` : ''}`,
+          })),
+        ];
+
+        const flattened = flattenInterleavedParts(interleavedParts);
+        const compiledPrompt = flattened ? flattened.prompt : '';
+
+        let results: ImageFile[];
+        if (typeof (driver as any).generate === 'function') {
+          results = await (driver as any).generate({
             images: [],
-            prompt: '',
-            numberOfImages: numImages,
+            prompt: compiledPrompt,
+            references,
+            count: numImages,
             aspectRatio,
             resolution,
+            workflow: 'virtual-try-on',
+            model: imageEditModel,
+            onProgress: setLoadingMessage,
             interleavedParts,
-          },
-          imageEditModel,
-          buildImageServiceConfig(setLoadingMessage),
-        );
+          });
+        } else {
+
+
+          results = await (driver as any).editImage(
+            {
+              images: [],
+              prompt: compiledPrompt,
+              numberOfImages: numImages,
+              aspectRatio,
+              resolution,
+              interleavedParts,
+            },
+            imageEditModel,
+            buildImageServiceConfig(setLoadingMessage),
+          );
+        }
         subjects.updateSubjectItem(itemId, { status: 'completed', results, error: undefined });
+
         results.forEach((image) => addImage?.(image, Feature.TryOn, engineId));
       } catch (itemError) {
         subjects.updateSubjectItem(itemId, {

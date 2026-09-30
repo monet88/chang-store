@@ -28,10 +28,10 @@ export const isUncensoredModel = (modelName: string | undefined | null): boolean
   Boolean(modelName && UC_SEGMENT.test(modelName));
 
 /**
- * Phrases that explicitly REFUSE a face swap ("no face swap", "không đổi mặt").
- * Checked first so a prompt that merely bans swapping never triggers the LoRA.
+ * Canonical phrases that explicitly REFUSE a face swap ("no face swap", "không đổi mặt").
+ * Preserved for backward compatibility and fast-path substring check.
  */
-const FACE_SWAP_REFUSAL_PHRASES = [
+export const FACE_SWAP_REFUSAL_PHRASES = [
   'no face swap',
   'without face swap',
   'do not swap',
@@ -45,13 +45,55 @@ const FACE_SWAP_REFUSAL_PHRASES = [
   'không thay khuôn mặt',
   'không chuyển mặt',
   'không chuyển danh tính',
+] as const;
+
+/**
+ * Normalizes user prompt for robust refusal and intent matching:
+ * 1. Lowercases the string.
+ * 2. Strips apostrophes (e.g. "don't" -> "dont").
+ * 3. Replaces hyphens/underscores with space (e.g. "face-swap" -> "face swap").
+ * 4. Strips Vietnamese diacritics via NFD normalization into ASCII (e.g. "đừng" -> "dung", "đổi" -> "doi").
+ * 5. Unifies compound "faceswap" into "face swap".
+ * 6. Collapses multiple whitespace.
+ */
+export const normalizePromptForRefusal = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/[-_]/g, ' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/gi, 'd')
+    .replace(/\bfaceswap\b/g, 'face swap')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * Regex patterns matching refusal intent on normalized ASCII text:
+ * - English negations & imperatives: no, without, do not, dont, never, not, stop, skip + face swap/swap face
+ * - English retention: keep (the)? original face, keep face original
+ * - Vietnamese negations & imperatives: khong, dung, cho + doi, thay, ghep, chuyen, hoan doi + mat, khuon mat, danh tinh
+ * - Mixed language code-switching: khong/dung/cho + face swap
+ * - Vietnamese retention: giu (nguyen)? (mat|khuon mat|mat goc)
+ */
+const REFUSAL_PATTERNS = [
+  /\b(no|without|do not|dont|never|not|stop|skip)\s+(face\s*swap|swap\s*(the\s*)?face|swapping\s*face|head\s*swap)\b/i,
+  /\b(do not|dont)\s+swap\b/i,
+  /\bkeep\s+(the\s*)?original\s*face\b/i,
+  /\bkeep\s+face\s+original\b/i,
+  /\b(khong|dung|cho)\s+((doi|thay|ghep|chuyen|hoan\s*doi)\s+(khuon\s*mat|mat|danh\s*tinh)|face\s*swap)\b/i,
+  /\bgiu\s+(nguyen\s+)?(mat(\s+goc)?|khuon\s*mat)\b/i,
 ];
 
 /** Whether a prompt explicitly forbids face swapping. */
 export const isFaceSwapRefusal = (prompt: string): boolean => {
   if (!prompt) return false;
   const promptLower = prompt.toLowerCase();
-  return FACE_SWAP_REFUSAL_PHRASES.some((phrase) => promptLower.includes(phrase));
+  if (FACE_SWAP_REFUSAL_PHRASES.some((phrase) => promptLower.includes(phrase))) {
+    return true;
+  }
+  const norm = normalizePromptForRefusal(prompt);
+  return REFUSAL_PATTERNS.some((pattern) => pattern.test(norm));
 };
 
 /**
@@ -229,6 +271,10 @@ export const getDesktopLocalQwenApi = (): DesktopLocalQwenApi | undefined => {
 
 export {
   classifyLocalQwenError,
+  LOCAL_QWEN_UNAVAILABLE_MESSAGE,
   type LocalQwenErrorKind,
   type ClassifiedLocalQwenError,
 } from '../utils/localQwenErrors';
+
+export type { DesktopBridgeResult } from './desktopGateway';
+

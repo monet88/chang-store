@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { editImage } from '@/services/gemini/image';
+import { useOptionalImageDriver } from '@/contexts/useImageDriver';
 import { Feature, type ImageEngineId, type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '@/types';
 import { type WatermarkModel } from '@/utils/watermark-prompts';
 import { useWatermarkRemoverQueue } from './useWatermarkRemoverQueue';
@@ -43,9 +44,17 @@ export function useWatermarkRemover(
   engineId?: ImageEngineId,
 ): UseWatermarkRemoverReturn {
   const queue = useWatermarkRemoverQueue();
+  const imageDriver = useOptionalImageDriver();
 
   // Default driver wraps the real gemini service; tests can inject a mock.
-  const driver = useMemo<WatermarkImageDriver>(() => ({ editImage }), []);
+  const driver = useMemo<WatermarkImageDriver>(() => {
+    if (!imageDriver) {
+      return { editImage };
+    }
+    return Object.assign(Object.create(imageDriver), {
+      editImage,
+    });
+  }, [imageDriver]);
 
   const engine = useWatermarkRemoverEngine({
     driver,

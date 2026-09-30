@@ -17,6 +17,8 @@ import {
   type WardrobeSet,
 } from '../types';
 import { editImage } from '../services/imageEditingService';
+import type { ImageDriver, GenerateJob, ReferenceRoleImage } from '../services/providers/ImageDriver';
+import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
 import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '../utils/gpt-virtual-try-on-prompt';
 import { buildQwenVirtualTryOnParts } from '../utils/qwen-virtual-try-on-prompt';
@@ -26,9 +28,11 @@ import { getErrorMessage } from '../utils/imageUtils';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { useAiScan } from '../contexts/AiScanContext';
 
-export interface WardrobeImageDriver {
-  editImage: typeof editImage;
-}
+export type WardrobeImageDriver = ImageDriver | {
+  editImage?: typeof editImage;
+  generate?: (job: GenerateJob) => Promise<ImageFile[]>;
+  generateOne?: (job: GenerateJob) => Promise<ImageFile>;
+};
 
 export interface UseWardrobeModeEngineConfig {
   driver: WardrobeImageDriver;
@@ -144,18 +148,46 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
             gemini: () => buildGeminiVirtualTryOnParts(promptInput),
           });
 
-          const images = await driver.editImage(
-            {
+          const references: ReferenceRoleImage[] = [
+            { image: capturedSubject, role: 'subject', label: 'model' },
+            ...job.items.map((item: any, idx: number) => ({
+              image: item.image as ImageFile,
+              role: 'garment' as const,
+              label: `item-${idx + 1}-${item.sourceItemType}`,
+            })),
+          ];
+
+          const flattened = flattenInterleavedParts(interleavedParts);
+          const compiledPrompt = flattened ? flattened.prompt : '';
+
+          let images: ImageFile[];
+          if (typeof (driver as any).generate === 'function') {
+            images = await (driver as any).generate({
               images: [],
-              prompt: '',
-              numberOfImages: numImages,
+              prompt: compiledPrompt,
+              references,
+              count: numImages,
               aspectRatio,
               resolution,
               interleavedParts,
-            },
-            imageEditModel,
-            { onStatusUpdate: setLoadingMessage },
-          );
+              workflow: 'wardrobe-mode',
+              model: imageEditModel,
+              onProgress: setLoadingMessage,
+            });
+          } else {
+            images = await (driver as any).editImage(
+              {
+                images: [],
+                prompt: compiledPrompt,
+                numberOfImages: numImages,
+                aspectRatio,
+                resolution,
+                interleavedParts,
+              },
+              imageEditModel,
+              { onStatusUpdate: setLoadingMessage },
+            );
+          }
 
           setResults((prev) =>
             prev.map((r) =>

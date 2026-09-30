@@ -57,7 +57,7 @@ export const useLookbookRefinement = (
     if (generatedLookbook && !chatSession) {
       const session = driver.createImageChatSession
         ? driver.createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}))
-        : createSingleShotRefineSession(driver.editImage, imageEditModel);
+        : (driver.editImage ? createSingleShotRefineSession(driver.editImage, imageEditModel) : null);
       setChatSession(session);
     }
   }, [generatedLookbook, chatSession, imageEditModel, buildImageServiceConfig, driver]);
@@ -68,7 +68,7 @@ export const useLookbookRefinement = (
     setSelectedVersionIndex(-1);
     const session = driver.createImageChatSession
       ? driver.createImageChatSession(imageEditModel, buildImageServiceConfig(() => {}))
-      : createSingleShotRefineSession(driver.editImage, imageEditModel);
+      : (driver.editImage ? createSingleShotRefineSession(driver.editImage, imageEditModel) : null);
     setChatSession(session);
     setRefinementHistory([]);
   }, [imageEditModel, buildImageServiceConfig, driver]);
