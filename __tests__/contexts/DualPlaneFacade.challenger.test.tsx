@@ -461,34 +461,7 @@ describe('Milestone 4 Adversarial Challenger Suite: Dual-Plane Facade & Boundary
       expect(err instanceof DriverContextExports.StudioDriverError).toBe(true);
     });
 
-    it('safely supports destructuring of createMockBridgeDriver methods without unbound this', async () => {
-      const legacyMockEditImage = vi.fn(async () => [
-        { base64: 'destructured-img', mimeType: 'image/png' },
-      ]);
-      const legacyEngine = {
-        id: 'gemini' as const,
-        editImage: legacyMockEditImage,
-      };
 
-      const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-        <ImageEngineContext.Provider value={legacyEngine as any}>
-          {children}
-        </ImageEngineContext.Provider>
-      );
-
-      const { result } = renderHook(() => useImageDriver(), { wrapper });
-      const { generateOne, generate, upscale } = result.current;
-
-      const one = await generateOne({ prompt: 'test destructure' });
-      expect(one.base64).toBe('destructured-img');
-      expect(legacyMockEditImage).toHaveBeenCalledTimes(1);
-
-      const gen = await generate({ prompt: 'test generate destructure' });
-      expect(gen.length).toBe(1);
-
-      const up = await upscale({ image: { base64: 'raw', mimeType: 'image/png' } });
-      expect(up.base64).toBe('raw');
-    });
 
     it('robustly normalizes upscale quality parameter variants', async () => {
       const fakeDriver = new InMemoryImageDriverFake('gemini');
@@ -569,72 +542,6 @@ describe('Milestone 4 Adversarial Challenger Suite: Dual-Plane Facade & Boundary
       expect(innerDriver.id).toBe('localQwen');
     });
 
-    it('synthesizes a fully functional mock bridge driver when legacy useImageEngine is mocked without driver', async () => {
-      // Simulate a legacy unit test that mocks ImageEngineContext with raw editImage / upscaleImage stubs
-      const legacyMockEditImage = vi.fn(async (params, _model, _config) => {
-        return [{ base64: 'legacy-generated-image', mimeType: 'image/png' }];
-      });
-      const legacyMockUpscaleImage = vi.fn(async (image, _model, _config, quality) => {
-        return { base64: `legacy-upscaled-${quality}`, mimeType: 'image/png' };
-      });
-
-      const legacyEngineMock = {
-        id: 'gemini' as const,
-        model: 'gemini-custom',
-        editImage: legacyMockEditImage,
-        upscaleImage: legacyMockUpscaleImage,
-      };
-
-      const LegacyContextWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-        return (
-          <ImageEngineContext.Provider value={legacyEngineMock as any}>
-            {children}
-          </ImageEngineContext.Provider>
-        );
-      };
-
-      const { result } = renderHook(() => useImageDriver(), { wrapper: LegacyContextWrapper });
-
-      const driver = result.current;
-      expect(driver).toBeDefined();
-      expect(driver.id).toBe('gemini');
-
-      // Test synthesize generate
-      const genResults = await driver.generate({
-        prompt: 'Synthesizer prompt',
-        count: 2,
-        aspectRatio: '3:4',
-      });
-      expect(genResults.length).toBe(1);
-      expect(legacyMockEditImage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          prompt: 'Synthesizer prompt',
-          numberOfImages: 2,
-          aspectRatio: '3:4',
-        }),
-        'gemini-custom',
-        undefined
-      );
-
-      // Test synthesize generateOne
-      const oneResult = await driver.generateOne({
-        prompt: 'Synthesizer single item',
-      });
-      expect(oneResult.base64).toBe('legacy-generated-image');
-
-      // Test synthesize upscale
-      const upResult = await driver.upscale({
-        image: { base64: 'input-img', mimeType: 'image/png' },
-        quality: '4K',
-      });
-      expect(upResult.base64).toBe('legacy-upscaled-4K');
-      expect(legacyMockUpscaleImage).toHaveBeenCalledWith(
-        expect.objectContaining({ base64: 'input-img' }),
-        'gemini-custom',
-        expect.any(Object),
-        '4K'
-      );
-    });
   });
 
   // ==========================================================================

@@ -31,7 +31,7 @@ interface UseWardrobeModeParams {
 export const useWardrobeMode = (params: UseWardrobeModeParams) => {
   const { t } = useLanguage();
   const imageDriver = useImageDriver();
-  const { editImage, id: contextEngineId } = useImageEngine();
+  const { id: contextEngineId } = useImageEngine();
 
   const list = useWardrobeModeList();
 
@@ -40,14 +40,7 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
   const [error, setError] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('');
 
-  const driver = useMemo<WardrobeImageDriver>(() => {
-    if (!imageDriver) {
-      return { editImage };
-    }
-    return Object.assign(Object.create(imageDriver), {
-      editImage,
-    });
-  }, [imageDriver, editImage]);
+  const driver = imageDriver;
 
   // AI Scan source set for the panel's badge: the first set's garments plus the
   // subject, i.e. exactly what that set's generation will deconstruct. Every

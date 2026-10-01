@@ -57,6 +57,62 @@ vi.mock('../../src/contexts/ImageEngineContext', () => ({
   }),
 }));
 
+vi.mock('../../src/contexts/useImageDriver', () => ({
+  useImageDriver: () => ({
+    id: activeEngineId.current,
+    generate: vi.fn(async (job: any) => {
+      const editParams = {
+        images: job.images ?? job.references?.map((r: any) => r.image) ?? [],
+        prompt: job.interleavedParts ? '' : job.prompt,
+        numberOfImages: job.count ?? 1,
+        aspectRatio: job.aspectRatio,
+        resolution: job.resolution,
+        workflow: job.workflow,
+        negativePrompt: job.negativePrompt,
+        interleavedParts: job.interleavedParts,
+      };
+      return editImage(
+        editParams,
+        'gemini-2.5-flash-image',
+        { onStatusUpdate: job.onProgress ?? (() => {}) },
+      );
+    }),
+    generateOne: vi.fn(async (job: any) => {
+      const editParams = {
+        images: job.images ?? job.references?.map((r: any) => r.image) ?? [],
+        prompt: job.interleavedParts ? '' : job.prompt,
+        numberOfImages: 1,
+        aspectRatio: job.aspectRatio,
+        resolution: job.resolution,
+        workflow: job.workflow,
+        negativePrompt: job.negativePrompt,
+        interleavedParts: job.interleavedParts,
+      };
+      const res = await editImage(
+        editParams,
+        'gemini-2.5-flash-image',
+        { onStatusUpdate: job.onProgress ?? (() => {}) },
+      );
+      return res[0];
+    }),
+    upscale: vi.fn(async (job: any) => {
+      return job.quality !== undefined
+        ? upscaleImage(
+            job.image,
+            'gemini-2.5-flash-image',
+            { onStatusUpdate: job.onProgress ?? (() => {}) },
+            job.quality,
+          )
+        : upscaleImage(
+            job.image,
+            'gemini-2.5-flash-image',
+            { onStatusUpdate: job.onProgress ?? (() => {}) },
+          );
+    }),
+  }),
+  useOptionalImageDriver: () => null,
+}));
+
 import { createImageChatSession, editImage, upscaleImage } from '../../src/services/imageEditingService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';
 import { useClothingTransfer } from '../../src/hooks/useClothingTransfer';

@@ -182,7 +182,7 @@ describe('Adversarial Challenge: Feature Hooks Migration (Challenger Suite)', ()
         result.current.handleConceptUpload(TEST_GARMENT_IMAGE);
         // Adversarial attack: user puts "tuck in shirt into pants" in reference label
         result.current.handleReferenceUpload(TEST_SUBJECT_IMAGE, result.current.referenceItems[0].id);
-        result.current.handleReferenceLabel(result.current.referenceItems[0].id, 'tuck in shirt into pants');
+        result.current.handleReferenceLabel('tuck in shirt into pants', result.current.referenceItems[0].id);
       });
 
       await act(async () => {

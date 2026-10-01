@@ -16,12 +16,13 @@ import {
   isStudioDriverError,
 } from '../ImageDriver';
 import { getGeminiClient } from '../../apiClient';
-import { resolveImageSizeConfig } from '../../../config/modelRegistry';
-import { appendNegativePrompt } from '../../../utils/negative-prompt-builder';
+import { getModelCapabilities, resolveImageSizeConfig } from '../../../config/modelRegistry';
+import { appendNegativePrompt, negativePromptSentence } from '../../../utils/negative-prompt-builder';
 import { buildUpscalePrompt } from '../../../utils/upscale-prompt-builder';
 import { withImageRequestSlot } from '../../../utils/request-slots';
 import { runBoundedWorkers } from '../../../utils/run-bounded-workers';
 import { DEFAULT_MAX_CONCURRENCY } from '../../../utils/engineDispatch';
+import { logApiCall } from '../../debugService';
 
 export const DEFAULT_GEMINI_IMAGE_MODEL = 'gemini-3.1-flash-image';
 
@@ -62,9 +63,15 @@ export function formatReferenceRoleHeader(ref: ReferenceRoleImage): string {
  * The combined task prompt (including negative prompt avoid sentence) is appended.
  */
 export function buildGeminiParts(job: GenerateJob): Part[] {
+  // 1. If interleavedParts is present, send it as-is (+ negative-prompt sentence)
+  if (job.interleavedParts && job.interleavedParts.length > 0) {
+    const avoidSentence = negativePromptSentence(job.negativePrompt);
+    return avoidSentence ? [...job.interleavedParts, { text: avoidSentence }] : job.interleavedParts;
+  }
+
   const parts: Part[] = [];
 
-  // 1. Interleaved semantic references (Role header text + Image part)
+  // 2. Interleaved semantic references OR unlabelled images (never both)
   if (job.references && job.references.length > 0) {
     for (const ref of job.references) {
       parts.push({ text: formatReferenceRoleHeader(ref) });
@@ -75,10 +82,7 @@ export function buildGeminiParts(job: GenerateJob): Part[] {
         },
       });
     }
-  }
-
-  // 2. Unlabelled images (legacy or flat input)
-  if (job.images && job.images.length > 0) {
+  } else if (job.images && job.images.length > 0) {
     for (const img of job.images) {
       parts.push({
         inlineData: {
@@ -171,6 +175,9 @@ export function mapGeminiErrorToStudioDriverError(error: unknown): StudioDriverE
 
   const lower = rawMessage.toLowerCase();
   const status = typeof (error as any)?.status === 'number' ? (error as any).status : undefined;
+  const formattedMessage = rawMessage.startsWith('error.')
+    ? rawMessage
+    : `error.api.geminiFailed:${rawMessage}`;
 
   // 1. Cancellation / Abort
   if (
@@ -195,7 +202,7 @@ export function mapGeminiErrorToStudioDriverError(error: unknown): StudioDriverE
     lower.includes('promptfeedback') ||
     lower.includes('safety')
   ) {
-    return new StudioDriverError('safety_blocked', rawMessage, {
+    return new StudioDriverError('safety_blocked', rawMessage.startsWith('error.') ? rawMessage : 'error.api.safetyBlock', {
       status: 400,
       retryable: false,
       cause: error,
@@ -210,7 +217,7 @@ export function mapGeminiErrorToStudioDriverError(error: unknown): StudioDriverE
     lower.includes('rate limit') ||
     lower.includes('too many requests')
   ) {
-    return new StudioDriverError('rate_limited', rawMessage, {
+    return new StudioDriverError('rate_limited', formattedMessage, {
       status: 429,
       retryable: true,
       cause: error,
@@ -235,7 +242,7 @@ export function mapGeminiErrorToStudioDriverError(error: unknown): StudioDriverE
     lower.includes('unreachable') ||
     lower.includes('unavailable')
   ) {
-    return new StudioDriverError('gateway_down', rawMessage, {
+    return new StudioDriverError('gateway_down', formattedMessage, {
       status: status ?? 503,
       retryable: true,
       cause: error,
@@ -255,7 +262,7 @@ export function mapGeminiErrorToStudioDriverError(error: unknown): StudioDriverE
     lower.includes('unauthorized') ||
     lower.includes('forbidden')
   ) {
-    return new StudioDriverError('unknown', rawMessage, {
+    return new StudioDriverError('unknown', formattedMessage, {
       status: status ?? 401,
       retryable: false,
       cause: error,
@@ -263,7 +270,7 @@ export function mapGeminiErrorToStudioDriverError(error: unknown): StudioDriverE
   }
 
   // 6. Default fallback
-  return new StudioDriverError('unknown', rawMessage, {
+  return new StudioDriverError('unknown', formattedMessage, {
     status,
     retryable: false,
     cause: error,
@@ -334,6 +341,7 @@ export class GeminiImageDriverAdapter implements ImageDriver {
 
     // 3. Resolve effective model and capabilities
     const effectiveModel = job.model || this.defaultModel;
+    const capabilities = getModelCapabilities(effectiveModel);
 
     // 4. Build interleaved parts
     const contentParts = buildGeminiParts(job);
@@ -341,10 +349,8 @@ export class GeminiImageDriverAdapter implements ImageDriver {
     // 5. Build imageConfig (aspectRatio and imageSize)
     const imageConfig: { aspectRatio?: string; imageSize?: string } = {};
 
-    if (job.aspectRatio && job.aspectRatio !== 'Default') {
+    if (job.aspectRatio && job.aspectRatio !== 'Default' && capabilities.supportsAspectRatio) {
       imageConfig.aspectRatio = job.aspectRatio;
-    } else if (job.aspectRatio === 'Default') {
-      imageConfig.aspectRatio = '1:1';
     }
 
     const imageSize = resolveImageSizeConfig(effectiveModel, job.resolution);
@@ -358,10 +364,12 @@ export class GeminiImageDriverAdapter implements ImageDriver {
       ...(Object.keys(imageConfig).length > 0 ? { imageConfig } : {}),
     };
 
-    job.onProgress?.(`Gemini: dispatching generation on ${effectiveModel}...`);
-
     const count = Math.max(1, job.count ?? 1);
     const client = this.getClient();
+    const startTime = Date.now();
+    const logPrompt = job.prompt
+      || (job.interleavedParts?.filter((p: any) => p.text).map((p: any) => p.text).join(' | '))
+      || '';
 
     const generateSingleImage = async (): Promise<ImageFile> => {
       if (job.signal?.aborted) {
@@ -392,7 +400,15 @@ export class GeminiImageDriverAdapter implements ImageDriver {
     try {
       if (count === 1) {
         const singleResult = await generateSingleImage();
-        job.onProgress?.('Gemini: generation completed.');
+        logApiCall({
+          provider: 'Gemini',
+          model: effectiveModel,
+          feature: job.workflow || 'Image Generate',
+          prompt: logPrompt,
+          duration: Date.now() - startTime,
+          status: 'success',
+          responseSize: singleResult.base64.length * 0.75,
+        });
         return [singleResult];
       }
 
@@ -415,9 +431,27 @@ export class GeminiImageDriverAdapter implements ImageDriver {
         results.push(...batchResults);
       }
 
-      job.onProgress?.('Gemini: generation completed.');
+      logApiCall({
+        provider: 'Gemini',
+        model: effectiveModel,
+        feature: job.workflow || 'Image Generate',
+        prompt: logPrompt,
+        duration: Date.now() - startTime,
+        status: 'success',
+        responseSize: results.reduce((sum, img) => sum + img.base64.length * 0.75, 0),
+      });
+
       return results;
     } catch (err) {
+      logApiCall({
+        provider: 'Gemini',
+        model: effectiveModel,
+        feature: job.workflow || 'Image Generate',
+        prompt: logPrompt,
+        duration: Date.now() - startTime,
+        status: 'error',
+        error: err instanceof Error ? err.message : String(err),
+      });
       throw mapGeminiErrorToStudioDriverError(err);
     }
   }
@@ -445,10 +479,9 @@ export class GeminiImageDriverAdapter implements ImageDriver {
     this.recordedJobs.push({ ...job });
 
     const quality: UpscaleQuality = job.quality ?? '2K';
-    job.onProgress?.(`Gemini: running ${quality} upscale re-synthesis...`);
-
     const effectiveModel = this.defaultModel;
     const client = this.getClient();
+    const startTime = Date.now();
 
     const upscalePrompt = buildUpscalePrompt(quality, 'model');
     const imagePart: Part = {
@@ -481,13 +514,31 @@ export class GeminiImageDriverAdapter implements ImageDriver {
       }
 
       const extracted = extractInlineImageFromResponse(response);
-      job.onProgress?.('Gemini: upscale completed.');
+
+      logApiCall({
+        provider: 'Gemini',
+        model: effectiveModel,
+        feature: 'Upscale',
+        prompt: upscalePrompt,
+        duration: Date.now() - startTime,
+        status: 'success',
+        responseSize: extracted.base64.length * 0.75,
+      });
 
       return {
         base64: extracted.base64,
         mimeType: extracted.mimeType || job.image.mimeType || 'image/png',
       };
     } catch (err) {
+      logApiCall({
+        provider: 'Gemini',
+        model: effectiveModel,
+        feature: 'Upscale',
+        prompt: upscalePrompt,
+        duration: Date.now() - startTime,
+        status: 'error',
+        error: err instanceof Error ? err.message : String(err),
+      });
       throw mapGeminiErrorToStudioDriverError(err);
     }
   }

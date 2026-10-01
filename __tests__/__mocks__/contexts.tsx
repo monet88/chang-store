@@ -354,7 +354,9 @@ export const mockUseImageEngine = (
       (fakeDriver as any).dispatchedJobs?.push({ ...job });
       (fakeDriver as any).recordedCalls?.push({ type: 'generate', job: { ...job }, timestamp: Date.now() });
       const editParams = {
-        images: job.images ?? job.references?.map((r) => r.image) ?? [],
+        images: (job as any).interleavedParts
+          ? (job.images ?? [])
+          : (job.images ?? job.references?.map((r) => r.image) ?? []),
         prompt: (job as any).interleavedParts ? '' : job.prompt,
         numberOfImages: job.count ?? 1,
         aspectRatio: job.aspectRatio,
@@ -370,11 +372,11 @@ export const mockUseImageEngine = (
         overrides.model ?? 'gemini-2.5-flash-image',
         { onStatusUpdate: job.onProgress ?? (() => {}) } as any,
       );
-    });
+    }) as any;
     fakeDriver.generateOne = vi.fn(async (job: GenerateJob) => {
       const results = await fakeDriver.generate(job);
       return results[0];
-    });
+    }) as any;
   }
 
   if (overrides.upscaleImage) {
@@ -393,7 +395,7 @@ export const mockUseImageEngine = (
             overrides.model ?? 'gemini-2.5-flash-image',
             { onStatusUpdate: job.onProgress ?? (() => {}) } as any,
           );
-    });
+    }) as any;
   }
 
   const defaults: ImageEngine = {

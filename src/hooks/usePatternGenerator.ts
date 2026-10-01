@@ -1,20 +1,20 @@
 import { useCallback, useRef, useState } from 'react';
 import { Feature, ImageFile } from '../types';
 import { useImageEngine } from '../contexts/ImageEngineContext';
-import { useOptionalImageDriver } from '../contexts/useImageDriver';
+import { useImageDriver } from '../contexts/useImageDriver';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import type { ReferenceRoleImage } from '../services/providers/ImageDriver';
 import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
-import { createImageChatSession, editImage, ImageChatSession } from '../services/imageEditingService';
+import { createImageChatSession, ImageChatSession } from '../services/imageEditingService';
 import { buildPatternGeneratorParts, REFINE_CORRECTION, TASK_PROMPT } from '../utils/pattern-generator-prompt-builder';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
 export function usePatternGenerator() {
   const { t } = useLanguage();
-  const driver = useOptionalImageDriver();
+  const driver = useImageDriver();
   const { imageEditModel } = useApi();
   const { addImage } = useImageGallery();
   const { id: engineId } = useImageEngine();
@@ -88,33 +88,16 @@ export function usePatternGenerator() {
       const flattened = flattenInterleavedParts(interleavedParts);
       const compiledPrompt = flattened ? flattened.prompt : taskPrompt;
 
-      let results: ImageFile[];
-      if (typeof driver?.generate === 'function') {
-        results = await driver.generate({
-          images: referenceImages,
-          prompt: compiledPrompt,
-          references,
-          count: numImages,
-          aspectRatio: '1:1',
-          resolution: '4K',
-          interleavedParts,
-          model: imageEditModel,
-          onProgress: handleStatusUpdate,
-        });
-      } else {
-        results = await editImage(
-          {
-            images: referenceImages,
-            prompt: compiledPrompt,
-            numberOfImages: numImages,
-            aspectRatio: '1:1',
-            resolution: '4K',
-            interleavedParts,
-          },
-          imageEditModel,
-          buildImageServiceConfig(handleStatusUpdate),
-        );
-      }
+      const results = await driver.generate({
+        prompt: compiledPrompt,
+        references,
+        count: numImages,
+        aspectRatio: '1:1',
+        resolution: '4K',
+        interleavedParts,
+        model: imageEditModel,
+        onProgress: handleStatusUpdate,
+      });
 
       setGeneratedPatterns(results);
       results.forEach((img) => addImage(img, Feature.PatternGenerator, engineId));

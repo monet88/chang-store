@@ -1,6 +1,5 @@
 import { useCallback, useRef } from 'react';
 import { AspectRatio, ImageFile, ImageResolution, ImageEngineId } from '../types';
-import { editImage, upscaleImage } from '../services/imageEditingService';
 import type { ImageDriver, GenerateJob, UpscaleJob, ReferenceRoleImage } from '../services/providers/ImageDriver';
 import { useAiScan } from '../contexts/AiScanContext';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -8,14 +7,7 @@ import { buildTextPosePrompt, buildReferencePosePrompt } from '../utils/pose-cha
 
 type CameraView = 'default' | 'fullBody' | 'halfBody' | 'kneesUp';
 
-export type PoseImageDriver = Partial<ImageDriver> & {
-  id?: ImageEngineId;
-  editImage?: typeof editImage;
-  upscaleImage?: typeof upscaleImage;
-  generate?: (job: GenerateJob) => Promise<ImageFile[]>;
-  generateOne?: (job: GenerateJob) => Promise<ImageFile>;
-  upscale?: (job: UpscaleJob) => Promise<ImageFile>;
-};
+export type PoseImageDriver = ImageDriver;
 
 export interface UsePoseChangerEngineConfig {
   driver: PoseImageDriver;
@@ -69,40 +61,16 @@ const performEdit = async (
     references.push({ image: images[1], role: 'style', label: 'pose-reference' });
   }
 
-  if (typeof (driver as any).generateOne === 'function') {
-    return (driver as any).generateOne({
-      prompt,
-      images,
-      negativePrompt,
-      references,
-      aspectRatio,
-      resolution,
-      workflow: 'pose-changer',
-      model: imageEditModel,
-      onProgress: onStatus,
-    });
-  }
-  if (typeof (driver as any).generate === 'function') {
-    const results = await (driver as any).generate({
-      prompt,
-      images,
-      negativePrompt,
-      references,
-      count: 1,
-      aspectRatio,
-      resolution,
-      workflow: 'pose-changer',
-      model: imageEditModel,
-      onProgress: onStatus,
-    });
-    return results[0];
-  }
-  const [result] = await (driver as any).editImage(
-    { images, prompt, negativePrompt, numberOfImages: 1, aspectRatio, resolution },
-    imageEditModel,
-    createEditConfig(onStatus),
-  );
-  return result;
+  return driver.generateOne({
+    prompt,
+    references: references.length > 0 ? references : undefined,
+    negativePrompt,
+    aspectRatio,
+    resolution,
+    workflow: 'pose-changer',
+    model: imageEditModel,
+    onProgress: onStatus,
+  });
 };
 
 export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePoseChangerEngineReturn => {

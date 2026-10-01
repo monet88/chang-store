@@ -8,7 +8,21 @@ const upscaleImageMock = vi.fn();
 const addImageMock = vi.fn();
 const setErrorMock = vi.fn();
 
-const mockDriver = {
+const mockDriver: any = {
+  id: 'gemini' as const,
+  generate: vi.fn(async function(this: any, job: any) {
+    const fn = this?.editImage ?? editImageMock;
+    return fn(job);
+  }),
+  generateOne: vi.fn(async function(this: any, job: any) {
+    const fn = this?.editImage ?? editImageMock;
+    const res = await fn(job);
+    return res[0];
+  }),
+  upscale: vi.fn(async function(this: any, job: any) {
+    const fn = this?.upscaleImage ?? upscaleImageMock;
+    return fn(job);
+  }),
   editImage: editImageMock,
   upscaleImage: upscaleImageMock,
 };
@@ -986,7 +1000,7 @@ describe('useClothingTransferEComPack', () => {
     const scanMock = vi.fn().mockResolvedValue(null);
     const editImage = vi.fn().mockResolvedValue([{ base64: 'out', mimeType: 'image/png' }]);
     const { result } = setupHook({
-      driver: { ...mockDriver, editImage },
+      driver: { ...mockDriver, editImage, generate: vi.fn(async (job: any) => editImage(job)) },
       scanBlueprintFn: scanMock,
     });
 
@@ -1011,7 +1025,7 @@ describe('useClothingTransferEComPack', () => {
     const scanMock = vi.fn().mockReturnValue(inFlight.promise);
     const editImage = vi.fn().mockResolvedValue([{ base64: 'out', mimeType: 'image/png' }]);
     const { result } = setupHook({
-      driver: { ...mockDriver, editImage },
+      driver: { ...mockDriver, editImage, generate: vi.fn(async (job: any) => editImage(job)) },
       scanBlueprintFn: scanMock,
     });
 

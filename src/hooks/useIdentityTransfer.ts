@@ -41,7 +41,7 @@ export const useIdentityTransfer = () => {
   const [upscalingItemIds, setUpscalingItemIds] = useState<Record<string, boolean>>({});
 
   const driver = useImageDriver();
-  const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const { model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
   const { t } = useLanguage();
   const { scan } = useAiScan();
@@ -146,45 +146,16 @@ export const useIdentityTransfer = () => {
       const flattened = flattenInterleavedParts(interleavedParts);
       const compiledPrompt = flattened ? flattened.prompt : '';
 
-      let result: ImageFile;
-      if (typeof driver?.generateOne === 'function') {
-        result = await driver.generateOne({
-          images: [],
-          prompt: compiledPrompt,
-          references,
-          aspectRatio,
-          resolution,
-          workflow: 'identity-transfer',
-          model: imageEditModel,
-          onProgress: setLoadingMessage,
-          interleavedParts,
-        });
-      } else if (typeof driver?.generate === 'function') {
-        const results = await driver.generate({
-          images: [],
-          prompt: compiledPrompt,
-          references,
-          count: 1,
-          aspectRatio,
-          resolution,
-          workflow: 'identity-transfer',
-          model: imageEditModel,
-          onProgress: setLoadingMessage,
-          interleavedParts,
-        });
-        result = results[0];
-      } else {
-        const [res] = await editImage({
-          images: [],
-          prompt: compiledPrompt,
-          numberOfImages: 1,
-          aspectRatio,
-          resolution,
-          interleavedParts,
-          workflow: 'identity-transfer',
-        }, imageEditModel, { onStatusUpdate: setLoadingMessage });
-        result = res;
-      }
+      const result = await driver.generateOne({
+        prompt: compiledPrompt,
+        references,
+        aspectRatio,
+        resolution,
+        workflow: 'identity-transfer',
+        model: imageEditModel,
+        onProgress: setLoadingMessage,
+        interleavedParts,
+      });
 
       if (!result) {
         throw new Error(t('identityTransfer.noResult'));
@@ -199,7 +170,7 @@ export const useIdentityTransfer = () => {
         error: getErrorMessage(itemError, t),
       });
     }
-  }, [addImage, aspectRatio, backgroundPrompt, driver, editImage, engineId, extraPrompt, imageEditModel, resolution, scan, setLoadingMessage, t, updateDestinationItem]);
+  }, [addImage, aspectRatio, backgroundPrompt, driver, engineId, extraPrompt, imageEditModel, resolution, scan, setLoadingMessage, t, updateDestinationItem]);
 
   const canGenerate = destinationItems.length > 0 && faceReference !== null;
 
@@ -254,14 +225,9 @@ export const useIdentityTransfer = () => {
     setUpscalingItemIds((prev) => ({ ...prev, [itemId]: true }));
     setError(null);
     try {
-      let result: ImageFile;
-      if (typeof driver?.upscale === 'function') {
-        result = await driver.upscale({
-          image: imageToUpscale,
-        });
-      } else {
-        result = await upscaleImage(imageToUpscale, imageEditModel, { onStatusUpdate: () => {} });
-      }
+      const result = await driver.upscale({
+        image: imageToUpscale,
+      });
       updateDestinationItem(itemId, { results: [result] });
       addImage(result, Feature.IdentityTransfer, engineId);
     } catch (upscaleError) {
@@ -269,7 +235,7 @@ export const useIdentityTransfer = () => {
     } finally {
       setUpscalingItemIds((prev) => ({ ...prev, [itemId]: false }));
     }
-  }, [addImage, driver, engineId, imageEditModel, t, updateDestinationItem, upscaleImage]);
+  }, [addImage, driver, engineId, t, updateDestinationItem]);
 
   const completedCount = useMemo(
     () => destinationItems.filter((item) => item.status === 'completed').length,

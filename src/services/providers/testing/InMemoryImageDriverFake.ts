@@ -28,6 +28,7 @@ export interface SyntheticImageFile extends ImageFile {
   filename: string;
   width: number;
   height: number;
+  id?: string;
 }
 
 export type RecordedJobCall =
@@ -431,7 +432,7 @@ export class InMemoryImageDriverFake implements ImageDriver {
     });
   }
 
-  async generate(job: GenerateJob): Promise<ImageFile[]> {
+  async generate(job: GenerateJob): Promise<SyntheticImageFile[]> {
     // 1. Immediate pre-abort check (does not record to history if already aborted)
     if (job.signal?.aborted) {
       throw new StudioDriverError('cancelled', 'Job aborted before execution', {
@@ -476,7 +477,7 @@ export class InMemoryImageDriverFake implements ImageDriver {
 
     // 7. Return custom output if provided to deferral.resolve(customOutput)
     if (customDeferredOutput && customDeferredOutput.length > 0) {
-      return customDeferredOutput;
+      return customDeferredOutput as SyntheticImageFile[];
     }
 
     // 8. Consume simulated error if configured
@@ -492,12 +493,12 @@ export class InMemoryImageDriverFake implements ImageDriver {
       if (queued.type === 'error') {
         throw queued.error;
       }
-      return Array.isArray(queued.value) ? queued.value : [queued.value];
+      return (Array.isArray(queued.value) ? queued.value : [queued.value]) as SyntheticImageFile[];
     }
 
     // 10. Generate deterministic synthetic images
     const count = Math.max(1, job.count ?? 1);
-    const results: ImageFile[] = [];
+    const results: SyntheticImageFile[] = [];
     for (let i = 0; i < count; i++) {
       results.push(
         createSyntheticImageFile({
@@ -513,7 +514,7 @@ export class InMemoryImageDriverFake implements ImageDriver {
     return results;
   }
 
-  async generateOne(job: GenerateJob): Promise<ImageFile> {
+  async generateOne(job: GenerateJob): Promise<SyntheticImageFile> {
     const results = await this.generate({ ...job, count: 1 });
     if (!results || results.length === 0) {
       throw new StudioDriverError('unknown', 'No image returned from generation');
@@ -521,7 +522,7 @@ export class InMemoryImageDriverFake implements ImageDriver {
     return results[0];
   }
 
-  async upscale(job: UpscaleJob): Promise<ImageFile> {
+  async upscale(job: UpscaleJob): Promise<SyntheticImageFile> {
     // 1. Immediate pre-abort check
     if (job.signal?.aborted) {
       throw new StudioDriverError('cancelled', 'Upscale aborted before execution', {
@@ -563,7 +564,7 @@ export class InMemoryImageDriverFake implements ImageDriver {
 
     // 7. Return custom output if provided to deferral.resolve(customOutput)
     if (customDeferredOutput && customDeferredOutput.length > 0) {
-      return customDeferredOutput[0];
+      return customDeferredOutput[0] as SyntheticImageFile;
     }
 
     // 8. Consume simulated error if configured
@@ -579,7 +580,7 @@ export class InMemoryImageDriverFake implements ImageDriver {
       if (queued.type === 'error') {
         throw queued.error;
       }
-      return Array.isArray(queued.value) ? queued.value[0] : queued.value;
+      return (Array.isArray(queued.value) ? queued.value[0] : queued.value) as SyntheticImageFile;
     }
 
     // 10. Generate synthetic upscaled asset

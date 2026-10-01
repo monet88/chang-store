@@ -88,7 +88,7 @@ describe('Adversarial Challenger Suite: FaceSwap Refusal Edge Cases & Retry Stor
     ];
 
     it.each(canonicalEnglishRefusals)(
-      'canonical English refusal suppresses LoRA and forces standard workflow: "%s"',
+      'canonical English refusal preserves workflow and leaves loraName undefined: "%s"',
       async (refusalPhrase) => {
         const job: GenerateJob = {
           prompt: `High fashion lookbook model in silk evening gown, ${refusalPhrase}. Studio lighting.`,
@@ -99,7 +99,8 @@ describe('Adversarial Challenger Suite: FaceSwap Refusal Edge Cases & Retry Stor
 
         expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
           expect.objectContaining({
-            workflow: 'standard',
+            workflow: 'identity-transfer',
+            loraName: undefined,
           }),
         );
         expect(mockDesktopApi.generateImage).not.toHaveBeenCalledWith(
@@ -112,7 +113,7 @@ describe('Adversarial Challenger Suite: FaceSwap Refusal Edge Cases & Retry Stor
     );
 
     it.each(canonicalVietnameseRefusals)(
-      'canonical Vietnamese refusal suppresses LoRA and forces standard workflow: "%s"',
+      'canonical Vietnamese refusal preserves workflow and leaves loraName undefined: "%s"',
       async (refusalPhrase) => {
         const job: GenerateJob = {
           prompt: `Người mẫu mặc áo dài cách tân hoa sen, ${refusalPhrase}, phông nền studio.`,
@@ -123,7 +124,8 @@ describe('Adversarial Challenger Suite: FaceSwap Refusal Edge Cases & Retry Stor
 
         expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
           expect.objectContaining({
-            workflow: 'standard',
+            workflow: 'identity-transfer',
+            loraName: undefined,
           }),
         );
         expect(mockDesktopApi.generateImage).not.toHaveBeenCalledWith(
@@ -135,7 +137,7 @@ describe('Adversarial Challenger Suite: FaceSwap Refusal Edge Cases & Retry Stor
       },
     );
 
-    it('negative control: non-refusal prompts containing "face" or "swap" or "không" still auto-inject LoRA in identity-transfer mode', async () => {
+    it('negative control: non-refusal prompts preserve workflow and leave loraName undefined', async () => {
       const nonRefusals = [
         'Close-up facial detail of fashion model in trench coat',
         'Swap palette to autumn earth tones with linen blazer',
@@ -155,11 +157,11 @@ describe('Adversarial Challenger Suite: FaceSwap Refusal Edge Cases & Retry Stor
         expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
           expect.objectContaining({
             workflow: 'identity-transfer',
-            loraName: FACE_SWAP_LORA_NAME,
+            loraName: undefined,
           }),
         );
         const recorded = adapter.getRecordedJobs();
-        expect((recorded[recorded.length - 1] as GenerateJob).injectedLora).toBe(FACE_SWAP_LORA_NAME);
+        expect((recorded[recorded.length - 1] as GenerateJob).workflow).toBe('identity-transfer');
         expect(job.injectedLora).toBeUndefined();
       }
     });

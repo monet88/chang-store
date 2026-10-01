@@ -40,10 +40,9 @@ export const useClothingTransfer = () => {
 
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
-  const imageDriver = useImageDriver();
-  const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const driver = useImageDriver();
+  const { model: imageEditModel, id: engineId } = useImageEngine();
   const { textGenerateModel } = useApi();
-
   const refinement = useImageRefinement({ imageEditModel, setError, t });
   const { refinePrompts, setRefinePrompts, isRefining } = refinement;
 
@@ -67,16 +66,6 @@ export const useClothingTransfer = () => {
       });
     }
   }, [concepts]);
-  // Default driver comes from the active ImageDriver; tests can inject a mock.
-  const driver = useMemo<ClothingTransferImageDriver>(() => {
-    if (!imageDriver) {
-      return { editImage, upscaleImage };
-    }
-    return Object.assign(Object.create(imageDriver), {
-      editImage,
-      upscaleImage,
-    });
-  }, [imageDriver, editImage, upscaleImage]);
 
   const buildImageServiceConfig = useCallback(
     (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),

@@ -68,10 +68,6 @@ export interface ImageFile {
    * (US-006 dimension guard). Advisory only: the image is kept either way.
    */
   sizeWarning?: { requested: string; returned: string };
-  width?: number;
-  height?: number;
-  filename?: string;
-  id?: string;
 }
 
 /** Extended ImageFile with gallery metadata */

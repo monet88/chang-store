@@ -20,6 +20,7 @@ import { appendNegativePrompt } from '../../../utils/negative-prompt-builder';
 import { PROVIDER_UPSCALE_PROMPTS } from '../../../utils/provider-refine-prompt';
 import { runBoundedWorkers } from '../../../utils/run-bounded-workers';
 import { withImageRequestSlot } from '../../../utils/request-slots';
+import { flattenInterleavedParts } from '../../../utils/flattenInterleavedParts';
 import {
   generateGptImage,
   editGptImage,
@@ -256,10 +257,14 @@ export class GptImageDriverAdapter implements ImageDriver {
     const pixelSize = resolveSizeForRatio(this.sizeOptions, (job.aspectRatio ?? 'Default') as ImageAspectRatio);
 
     // 2. Prepare images and prompt with reference roles
-    const inputImages: ImageFile[] = [];
+    let inputImages: ImageFile[] = [];
     let promptWithReferences = job.prompt;
 
-    if (job.references && job.references.length > 0) {
+    if (job.interleavedParts && job.interleavedParts.length > 0) {
+      const interleaved = flattenInterleavedParts(job.interleavedParts);
+      promptWithReferences = interleaved?.prompt || job.prompt;
+      inputImages = interleaved?.images.length ? interleaved.images : (job.images || []);
+    } else if (job.references && job.references.length > 0) {
       for (const ref of job.references) {
         if (ref.image) {
           inputImages.push(ref.image);
@@ -275,10 +280,8 @@ export class GptImageDriverAdapter implements ImageDriver {
         });
         promptWithReferences = `${roleLines.join('\n')}\n\n${job.prompt}`;
       }
-    }
-
-    if (job.images && job.images.length > 0) {
-      inputImages.push(...job.images);
+    } else if (job.images && job.images.length > 0) {
+      inputImages = [...job.images];
     }
 
     const effectivePrompt = appendNegativePrompt(promptWithReferences, job.negativePrompt);

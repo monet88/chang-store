@@ -183,7 +183,7 @@ describe('Milestone 3 Challenger: GeminiImageDriverAdapter Adversarial Verificat
       );
     });
 
-    it('combines references and unlabelled images in strictly ordered stages', () => {
+    it('sends references when present and never sends both references and images', () => {
       const references: ReferenceRoleImage[] = [
         { role: 'subject', image: createMockImage('s', 'subject'), label: 'Model' },
         { role: 'garment', image: createMockImage('g', 'garment'), label: 'Dress' },
@@ -196,15 +196,13 @@ describe('Milestone 3 Challenger: GeminiImageDriverAdapter Adversarial Verificat
         images,
       });
 
-      // (2 * 2) references + 2 unlabelled images + 1 prompt = 7 parts
-      expect(parts).toHaveLength(7);
+      // (2 * 2) references + 1 prompt = 5 parts (never sends both references and images)
+      expect(parts).toHaveLength(5);
       expect((parts[0] as any).text).toContain('SUBJECT REFERENCE');
       expect((parts[1] as any).inlineData.data).toBe('base64_data_s_subject');
       expect((parts[2] as any).text).toContain('GARMENT REFERENCE');
       expect((parts[3] as any).inlineData.data).toBe('base64_data_g_garment');
-      expect((parts[4] as any).inlineData.data).toBe('base64_data_un1_img');
-      expect((parts[5] as any).inlineData.data).toBe('base64_data_un2_img');
-      expect((parts[6] as any).text).toBe('Composite workflow');
+      expect((parts[4] as any).text).toBe('Composite workflow');
     });
 
     it('strictly preserves Outfit Drape Invariant with references and negative prompt', () => {

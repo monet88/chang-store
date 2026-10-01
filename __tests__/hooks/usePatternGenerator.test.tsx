@@ -53,6 +53,27 @@ vi.mock('../../src/contexts/ImageEngineContext', () => ({
   }),
 }));
 
+const mockDriver = {
+  id: 'gemini',
+  generate: vi.fn(async (job: any) => {
+    return editImage({
+      images: job.images ?? job.references?.map((r: any) => r.image) ?? [],
+      prompt: job.interleavedParts ? '' : job.prompt,
+      numberOfImages: job.count ?? 1,
+      aspectRatio: job.aspectRatio,
+      resolution: job.resolution,
+      interleavedParts: job.interleavedParts,
+    }, job.model, { onStatusUpdate: job.onProgress });
+  }),
+  generateOne: vi.fn(),
+  upscale: vi.fn(),
+};
+
+vi.mock('../../src/contexts/useImageDriver', () => ({
+  useImageDriver: () => mockDriver,
+  useOptionalImageDriver: () => mockDriver,
+}));
+
 import { usePatternGenerator } from '../../src/hooks/usePatternGenerator';
 import { createImageChatSession, editImage } from '../../src/services/imageEditingService';
 import { downloadImagesAsZip } from '../../src/utils/zipDownload';

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 import type { ImageEngine } from '../contexts/ImageEngineContext';
 import {
   withLocalQwenLock,
@@ -22,7 +23,14 @@ export const runSerializedLocalQwenJob = withLocalQwenLock;
  * - No auto-upscale; results remain at configured resolution.
  */
 export const useLocalQwenImageEngine = (): ImageEngine => {
-  const driver = useMemo<ImageDriver>(() => new LocalQwenImageDriverAdapter(), []);
+  let t = (key: string) => key;
+  try {
+    const lang = useLanguage();
+    if (lang?.t) t = lang.t;
+  } catch {
+    // outside LanguageProvider, fallback to key
+  }
+  const driver = useMemo<ImageDriver>(() => new LocalQwenImageDriverAdapter({ t }), [t]);
   const legacyBridge = useMemo(() => createLegacyDriverBridge(driver, 'qwen-image-2.1'), [driver]);
 
   return useMemo<ImageEngine>(() => {

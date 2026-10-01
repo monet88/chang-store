@@ -41,20 +41,9 @@ export const useLookbookResultActions = (
     setUpscalingStates((prev) => ({ ...prev, [imageKey]: true }));
     setError(null);
     try {
-      let result: ImageFile;
-      if (typeof (driver as any).upscale === 'function') {
-        result = await (driver as any).upscale({
-          image: imageToUpscale,
-        });
-      } else if (driver.upscaleImage) {
-        result = await driver.upscaleImage(
-          imageToUpscale,
-          imageEditModel,
-          buildImageServiceConfig(() => {}),
-        );
-      } else {
-        throw new Error('No upscale method available on driver');
-      }
+      const result = await driver.upscale({
+        image: imageToUpscale,
+      });
 
       setGeneratedLookbook((prev) => {
         if (!prev) return null;

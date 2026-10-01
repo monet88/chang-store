@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   InMemoryImageDriverFake,
+  type SyntheticImageFile,
 } from '@/services/providers/testing/InMemoryImageDriverFake';
 import {
   StudioDriverError,
@@ -110,7 +111,7 @@ describe('Adversarial Stress: InMemoryImageDriverFake Concurrency & Batch Deferr
     // Verify every single output asset is a valid PNG with correct headers
     for (let i = 0; i < TOTAL_JOBS; i++) {
       const res = results[i];
-      const files = Array.isArray(res) ? res : [res];
+      const files = (Array.isArray(res) ? res : [res]) as SyntheticImageFile[];
       expect(files.length).toBeGreaterThan(0);
       for (const file of files) {
         expect(file.mimeType).toBe('image/png');
@@ -393,14 +394,10 @@ describe('Adversarial Stress: InMemoryImageDriverFake Concurrency & Batch Deferr
     const customImg1: ImageFile = {
       base64: 'custom-base64-1',
       mimeType: 'image/png',
-      width: 100,
-      height: 100,
     };
     const customImg2: ImageFile = {
       base64: 'custom-base64-2',
       mimeType: 'image/png',
-      width: 200,
-      height: 200,
     };
 
     // Resolve def1 and def2 with custom outputs
@@ -587,7 +584,7 @@ describe('Adversarial Stress: InMemoryImageDriverFake Concurrency & Batch Deferr
     const results = await Promise.all(promises);
     expect(results).toHaveLength(TOTAL);
 
-    results.forEach((img, idx) => {
+    (results as SyntheticImageFile[]).forEach((img, idx) => {
       expect(img.mimeType).toBe('image/png');
       expect(img.base64).toBeTruthy();
       if (idx % 2 === 0) {

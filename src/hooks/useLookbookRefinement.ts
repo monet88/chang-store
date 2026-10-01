@@ -3,12 +3,17 @@ import { ImageFile, RefinementHistoryItem } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import type { ImageChatSession } from '../services/imageEditingService';
 import { createSingleShotRefineSession } from '../utils/single-shot-refine-session';
-import type { GeminiImageDriver, LookbookSet } from './useLookbookGeneration';
+import type { LookbookSet } from './useLookbookGeneration';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
+export interface LookbookRefinementDriver {
+  createImageChatSession?: (model: string, config: any) => ImageChatSession;
+  editImage?: any;
+}
+
 export interface UseLookbookRefinementConfig {
-  driver: GeminiImageDriver;
+  driver: LookbookRefinementDriver;
   generatedLookbook: LookbookSet | null;
   setGeneratedLookbook: React.Dispatch<React.SetStateAction<LookbookSet | null>>;
   imageEditModel: string;

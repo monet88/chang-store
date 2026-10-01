@@ -37,7 +37,7 @@ export const useVirtualTryOn = () => {
 
   const { t } = useLanguage();
   const { addImage } = useImageGallery();
-  const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const { model: imageEditModel, id: engineId } = useImageEngine();
   const imageDriver = useImageDriver();
 
 
@@ -83,15 +83,7 @@ export const useVirtualTryOn = () => {
   }, [subjects]);
 
   // Default driver comes from the active ImageDriver; tests can inject a mock.
-  const driver = useMemo<VirtualTryOnImageDriver>(() => {
-    if (!imageDriver) {
-      return { editImage, upscaleImage };
-    }
-    return Object.assign(Object.create(imageDriver), {
-      editImage,
-      upscaleImage,
-    });
-  }, [imageDriver, editImage, upscaleImage]);
+  const driver = imageDriver;
 
 
   const buildImageServiceConfig = useCallback(

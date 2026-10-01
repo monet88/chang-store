@@ -349,37 +349,16 @@ export const useClothingTransferEComPackRun = (
         const flattened = flattenInterleavedParts(parts);
         const compiledPrompt = flattened ? flattened.prompt : combineExtraInstructions(extraPrompt, outfitNote);
 
-        let results: ImageFile[];
-        if (typeof (driver as any).generate === 'function') {
-          results = await (driver as any).generate({
-            images: [],
-            prompt: compiledPrompt,
-            references,
-            count: numImages,
-            aspectRatio,
-            resolution,
-            interleavedParts: parts,
-            workflow,
-            model: imageEditModel,
-          });
-        } else {
-          results = await (driver as any).editImage(
-            {
-              images: [],
-              prompt: compiledPrompt,
-              numberOfImages: numImages,
-              aspectRatio,
-              resolution,
-              interleavedParts: parts,
-              // Declare the routing instead of letting the main process sniff the
-              // prompt: brand models transplant a face (BFS LoRA), the staging
-              // lanes never do.
-              workflow,
-            },
-            imageEditModel,
-            { onStatusUpdate: () => {} },
-          );
-        }
+        const results = await driver.generate({
+          prompt: compiledPrompt,
+          references,
+          count: numImages,
+          aspectRatio,
+          resolution,
+          interleavedParts: parts,
+          workflow,
+          model: imageEditModel,
+        });
 
         updatePackItem(itemId, { status: 'completed', results, error: undefined });
         results.forEach((img) => addImage(img, Feature.ClothingTransfer, engineId));

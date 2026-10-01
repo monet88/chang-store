@@ -104,14 +104,24 @@ export const mapLocalQwenErrorToStudioDriverError = (error: unknown): StudioDriv
  * - Local Qwen Upscale Invariant: upscale is strictly local, manual only, never automatic, never routed to cloud.
  * - Hardware fatal errors (CUDA OOM, missing weights) are non-retriable.
  */
+export interface LocalQwenImageDriverAdapterOptions {
+  t?: (key: string, options?: any) => string;
+}
+
 export class LocalQwenImageDriverAdapter implements ImageDriver {
   readonly id: ImageEngineId = 'localQwen';
   private recordedJobs: (GenerateJob | UpscaleJob)[] = [];
+  private readonly t?: (key: string, options?: any) => string;
 
-  constructor() {
+  constructor(options?: LocalQwenImageDriverAdapterOptions) {
+    this.t = options?.t;
     this.generate = this.generate.bind(this);
     this.generateOne = this.generateOne.bind(this);
     this.upscale = this.upscale.bind(this);
+  }
+
+  private translate(key: string, fallback: string): string {
+    return this.t ? this.t(key) : fallback;
   }
 
   getRecordedJobs(): RecordedJob[] {
@@ -135,32 +145,17 @@ export class LocalQwenImageDriverAdapter implements ImageDriver {
       // 2. Snapshot settings for this job
       const settings = snapshotLocalQwenSettings();
 
-      // 3. FaceSwap LoRA Auto-Injection Guard & Refusal Precedence
-      const isRefusal = isFaceSwapRefusal(job.prompt);
-      const shouldAutoInject = job.workflow === 'identity-transfer' && !isRefusal;
-
-      let loraName: string | undefined;
-      if (isRefusal) {
-        loraName = undefined;
-      } else if (job.injectedLora) {
-        loraName = job.injectedLora;
-      } else if (shouldAutoInject) {
-        loraName = FACE_SWAP_LORA_NAME;
-      }
-
-      const effectiveWorkflow: LocalQwenWorkflow =
-        job.workflow === 'identity-transfer' && !isRefusal
-          ? 'identity-transfer'
-          : 'standard';
+      // 3. Workflow & LoRA: pass workflow through unchanged and let main process own LoRA selection
+      const effectiveWorkflow = job.workflow as LocalQwenWorkflow | undefined;
+      const loraName = job.injectedLora;
 
       // 4. Record job for history / test harness with execution metadata (preserving caller immutability)
       this.recordedJobs.push({
         ...job,
-        injectedLora: loraName,
       });
 
-      // 5. Notify initial progress
-      job.onProgress?.('LocalQwen: initializing generation pipeline...');
+      // 5. Notify initial progress using localized status
+      job.onProgress?.(this.translate('studio.localQwenStatus.initializing', 'studio.localQwenStatus.initializing'));
 
       // 6. Acquire desktop bridge
       const desktopApi = getDesktopLocalQwenApi();
@@ -214,7 +209,7 @@ export class LocalQwenImageDriverAdapter implements ImageDriver {
         }
 
         // 10. Execute generation through bridge
-        job.onProgress?.('LocalQwen: executing ComfyUI workflow...');
+        job.onProgress?.(this.translate('studio.localQwenStatus.generatingStatus', 'studio.localQwenStatus.generatingStatus'));
 
         const count = Math.max(1, job.count ?? 1);
         const results: ImageFile[] = [];
@@ -261,7 +256,6 @@ export class LocalQwenImageDriverAdapter implements ImageDriver {
           });
         }
 
-        job.onProgress?.('LocalQwen: generation completed.');
         return results;
       } catch (err) {
         throw mapLocalQwenErrorToStudioDriverError(err);
@@ -293,8 +287,7 @@ export class LocalQwenImageDriverAdapter implements ImageDriver {
       this.recordedJobs.push({ ...job });
 
       // 3. Notify progress
-      const quality = job.quality || '2K';
-      job.onProgress?.(`LocalQwen: running local ESRGAN upscale with ComfyUI (${quality})...`);
+      job.onProgress?.(this.translate('studio.localQwenStatus.upscaling', 'studio.localQwenStatus.upscaling'));
 
       // 4. Verify desktop bridge availability
       const desktopApi = getDesktopLocalQwenApi();
@@ -333,8 +326,6 @@ export class LocalQwenImageDriverAdapter implements ImageDriver {
         if (!res.value?.image) {
           throw new Error('Local Qwen upscale returned empty response');
         }
-
-        job.onProgress?.('LocalQwen: upscale completed.');
 
         return {
           base64: res.value.image,

@@ -16,7 +16,6 @@ import {
   type WardrobeResultSet,
   type WardrobeSet,
 } from '../types';
-import { editImage } from '../services/imageEditingService';
 import type { ImageDriver, GenerateJob, ReferenceRoleImage } from '../services/providers/ImageDriver';
 import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
 import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
@@ -28,11 +27,7 @@ import { getErrorMessage } from '../utils/imageUtils';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { useAiScan } from '../contexts/AiScanContext';
 
-export type WardrobeImageDriver = ImageDriver | {
-  editImage?: typeof editImage;
-  generate?: (job: GenerateJob) => Promise<ImageFile[]>;
-  generateOne?: (job: GenerateJob) => Promise<ImageFile>;
-};
+export type WardrobeImageDriver = ImageDriver;
 
 export interface UseWardrobeModeEngineConfig {
   driver: WardrobeImageDriver;
@@ -160,34 +155,17 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
           const flattened = flattenInterleavedParts(interleavedParts);
           const compiledPrompt = flattened ? flattened.prompt : '';
 
-          let images: ImageFile[];
-          if (typeof (driver as any).generate === 'function') {
-            images = await (driver as any).generate({
-              images: [],
-              prompt: compiledPrompt,
-              references,
-              count: numImages,
-              aspectRatio,
-              resolution,
-              interleavedParts,
-              workflow: 'wardrobe-mode',
-              model: imageEditModel,
-              onProgress: setLoadingMessage,
-            });
-          } else {
-            images = await (driver as any).editImage(
-              {
-                images: [],
-                prompt: compiledPrompt,
-                numberOfImages: numImages,
-                aspectRatio,
-                resolution,
-                interleavedParts,
-              },
-              imageEditModel,
-              { onStatusUpdate: setLoadingMessage },
-            );
-          }
+          const images = await driver.generate({
+            prompt: compiledPrompt,
+            references,
+            count: numImages,
+            aspectRatio,
+            resolution,
+            interleavedParts,
+            workflow: 'wardrobe-mode',
+            model: imageEditModel,
+            onProgress: setLoadingMessage,
+          });
 
           setResults((prev) =>
             prev.map((r) =>

@@ -557,13 +557,9 @@ describe('Adversarial Challenger: LocalQwen Concurrency, Crash Safety & Abort St
 
       for (let i = 0; i < TOTAL_FROZEN_CALLS; i++) {
         if (i % 2 === 0) {
-          const isRefusal = i % 4 === 2;
           const recordedJob = recorded[i] as GenerateJob;
-          if (isRefusal) {
-            expect(recordedJob.injectedLora).toBeUndefined();
-          } else {
-            expect(recordedJob.injectedLora).toBe(FACE_SWAP_LORA_NAME);
-          }
+          expect(recordedJob.workflow).toBe('identity-transfer');
+          expect(recordedJob.injectedLora).toBeUndefined();
         }
       }
     });
@@ -581,32 +577,32 @@ describe('Adversarial Challenger: LocalQwen Concurrency, Crash Safety & Abort St
         expectedWorkflow: string;
       }[] = [
         {
-          // Step 1: identity-transfer triggers auto-injection
+          // Step 1: identity-transfer preserved, loraName undefined (Finding 5)
           prompt: 'Lookbook model in evening dress',
           workflow: 'identity-transfer',
-          expectedLora: FACE_SWAP_LORA_NAME,
+          expectedLora: undefined,
           expectedWorkflow: 'identity-transfer',
         },
         {
-          // Step 2: explicit English refusal suppresses LoRA and forces standard workflow
+          // Step 2: explicit English refusal preserves workflow and loraName undefined
           prompt: 'Refining look: please do not swap face or alter identity',
           workflow: 'identity-transfer',
           expectedLora: undefined,
-          expectedWorkflow: 'standard',
-        },
-        {
-          // Step 3: subsequent refinement requests identity-transfer again without refusal
-          prompt: 'Actually, apply identity transfer to match model face',
-          workflow: 'identity-transfer',
-          expectedLora: FACE_SWAP_LORA_NAME,
           expectedWorkflow: 'identity-transfer',
         },
         {
-          // Step 4: Vietnamese refusal suppresses LoRA and forces standard workflow
+          // Step 3: subsequent refinement
+          prompt: 'Actually, apply identity transfer to match model face',
+          workflow: 'identity-transfer',
+          expectedLora: undefined,
+          expectedWorkflow: 'identity-transfer',
+        },
+        {
+          // Step 4: Vietnamese refusal preserves workflow and loraName undefined
           prompt: 'Không đổi mặt nha, giữ nguyên mặt mẫu',
           workflow: 'identity-transfer',
           expectedLora: undefined,
-          expectedWorkflow: 'standard',
+          expectedWorkflow: 'identity-transfer',
         },
         {
           // Step 5: standard workflow without identity-transfer
@@ -616,10 +612,10 @@ describe('Adversarial Challenger: LocalQwen Concurrency, Crash Safety & Abort St
           expectedWorkflow: 'standard',
         },
         {
-          // Step 6: re-enable identity-transfer
+          // Step 6: identity-transfer preserved
           prompt: 'Final high-end look with identity-transfer',
           workflow: 'identity-transfer',
-          expectedLora: FACE_SWAP_LORA_NAME,
+          expectedLora: undefined,
           expectedWorkflow: 'identity-transfer',
         },
       ];

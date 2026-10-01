@@ -8,7 +8,6 @@ import {
 } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { useAiScan } from '../contexts/AiScanContext';
-import type { editImage, upscaleImage, createImageChatSession } from '../services/imageEditingService';
 import type { ImageDriver, GenerateJob, UpscaleJob, ReferenceRoleImage } from '../services/providers/ImageDriver';
 import {
   lookbookAiScanSources,
@@ -29,19 +28,7 @@ import { LookbookFormState } from './useLookbookDraft';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
-/**
- * Image primitives the engine orchestrates. Accepts canonical ImageDriver
- * or legacy driver for test compatibility.
- */
-export type GeminiImageDriver = Partial<ImageDriver> & {
-  id?: ImageEngineId;
-  editImage?: typeof editImage;
-  upscaleImage?: typeof upscaleImage;
-  createImageChatSession?: typeof createImageChatSession;
-  generate?: (job: GenerateJob) => Promise<ImageFile[]>;
-  generateOne?: (job: GenerateJob) => Promise<ImageFile>;
-  upscale?: (job: UpscaleJob) => Promise<ImageFile>;
-};
+export type GeminiImageDriver = ImageDriver;
 
 export interface LookbookSet {
   main: ImageFile;
@@ -123,10 +110,8 @@ export const useLookbookGeneration = (
     setError(null);
     setGeneratedLookbook(null);
 
-    const imagesForApi: ImageFile[] = validClothingImages.map((item) => item.image as ImageFile);
-    if (fabricTextureImage) {
-      imagesForApi.push(fabricTextureImage);
-    }
+    const garments: ImageFile[] = validClothingImages.map((item) => item.image as ImageFile);
+    const imagesForApi: ImageFile[] = fabricTextureImage ? [...garments, fabricTextureImage] : garments;
 
     const blueprint = await aiScan.scan(aiScanSources);
     const promptInput: LookbookPromptInput = {
@@ -140,7 +125,7 @@ export const useLookbookGeneration = (
       : buildGeminiLookbookPrompt(promptInput);
 
     try {
-      const references: ReferenceRoleImage[] = imagesForApi.map((img, idx) => ({
+      const references: ReferenceRoleImage[] = garments.map((img, idx) => ({
         image: img,
         role: 'garment' as const,
         label: `garment-${idx + 1}`,
@@ -149,30 +134,17 @@ export const useLookbookGeneration = (
         references.push({ image: fabricTextureImage, role: 'style', label: 'fabric-texture' });
       }
 
-      let results: ImageFile[];
-      if (typeof (driver as any).generate === 'function') {
-        results = await (driver as any).generate({
-          images: imagesForApi,
-          prompt,
-          negativePrompt,
-          references,
-          count: 1,
-          aspectRatio,
-          resolution,
-          workflow: 'lookbook',
-          model: imageEditModel,
-          onProgress: setLoadingMessage,
-        });
-      } else {
-        results = await (driver as any).editImage({
-          images: imagesForApi,
-          prompt,
-          negativePrompt,
-          numberOfImages: 1,
-          aspectRatio,
-          resolution,
-        }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
-      }
+      const results = await driver.generate({
+        prompt,
+        negativePrompt,
+        references,
+        count: 1,
+        aspectRatio,
+        resolution,
+        workflow: 'lookbook',
+        model: imageEditModel,
+        onProgress: setLoadingMessage,
+      });
       if (results.length > 0) {
         const generatedImage = results[0];
         setGeneratedLookbook({ main: generatedImage, variations: [], closeups: [], blueprint });
@@ -206,30 +178,17 @@ export const useLookbookGeneration = (
       : buildGeminiVariationPrompt(formState.lookbookStyle, generatedLookbook.blueprint ?? '');
 
     try {
-      let newVariations: ImageFile[];
-      if (typeof (driver as any).generate === 'function') {
-        newVariations = await (driver as any).generate({
-          images: [baseImage],
-          prompt,
-          negativePrompt: formState.negativePrompt,
-          references: [{ image: baseImage, role: 'subject', label: 'base-main' }],
-          count: variationCount,
-          aspectRatio,
-          resolution,
-          workflow: 'lookbook-variations',
-          model: imageEditModel,
-          onProgress: setLoadingMessage,
-        });
-      } else {
-        newVariations = await (driver as any).editImage({
-          images: [baseImage],
-          prompt,
-          negativePrompt: formState.negativePrompt,
-          numberOfImages: variationCount,
-          aspectRatio,
-          resolution,
-        }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
-      }
+      const newVariations = await driver.generate({
+        prompt,
+        negativePrompt: formState.negativePrompt,
+        references: [{ image: baseImage, role: 'subject', label: 'base-main' }],
+        count: variationCount,
+        aspectRatio,
+        resolution,
+        workflow: 'lookbook-variations',
+        model: imageEditModel,
+        onProgress: setLoadingMessage,
+      });
       setGeneratedLookbook((prev) => prev ? { ...prev, variations: newVariations } : null);
       newVariations.forEach((image) => addImage?.(image, Feature.Lookbook, engineId));
     } catch (err) {
@@ -263,29 +222,16 @@ export const useLookbookGeneration = (
       const closeups: ImageFile[] = [];
       for (const closeUpPrompt of closeUpPrompts) {
         setLoadingMessage(t('lookbook.generatingCloseUp', { current: closeups.length + 1, total: closeUpPrompts.length }));
-        let results: ImageFile[];
-        if (typeof (driver as any).generate === 'function') {
-          results = await (driver as any).generate({
-            images: [baseImage],
-            prompt: closeUpPrompt,
-            negativePrompt: combinedNegativePrompt,
-            references: [{ image: baseImage, role: 'subject', label: 'base-main' }],
-            count: 1,
-            aspectRatio,
-            resolution,
-            workflow: 'lookbook-closeup',
-            model: imageEditModel,
-          });
-        } else {
-          results = await (driver as any).editImage({
-            images: [baseImage],
-            prompt: closeUpPrompt,
-            negativePrompt: combinedNegativePrompt,
-            numberOfImages: 1,
-            aspectRatio,
-            resolution,
-          }, imageEditModel, buildImageServiceConfig(() => {}));
-        }
+        const results = await driver.generate({
+          prompt: closeUpPrompt,
+          negativePrompt: combinedNegativePrompt,
+          references: [{ image: baseImage, role: 'subject', label: 'base-main' }],
+          count: 1,
+          aspectRatio,
+          resolution,
+          workflow: 'lookbook-closeup',
+          model: imageEditModel,
+        });
         if (results.length > 0) {
           closeups.push(results[0]);
           setGeneratedLookbook((prev) => prev ? { ...prev, closeups: [...closeups] } : null);

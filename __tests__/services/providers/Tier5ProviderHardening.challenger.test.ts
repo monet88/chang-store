@@ -164,14 +164,11 @@ describe('Tier 5 Provider Adversarial Hardening Suite (Challenger M5)', () => {
 
         const parts = buildGeminiParts(job);
         // References: 1 header + 1 inlineData = 2
-        // Unlabelled images: 2 inlineData = 2
-        // Prompt text: 1 = total 5 parts
-        expect(parts).toHaveLength(5);
+        // Prompt text: 1 = total 3 parts (never sends both references and images)
+        expect(parts).toHaveLength(3);
         expect((parts[0] as any).text).toContain('SUBJECT REFERENCE');
         expect((parts[1] as any).inlineData.data).toBe('base64_data_sub_img');
-        expect((parts[2] as any).inlineData.data).toBe('base64_data_legacy1_img');
-        expect((parts[3] as any).inlineData.data).toBe('base64_data_legacy2_img');
-        expect((parts[4] as any).text).toBe('Virtual Try On prompt');
+        expect((parts[2] as any).text).toBe('Virtual Try On prompt');
       });
 
       it('places prompt first when only legacy unlabelled images are supplied', () => {
@@ -818,58 +815,22 @@ describe('Tier 5 Provider Adversarial Hardening Suite (Challenger M5)', () => {
         }
       });
 
-      it('forces standard mode and omits LoRA when refusal is present in identity-transfer job', async () => {
+      it('passes workflow through unchanged and leaves loraName undefined by default (Finding 5)', async () => {
         const adapter = new LocalQwenImageDriverAdapter();
 
-        for (const refusalPrompt of refusalCases.slice(0, 5)) {
+        for (const prompt of refusalCases.slice(0, 5)) {
           adapter.clearRecordedJobs();
 
           await adapter.generate({
-            prompt: `QWEN IDENTITY TRANSFER SPECIFICATION: ${refusalPrompt}`,
+            prompt: `QWEN IDENTITY TRANSFER SPECIFICATION: ${prompt}`,
             workflow: 'identity-transfer',
           });
 
-          // Check recorded execution metadata
-          const recorded = adapter.getRecordedJobs();
-          expect(recorded).toHaveLength(1);
-          expect(recorded[0].injectedLora).toBeUndefined();
-
-          // Check bridge call parameters
-          expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
-            expect.objectContaining({
-              workflow: 'standard',
-              loraName: undefined,
-            })
-          );
-        }
-      });
-
-      it('auto-injects FaceSwap LoRA when prompt requests identity transfer and has NO refusal', async () => {
-        const adapter = new LocalQwenImageDriverAdapter();
-
-        const affirmativePrompts = [
-          'QWEN IDENTITY TRANSFER SPECIFICATION: High fashion model face swap',
-          'Ghép mặt người mẫu vào trang phục dạ hội',
-          'Thay mặt người mẫu',
-          'Hoán đổi mặt chuẩn studio',
-        ];
-
-        for (const prompt of affirmativePrompts) {
-          adapter.clearRecordedJobs();
-
-          await adapter.generate({
-            prompt,
-            workflow: 'identity-transfer',
-          });
-
-          const recorded = adapter.getRecordedJobs();
-          expect(recorded).toHaveLength(1);
-          expect(recorded[0].injectedLora).toBe(FACE_SWAP_LORA_NAME);
-
+          // Check bridge call parameters: workflow preserved, loraName undefined
           expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
             expect.objectContaining({
               workflow: 'identity-transfer',
-              loraName: FACE_SWAP_LORA_NAME,
+              loraName: undefined,
             })
           );
         }
@@ -973,7 +934,7 @@ describe('Tier 5 Provider Adversarial Hardening Suite (Challenger M5)', () => {
 
       await expect(localDriver.generate(frozenLocalJob as any)).resolves.toBeDefined();
       expect(localDriver.getRecordedJobs()).toHaveLength(1);
-      expect(localDriver.getRecordedJobs()[0].injectedLora).toBe(FACE_SWAP_LORA_NAME);
+      expect(localDriver.getRecordedJobs()[0].workflow).toBe('identity-transfer');
     });
 
     it('enforces generateOne contract across all 3 drivers', async () => {

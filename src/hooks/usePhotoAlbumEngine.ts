@@ -1,32 +1,19 @@
 import type { Dispatch, SetStateAction } from 'react';
 
 import { AspectRatio, ImageFile, ImageResolution } from '../types';
-import { editImage } from '../services/imageEditingService';
 import type { ImageDriver, GenerateJob, ReferenceRoleImage } from '../services/providers/ImageDriver';
 import { getErrorMessage } from '../utils/imageUtils';
 import { buildPhotoAlbumPrompt } from '../utils/photo-album-prompt-builder';
 import { PHOTO_ALBUM_POSES } from '../utils/photoAlbumConfig';
 import { getEnglishFramingInstruction } from '../utils/framingInstructions';
 
-/**
- * Image driver seam for Photo Album generation.
- * Accepts canonical ImageDriver or legacy driver for test compatibility.
- */
-export type PhotoAlbumImageDriver = ImageDriver | {
-  editImage?: typeof editImage;
-  generate?: (job: GenerateJob) => Promise<ImageFile[]>;
-  generateOne?: (job: GenerateJob) => Promise<ImageFile>;
-};
+export type PhotoAlbumImageDriver = ImageDriver;
 
 type GenerationMode = 'fullModel' | 'faceAndOutfit';
 
 interface GeneratedAlbumImage extends ImageFile {
   pose: string;
 }
-
-const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
-  onStatusUpdate,
-});
 
 export interface UsePhotoAlbumEngineConfig {
   driver: PhotoAlbumImageDriver;
@@ -130,39 +117,16 @@ export const usePhotoAlbumEngine = (config: UsePhotoAlbumEngineConfig): UsePhoto
       );
     }
 
-    let result: ImageFile;
-    if (typeof (driver as any).generateOne === 'function') {
-      result = await (driver as any).generateOne({
-        images: imagesForApi,
-        prompt,
-        references,
-        aspectRatio,
-        resolution,
-        workflow: 'photo-album',
-        model: imageEditModel,
-        onProgress: setGenerationStatus,
-      });
-    } else if (typeof (driver as any).generate === 'function') {
-      const results = await (driver as any).generate({
-        images: imagesForApi,
-        prompt,
-        references,
-        count: 1,
-        aspectRatio,
-        resolution,
-        workflow: 'photo-album',
-        model: imageEditModel,
-        onProgress: setGenerationStatus,
-      });
-      result = results[0];
-    } else {
-      const [res] = await (driver as any).editImage(
-        { images: imagesForApi, prompt, numberOfImages: 1, aspectRatio, resolution },
-        imageEditModel,
-        buildImageServiceConfig(setGenerationStatus),
-      );
-      result = res;
-    }
+    const result = await driver.generateOne({
+      prompt,
+      references: references.length > 0 ? references : undefined,
+      images: references.length === 0 ? imagesForApi : undefined,
+      aspectRatio,
+      resolution,
+      workflow: 'photo-album',
+      model: imageEditModel,
+      onProgress: setGenerationStatus,
+    });
 
     return { ...result, pose };
   };

@@ -5,13 +5,12 @@ import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
 import { useImageDriver } from '../contexts/useImageDriver';
 import { useApi } from '../contexts/ApiProviderContext';
-import type { ReferenceRoleImage } from '../services/providers/ImageDriver';
-import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generateImageDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
 import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { useImageRefinement } from './useImageRefinement';
 import { useAiScan } from '../contexts/AiScanContext';
+import type { ReferenceRoleImage } from '../services/providers/ImageDriver';
 import { buildBackgroundReplacementPrompt } from '../utils/background-replacer-prompt-builder';
 import { getEnglishFramingInstruction } from '../utils/framingInstructions';
 import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
@@ -129,9 +128,6 @@ export const useBackgroundReplacer = () => {
     // Reset chat sessions for fresh generation
     refinement.resetSessions();
 
-    const images: ImageFile[] = [subjectImage];
-    if (backgroundImage) images.push(backgroundImage);
-
     try {
       // One scan per generation, on the same ImageFile the AiScanPanel
       // pre-scanned, so the analysis is shared rather than repeated.
@@ -143,30 +139,17 @@ export const useBackgroundReplacer = () => {
         references.push({ image: backgroundImage, role: 'style', label: 'target-background' });
       }
 
-      let results: ImageFile[];
-      if (typeof driver?.generate === 'function') {
-        results = await driver.generate({
-          images,
-          prompt: buildPrompt(cameraView, blueprint ?? ''),
-          negativePrompt,
-          references,
-          count: 2,
-          aspectRatio,
-          resolution,
-          workflow: 'background-replacement',
-          model: imageEditModel,
-          onProgress: setLoadingMessage,
-        });
-      } else {
-        results = await editImage({
-          images,
-          prompt: buildPrompt(cameraView, blueprint ?? ''),
-          negativePrompt,
-          numberOfImages: 2,
-          aspectRatio,
-          resolution,
-        }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
-      }
+      const results = await driver.generate({
+        prompt: buildPrompt(cameraView, blueprint ?? ''),
+        negativePrompt,
+        references,
+        count: 2,
+        aspectRatio,
+        resolution,
+        workflow: 'background-replacement',
+        model: imageEditModel,
+        onProgress: setLoadingMessage,
+      });
       setGeneratedImages(results);
       results.forEach((img) => addImage(img, Feature.Background, engineId));
     } catch (err) {
@@ -181,14 +164,9 @@ export const useBackgroundReplacer = () => {
     setUpscalingStates((prev) => ({ ...prev, [index]: true }));
     setError(null);
     try {
-      let result: ImageFile;
-      if (typeof driver?.upscale === 'function') {
-        result = await driver.upscale({
-          image: imageToUpscale,
-        });
-      } else {
-        result = await upscaleImage(imageToUpscale, imageEditModel, buildImageServiceConfig(() => {}));
-      }
+      const result = await driver.upscale({
+        image: imageToUpscale,
+      });
       setGeneratedImages((prev) => prev.map((img, i) => (i === index ? result : img)));
       addImage(result, Feature.Background, engineId);
     } catch (err) {
@@ -196,7 +174,7 @@ export const useBackgroundReplacer = () => {
     } finally {
       setUpscalingStates((prev) => ({ ...prev, [index]: false }));
     }
-  }, [addImage, buildImageServiceConfig, driver, engineId, imageEditModel, t]);
+  }, [addImage, driver, engineId, t]);
 
   const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, prompt: string) => {
     const key = String(index);

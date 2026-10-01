@@ -48,18 +48,10 @@ export const useLookbookGenerator = () => {
   const imageDriver = useImageDriver();
   const { editImage, upscaleImage, createImageChatSession, model: imageEditModel, id: engineId } = useImageEngine();
 
-  // Driver over the studio-scoped engine; tests can inject a mock.
-  const driver = useMemo<GeminiImageDriver>(() => {
-    const legacy = {
-      editImage,
-      upscaleImage,
-      createImageChatSession: createImageChatSession ?? undefined,
-    };
-    if (!imageDriver) {
-      return legacy;
-    }
-    return Object.assign(Object.create(imageDriver), legacy);
-  }, [imageDriver, editImage, upscaleImage, createImageChatSession]);
+  const refinementDriver = useMemo(() => ({
+    editImage,
+    createImageChatSession: createImageChatSession ?? undefined,
+  }), [editImage, createImageChatSession]);
 
   const buildImageServiceConfig = useCallback(
     (onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }),
@@ -67,7 +59,7 @@ export const useLookbookGenerator = () => {
   );
 
   const refinement = useLookbookRefinement({
-    driver,
+    driver: refinementDriver,
     generatedLookbook,
     setGeneratedLookbook,
     imageEditModel,
@@ -77,7 +69,7 @@ export const useLookbookGenerator = () => {
   });
 
   const generation = useLookbookGeneration({
-    driver,
+    driver: imageDriver,
     formState,
     generatedLookbook,
     setGeneratedLookbook,
@@ -99,7 +91,7 @@ export const useLookbookGenerator = () => {
   });
 
   const resultActions = useLookbookResultActions({
-    driver,
+    driver: imageDriver,
     generatedLookbook,
     setGeneratedLookbook,
     imageEditModel,

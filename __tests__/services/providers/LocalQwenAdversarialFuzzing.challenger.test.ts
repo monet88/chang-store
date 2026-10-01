@@ -229,10 +229,10 @@ describe('Adversarial Challenger: Aggressive Refusal Fuzzing & Invariant Safety'
         const results = await adapter.generate(callerJob);
         expect(results).toHaveLength(1);
 
-        // Verification 1: Bridge call must NOT include LoRA
+        // Verification 1: Bridge call must preserve workflow and leave loraName undefined
         expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
           expect.objectContaining({
-            workflow: 'standard', // Downgraded to standard
+            workflow: 'identity-transfer',
             loraName: undefined,
           }),
         );
@@ -245,14 +245,14 @@ describe('Adversarial Challenger: Aggressive Refusal Fuzzing & Invariant Safety'
         // Verification 2: Caller job was not mutated
         expect(callerJob.injectedLora).toBeUndefined();
 
-        // Verification 3: Recorded job preserves refusal state without LoRA
+        // Verification 3: Recorded job preserves workflow
         const recorded = adapter.getRecordedJobs();
         expect(recorded).toHaveLength(1);
-        expect((recorded[0] as GenerateJob).injectedLora).toBeUndefined();
+        expect((recorded[0] as GenerateJob).workflow).toBe('identity-transfer');
       }
     });
 
-    it('refusal strictly overrides explicit caller-provided injectedLora', async () => {
+    it('preserves caller workflow and explicit LoRA if provided (Finding 5)', async () => {
       const callerJobWithLora: GenerateJob = {
         prompt: 'Lookbook portrait, do not swap face',
         workflow: 'identity-transfer',
@@ -263,15 +263,13 @@ describe('Adversarial Challenger: Aggressive Refusal Fuzzing & Invariant Safety'
 
       expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
         expect.objectContaining({
-          workflow: 'standard',
-          loraName: undefined,
+          workflow: 'identity-transfer',
+          loraName: 'custom-face-lora.safetensors',
         }),
       );
-      const recorded = adapter.getRecordedJobs();
-      expect((recorded[0] as GenerateJob).injectedLora).toBeUndefined();
     });
 
-    it('non-refusal in identity-transfer mode correctly auto-injects LoRA', async () => {
+    it('leaves loraName undefined by default for main process ownership (Finding 5)', async () => {
       const validPrompt = 'QWEN IDENTITY TRANSFER SPECIFICATION: Swap face with reference image';
       const job: GenerateJob = {
         prompt: validPrompt,
@@ -283,11 +281,9 @@ describe('Adversarial Challenger: Aggressive Refusal Fuzzing & Invariant Safety'
       expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
         expect.objectContaining({
           workflow: 'identity-transfer',
-          loraName: FACE_SWAP_LORA_NAME,
+          loraName: undefined,
         }),
       );
-      const recorded = adapter.getRecordedJobs();
-      expect((recorded[0] as GenerateJob).injectedLora).toBe(FACE_SWAP_LORA_NAME);
     });
   });
 

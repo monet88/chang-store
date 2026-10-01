@@ -223,10 +223,10 @@ describe('LocalQwenImageDriverAdapter Test Suite', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Suite 2: FaceSwap LoRA Auto-Injection & Refusal Rules
+  // Suite 2: Main Process LoRA Selection & Workflow Pass-Through (Finding 5)
   // ---------------------------------------------------------------------------
-  describe('Suite 2: FaceSwap LoRA Auto-Injection & Refusal Rules', () => {
-    it('auto-injects FaceSwap LoRA when workflow is identity-transfer and prompt has no refusal', async () => {
+  describe('Suite 2: Main Process LoRA Selection & Workflow Pass-Through', () => {
+    it('passes workflow through unchanged and leaves loraName undefined by default', async () => {
       const job: GenerateJob = {
         prompt: 'Fashion studio lookbook portrait of young model in trench coat',
         workflow: 'identity-transfer',
@@ -238,85 +238,34 @@ describe('LocalQwenImageDriverAdapter Test Suite', () => {
         expect.objectContaining({
           prompt: job.prompt,
           workflow: 'identity-transfer',
-          loraName: 'bfs_head_v1.1_qwen_2.1.safetensors',
+          loraName: undefined,
         }),
       );
-      const recorded = adapter.getRecordedJobs();
-      expect((recorded[0] as GenerateJob).injectedLora).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
-      expect(job.injectedLora).toBeUndefined();
     });
 
-    it('suppresses LoRA auto-injection when prompt contains English refusal phrase', async () => {
-      const refusals = [
-        'A model in trench coat, no face swap please',
-        'A model in trench coat, do not swap face',
-        'Keep the original face, high detail blazer portrait',
-        'Without face swap, standard fashion shoot',
-      ];
+    it('passes workflow through unchanged for other workflows without resetting to standard', async () => {
+      const workflows = ['ai-editor', 'virtual-try-on', 'watermark-remover', 'wardrobe-mode'];
 
-      for (const prompt of refusals) {
+      for (const workflow of workflows) {
         mockDesktopApi.generateImage.mockClear();
         const job: GenerateJob = {
-          prompt,
-          workflow: 'identity-transfer',
+          prompt: 'swap the face with image 2',
+          workflow,
         };
 
         await adapter.generate(job);
 
         expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
           expect.objectContaining({
-            prompt,
-            workflow: 'standard',
+            prompt: job.prompt,
+            workflow,
+            loraName: undefined,
           }),
         );
-        expect(job.injectedLora).toBeUndefined();
       }
     });
 
-    it('suppresses LoRA auto-injection when prompt contains Vietnamese refusal phrase', async () => {
-      const viRefusals = [
-        'Chụp ảnh lookbook áo vest, không đổi mặt',
-        'Ảnh người mẫu mặc đầm dạ hội, không thay mặt',
-        'Thời trang công sở, không ghép mặt mẫu gốc',
-        'Mẫu nam áo sơ mi, không chuyển mặt',
-      ];
-
-      for (const prompt of viRefusals) {
-        mockDesktopApi.generateImage.mockClear();
-        const job: GenerateJob = {
-          prompt,
-          workflow: 'identity-transfer',
-        };
-
-        await adapter.generate(job);
-
-        expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
-          expect.objectContaining({
-            prompt,
-            workflow: 'standard',
-          }),
-        );
-        expect(job.injectedLora).toBeUndefined();
-      }
-    });
-
-    it('does NOT inject LoRA for standard workflow even if prompt contains words like face', async () => {
-      const job: GenerateJob = {
-        prompt: 'Close-up face lighting on silk scarf',
-        workflow: 'standard',
-      };
-
-      await adapter.generate(job);
-
-      expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          workflow: 'standard',
-        }),
-      );
-      expect(job.injectedLora).toBeUndefined();
-    });
-
-    it('preserves explicitly supplied caller LoRA and does not overwrite it', async () => {
+    it('preserves explicitly supplied caller LoRA when provided', async () => {
       const job: GenerateJob = {
         prompt: 'Virtual try-on with custom vintage style',
         workflow: 'identity-transfer',
@@ -332,47 +281,20 @@ describe('LocalQwenImageDriverAdapter Test Suite', () => {
       );
     });
 
-    it('preserves caller job immutability and safely handles reused job reference across refusal refinements', async () => {
-      const reusedJob: GenerateJob = {
-        prompt: 'Fashion lookbook portrait of young model in trench coat',
-        workflow: 'identity-transfer',
-      };
-
-      // Call 1: Identity transfer without refusal -> LoRA injected
-      await adapter.generate(reusedJob);
-      expect(mockDesktopApi.generateImage).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          workflow: 'identity-transfer',
-          loraName: 'bfs_head_v1.1_qwen_2.1.safetensors',
-        }),
-      );
-      expect(reusedJob.injectedLora).toBeUndefined();
-
-      // Call 2: Refusal refinement on the same reused job reference -> LoRA suppressed
-      reusedJob.prompt = 'Keep original face, high detail portrait, no face swap';
-      await adapter.generate(reusedJob);
-      expect(mockDesktopApi.generateImage).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          workflow: 'standard',
-          loraName: undefined,
-        }),
-      );
-      expect(reusedJob.injectedLora).toBeUndefined();
-
-      const recorded = adapter.getRecordedJobs();
-      expect((recorded[0] as GenerateJob).injectedLora).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
-      expect((recorded[1] as GenerateJob).injectedLora).toBeUndefined();
-    });
-
-    it('successfully processes frozen job objects without throwing', async () => {
+    it('successfully processes frozen job objects without mutating them', async () => {
       const frozenJob = Object.freeze({
         prompt: 'Lookbook portrait with frozen job reference',
         workflow: 'identity-transfer',
       }) as GenerateJob;
 
       await expect(adapter.generate(frozenJob)).resolves.toBeDefined();
-      const recorded = adapter.getRecordedJobs();
-      expect((recorded[0] as GenerateJob).injectedLora).toBe('bfs_head_v1.1_qwen_2.1.safetensors');
+      expect(mockDesktopApi.generateImage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: frozenJob.prompt,
+          workflow: 'identity-transfer',
+          loraName: undefined,
+        }),
+      );
     });
   });
 

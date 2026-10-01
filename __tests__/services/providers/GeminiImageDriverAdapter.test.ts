@@ -189,7 +189,7 @@ describe('GeminiImageDriverAdapter Contract & Unit Test Suite', () => {
       expect(adapter.getRecordedJobs()).toHaveLength(0);
     });
 
-    it('emits onProgress callbacks across the generation lifecycle', async () => {
+    it('does not emit hardcoded English status messages on progress', async () => {
       const progressMessages: string[] = [];
       const onProgress = vi.fn((msg: string) => progressMessages.push(msg));
 
@@ -198,8 +198,7 @@ describe('GeminiImageDriverAdapter Contract & Unit Test Suite', () => {
         onProgress,
       });
 
-      expect(onProgress).toHaveBeenCalled();
-      expect(progressMessages.some((msg) => msg.includes('Gemini:'))).toBe(true);
+      expect(progressMessages.some((msg) => msg.includes('Gemini:'))).toBe(false);
     });
   });
 
@@ -309,14 +308,14 @@ describe('GeminiImageDriverAdapter Contract & Unit Test Suite', () => {
       expect(callArgs.config?.imageConfig?.aspectRatio).toBe(expected);
     });
 
-    it('normalizes "Default" aspect ratio to "1:1"', async () => {
+    it('omits aspectRatio when "Default" is specified so input aspect ratio is preserved', async () => {
       await adapter.generate({
         prompt: 'Portrait',
         aspectRatio: 'Default',
       });
 
       const callArgs = (mockClient.models.generateContent as any).mock.calls[0][0];
-      expect(callArgs.config?.imageConfig?.aspectRatio).toBe('1:1');
+      expect(callArgs.config?.imageConfig?.aspectRatio).toBeUndefined();
     });
 
     it.each([

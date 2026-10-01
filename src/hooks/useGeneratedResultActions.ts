@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { ImageFile, UpscaleQuality } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
-import { upscaleImage } from '../services/imageEditingService';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import type { UseImageRefinementReturn } from './useImageRefinement';
 
@@ -30,7 +29,7 @@ export interface GeneratedResultSlotAdapter {
 }
 
 export interface UseGeneratedResultActionsConfig {
-  driver: ImageDriver | { upscaleImage?: typeof upscaleImage; upscale?: (job: UpscaleJob) => Promise<ImageFile> };
+  driver: ImageDriver;
 
   adapter: GeneratedResultSlotAdapter;
   imageEditModel: string;
@@ -84,19 +83,10 @@ export const useGeneratedResultActions = (
     setError(null);
 
     try {
-      let result: ImageFile;
-      if (typeof (driver as any).upscale === 'function') {
-        result = await (driver as any).upscale({
-          image: imageToUpscale,
-          quality: quality ? (quality === '4K' ? '4K' : '2K') : undefined,
-        });
-      } else {
-
-        const serviceConfig = buildImageServiceConfig(() => { });
-        result = quality
-          ? await (driver as any).upscaleImage(imageToUpscale, imageEditModel, serviceConfig, quality)
-          : await (driver as any).upscaleImage(imageToUpscale, imageEditModel, serviceConfig);
-      }
+      const result = await driver.upscale({
+        image: imageToUpscale,
+        quality: quality ? (quality === '4K' ? '4K' : '2K') : undefined,
+      });
 
       adapter.commitResult(targetItemId, index, result);
 
@@ -105,7 +95,7 @@ export const useGeneratedResultActions = (
     } finally {
       setUpscalingStates((prev) => ({ ...prev, [stateKey]: false }));
     }
-  }, [driver, adapter, imageEditModel, buildImageServiceConfig, setUpscalingStates, setError, t]);
+  }, [driver, adapter, setUpscalingStates, setError, t]);
 
   const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, itemId: string, prompt: string) => {
     await refinement.runRefine(`${itemId}:${index}`, prompt, imageToRefine, (refined) => {

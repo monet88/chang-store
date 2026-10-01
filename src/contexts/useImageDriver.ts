@@ -43,68 +43,6 @@ export const ImageDriverProvider: React.FC<ImageDriverProviderProps> = ({ driver
   return React.createElement(ImageDriverContext.Provider, { value: driver }, children);
 };
 
-const createMockBridgeDriver = (engine: any): ImageDriver => {
-  const generate = async (job: GenerateJob): Promise<ImageFile[]> => {
-    if (typeof engine.generate === 'function') {
-      return engine.generate(job);
-    }
-    if (typeof engine.editImage === 'function') {
-      const prompt = (job as any).interleavedParts ? '' : job.prompt;
-      const images = job.images ?? job.references?.map((r: any) => r.image) ?? [];
-      return engine.editImage(
-        {
-          images,
-          prompt,
-          numberOfImages: job.count ?? 1,
-          aspectRatio: job.aspectRatio,
-          resolution: job.resolution,
-          interleavedParts: (job as any).interleavedParts,
-          ...(job.workflow ? { workflow: job.workflow } : {}),
-        },
-        job.model ?? engine.model ?? 'gemini-2.5-flash-image',
-        job.onProgress ? { onStatusUpdate: job.onProgress } : undefined,
-      );
-    }
-    return [];
-  };
-
-  const generateOne = async (job: GenerateJob): Promise<ImageFile> => {
-    if (typeof engine.generateOne === 'function') {
-      return engine.generateOne(job);
-    }
-    const results = await generate({ ...job, count: 1 });
-    if (!results.length) {
-      throw new Error('No images generated');
-    }
-    return results[0];
-  };
-
-  const upscale = async (job: UpscaleJob): Promise<ImageFile> => {
-    if (typeof engine.upscale === 'function') {
-      return engine.upscale(job);
-    }
-    if (typeof engine.upscaleImage === 'function') {
-      const config = { onStatusUpdate: job.onProgress ?? (() => {}) };
-      return engine.upscaleImage(
-        job.image,
-        engine.model ?? 'gemini-2.5-flash-image',
-        config,
-        ...(job.quality !== undefined ? [job.quality] : []),
-      );
-    }
-    return job.image;
-  };
-
-  return {
-    get id() {
-      return engine.id ?? 'gemini';
-    },
-    generate,
-    generateOne,
-    upscale,
-  };
-};
-
 /**
  * Accesses the active ImageDriver if mounted, or null if outside a driver/engine tree.
  */
@@ -125,11 +63,6 @@ export const useOptionalImageDriver = (): ImageDriver | null => {
 
   if (engine?.driver) {
     return engine.driver;
-  }
-
-  // Dynamic bridge for tests or legacy callers that mock useImageEngine without driver
-  if (engine && (engine.editImage || engine.upscaleImage || engine.id)) {
-    return createMockBridgeDriver(engine);
   }
 
   return null;
