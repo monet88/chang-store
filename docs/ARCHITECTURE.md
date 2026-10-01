@@ -322,3 +322,37 @@ reaches the dev server, which listens on every interface by default. See
 The current source tree has no server-side request, session, or audit-log
 layer. The generic server layering and observability sections above are
 planning constraints for future backend work, not claims about the current SPA.
+
+### ImageDriver Seam and Provider Adapters
+
+The image generation and editing transport layer is unified behind a polymorphic seam
+(`src/services/providers/ImageDriver.ts`). This decouples all 10 fashion studio features from
+provider-specific wire formats, while `ImageEngineContext.tsx` acts as a backward-compatible
+Dual-Plane Facade preserving UI controls (`options`, `modelOptions`, `setModel`):
+
+```text
+[UI Panels: GptStudio, GptImageOptionsPanel]
+                 │ (UI options, model picker)
+                 ▼
+     [ImageEngineContext Facade]
+                 │ (delegates transport)
+                 ▼
+[10 Fashion Feature Hooks] ──────► [useImageDriver()]
+                                          │
+                                          ▼
+                                   [ImageDriver]
+                                ┌─────────┴─────────┐
+                                │                   │
+             ┌──────────────────┼───────────────────┼──────────────────┐
+             ▼                  ▼                   ▼                  ▼
+     [GeminiAdapter]      [GptAdapter]      [LocalQwenAdapter]    [InMemoryFake]
+     - interleavedParts   - ratio -> px     - localQwenLock       - job recording
+     - 1K/2K/4K tiers     - request slot    - FaceSwap guard      - deferNext()
+     - safety mapping     - neg prompt      - non-retriable OOM   - deterministic
+```
+
+- **Interface Contract**: Exposes `generate(job)`, `generateOne(job)`, and `upscale(job)` using typed semantic reference roles (`ReferenceRoleImage`: `subject`, `garment`, `style`, `mask`).
+- **Hardware Mutex**: `LocalQwenImageDriverAdapter` serializes all execution through a module-level mutex (`localQwenLock`, `maxConcurrency: 1`) preventing GPU VRAM exhaustion (CUDA OOM) between generation and upscale.
+- **Error Normalization**: All network, safety, quota, and hardware errors normalize to `StudioDriverError`. Hardware fatal errors (CUDA OOM, missing model weights) are marked non-retriable.
+- **Test Doubles**: `InMemoryImageDriverFake` provides headless, deterministic testing supporting in-flight deferral (`deferNext()`), active `AbortSignal` cancellation, and progress event dispatching.
+

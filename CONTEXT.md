@@ -36,8 +36,8 @@ The cross-family studio rule that a top stays untucked outside the waistband, wi
 _Avoid_: tuck rule, untuck setting, hemline preference.
 
 **Image Driver**:
-The transport layer abstraction responsible for executing image generation or edit requests against a specific image-engine contract (`gemini-native`, `openai-images`, or local ComfyUI).
-_Avoid_: Provider client, API connector.
+The transport layer abstraction responsible for executing image generation or edit requests against a specific image-engine contract (`gemini-native`, `openai-images`, or local ComfyUI). Defined via the canonical `ImageDriver` polymorphic seam (`generate`, `generateOne`, `upscale`) consuming typed semantic roles (`ReferenceRoleImage`: `subject`, `garment`, `style`, `mask`). Transport calls are decoupled from UI controls through a Dual-Plane Facade (`ImageEngineContext`), while hardware safety on workstation GPUs is guarded by a module-level single-flight mutex (`localQwenLock`, `maxConcurrency: 1`).
+_Avoid_: Provider client, API connector, transport engine.
 
 **Gateway Profile**:
 A persisted configuration binding a driver, base URL, and credentials to a specific gateway destination.

@@ -1,6 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### The short version
+
+- **Unified Image Driver Seam:** Decoupled all 10 fashion studio features from provider-specific SDK formats behind polymorphic `ImageDriver` (`generate`, `generateOne`, `upscale`) and semantic reference roles (`ReferenceRoleImage`).
+- **Hardware Mutex Protection:** Guarded Local Qwen ComfyUI generation and upscale through module-level mutex `localQwenLock` (`maxConcurrency: 1`), preventing fatal GPU VRAM exhaustion (CUDA OOM).
+- **Dual-Plane Facade:** Retained `ImageEngineContext` as a backward-compatible UI controls facade (`options`, `modelOptions`, `setModel`) while delegating transport execution to `useImageDriver()`.
+- **Normalized Driver Errors:** Normalized all transport failures into `StudioDriverError` categories, marking local ComfyUI errors non-retriable to prevent runaway loops.
+- **Headless In-Memory Fake Double:** Hardened `InMemoryImageDriverFake` with job recording, in-flight deferral (`deferNext()`), and abort signal cancellation for fast, deterministic testing.
+
 ## [1.4.0] — 2026-09-29
+
 
 ### The short version
 
