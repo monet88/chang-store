@@ -23,7 +23,7 @@ export const useBackgroundReplacer = () => {
   const { id: engineId } = useImageEngine();
   const aiScan = useAiScan();
 
-  const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }), []);
+
 
   const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);
   const [backgroundImage, setBackgroundImage] = useState<ImageFile | null>(null);
@@ -158,7 +158,7 @@ export const useBackgroundReplacer = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [addImage, aiScan, aiScanSources, aspectRatio, backgroundImage, buildImageServiceConfig, buildPrompt, cameraView, driver, engineId, imageEditModel, negativePrompt, promptText, resolution, subjectImage, t]);
+  }, [addImage, aiScan, aiScanSources, aspectRatio, backgroundImage, buildPrompt, cameraView, driver, engineId, imageEditModel, negativePrompt, promptText, resolution, subjectImage, t]);
 
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number) => {
     setUpscalingStates((prev) => ({ ...prev, [index]: true }));

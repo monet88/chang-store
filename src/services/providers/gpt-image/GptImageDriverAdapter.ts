@@ -375,8 +375,10 @@ export class GptImageDriverAdapter implements ImageDriver {
             cause: job.signal.reason,
           });
         }
-        if (firstError) throw mapGptImageErrorToStudioDriverError(firstError);
-        throw new StudioDriverError('unknown', 'All parallel GPT image requests failed', { retryable: false });
+        // All parallel requests failed — retry once with a single request
+        // (matches legacy gptImageEngine behavior).
+        job.onProgress?.('GPT: all parallel requests failed, retrying with single request...');
+        return await withImageRequestSlot(async () => executeOne(job.signal));
       }
 
       job.onProgress?.('GPT: parallel generation completed.');

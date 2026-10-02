@@ -13,6 +13,7 @@ import {
   type ImageEngineId,
   type ImageFile,
   type ImageResolution,
+  type VirtualTryOnClothingItem,
   type WardrobeResultSet,
   type WardrobeSet,
 } from '../types';
@@ -105,9 +106,9 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
     }));
     setResults(initialResults);
 
-    const jobs: { setId: string; items: any[] }[] = validSets.map((s) => ({
+    const jobs: { setId: string; items: (VirtualTryOnClothingItem & { image: ImageFile })[] }[] = validSets.map((s) => ({
       setId: s.id,
-      items: s.items.filter((i) => i.image !== null),
+      items: s.items.filter((i): i is VirtualTryOnClothingItem & { image: ImageFile } => i.image !== null),
     }));
 
     const batchConcurrency = resolveEngineConcurrency(engineId, jobs.length);
@@ -118,8 +119,8 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
         );
 
         try {
-          const sourceItems = job.items.map((item: any) => ({
-            image: item.image as ImageFile,
+          const sourceItems = job.items.map((item) => ({
+            image: item.image,
             sourceItemType: item.sourceItemType,
             sourcePrompt: item.sourcePrompt,
           }));
@@ -145,8 +146,8 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
 
           const references: ReferenceRoleImage[] = [
             { image: capturedSubject, role: 'subject', label: 'model' },
-            ...job.items.map((item: any, idx: number) => ({
-              image: item.image as ImageFile,
+            ...job.items.map((item, idx: number) => ({
+              image: item.image,
               role: 'garment' as const,
               label: `item-${idx + 1}-${item.sourceItemType}`,
             })),

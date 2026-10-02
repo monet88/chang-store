@@ -194,9 +194,21 @@ export class LocalQwenImageDriverAdapter implements ImageDriver {
           }
         }
 
-        // 9. Extract images from job.images or job.references
+        // 9. Extract images: prefer interleavedParts (prompt-ordered inline images)
+        //    over the legacy job.images / job.references lists. The prompt policy
+        //    embeds images in a deterministic order (e.g. image_1=source,
+        //    image_2=face ref) that the Qwen workflow depends on.
         const images: Array<{ base64: string; mimeType: string }> = [];
-        if (job.images && job.images.length > 0) {
+        if (job.interleavedParts && job.interleavedParts.length > 0) {
+          for (const part of job.interleavedParts) {
+            if (part.inlineData?.data) {
+              images.push({
+                base64: part.inlineData.data,
+                mimeType: part.inlineData.mimeType || 'image/png',
+              });
+            }
+          }
+        } else if (job.images && job.images.length > 0) {
           for (const img of job.images) {
             images.push({ base64: img.base64, mimeType: img.mimeType || 'image/png' });
           }
