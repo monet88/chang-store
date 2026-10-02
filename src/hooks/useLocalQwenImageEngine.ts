@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguageOptional } from '../contexts/LanguageContext';
 import type { ImageEngine } from '../contexts/ImageEngineContext';
 import {
   withLocalQwenLock,
@@ -23,13 +23,11 @@ export const runSerializedLocalQwenJob = withLocalQwenLock;
  * - No auto-upscale; results remain at configured resolution.
  */
 export const useLocalQwenImageEngine = (): ImageEngine => {
-  let t = (key: string) => key;
-  try {
-    const lang = useLanguage();
-    if (lang?.t) t = lang.t;
-  } catch {
-    // outside LanguageProvider, fallback to key
-  }
+  // useLanguageOptional() is unconditional (Rules of Hooks) and returns
+  // undefined outside LanguageProvider instead of throwing.
+  const lang = useLanguageOptional();
+  const t = lang?.t ?? fallbackT;
+
   const driver = useMemo<ImageDriver>(() => new LocalQwenImageDriverAdapter({ t }), [t]);
   const legacyBridge = useMemo(() => createLegacyDriverBridge(driver, 'qwen-image-2.1'), [driver]);
 
@@ -52,3 +50,5 @@ export const useLocalQwenImageEngine = (): ImageEngine => {
   }, [driver, legacyBridge]);
 };
 
+/** Stable identity fallback for when LanguageProvider is absent. */
+const fallbackT = (key: string) => key;

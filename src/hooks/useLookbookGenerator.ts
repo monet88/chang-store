@@ -77,7 +77,6 @@ export const useLookbookGenerator = () => {
     resolution,
     variationCount,
     imageEditModel,
-    buildImageServiceConfig,
     onMainImageGenerated: refinement.onMainImageGenerated,
     addImage,
     engineId,

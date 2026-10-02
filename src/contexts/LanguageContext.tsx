@@ -110,3 +110,13 @@ export const useLanguage = (): LanguageContextType => {
   }
   return context;
 };
+
+/**
+ * Non-throwing variant of `useLanguage` for hooks that may render outside
+ * `LanguageProvider` (e.g. `useLocalQwenImageEngine` in Electron desktop).
+ * Returns `undefined` when the provider is absent — callers should fall back
+ * to a stable identity function.
+ */
+export const useLanguageOptional = (): LanguageContextType | undefined => {
+  return useContext(LanguageContext);
+};

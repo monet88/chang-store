@@ -51,7 +51,6 @@ export interface UseLookbookGenerationConfig {
   resolution: ImageResolution;
   variationCount: number;
   imageEditModel: string;
-  buildImageServiceConfig: (onStatusUpdate: (message: string) => void) => { onStatusUpdate: (message: string) => void };
   onMainImageGenerated: (image: ImageFile) => void;
   setIsLoading: (value: boolean) => void;
   setLoadingMessage: (message: string) => void;
@@ -82,7 +81,7 @@ export const useLookbookGeneration = (
   const {
     driver, formState, generatedLookbook, setGeneratedLookbook,
     aspectRatio, resolution, variationCount, imageEditModel,
-    buildImageServiceConfig, onMainImageGenerated,
+    onMainImageGenerated,
     setIsLoading, setLoadingMessage, setError,
     setIsGeneratingVariations, setIsGeneratingCloseUp,
     setActiveOutputTab, addImage, engineId, t,

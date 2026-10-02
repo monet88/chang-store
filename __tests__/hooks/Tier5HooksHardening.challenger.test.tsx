@@ -80,6 +80,9 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
   useLanguage: () => ({
     t: (key: string) => key,
   }),
+  useLanguageOptional: () => ({
+    t: (key: string) => key,
+  }),
 }));
 
 vi.mock('../../src/contexts/ImageGalleryContext', () => ({

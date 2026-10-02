@@ -361,6 +361,7 @@ export const en = {
       poseDescriptionFailed: 'Failed to generate pose description: {{errorMessage}}',
       geminiFailed: 'Gemini API call failed. Error: {{error}}',
       textToImageNotSupported: 'Text-to-image generation is not supported by the selected API provider.',
+      unsupportedOperation: '{{operation}} is not supported on this engine.',
     },
     upload: {
       fileTooLarge: 'File is too large. Maximum size is {{maxSize}}.',

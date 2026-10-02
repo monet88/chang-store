@@ -378,7 +378,15 @@ export class GptImageDriverAdapter implements ImageDriver {
         // All parallel requests failed — retry once with a single request
         // (matches legacy gptImageEngine behavior).
         job.onProgress?.('GPT: all parallel requests failed, retrying with single request...');
-        return await withImageRequestSlot(async () => executeOne(job.signal));
+        return await withImageRequestSlot(async () => {
+          if (job.signal?.aborted) {
+            throw new StudioDriverError('cancelled', 'GPT image generation was cancelled.', {
+              retryable: false,
+              cause: job.signal.reason,
+            });
+          }
+          return executeOne(job.signal);
+        });
       }
 
       job.onProgress?.('GPT: parallel generation completed.');

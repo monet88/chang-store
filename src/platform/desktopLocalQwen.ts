@@ -94,8 +94,8 @@ const ENGLISH_REFUSAL_PATTERNS = [
  *   like nước, vải, bàn, đất, sàn, đường, phẳng, kính, gỗ, đá
  */
 const VIETNAMESE_REFUSAL_PATTERNS = [
-  /(?:^|[\s,;:!.?()\[\]])(không|đừng|chớ)\s+((đổi|thay|ghép|chuyển|hoán\s*đổi)\s+(khuôn\s*mặt|mặt|danh\s*tính)|face\s*swap)/i,
-  /(?:^|[\s,;:!.?()\[\]])giữ\s+(nguyên\s+)?(khuôn\s*mặt|mặt\s+gốc|mặt(?!\s+(nước|vải|bàn|đất|sàn|đường|phẳng|kính|gỗ|đá)))/i,
+  /(?:^|[\s,;:!.?()[\]])(không|đừng|chớ)\s+((đổi|thay|ghép|chuyển|hoán\s*đổi)\s+(khuôn\s*mặt|mặt|danh\s*tính)|face\s*swap)/i,
+  /(?:^|[\s,;:!.?()[\]])giữ\s+(nguyên\s+)?(khuôn\s*mặt|mặt\s+gốc|mặt(?!\s+(nước|vải|bàn|đất|sàn|đường|phẳng|kính|gỗ|đá)))/i,
 ];
 
 /**
