@@ -14,7 +14,6 @@ import {
 } from '../../../config/localQwenSettings';
 import {
   getDesktopLocalQwenApi,
-  isFaceSwapRefusal,
   LOCAL_QWEN_UNAVAILABLE_MESSAGE,
 } from '../../../platform/desktopLocalQwen';
 import { classifyLocalQwenError } from '../../../utils/localQwenErrors';
@@ -99,8 +98,7 @@ export const mapLocalQwenErrorToStudioDriverError = (error: unknown): StudioDriv
  * - Desktop only via Electron IPC or Vite dev bridge.
  * - Single-flight execution strictly serialized across generate and upscale via localQwenLock.
  * - Snapshot settings when job starts; subsequent mutations don't affect running job.
- * - FaceSwap LoRA auto-injection: auto-inject strictly when workflow === 'identity-transfer' && !isFaceSwapRefusal(prompt).
- * - Refusal phrases (English/Vietnamese) outrank workflow and force standard mode.
+ * - Workflow & LoRA: passes workflow through to let main process own FaceSwap LoRA selection and refusal checks, preserving explicit injectedLora override when passed.
  * - Local Qwen Upscale Invariant: upscale is strictly local, manual only, never automatic, never routed to cloud.
  * - Hardware fatal errors (CUDA OOM, missing weights) are non-retriable.
  */

@@ -1,3 +1,4 @@
+import type { Part } from '@google/genai';
 import type { ImageAspectRatio, ImageEngineId, ImageFile, ImageResolution } from '../../types';
 
 export interface ReferenceRoleImage {
@@ -22,7 +23,7 @@ export interface GenerateJob {
   // Execution metadata captured by drivers
   injectedLora?: string;
   resolvedDimensions?: string;
-  interleavedParts?: any;
+  interleavedParts?: Part[];
 }
 
 export interface UpscaleJob {
@@ -47,7 +48,7 @@ export type RecordedJob = (GenerateJob | UpscaleJob) & {
   image?: ImageFile;
   signal?: AbortSignal;
   onProgress?: (message: string) => void;
-  interleavedParts?: any;
+  interleavedParts?: Part[];
 };
 
 export interface ImageDriver {

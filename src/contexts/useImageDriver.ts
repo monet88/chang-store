@@ -10,7 +10,7 @@ import {
   isStudioDriverError,
   isRetryableDriverError,
 } from '../services/providers/ImageDriver';
-import { useImageEngine } from './ImageEngineContext';
+import { useOptionalImageEngine } from './ImageEngineContext';
 
 export type {
   ImageDriver,
@@ -48,14 +48,7 @@ export const ImageDriverProvider: React.FC<ImageDriverProviderProps> = ({ driver
  */
 export const useOptionalImageDriver = (): ImageDriver | null => {
   const driver = useContext(ImageDriverContext);
-
-  let engine: any = null;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    engine = useImageEngine();
-  } catch {
-    // not inside ImageEngineProvider or legacy unmounted test
-  }
+  const engine = useOptionalImageEngine();
 
   if (driver) {
     return driver;

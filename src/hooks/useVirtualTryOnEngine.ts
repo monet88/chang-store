@@ -150,7 +150,7 @@ export const useVirtualTryOnEngine = (
     },
     [driver, subjects.markerPosition, subjects.updateSubjectItem, isMultiPersonMode,
       extraPrompt, backgroundPrompt, userGuidance, numImages, aspectRatio, resolution, imageEditModel,
-      buildImageServiceConfig, setLoadingMessage, addImage, engineId, t, scan],
+      setLoadingMessage, addImage, engineId, t, scan],
   );
 
   const handleGenerateImage = useCallback(async () => {

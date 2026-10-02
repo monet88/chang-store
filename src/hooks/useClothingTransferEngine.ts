@@ -115,7 +115,7 @@ export const useClothingTransferEngine = (
       }
     },
     [driver, updateConceptItem, extraPrompt, numImages, aspectRatio, resolution,
-      imageEditModel, buildImageServiceConfig, setLoadingMessage, addImage, engineId, t],
+      imageEditModel, setLoadingMessage, addImage, engineId, t],
   );
 
   const handleGenerate = useCallback(async () => {

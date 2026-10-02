@@ -145,6 +145,7 @@ export const useLookbookGeneration = (
         model: imageEditModel,
         onProgress: setLoadingMessage,
       });
+
       if (results.length > 0) {
         const generatedImage = results[0];
         setGeneratedLookbook({ main: generatedImage, variations: [], closeups: [], blueprint });
@@ -158,7 +159,7 @@ export const useLookbookGeneration = (
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [driver, formState, imageEditModel, buildImageServiceConfig, aspectRatio, resolution,
+  }, [driver, formState, imageEditModel, aspectRatio, resolution,
     t, setError, setIsLoading, setLoadingMessage, setGeneratedLookbook, setActiveOutputTab, onMainImageGenerated, addImage, engineId, aiScan, aiScanSources]);
 
   const handleGenerateVariations = useCallback(async () => {
@@ -198,7 +199,7 @@ export const useLookbookGeneration = (
       setLoadingMessage('');
     }
   }, [driver, generatedLookbook, formState.negativePrompt, formState.lookbookStyle,
-    variationCount, imageEditModel, buildImageServiceConfig, aspectRatio, resolution,
+    variationCount, imageEditModel, aspectRatio, resolution,
     t, setError, setIsGeneratingVariations, setLoadingMessage, setGeneratedLookbook, addImage, engineId]);
 
   const handleGenerateCloseUp = useCallback(async () => {
@@ -245,7 +246,7 @@ export const useLookbookGeneration = (
       setLoadingMessage('');
     }
   }, [driver, generatedLookbook, formState.negativePrompt, imageEditModel,
-    buildImageServiceConfig, aspectRatio, resolution,
+    aspectRatio, resolution,
     t, setError, setIsGeneratingCloseUp, setLoadingMessage, setGeneratedLookbook, addImage, engineId]);
 
   return {
