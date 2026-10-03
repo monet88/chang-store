@@ -192,7 +192,7 @@ export const WatermarkRemoverOutput = React.memo<WatermarkRemoverOutputProps>(({
               {/* Remove button */}
               <button
                 onClick={() => onRemoveItem(item.id)}
-                className="absolute top-2 right-2 w-6 h-6 bg-black/50 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-xs transition-colors"
+                className="absolute top-2 right-2 w-6 h-6 bg-black/50 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                 title={t('common.remove')}
                 aria-label={t('common.remove')}
               >
