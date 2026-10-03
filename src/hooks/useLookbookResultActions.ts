@@ -41,11 +41,9 @@ export const useLookbookResultActions = (
     setUpscalingStates((prev) => ({ ...prev, [imageKey]: true }));
     setError(null);
     try {
-      const result = await driver.upscaleImage(
-        imageToUpscale,
-        imageEditModel,
-        buildImageServiceConfig(() => {}),
-      );
+      const result = await driver.upscale({
+        image: imageToUpscale,
+      });
 
       setGeneratedLookbook((prev) => {
         if (!prev) return null;

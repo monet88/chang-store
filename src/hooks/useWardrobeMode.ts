@@ -10,6 +10,7 @@ import { useState, useMemo, useCallback } from 'react';
 import type { ImageFile, ImageResolution, AspectRatio, ImageEditModel, ImageEngineId } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { useImageDriver } from '../contexts/useImageDriver';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import { getErrorMessage } from '../utils/imageUtils';
@@ -29,7 +30,8 @@ interface UseWardrobeModeParams {
 
 export const useWardrobeMode = (params: UseWardrobeModeParams) => {
   const { t } = useLanguage();
-  const { editImage, id: contextEngineId } = useImageEngine();
+  const imageDriver = useImageDriver();
+  const { id: contextEngineId } = useImageEngine();
 
   const list = useWardrobeModeList();
 
@@ -38,7 +40,7 @@ export const useWardrobeMode = (params: UseWardrobeModeParams) => {
   const [error, setError] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('');
 
-  const driver = useMemo<WardrobeImageDriver>(() => ({ editImage }), [editImage]);
+  const driver = imageDriver;
 
   // AI Scan source set for the panel's badge: the first set's garments plus the
   // subject, i.e. exactly what that set's generation will deconstruct. Every

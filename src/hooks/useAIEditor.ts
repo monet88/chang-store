@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { useImageDriver } from '../contexts/useImageDriver';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { AspectRatio, DEFAULT_IMAGE_RESOLUTION, Feature, ImageEngineId, ImageFile, ImageResolution } from '../types';
@@ -43,7 +44,8 @@ export interface UseAIEditorReturn {
 
 export const useAIEditor = (): UseAIEditorReturn => {
   const { t } = useLanguage();
-  const { editImage, upscaleImage, model: imageEditModel, id: engineId } = useImageEngine();
+  const driver = useImageDriver();
+  const { model: imageEditModel, id: engineId } = useImageEngine();
   const { addImage } = useImageGallery();
 
   const [images, setImages] = useState<ImageFile[]>([]);
@@ -159,19 +161,14 @@ export const useAIEditor = (): UseAIEditorReturn => {
         : (isLocalQwen ? images.slice(0, 4) : images);
 
       const apiPrompt = buildApiPrompt(prompt, imagesToSend, mentionedSelection.hasMentions);
-      const [result] = await editImage(
-        {
-          images: imagesToSend,
-          prompt: apiPrompt,
-          numberOfImages: 1,
-          aspectRatio,
-          resolution,
-        },
-        imageEditModel,
-        {
-          onStatusUpdate: () => {},
-        },
-      );
+      const result = await driver.generateOne({
+        images: imagesToSend,
+        prompt: apiPrompt,
+        aspectRatio,
+        resolution,
+        workflow: 'ai-editor',
+        model: imageEditModel,
+      });
 
       if (!result) {
         throw new Error('error.api.noImageGenerated');
@@ -190,7 +187,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
     prompt,
     aspectRatio,
     resolution,
-    editImage,
+    driver,
     imageEditModel,
     extractMentionedImages,
     buildApiPrompt,
@@ -203,8 +200,8 @@ export const useAIEditor = (): UseAIEditorReturn => {
     setIsUpscaling(true);
     setError(null);
     try {
-      const result = await upscaleImage(imageToUpscale, imageEditModel, {
-        onStatusUpdate: () => {},
+      const result = await driver.upscale({
+        image: imageToUpscale,
       });
       setResultImage(result);
       addImage(result, Feature.AIEditor, engineId);
@@ -213,7 +210,7 @@ export const useAIEditor = (): UseAIEditorReturn => {
     } finally {
       setIsUpscaling(false);
     }
-  }, [addImage, engineId, imageEditModel, t, upscaleImage]);
+  }, [addImage, driver, engineId, t]);
 
   return {
     images,

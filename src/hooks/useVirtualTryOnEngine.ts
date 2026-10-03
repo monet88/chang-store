@@ -9,7 +9,6 @@ import {
 } from '../types';
 import { getErrorMessage, compositeMarkerOnImage } from '../utils/imageUtils';
 import { aiScanGuidanceFromItems, aiScanSourceSet, combineAiScanGuidance } from '../utils/ai-scan-blueprint';
-import { editImage, upscaleImage } from '../services/imageEditingService';
 import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '../utils/gpt-virtual-try-on-prompt';
 import { buildQwenVirtualTryOnParts } from '../utils/qwen-virtual-try-on-prompt';
@@ -18,19 +17,13 @@ import { dispatchByEngine, resolveEngineConcurrency } from '../utils/engineDispa
 import { UseVirtualTryOnSubjectsReturn } from './useVirtualTryOnSubjects';
 import { UseImageRefinementReturn } from './useImageRefinement';
 import { useAiScan } from '../contexts/AiScanContext';
+import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
+import type { ImageDriver, ReferenceRoleImage, GenerateJob } from '../services/providers/ImageDriver';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
-/**
- * Image primitives the engine orchestrates, mirroring the provider
- * `ProviderImageDriver` seam. The main hook builds the default driver from the
- * real `imageEditingService`; tests can inject a mock driver to exercise the
- * generation core without hitting the active image API.
- */
-export interface VirtualTryOnImageDriver {
-  editImage: typeof editImage;
-  upscaleImage: typeof upscaleImage;
-}
+export type VirtualTryOnImageDriver = ImageDriver;
+
 
 export interface UseVirtualTryOnEngineConfig {
   driver: VirtualTryOnImageDriver;
@@ -120,19 +113,32 @@ export const useVirtualTryOnEngine = (
           gptImage: () => buildGptVirtualTryOnParts(promptInput),
           gemini: () => buildGeminiVirtualTryOnParts(promptInput),
         });
-        const results = await driver.editImage(
-          {
-            images: [],
-            prompt: '',
-            numberOfImages: numImages,
-            aspectRatio,
-            resolution,
-            interleavedParts,
-          },
-          imageEditModel,
-          buildImageServiceConfig(setLoadingMessage),
-        );
+
+        const references: ReferenceRoleImage[] = [
+          { image: finalSubjectImage, role: 'subject', label: 'model' },
+          ...sourceItems.map((item, index) => ({
+            image: item.image,
+            role: 'garment' as const,
+            label: `item-${index + 1}-${item.sourceItemType}${item.sourcePrompt ? `: ${item.sourcePrompt}` : ''}`,
+          })),
+        ];
+
+        const flattened = flattenInterleavedParts(interleavedParts);
+        const compiledPrompt = flattened ? flattened.prompt : '';
+
+        const results = await driver.generate({
+          prompt: compiledPrompt,
+          references,
+          count: numImages,
+          aspectRatio,
+          resolution,
+          workflow: 'virtual-try-on',
+          model: imageEditModel,
+          onProgress: setLoadingMessage,
+          interleavedParts,
+        });
         subjects.updateSubjectItem(itemId, { status: 'completed', results, error: undefined });
+
         results.forEach((image) => addImage?.(image, Feature.TryOn, engineId));
       } catch (itemError) {
         subjects.updateSubjectItem(itemId, {
@@ -144,7 +150,7 @@ export const useVirtualTryOnEngine = (
     },
     [driver, subjects.markerPosition, subjects.updateSubjectItem, isMultiPersonMode,
       extraPrompt, backgroundPrompt, userGuidance, numImages, aspectRatio, resolution, imageEditModel,
-      buildImageServiceConfig, setLoadingMessage, addImage, engineId, t, scan],
+      setLoadingMessage, addImage, engineId, t, scan],
   );
 
   const handleGenerateImage = useCallback(async () => {

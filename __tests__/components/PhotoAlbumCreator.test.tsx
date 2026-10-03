@@ -58,6 +58,14 @@ vi.mock('../../src/services/imageEditingService', () => ({
   editImage: (...args: unknown[]) => editImageMock(...args),
 }));
 
+vi.mock('../../src/contexts/ImageEngineContext', async () => {
+  const { mockUseImageEngine } = await import('../__mocks__/contexts');
+  return mockUseImageEngine({
+    editImage: (...args: unknown[]) => editImageMock(...args),
+    model: 'gemini-2.5-flash-image',
+  });
+});
+
 vi.mock('../../src/components/ImageUploader', () => ({
   default: ({ id, title, onImageUpload }: { id: string; title: string; onImageUpload: (image: typeof testImage) => void }) => (
     <button type="button" onClick={() => onImageUpload(testImage)}>

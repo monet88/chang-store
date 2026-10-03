@@ -1,16 +1,13 @@
 import { useCallback, useRef } from 'react';
-import { AspectRatio, ImageFile, ImageResolution } from '../types';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { AspectRatio, ImageFile, ImageResolution, ImageEngineId } from '../types';
+import type { ImageDriver, GenerateJob, UpscaleJob, ReferenceRoleImage } from '../services/providers/ImageDriver';
 import { useAiScan } from '../contexts/AiScanContext';
 import { getErrorMessage } from '../utils/imageUtils';
 import { buildTextPosePrompt, buildReferencePosePrompt } from '../utils/pose-changer-prompt-builder';
 
 type CameraView = 'default' | 'fullBody' | 'halfBody' | 'kneesUp';
 
-export interface PoseImageDriver {
-  editImage: typeof editImage;
-  upscaleImage: typeof upscaleImage;
-}
+export type PoseImageDriver = ImageDriver;
 
 export interface UsePoseChangerEngineConfig {
   driver: PoseImageDriver;
@@ -54,14 +51,26 @@ const performEdit = async (
   negativePrompt: string,
   aspectRatio: AspectRatio,
   resolution: ImageResolution,
-  onStatus?: (message: string) => void
+  onStatus?: (message: string) => void,
 ) => {
-  const [result] = await driver.editImage(
-    { images, prompt, negativePrompt, numberOfImages: 1, aspectRatio, resolution },
-    imageEditModel,
-    createEditConfig(onStatus),
-  );
-  return result;
+  const references: ReferenceRoleImage[] = [];
+  if (images[0]) {
+    references.push({ image: images[0], role: 'subject', label: 'model' });
+  }
+  if (images[1]) {
+    references.push({ image: images[1], role: 'style', label: 'pose-reference' });
+  }
+
+  return driver.generateOne({
+    prompt,
+    references: references.length > 0 ? references : undefined,
+    negativePrompt,
+    aspectRatio,
+    resolution,
+    workflow: 'pose-changer',
+    model: imageEditModel,
+    onProgress: onStatus,
+  });
 };
 
 export const usePoseChangerEngine = (config: UsePoseChangerEngineConfig): UsePoseChangerEngineReturn => {

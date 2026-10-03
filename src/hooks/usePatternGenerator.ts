@@ -1,19 +1,23 @@
 import { useCallback, useRef, useState } from 'react';
 import { Feature, ImageFile } from '../types';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { useImageDriver } from '../contexts/useImageDriver';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { getErrorMessage } from '../utils/imageUtils';
-import { createImageChatSession, editImage, ImageChatSession } from '../services/imageEditingService';
+import type { ReferenceRoleImage } from '../services/providers/ImageDriver';
+import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
+import type { ImageChatSession } from '../services/imageEditingService';
 import { buildPatternGeneratorParts, REFINE_CORRECTION, TASK_PROMPT } from '../utils/pattern-generator-prompt-builder';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 
 export function usePatternGenerator() {
   const { t } = useLanguage();
+  const driver = useImageDriver();
   const { imageEditModel } = useApi();
   const { addImage } = useImageGallery();
-  const { id: engineId } = useImageEngine();
+  const { id: engineId, createImageChatSession } = useImageEngine();
 
   const [referenceImages, setReferenceImages] = useState<ImageFile[]>([]);
   const [generatedPatterns, setGeneratedPatterns] = useState<ImageFile[]>([]);
@@ -33,13 +37,6 @@ export function usePatternGenerator() {
   const handleStatusUpdate = useCallback((message: string) => {
     setLoadingMessage(message);
   }, []);
-
-  const buildImageServiceConfig = useCallback(
-    (onStatusUpdate: (message: string) => void) => ({
-      onStatusUpdate,
-    }),
-    [],
-  );
 
   const canGenerate = (!isLoading && !isRefining)
     && referenceImages.length > 0;
@@ -73,21 +70,27 @@ export function usePatternGenerator() {
     setSelectedPatternIndex(0);
 
     try {
-      const results = await editImage(
-        {
-          images: referenceImages,
-          prompt: '',
-          numberOfImages: numImages,
-          aspectRatio: '1:1',
-          resolution: '4K',
-          interleavedParts: buildPatternGeneratorParts(
-            referenceImages,
-            trimmedPrompt ? `${TASK_PROMPT}\n\n${trimmedPrompt}` : TASK_PROMPT,
-          ),
-        },
-        imageEditModel,
-        buildImageServiceConfig(handleStatusUpdate),
-      );
+      const taskPrompt = trimmedPrompt ? `${TASK_PROMPT}\n\n${trimmedPrompt}` : TASK_PROMPT;
+      const interleavedParts = buildPatternGeneratorParts(referenceImages, taskPrompt);
+      const references: ReferenceRoleImage[] = referenceImages.map((img, idx) => ({
+        image: img,
+        role: 'style' as const,
+        label: `pattern-reference-${idx + 1}`,
+      }));
+
+      const flattened = flattenInterleavedParts(interleavedParts);
+      const compiledPrompt = flattened ? flattened.prompt : taskPrompt;
+
+      const results = await driver.generate({
+        prompt: compiledPrompt,
+        references,
+        count: numImages,
+        aspectRatio: '1:1',
+        resolution: '4K',
+        interleavedParts,
+        model: imageEditModel,
+        onProgress: handleStatusUpdate,
+      });
 
       setGeneratedPatterns(results);
       results.forEach((img) => addImage(img, Feature.PatternGenerator, engineId));
@@ -98,7 +101,7 @@ export function usePatternGenerator() {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [referenceImages, prompt, numImages, imageEditModel, buildImageServiceConfig, handleStatusUpdate, addImage, engineId, t, isRefining]);
+  }, [referenceImages, prompt, numImages, imageEditModel, handleStatusUpdate, addImage, engineId, t, isRefining, driver]);
 
   const handleRefine = useCallback(async () => {
     const currentImage = generatedPatterns[selectedPatternIndex];
@@ -107,9 +110,13 @@ export function usePatternGenerator() {
     }
 
     if (!chatSessionsRef.current[selectedPatternIndex]) {
+      if (!createImageChatSession) {
+        setError(t('error.api.unsupportedOperation', { operation: 'refine' }));
+        return;
+      }
       chatSessionsRef.current[selectedPatternIndex] = createImageChatSession(
         imageEditModel,
-        buildImageServiceConfig(() => {}),
+        { onStatusUpdate: () => {} },
       );
     }
 
@@ -135,7 +142,7 @@ export function usePatternGenerator() {
       setIsRefining(false);
       setLoadingMessage('');
     }
-  }, [generatedPatterns, selectedPatternIndex, refinePrompt, imageEditModel, buildImageServiceConfig, addImage, engineId, t]);
+  }, [generatedPatterns, selectedPatternIndex, refinePrompt, imageEditModel, createImageChatSession, addImage, engineId, t]);
 
   const handleDownloadSelected = useCallback(() => {
     const image = generatedPatterns[selectedPatternIndex];

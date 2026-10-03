@@ -35,11 +35,9 @@ export const usePoseChangerResultActions = (
     setError(null);
 
     try {
-      const result = await driver.upscaleImage(
-        imageToUpscale,
-        imageEditModel,
-        buildImageServiceConfig(() => {}),
-      );
+      const result = await driver.upscale({
+        image: imageToUpscale,
+      });
       setGeneratedImages((prev) => prev.map((image, imageIndex) => (imageIndex === index ? result : image)));
     } catch (err) {
       setError(getErrorMessage(err, t));

@@ -127,6 +127,9 @@ export const blobToBase64 = (blob: Blob): Promise<string> => {
 export const getErrorMessage = (error: unknown, t: (key: string, options?: any) => any): string => {
     const rawMessage = error instanceof Error ? error.message : 'error.unknown';
     
+    if (rawMessage === 'error.api.safetyBlock' || rawMessage.startsWith('error.api.safetyBlock:')) {
+        return t('error.api.safetyBlock');
+    }
     if (rawMessage.startsWith('error.api.textOnlyResponse:')) {
         const reason = rawMessage.substring('error.api.textOnlyResponse:'.length);
         return t('error.api.textOnlyResponse', { reason });

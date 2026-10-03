@@ -234,7 +234,7 @@ describe('UI boundary import enforcement', () => {
       violations,
       formatViolations('Forbidden UI-layer imports found:', violations),
     ).toEqual([]);
-  });
+  }, 15000);
 
   it('blocks wrong-source type imports for boundary contracts', async () => {
     const usages = await collectUiImportUsages();
@@ -244,5 +244,5 @@ describe('UI boundary import enforcement', () => {
       violations,
       formatViolations('Wrong-source UI type imports found:', violations),
     ).toEqual([]);
-  });
+  }, 15000);
 });

@@ -1,9 +1,10 @@
 import { useCallback } from 'react';
 import { ImageFile, UpscaleQuality } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
-import { upscaleImage } from '../services/imageEditingService';
 import { downloadImagesAsZip } from '../utils/zipDownload';
 import type { UseImageRefinementReturn } from './useImageRefinement';
+
+import type { UpscaleJob, ImageDriver } from '../services/providers/ImageDriver';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
@@ -28,7 +29,8 @@ export interface GeneratedResultSlotAdapter {
 }
 
 export interface UseGeneratedResultActionsConfig {
-  driver: { upscaleImage: typeof upscaleImage };
+  driver: ImageDriver;
+
   adapter: GeneratedResultSlotAdapter;
   imageEditModel: string;
   refinement: UseImageRefinementReturn;
@@ -81,18 +83,19 @@ export const useGeneratedResultActions = (
     setError(null);
 
     try {
-      const serviceConfig = buildImageServiceConfig(() => { });
-      const result = quality
-        ? await driver.upscaleImage(imageToUpscale, imageEditModel, serviceConfig, quality)
-        : await driver.upscaleImage(imageToUpscale, imageEditModel, serviceConfig);
+      const result = await driver.upscale({
+        image: imageToUpscale,
+        quality: quality ? (quality === '4K' ? '4K' : '2K') : undefined,
+      });
 
       adapter.commitResult(targetItemId, index, result);
+
     } catch (err) {
       setError(getErrorMessage(err, t));
     } finally {
       setUpscalingStates((prev) => ({ ...prev, [stateKey]: false }));
     }
-  }, [driver, adapter, imageEditModel, buildImageServiceConfig, setUpscalingStates, setError, t]);
+  }, [driver, adapter, setUpscalingStates, setError, t]);
 
   const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, itemId: string, prompt: string) => {
     await refinement.runRefine(`${itemId}:${index}`, prompt, imageToRefine, (refined) => {

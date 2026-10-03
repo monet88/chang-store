@@ -3,25 +3,27 @@ import { AspectRatio, ImageFile, ImageResolution, DEFAULT_IMAGE_RESOLUTION, Feat
 import { useLanguage } from '../contexts/LanguageContext';
 import { useImageGallery } from '../contexts/ImageGalleryContext';
 import { useImageEngine } from '../contexts/ImageEngineContext';
+import { useImageDriver } from '../contexts/useImageDriver';
 import { useApi } from '../contexts/ApiProviderContext';
-import { editImage, upscaleImage } from '../services/imageEditingService';
 import { generateImageDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
 import { detectImageAspectRatio } from '../utils/imageAspectRatio';
 import { useImageRefinement } from './useImageRefinement';
 import { useAiScan } from '../contexts/AiScanContext';
+import type { ReferenceRoleImage } from '../services/providers/ImageDriver';
 import { buildBackgroundReplacementPrompt } from '../utils/background-replacer-prompt-builder';
 import { getEnglishFramingInstruction } from '../utils/framingInstructions';
 import { PHOTO_ALBUM_BACKGROUNDS } from '../utils/photoAlbumConfig';
 
 export const useBackgroundReplacer = () => {
   const { t } = useLanguage();
+  const driver = useImageDriver();
   const { imageEditModel, textGenerateModel } = useApi();
   const { addImage } = useImageGallery();
   const { id: engineId } = useImageEngine();
   const aiScan = useAiScan();
 
-  const buildImageServiceConfig = useCallback((onStatusUpdate: (message: string) => void) => ({ onStatusUpdate }), []);
+
 
   const [subjectImage, setSubjectImage] = useState<ImageFile | null>(null);
   const [backgroundImage, setBackgroundImage] = useState<ImageFile | null>(null);
@@ -126,21 +128,28 @@ export const useBackgroundReplacer = () => {
     // Reset chat sessions for fresh generation
     refinement.resetSessions();
 
-    const images: ImageFile[] = [subjectImage];
-    if (backgroundImage) images.push(backgroundImage);
-
     try {
       // One scan per generation, on the same ImageFile the AiScanPanel
       // pre-scanned, so the analysis is shared rather than repeated.
       const blueprint = await aiScan.scan(aiScanSources);
-      const results = await editImage({
-        images,
+      const references: ReferenceRoleImage[] = [
+        { image: subjectImage, role: 'subject', label: 'subject-model' },
+      ];
+      if (backgroundImage) {
+        references.push({ image: backgroundImage, role: 'style', label: 'target-background' });
+      }
+
+      const results = await driver.generate({
         prompt: buildPrompt(cameraView, blueprint ?? ''),
         negativePrompt,
-        numberOfImages: 2,
+        references,
+        count: 2,
         aspectRatio,
         resolution,
-      }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
+        workflow: 'background-replacement',
+        model: imageEditModel,
+        onProgress: setLoadingMessage,
+      });
       setGeneratedImages(results);
       results.forEach((img) => addImage(img, Feature.Background, engineId));
     } catch (err) {
@@ -149,13 +158,15 @@ export const useBackgroundReplacer = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [addImage, aiScan, aiScanSources, aspectRatio, backgroundImage, buildImageServiceConfig, buildPrompt, cameraView, engineId, imageEditModel, negativePrompt, promptText, resolution, t]);
+  }, [addImage, aiScan, aiScanSources, aspectRatio, backgroundImage, buildPrompt, cameraView, driver, engineId, imageEditModel, negativePrompt, promptText, resolution, subjectImage, t]);
 
   const handleUpscale = useCallback(async (imageToUpscale: ImageFile, index: number) => {
     setUpscalingStates((prev) => ({ ...prev, [index]: true }));
     setError(null);
     try {
-      const result = await upscaleImage(imageToUpscale, imageEditModel, buildImageServiceConfig(() => {}));
+      const result = await driver.upscale({
+        image: imageToUpscale,
+      });
       setGeneratedImages((prev) => prev.map((img, i) => (i === index ? result : img)));
       addImage(result, Feature.Background, engineId);
     } catch (err) {
@@ -163,7 +174,7 @@ export const useBackgroundReplacer = () => {
     } finally {
       setUpscalingStates((prev) => ({ ...prev, [index]: false }));
     }
-  }, [addImage, buildImageServiceConfig, engineId, imageEditModel, t]);
+  }, [addImage, driver, engineId, t]);
 
   const handleRefine = useCallback(async (imageToRefine: ImageFile, index: number, prompt: string) => {
     const key = String(index);

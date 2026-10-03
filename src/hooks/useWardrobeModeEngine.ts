@@ -13,10 +13,12 @@ import {
   type ImageEngineId,
   type ImageFile,
   type ImageResolution,
+  type VirtualTryOnClothingItem,
   type WardrobeResultSet,
   type WardrobeSet,
 } from '../types';
-import { editImage } from '../services/imageEditingService';
+import type { ImageDriver, GenerateJob, ReferenceRoleImage } from '../services/providers/ImageDriver';
+import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
 import { buildGeminiVirtualTryOnParts } from '../utils/gemini-virtual-try-on-prompt';
 import { buildGptVirtualTryOnParts } from '../utils/gpt-virtual-try-on-prompt';
 import { buildQwenVirtualTryOnParts } from '../utils/qwen-virtual-try-on-prompt';
@@ -26,9 +28,7 @@ import { getErrorMessage } from '../utils/imageUtils';
 import { aiScanSourceSet } from '../utils/ai-scan-blueprint';
 import { useAiScan } from '../contexts/AiScanContext';
 
-export interface WardrobeImageDriver {
-  editImage: typeof editImage;
-}
+export type WardrobeImageDriver = ImageDriver;
 
 export interface UseWardrobeModeEngineConfig {
   driver: WardrobeImageDriver;
@@ -106,9 +106,9 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
     }));
     setResults(initialResults);
 
-    const jobs: { setId: string; items: any[] }[] = validSets.map((s) => ({
+    const jobs: { setId: string; items: (VirtualTryOnClothingItem & { image: ImageFile })[] }[] = validSets.map((s) => ({
       setId: s.id,
-      items: s.items.filter((i) => i.image !== null),
+      items: s.items.filter((i): i is VirtualTryOnClothingItem & { image: ImageFile } => i.image !== null),
     }));
 
     const batchConcurrency = resolveEngineConcurrency(engineId, jobs.length);
@@ -119,8 +119,8 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
         );
 
         try {
-          const sourceItems = job.items.map((item: any) => ({
-            image: item.image as ImageFile,
+          const sourceItems = job.items.map((item) => ({
+            image: item.image,
             sourceItemType: item.sourceItemType,
             sourcePrompt: item.sourcePrompt,
           }));
@@ -144,18 +144,29 @@ export const useWardrobeModeEngine = (config: UseWardrobeModeEngineConfig): UseW
             gemini: () => buildGeminiVirtualTryOnParts(promptInput),
           });
 
-          const images = await driver.editImage(
-            {
-              images: [],
-              prompt: '',
-              numberOfImages: numImages,
-              aspectRatio,
-              resolution,
-              interleavedParts,
-            },
-            imageEditModel,
-            { onStatusUpdate: setLoadingMessage },
-          );
+          const references: ReferenceRoleImage[] = [
+            { image: capturedSubject, role: 'subject', label: 'model' },
+            ...job.items.map((item, idx: number) => ({
+              image: item.image,
+              role: 'garment' as const,
+              label: `item-${idx + 1}-${item.sourceItemType}`,
+            })),
+          ];
+
+          const flattened = flattenInterleavedParts(interleavedParts);
+          const compiledPrompt = flattened ? flattened.prompt : '';
+
+          const images = await driver.generate({
+            prompt: compiledPrompt,
+            references,
+            count: numImages,
+            aspectRatio,
+            resolution,
+            interleavedParts,
+            workflow: 'wardrobe-mode',
+            model: imageEditModel,
+            onProgress: setLoadingMessage,
+          });
 
           setResults((prev) =>
             prev.map((r) =>

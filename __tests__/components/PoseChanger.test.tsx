@@ -50,6 +50,15 @@ vi.mock('../../src/services/imageEditingService', () => ({
   upscaleImage: (...args: unknown[]) => upscaleImageMock(...args),
 }));
 
+vi.mock('../../src/contexts/ImageEngineContext', async () => {
+  const { mockUseImageEngine } = await import('../__mocks__/contexts');
+  return mockUseImageEngine({
+    editImage: (...args: unknown[]) => editImageMock(...args),
+    upscaleImage: (...args: unknown[]) => upscaleImageMock(...args),
+    model: 'gemini-2.5-flash-image',
+  });
+});
+
 vi.mock('../../src/services/textService', () => ({
   generatePoseDescription: (...args: unknown[]) => generatePoseDescriptionMock(...args),
   scanGarmentBlueprint: vi.fn(),

@@ -1,31 +1,19 @@
 import type { Dispatch, SetStateAction } from 'react';
 
 import { AspectRatio, ImageFile, ImageResolution } from '../types';
-import { editImage } from '../services/imageEditingService';
+import type { ImageDriver, GenerateJob, ReferenceRoleImage } from '../services/providers/ImageDriver';
 import { getErrorMessage } from '../utils/imageUtils';
 import { buildPhotoAlbumPrompt } from '../utils/photo-album-prompt-builder';
 import { PHOTO_ALBUM_POSES } from '../utils/photoAlbumConfig';
 import { getEnglishFramingInstruction } from '../utils/framingInstructions';
 
-/**
- * Image driver seam for Photo Album generation.
- * Default implementation uses the real editImage from imageEditingService.
- * Future tests can inject a mock driver to test the engine core directly
- * without hitting Gemini or the network.
- */
-export interface PhotoAlbumImageDriver {
-  editImage: typeof editImage;
-}
+export type PhotoAlbumImageDriver = ImageDriver;
 
 type GenerationMode = 'fullModel' | 'faceAndOutfit';
 
 interface GeneratedAlbumImage extends ImageFile {
   pose: string;
 }
-
-const buildImageServiceConfig = (onStatusUpdate: (message: string) => void) => ({
-  onStatusUpdate,
-});
 
 export interface UsePhotoAlbumEngineConfig {
   driver: PhotoAlbumImageDriver;
@@ -119,11 +107,26 @@ export const usePhotoAlbumEngine = (config: UsePhotoAlbumEngineConfig): UsePhoto
       additionalNotesInstruction,
     });
 
-    const [result] = await driver.editImage(
-      { images: imagesForApi, prompt, numberOfImages: 1, aspectRatio, resolution },
-      imageEditModel,
-      buildImageServiceConfig(setGenerationStatus),
-    );
+    const references: ReferenceRoleImage[] = [];
+    if (mode === 'fullModel' && originalPhoto) {
+      references.push({ image: originalPhoto, role: 'subject', label: 'full-model' });
+    } else if (mode === 'faceAndOutfit' && faceImage && outfitImage) {
+      references.push(
+        { image: faceImage, role: 'subject', label: 'face-reference' },
+        { image: outfitImage, role: 'garment', label: 'outfit-reference' },
+      );
+    }
+
+    const result = await driver.generateOne({
+      prompt,
+      references: references.length > 0 ? references : undefined,
+      images: references.length === 0 ? imagesForApi : undefined,
+      aspectRatio,
+      resolution,
+      workflow: 'photo-album',
+      model: imageEditModel,
+      onProgress: setGenerationStatus,
+    });
 
     return { ...result, pose };
   };

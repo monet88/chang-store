@@ -362,6 +362,7 @@ export const vi: Translation = {
       poseDescriptionFailed: 'Không tạo được mô tả dáng: {{errorMessage}}',
       geminiFailed: 'Gọi Gemini API thất bại. Lỗi: {{error}}',
       textToImageNotSupported: 'Nhà cung cấp API đã chọn không hỗ trợ tạo ảnh từ văn bản.',
+      unsupportedOperation: '{{operation}} không được hỗ trợ trên engine này.',
     },
     upload: {
       fileTooLarge: 'File quá lớn. Kích thước tối đa là {{maxSize}}.',

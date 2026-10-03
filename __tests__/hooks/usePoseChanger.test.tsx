@@ -31,6 +31,53 @@ vi.mock('../../src/contexts/ApiProviderContext', () => ({
   }),
 }));
 
+vi.mock('../../src/contexts/useImageDriver', () => ({
+  useImageDriver: () => ({
+    id: 'gemini',
+    generateOne: vi.fn(async (job: any) => {
+      const editParams = {
+        images: job.images ?? job.references?.map((r: any) => r.image) ?? [],
+        prompt: job.prompt,
+        numberOfImages: 1,
+        aspectRatio: job.aspectRatio,
+        resolution: job.resolution,
+        workflow: job.workflow,
+        negativePrompt: job.negativePrompt,
+      };
+      const res = await editImage(
+        editParams,
+        'gemini-2.5-flash-image',
+        { onStatusUpdate: job.onProgress ?? (() => {}) },
+      );
+      return res[0];
+    }),
+    generate: vi.fn(async (job: any) => {
+      const editParams = {
+        images: job.images ?? job.references?.map((r: any) => r.image) ?? [],
+        prompt: job.prompt,
+        numberOfImages: job.count ?? 1,
+        aspectRatio: job.aspectRatio,
+        resolution: job.resolution,
+        workflow: job.workflow,
+        negativePrompt: job.negativePrompt,
+      };
+      return editImage(
+        editParams,
+        'gemini-2.5-flash-image',
+        { onStatusUpdate: job.onProgress ?? (() => {}) },
+      );
+    }),
+    upscale: vi.fn(async (job: any) => {
+      return upscaleImage(
+        job.image,
+        'gemini-2.5-flash-image',
+        { onStatusUpdate: job.onProgress ?? (() => {}) },
+      );
+    }),
+  }),
+  useOptionalImageDriver: () => null,
+}));
+
 import { usePoseChanger } from '../../src/hooks/usePoseChanger';
 import { AiScanProvider } from '../../src/contexts/AiScanContext';
 import { editImage, upscaleImage } from '../../src/services/imageEditingService';

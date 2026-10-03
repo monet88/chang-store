@@ -8,7 +8,7 @@ import {
 } from '../types';
 import { getErrorMessage } from '../utils/imageUtils';
 import { useAiScan } from '../contexts/AiScanContext';
-import type { editImage, upscaleImage, createImageChatSession } from '../services/imageEditingService';
+import type { ImageDriver, GenerateJob, UpscaleJob, ReferenceRoleImage } from '../services/providers/ImageDriver';
 import {
   lookbookAiScanSources,
   buildCloseUpNegativePrompt,
@@ -28,19 +28,7 @@ import { LookbookFormState } from './useLookbookDraft';
 
 type TranslateFn = (key: string, options?: { [key: string]: string | number }) => string;
 
-/**
- * Gemini image primitives the engine orchestrates, mirroring the provider
- * `ProviderImageDriver` seam. The main hook builds the default driver from the
- * studio-scoped engine context; tests can inject a mock driver to exercise the
- * generation core without hitting the Gemini API. The chat session is
- * Gemini-only: a GPT-lane refine is a single-shot edit (issue #152 Decision 5),
- * so callers fall back to `createSingleShotRefineSession` when it is absent.
- */
-export interface GeminiImageDriver {
-  editImage: typeof editImage;
-  upscaleImage: typeof upscaleImage;
-  createImageChatSession?: typeof createImageChatSession;
-}
+export type GeminiImageDriver = ImageDriver;
 
 export interface LookbookSet {
   main: ImageFile;
@@ -63,7 +51,6 @@ export interface UseLookbookGenerationConfig {
   resolution: ImageResolution;
   variationCount: number;
   imageEditModel: string;
-  buildImageServiceConfig: (onStatusUpdate: (message: string) => void) => { onStatusUpdate: (message: string) => void };
   onMainImageGenerated: (image: ImageFile) => void;
   setIsLoading: (value: boolean) => void;
   setLoadingMessage: (message: string) => void;
@@ -94,7 +81,7 @@ export const useLookbookGeneration = (
   const {
     driver, formState, generatedLookbook, setGeneratedLookbook,
     aspectRatio, resolution, variationCount, imageEditModel,
-    buildImageServiceConfig, onMainImageGenerated,
+    onMainImageGenerated,
     setIsLoading, setLoadingMessage, setError,
     setIsGeneratingVariations, setIsGeneratingCloseUp,
     setActiveOutputTab, addImage, engineId, t,
@@ -122,10 +109,8 @@ export const useLookbookGeneration = (
     setError(null);
     setGeneratedLookbook(null);
 
-    const imagesForApi: ImageFile[] = validClothingImages.map((item) => item.image as ImageFile);
-    if (fabricTextureImage) {
-      imagesForApi.push(fabricTextureImage);
-    }
+    const garments: ImageFile[] = validClothingImages.map((item) => item.image as ImageFile);
+    const imagesForApi: ImageFile[] = fabricTextureImage ? [...garments, fabricTextureImage] : garments;
 
     const blueprint = await aiScan.scan(aiScanSources);
     const promptInput: LookbookPromptInput = {
@@ -139,14 +124,27 @@ export const useLookbookGeneration = (
       : buildGeminiLookbookPrompt(promptInput);
 
     try {
-      const results = await driver.editImage({
-        images: imagesForApi,
+      const references: ReferenceRoleImage[] = garments.map((img, idx) => ({
+        image: img,
+        role: 'garment' as const,
+        label: `garment-${idx + 1}`,
+      }));
+      if (fabricTextureImage) {
+        references.push({ image: fabricTextureImage, role: 'style', label: 'fabric-texture' });
+      }
+
+      const results = await driver.generate({
         prompt,
         negativePrompt,
-        numberOfImages: 1,
+        references,
+        count: 1,
         aspectRatio,
         resolution,
-      }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
+        workflow: 'lookbook',
+        model: imageEditModel,
+        onProgress: setLoadingMessage,
+      });
+
       if (results.length > 0) {
         const generatedImage = results[0];
         setGeneratedLookbook({ main: generatedImage, variations: [], closeups: [], blueprint });
@@ -160,7 +158,7 @@ export const useLookbookGeneration = (
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [driver, formState, imageEditModel, buildImageServiceConfig, aspectRatio, resolution,
+  }, [driver, formState, imageEditModel, aspectRatio, resolution,
     t, setError, setIsLoading, setLoadingMessage, setGeneratedLookbook, setActiveOutputTab, onMainImageGenerated, addImage, engineId, aiScan, aiScanSources]);
 
   const handleGenerateVariations = useCallback(async () => {
@@ -180,14 +178,17 @@ export const useLookbookGeneration = (
       : buildGeminiVariationPrompt(formState.lookbookStyle, generatedLookbook.blueprint ?? '');
 
     try {
-      const newVariations = await driver.editImage({
-        images: [baseImage],
+      const newVariations = await driver.generate({
         prompt,
         negativePrompt: formState.negativePrompt,
-        numberOfImages: variationCount,
+        references: [{ image: baseImage, role: 'subject', label: 'base-main' }],
+        count: variationCount,
         aspectRatio,
         resolution,
-      }, imageEditModel, buildImageServiceConfig(setLoadingMessage));
+        workflow: 'lookbook-variations',
+        model: imageEditModel,
+        onProgress: setLoadingMessage,
+      });
       setGeneratedLookbook((prev) => prev ? { ...prev, variations: newVariations } : null);
       newVariations.forEach((image) => addImage?.(image, Feature.Lookbook, engineId));
     } catch (err) {
@@ -197,7 +198,7 @@ export const useLookbookGeneration = (
       setLoadingMessage('');
     }
   }, [driver, generatedLookbook, formState.negativePrompt, formState.lookbookStyle,
-    variationCount, imageEditModel, buildImageServiceConfig, aspectRatio, resolution,
+    variationCount, imageEditModel, aspectRatio, resolution,
     t, setError, setIsGeneratingVariations, setLoadingMessage, setGeneratedLookbook, addImage, engineId]);
 
   const handleGenerateCloseUp = useCallback(async () => {
@@ -221,14 +222,16 @@ export const useLookbookGeneration = (
       const closeups: ImageFile[] = [];
       for (const closeUpPrompt of closeUpPrompts) {
         setLoadingMessage(t('lookbook.generatingCloseUp', { current: closeups.length + 1, total: closeUpPrompts.length }));
-        const results = await driver.editImage({
-          images: [baseImage],
+        const results = await driver.generate({
           prompt: closeUpPrompt,
           negativePrompt: combinedNegativePrompt,
-          numberOfImages: 1,
+          references: [{ image: baseImage, role: 'subject', label: 'base-main' }],
+          count: 1,
           aspectRatio,
           resolution,
-        }, imageEditModel, buildImageServiceConfig(() => {}));
+          workflow: 'lookbook-closeup',
+          model: imageEditModel,
+        });
         if (results.length > 0) {
           closeups.push(results[0]);
           setGeneratedLookbook((prev) => prev ? { ...prev, closeups: [...closeups] } : null);
@@ -242,7 +245,7 @@ export const useLookbookGeneration = (
       setLoadingMessage('');
     }
   }, [driver, generatedLookbook, formState.negativePrompt, imageEditModel,
-    buildImageServiceConfig, aspectRatio, resolution,
+    aspectRatio, resolution,
     t, setError, setIsGeneratingCloseUp, setLoadingMessage, setGeneratedLookbook, addImage, engineId]);
 
   return {

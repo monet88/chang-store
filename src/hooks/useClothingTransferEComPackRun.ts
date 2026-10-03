@@ -11,6 +11,8 @@ import {
   ImageResolution,
 } from '../types';
 import { ClothingTransferImageDriver } from './useClothingTransferEngine';
+import type { ReferenceRoleImage } from '../services/providers/ImageDriver';
+import { flattenInterleavedParts } from '../utils/flattenInterleavedParts';
 import { BrandModelProfile } from '../config/brandModelRoster';
 import { DisplayTemplate } from '../config/displayTemplates';
 import {
@@ -326,22 +328,37 @@ export const useClothingTransferEComPackRun = (
           blueprint,
         });
 
-        const results = await driver.editImage(
-          {
-            images: [],
-            prompt: '',
-            numberOfImages: numImages,
-            aspectRatio,
-            resolution,
-            interleavedParts: parts,
-            // Declare the routing instead of letting the main process sniff the
-            // prompt: brand models transplant a face (BFS LoRA), the staging
-            // lanes never do.
-            workflow: target.kind === 'brand-model' ? 'identity-transfer' : 'standard',
-          },
-          imageEditModel,
-          { onStatusUpdate: () => {} },
-        );
+        const workflow = target.kind === 'brand-model' ? 'identity-transfer' : 'standard';
+
+        const references: ReferenceRoleImage[] = [];
+        if (target.kind === 'custom-destination') {
+          references.push({
+            image: target.destination,
+            role: 'subject',
+            label: 'custom-scene',
+          });
+        }
+        if (sourceOutfitImage) {
+          references.push({
+            image: sourceOutfitImage,
+            role: 'garment',
+            label: target.kind === 'product' ? target.template.name : 'source-outfit',
+          });
+        }
+
+        const flattened = flattenInterleavedParts(parts);
+        const compiledPrompt = flattened ? flattened.prompt : combineExtraInstructions(extraPrompt, outfitNote);
+
+        const results = await driver.generate({
+          prompt: compiledPrompt,
+          references,
+          count: numImages,
+          aspectRatio,
+          resolution,
+          interleavedParts: parts,
+          workflow,
+          model: imageEditModel,
+        });
 
         updatePackItem(itemId, { status: 'completed', results, error: undefined });
         results.forEach((img) => addImage(img, Feature.ClothingTransfer, engineId));

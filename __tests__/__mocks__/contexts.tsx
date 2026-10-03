@@ -20,6 +20,9 @@
 import { vi } from 'vitest';
 import { Feature } from '../../src/types';
 import type { ImageEngine } from '../../src/contexts/ImageEngineContext';
+import type { ImageDriver, GenerateJob, UpscaleJob } from '../../src/services/providers/ImageDriver';
+import { InMemoryImageDriverFake } from '../../src/services/providers/testing/InMemoryImageDriverFake';
+
 
 // ============================================================================
 // Type Definitions
@@ -234,27 +237,176 @@ export const mockUseImageViewer = (
   };
 };
 
+import { flattenInterleavedParts } from '../../src/utils/flattenInterleavedParts';
+
+export const createLegacyDriverBridge = (driver: ImageDriver, defaultModel?: string) => {
+  const bridgeEditImage = async (params: any, model?: string, config?: any, signal?: AbortSignal) => {
+    const interleaved = flattenInterleavedParts(params.interleavedParts);
+    const prompt = interleaved ? interleaved.prompt : params.prompt || '';
+    const images = interleaved ? interleaved.images : params.images || [];
+
+    const job: GenerateJob = {
+      prompt,
+      images: images.length > 0 ? images : undefined,
+      aspectRatio: params.aspectRatio,
+      resolution: params.resolution,
+      workflow: params.workflow,
+      negativePrompt: params.negativePrompt,
+      count: params.numberOfImages ?? 1,
+      model: model || defaultModel,
+      signal,
+      onProgress: config?.onStatusUpdate,
+      interleavedParts: params.interleavedParts,
+    };
+
+    return driver.generate(job);
+  };
+
+  const bridgeUpscaleImage = async (image: any, _model?: string, config?: any, quality?: any, signal?: AbortSignal) => {
+    const job: UpscaleJob = {
+      image,
+      quality: quality === '4K' ? '4K' : '2K',
+      signal,
+      onProgress: config?.onStatusUpdate,
+    };
+
+    return driver.upscale(job);
+  };
+
+  return { editImage: bridgeEditImage, upscaleImage: bridgeUpscaleImage };
+};
+
+export interface MockImageDriverHandle {
+  useImageDriver: () => ImageDriver;
+  useOptionalImageDriver: () => ImageDriver;
+  driver: InMemoryImageDriverFake;
+}
+
+export interface MockImageEngineHandle {
+  useImageEngine: () => ImageEngine;
+  useOptionalImageEngine: () => ImageEngine;
+  useImageDriver: () => ImageDriver;
+  useOptionalImageDriver: () => ImageDriver;
+  driver: InMemoryImageDriverFake;
+  createLegacyDriverBridge: typeof createLegacyDriverBridge;
+}
+
+
+
 /**
- * Creates a mock for useImageEngine — the studio-scoped image transport.
+ * Creates a mock for useImageDriver hook backed by InMemoryImageDriverFake.
  *
- * Feature hooks read their driver, model and generation options from that
- * context, so a hook or component test mocks this module instead of mounting
- * the provider (which would need the real ApiProvider).
+ * Feature hooks migrating to the canonical ImageDriver seam consume useImageDriver().
+ * Tests mocking useImageDriver() can inspect recorded calls, inject canned responses/errors,
+ * defer execution, and verify domain invariants via driver.getRecordedJobs().
+ */
+export const mockUseImageDriver = (
+  driverOrOverrides?: InMemoryImageDriverFake | Partial<ImageDriver> | { driver?: ImageDriver }
+): MockImageDriverHandle => {
+  let fakeInstance: InMemoryImageDriverFake;
+  let driverInstance: ImageDriver;
+
+  if (driverOrOverrides instanceof InMemoryImageDriverFake) {
+    fakeInstance = driverOrOverrides;
+    driverInstance = fakeInstance;
+  } else if (driverOrOverrides && 'driver' in driverOrOverrides && driverOrOverrides.driver) {
+    if (driverOrOverrides.driver instanceof InMemoryImageDriverFake) {
+      fakeInstance = driverOrOverrides.driver;
+    } else {
+      fakeInstance = new InMemoryImageDriverFake();
+      Object.assign(fakeInstance, driverOrOverrides.driver);
+    }
+    driverInstance = driverOrOverrides.driver;
+  } else {
+    fakeInstance = new InMemoryImageDriverFake();
+    if (driverOrOverrides) {
+      Object.assign(fakeInstance, driverOrOverrides);
+    }
+    driverInstance = fakeInstance;
+  }
+
+  return {
+    useImageDriver: () => driverInstance,
+    useOptionalImageDriver: () => driverInstance,
+    driver: fakeInstance,
+  };
+};
+
+/**
+ * Creates a mock for useImageEngine — the studio-scoped image transport and UI facade.
  *
- * @example
- * vi.mock('@/contexts/ImageEngineContext', () => mockUseImageEngine({
- *   editImage: mockedEditImage,
- *   model: 'gemini-3.1-flash-image',
- * }));
+ * Retains 100% backward compatibility for tests asserting on legacy ImageEngine properties
+ * (options, modelOptions, setModel, model, editImage, upscaleImage), while also exposing
+ * a driver backed by InMemoryImageDriverFake, delegation methods (generate, generateOne, upscale),
+ * and re-exporting useImageDriver.
  */
 export const mockUseImageEngine = (
-  overrides: Partial<ImageEngine> = {}
-): { useImageEngine: () => ImageEngine } => {
+  overrides: Partial<ImageEngine> & { driver?: ImageDriver } = {}
+): MockImageEngineHandle => {
+  const fakeDriver =
+    (overrides.driver instanceof InMemoryImageDriverFake ? overrides.driver : null) ??
+    new InMemoryImageDriverFake((overrides.id as any) ?? 'gemini');
+
+  // If the caller provided custom editImage or upscaleImage overrides (e.g. vi.fn() spies in unit tests),
+  // bridge fakeDriver.generate, fakeDriver.generateOne, and fakeDriver.upscale to dispatch to them!
+  if (overrides.editImage) {
+    fakeDriver.generate = vi.fn(async (job: GenerateJob) => {
+      (fakeDriver as any).dispatchedJobs?.push({ ...job });
+      (fakeDriver as any).recordedCalls?.push({ type: 'generate', job: { ...job }, timestamp: Date.now() });
+      const editParams = {
+        images: (job as any).interleavedParts
+          ? (job.images ?? [])
+          : (job.images ?? job.references?.map((r) => r.image) ?? []),
+        prompt: (job as any).interleavedParts ? '' : job.prompt,
+        numberOfImages: job.count ?? 1,
+        aspectRatio: job.aspectRatio,
+        resolution: job.resolution,
+        workflow: job.workflow,
+        negativePrompt: job.negativePrompt,
+        interleavedParts: (job as any).interleavedParts,
+      };
+
+
+      return overrides.editImage!(
+        editParams as any,
+        overrides.model ?? 'gemini-2.5-flash-image',
+        { onStatusUpdate: job.onProgress ?? (() => {}) } as any,
+      );
+    }) as any;
+    fakeDriver.generateOne = vi.fn(async (job: GenerateJob) => {
+      const results = await fakeDriver.generate(job);
+      return results[0];
+    }) as any;
+  }
+
+  if (overrides.upscaleImage) {
+    fakeDriver.upscale = vi.fn(async (job: UpscaleJob) => {
+      (fakeDriver as any).dispatchedUpscaleJobs?.push({ ...job });
+      (fakeDriver as any).recordedCalls?.push({ type: 'upscale', job: { ...job }, timestamp: Date.now() });
+      return job.quality !== undefined
+        ? overrides.upscaleImage!(
+            job.image,
+            overrides.model ?? 'gemini-2.5-flash-image',
+            { onStatusUpdate: job.onProgress ?? (() => {}) } as any,
+            job.quality,
+          )
+        : overrides.upscaleImage!(
+            job.image,
+            overrides.model ?? 'gemini-2.5-flash-image',
+            { onStatusUpdate: job.onProgress ?? (() => {}) } as any,
+          );
+    }) as any;
+  }
+
   const defaults: ImageEngine = {
     id: 'gemini',
     model: 'gemini-2.5-flash-image',
+    driver: fakeDriver,
     editImage: vi.fn(),
     upscaleImage: vi.fn(),
+    generate: vi.fn((job) => fakeDriver.generate(job)),
+    generateOne: vi.fn((job) => fakeDriver.generateOne(job)),
+    upscale: vi.fn((job) => fakeDriver.upscale(job)),
     createImageChatSession: vi.fn(() => ({
       sendRefinement: vi.fn(),
       getHistory: () => [],
@@ -266,12 +418,29 @@ export const mockUseImageEngine = (
     options: null,
   };
 
+  const engineValue: ImageEngine = Object.defineProperties(
+    { ...defaults, driver: overrides.driver ?? fakeDriver },
+    Object.getOwnPropertyDescriptors(overrides),
+  );
+
+  // Keep fakeDriver.id in sync with dynamic getter on engineValue.id
+  Object.defineProperty(fakeDriver, 'id', {
+    get() {
+      return engineValue.id;
+    },
+    configurable: true,
+  });
+
   return {
-    useImageEngine: () => ({
-      ...defaults,
-      ...overrides,
-    }),
+    useImageEngine: () => engineValue,
+    useOptionalImageEngine: () => engineValue,
+    useImageDriver: () => engineValue.driver,
+    useOptionalImageDriver: () => engineValue.driver,
+    driver: fakeDriver,
+    createLegacyDriverBridge,
   };
+
+
 };
 
 // ============================================================================
@@ -283,23 +452,21 @@ export const mockUseImageEngine = (
  *
  * @param overrides - Object with partial overrides for each context
  * @returns Object containing all mock factories
- *
- * @example
- * const mocks = createAllContextMocks({
- *   language: { t: vi.fn(() => 'custom') },
- *   api: { googleApiKey: 'key' },
- * });
  */
 export const createAllContextMocks = (overrides: {
   language?: Partial<LanguageContextType>;
   imageGallery?: Partial<ImageGalleryContextType>;
   api?: Partial<ApiContextType>;
   imageViewer?: Partial<ImageViewerContextType>;
+  imageEngine?: Partial<ImageEngine>;
+  imageDriver?: InMemoryImageDriverFake | Partial<ImageDriver>;
 } = {}) => ({
   language: mockUseLanguage(overrides.language),
   imageGallery: mockUseImageGallery(overrides.imageGallery),
   api: mockUseApi(overrides.api),
   imageViewer: mockUseImageViewer(overrides.imageViewer),
+  imageEngine: mockUseImageEngine(overrides.imageEngine),
+  imageDriver: mockUseImageDriver(overrides.imageDriver),
 });
 
 /** Default mock instances for quick access in tests */
@@ -308,4 +475,7 @@ export const defaultMocks = {
   useImageGallery: mockUseImageGallery(),
   useApi: mockUseApi(),
   useImageViewer: mockUseImageViewer(),
+  useImageEngine: mockUseImageEngine(),
+  useImageDriver: mockUseImageDriver(),
 };
+

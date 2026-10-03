@@ -1,17 +1,13 @@
 import { useCallback } from 'react';
-import { editImage } from '@/services/gemini/image';
+import type { ImageDriver, GenerateJob } from '@/services/providers/ImageDriver';
 import { runBoundedWorkers } from '@/utils/run-bounded-workers';
 import { getPromptText } from '@/utils/watermark-prompts';
 import { type ImageFile, type WatermarkBatchItem, type WatermarkConfig } from '@/types';
 
 /**
- * Image-edit primitive the engine orchestrates. The main hook builds the
- * default driver from the real gemini service; tests can inject a mock driver
- * to exercise the processing core without hitting the Gemini API.
+ * Image-edit primitive the engine orchestrates.
  */
-export interface WatermarkImageDriver {
-  editImage: typeof editImage;
-}
+export type WatermarkImageDriver = ImageDriver;
 
 export interface UseWatermarkRemoverEngineConfig {
   driver: WatermarkImageDriver;
@@ -45,15 +41,15 @@ export const useWatermarkRemoverEngine = (
     try {
       updateItem(item.id, { status: 'processing', error: undefined });
 
-      const results = await driver.editImage({
+      const result = await driver.generateOne({
         images: [item.original],
         prompt,
         model,
-        numberOfImages: 1,
+        workflow: 'watermark-remover',
       });
 
-      if (results.length > 0) {
-        updateItem(item.id, { status: 'completed', result: results[0] });
+      if (result) {
+        updateItem(item.id, { status: 'completed', result });
       } else {
         throw new Error('No result returned from API');
       }

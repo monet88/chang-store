@@ -28,10 +28,10 @@ export const isUncensoredModel = (modelName: string | undefined | null): boolean
   Boolean(modelName && UC_SEGMENT.test(modelName));
 
 /**
- * Phrases that explicitly REFUSE a face swap ("no face swap", "không đổi mặt").
- * Checked first so a prompt that merely bans swapping never triggers the LoRA.
+ * Canonical phrases that explicitly REFUSE a face swap ("no face swap", "không đổi mặt").
+ * Preserved for backward compatibility and fast-path substring check.
  */
-const FACE_SWAP_REFUSAL_PHRASES = [
+export const FACE_SWAP_REFUSAL_PHRASES = [
   'no face swap',
   'without face swap',
   'do not swap',
@@ -45,13 +45,92 @@ const FACE_SWAP_REFUSAL_PHRASES = [
   'không thay khuôn mặt',
   'không chuyển mặt',
   'không chuyển danh tính',
+] as const;
+
+/**
+ * Normalizes user prompt for robust refusal and intent matching:
+ * 1. Lowercases the string.
+ * 2. Strips apostrophes (e.g. "don't" -> "dont").
+ * 3. Replaces hyphens/underscores with space (e.g. "face-swap" -> "face swap").
+ * 4. Strips Vietnamese diacritics via NFD normalization into ASCII (e.g. "đừng" -> "dung", "đổi" -> "doi").
+ * 5. Unifies compound "faceswap" into "face swap".
+ * 6. Collapses multiple whitespace.
+ */
+export const normalizePromptForRefusal = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/[-_]/g, ' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/gi, 'd')
+    .replace(/\bfaceswap\b/g, 'face swap')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * Regex patterns matching refusal intent on normalized ASCII text (English only).
+ * Vietnamese patterns are checked separately against the original accented text
+ * to avoid collisions caused by accent stripping (e.g. mặt=surface vs face,
+ * cho=allow vs chớ=don't, dùng=use vs đừng=don't).
+ */
+const ENGLISH_REFUSAL_PATTERNS = [
+  /\b(no|without|do not|dont|never|not|stop|skip)\s+(face\s*swap|swap\s*(the\s*)?face|swapping\s*face|head\s*swap)\b/i,
+  /\b(do not|dont)\s+swap\b/i,
+  /\bkeep\s+(the\s*)?original\s*face\b/i,
+  /\bkeep\s+face\s+original\b/i,
+];
+
+/**
+ * Vietnamese refusal patterns run on the original accented (lowercased) text.
+ * Uses (?:^|[\s,;:!.?()\[\]]) instead of \b because JS \b does not treat
+ * Vietnamese Unicode characters (đ, ừ, ặ, etc.) as word characters.
+ *
+ * This preserves diacritics so that:
+ * - "không" (don't) is distinct from unrelated words
+ * - "đừng" (don't) is distinct from "dùng" (use)
+ * - "chớ" (don't) is distinct from "cho" (allow)
+ * - "mặt" after giữ nguyên is only matched when not followed by surface-words
+ *   like nước, vải, bàn, đất, sàn, đường, phẳng, kính, gỗ, đá
+ */
+const VIETNAMESE_REFUSAL_PATTERNS = [
+  /(?:^|[\s,;:!.?()[\]])(không|đừng|chớ)\s+((đổi|thay|ghép|chuyển|hoán\s*đổi)\s+(khuôn\s*mặt|mặt|danh\s*tính)|face\s*swap)/i,
+  /(?:^|[\s,;:!.?()[\]])giữ\s+(nguyên\s+)?(khuôn\s*mặt|mặt\s+gốc|mặt(?!\s+(nước|vải|bàn|đất|sàn|đường|phẳng|kính|gỗ|đá)))/i,
+];
+
+/**
+ * ASCII Vietnamese refusal patterns run on normalized (accent-stripped) text.
+ * These catch intentionally pre-stripped input from users typing without a
+ * Vietnamese keyboard (e.g. "khong doi mat"). The ambiguous collision words
+ * (dung/cho) are safe here because the **full** Vietnamese sentence — with
+ * accented "dùng" or "cho" — is already checked by VIETNAMESE_REFUSAL_PATTERNS
+ * on the original text first, so these only fire when the input was already
+ * unaccented.
+ */
+const ASCII_VIETNAMESE_REFUSAL_PATTERNS = [
+  /\b(khong|dung|cho)\s+((doi|thay|ghep|chuyen|hoan\s*doi)\s+(khuon\s*mat|mat|danh\s*tinh)|face\s*swap)\b/i,
+  /\bgiu\s+(nguyen\s+)?(mat(\s+goc)?|khuon\s*mat)\b/i,
 ];
 
 /** Whether a prompt explicitly forbids face swapping. */
 export const isFaceSwapRefusal = (prompt: string): boolean => {
   if (!prompt) return false;
   const promptLower = prompt.toLowerCase();
-  return FACE_SWAP_REFUSAL_PHRASES.some((phrase) => promptLower.includes(phrase));
+  // Fast path: exact substring match against canonical phrases (accented Vietnamese + English)
+  if (FACE_SWAP_REFUSAL_PHRASES.some((phrase) => promptLower.includes(phrase))) {
+    return true;
+  }
+  // Accented Vietnamese patterns: run on original text to preserve diacritical distinctions.
+  // Check these BEFORE the normalized path so that accented text like "cho đổi mặt"
+  // (allow face swap) is correctly rejected by the accented patterns and never falls
+  // through to the ASCII patterns where stripped "cho" would collide with "chớ".
+  if (VIETNAMESE_REFUSAL_PATTERNS.some((pattern) => pattern.test(promptLower))) {
+    return true;
+  }
+  // English + ASCII Vietnamese patterns: run on normalized (accent-stripped) text
+  const norm = normalizePromptForRefusal(prompt);
+  return ENGLISH_REFUSAL_PATTERNS.some((pattern) => pattern.test(norm))
+    || ASCII_VIETNAMESE_REFUSAL_PATTERNS.some((pattern) => pattern.test(norm));
 };
 
 /**
@@ -229,6 +308,10 @@ export const getDesktopLocalQwenApi = (): DesktopLocalQwenApi | undefined => {
 
 export {
   classifyLocalQwenError,
+  LOCAL_QWEN_UNAVAILABLE_MESSAGE,
   type LocalQwenErrorKind,
   type ClassifiedLocalQwenError,
 } from '../utils/localQwenErrors';
+
+export type { DesktopBridgeResult } from './desktopGateway';
+

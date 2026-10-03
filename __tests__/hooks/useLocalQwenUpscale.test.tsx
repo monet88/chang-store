@@ -13,6 +13,12 @@ vi.mock('@/contexts/LanguageContext', () => ({
       return key;
     },
   }),
+  useLanguageOptional: () => ({
+    t: (key: string) => {
+      if (key === 'studio.localQwenStatus.upscaling') return 'Upscaling image with local ComfyUI...';
+      return key;
+    },
+  }),
 }));
 
 const ORIGINAL_IMAGE: ImageFile = {

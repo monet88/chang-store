@@ -9,7 +9,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useApi } from '../contexts/ApiProviderContext';
-import { editImage, upscaleImage } from '../services/imageEditingService';
+import { useImageDriver } from '../contexts/useImageDriver';
 import { generatePoseDescription } from '../services/textService';
 import { getErrorMessage } from '../utils/imageUtils';
 import {
@@ -97,8 +97,7 @@ export const usePoseChanger = (): UsePoseChangerReturn => {
     [refs.subjectImage],
   );
 
-  // Default driver from real service; tests inject mock here
-  const driver = useMemo<PoseImageDriver>(() => ({ editImage, upscaleImage }), []);
+  const driver = useImageDriver();
 
   const engine = usePoseChangerEngine({
     driver,

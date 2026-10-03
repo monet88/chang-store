@@ -75,6 +75,62 @@ vi.mock('../../src/contexts/ImageEngineContext', () => ({
   }),
 }));
 
+vi.mock('../../src/contexts/useImageDriver', () => ({
+  useImageDriver: () => ({
+    id: activeEngine.id,
+    generate: vi.fn(async (job: any) => {
+      const editParams = {
+        images: job.images ?? job.references?.map((r: any) => r.image) ?? [],
+        prompt: job.interleavedParts ? '' : job.prompt,
+        numberOfImages: job.count ?? 1,
+        aspectRatio: job.aspectRatio,
+        resolution: job.resolution,
+        workflow: job.workflow,
+        negativePrompt: job.negativePrompt,
+        interleavedParts: job.interleavedParts,
+      };
+      return editImage(
+        editParams,
+        activeEngine.model,
+        { onStatusUpdate: job.onProgress ?? (() => {}) },
+      );
+    }),
+    generateOne: vi.fn(async (job: any) => {
+      const editParams = {
+        images: job.images ?? job.references?.map((r: any) => r.image) ?? [],
+        prompt: job.interleavedParts ? '' : job.prompt,
+        numberOfImages: 1,
+        aspectRatio: job.aspectRatio,
+        resolution: job.resolution,
+        workflow: job.workflow,
+        negativePrompt: job.negativePrompt,
+        interleavedParts: job.interleavedParts,
+      };
+      const res = await editImage(
+        editParams,
+        activeEngine.model,
+        { onStatusUpdate: job.onProgress ?? (() => {}) },
+      );
+      return res[0];
+    }),
+    upscale: vi.fn(async (job: any) => {
+      return job.quality !== undefined
+        ? upscaleImage(
+            job.image,
+            activeEngine.model,
+            { onStatusUpdate: job.onProgress ?? (() => {}) },
+            job.quality,
+          )
+        : upscaleImage(
+            job.image,
+            activeEngine.model,
+            { onStatusUpdate: job.onProgress ?? (() => {}) },
+          );
+    }),
+  }),
+  useOptionalImageDriver: () => null,
+}));
+
 /** Mock prompts */
 vi.mock('../../src/components/LookbookGenerator.prompts', () => ({
   BOXED_PROMPT: 'boxed prompt template',
