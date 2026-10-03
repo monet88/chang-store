@@ -69,11 +69,12 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
   return (
     <div className="space-y-6">
       {/* Mode Selector Toggle */}
-      <div className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-black/40 p-1.5 w-fit">
+      <div className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-black/40 p-1.5 w-fit" role="group" aria-label={t('clothingTransfer.modeAria')}>
         <button
           type="button"
           onClick={() => setMode('classic')}
-          className={`rounded-xl px-4 py-2 text-xs font-medium transition-all ${
+          aria-pressed={mode === 'classic'}
+          className={`rounded-xl px-4 py-2 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
             mode === 'classic'
               ? 'bg-amber-500 text-black shadow-md font-semibold'
               : 'text-zinc-400 hover:text-white'
@@ -84,7 +85,8 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
         <button
           type="button"
           onClick={() => setMode('ecom-pack')}
-          className={`rounded-xl px-4 py-2 text-xs font-medium transition-all ${
+          aria-pressed={mode === 'ecom-pack'}
+          className={`rounded-xl px-4 py-2 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
             mode === 'ecom-pack'
               ? 'bg-amber-500 text-black shadow-md font-semibold'
               : 'text-zinc-400 hover:text-white'
@@ -127,8 +129,8 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                       <button
                         type="button"
                         onClick={() => removeReference(item.id)}
-                        className="absolute right-3 top-3 z-10 rounded-full border border-white/10 bg-black/70 p-1.5 text-zinc-400 transition-colors hover:border-red-500/30 hover:text-red-300"
-                        aria-label="Remove"
+                        className="absolute right-3 top-3 z-10 rounded-full border border-white/10 bg-black/70 p-1.5 text-zinc-400 transition-colors hover:border-red-500/30 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                        aria-label={t('imageUploader.removeAria')}
                       >
                         <DeleteIcon className="h-4 w-4" />
                       </button>
@@ -153,7 +155,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
               <button
                 type="button"
                 onClick={addReference}
-                className="mt-4 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-white/12 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-white/24 hover:text-zinc-100"
+                className="mt-4 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-white/12 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-white/24 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               >
                 <AddIcon className="h-3.5 w-3.5" />
                 {t('clothingTransfer.addOutfit')}
@@ -290,7 +292,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                     type="button"
                     onClick={handleDownloadAll}
                     disabled={isLoading}
-                    className="runway-action-secondary px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                    className="runway-action-secondary px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     {t('common.downloadBatch')}
                   </button>
@@ -299,7 +301,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                   <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
                     <div className="flex items-start justify-between gap-3">
                       <span>{error}</span>
-                      <button type="button" onClick={() => setError(null)} className="text-xs text-red-200 hover:text-white">
+                      <button type="button" onClick={() => setError(null)} className="text-xs text-red-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded px-1">
                         {t('common.close')}
                       </button>
                     </div>
@@ -351,7 +353,7 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                         <button
                           type="button"
                           onClick={() => toggleRefine(key)}
-                          className={`mt-2 flex w-fit items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] transition-all ${isOpen ? 'border-white/10 bg-[var(--workspace-accent)] text-[var(--workspace-accent-text)]' : 'border-transparent text-zinc-500 hover:border-white/10 hover:bg-white/5 hover:text-zinc-200'
+                          className={`mt-2 flex w-fit items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--workspace-accent)] ${isOpen ? 'border-white/10 bg-[var(--workspace-accent)] text-[var(--workspace-accent-text)]' : 'border-transparent text-zinc-500 hover:border-white/10 hover:bg-white/5 hover:text-zinc-200'
                             }`}
                         >
                           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,7 +380,8 @@ const ClothingTransfer: React.FC<ClothingTransferProps> = ({ onSendToFeature }) 
                               type="button"
                               onClick={() => handleRefine(image, index, item.id, refinePrompts[key] || '')}
                               disabled={isCurrentlyRefining || !(refinePrompts[key] || '').trim()}
-                              className="runway-action flex-shrink-0 px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed"
+                              className="runway-action flex-shrink-0 px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--workspace-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                              aria-label={t('imageActions.refineButton')}
                             >
                               {isCurrentlyRefining ? <Spinner /> : '↵'}
                             </button>
