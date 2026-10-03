@@ -1027,6 +1027,7 @@ Không bao gồm bất kỳ văn bản hoặc markdown nào khác.
       classic: 'Chuyển đồ cơ bản',
       ecomPack: '⚡ Gói E-Com Pack',
     },
+    modeAria: 'Chọn chế độ thử đồ',
     ecomPack: {
       sourceTitle: '1. Ảnh Trang Phục Gốc (Model mặc outfit)',
       sourceHint: 'Tải lên 1 ảnh model mặc outfit. AI sẽ trích xuất trang phục theo loại đồ bạn chọn.',

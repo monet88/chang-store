@@ -1025,6 +1025,7 @@ Do not include any other text or markdown.
       classic: 'Classic Transfer',
       ecomPack: '⚡ E-Com Pack',
     },
+    modeAria: 'Select try-on mode',
     ecomPack: {
       sourceTitle: '1. Source Outfit Photo (Worn by model)',
       sourceHint: 'Upload 1 photo of a model wearing an outfit. The AI extracts clothing based on the selected scope.',
